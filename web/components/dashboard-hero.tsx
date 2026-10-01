@@ -1,20 +1,24 @@
 "use client";
 
 import { LocalizedLink as Link } from "@/components/localized-link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import {
+  ArrowRight,
   Bell,
   Settings,
   LogOut,
   Check,
+  CheckCheck,
   X,
   ChevronDown,
   Compass,
   FlaskConical,
+  Inbox,
   Moon,
+  SlidersHorizontal,
   Sun,
   Wrench,
 } from "lucide-react";
@@ -24,8 +28,9 @@ import { placeCityLabel } from "@vinaadi/shared/checkIn";
 import { rasiDisplayName } from "@/lib/chart-utils";
 import { toggleTheme } from "@/hooks/useTheme";
 import { dt, LOCATION_CHECK } from "@/lib/dashboard-i18n";
-import { formatClockLabel } from "@/lib/format";
+import { formatClockLabel, formatDateLabelIn, todayIso } from "@/lib/format";
 import { t, tNakshatra } from "@/lib/i18n";
+import { notificationMeta, notificationRelativeTime } from "@/lib/notification-display";
 import { DUR, EASE_NOVA, prefersReducedMotion } from "@/lib/motion";
 import type { Lang } from "@/lib/i18n";
 import type {
@@ -109,6 +114,9 @@ interface DashboardHeroProps {
   inboxUnreadCount: number;
   onMarkAllRead: () => void;
   onMarkOneRead: (notificationId: string) => void;
+  /** Footer shortcut in the bell popover to the settings that decide what gets
+   *  sent. Omitted → no shortcut. */
+  onOpenNotificationSettings?: () => void;
   onTabChange: (tab: Tab) => void;
   onDateChange: (date: string) => void;
   onLangToggle: () => void;
@@ -204,6 +212,7 @@ export function DashboardHero(props: DashboardHeroProps) {
     inboxUnreadCount,
     onMarkAllRead,
     onMarkOneRead,
+    onOpenNotificationSettings,
     onTabChange,
     onDateChange,
     onLangToggle,
@@ -221,6 +230,19 @@ export function DashboardHero(props: DashboardHeroProps) {
   const [showAlerts, setShowAlerts] = useState(false);
   const [showInbox, setShowInbox] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
+
+  // The badge count was visible only as pixels; the trigger's name carries it
+  // too so a screen reader hears it.
+  const bellCount = alertCount + inboxUnreadCount;
+  const bellLabel = bellCount > 0
+    ? `${t("notif_section_title", lang)}, ${lang === "ta" ? `${bellCount} புதியவை` : `${bellCount} new`}`
+    : t("notif_section_title", lang);
+  const alertsHeading = selectedDate === todayIso()
+    ? (lang === "ta" ? "இன்றைக்கு" : "For today")
+    : (lang === "ta" ? `${formatDateLabelIn(selectedDate, lang)} அன்று` : `For ${formatDateLabelIn(selectedDate, lang)}`);
+  const inboxHeading = lang === "ta" ? "அறிவிப்பு பெட்டி" : "Inbox";
+  // One instant per render, so every row is aged against the same clock.
+  const now = new Date();
   const activeTabRef = useRef<HTMLButtonElement>(null);
   const inboxTriggerRef = useRef<HTMLButtonElement>(null);
   const inboxPopoverRef = useRef<HTMLDivElement>(null);
@@ -294,6 +316,23 @@ export function DashboardHero(props: DashboardHeroProps) {
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [showInbox, closeInbox]);
+
+  // Cap the notification panel to the viewport space below its own top edge.
+  // That edge moves with the top bar, which wraps onto two rows below 1024px,
+  // so it is measured rather than assumed. Feeds --cd-notif-max (dashboard.css).
+  useLayoutEffect(() => {
+    if (!showInbox) return;
+    const panel = inboxPopoverRef.current;
+    if (!panel) return;
+    const fit = () => {
+      const top = panel.getBoundingClientRect().top;
+      const room = Math.max(200, Math.floor(window.innerHeight - top - 16));
+      panel.style.setProperty("--cd-notif-max", `${room}px`);
+    };
+    fit();
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  }, [showInbox]);
 
   // An avatar click can open this menu without shifting focus from the page.
   // Keep Escape available at the document boundary in that measured state.
@@ -582,100 +621,151 @@ export function DashboardHero(props: DashboardHeroProps) {
               </button>
             )}
 
-            <div className="cd-popover-anchor" onKeyDown={onInboxKeyDown}>
+            <div className="cd-popover-anchor cd-popover-anchor--notif" onKeyDown={onInboxKeyDown}>
               <button
                 type="button"
                 ref={inboxTriggerRef}
                 className="cd-icon-btn"
                 onClick={() => { setShowAlerts(false); setShowInbox((v) => !v); }}
-                aria-label={t("notif_section_title", lang)}
+                aria-label={bellLabel}
+                aria-expanded={showInbox}
+                aria-controls="cd-notif-panel"
               >
                 <BellIcon />
-                {(alertCount + inboxUnreadCount) > 0 && (
-                  <span className="cd-badge">{(alertCount + inboxUnreadCount) > 9 ? "9+" : alertCount + inboxUnreadCount}</span>
+                {bellCount > 0 && (
+                  <span className="cd-badge" aria-hidden="true">{bellCount > 9 ? "9+" : bellCount}</span>
                 )}
               </button>
-              <Presence open={showInbox} ref={inboxPopoverRef} className="cd-alerts-popover" style={{ transformOrigin: "top right" }}>
-                    <PageDismissOverlay onDismiss={() => closeInbox(false)} />
-                    {/* Ambient (astro) alerts */}
-                    {alertItems.length > 0 && (
-                      <>
-                        <p className="cd-alerts-head">{t("ambient_alerts_label", lang)}</p>
-                        {alertItems.map((a, i) => (
-                          <div key={`alert-${a.type}-${i}`} className="cd-alert-item">
-                            <p className="cd-alert-item__title">{a.title}</p>
-                            <p className="cd-alert-item__body">{a.body}</p>
-                          </div>
-                        ))}
-                      </>
+              {/* A header · scrolling list · footer column. The list is the only
+                  part that scrolls, capped to the viewport: the popover sits in a
+                  sticky top bar, so anything past the bottom edge used to be
+                  unreachable — page scroll never brought it into view. */}
+              <Presence
+                open={showInbox}
+                ref={inboxPopoverRef}
+                id="cd-notif-panel"
+                role="region"
+                aria-label={t("notif_section_title", lang)}
+                className="cd-alerts-popover"
+                style={{ transformOrigin: "top right" }}
+              >
+                <PageDismissOverlay onDismiss={() => closeInbox(false)} />
+                <div className="cd-notif__head">
+                  <p className="cd-notif__title">
+                    {t("notif_section_title", lang)}
+                    {inboxUnreadCount > 0 && (
+                      <span className="cd-notif__count">
+                        {lang === "ta" ? `${inboxUnreadCount} புதியவை` : `${inboxUnreadCount} new`}
+                      </span>
                     )}
+                  </p>
+                  {inboxUnreadCount > 0 && (
+                    <button type="button" className="cd-notif__action" onClick={onMarkAllRead}>
+                      <CheckCheck size={15} strokeWidth={2} aria-hidden="true" />
+                      {t("notif_mark_all_read", lang)}
+                    </button>
+                  )}
+                </div>
 
-                    {/* Sent notifications inbox */}
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
-                      <p className="cd-alerts-head" style={{ margin: 0 }}>
-                        {t("notif_sent", lang)}
-                      </p>
-                      {inboxUnreadCount > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => { onMarkAllRead(); }}
-                          style={{ fontSize: "0.7rem", color: "var(--color-accent, var(--panel-brand))", background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit" }}
-                        >
-                          {t("notif_mark_all_read", lang)}
-                        </button>
+                {/* tabIndex: a scroll region holding only text (read rows, the
+                    day's alerts) is otherwise unreachable by keyboard. */}
+                <div className="cd-notif__body" tabIndex={0} aria-label={t("notif_section_title", lang)}>
+                  {inboxItems.length === 0 && alertItems.length === 0 ? (
+                    <div className="cd-notif__empty">
+                      <span className="cd-notif__empty-disc" aria-hidden="true">
+                        <Inbox size={20} strokeWidth={1.7} />
+                      </span>
+                      <p className="cd-notif__empty-text">{t("notif_inbox_empty", lang)}</p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* The day's ambient alerts follow the selected date, not
+                          the clock, so the heading names that date. */}
+                      {alertItems.length > 0 && (
+                        <section className="cd-notif__section" aria-label={alertsHeading}>
+                          <p className="cd-notif__section-head">{alertsHeading}</p>
+                          <ul className="cd-notif__day">
+                            {alertItems.map((a, i) => (
+                              <li key={`alert-${a.type}-${i}`} className="cd-notif__day-item">
+                                <p className="cd-notif__item-title">{a.title}</p>
+                                <p className="cd-notif__item-text">{a.body}</p>
+                              </li>
+                            ))}
+                          </ul>
+                        </section>
                       )}
-                    </div>
-                    {inboxItems.length === 0 && alertItems.length === 0 ? (
-                      <p className="cd-empty-note">
-                        {t("notif_inbox_empty", lang)}
-                      </p>
-                    ) : inboxItems.length === 0 ? (
-                      <p className="cd-empty-note" style={{ fontSize: "0.75rem" }}>
-                        {t("notif_sent_empty", lang)}
-                      </p>
-                    ) : (
-                      inboxItems.map((n) => (
-                        <div key={n.notification_id} className="cd-alert-item" style={{ opacity: n.read_at ? 0.6 : 1 }}>
-                          <p className="cd-alert-item__title" style={{ display: "flex", justifyContent: "space-between", gap: "8px" }}>
-                            <span>{n.title}</span>
-                            {!n.read_at && <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "var(--color-accent, var(--panel-brand))", flexShrink: 0, marginTop: "4px" }} />}
-                          </p>
-                          <p className="cd-alert-item__body">{n.body}</p>
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
-                            <p style={{ margin: 0, fontSize: "0.65rem", color: "var(--color-faint)" }}>
-                              {new Date(n.send_at).toLocaleString()}
-                            </p>
-                            {!n.read_at && (
-                              <button
-                                type="button"
-                                onClick={() => onMarkOneRead(n.notification_id)}
-                                style={{ fontSize: "0.68rem", color: "var(--color-accent, var(--panel-brand))", background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit", flexShrink: 0 }}
-                              >
-                                {t("notif_mark_read", lang)}
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      ))
-                    )}
-                    <div style={{ paddingTop: "10px", borderTop: "1px solid var(--color-border)" }}>
-                      <Link
-                        href="/notifications"
-                        onClick={() => setShowInbox(false)}
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "6px",
-                          color: "var(--color-accent, var(--panel-brand))",
-                          fontSize: "0.78rem",
-                          fontWeight: 700,
-                          textDecoration: "none",
-                        }}
-                      >
-                        {lang === "ta" ? "முழு அறிவிப்பு பெட்டி" : "Open full inbox"}
-                      </Link>
-                    </div>
-                </Presence>
+
+                      <section className="cd-notif__section" aria-label={inboxHeading}>
+                        {/* One group needs no label; two do. */}
+                        {alertItems.length > 0 && <p className="cd-notif__section-head">{inboxHeading}</p>}
+                        {inboxItems.length === 0 ? (
+                          <p className="cd-notif__note">{t("notif_sent_empty", lang)}</p>
+                        ) : (
+                          <ul className="cd-notif__list">
+                            {inboxItems.map((n) => {
+                              const meta = notificationMeta(n.type, lang);
+                              const Glyph = meta.icon;
+                              const unread = !n.read_at;
+                              return (
+                                <li key={n.notification_id} className={`cd-notif__row${unread ? " cd-notif__row--unread" : ""}`}>
+                                  <span className="cd-notif__glyph" data-tone={meta.tone} aria-hidden="true">
+                                    <Glyph size={16} strokeWidth={1.9} />
+                                  </span>
+                                  <div className="cd-notif__main">
+                                    <p className="cd-notif__meta">
+                                      <span>{meta.label}</span>
+                                      <span aria-hidden="true">·</span>
+                                      <time dateTime={n.send_at}>{notificationRelativeTime(n.send_at, lang, now)}</time>
+                                      {unread && (
+                                        <span className="cd-notif__dot">
+                                          <span className="cd-visually-hidden">{lang === "ta" ? "புதியது" : "New"}</span>
+                                        </span>
+                                      )}
+                                    </p>
+                                    <p className="cd-notif__item-title">{n.title}</p>
+                                    <p className="cd-notif__item-text">{n.body}</p>
+                                    {unread && (
+                                      <button
+                                        type="button"
+                                        className="cd-notif__mark"
+                                        onClick={() => onMarkOneRead(n.notification_id)}
+                                        // Every unread row carries this control, so the
+                                        // visible label alone is ambiguous in a
+                                        // screen-reader's control list.
+                                        aria-label={`${t("notif_mark_read", lang)}: ${n.title}`}
+                                      >
+                                        <Check size={14} strokeWidth={2.2} aria-hidden="true" />
+                                        {t("notif_mark_read", lang)}
+                                      </button>
+                                    )}
+                                  </div>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        )}
+                      </section>
+                    </>
+                  )}
+                </div>
+
+                <div className="cd-notif__foot">
+                  <Link href="/notifications" className="cd-notif__link" onClick={() => setShowInbox(false)}>
+                    {lang === "ta" ? "முழு அறிவிப்பு பெட்டி" : "Open full inbox"}
+                    <ArrowRight size={15} strokeWidth={2} aria-hidden="true" />
+                  </Link>
+                  {onOpenNotificationSettings && (
+                    <button
+                      type="button"
+                      className="cd-notif__action cd-notif__action--quiet"
+                      onClick={() => { closeInbox(false); onOpenNotificationSettings(); }}
+                    >
+                      <SlidersHorizontal size={15} strokeWidth={1.9} aria-hidden="true" />
+                      {lang === "ta" ? "அமைப்புகள்" : "Settings"}
+                    </button>
+                  )}
+                </div>
+              </Presence>
             </div>
 
             <button

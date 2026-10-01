@@ -503,14 +503,135 @@
   margin: 4px 0;
 }
 
+/* ── Notification panel (bell) ─────────────────────────────────────────
+   Header · scrolling list · footer. Only the list scrolls. The panel lives
+   in the sticky top bar, so page scroll can never bring an overflowing
+   bottom edge into view: the height is capped to what is left of the
+   viewport below the panel's own top edge (--cd-notif-max, measured in
+   dashboard-hero.tsx; the calc() is the pre-measure fallback). */
 .cd-alerts-popover {
-  min-width: 280px;
-  max-width: 340px;
+  width: min(384px, calc(100vw - 24px));
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  max-height: min(560px, calc(100vh - 96px));
+  max-height: min(560px, var(--cd-notif-max, calc(100dvh - 96px)));
+  overflow: hidden;
 }
 
-.cd-alerts-head {
-  margin: 0 0 6px;
-  padding: var(--space-1) var(--space-2);
+.cd-notif__head,
+.cd-notif__foot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+/* Wraps rather than squeezes: a Tamil title + count and "mark all read" do
+   not fit one line at 375px, and a shrinking title slid under the button. */
+.cd-notif__head {
+  flex-wrap: wrap;
+  row-gap: 2px;
+  padding: 10px 10px 10px 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.cd-notif__head .cd-notif__action {
+  margin-left: auto;
+}
+
+.cd-notif__foot {
+  padding: 6px 10px 6px 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.cd-notif__title {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--color-text-strong);
+}
+
+.cd-notif__count {
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+  color: var(--color-accent-strong);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.cd-notif__action,
+.cd-notif__mark,
+.cd-notif__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-accent-strong);
+  font-family: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 120ms var(--ease-nova);
+}
+
+.cd-notif__action,
+.cd-notif__link {
+  min-height: 32px;
+  padding: 0 10px;
+  font-size: 0.75rem;
+}
+
+.cd-notif__link {
+  margin-left: -10px;
+  font-weight: 700;
+}
+
+.cd-notif__action--quiet {
+  color: var(--color-muted);
+}
+
+.cd-notif__action:hover,
+.cd-notif__mark:hover,
+.cd-notif__link:hover {
+  background: var(--color-hover-bg);
+}
+
+.cd-notif__action:focus-visible,
+.cd-notif__mark:focus-visible,
+.cd-notif__link:focus-visible,
+.cd-notif__body:focus-visible {
+  outline: 2px solid var(--color-accent-strong);
+  outline-offset: -2px;
+}
+
+/* min-height: 0 is what lets a flex child shrink below its content and
+   scroll; without it the column grows past max-height instead. */
+.cd-notif__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  padding: 4px 0;
+}
+
+.cd-notif__section + .cd-notif__section {
+  margin-top: 4px;
+}
+
+.cd-notif__section-head {
+  margin: 0;
+  padding: 10px 16px 6px;
   font-size: 0.625rem;
   font-weight: 700;
   color: var(--color-faint);
@@ -518,30 +639,171 @@
   letter-spacing: 0.08em;
 }
 
-.cd-alert-item {
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-sm);
-  margin-bottom: var(--space-1);
-  background: var(--color-surface-soft);
-  border: 1px solid var(--color-border);
-}
-
-.cd-alert-item:last-child {
-  margin-bottom: 0;
-}
-
-.cd-alert-item__title {
-  margin: 0 0 2px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--color-accent);
-}
-
-.cd-alert-item__body {
+.cd-notif__day,
+.cd-notif__list {
+  list-style: none;
   margin: 0;
-  font-size: 0.75rem;
+  padding: 0;
+}
+
+/* The day's alerts sit together on one quiet ground: they describe the
+   selected date, not a message someone sent. */
+.cd-notif__day {
+  margin: 0 10px 4px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-soft);
+}
+
+.cd-notif__day-item {
+  padding: 10px 12px;
+}
+
+.cd-notif__day-item + .cd-notif__day-item {
+  border-top: 1px solid var(--color-border);
+}
+
+.cd-notif__row {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px 16px;
+  transition: background 120ms var(--ease-nova);
+}
+
+.cd-notif__row + .cd-notif__row {
+  border-top: 1px solid var(--color-border);
+}
+
+.cd-notif__row:hover {
+  background: var(--color-surface-soft);
+}
+
+.cd-notif__row--unread {
+  background: color-mix(in srgb, var(--color-accent) 6%, transparent);
+}
+
+.cd-notif__row--unread:hover {
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+}
+
+.cd-notif__glyph {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+  color: var(--color-accent-strong);
+}
+
+.cd-notif__glyph[data-tone="day"] {
+  background: color-mix(in srgb, var(--color-positive) 16%, transparent);
+  color: var(--color-positive);
+}
+
+.cd-notif__glyph[data-tone="neutral"] {
+  background: var(--color-surface-soft);
   color: var(--color-muted);
-  line-height: 1.45;
+}
+
+.cd-notif__main {
+  min-width: 0;
+}
+
+.cd-notif__meta {
+  margin: 0 0 3px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 0.6875rem;
+  color: var(--color-faint);
+}
+
+.cd-notif__dot {
+  margin-left: auto;
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--color-accent);
+}
+
+.cd-notif__item-title {
+  margin: 0 0 2px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--color-text-strong);
+  overflow-wrap: anywhere;
+}
+
+/* Read rows step back by weight, not opacity — opacity dimmed the body
+   text below its contrast floor. */
+.cd-notif__row:not(.cd-notif__row--unread) .cd-notif__item-title {
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.cd-notif__item-text {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--color-muted);
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+}
+
+.cd-notif__mark {
+  margin: 6px 0 0 -8px;
+  min-height: 28px;
+  padding: 0 8px;
+  font-size: 0.72rem;
+}
+
+.cd-notif__note {
+  margin: 0;
+  padding: 8px 16px 12px;
+  font-size: 0.75rem;
+  color: var(--color-faint);
+}
+
+.cd-notif__empty {
+  padding: 32px 16px;
+  text-align: center;
+}
+
+.cd-notif__empty-disc {
+  width: 44px;
+  height: 44px;
+  margin: 0 auto 10px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface-soft);
+  color: var(--color-muted);
+}
+
+.cd-notif__empty-text {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--color-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cd-notif__row,
+  .cd-notif__action,
+  .cd-notif__mark,
+  .cd-notif__link {
+    transition: none;
+  }
 }
 
 .cd-tabnav {
@@ -856,8 +1118,30 @@
   .cd-dropdown,
   .cd-alerts-popover {
     right: -8px;
-    width: min(340px, calc(100vw - 24px));
     max-width: calc(100vw - 24px);
+  }
+
+  .cd-dropdown {
+    width: min(340px, calc(100vw - 24px));
+  }
+}
+
+/* Phone: the bell is not the right-most control (theme, language and avatar
+   follow it), so a panel right-aligned to the bell ran off the LEFT edge —
+   at 375px it started near x = -113. Release the bell's anchor so the panel
+   positions against the sticky top bar instead, and span it gutter to
+   gutter as a sheet. */
+@media (max-width: 600px) {
+  .cd-popover-anchor--notif {
+    position: static;
+  }
+
+  .cd-alerts-popover {
+    top: calc(100% + 6px);
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-width: none;
   }
 }
 
@@ -911,8 +1195,8 @@
   .cd-brand__sub,
   .cd-status-pill,
   .cd-vault-name,
-  .cd-alerts-head,
-  .cd-alert-item__title,
+  .cd-notif__section-head,
+  .cd-notif__count,
   .cd-tab,
   .surface__title,
   .surface__subhead,

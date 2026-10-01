@@ -5,6 +5,7 @@
  */
 import { render, screen, fireEvent } from "@testing-library/react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
+import { todayIso } from "@/lib/format";
 import { DashboardHero } from "./dashboard-hero";
 
 // AnimatePresence retains an exiting node, while jsdom never advances that
@@ -228,6 +229,109 @@ describe("DashboardHero More menu keyboard behaviour", () => {
     expect(screen.queryByRole("menu")).toBeNull();
     expect(document.activeElement).toBe(trigger);
     expect(trigger).toHaveAttribute("aria-expanded", "false");
+  });
+});
+
+/**
+ * The bell panel: a header · scrolling list · footer. What jsdom can check is
+ * the content and wiring below. Blind spot: jsdom loads no stylesheet, so the
+ * part the redesign was for — the list scrolling inside a viewport-capped
+ * panel, and the phone sheet staying on-screen — is invisible here and was
+ * checked in a browser instead.
+ */
+describe("DashboardHero notification panel", () => {
+  const minutesAgo = (m: number) => new Date(Date.now() - m * 60_000).toISOString();
+  const items = [
+    {
+      notification_id: "n-1",
+      type: "MORNING_NALLA_NERAM",
+      title: "Synthetic morning window",
+      body: "A synthetic body for the first row.",
+      status: "SENT",
+      send_at: minutesAgo(5),
+      read_at: null,
+    },
+    {
+      notification_id: "n-2",
+      type: "DASHA_TRANSITION",
+      title: "Synthetic dasa row",
+      body: "A synthetic body for the second row.",
+      status: "SENT",
+      send_at: minutesAgo(60 * 30),
+      read_at: minutesAgo(60),
+    },
+  ];
+
+  function openBell(overrides: Partial<Parameters<typeof DashboardHero>[0]> = {}) {
+    renderHero("personal", noop, { inboxItems: items, inboxUnreadCount: 1, ...overrides });
+    // Located by what it controls: its name is the thing under test, in two languages.
+    const trigger = document.querySelector<HTMLButtonElement>('[aria-controls="cd-notif-panel"]')!;
+    fireEvent.click(trigger);
+    return trigger;
+  }
+
+  it("carries the unread count in the bell's name, not only in the badge pixels", () => {
+    const trigger = openBell();
+    expect(trigger).toHaveAccessibleName("Notifications, 1 new");
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("labels each row with its kind and age, and marks only the unread one", () => {
+    const onMarkOneRead = vi.fn();
+    openBell({ onMarkOneRead });
+
+    expect(screen.getByText("Morning timing")).toBeInTheDocument();
+    expect(screen.getByText("5 min ago")).toBeInTheDocument();
+    expect(screen.getByText("Dasa change")).toBeInTheDocument();
+
+    // One control per unread row, each naming its row.
+    const marks = screen.getAllByRole("button", { name: /^Mark read:/ });
+    expect(marks).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: "Mark read: Synthetic morning window" }));
+    expect(onMarkOneRead).toHaveBeenCalledWith("n-1");
+  });
+
+  it("names the selected date on the day's alerts when it is not today", () => {
+    openBell({
+      selectedDate: "2026-01-15",
+      alertCount: 1,
+      alertItems: [{ type: "synthetic", title: "Synthetic alert", body: "Synthetic alert body." }],
+    });
+    expect(screen.getByText("For 15 Jan 2026")).toBeInTheDocument();
+    expect(screen.getByText("Inbox")).toBeInTheDocument();
+  });
+
+  it("hands off to notification settings from the footer and closes", () => {
+    const onOpenNotificationSettings = vi.fn();
+    openBell({ onOpenNotificationSettings });
+
+    fireEvent.click(screen.getByRole("button", { name: "Settings" }));
+    expect(onOpenNotificationSettings).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText("Synthetic morning window")).not.toBeInTheDocument();
+  });
+
+  // Tamil-mode checks are not optional for this class (CLAUDE.md): the
+  // harness pins the audit account to en, and several labels here live in
+  // aria-label, which no text probe sees.
+  it("speaks Tamil throughout on the Tamil surface, attributes included", () => {
+    const trigger = openBell({
+      lang: "ta",
+      selectedDate: todayIso(),
+      alertCount: 1,
+      alertItems: [{ type: "synthetic", title: "செயற்கை", body: "செயற்கை." }],
+      onOpenNotificationSettings: noop,
+    });
+
+    // The bell counts the day's alert and the unread message together.
+    expect(trigger).toHaveAccessibleName("அறிவிப்புகள், 2 புதியவை");
+    expect(screen.getByText("காலை நேரம்")).toBeInTheDocument();
+    expect(screen.getByText("இன்றைக்கு")).toBeInTheDocument();
+    expect(screen.getByText("அறிவிப்பு பெட்டி")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "படித்தது: Synthetic morning window" })).toBeInTheDocument();
+    for (const english of [/\bnew\b/, /^Inbox$/, /Mark read/, /min ago/, /Open full inbox/, /^Settings$/]) {
+      expect(screen.queryAllByText(english)).toHaveLength(0);
+      expect(screen.queryAllByRole("button", { name: english })).toHaveLength(0);
+    }
   });
 });
 

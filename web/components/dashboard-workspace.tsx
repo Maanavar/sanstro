@@ -1865,6 +1865,7 @@ export function DashboardWorkspace() {
           inboxUnreadCount={inboxUnreadCount}
           onMarkAllRead={handleMarkAllRead}
           onMarkOneRead={handleMarkOneRead}
+          onOpenNotificationSettings={() => navigateSettings("notifications")}
           onTabChange={goToTab}
           onDateChange={setSelectedDate}
           onLangToggle={() => setLang((l) => l === "ta" ? "en" : "ta")}
