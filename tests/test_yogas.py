@@ -354,6 +354,16 @@ def test_rahu_ketu_incomplete_data_label():
     assert "KETU" in result.missing_data
 
 
+def test_sevvai_without_jupiter_is_incomplete_not_a_crash():
+    """Jupiter's drishti on Mars is one of Sevvai's cancellations, so the
+    detector reads it. It used to validate only Mars/Moon/Venus and then raise
+    KeyError on a chart without Jupiter."""
+    result = detect_sevvai_dosham({"MARS": 1, "MOON": 2, "VENUS": 3}, 1)
+    assert result.label == "INCOMPLETE_DATA"
+    assert result.is_present is False
+    assert result.missing_data == ["JUPITER"]
+
+
 def test_pitru_dosham_detects_sun_node_pattern():
     planets = {
         "SUN": 9,

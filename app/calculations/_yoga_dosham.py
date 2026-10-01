@@ -64,7 +64,10 @@ def detect_sevvai_dosham(
     d9_lagna_rasi: int | None = None,
 ) -> DoshamResult:
     active = set(active_lords or ())
-    missing_data = [planet for planet in ("MARS", "MOON", "VENUS") if planet not in planets]
+    # JUPITER is read unconditionally below (its drishti on Mars is a
+    # cancellation), so it is required here too. It was left out, and a chart
+    # without it raised KeyError instead of returning INCOMPLETE_DATA.
+    missing_data = [planet for planet in ("MARS", "MOON", "VENUS", "JUPITER") if planet not in planets]
     if missing_data:
         what_ta, what_en, why_ta, why_en, how_ta, how_en = _build_dosham_explanations(
             "SEVVAI_DOSHAM",
@@ -84,8 +87,8 @@ def detect_sevvai_dosham(
             cancellation_factors=[],
             missing_data=missing_data,
             dasha_activated=False,
-            description_ta="செவ்வாய் தோஷம் பகுப்பாய்விற்கு செவ்வாய், சந்திரன், சுக்கிரன் நிலைகள் தேவை.",
-            description_en="Sevvai dosham analysis needs Mars, Moon, and Venus placements.",
+            description_ta="செவ்வாய் தோஷம் பகுப்பாய்விற்கு செவ்வாய், சந்திரன், சுக்கிரன், குரு நிலைகள் தேவை.",
+            description_en="Sevvai dosham analysis needs Mars, Moon, Venus, and Jupiter placements.",
             explanation_what_ta=what_ta,
             explanation_what_en=what_en,
             explanation_why_ta=why_ta,
