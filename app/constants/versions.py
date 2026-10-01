@@ -62,9 +62,16 @@ from __future__ import annotations
 #: Neither strength scores nor yoga cards are persisted (no column in
 #: `chart_planet`, no yoga table), so both change on the next response.
 #:
+#: v1.6 (2026-10-01, owner ruling): the Swiss Ephemeris data files are bundled
+#: and loaded (`ephemeris.EPHEMERIS_PATH`). Every chart before this was computed
+#: on the Moshier analytic fallback. Measured over 15 dates: Moon within 0.88",
+#: Sun 0.05", Saturn 0.50", sunrise 3 ms. A rasi, nakshatra or pada flips only
+#: for a graha within an arc-second of a boundary, so almost every stored chart
+#: is identical; the version records which ephemeris produced it.
+#:
 #: Bumping this does NOT recompute anything on its own — see the module
 #: docstring. A recompute is a deliberate migration.
-CHART_CALCULATION_VERSION = "jothidam-formula-engine-v1.5-2026"
+CHART_CALCULATION_VERSION = "jothidam-formula-engine-v1.6-2026"
 
 #: The platform label for non-chart responses. Deliberately NOT the chart
 #: engine version: a daily-guidance digest, a dasha story, a varshaphala sheet

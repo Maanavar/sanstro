@@ -592,7 +592,13 @@ DEFAULT_AYANAMSA_TYPE = "LAHIRI"
 # tithi/nakshatra can therefore land on a DIFFERENT value on days where the
 # boundary falls inside that 3.5-minute band, which can move a festival or an
 # Ekadashi by a day. Cached snapshots must recompute.
-PANCHANGAM_CACHE_DATA_VERSION = 47
+# v48 (2026-10-01, owner ruling): the Swiss Ephemeris data files are bundled and
+# loaded (`ephemeris.EPHEMERIS_PATH`); every snapshot before this was computed on
+# the Moshier analytic fallback. Measured: Moon within 0.88", sunrise 3 ms, so a
+# limb boundary moves by about 1-2 s — enough to flip a minute-rounded time when
+# the instant sits on a half-minute. Small, but cached values are now from a
+# different ephemeris than fresh ones, so they recompute.
+PANCHANGAM_CACHE_DATA_VERSION = 48
 DOMINANT_SPECIAL_TITHIS = {15, 30}
 
 # Fixed weekday clock-table Nalla Neram windows. NOTE (2026-07-17): the daily

@@ -185,3 +185,40 @@ def test_module_backend_reports_circumpolar_as_rise_transit_undefined(monkeypatc
 
     with pytest.raises(RiseTransitUndefinedError):
         ephemeris.calculate_rise_transit_jd(2461055.0, 78.22, 15.65, rise=True)
+
+
+def test_bundled_swiss_ephemeris_files_are_in_use() -> None:
+    """Owner ruling 2026-10-01: the `.se1` files ship in `ephe/` and are loaded
+    at import. Every chart before this was computed on the Moshier fallback, and
+    nothing said so on the production backend. A real snapshot, not a fake —
+    if the path or a file goes missing, the library's own fallback notice
+    (FFI) or MOSHIER_FALLBACK_WARNING (pyswisseph) reappears here."""
+    assert ephemeris.EPHEMERIS_PATH is not None, "ephe/ not found — set JOTHIDAM_SWISSEPH_PATH"
+    snapshot = calculate_sidereal_planets(2461314.5)
+    assert not any("Moshier" in w or ".se1" in w for w in snapshot.source_warnings), snapshot.source_warnings
+
+
+@pytest.mark.parametrize(
+    ("retflag", "expected_warning"),
+    [
+        # SWIEPH bit (2) set, plus the echoed sidereal/speed bits: data files used.
+        (2 | 256 | 64 * 1024, ""),
+        # MOSEPH bit (4) instead — what this machine actually returns today
+        # (65860 = 0x10144) when `sepl_18.se1` is not on the ephemeris path.
+        (65860, ephemeris.MOSHIER_FALLBACK_WARNING),
+    ],
+    ids=["swiss-files", "moshier-fallback"],
+)
+def test_module_backend_records_moshier_fallback(monkeypatch, retflag: int, expected_warning: str) -> None:
+    """pyswisseph reports the fallback only through the return flag. It used to
+    be discarded, so the production image could compute on Moshier with no
+    record while the FFI branch reported the same fact through `serr`."""
+    fake_module = SimpleNamespace(calc_ut=lambda _jd, _pid, _flags: ((10.0, 0.0, 1.0, 0.9, 0.0, 0.0), retflag))
+    monkeypatch.setattr(ephemeris, "swe_module", fake_module, raising=False)
+    monkeypatch.setattr(ephemeris, "_HAS_MODULE_API", True, raising=False)
+    monkeypatch.setattr(ephemeris, "FLG_SWIEPH", 2, raising=False)
+    monkeypatch.setattr(ephemeris, "SIDEREAL_FLAGS", 2 | 256 | 64 * 1024, raising=False)
+
+    _longitude, _speed, warning = ephemeris._calc_ut(2461314.5, 0)
+
+    assert warning == expected_warning
