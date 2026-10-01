@@ -48,19 +48,57 @@ export function pickCheckIn(signals: CheckInSignals): CheckIn | null {
 }
 
 /**
+ * Legacy IANA ids that browsers still report, mapped to the current name.
+ *
+ * Chromium (Chrome, Edge) and Hermes resolve the device zone through ICU, whose
+ * canonical ids are CLDR's — and CLDR froze several of them before a rename.
+ * A reader in Tiruppur gets `Asia/Calcutta` from `Intl` while the server saves
+ * `Asia/Kolkata`; comparing those strings raised "Your phone is on Calcutta
+ * time" at someone who had not moved. Only renames belong here: every pair
+ * names one zone with identical rules, so folding them cannot hide a move.
+ */
+const LEGACY_ZONE_IDS: Readonly<Record<string, string>> = {
+  "Asia/Calcutta": "Asia/Kolkata",
+  "Asia/Katmandu": "Asia/Kathmandu",
+  "Asia/Rangoon": "Asia/Yangon",
+  "Asia/Saigon": "Asia/Ho_Chi_Minh",
+  "Europe/Kiev": "Europe/Kyiv",
+  "Atlantic/Faeroe": "Atlantic/Faroe",
+  "Africa/Asmera": "Africa/Asmara",
+  "America/Godthab": "America/Nuuk",
+  "America/Buenos_Aires": "America/Argentina/Buenos_Aires",
+  "America/Catamarca": "America/Argentina/Catamarca",
+  "America/Cordoba": "America/Argentina/Cordoba",
+  "America/Jujuy": "America/Argentina/Jujuy",
+  "America/Mendoza": "America/Argentina/Mendoza",
+  "America/Indianapolis": "America/Indiana/Indianapolis",
+  "America/Louisville": "America/Kentucky/Louisville",
+  "Pacific/Enderbury": "Pacific/Kanton",
+  "Pacific/Ponape": "Pacific/Pohnpei",
+  "Pacific/Truk": "Pacific/Chuuk",
+};
+
+/** The current IANA name for a zone id; unknown ids pass through unchanged. */
+export function canonicalTimeZone(timeZone: string): string {
+  return LEGACY_ZONE_IDS[timeZone] ?? timeZone;
+}
+
+/**
  * Whether the device disagrees with the place the timings were built for.
  *
  * Compares IANA zone ids, not offsets: two zones can share an offset today and
  * diverge at the next DST boundary, and the reader's *place* is what §2 is
- * asking about. A missing or unreadable value on either side is not a
- * mismatch — an absent answer must never provoke the prompt.
+ * asking about. Both sides are folded through `canonicalTimeZone` first, so a
+ * renamed zone (`Asia/Calcutta` vs `Asia/Kolkata`) is one zone. A missing or
+ * unreadable value on either side is not a mismatch — an absent answer must
+ * never provoke the prompt.
  */
 export function isLocationMismatch(
   deviceTimeZone: string | null | undefined,
   timingsTimeZone: string | null | undefined,
 ): boolean {
   if (!deviceTimeZone || !timingsTimeZone) return false;
-  return deviceTimeZone !== timingsTimeZone;
+  return canonicalTimeZone(deviceTimeZone) !== canonicalTimeZone(timingsTimeZone);
 }
 
 /**
@@ -76,7 +114,7 @@ export function isLocationMismatch(
  */
 export function timeZoneCityLabel(timeZone: string | null | undefined): string {
   if (!timeZone) return "";
-  const segments = timeZone.split("/");
+  const segments = canonicalTimeZone(timeZone).split("/");
   const last = segments[segments.length - 1] ?? "";
   return last.replace(/_/g, " ");
 }

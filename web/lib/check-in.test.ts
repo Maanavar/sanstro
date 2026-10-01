@@ -62,6 +62,17 @@ describe("isLocationMismatch", () => {
     expect(isLocationMismatch("Asia/Kolkata", "Asia/Kolkata")).toBe(false);
   });
 
+  it("treats a renamed zone as the same zone", () => {
+    // Chromium on Windows reports the device zone as ICU's legacy id; the
+    // server saves the current one. A reader in Tiruppur was told "Your phone
+    // is on Calcutta time" without having moved.
+    expect(isLocationMismatch("Asia/Calcutta", "Asia/Kolkata")).toBe(false);
+    expect(isLocationMismatch("Asia/Kolkata", "Asia/Calcutta")).toBe(false);
+    expect(isLocationMismatch("America/Buenos_Aires", "America/Argentina/Buenos_Aires")).toBe(false);
+    // Folding a rename must not swallow a real move.
+    expect(isLocationMismatch("Asia/Calcutta", "Asia/Colombo")).toBe(true);
+  });
+
   it("is quiet when either side is missing, so an absent answer never prompts", () => {
     expect(isLocationMismatch(undefined, "Asia/Kolkata")).toBe(false);
     expect(isLocationMismatch("Asia/Kolkata", null)).toBe(false);
@@ -77,6 +88,11 @@ describe("timeZoneCityLabel", () => {
 
   it("takes the last segment of a three-part zone id", () => {
     expect(timeZoneCityLabel("America/Argentina/Buenos_Aires")).toBe("Buenos Aires");
+  });
+
+  it("names a renamed zone by its current city", () => {
+    expect(timeZoneCityLabel("Asia/Calcutta")).toBe("Kolkata");
+    expect(timeZoneCityLabel("Europe/Kiev")).toBe("Kyiv");
   });
 
   it("returns an empty string rather than throwing on nothing", () => {
