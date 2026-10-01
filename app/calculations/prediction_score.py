@@ -20,6 +20,8 @@ class PredictionScoreInput:
     antar_lord_functional_nature: str
     maha_lord_house_connection: bool
     antar_lord_house_connection: bool
+    #: Natal composite strength (0-100) of the Mahadasha lord. Scales L3 around
+    #: the neutral 50 — see `_maha_strength_multiplier`.
     maha_lord_strength: int
     maturation_multiplier: float
     varga_confirmation: int
@@ -108,18 +110,30 @@ _FN_DASHA_SCORE = {
     "DUSTHANA": 3,
 }
 
-# Tamil lead adjectives align with the shared verdict lexicon (C-5,
-# app/calculations/verdict_lexicon.py): EXCEPTIONAL → மிகச் சிறந்த (excellent
-# root), GOOD → நல்ல, MIXED → கலப்பான. STRONG / DIFFICULT / VERY_WEAK keep
-# distinct words since this scale has more tiers than the 4-rung ladder.
+# Owner-approved copy, 2026-10-01. The previous lines told a reader facing a
+# surgery, a resignation or a large investment to "act fully" and "proceed with
+# confidence"; a timing score can favour preparation, never command the act.
+# Every Tamil line is in the polite register (the DIFFICULT band used the
+# informal singular காத்திரு). The codes are unchanged — they are the stable key.
 _INTERPRETATION_SCALE = [
-    (91, "EXCEPTIONAL", "மிகச் சிறந்த காலம் — முழு நடவடிக்கை எடுக்கவும்", "Exceptional period — act fully, rare alignment"),
-    (76, "STRONG", "வலிமையான ஆதரவு — நம்பிக்கையுடன் முன்னேறவும்", "Strong support — proceed with confidence"),
-    (61, "GOOD", "நல்ல வாய்ப்பு — முயற்சியுடன் நல்ல பலன் கிடைக்கும்", "Good chance — result comes with sustained effort"),
-    (41, "MIXED", "கலப்பான பலன் — கவனமான திட்டமிடல் தேவை", "Mixed — plan carefully, avoid impulsive decisions"),
-    (21, "DIFFICULT", "சவாலான காலம் — மேலும் நல்ல சந்தர்ப்பத்திற்காக காத்திரு", "Difficult — conserve energy, wait for better window"),
-    (0, "VERY_WEAK", "இப்போது இந்த விஷயத்தில் பெரிய ஆபத்தை தவிர்க்கவும்", "Avoid major risk in this area during this period"),
+    (91, "EXCEPTIONAL", "மிகவும் சாதகமான காலம் — நன்றாகத் தயாராகி முன்னேறுங்கள்", "Very supportive time — move forward with preparation"),
+    (76, "STRONG", "சாதகமான காலம் — தொடர் முயற்சிக்குப் பலன் உண்டு", "Supportive — steady effort tends to pay off"),
+    (61, "GOOD", "நல்ல காலம் — தொடர்ந்த முயற்சியுடன் பலன் கிடைக்கும்", "Good — results come with sustained effort"),
+    (41, "MIXED", "கலப்பான காலம் — கவனமாகத் திட்டமிடுங்கள்", "Mixed — plan carefully, keep options open"),
+    (21, "DIFFICULT", "கவனம் தேவை — பெரிய முடிவுகளுக்கு முன் தயாராகுங்கள்", "Needs care — prepare before big commitments"),
+    (0, "VERY_WEAK", "நிதானம் தேவை — தவிர்க்கக்கூடிய அபாயங்களைத் தள்ளிவையுங்கள்", "Go slow — postpone avoidable risks here"),
 ]
+
+#: How far the Mahadasha lord's natal strength scales the dasha layer (owner
+#: ruling 2026-10-01: a strong dasha lord gives its promise fully, a weak one
+#: partly or late). Centred on the neutral score 50 so an average lord leaves
+#: L3 exactly as before; a 0-strength lord takes 20% off, a 100 adds 20%.
+_MAHA_STRENGTH_SWING = 0.20
+
+
+def _maha_strength_multiplier(maha_lord_strength: int) -> float:
+    strength = max(0, min(100, maha_lord_strength))
+    return 1.0 + _MAHA_STRENGTH_SWING * (strength - 50) / 50
 
 
 def compute_prediction_score(
@@ -140,10 +154,18 @@ def compute_prediction_score(
     lord_norm = inp.house_lord_strength / 100.0
     karak_norm = inp.karaka_strength / 100.0
     l1 = round(lord_norm * 14 + karak_norm * 8)
-    l1 += _YOGA_STRENGTH_BONUS.get(inp.yoga_strength, 0)
-    dosham_pen = _DOSHAM_PENALTY.get(inp.dosham_strength, 0)
-    if inp.dosham_present and inp.dosham_cancelled:
-        dosham_pen = dosham_pen // 2
+    # Presence gates both terms. The strength was read on its own before, so an
+    # absent yoga labelled STRONG added 8 and an absent dosham labelled STRONG
+    # took 10 — detectors label absent results WEAK, not NONE. The one live
+    # caller passes consistent pairs, so no current score moves; this stops the
+    # next caller that forwards a detector result from inventing a promise.
+    if inp.yoga_present:
+        l1 += _YOGA_STRENGTH_BONUS.get(inp.yoga_strength, 0)
+    dosham_pen = 0
+    if inp.dosham_present:
+        dosham_pen = _DOSHAM_PENALTY.get(inp.dosham_strength, 0)
+        if inp.dosham_cancelled:
+            dosham_pen = dosham_pen // 2
     l1 = max(0, min(30, l1 + dosham_pen))
 
     if use_reasoning_gate:
@@ -192,7 +214,7 @@ def compute_prediction_score(
         l3 += 4
     if inp.antar_lord_house_connection:
         l3 += 2
-    l3 = round(l3 * inp.maturation_multiplier)
+    l3 = round(l3 * inp.maturation_multiplier * _maha_strength_multiplier(inp.maha_lord_strength))
     l3 = max(0, min(25, l3))
 
     l4 = max(0, min(10, inp.varga_confirmation + 5))
