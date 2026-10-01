@@ -40,8 +40,11 @@ export function getLifeAreas(
   chartId: string,
   date: string,
 ): Promise<{ success: boolean; data: LifeAreasData }> {
+  // The route reads `asOf` (app/api/life_areas.py). This sent `date`, which the
+  // backend ignored, so it fell back to the server's own date.today() — UTC in
+  // the API image, i.e. yesterday for an Indian reader from 00:00 to 05:30.
   return getApiClient().get(
     `/charts/${encodeURIComponent(chartId)}/life-areas`,
-    { date },
+    { asOf: date },
   ) as Promise<{ success: boolean; data: LifeAreasData }>;
 }
