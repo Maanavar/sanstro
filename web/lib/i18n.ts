@@ -699,6 +699,9 @@ const STRINGS = {
   // ── Narrative / Why this prediction
   why_this_prediction: { ta: "இந்த கணிப்பு ஏன்?",    en: "Why this prediction?" },
   remedy_label:        { ta: "பரிகாரம் / வழிபாடு",   en: "Remedy / Worship" },
+  // A well-supported area gets a light practice, not a parikaram (owner
+  // ruling 2026-10-01), so its box must not be headed "Remedy".
+  remedy_label_maintain: { ta: "நிலைத்திருக்க",   en: "Keep it steady" },
   reason_moonTransit:  { ta: "சந்திர நகர்வு",         en: "Moon transit" },
   reason_dashaSupport: { ta: "தசை ஆதரவு",            en: "Dasa support" },
   reason_panchangam:   { ta: "பஞ்சாங்கம்",           en: "Panchangam" },

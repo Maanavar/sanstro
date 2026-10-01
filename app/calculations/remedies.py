@@ -6,6 +6,7 @@ from typing import Protocol
 
 from app.calculations.chart_strength import SIGN_LORD
 from app.calculations.functional_nature import FunctionalNature, get_functional_nature
+from app.calculations.prediction_score import SUPPORTIVE_SCORE_FLOOR
 from app.calculations.yogas import get_badhaka_lord
 
 # Safety notes that MUST accompany every prescribed remedy.
@@ -318,9 +319,11 @@ def get_remedy(planet: str, functional_nature: FunctionalNature, severity: str) 
 
 
 #: At or above this area score the area is well supported and gets no remedy.
-#: 55 is the line this function already drew: below it a remedy was SEVERE or
-#: MODERATE, above it only ever "MILD" — the band the ruling retires.
-AREA_REMEDY_SCORE_CEILING = 55
+#: It is the floor of the band the approved copy calls supportive ("Good —
+#: results come with sustained effort"), read from the same scale, so the Life
+#: areas card cannot say "Mixed — plan carefully" above "this area is well
+#: supported". (A first cut used 55; 56-60 would have contradicted itself.)
+AREA_REMEDY_SCORE_CEILING = SUPPORTIVE_SCORE_FLOOR
 
 #: Owner-approved wording, 2026-10-01.
 MAINTAIN_PRACTICE_TA = (

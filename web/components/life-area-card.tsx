@@ -197,9 +197,17 @@ export function LifeAreaCard({ area, lang, ageRelevant, onOpenDetail, isLifeFocu
         <span style={{ fontFamily: "var(--font-body)", fontSize: "1rem", fontWeight: 400, color: "var(--color-faint)", marginLeft: "var(--space-0_5)" }}>/100</span>
       </p>
 
-      <div style={{ height: "var(--space-1)", borderRadius: "var(--radius-pill)", background: "var(--color-border)", marginBottom: "var(--space-4)", overflow: "hidden" }}>
+      <div style={{ height: "var(--space-1)", borderRadius: "var(--radius-pill)", background: "var(--color-border)", marginBottom: area.scoreBandText ? "var(--space-2)" : "var(--space-4)", overflow: "hidden" }}>
         <div style={{ width: `${area.score}%`, height: "100%", borderRadius: "var(--radius-pill)", background: barColor }} />
       </div>
+
+      {/* What the number means, in the owner-approved copy (2026-10-01). The
+          server reads it from this same score, so it cannot disagree with it. */}
+      {area.scoreBandText && (
+        <p data-testid="life-area-score-band" style={{ margin: "0 0 var(--space-4)", fontSize: "0.8125rem", fontWeight: 600, color: "var(--color-text-strong)", lineHeight: 1.45 }}>
+          {tLang(area.scoreBandText, lang)}
+        </p>
+      )}
 
       <p style={{ margin: "0 0 var(--space-4)", fontSize: "0.875rem", color: "var(--color-text)", lineHeight: 1.6 }}>
         {tLang(area.narrative, lang)}
@@ -270,7 +278,7 @@ export function LifeAreaCard({ area, lang, ageRelevant, onOpenDetail, isLifeFocu
       {area.remedy && (
         <div style={{ marginTop: "var(--space-2_5)", padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-sm)", background: "var(--chart-d1-lagna-bg)", border: "1px solid rgba(184,90,44,0.25)" }}>
           <p className="cd-kicker" style={{ margin: "0 0 var(--space-0_5)", color: "var(--color-mid-text)", letterSpacing: "0.08em" }}>
-            {t("remedy_label", lang)}
+            {t(area.remedyKind === "MAINTAIN" ? "remedy_label_maintain" : "remedy_label", lang)}
           </p>
           <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-text)", lineHeight: 1.45 }}>{tLang(area.remedy, lang)}</p>
         </div>

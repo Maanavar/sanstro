@@ -57,8 +57,8 @@ from app.calculations.panchangam import (
     limb_fraction,
     limb_spans_between,
 )
-from app.calculations.prediction_score import PredictionScoreInput, compute_prediction_score
-from app.calculations.remedies import get_area_remedy
+from app.calculations.prediction_score import PredictionScoreInput, compute_prediction_score, interpret_score
+from app.calculations.remedies import MAINTAIN_PRACTICE_EN, MAINTAIN_PRACTICE_TA, get_area_remedy
 from app.calculations.sade_sati import (
     assess_mitigation,
     elapsed_month,
@@ -2375,6 +2375,26 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
                 native_age=age_12mo,
             )
 
+        # Owner rulings 2026-10-01, surfaced on the card. Both read the score
+        # the card shows; a phase-skipped or maraka-suppressed area claims no
+        # score, so it gets neither a band nor a remedy kind.
+        remedy_kind: str | None = None
+        score_band: str | None = None
+        score_band_text: LifeAreaText | None = None
+        if not (_suppressed or phase_skipped):
+            score_band, _band_ta, _band_en = interpret_score(score)
+            score_band_text = _t(_band_ta, _band_en)
+            remedy_kind = str(structured_remedy.get("kind")) if structured_remedy else None
+            if remedy_kind == "MAINTAIN":
+                # A parikaram is for a difficulty, not a blessing: a well-supported
+                # area gets the light practice, never a temple routine.
+                bundle = _NarrativeBundle(
+                    narrative=bundle.narrative,
+                    outlook=bundle.outlook,
+                    remedy=_t(MAINTAIN_PRACTICE_TA, MAINTAIN_PRACTICE_EN),
+                    caution=bundle.caution,
+                )
+
         areas.append(LifeAreaData(
             area=area,
             label=label,
@@ -2413,6 +2433,9 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
             reading=area_reading if contradiction_on else None,
             scoreBreakdown=score_breakdown,
             structuredRemedy=structured_remedy,
+            remedyKind=remedy_kind,
+            scoreBand=score_band,
+            scoreBandText=score_band_text,
         ))
 
     # D4 post-pass: ACTIVE_BUT_UNPROMISED names where the chart points the

@@ -405,6 +405,11 @@ function AreaStoryCard({ area, isTamil }: { area: LifeAreaData; isTamil: boolean
       <View style={styles.meterTrack}>
         <View style={[styles.meterFill, { width: `${Math.max(8, Math.min(area.score, 100))}%`, backgroundColor: tone }]} />
       </View>
+      {/* What the number means (owner-approved copy, 2026-10-01), read by the
+          server from this same score. Absent on cached payloads. */}
+      {area.scoreBandText ? (
+        <Text numberOfLines={2} style={styles.areaBand}>{biText(area.scoreBandText, isTamil)}</Text>
+      ) : null}
       <Text numberOfLines={4} style={styles.areaBody}>{biText(area.narrative, isTamil)}</Text>
       <View style={styles.nextBlock}>
         <Text style={styles.nextLabel}>{isTamil ? strings.insights.next_30_days.ta : strings.insights.next_30_days.en}</Text>
@@ -564,6 +569,7 @@ function makeStyles(C: ColorTokens) {
   areaTitle: { marginTop: S.md, color: C.textPrimary, fontFamily: "Inter_700Bold", fontSize: 18 },
   meterTrack: { height: 5, borderRadius: 999, backgroundColor: C.surfaceAlt, overflow: "hidden", marginTop: S.sm },
   meterFill: { height: 5, borderRadius: 999 },
+  areaBand: { marginTop: S.sm, color: C.textPrimary, fontFamily: "Inter_600SemiBold", fontSize: 13, lineHeight: 18 },
   areaBody: { marginTop: S.md, color: C.textSecond, fontFamily: "Inter_400Regular", fontSize: 13, lineHeight: 19 },
   nextBlock: { marginTop: "auto", borderTopWidth: 1, borderTopColor: C.divider, paddingTop: S.sm },
   nextLabel: { color: C.saffron, fontFamily: "Inter_700Bold", fontSize: 11, textTransform: "uppercase", letterSpacing: 0 },

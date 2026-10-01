@@ -116,6 +116,20 @@ def test_interpretation_copy_never_commands_the_act():
         assert "எடுக்கவும்" not in ta and "முன்னேறவும்" not in ta, ta
 
 
+def test_interpret_score_boundaries_and_the_supportive_floor():
+    """One scale for every surface. The remedy ceiling reads the supportive
+    floor, so it must be exactly where the copy starts saying "Good"."""
+    from app.calculations.prediction_score import SUPPORTIVE_SCORE_FLOOR, interpret_score
+
+    expected = {100: "EXCEPTIONAL", 91: "EXCEPTIONAL", 90: "STRONG", 76: "STRONG", 75: "GOOD",
+                61: "GOOD", 60: "MIXED", 41: "MIXED", 40: "DIFFICULT", 21: "DIFFICULT",
+                20: "VERY_WEAK", 0: "VERY_WEAK"}
+    for score, code in expected.items():
+        assert interpret_score(score)[0] == code, score
+    assert interpret_score(SUPPORTIVE_SCORE_FLOOR)[0] == "GOOD"
+    assert interpret_score(SUPPORTIVE_SCORE_FLOOR - 1)[0] == "MIXED"
+
+
 def test_maha_lord_strength_scales_the_dasha_layer_around_neutral():
     """Owner ruling 2026-10-01: a strong dasha lord gives its promise fully, a
     weak one partly. Centred on 50 so an average lord changes nothing."""

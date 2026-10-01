@@ -95,6 +95,15 @@ export interface LifeAreaData {
    * when the reasoning_chart_signature flag is on (plan Phase 5).
    */
   causalChain?: BiText | null;
+  /** "MAINTAIN" when the area is well supported: `remedy` then carries a light
+   *  practice, not a parikaram (owner ruling 2026-10-01). "REMEDY" when it
+   *  needs care. Absent on cached payloads and for a skipped/suppressed area. */
+  remedyKind?: "REMEDY" | "MAINTAIN" | null;
+  /** One-line reading of `score` from the shared interpretation scale and its
+   *  owner-approved copy (2026-10-01). Read from the displayed score. Absent on
+   *  cached payloads and whenever no score is claimed. */
+  scoreBand?: "EXCEPTIONAL" | "STRONG" | "GOOD" | "MIXED" | "DIFFICULT" | "VERY_WEAK" | null;
+  scoreBandText?: BiText | null;
 }
 
 /** Dominant-graha framing for the whole chart (plan Phase 5). */

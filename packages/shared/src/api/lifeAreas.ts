@@ -19,6 +19,11 @@ export interface LifeAreaData {
   narrative: BiText;
   remedy: BiText;
   next30DayOutlook: BiText;
+  /** See the full type in types/index.ts (owner rulings 2026-10-01). Absent on
+   *  cached payloads and whenever the area claims no score. */
+  remedyKind?: "REMEDY" | "MAINTAIN" | null;
+  scoreBand?: "EXCEPTIONAL" | "STRONG" | "GOOD" | "MIXED" | "DIFFICULT" | "VERY_WEAK" | null;
+  scoreBandText?: BiText | null;
 }
 
 export interface LifeAreasData {

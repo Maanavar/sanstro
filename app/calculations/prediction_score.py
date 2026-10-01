@@ -124,6 +124,21 @@ _INTERPRETATION_SCALE = [
     (0, "VERY_WEAK", "நிதானம் தேவை — தவிர்க்கக்கூடிய அபாயங்களைத் தள்ளிவையுங்கள்", "Go slow — postpone avoidable risks here"),
 ]
 
+#: The lowest score the copy calls supportive ("Good — results come with
+#: sustained effort"). The life-area remedy reads this same line, so a card can
+#: never print "plan carefully" above "this area is well supported".
+SUPPORTIVE_SCORE_FLOOR = 61
+
+
+def interpret_score(total: int) -> tuple[str, str, str]:
+    """(code, Tamil, English) for a 0-100 score — one scale for every surface."""
+    for floor, code, ta, en in _INTERPRETATION_SCALE:
+        if total >= floor:
+            return code, ta, en
+    _floor, code, ta, en = _INTERPRETATION_SCALE[-1]
+    return code, ta, en
+
+
 #: How far the Mahadasha lord's natal strength scales the dasha layer (owner
 #: ruling 2026-10-01: a strong dasha lord gives its promise fully, a weak one
 #: partly or late). Centred on the neutral score 50 so an average lord leaves
@@ -178,11 +193,7 @@ def compute_prediction_score(
         if not gate.proceeds_to_timing:
             # D1 veto: the chart does not promise this — timing is not consulted.
             total = min(l1, 10) if gate.grade is GateGrade.BLOCKED else min(l1, 20)
-            interp = _INTERPRETATION_SCALE[-1]
-            for row in _INTERPRETATION_SCALE:
-                if total >= row[0]:
-                    interp = row
-                    break
+            interp = (None, *interpret_score(total))
             return PredictionScoreResult(
                 total=total,
                 l1_birth_promise=l1,
@@ -243,11 +254,7 @@ def compute_prediction_score(
     else:
         total = max(0, min(100, l1 + l2 + l3 + l4 + l5 + l6))
 
-    interp = _INTERPRETATION_SCALE[-1]
-    for row in _INTERPRETATION_SCALE:
-        if total >= row[0]:
-            interp = row
-            break
+    interp = (None, *interpret_score(total))
 
     return PredictionScoreResult(
         total=total,
