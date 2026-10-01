@@ -196,7 +196,7 @@ describe("no surface claims a transit input that does not exist", () => {
     for (const lang of ["en", "ta"] as const) {
       const text = getYogaPowerContext("SOME_UNMAPPED_YOGA", "STRONG", true, lang);
       expect(text).not.toMatch(/transit/i);
-      expect(text).not.toMatch(/கிரகநகர்வு/);
+      expect(text).not.toMatch(/கோச்சார|கோசார|கிரகநகர்வு/); // any spelling of "transit"
     }
   });
 
@@ -214,7 +214,7 @@ describe("no surface claims a transit input that does not exist", () => {
     for (const lang of ["en", "ta"] as const) {
       const text = getDoshamPowerContext(dosham, lang);
       expect(text).not.toMatch(/transit/i);
-      expect(text).not.toMatch(/கிரகநகர்வு/);
+      expect(text).not.toMatch(/கோச்சார|கோசார|கிரகநகர்வு/); // any spelling of "transit"
     }
   });
 });

@@ -77,7 +77,7 @@ export function NovaPlanWhatIfPanel({
             </strong>
             {" "}
             {lang === "ta"
-              ? "நீங்கள் தேர்ந்தெடுத்த குறிப்பிட்ட தேதிக்கு மூன்று-உறுதிப்படுத்தல் பகுப்பாய்வு — பிறப்பு ஜாதக வாக்குறுதி + தசை ஆதரவு + கிரகநகர்வு நிலை ஒரே நேரத்தில் சரிபார்க்கப்படும். இது 'Goals' தாவலில் உள்ள மதிப்பெண்ணிலிருந்து வேறுபடும் — அது பல மாத தசை ஆதரவை அளவிடுகிறது; இது ஒரு குறிப்பிட்ட நாளை அளவிடுகிறது."
+              ? "நீங்கள் தேர்ந்தெடுத்த குறிப்பிட்ட தேதிக்கு மூன்று-உறுதிப்படுத்தல் பகுப்பாய்வு — பிறப்பு ஜாதக வாக்குறுதி + தசை ஆதரவு + கோச்சார நிலை ஒரே நேரத்தில் சரிபார்க்கப்படும். இது 'Goals' தாவலில் உள்ள மதிப்பெண்ணிலிருந்து வேறுபடும் — அது பல மாத தசை ஆதரவை அளவிடுகிறது; இது ஒரு குறிப்பிட்ட நாளை அளவிடுகிறது."
               : "Triple-confirmation analysis for the exact date you chose — natal promise, Dasa support, and transit positions are all checked simultaneously. This will naturally differ from Goals window scores because Goals measures multi-month Dasa alignment, while What-If measures one specific day."}
           </p>
         </Card>

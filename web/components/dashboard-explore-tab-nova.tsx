@@ -441,7 +441,7 @@ export function DashboardExploreTabNova({
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
         <div>
           <Kicker>
-            {lang === "ta" ? <>ஆராயுங்கள் · <span style={{ fontFamily: "'Noto Sans Tamil', sans-serif" }}>அறிவுக் களஞ்சியம்</span></> : t("tab_explore", lang)}
+            {lang === "ta" ? <>{t("tab_explore", lang)} · <span style={{ fontFamily: "'Noto Sans Tamil', sans-serif" }}>அறிவுக் களஞ்சியம்</span></> : t("tab_explore", lang)}
           </Kicker>
           {/* audit B-1: page title is the Explore tab's sole page heading. */}
           <h1 style={{ margin: "6px 0 0", fontFamily: "var(--font-display)", fontSize: "var(--display-md)", fontWeight: 600, color: "var(--color-text-strong)" }}>

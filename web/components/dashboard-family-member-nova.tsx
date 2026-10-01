@@ -226,7 +226,7 @@ export function DashboardFamilyMemberNova({
     ? sani.confirmationSentence
     : isChandrashtama
       ? (lang === "ta" ? "இன்று சந்திராஷ்டமம் — கவனமாக இருக்கவும்." : "Chandrashtama today — proceed with care.")
-      : (lang === "ta" ? "இன்று பெரிய கிரகநகர்வு எச்சரிக்கை இல்லை." : "No major transit caution today.");
+      : (lang === "ta" ? "இன்று பெரிய கோச்சார எச்சரிக்கை இல்லை." : "No major transit caution today.");
 
   const upcomingMaha = dasha
     ? dasha.timeline
@@ -390,7 +390,7 @@ export function DashboardFamilyMemberNova({
               )}
               <div style={{ display: "flex", gap: "var(--space-2_5)", fontSize: "var(--text-sm)", lineHeight: 1.55, color: "var(--color-muted)" }}>
                 <span style={{ flexShrink: 0, width: "6px", height: "6px", borderRadius: "var(--radius-pill)", background: "var(--color-accent)", marginTop: "6px" }} />
-                <span><b style={{ color: "var(--color-text-strong)" }}>{lang === "ta" ? "கிரகநகர்வு" : "Transit"}</b> — <span data-server-prose={sani?.moonBasedCycle.isActive || undefined}>{transitLine}</span></span>
+                <span><b style={{ color: "var(--color-text-strong)" }}>{lang === "ta" ? "கோச்சாரம்" : "Transit"}</b> — <span data-server-prose={sani?.moonBasedCycle.isActive || undefined}>{transitLine}</span></span>
               </div>
             </div>
             <div style={{ marginTop: "auto", background: "linear-gradient(135deg, var(--color-accent-muted), transparent)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-3_5)" }}>

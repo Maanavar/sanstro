@@ -69,20 +69,20 @@ const STRINGS = {
   // breadcrumb of every sub-screen under it (dosham, guide, learn, nakshatram),
   // which used to carry the word as six separate string literals and so kept
   // sending readers "back to Explore" from a tab no longer called that.
-  // Tamil is unchanged and deliberately so — ஆய்வு is a shipped, reviewed
-  // string, and picking its replacement is a native-speaker call, not a guess.
-  // Queued in docs/ASTROLOGER_REVIEW_QUEUE.md.
-  tab_explore:    { ta: "ஆய்வு",         en: "Understand" },
+  // Tamil follows the English rename (reviewer, 2026-10-01): the tab explains
+  // the ideas behind a reading, so விளக்கம் ("explanation"), replacing ஆய்வு
+  // ("study"). See docs/ASTROLOGER_REVIEW_QUEUE.md, Resolved.
+  tab_explore:    { ta: "விளக்கம்",       en: "Understand" },
   // Kept as its own string rather than composed as `"Back to " + tab_explore`:
-  // Tamil inflects the noun for the dative ("ஆய்வு" → "ஆய்வுக்கு"), so
+  // Tamil inflects the noun for the dative ("விளக்கம்" → "விளக்கத்திற்கு"), so
   // concatenation cannot build it. If `tab_explore` is renamed again, this
   // moves with it — that is the whole reason the two sit adjacent.
-  tab_explore_back: { ta: "ஆய்வுக்குத் திரும்பு", en: "Back to Understand" },
+  tab_explore_back: { ta: "விளக்கத்திற்குத் திரும்பு", en: "Back to Understand" },
   tab_tools:      { ta: "கருவிகள்",     en: "Tools" },
   tab_personal:   { ta: "தனிப்பட்ட",   en: "Personal" },
   tab_plan:       { ta: "இலக்குகள்",   en: "Goals" },
   tab_family:     { ta: "குடும்பம் & ஜாதகம்",    en: "Family & Charts" },
-  tab_calendar:   { ta: "கிரகநகர்வு & நிகழ்வு", en: "Transits & Events" },
+  tab_calendar:   { ta: "கோச்சாரம் & நிகழ்வு", en: "Transits & Events" },
   tab_setup:      { ta: "தொடக்கம்",     en: "Setup" },
   tab_settings:   { ta: "அமைப்புகள்",     en: "Settings" },
   tab_life_area_nav: { ta: "வாழ்க்கை பகுதி", en: "Life Areas" },
@@ -257,8 +257,8 @@ const STRINGS = {
   btn_go_personal:    { ta: "தனிப்பட்டது →",     en: "Personal →" },
 
   // ── Transits tab
-  tab_transits:       { ta: "தசை & கிரகநகர்வு",    en: "Transits & Dashas" },
-  transits_tab_desc:  { ta: "உங்கள் வாழ்க்கைக் காலங்கள் (விம்சோத்தரி முறை), கிரகநகர்வு நிலைகள், குறிப்பேடு ஒப்பீடுகள்", en: "Your life periods (Vimshottari system), transit positions, journal comparisons" },
+  tab_transits:       { ta: "தசை & கோச்சாரம்",    en: "Transits & Dashas" },
+  transits_tab_desc:  { ta: "உங்கள் வாழ்க்கைக் காலங்கள் (விம்சோத்தரி முறை), கோச்சார நிலைகள், குறிப்பேடு ஒப்பீடுகள்", en: "Your life periods (Vimshottari system), transit positions, journal comparisons" },
 
   // ── TODAY tab (Phase 2)
   today_greeting:       { ta: "காலை வணக்கம்",      en: "Good morning" },
@@ -272,8 +272,8 @@ const STRINGS = {
 
   // ── Personal tab
   personal_kicker:    { ta: "தனிப்பட்ட",        en: "Personal" },
-  personal_title_default: { ta: "ஜாதகம், வழிகாட்டுதல் & கிரகநகர்வு", en: "Chart, guidance & transits" },
-  personal_desc:      { ta: "தசை, பஞ்சாங்கம், கிரகநகர்வு தரவு", en: "Dasa, panchangam, transit data" },
+  personal_title_default: { ta: "ஜாதகம், வழிகாட்டுதல் & கோச்சாரம்", en: "Chart, guidance & transits" },
+  personal_desc:      { ta: "தசை, பஞ்சாங்கம், கோச்சார தரவு", en: "Dasa, panchangam, transit data" },
   personal_today:     { ta: "இன்று",            en: "Today" },
   personal_you:       { ta: "நீங்கள்",           en: "You" },
   chandrashtama_warning: { ta: "⚠ சந்திராஷ்டமம் — சந்திரன் உங்கள் பிறப்பு ராசியிலிருந்து 8ஆம் ராசியில் உள்ளது. முக்கிய முடிவுகளைத் தவிர்க்கவும்.", en: "⚠ Chandrashtamam — Moon is in the 8th rasi from your natal Moon sign. Avoid important decisions." },
@@ -315,15 +315,15 @@ const STRINGS = {
   label_next_3_days:   { ta: "அடுத்த 3 நாட்கள்", en: "Next 3 days" },
 
   // ── Transit & Panchangam surface
-  surface_gochar:   { ta: "கிரகநகர்வு & பஞ்சாங்கம்", en: "Transits & Panchangam" },
-  gochar_empty:     { ta: "ஜாதகம் உருவாக்கிய பின் கிரகநகர்வும் பஞ்சாங்கமும் தெரியும்.", en: "Create a chart to see transits and panchangam." },
+  surface_gochar:   { ta: "கோச்சாரம் & பஞ்சாங்கம்", en: "Transits & Panchangam" },
+  gochar_empty:     { ta: "ஜாதகம் உருவாக்கிய பின் கோச்சாரமும் பஞ்சாங்கமும் தெரியும்.", en: "Create a chart to see transits and panchangam." },
   label_chandrashtamam: { ta: "சந்திராஷ்டமம்", en: "Chandrashtamam" },
   label_chandrashtamam_rasi: { ta: "இன்று சந்திராஷ்டமம்", en: "Today's Chandrashtamam" },
   label_active:     { ta: "நடப்பு",  en: "Active" },
   label_none:       { ta: "இல்லை",  en: "None" },
   label_not_today:  { ta: "இன்று இல்லை", en: "Not today" },
   label_sani_cycle: { ta: "சனி சுழற்சி", en: "Saturn cycle" },
-  label_gochar_pos: { ta: "கிரகநகர்வு நிலை", en: "Transit positions" },
+  label_gochar_pos: { ta: "கோச்சார நிலை", en: "Transit positions" },
   label_janma_rasi_short: { ta: "பிறப்பு ராசி", en: "Birth sign" },
   label_panchangam: { ta: "பஞ்சாங்கம்", en: "Panchangam" },
   label_tithi:      { ta: "திதி",         en: "Tithi" },
@@ -427,8 +427,8 @@ const STRINGS = {
   confirm_delete_vault:  { ta: "இந்தக் குடும்பத்தையும் அனைத்து உறுப்பினர்களையும் நீக்கவா? இதை மீட்க முடியாது.", en: "Delete this family and all its members? This cannot be undone." },
 
   // ── Calendar tab
-  calendar_kicker:  { ta: "கிரகநகர்வு & நிகழ்வுகள்", en: "Transits & Events" },
-  calendar_title:   { ta: "கிரகநகர்வு, தசை & நிகழ்வுகள்", en: "Transits, Dasa & Events" },
+  calendar_kicker:  { ta: "கோச்சாரம் & நிகழ்வுகள்", en: "Transits & Events" },
+  calendar_title:   { ta: "கோச்சாரம், தசை & நிகழ்வுகள்", en: "Transits, Dasa & Events" },
   cal_panchangam:   { ta: "📅 பஞ்சாங்கம்",  en: "📅 Panchangam" },
   cal_monthly:      { ta: "🗓️ மாத காலெண்டர்", en: "🗓️ Monthly" },
   cal_monthly_loading: { ta: "மாத பஞ்சாங்கம் ஏற்றப்படுகிறது…", en: "Loading monthly panchangam…" },
@@ -604,7 +604,7 @@ const STRINGS = {
   whatif_result_title: { ta: "மூன்று தூண் திருக்கணித ஆய்வு",  en: "Triple-confirmation analysis" },
   whatif_natal:        { ta: "ஜாதக வாக்கு",            en: "Natal Promise" },
   whatif_dasha:        { ta: "தசை ஆதரவு",              en: "Dasa Support" },
-  whatif_gochar:       { ta: "கிரகநகர்வு ஆதரவு",        en: "Transit Support" },
+  whatif_gochar:       { ta: "கோச்சார ஆதரவு",        en: "Transit Support" },
   whatif_overall:      { ta: "ஒட்டுமொத்த நிலை",        en: "Overall verdict" },
   whatif_best_period:  { ta: "சிறந்த காலம்",           en: "Best period" },
   whatif_caution:      { ta: "கவனிக்கவும்",            en: "Caution" },
@@ -639,7 +639,7 @@ const STRINGS = {
   pred_health_title:       { ta: "உடல்நலம் கணிப்பு",                en: "Health Prediction" },
   pred_confidence:         { ta: "நம்பகத்தன்மை நிலை",                  en: "Confidence" },
   pred_dasha_support:      { ta: "தசை ஆதரவு",                       en: "Dasa support" },
-  pred_transit_support:    { ta: "கிரகநகர்வு ஆதரவு",                 en: "Transit support" },
+  pred_transit_support:    { ta: "கோச்சார ஆதரவு",                 en: "Transit support" },
   pred_timing_window:      { ta: "கால வரம்பு",                      en: "Timing window" },
   pred_supports:           { ta: "சாதகங்கள்",                       en: "Supporting factors" },
   pred_challenges:         { ta: "சவால்கள்",                        en: "Challenges" },
@@ -702,7 +702,7 @@ const STRINGS = {
   reason_moonTransit:  { ta: "சந்திர நகர்வு",         en: "Moon transit" },
   reason_dashaSupport: { ta: "தசை ஆதரவு",            en: "Dasa support" },
   reason_panchangam:   { ta: "பஞ்சாங்கம்",           en: "Panchangam" },
-  reason_gochar:       { ta: "கிரகநகர்வு",            en: "Transit" },
+  reason_gochar:       { ta: "கோச்சாரம்",            en: "Transit" },
   reason_personalCaution: { ta: "தனிப்பட்ட கவலை",   en: "Personal caution" },
 
   // QA Dashboard tab
@@ -897,7 +897,7 @@ const STRINGS = {
   retro_intensity_similar: { ta: "இதே போல்",                   en: "Similar" },
   retro_intensity_milder:  { ta: "குறைவான",                     en: "Milder" },
   retro_intensity_stronger:{ ta: "அதிகமான",                    en: "Stronger" },
-  retro_key_transits:      { ta: "முக்கிய கிரகநகர்வுகள்",       en: "Key Transits" },
+  retro_key_transits:      { ta: "முக்கிய கோச்சாரங்கள்",       en: "Key Transits" },
   retro_active_dasha:      { ta: "நடப்பு தசை",                  en: "Active Dasa" },
 
   // ── Decision support tool

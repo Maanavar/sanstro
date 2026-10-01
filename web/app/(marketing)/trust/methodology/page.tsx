@@ -30,7 +30,7 @@ export default async function MethodologyPage() {
     { label: "Lahiri ayanamsa",    desc: lang === "en" ? "Government-recognised sidereal zodiac offset"           : "அரசாங்கம் அங்கீகரித்த நட்சத்திர ராசிக்கட்ட இடைவெளி" },
     { label: "Drik ephemeris",     desc: lang === "en" ? "High-precision planetary data"                         : "உயர் துல்லியமான கிரக தரவு" },
     { label: "Vimshottari dasa",  desc: lang === "en" ? "120-year planetary period cycle"                       : "120 ஆண்டு கிரக காலசுழற்சி" },
-    { label: "Transit + panchangam", desc: lang === "en" ? "Daily transits and five-part almanac"                : "தினசரி கிரகநகர்வு மற்றும் ஐந்து கூறு பஞ்சாங்கம்" },
+    { label: "Transit + panchangam", desc: lang === "en" ? "Daily transits and five-part almanac"                : "தினசரி கோச்சாரம் மற்றும் ஐந்து கூறு பஞ்சாங்கம்" },
   ];
 
   const TOC = [
@@ -39,7 +39,7 @@ export default async function MethodologyPage() {
     { href: "#node",          label: lang === "en" ? "Rahu and Ketu"           : "ராகு மற்றும் கேது" },
     { href: "#drik",          label: lang === "en" ? "Drik ephemeris"          : "திரிக் கோளக்கணிதம்" },
     { href: "#dasa",         label: lang === "en" ? "Vimshottari dasa"       : "விம்சோத்தரி தசை" },
-    { href: "#gochar",        label: lang === "en" ? "Transits"                 : "கிரகநகர்வு" },
+    { href: "#gochar",        label: lang === "en" ? "Transits"                 : "கோச்சாரம்" },
     { href: "#panchangam",    label: lang === "en" ? "Panchangam"              : "பஞ்சாங்கம்" },
     { href: "#daily-score",   label: lang === "en" ? "Multi-signal score"      : "பல சமிக்ஞை மதிப்பெண்" },
     { href: "#porutham",      label: lang === "en" ? "Porutham"                : "பொருத்தம்" },
@@ -96,7 +96,7 @@ export default async function MethodologyPage() {
                   : "விநாடி திருக்கணிதத்தை அடிப்படையாகக் கொண்டது. பிறந்த தருணத்திலும் எந்த நாளிலும் வான்பொருட்கள் எங்கு இருக்கின்றன என்பதைத் துல்லியமாகக் கணக்கிடும் தமிழ் மரபு இதுதான்."}</p>
                 <p>{lang === "en"
                   ? "Unlike generalized astrology apps that use approximate planetary data, Vinaadi uses Thirukanitham-based computation to produce birth charts, panchangam, and transit readings anchored to the exact Tamil astrological standard."
-                  : "தோராயமான கிரகத் தரவை நம்பும் பல ஜோதிட ஆப்களிலிருந்து வேறுபட்டு, விநாடி திருக்கணிதக் கணக்கீட்டின் அடிப்படையில் ஜாதகம், பஞ்சாங்கம், கிரகநகர்வு வாசிப்பு ஆகிய அனைத்தையும் தமிழ் தரநிலைக்கேற்ப உருவாக்குகிறது."}</p>
+                  : "தோராயமான கிரகத் தரவை நம்பும் பல ஜோதிட ஆப்களிலிருந்து வேறுபட்டு, விநாடி திருக்கணிதக் கணக்கீட்டின் அடிப்படையில் ஜாதகம், பஞ்சாங்கம், கோச்சார வாசிப்பு ஆகிய அனைத்தையும் தமிழ் தரநிலைக்கேற்ப உருவாக்குகிறது."}</p>
 
                 <h2 id="lahiri">{lang === "en" ? "Lahiri ayanamsa (Chitra-paksha)" : "லாகிரி அயனாம்சம் (சித்திரப் பக்ஷம்)"}</h2>
                 <p>{lang === "en"
@@ -121,10 +121,10 @@ export default async function MethodologyPage() {
                   ? "Dasa periods are computed using the standard 365.25-day solar year, the convention used across mainstream Vimshottari implementations. This affects period boundary dates by at most a day or two over a multi-year mahadasha and does not change which planet's period is running."
                   : "தசைக் காலங்கள் 365.25 நாள் கொண்ட நிலையான சூரிய ஆண்டைப் பயன்படுத்தியே கணக்கிடப்படுகின்றன — இது விம்சோத்தரி முறையில் பொதுவாகப் பின்பற்றப்படும் மரபு. இதனால் பல ஆண்டுகள் நீளும் மகாதசையின் தொடக்க/முடிவு தேதியில் ஓரிரு நாள் வேறுபாடு வரலாம்; எந்தக் கிரகத்தின் தசை நடக்கிறது என்பதில் மாற்றம் இல்லை."}</p>
 
-                <h2 id="gochar">{lang === "en" ? "Transits" : "கிரகநகர்வு"}</h2>
+                <h2 id="gochar">{lang === "en" ? "Transits" : "கோச்சாரம்"}</h2>
                 <p>{lang === "en"
                   ? "Transits are the planets' current movements relative to your birth chart. Vinaadi combines major transits — especially Saturn, Jupiter, Rahu, and Ketu — with dasa periods to judge the tone of each day. Key effects like Chandrashtama and Ashtama Shani are tracked clearly, without fear language."
-                  : "உங்கள் பிறப்பு ஜாதகத்துடன் ஒப்பிடும்போது கிரகங்கள் இப்போது எங்கு நகர்கின்றன என்பதையே கிரகநகர்வு என்று சொல்கிறோம். சனி, குரு, ராகு, கேது போன்ற முக்கிய நகர்வுகளை விநாடி தசையுடன் சேர்த்து பார்த்து நாளின் தரத்தை மதிப்பிடுகிறது. சந்திராஷ்டமம், அஷ்டம சனி போன்ற சுட்டிகளும் பயமுறுத்தாமல் தெளிவாகக் காட்டப்படுகின்றன."}</p>
+                  : "உங்கள் பிறப்பு ஜாதகத்துடன் ஒப்பிடும்போது கிரகங்கள் இப்போது எங்கு நகர்கின்றன என்பதையே கோச்சாரம் என்று சொல்கிறோம். சனி, குரு, ராகு, கேது போன்ற முக்கிய நகர்வுகளை விநாடி தசையுடன் சேர்த்து பார்த்து நாளின் தரத்தை மதிப்பிடுகிறது. சந்திராஷ்டமம், அஷ்டம சனி போன்ற சுட்டிகளும் பயமுறுத்தாமல் தெளிவாகக் காட்டப்படுகின்றன."}</p>
 
                 <h2 id="panchangam">{lang === "en" ? "Panchangam" : "பஞ்சாங்கம்"}</h2>
                 <p>{lang === "en"
@@ -137,10 +137,10 @@ export default async function MethodologyPage() {
                 <h2 id="daily-score">{lang === "en" ? "Multi-signal daily score" : "பல சமிக்ஞை தினசரி மதிப்பெண்"}</h2>
                 <p>{lang === "en"
                   ? "Vinaadi's daily score combines: current dasa and bhukti period quality, transit influences on your birth chart, panchangam quality for the day, the Moon's star position, and Ashtakavarga contributions where applicable."
-                  : "விநாடியின் தினசரி மதிப்பெண் பல சுட்டிகளை ஒன்றாகப் பார்க்கிறது: நடப்பு தசை, புக்தி தரம், ஜாதகத்தின் மீது படும் கிரகநகர்வு தாக்கம், நாளுக்கான பஞ்சாங்க நிலை, சந்திர நட்சத்திரம், தேவையான இடங்களில் அஷ்டகவர்க பங்களிப்பு."}</p>
+                  : "விநாடியின் தினசரி மதிப்பெண் பல சுட்டிகளை ஒன்றாகப் பார்க்கிறது: நடப்பு தசை, புக்தி தரம், ஜாதகத்தின் மீது படும் கோச்சார தாக்கம், நாளுக்கான பஞ்சாங்க நிலை, சந்திர நட்சத்திரம், தேவையான இடங்களில் அஷ்டகவர்க பங்களிப்பு."}</p>
                 <p>{lang === "en"
                   ? "How much each of these five signals contributes to the final number is a product calibration Vinaadi's team set, not a value handed down by any classical text — the underlying dasa, transit, and panchangam readings themselves are traditional; the blend weighting is ours, and we may adjust it as the product matures."
-                  : "இந்த ஐந்து சுட்டிகளும் இறுதி மதிப்பெண்ணில் எவ்வளவு பங்கு வகிக்கின்றன என்பது விநாடி குழு அமைத்த ஒரு தயாரிப்பு அளவீடு — இது எந்த சாஸ்திர நூலிலிருந்தும் வந்தது அல்ல. தசை, கிரகநகர்வு, பஞ்சாங்கம் ஆகியவற்றின் அடிப்படைக் கணக்குகள் பாரம்பரியமானவை; அவற்றை எவ்வளவு எடையுடன் இணைக்கிறோம் என்பது மட்டும் எங்கள் தயாரிப்பு முடிவு — தயாரிப்பு முதிர்ச்சியடையும்போது இது மாறவும் வாய்ப்புள்ளது."}</p>
+                  : "இந்த ஐந்து சுட்டிகளும் இறுதி மதிப்பெண்ணில் எவ்வளவு பங்கு வகிக்கின்றன என்பது விநாடி குழு அமைத்த ஒரு தயாரிப்பு அளவீடு — இது எந்த சாஸ்திர நூலிலிருந்தும் வந்தது அல்ல. தசை, கோச்சாரம், பஞ்சாங்கம் ஆகியவற்றின் அடிப்படைக் கணக்குகள் பாரம்பரியமானவை; அவற்றை எவ்வளவு எடையுடன் இணைக்கிறோம் என்பது மட்டும் எங்கள் தயாரிப்பு முடிவு — தயாரிப்பு முதிர்ச்சியடையும்போது இது மாறவும் வாய்ப்புள்ளது."}</p>
 
                 <h2 id="porutham">{lang === "en" ? "Porutham (marriage compatibility)" : "பொருத்தம் (திருமண பொருத்தம்)"}</h2>
                 <p>{lang === "en"

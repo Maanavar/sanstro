@@ -1992,7 +1992,7 @@ export function DashboardTodayTabNova({
                 ? { key: "panchangam", glossary: "panchangam", label: lang === "ta" ? "பஞ்சாங்கம்" : "Panchangam", text: personalDailyGuidance.reasons.panchangam }
                 : null,
               personalDailyGuidance.reasons.gochar
-                ? { key: "gochar", glossary: "gochar", label: lang === "ta" ? "கோசாரம்" : "Transit", text: personalDailyGuidance.reasons.gochar }
+                ? { key: "gochar", glossary: "gochar", label: lang === "ta" ? "கோச்சாரம்" : "Transit", text: personalDailyGuidance.reasons.gochar }
                 : null,
             ];
             const tiles = maybeTiles.filter((tile): tile is ReasonTile => tile !== null);

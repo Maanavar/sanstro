@@ -30,7 +30,7 @@ const TERM_LABELS: Record<GlossaryKey, { en: string; ta: string }> = {
   bhukti: { en: "Bhukti", ta: "புக்தி" },
   rasi: { en: "Rasi", ta: "ராசி" },
   nakshatra: { en: "Nakshatra", ta: "நட்சத்திரம்" },
-  gochar: { en: "Gochar", ta: "கோசாரம்" },
+  gochar: { en: "Gochar", ta: "கோச்சாரம்" },
   shadbala: { en: "Shadbala", ta: "ஷட்பலம்" },
   sthanaBala: { en: "Sthana Bala", ta: "ஸ்தான பலம்" },
   digBala: { en: "Dig Bala", ta: "திக் பலம்" },

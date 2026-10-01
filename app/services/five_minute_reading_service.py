@@ -1104,7 +1104,7 @@ def _beat_window_ahead(*, moon_rasi: int, as_of: date) -> OneMinuteBeat:
         text=OneMinuteText(ta=ta, en=en),
         basis=OneMinuteText(
             ta=(
-                f"கோசார சனி ராசி {saturn_rasi}; ஜென்ம ராசி {moon_rasi}; "
+                f"கோச்சார சனி ராசி {saturn_rasi}; ஜென்ம ராசி {moon_rasi}; "
                 f"ராசியிலிருந்து {house}ஆம் இடம்; இடம் மாறுவது {egress.isoformat()}"
             ),
             en=(

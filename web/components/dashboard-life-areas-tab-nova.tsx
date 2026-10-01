@@ -380,7 +380,7 @@ export function DashboardLifeAreasTabNova({
           </h1>
           <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.55, maxWidth: "520px" }}>
             {lang === "ta"
-              ? "ஒவ்வொரு மதிப்பெண்ணும் இன்றைய நிலையை அடிப்படையாகக் கொண்டது — உங்கள் ஜாதக வலிமை, தசை மற்றும் கிரகநகர்வு மூன்றையும் சேர்த்து கணக்கிடப்படுகிறது."
+              ? "ஒவ்வொரு மதிப்பெண்ணும் இன்றைய நிலையை அடிப்படையாகக் கொண்டது — உங்கள் ஜாதக வலிமை, தசை மற்றும் கோச்சாரம் மூன்றையும் சேர்த்து கணக்கிடப்படுகிறது."
               : "Each score is a snapshot for today — natal chart strength, the active dasha period, and current transits, combined."}
           </p>
         </div>
@@ -507,7 +507,7 @@ export function DashboardLifeAreasTabNova({
                 </h3>
                 <p style={{ margin: "2px 0 0", fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>
                   {lang === "ta"
-                    ? "ஜாதக காரக வலிமை + தற்போதைய தசை இணக்கம் + இன்றைய கிரகநகர்வு ஆதரவு. இவை மெதுவாக மாறும் — ஒவ்வொரு மணி நேரமும் அல்ல, வாரம் ஒருமுறை பாருங்கள்."
+                    ? "ஜாதக காரக வலிமை + தற்போதைய தசை இணக்கம் + இன்றைய கோச்சார ஆதரவு. இவை மெதுவாக மாறும் — ஒவ்வொரு மணி நேரமும் அல்ல, வாரம் ஒருமுறை பாருங்கள்."
                     : "Natal karaka strength + active dasha alignment + today's transit support. They shift slowly — check weekly, not hourly."}
                 </p>
               </div>

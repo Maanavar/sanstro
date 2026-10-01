@@ -311,7 +311,7 @@ def get_peyarchi_report(
         house_lagna = house_from_reference(natal_lagna, next_rasi)
 
         outlook = _PEYARCHI_OUTLOOK.get(planet, {}).get(house_moon, {
-            "ta": f"கோசார {planet.capitalize()} {house_moon}ஆம் இடத்தில் — மிதமான காலம்.",
+            "ta": f"கோச்சார {planet.capitalize()} {house_moon}ஆம் இடத்தில் — மிதமான காலம்.",
             "en": f"Transit {planet.capitalize()} in house {house_moon} — moderate period.",
         })
 

@@ -1467,7 +1467,7 @@ export function DashboardCalendarTabNova({
         {view === "monthly" && <MonthlyCalendarLandscape priority />}
         <div className={view === "monthly" ? "nova-cal-monthly-header__copy" : undefined}>
           <Kicker as="div">
-            {lang === "ta" ? "கிரகநகர்வு & நிகழ்வுகள்" : "Transits & Events"}
+            {lang === "ta" ? "கோச்சாரம் & நிகழ்வுகள்" : "Transits & Events"}
           </Kicker>
           <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-3)", marginTop: "6px", flexWrap: "wrap" }}>
             {/* audit B-1: the date is the Calendar page's sole page heading

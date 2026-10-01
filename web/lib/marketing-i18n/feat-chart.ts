@@ -23,7 +23,7 @@ export const FEAT_CHART = {
   assistant_h2:   s("The assistant model",    "உதவியாளர் மாதிரி"),
   assistant_body: s(
     "Chart guidance in Vinaadi is not a static printout. The assistant interprets your chart in the context of where you are now — your current dasa period and today's transits — so the explanation is always grounded in the present moment.",
-    "விநாடியில் ஜாதக விளக்கம் ஒரு நிலையான அச்சு அல்ல. நீங்கள் இப்போது நிற்கும் வாழ்க்கைச் சூழலில் — நடப்பு தசை, இன்றைய கிரகநகர்வு ஆகியவற்றை சேர்த்து — உதவியாளர் உங்கள் ஜாதகத்தை விளக்குகிறது. அதனால் வாசிப்பு எப்போதும் நிகழ்காலத்துடன் இணைந்ததாக இருக்கும்."
+    "விநாடியில் ஜாதக விளக்கம் ஒரு நிலையான அச்சு அல்ல. நீங்கள் இப்போது நிற்கும் வாழ்க்கைச் சூழலில் — நடப்பு தசை, இன்றைய கோச்சாரம் ஆகியவற்றை சேர்த்து — உதவியாளர் உங்கள் ஜாதகத்தை விளக்குகிறது. அதனால் வாசிப்பு எப்போதும் நிகழ்காலத்துடன் இணைந்ததாக இருக்கும்."
   ),
 
   faq_h2: s("Questions about chart guidance", "ஜாதக விளக்கம் பற்றிய கேள்விகள்"),

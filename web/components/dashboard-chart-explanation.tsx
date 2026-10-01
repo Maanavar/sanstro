@@ -239,10 +239,10 @@ function activationToneColor(tone: string): string {
 }
 
 function signalTypeLabel(signalType: string, lang: Lang): string {
-  if (signalType === "DASHA_LORD_RETURN") return lang === "ta" ? "சுய ராசி கிரகநகர்வு" : "Natal sign return";
+  if (signalType === "DASHA_LORD_RETURN") return lang === "ta" ? "சுய ராசி கோச்சாரம்" : "Natal sign return";
   if (signalType === "TRANSIT_RETURN") return lang === "ta" ? "சுய ராசிக்கு திரும்புதல்" : "Return to its own natal sign";
-  if (signalType === "TRANSIT_CONJUNCTION") return lang === "ta" ? "கிரகநகர்வு சேர்க்கை" : "Transit conjunction";
-  if (signalType.startsWith("TRANSIT_ASPECT_")) return lang === "ta" ? "கிரகநகர்வு பார்வை" : "Transit aspect";
+  if (signalType === "TRANSIT_CONJUNCTION") return lang === "ta" ? "கோச்சார சேர்க்கை" : "Transit conjunction";
+  if (signalType.startsWith("TRANSIT_ASPECT_")) return lang === "ta" ? "கோச்சார பார்வை" : "Transit aspect";
   return signalType.replaceAll("_", " ");
 }
 
@@ -900,7 +900,7 @@ export function ChartExplanationPanel({
           ? `சனி சந்திரனிலிருந்து ${derived.saturnFromMoon}-ஆம் இடம்`
           : `Saturn ${derived.saturnFromMoon} from Moon`
         : lang === "ta"
-          ? "சனி கிரகநகர்வு ஏற்றப்படுகிறது"
+          ? "சனி கோச்சாரம் ஏற்றப்படுகிறது"
           : "Saturn transit loading";
     return lang === "ta"
       ? `${derived.kendraPlanets.length} கிரகங்கள் கேந்திரத்தில்; ${moonPhrase}; ${saniShort}.`
@@ -1105,7 +1105,7 @@ export function ChartExplanationPanel({
                           value={tx(backendCurrentActivation.periodSummary, lang)}
                         />
                         <DetailRow
-                          label={lang === "ta" ? "கிரகநகர்வு நிலை" : "Transit status"}
+                          label={lang === "ta" ? "கோச்சார நிலை" : "Transit status"}
                           value={tx(backendCurrentActivation.transitSummary, lang)}
                         />
                       </div>
@@ -1128,7 +1128,7 @@ export function ChartExplanationPanel({
                               <Chip>{lang === "ta" ? "சந்திரனிலிருந்து" : "From Moon"}: {ordinalHouse(item.natalHouseFromMoon, lang)}</Chip>
                               <Chip>{natureLabel(item.functionalNature, lang)}</Chip>
                               <Chip>{Math.round(item.natalStrengthScore)}/100</Chip>
-                              <Chip>{lang === "ta" ? "கிரகநகர்வு" : "Transit"}: {ordinalHouse(item.transitHouseFromLagna, lang)}</Chip>
+                              <Chip>{lang === "ta" ? "கோச்சாரம்" : "Transit"}: {ordinalHouse(item.transitHouseFromLagna, lang)}</Chip>
                               {item.transitIsRetrograde && <Chip>{lang === "ta" ? "வக்கிரம்" : "Retrograde"}</Chip>}
                             </div>
                             <p style={{ margin: "0 0 var(--space-2)", fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.55 }}>
@@ -1141,7 +1141,7 @@ export function ChartExplanationPanel({
                                       {displayPlanet(signal.sourcePlanet, lang)}: {signalTypeLabel(signal.signalType, lang)}
                                     </Chip>
                                   ))
-                                : <Chip>{lang === "ta" ? "நேரடி பெரிய கிரகநகர்வு தொடுதல் இல்லை" : "No direct major transit contact"}</Chip>}
+                                : <Chip>{lang === "ta" ? "நேரடி பெரிய கோச்சார தொடுதல் இல்லை" : "No direct major transit contact"}</Chip>}
                             </div>
                           </Card>
                         ))}
@@ -1445,7 +1445,7 @@ export function ChartExplanationPanel({
 
                   <div style={{ display: "grid", gap: "var(--space-2)" }}>
                     <p style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>
-                      {lang === "ta" ? "இன்றைய குரு / சனி கோசாரப் பார்வை" : "Guru / Sani — Current Transit Aspects"}
+                      {lang === "ta" ? "இன்றைய குரு / சனி கோச்சாரப் பார்வை" : "Guru / Sani — Current Transit Aspects"}
                     </p>
                     <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-faint)", lineHeight: 1.45 }}>
                       {lang === "ta"
@@ -1454,7 +1454,7 @@ export function ChartExplanationPanel({
                     </p>
                     {[derived.jupiterTransit, derived.saturnTransit].filter(Boolean).length === 0 ? (
                       <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.55 }}>
-                        {lang === "ta" ? "கிரகநகர்விலான குரு/சனி தரவு இல்லை." : "Transit Guru/Sani data is unavailable."}
+                        {lang === "ta" ? "கோச்சார குரு/சனி தரவு இல்லை." : "Transit Guru/Sani data is unavailable."}
                       </p>
                     ) : (
                       [derived.jupiterTransit, derived.saturnTransit].filter(Boolean).map((item) => {

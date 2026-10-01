@@ -182,9 +182,9 @@ def assess_wealth_prediction(payload: WealthAssessmentInput) -> LifeAreaPredicti
     if payload.transit_jupiter_rasi in {second_house_rasi, eleventh_house_rasi}:
         score += 8
         transit_support = "STRONG"
-        supports.append(BiText("குரு கோசாரம் வருமான வீடுகளை தொடுகிறது.", "Jupiter transit supports wealth houses."))
+        supports.append(BiText("குரு கோச்சாரம் வருமான வீடுகளை தொடுகிறது.", "Jupiter transit supports wealth houses."))
     else:
-        challenges.append(BiText("குரு கோசாரம் நேரடி ஆதரவு குறைவு.", "Direct Jupiter transit support is limited."))
+        challenges.append(BiText("குரு கோச்சாரம் நேரடி ஆதரவு குறைவு.", "Direct Jupiter transit support is limited."))
 
     av11 = _derived_11th_bindu(payload, eleventh_house_rasi)
     if av11 >= 4:

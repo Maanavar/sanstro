@@ -489,7 +489,7 @@ export function DashboardJournalTabNova({
                     <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.55 }}>
                       {lang === "ta" ? "திறந்தவுடன், உங்கள் நல்ல மற்றும் கடினமான நாட்கள் " : "Once unlocked, Vinaadi shows how your good and hard days line up with "}
                       <button type="button" onClick={onGoToChart} style={{ background: "none", border: "none", padding: 0, color: "var(--color-accent-secondary)", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", fontSize: "inherit" }}>
-                        {lang === "ta" ? "உங்கள் ஜாதகத்தின் கிரகநகர்வு & தசை காலங்களுடன்" : "your chart's transits and dasa periods"}
+                        {lang === "ta" ? "உங்கள் ஜாதகத்தின் கோச்சாரம் & தசை காலங்களுடன்" : "your chart's transits and dasa periods"}
                       </button>
                       {lang === "ta" ? " எப்படி பொருந்துகின்றன என்பதைக் காட்டும் — உங்கள் சொந்த வாழ்க்கையிலிருந்து சான்று." : " — evidence from your own life."}
                     </p>

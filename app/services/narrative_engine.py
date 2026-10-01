@@ -558,18 +558,18 @@ def gochar_reason(
             notes_en.append(warn.en)
 
     if chandrashtama:
-        notes_ta.append("சந்திராஷ்டமம் கோசார தாக்கத்தை பலவீனப்படுத்துகிறது")
+        notes_ta.append("சந்திராஷ்டமம் கோச்சார தாக்கத்தை பலவீனப்படுத்துகிறது")
         notes_en.append("Chandrashtamam weakens the overall transit support")
 
     # D2/D7: band word tail plus the numeric score (show both, 2026-07-13).
     if transit_score >= 65:
-        tail_ta, tail_en = "கோசார ஆதரவு வலுவாக உள்ளது", "transit support is strong"
+        tail_ta, tail_en = "கோச்சார ஆதரவு வலுவாக உள்ளது", "transit support is strong"
     elif transit_score >= 45:
-        tail_ta, tail_en = "கோசார ஆதரவு நடுநிலையாக உள்ளது", "transit support is steady"
+        tail_ta, tail_en = "கோச்சார ஆதரவு நடுநிலையாக உள்ளது", "transit support is steady"
     else:
-        tail_ta, tail_en = "கோசாரம் கவனம் கோருகிறது", "transits call for attention"
+        tail_ta, tail_en = "கோச்சாரம் கவனம் கோருகிறது", "transits call for attention"
     return _bi(
-        " · ".join(notes_ta) + f" — {tail_ta} (கோசார மதிப்பெண்: {transit_score}/100).",
+        " · ".join(notes_ta) + f" — {tail_ta} (கோச்சார மதிப்பெண்: {transit_score}/100).",
         " · ".join(notes_en) + f" — {tail_en} (Gochar score: {transit_score}/100).",
     )
 
@@ -643,13 +643,13 @@ def gochar_spoken(
               else "is pressing" if saturn_house in (1, 4, 8, 12)
               else "is quiet")
     if transit_score >= 65:
-        tail_ta, tail_en = "மொத்தக் கோசார ஆதரவு நல்லது", "the wider currents run with you"
+        tail_ta, tail_en = "மொத்தக் கோச்சார ஆதரவு நல்லது", "the wider currents run with you"
     elif transit_score >= 45:
         tail_ta, tail_en = "மொத்தத்தில் நடுநிலையான ஓட்டம்", "overall an even current"
     else:
         tail_ta, tail_en = "நிதானமான நகர்வே இன்று நல்லது", "a measured pace serves best today"
     return _bi(
-        f"கோசாரத்தில் குரு {jup_ta}வும், சனி {sat_ta}வும் உள்ளனர் — {tail_ta}.",
+        f"கோச்சாரத்தில் குரு {jup_ta}வும், சனி {sat_ta}வும் உள்ளனர் — {tail_ta}.",
         f"Right now Guru {jup_en} and Sani {sat_en} — {tail_en}.",
     )
 

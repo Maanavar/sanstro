@@ -77,7 +77,7 @@ export const GLOSSARY: Record<GlossaryKey, { ta: string; en: string }> = {
   },
   gochar: {
     en: "Transit — where the planets are moving right now, compared against your birth chart.",
-    ta: "கிரகநகர்வு — கிரகங்கள் இப்போது எங்கு நகர்கின்றன என்பதை உங்கள் பிறப்பு ஜாதகத்துடன் ஒப்பிட்டுப் பார்ப்பது.",
+    ta: "கோச்சாரம் — கிரகங்கள் இப்போது எங்கு நகர்கின்றன என்பதை உங்கள் பிறப்பு ஜாதகத்துடன் ஒப்பிட்டுப் பார்ப்பது.",
   },
   rasi: {
     en: "Your Moon sign — the zodiac sign the Moon was in at the moment you were born. Used for general predictions, and as one of the checks in marriage matching.",
@@ -312,7 +312,7 @@ export const GLOSSARY_LABELS: Record<GlossaryKey, { ta: string; en: string }> = 
   bhukti: { en: "Bhukti", ta: "புக்தி" },
   rasi: { en: "Rasi", ta: "ராசி" },
   nakshatra: { en: "Nakshatra", ta: "நட்சத்திரம்" },
-  gochar: { en: "Gochar", ta: "கிரகநகர்வு" },
+  gochar: { en: "Gochar", ta: "கோச்சாரம்" },
   shadbala: { en: "Shadbala", ta: "ஷட்பலம்" },
   sthanaBala: { en: "Sthana Bala", ta: "ஸ்தான பலம்" },
   digBala: { en: "Dig Bala", ta: "திக் பலம்" },

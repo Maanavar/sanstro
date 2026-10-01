@@ -88,7 +88,7 @@ export const SECTION_META: Array<{ id: SectionId; title: BiCopy; hint: BiCopy }>
   {
     id: "activation",
     title: { ta: "இப்போது உங்களுக்கு செயல்படும் காலம்", en: "What is active for you now" },
-    hint: { ta: "தசை / புக்தி / அந்தரம் + கிரகநகர்வு", en: "Dasa / Bhukti / Antaram + transit" },
+    hint: { ta: "தசை / புக்தி / அந்தரம் + கோச்சாரம்", en: "Dasa / Bhukti / Antaram + transit" },
   },
   {
     id: "positions",
@@ -104,7 +104,7 @@ export const SECTION_META: Array<{ id: SectionId; title: BiCopy; hint: BiCopy }>
     id: "drishti",
     // New Tamil, pending native review
     title: { ta: "எந்த கிரகம் எதைப் பார்க்கிறது", en: "Which planets look at which" },
-    hint: { ta: "7-ஆம் பார்வை மற்றும் கிரகநகர்விலான குரு/சனி பார்வை", en: "7th aspect and Guru/Sani transit aspects" },
+    hint: { ta: "7-ஆம் பார்வை மற்றும் கோச்சார குரு/சனி பார்வை", en: "7th aspect and Guru/Sani transit aspects" },
   },
   {
     id: "houses",

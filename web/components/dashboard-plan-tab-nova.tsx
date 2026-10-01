@@ -516,7 +516,7 @@ export function DashboardPlanTabNova({
 
                 <p style={{ margin: 0, fontSize: "var(--text-sm)", lineHeight: 1.55, color: "var(--color-muted)", background: "color-mix(in srgb, var(--color-text-strong) 4%, transparent)", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-3)" }}>
                   {lang === "ta"
-                    ? "தசை நேரமும் கிரகநகர்வு ஆதரவும் சேரும்போது ஒரு காலம் தோன்றும். இதை திட்டமிடல் சிக்னலாக எடுத்துக்கொள்ளுங்கள், உறுதியான நிகழ்வாக அல்ல."
+                    ? "தசை நேரமும் கோச்சார ஆதரவும் சேரும்போது ஒரு காலம் தோன்றும். இதை திட்டமிடல் சிக்னலாக எடுத்துக்கொள்ளுங்கள், உறுதியான நிகழ்வாக அல்ல."
                     : "A window appears when dasa timing and transit support overlap. Treat it as a planning signal, not a guaranteed event."}
                 </p>
 
@@ -567,7 +567,7 @@ export function DashboardPlanTabNova({
                 <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--color-faint)", lineHeight: 1.5 }}>
                   <b style={{ color: "var(--color-accent-strong)" }}>{lang === "ta" ? "இந்த மதிப்பெண் என்ன அளவிடுகிறது:" : "What the score measures:"}</b>{" "}
                   {lang === "ta"
-                    ? "செயலில் உள்ள தசை அதிபதிகளும் தற்போதைய கிரகநகர்வும் இந்த இலக்கை எவ்வளவு ஆதரிக்கின்றன. அதிகமானது ஆதரவானது — இது ஒரு உறுதியான விளைவை உத்தரவாதம் அளிக்காது."
+                    ? "செயலில் உள்ள தசை அதிபதிகளும் தற்போதைய கோச்சாரமும் இந்த இலக்கை எவ்வளவு ஆதரிக்கின்றன. அதிகமானது ஆதரவானது — இது ஒரு உறுதியான விளைவை உத்தரவாதம் அளிக்காது."
                     : "How strongly the active dasa lords and current transits support this goal, on your chart. Higher is more supportive — it does not guarantee outcomes."}
                 </p>
               </Card>

@@ -783,7 +783,7 @@ def build_daily_guidance_response(
     if _conf_signals >= 3:
         _band = Band.LIKELY
         _conf_reason = DailyGuidanceText(
-            ta="மூன்று சமிக்ஞைகளும் — சந்திரன், தசை, கோசாரம் — சீரமைக்கப்பட்டுள்ளன",
+            ta="மூன்று சமிக்ஞைகளும் — சந்திரன், தசை, கோச்சாரம் — சீரமைக்கப்பட்டுள்ளன",
             en="All three signals — Moon, dasha, transits — are aligned",
         )
     elif _conf_signals == 2:

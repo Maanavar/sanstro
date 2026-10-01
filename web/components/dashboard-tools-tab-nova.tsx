@@ -165,7 +165,7 @@ export function DashboardToolsTabNova({
       id: "retro", icon: History, color: "var(--color-high)",
       nameEn: "Retrospective", nameTa: "பின்னோக்கு பார்வை",
       descEn: "Enter a past event and compare it with dasha and transit signatures.",
-      descTa: "கடந்த நிகழ்வை தசை மற்றும் கிரகநகர்வு வடிவங்களுடன் ஒப்பிடு.",
+      descTa: "கடந்த நிகழ்வை தசை மற்றும் கோச்சார வடிவங்களுடன் ஒப்பிடு.",
       metaEn: "uses · your saved chart", metaTa: "பயன்படுத்துவது · உங்கள் ஜாதகம்", disabled: needsProfile, kind: "inline",
     },
     {
