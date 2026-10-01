@@ -301,6 +301,16 @@ describe("DashboardHero notification panel", () => {
     expect(screen.getByText("Inbox")).toBeInTheDocument();
   });
 
+  it("asks for a fresh list when the bell opens, not when it closes", () => {
+    const onInboxOpen = vi.fn();
+    const trigger = openBell({ onInboxOpen });
+    expect(onInboxOpen).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(trigger);
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    expect(onInboxOpen).toHaveBeenCalledTimes(1);
+  });
+
   it("hands off to notification settings from the footer and closes", () => {
     const onOpenNotificationSettings = vi.fn();
     openBell({ onOpenNotificationSettings });

@@ -1191,6 +1191,7 @@ const STRINGS = {
   notif_inbox_empty:       { ta: "இன்று எந்த அறிவிப்பும் இல்லை.",     en: "No notifications yet." },
   notif_sent_empty:        { ta: "அனுப்பிய அறிவிப்புகள் இல்லை.",       en: "No sent notifications yet." },
   notif_mark_read:         { ta: "படித்தது",                          en: "Mark read" },
+  notif_update_failed:     { ta: "அறிவிப்புகளைப் புதுப்பிக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.", en: "Couldn't update your notifications. Please try again." },
 
   // ── Account button aria-label
   label_account:           { ta: "கணக்கு",   en: "Account" },

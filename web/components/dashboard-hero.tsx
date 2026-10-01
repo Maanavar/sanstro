@@ -117,6 +117,9 @@ interface DashboardHeroProps {
   /** Footer shortcut in the bell popover to the settings that decide what gets
    *  sent. Omitted → no shortcut. */
   onOpenNotificationSettings?: () => void;
+  /** Fired when the bell opens (not when it closes), so the list can be
+   *  refreshed rather than shown as the last poll left it. */
+  onInboxOpen?: () => void;
   onTabChange: (tab: Tab) => void;
   onDateChange: (date: string) => void;
   onLangToggle: () => void;
@@ -213,6 +216,7 @@ export function DashboardHero(props: DashboardHeroProps) {
     onMarkAllRead,
     onMarkOneRead,
     onOpenNotificationSettings,
+    onInboxOpen,
     onTabChange,
     onDateChange,
     onLangToggle,
@@ -626,7 +630,12 @@ export function DashboardHero(props: DashboardHeroProps) {
                 type="button"
                 ref={inboxTriggerRef}
                 className="cd-icon-btn"
-                onClick={() => { setShowAlerts(false); setShowInbox((v) => !v); }}
+                onClick={() => {
+                  const opening = !showInbox;
+                  setShowAlerts(false);
+                  setShowInbox(opening);
+                  if (opening) onInboxOpen?.();
+                }}
                 aria-label={bellLabel}
                 aria-expanded={showInbox}
                 aria-controls="cd-notif-panel"

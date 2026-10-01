@@ -30,8 +30,6 @@ import type {
   FamilyVaultListItem,
   LifeMode,
   LifeModeStatus,
-  NotificationInboxItem,
-  NotificationInboxResponse,
   BirthProfileResponse,
 } from "@/lib/types";
 
@@ -42,6 +40,7 @@ import { useDeviceTimeZone } from "@/hooks/useDeviceTimeZone";
 import { useFamilyData, type MemberChart } from "@/hooks/useFamilyData";
 import { usePlanData } from "@/hooks/usePlanData";
 import { useJournalData } from "@/hooks/useJournalData";
+import { useNotificationInbox } from "@/hooks/useNotificationInbox";
 
 import type { EditMemberState } from "./dashboard-edit-member-modal";
 import type { SettingsSectionId } from "./dashboard-settings-rail";
@@ -674,39 +673,15 @@ export function DashboardWorkspace() {
   // reader had read anything.
   const [hasVisitedReading, setHasVisitedReading] = useState(false);
 
-  // Notification inbox
-  const [inboxItems, setInboxItems] = useState<NotificationInboxItem[]>([]);
-  const [inboxUnreadCount, setInboxUnreadCount] = useState(0);
+  // Notification inbox (bell). Poll, refresh-on-open and optimistic
+  // mark-read live in the hook.
+  const inbox = useNotificationInbox({ lang, onError: (msg) => toast.error(msg) });
 
   useEffect(() => {
     if (!ENABLE_QA_TAB && activeTab === "qa") {
       setActiveTab("personal");
     }
   }, [activeTab]);
-
-  // Poll inbox every 5 minutes
-  useEffect(() => {
-    function fetchInbox() {
-      apiFetchJson<NotificationInboxResponse>("/api/v1/notifications")
-        .then((r) => { setInboxItems(r.data); setInboxUnreadCount(r.unread_count); })
-        .catch(() => {});
-    }
-    fetchInbox();
-    const id = setInterval(fetchInbox, 5 * 60 * 1000);
-    return () => clearInterval(id);
-  }, []);
-
-  function handleMarkAllRead() {
-    apiFetchJson<NotificationInboxResponse>("/api/v1/notifications/read-all", { method: "POST" })
-      .then((r) => { setInboxItems(r.data); setInboxUnreadCount(r.unread_count); })
-      .catch(() => {});
-  }
-
-  function handleMarkOneRead(notificationId: string) {
-    apiFetchJson<NotificationInboxResponse>(`/api/v1/notifications/${notificationId}/read`, { method: "POST" })
-      .then((r) => { setInboxItems(r.data); setInboxUnreadCount(r.unread_count); })
-      .catch(() => {});
-  }
 
   // ── Domain hooks ─────────────────────────────────────────
 
@@ -1861,11 +1836,12 @@ export function DashboardWorkspace() {
             title: lang === "ta" ? a.title.ta : a.title.en,
             body: lang === "ta" ? a.message.ta : a.message.en,
           }))}
-          inboxItems={inboxItems}
-          inboxUnreadCount={inboxUnreadCount}
-          onMarkAllRead={handleMarkAllRead}
-          onMarkOneRead={handleMarkOneRead}
+          inboxItems={inbox.items}
+          inboxUnreadCount={inbox.unreadCount}
+          onMarkAllRead={inbox.markAllRead}
+          onMarkOneRead={inbox.markOneRead}
           onOpenNotificationSettings={() => navigateSettings("notifications")}
+          onInboxOpen={inbox.onOpen}
           onTabChange={goToTab}
           onDateChange={setSelectedDate}
           onLangToggle={() => setLang((l) => l === "ta" ? "en" : "ta")}
