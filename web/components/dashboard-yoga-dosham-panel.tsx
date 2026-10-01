@@ -169,6 +169,18 @@ const MARKER_PATTERNS: { re: RegExp; label: (m: RegExpMatchArray, lang: Lang) =>
     }),
   },
   {
+    // Ruling 2026-10-01 (option B): a Neecha Bhanga cancels the debility's
+    // cost only; other afflictions still lower it. Not a weakening marker.
+    re: /^([a-z]+)_yogakaraka_neecha_bhanga$/,
+    label: (m, lang) => {
+      const planet = planetLabel(m[1].toUpperCase(), lang);
+      return {
+        ta: `${planet} நீசம் பெற்றிருந்தாலும் நீசபங்கம் உள்ளது; அதனால் நீசம் யோககாரக பலத்தைக் குறைப்பதில்லை`,
+        en: `${planet} is debilitated, but Neecha Bhanga cancels it, so the debility does not lower its yogakaraka strength`,
+      };
+    },
+  },
+  {
     // Ruling 2026-09-23: ownership makes the yogakaraka; these only weaken it.
     re: /^([a-z]+)_yogakaraka_(debilitated|combust|in_dusthana_(\d+))$/,
     label: (m, lang) => {
@@ -179,8 +191,10 @@ const MARKER_PATTERNS: { re: RegExp; label: (m: RegExpMatchArray, lang: Lang) =>
           ? { ta: "அஸ்தங்கம் அடைந்துள்ளது", en: "is combust" }
           : { ta: `${m[3]}-ஆம் வீட்டில் (மறைவு ஸ்தானம்) உள்ளது`, en: `sits in the ${m[3]}th house (a dusthana)` };
       return {
-        ta: `${planet} ${why.ta}; யோகபலம் சற்று குறையலாம், யோகம் நீங்காது`,
-        en: `${planet} ${why.en}, which weakens the yoga without removing it`,
+        // Wording per the astrologer, 2026-10-01: the yogakaraka status
+        // stands; what drops is how strongly its results come through.
+        ta: `${planet} ${why.ta}; யோககாரகத் தன்மை நீங்காது; பலன் வெளிப்படும் வலிமை குறையலாம்`,
+        en: `${planet} ${why.en}; it stays the yogakaraka, but its results may come through less strongly`,
       };
     },
   },
@@ -323,6 +337,14 @@ export function isWeakeningMarker(marker: string): boolean {
   return WEAKENING_MARKER_RE.test(marker);
 }
 
+/**
+ * A note in `conditionsMet` that protects strength rather than forming the
+ * yoga: a yogakaraka's debility cancelled by Neecha Bhanga (ruling 2026-10-01,
+ * option B). The why sentence files it with the protections, not the triggers;
+ * a debility is never a reason the yogakaraka formed.
+ */
+const PROTECTIVE_NOTE_RE = /^[a-z]+_yogakaraka_neecha_bhanga$/;
+
 /** Heading for a yoga's `cancellationFactors` list: a real bhanga keeps
  *  "Cancellation factors"; a list of weakeners only says so. */
 export function yogaFactorHeading(factors: string[], lang: Lang): string {
@@ -357,8 +379,10 @@ const YOGA_WHAT: Record<string, { ta: string; en: string }> = {
     en: "Formed when a trikona lord (1/5/9) and a kendra lord (1/4/7/10) are conjunct or aspect each other. Traditionally linked to growth, responsibility, and achievement.",
   },
   YOGAKARAKA_RAJA_YOGA: {
-    ta: "ஒரே கிரகம் ஒரு கேந்திரத்திற்கும் (4/7/10) ஒரு திரிகோணத்திற்கும் (5/9) அதிபதியாக இருக்கும்போது, அது யோககாரக கிரகமாகிறது. நீசம், அஸ்தங்கம், 6/8/12 போன்ற பாதிப்புகள் இருந்தால் அதன் யோகபலம் குறையலாம்.",
-    en: "Formed when one planet rules both a kendra (4/7/10) and a trikona (5/9), which makes it the yogakaraka. Debilitation, combustion or a 6th/8th/12th placement can weaken it.",
+    // Ruling 2026-10-01: a yogakaraka planet and its strength, not a separate
+    // Raja Yoga. Ownership makes the yogakaraka; it does not form a yoga.
+    ta: "ஒரே கிரகம் ஒரு கேந்திரத்திற்கும் (4/7/10) ஒரு திரிகோணத்திற்கும் (5/9) அதிபதியாக இருக்கும்போது, அது உங்கள் லக்னத்திற்கு யோககாரக கிரகம். இது தனி ராஜயோகம் அல்ல; அந்தக் கிரகத்தின் பலத்தையே இது காட்டுகிறது. நீசம், அஸ்தங்கம், 6/8/12 போன்ற பாதிப்புகள் இருந்தால் யோககாரகத் தன்மை நீங்காது; பலன் வெளிப்படும் வலிமை குறையலாம்.",
+    en: "When one planet rules both a kendra (4/7/10) and a trikona (5/9), it is the yogakaraka for your lagna. This is not a separate Raja Yoga; it shows that planet's strength. Debilitation, combustion or a 6th/8th/12th placement can lower how strongly its results come through, without taking away its yogakaraka status.",
   },
   DHANA_YOGA: {
     ta: "2-ம் மற்றும் 11-ம் அதிபதிகள் சேரும்போது அல்லது பரிவர்த்தனை செய்யும்போது உருவாகும் யோகம். திட்டமிட்ட முயற்சியால் வருமானம் வளரும் என்று சுட்டும்.",
@@ -526,11 +550,15 @@ export function buildWhyText(
   // Filter out annotation-only markers from the "why" sentence
   const triggerMarkers = conditionsMet.filter(
     (c) => !["female_high_attention_house", "male_high_attention_house", "rahu_ketu_upachaya"].includes(c)
-      && !isWeakeningMarker(c),
+      && !isWeakeningMarker(c)
+      && !PROTECTIVE_NOTE_RE.test(c),
   );
   // A weakener is neither a trigger nor a protection; it gets its own sentence.
   const weakeningMarkers = [...conditionsMet, ...cancellationFactors].filter(isWeakeningMarker);
-  const protectiveFactors = cancellationFactors.filter((c) => !isWeakeningMarker(c));
+  const protectiveFactors = [
+    ...cancellationFactors.filter((c) => !isWeakeningMarker(c)),
+    ...conditionsMet.filter((c) => PROTECTIVE_NOTE_RE.test(c)),
+  ];
   const attentionMarkers = conditionsMet.filter((c) =>
     ["female_high_attention_house", "male_high_attention_house"].includes(c),
   );
@@ -663,7 +691,7 @@ export const YOGA_HOW_TO: Record<string, { ta: string; en: string }> = {
     en: "To strengthen: act with integrity, take major steps during the ruling planets' Dasha, accept leadership responsibilities. For seva: feed the hungry, mentor youth, or volunteer at a community shelter — leadership yoga grows through acts of service.",
   },
   YOGAKARAKA_RAJA_YOGA: {
-    ta: "யோகத்தை பலப்படுத்த: யோககாரக கிரகத்தின் தசை, புக்தி காலங்களில் பெரிய தொழில் முடிவுகளை எடுங்கள். அந்த கிரகத்தின் குணத்தை வாழ்க்கையில் கடைப்பிடியுங்கள்: சனி என்றால் ஒழுக்கமும் பொறுமையும், செவ்வாய் என்றால் துணிவும் விரைந்த செயலும், சுக்கிரன் என்றால் நயமும் கலையுணர்வும். யோககாரகர் நீசம், அஸ்தங்கம் அல்லது மறைவு ஸ்தானத்தில் இருந்தால், வழிபாட்டையும் தானத்தையும் அந்த தசை தொடங்கும் முன்பே ஆரம்பியுங்கள்.",
+    ta: "யோககாரக பலனை வளர்க்க: யோககாரக கிரகத்தின் தசை, புக்தி காலங்களில் பெரிய தொழில் முடிவுகளை எடுங்கள். அந்த கிரகத்தின் குணத்தை வாழ்க்கையில் கடைப்பிடியுங்கள்: சனி என்றால் ஒழுக்கமும் பொறுமையும், செவ்வாய் என்றால் துணிவும் விரைந்த செயலும், சுக்கிரன் என்றால் நயமும் கலையுணர்வும். யோககாரகர் நீசம், அஸ்தங்கம் அல்லது மறைவு ஸ்தானத்தில் இருந்தால், வழிபாட்டையும் தானத்தையும் அந்த தசை தொடங்கும் முன்பே ஆரம்பியுங்கள்.",
     en: "To strengthen: time major career decisions to the yogakaraka's own Dasha and Bhukti. Live out its nature: discipline and patience for Saturn, courage and prompt action for Mars, tact and refinement for Venus. If the yogakaraka is debilitated, combust or in a dusthana, begin its worship and charity before that Dasha opens, not after.",
   },
   DHANA_YOGA: {
@@ -791,7 +819,7 @@ const YOGA_POWER_CONTEXT: Record<string, { strong: { ta: string; en: string }; p
   // alone forms it (ruling 2026-09-23).
   YOGAKARAKA_RAJA_YOGA: {
     strong:  { ta: "யோககாரக கிரகம் பாதிப்பின்றி உள்ளது. அதன் தசை அல்லது புக்தி வரும்போது பதவி, பொறுப்பு, அங்கீகாரம் ஆகியவற்றில் தெளிவான முன்னேற்றம் எதிர்பார்க்கலாம்.", en: "The yogakaraka is unafflicted. When its Dasha or Bhukti runs, clear gains in position, responsibility and recognition can be expected." },
-    partial: { ta: "யோகம் உண்டு, ஆனால் யோககாரக கிரகம் பாதிக்கப்பட்டுள்ளதால் பலன் தாமதமாகவோ அதிக முயற்சிக்குப் பிறகோ வரலாம். யோகம் நீங்கவில்லை.", en: "The yoga is present, but the yogakaraka is afflicted, so results may come later or after more effort. The yoga is not removed." },
+    partial: { ta: "யோககாரகத் தன்மை நீங்காது; ஆனால் கிரகம் பாதிக்கப்பட்டுள்ளதால் பலன் வெளிப்படும் வலிமை குறையலாம், பலன் தாமதமாகவோ அதிக முயற்சிக்குப் பிறகோ வரலாம்.", en: "It remains the yogakaraka, but it is afflicted, so its results may come through less strongly, later, or after more effort." },
     weak:    { ta: "யோககாரக கிரகம் மிகவும் பலம் குறைந்துள்ளது. அதன் தசைக்கு முன்பே வழிபாடும் ஒழுக்கமும் தொடங்குவது உதவும்.", en: "The yogakaraka is considerably weakened. Starting its worship and discipline before its Dasha arrives helps." },
   },
   DHANA_YOGA: {

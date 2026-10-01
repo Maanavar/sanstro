@@ -52,9 +52,19 @@ from __future__ import annotations
 #: the full day term and docking Moon/Mars/Saturn to 0.4. Only time-less
 #: profiles move; every chart with a birth time is numerically identical to v1.3.
 #:
+#: v1.5 (2026-10-01): vargottama no longer exempts a Navamsa debility
+#: (astrologer ruling). A graha vargottama in its neecha sign now takes the
+#: D9 penalty beside its +4 vargottama term, and its Kala Bala D9 tier stays at
+#: -1 instead of being lifted to +1. Only grahas vargottama in their own
+#: debilitation sign move (about -6 points each); every other chart is
+#: numerically identical to v1.4. A weakened yogakaraka whose debility is
+#: cancelled by Neecha Bhanga also stops losing a rung for that debility.
+#: Neither strength scores nor yoga cards are persisted (no column in
+#: `chart_planet`, no yoga table), so both change on the next response.
+#:
 #: Bumping this does NOT recompute anything on its own — see the module
 #: docstring. A recompute is a deliberate migration.
-CHART_CALCULATION_VERSION = "jothidam-formula-engine-v1.4-2026"
+CHART_CALCULATION_VERSION = "jothidam-formula-engine-v1.5-2026"
 
 #: The platform label for non-chart responses. Deliberately NOT the chart
 #: engine version: a daily-guidance digest, a dasha story, a varshaphala sheet

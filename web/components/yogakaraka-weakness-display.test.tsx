@@ -1,7 +1,8 @@
 /**
  * The Yogakaraka weakness lines render as sentences, never as the engine code.
  *
- * `YOG-RY-04` (ruling 2026-09-23) files a weakened yogakaraka's afflictions in
+ * `YOG-RY-04` (ruling 2026-09-23; renamed "Yogakaraka planet" 2026-10-01) files a
+ * weakened yogakaraka's afflictions in
  * `conditionsMet` as f-string codes (`saturn_yogakaraka_in_dusthana_12`), and
  * the strength gate files its own note in `cancellationFactors`
  * (`weak_key_planet_saturn_32`). Neither can be a fixed dictionary key, so a
@@ -42,6 +43,7 @@ const YK_CODES = [
     `${g}_yogakaraka_in_dusthana_6`,
     `${g}_yogakaraka_in_dusthana_8`,
     `${g}_yogakaraka_in_dusthana_12`,
+    `${g}_yogakaraka_neecha_bhanga`,
   ]),
   "weak_key_planet_saturn_32",
   "combust_key_planet_venus",
@@ -50,8 +52,10 @@ const YK_CODES = [
 const LATIN = /[A-Za-z]/;
 
 // The `yogakaraka_neecha` reference chart in tests/test_drishti_yoga_golden.py:
-// Rishabha lagna, Sani neecha in Mesham (the 12th). The gate note is added so
-// the cancellationFactors path is exercised too.
+// Rishabha lagna, Sani neecha in Mesham (the 12th), the debility cancelled by
+// Neecha Bhanga, so only the 12th-house placement lowers it (ruling 2026-10-01,
+// option B). The gate note is added so the cancellationFactors path is
+// exercised too.
 function weakenedYogakaraka(): ChartYogaInsight {
   return {
     name: "YOGAKARAKA_RAJA_YOGA",
@@ -59,8 +63,8 @@ function weakenedYogakaraka(): ChartYogaInsight {
     strength: "PARTIAL",
     conditionsMet: [
       "saturn_yogakaraka_owns_9_10",
-      "saturn_yogakaraka_debilitated",
       "saturn_yogakaraka_in_dusthana_12",
+      "saturn_yogakaraka_neecha_bhanga",
     ],
     cancellationFactors: ["weak_key_planet_saturn_32"],
     dashaActivated: false,
@@ -106,9 +110,18 @@ describe("markerLabel — every yogakaraka code", () => {
     expect(markerLabel("saturn_yogakaraka_in_dusthana_8", "ta")).toContain("மறைவு ஸ்தானம்");
   });
 
-  it("says the yoga is weakened, not removed", () => {
-    expect(markerLabel("mars_yogakaraka_debilitated", "en")).toMatch(/without removing it/);
-    expect(markerLabel("mars_yogakaraka_debilitated", "ta")).toMatch(/யோகம் நீங்காது/);
+  it("says the yogakaraka status stands and only its strength drops", () => {
+    // Astrologer wording, 2026-10-01.
+    expect(markerLabel("mars_yogakaraka_debilitated", "en")).toMatch(/it stays the yogakaraka/);
+    expect(markerLabel("mars_yogakaraka_debilitated", "ta")).toMatch(
+      /யோககாரகத் தன்மை நீங்காது; பலன் வெளிப்படும் வலிமை குறையலாம்/,
+    );
+    expect(markerLabel("mars_yogakaraka_debilitated", "ta")).not.toMatch(/யோகம் நீங்காது/);
+  });
+
+  it("says a Neecha Bhanga cancels the debility's cost", () => {
+    expect(markerLabel("saturn_yogakaraka_neecha_bhanga", "en")).toMatch(/Neecha Bhanga cancels it/);
+    expect(markerLabel("saturn_yogakaraka_neecha_bhanga", "ta")).toMatch(/நீசபங்கம்/);
   });
 });
 
@@ -118,6 +131,7 @@ describe("weakeners are neither triggers nor protections", () => {
     expect(isWeakeningMarker("weak_key_planet_mars_20")).toBe(true);
     expect(isWeakeningMarker("malefic_aspect_on_10th_saturn")).toBe(true);
     expect(isWeakeningMarker("saturn_yogakaraka_owns_9_10")).toBe(false);
+    expect(isWeakeningMarker("saturn_yogakaraka_neecha_bhanga")).toBe(false);
     expect(isWeakeningMarker("planet_kendra_from_moon")).toBe(false);
   });
 
@@ -132,13 +146,15 @@ describe("weakeners are neither triggers nor protections", () => {
     const why = buildWhyText(y.conditionsMet, y.cancellationFactors, true, false, false, lang);
     if (lang === "en") {
       expect(why).toMatch(/^Triggered because: Saturn rules both the 9th and 10th houses/);
-      expect(why).toMatch(/What lowers its strength: Saturn is debilitated/);
-      expect(why).not.toMatch(/Protective factors/);
-      // A debility is not why the yoga formed.
+      expect(why).toMatch(/What lowers its strength: Saturn sits in the 12th house/);
+      // The bhanga protects strength; it is filed there, after the weakeners.
+      expect(why).toMatch(/Protective factors present: Saturn is debilitated, but Neecha Bhanga cancels it/);
+      // A debility is not why the yogakaraka formed.
       expect(why.split("What lowers")[0]).not.toMatch(/debilitated/);
     } else {
-      expect(why).toMatch(/பலம் குறைக்கும் காரணிகள்: சனி நீசம் பெற்றுள்ளது/);
-      expect(why).not.toMatch(/நிவர்த்தி\/பாதுகாப்பு/);
+      expect(why).toMatch(/பலம் குறைக்கும் காரணிகள்: சனி 12-ஆம் வீட்டில்/);
+      expect(why).toMatch(/நிவர்த்தி\/பாதுகாப்பு: சனி நீசம் பெற்றிருந்தாலும் நீசபங்கம் உள்ளது/);
+      expect(why.split("பலம் குறைக்கும்")[0]).not.toMatch(/நீசம்/);
     }
     expectNoRawCode(why);
   });
@@ -147,7 +163,7 @@ describe("weakeners are neither triggers nor protections", () => {
 describe.each(["en", "ta"] as const)("rendered surfaces (%s)", (lang) => {
   const heading = lang === "ta" ? "பலம் குறைக்கும் காரணிகள்" : "What lowers its strength";
   const cancelHeading = lang === "ta" ? "நிவர்த்தி காரணங்கள்" : "Cancellation factors";
-  const name = lang === "ta" ? "யோககாரக ராஜயோகம்" : "Yogakaraka Raja Yoga";
+  const name = lang === "ta" ? "யோககாரக கிரகம்" : "Yogakaraka planet";
 
   it("Charts — YogaDoshamPanel", () => {
     const { container } = render(<YogaDoshamPanel lang={lang} yogas={[weakenedYogakaraka()]} doshams={[]} />);

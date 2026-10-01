@@ -22,7 +22,7 @@
 | 12 | Rajju/Vedha veto on CI overall label | Hard-cap the headline label at CAUTION when Rajju or Vedha fails, regardless of the 0–100 weighted score | 🟡 Important — Compatibility Intelligence report; consistency with the shipped porutham-label veto |
 | 13 | Ashtakavarga bindu grid vs kāraka-relative readings | Grid is a measurement → shown ungated. Readings counted from a kāraka graha are claims about named relatives → gated to life-area cards, banded never counted | ✅ Ratified 2026-08-18 (P2-05); boundary enforced by test, not convention |
 | 14 | Durmuhurtham display polarity | Avoid for auspicious acts and new beginnings; not a blanket prohibition or whole-day verdict | ✅ Owner-delegated ruling 2026-09-23; rendered with scoped copy |
-| 15 | Sign-edge grahas and Lagna | Edge (±1°) and Baladi never both charged; the larger applies. No Baladi for Rahu/Ketu. A graha belongs only to its occupied sign. Lagna checked by recompute at ±5 (firm) / ±15 (soft) min; D9 Lagna at ±5 | ✅ Astrologer ruling 2026-09-23; built |
+| 15 | Sign-edge grahas and Lagna | Edge (±1°) and Baladi never both charged; the larger applies (`[PRODUCT]` scoring rule, confirmed 2026-10-01). No Baladi for Rahu/Ketu. A graha belongs only to its occupied sign. Lagna checked by recompute at ±5 (firm) / ±15 (soft) min; D9 Lagna at ±5 | ✅ Astrologer ruling 2026-09-23; built |
 | 16 | Maandhi vs Gulika | **Uttara-Kalamrita convention adopted:** two separate points. Maandhi = proportional nazhigai; Kuligai Kalam = the whole Saturn eighth-part; Gulika sphuta = ascendant at that part's END. BPHS/Prasna-Marga synonym tradition named and declined. Vaara is sunrise-bounded. Unknown birth time = unknown, not day | ✅ Owner ruling 2026-09-29, confirmed 2026-09-30; built, chart v1.4 |
 
 ---
@@ -369,7 +369,12 @@ recorded in `HOME_CALENDAR_CHARTS_PROPOSALS_2026-09-22.md`.
    Baladi cost is at most 8. It is exceeded when dignity ≥ ~60 in a Mrita zone:
    an exalted graha in the first degree of an even sign costs 13.5. Where the
    two readings differ, we followed the stated rule ("the larger"), which never
-   under-penalises. *Astrologer: please confirm.*
+   under-penalises.
+   **Confirmed 2026-10-01, and relabelled `[PRODUCT]`.** The astrologer keeps
+   max(sandhi, Baladi) to avoid double-scoring one degree fact, and asked that
+   it be stated as a product scoring rule. Classical texts give the two as
+   separate observations; they do not say how to combine them in a number.
+   "The larger" is Vinaadi's combination rule, not a classical one.
 2. **No Baladi for Rahu and Ketu (Q2).** Baladi is defined for the seven grahas;
    the nodes are always retrograde, so a mechanical reading would run their
    stages backwards. The scorer's multiplier is 1.0 for them, the

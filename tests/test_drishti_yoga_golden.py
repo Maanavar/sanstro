@@ -401,15 +401,20 @@ def test_adhi_yoga_no_longer_fires_on_every_chart_here() -> None:
 def test_weakened_yogakaraka_is_lowered_not_cancelled() -> None:
     """`YOG-RY-04` on a full chart: ownership forms it, two afflictions cost one
     rung, and neither is filed as a cancellation — a cancellation factor on a
-    WEAK card reads "Cancelled" on every client (`yogaReadingStatus`)."""
+    WEAK card reads "Cancelled" on every client (`yogaReadingStatus`).
+
+    Ruling 2026-10-01, option B: Sani's debility here is cancelled by Neecha
+    Bhanga (Suriya, exalted in Mesham, in a kendra), so it no longer costs the
+    rung and is recorded as a bhanga note instead. The 12th-house placement
+    still lowers it, so the card stays PARTIAL."""
     planets, lagna, moon = CHARTS["yogakaraka_neecha"]
     yogas, _, _ = detect_yogas_and_doshams(planets, lagna_rasi=lagna, moon_rasi=moon)
     yk = next(y for y in yogas if y.name == "YOGAKARAKA_RAJA_YOGA")
     assert (yk.is_present, yk.strength) == (True, "PARTIAL")
     assert yk.conditions_met == [
         "saturn_yogakaraka_owns_9_10",
-        "saturn_yogakaraka_debilitated",
         "saturn_yogakaraka_in_dusthana_12",
+        "saturn_yogakaraka_neecha_bhanga",
     ]
     assert yk.cancellation_factors == []
     assert yk.key_grahas == ("SATURN",)

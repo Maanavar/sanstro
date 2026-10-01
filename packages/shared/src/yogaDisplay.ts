@@ -21,7 +21,10 @@ export const YOGA_DISPLAY: Record<string, { ta: string; en: string }> = {
   GAJA_KESARI_YOGA: { ta: "கஜகேசரி யோகம்", en: "Gaja Kesari Yoga" },
   GAJA_KESARI:      { ta: "கஜகேசரி யோகம்", en: "Gaja Kesari Yoga" },
   RAJA_YOGA:        { ta: "ராஜயோகம்",       en: "Raja Yoga" },
-  YOGAKARAKA_RAJA_YOGA:  { ta: "யோககாரக ராஜயோகம்", en: "Yogakaraka Raja Yoga" },
+  // The key keeps its historical name for the API; the card reports the
+  // yogakaraka planet and its strength, not a separate Raja Yoga (ruling
+  // 2026-10-01).
+  YOGAKARAKA_RAJA_YOGA:  { ta: "யோககாரக கிரகம்", en: "Yogakaraka planet" },
   DHANA_YOGA:       { ta: "தன யோகம்",        en: "Dhana Yoga" },
   DHANA_SUPPORTIVE_YOGA: { ta: "தன யோகம் (துணை)", en: "Dhana Yoga (supportive)" },
   NEECHA_BHANGA_RAJA_YOGA: { ta: "நீசபங்க ராஜயோகம்", en: "Neecha Bhanga Raja Yoga" },

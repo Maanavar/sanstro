@@ -24,6 +24,12 @@ MAX_COMBUSTION_PENALTY = 22.0
 # Rasi sandhi: a graha within 1° of either sign boundary. Never charged on top
 # of the Baladi avastha cost for the same degree; the larger of the two applies
 # (astrologer ruling 2026-09-23, sign-edge Q1). See the natal score below.
+#
+# [PRODUCT] scoring rule, not doctrine (astrologer, 2026-10-01). Classical
+# texts give sandhi and Baladi as separate observations and do not say how to
+# combine them in a numeric score. Taking max(sandhi, Baladi) is Vinaadi's way
+# of not counting one degree fact twice; the astrologer endorsed keeping it on
+# that basis and asked that it be labelled as a product rule.
 SANDHI_EDGE_DEGREES = 1.0
 SANDHI_PENALTY = 8.0
 
@@ -44,8 +50,14 @@ SANDHI_PENALTY = 8.0
 # double-counting. So the base stays 5.0 and a Rasi-exalted graha (dignity 100)
 # is charged 10.0 — level with Gandanta, above Rasi sandhi, and still well
 # inside the combustion gradient's -22 maximum, which is the right neighbourhood
-# for a structural dignity failure in a score that is not Shadbala. Vargottama
-# remains exempt.
+# for a structural dignity failure in a score that is not Shadbala.
+#
+# Vargottama is NOT an exemption (astrologer ruling 2026-10-01, reversing the
+# 2026-07-18 default). A graha vargottama in its debilitation sign is neecha in
+# both charts; vargottama makes that placement consistent, it does not erase
+# it. So the D9 neecha penalty is charged and the separate +4 vargottama term
+# is still awarded — two facts, two rows in the breakdown, neither cancelling
+# the other.
 D9_DIGNITY_BONUS = 5.0
 D9_DEBILITATION_PENALTY = 5.0
 D9_DEBILITATION_PENALTY_EXALTED = 10.0
@@ -610,12 +622,13 @@ def _kala_bala_score(
         paksha = 0.7
 
     # Signed: a D9-debilitated planet loses the same margin a D9-dignified one
-    # gains. Vargottama holds the tier at +1 even in a debilitation sign — the
-    # sign repeating across D1/D9 is classically stabilising, so it is not also
-    # charged the neecha penalty.
+    # gains. Vargottama lifts a neutral D9 to +1, but never a debilitated one:
+    # vargottama in the neecha sign is neecha in both charts, and the ruling of
+    # 2026-10-01 keeps the two facts separate rather than letting one erase the
+    # other.
     tier = 0 if d9_rasi is None else _d9_dignity_tier(planet, d9_rasi)
-    if is_vargottama:
-        tier = max(tier, 1)
+    if is_vargottama and tier == 0:
+        tier = 1
     d9_bonus = 0.2 * tier
     return max(0.0, min(1.0, (natha * 0.50 + paksha * 0.30) + d9_bonus * 0.20))
 
@@ -931,7 +944,7 @@ def explain_natal_planet_score(
     avastha = _avastha_multiplier(natal_longitude, natal_rasi, planet)
 
     # Sign edge vs Baladi — one fact, one penalty (astrologer ruling 2026-09-23,
-    # sign-edge Q1). Inside the edge band the planet is also in the first or last
+    # sign-edge Q1; a [PRODUCT] scoring rule, see SANDHI_PENALTY). Inside the edge band the planet is also in the first or last
     # 6° Baladi zone, so charging the flat sandhi term on top of the avastha
     # scaling double-penalised the same degree. Whichever costs more is kept:
     # the Baladi cost is what the multiplier removes from the sthana term,
@@ -1012,8 +1025,9 @@ def explain_natal_planet_score(
         # The penalty is deliberately NOT gated on dignity. Gating it would
         # re-open the exact hole this closes: the case that most needs the
         # correction is a Rasi-exalted (dignity == 100) planet sitting neecha
-        # in Navamsa. Vargottama is exempt, as in the Kala Bala branch above.
-        elif d9_tier < 0 and not is_vargottama:
+        # in Navamsa. Vargottama is not exempt (ruling 2026-10-01): it keeps
+        # its own +4 row above, and this row charges the debility beside it.
+        elif d9_tier < 0:
             # Graded 2026-08-27 (§7 Q12): a Rasi-exalted graha sitting neecha in
             # Navamsa is the case the D9 exists to catch — "exalted in name,
             # powerless in effect" — and is charged double. Anything else is a

@@ -192,6 +192,7 @@ def detect_yogas_and_doshams(
     yogas.append(detect_raja_yogakaraka(
         planets, lagna_rasi, active_lords=active_lords,
         planet_scores=planet_scores, combust_planets=combust_planets,
+        d9_rasi_map=d9_rasi_map, d9_lagna_rasi=d9_lagna_rasi,
     ))
     yogas.append(detect_dhana_yoga(
         planets, lagna_rasi, active_lords=active_lords,

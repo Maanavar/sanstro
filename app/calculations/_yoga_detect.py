@@ -125,19 +125,31 @@ def detect_raja_yogakaraka(
     active_lords: Iterable[str] | None = None,
     planet_scores: Mapping[str, int] | None = None,
     combust_planets: frozenset[str] = frozenset(),
+    d9_rasi_map: Mapping[str, int] | None = None,
+    d9_lagna_rasi: int | None = None,
 ) -> YogaResult:
-    """A single graha owning both a kendra (4/7/10) and a trikona (5/9).
+    """The yogakaraka graha: one graha owning both a kendra (4/7/10) and a
+    trikona (5/9), and how strongly it can deliver.
 
-    Astrologer ruling 2026-09-23: a distinct yoga type, not a loosening of
-    `detect_raja_yoga`'s different-graha pairing, so existing Raja Yoga presence
-    is untouched. The lagna lord is not a yogakaraka here: no lagna lord owns
-    the 5th or 9th.
+    Astrologer ruling 2026-10-01: this card reports the yogakaraka *planet* and
+    its *strength*. Ownership alone makes a graha the yogakaraka; it does not by
+    itself create a separate Raja Yoga, so the card is named "Yogakaraka planet"
+    on every surface. The wire key `YOGAKARAKA_RAJA_YOGA` is kept unchanged as a
+    stable identifier (API contract); it is not a claim. `detect_raja_yoga`'s
+    different-graha pairing is untouched. The lagna lord is not a yogakaraka
+    here: no lagna lord owns the 5th or 9th.
 
-    Ownership alone establishes the yoga (owner ruling on the native-Tamil
-    review, 2026-09-23, superseding the first-pass dignity gate). Debilitation,
+    Ownership alone establishes it (owner ruling on the native-Tamil review,
+    2026-09-23, superseding the first-pass dignity gate). Debilitation,
     combustion or a 6th/8th/12th placement lowers it one rung — however many of
     them apply — and never removes it. Each is recorded in `conditions_met`, not
     `cancellation_factors`, so the card reads "Moderate", not "Cancelled".
+
+    Neecha Bhanga (ruling 2026-10-01, option B): when the canonical predicate
+    `neecha_bhanga_cancelled` holds for the yogakaraka, the *debility* no longer
+    costs the rung, and `<graha>_yogakaraka_neecha_bhanga` records why. Its other
+    afflictions (combustion, a 6/8/12 placement) still lower it. A valid bhanga
+    never restores STRONG on its own.
     """
     active = set(active_lords or ())
     for planet in ("SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN"):
@@ -146,13 +158,24 @@ def detect_raja_yogakaraka(
             continue
         rasi = _planet_rasi(planets, planet)
         house = house_from_reference(lagna_rasi, rasi)
+        debilitated = rasi == DEBILITATION_RASI.get(planet)
+        # Same predicate as the Neecha Bhanga card and the +14 strength term,
+        # so the three can never disagree about whether the debility stands.
+        bhanga = debilitated and neecha_bhanga_cancelled(
+            planet,
+            planet_rasi=_planets_as_rasi_map(planets),
+            lagna_rasi=lagna_rasi,
+            d9_rasi_map=d9_rasi_map,
+            d9_lagna_rasi=d9_lagna_rasi,
+        )[0]
         afflictions = [
             reason for reason, applies in (
-                (f"{planet.lower()}_yogakaraka_debilitated", rasi == DEBILITATION_RASI.get(planet)),
+                (f"{planet.lower()}_yogakaraka_debilitated", debilitated and not bhanga),
                 (f"{planet.lower()}_yogakaraka_combust", planet in combust_planets),
                 (f"{planet.lower()}_yogakaraka_in_dusthana_{house}", house in DUSTHANA_HOUSES),
             ) if applies
         ]
+        notes = [f"{planet.lower()}_yogakaraka_neecha_bhanga"] if bhanga else []
         # Combustion is already one of the afflictions, so the score gate must
         # not count it a second time.
         strength, gate_notes = gate_yoga_strength(
@@ -163,12 +186,12 @@ def detect_raja_yogakaraka(
             name="YOGAKARAKA_RAJA_YOGA",
             is_present=True,
             strength=strength,
-            conditions_met=[f"{planet.lower()}_yogakaraka_owns_{houses}", *afflictions],
+            conditions_met=[f"{planet.lower()}_yogakaraka_owns_{houses}", *afflictions, *notes],
             cancellation_factors=gate_notes,
             dasha_activated=_is_active(active, planet),
             key_grahas=(planet,),
-            description_ta="யோககாரக ராஜயோகம்: ஒரே கிரகம் ஒரு கேந்திரத்திற்கும் ஒரு திரிகோணத்திற்கும் அதிபதியாக உள்ளது.",
-            description_en="Yogakaraka Raja Yoga: one graha lords both a kendra and a trikona.",
+            description_ta="யோககாரக கிரகம்: ஒரே கிரகம் ஒரு கேந்திரத்திற்கும் ஒரு திரிகோணத்திற்கும் அதிபதியாக உள்ளது.",
+            description_en="Yogakaraka planet: one graha lords both a kendra and a trikona.",
         )
     return YogaResult(
         name="YOGAKARAKA_RAJA_YOGA",

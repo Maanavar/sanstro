@@ -57,6 +57,7 @@ from app.calculations.planet_conditions import (
     D9_DEBILITATED_MEANING,
     D9_DIGNIFIED_MEANING,
     VARGOTTAMA_MEANING,
+    VARGOTTAMA_NEECHA_MEANING,
     combust_meaning,
     retrograde_meaning,
 )
@@ -247,7 +248,7 @@ def _current_period_text(
         return ta, en
     ta = (
         "இந்த கிரகம் இப்போது நேரடி தசை/புக்தி/அந்தர அதிபதி அல்ல; "
-        "அது தசை அல்லது புக்தியாக வரும்போதும், கோசாரத்தில் குரு/சனி இதைத் தொடும்போதும் அதன் முழு பலன் வெளிப்படும்."
+        "அது தசை அல்லது புக்தியாக வரும்போதும், கோச்சாரத்தில் குரு/சனி இதைத் தொடும்போதும் அதன் முழு பலன் வெளிப்படும்."
     )
     en = (
         "This planet is not one of the active period lords right now; "
@@ -505,13 +506,13 @@ def _contact_clause(contact: _TransitContact) -> tuple[str, str]:
         # A return is the graha's own cycle closing, so it is described as the
         # planet's theme coming round again rather than an outside influence.
         return (
-            f"கோசார {planet_ta(contact.source)} {verb_ta}; அதன் சுழற்சி ஒன்று முடிந்து "
+            f"கோச்சார {planet_ta(contact.source)} {verb_ta}; அதன் சுழற்சி ஒன்று முடிந்து "
             f"புதிதாகத் தொடங்குகிறது — இது {effect.ta}",
             f"Transiting {planet_en(contact.source)} {verb_en}, closing one full cycle and "
             f"beginning another; this {effect.en}",
         )
     return (
-        f"கோசார {planet_ta(contact.source)} இதை {verb_ta}; இது {effect.ta}",
+        f"கோச்சார {planet_ta(contact.source)} இதை {verb_ta}; இது {effect.ta}",
         f"Transiting {planet_en(contact.source)} {verb_en}; this {effect.en}",
     )
 
@@ -667,7 +668,7 @@ _FACET_LABELS: dict[str, ChartExplanationText] = {
     "navamsa": _bi("நவாம்ச நிலை", "In the Navamsa (D9)"),
     "activation": _bi("இப்போது இயங்குகிறதா", "Active right now?"),
     "nakshatra": _bi("நட்சத்திர அதிபதி", "Its star lord"),
-    "transit": _bi("நடப்பு கோசாரம்", "Current transit"),
+    "transit": _bi("நடப்பு கோச்சாரம்", "Current transit"),
     "remedy": _bi("பரிகாரம்", "Traditional support"),
     "lordship": _bi("அதிபதி நிலை", "What it rules, and from where"),
     "company": _bi("உடன் இருப்பவை", "Shares its house with"),
@@ -834,6 +835,20 @@ def _navamsa_facet_value(planet: PlanetPosition) -> tuple[ChartExplanationText |
     d9_name = RASI_NAMES.get(d9_rasi, str(d9_rasi))
     tier = d9_dignity_tier(planet.graha, d9_rasi)
 
+    if planet.is_vargottama and tier < 0:
+        # Neecha in both charts. Both facts, neither erasing the other (ruling
+        # 2026-10-01); the scorer nets +4 vargottama against the D9 penalty.
+        return (
+            _bi(
+                f"நவாம்சத்திலும் அதே {d9_name} ராசி — வர்கோத்தமம். ஆனால் இது இந்தக் கிரகத்தின் "
+                "நீச ராசி; ராசியிலும் நவாம்சத்திலும் நீசம். வர்கோத்தமம் நிலையை உறுதியாக்கும், "
+                "நீசத்தை நீக்காது.",
+                f"Same sign ({d9_name}) in the Navamsa — vargottama. But that is this planet's "
+                "debilitation sign, so it is debilitated in both charts. Vargottama makes the "
+                "placement consistent; it does not lift the debility.",
+            ),
+            "NEUTRAL",
+        )
     if planet.is_vargottama:
         return (
             _bi(
@@ -1071,8 +1086,15 @@ def _planet_condition_states(
 
     d9_rasi = getattr(planet, "d9_rasi", None)
     tier = d9_dignity_tier(graha, d9_rasi) if d9_rasi is not None else 0
+    # Vargottama no longer outranks a D9 debility (ruling 2026-10-01): the
+    # scorer charges both rows, so the prose states both. A positive D9 tier is
+    # still folded into vargottama — same direction, nothing to reconcile.
     if planet.is_vargottama:
         states.append(_ConditionState("vargottama", *VARGOTTAMA_MEANING, polarity=1))
+        if tier < 0:
+            states.append(
+                _ConditionState("d9_debilitated", *VARGOTTAMA_NEECHA_MEANING, polarity=-1)
+            )
     elif tier < 0:
         states.append(_ConditionState("d9_debilitated", *D9_DEBILITATED_MEANING, polarity=-1))
     elif tier > 0:
@@ -1130,7 +1152,14 @@ def _synthesis_facet_value(
 ) -> tuple[ChartExplanationText | None, str]:
     """The one sentence that reconciles this planet's competing signals."""
     restraints = [s for s in states if s.polarity < 0]
-    supports = [s for s in states if s.polarity > 0]
+    # Vargottama in the neecha sign steadies a debility, it does not protect
+    # against it (ruling 2026-10-01) — so it never reads as "yet X protects it".
+    neecha_vargottama = any(s.key == "vargottama" for s in states) and any(
+        s.key == "d9_debilitated" for s in states
+    )
+    supports = [
+        s for s in states if s.polarity > 0 and not (neecha_vargottama and s.key == "vargottama")
+    ]
     strong_dignity = dignity in _STRONG_DIGNITIES
     weak_dignity = dignity in _WEAK_DIGNITIES
 
@@ -1162,7 +1191,10 @@ def _synthesis_facet_value(
     # which is a materially different reading from the same restraints with an
     # unsupportive Navamsa.
     d9_backs = any(s.key in {"vargottama", "d9_dignified"} for s in supports)
-    if d9_backs:
+    if neecha_vargottama:
+        closing_ta = "வர்கோத்தமம் இந்த நிலையை உறுதியாக்குகிறது, ஆனால் நீசத்தை நீக்குவதில்லை; தொடர் முயற்சி தேவை."
+        closing_en = "Vargottama makes the placement consistent but does not lift the debility, so sustained effort matters here."
+    elif d9_backs:
         closing_ta = "நவாம்சம் இதை ஆதரிப்பதால் இந்த பலம் உண்மையானது — காலப்போக்கில் முதிர்ந்து வெளிப்படும்."
         closing_en = "The Navamsa backs it, so the strength is real and matures with time."
     elif any(s.key == "d9_debilitated" for s in states):
@@ -1859,7 +1891,7 @@ def _house_group_synthesis(name: str, group_planets: list[PlanetPosition]) -> Ch
     if name == "TRIKONA":
         if count == 0:
             return _bi(
-                "உங்கள் ஜாதகத்தில் திரிகோண வீடுகளில் (1/5/9) கிரகம் இல்லை; நல்லூழ் தொடர்பான ஆதரவு பெரும்பாலும் தசை/கோசாரம் மூலம் மட்டுமே வெளிப்படும், நிலையான பின்புலமாக இல்லை.",
+                "உங்கள் ஜாதகத்தில் திரிகோண வீடுகளில் (1/5/9) கிரகம் இல்லை; நல்லூழ் தொடர்பான ஆதரவு பெரும்பாலும் தசை/கோச்சாரம் மூலம் மட்டுமே வெளிப்படும், நிலையான பின்புலமாக இல்லை.",
                 "No planets sit in your Trikona houses (1/5/9); grace-related support mostly surfaces only through dasha and transit timing, rather than as a steady background presence.",
             )
         return _bi(
@@ -1954,7 +1986,7 @@ def _activation_signal_text(source_planet: str, active_lord: str, signal_type: s
     lord_ta, lord_en = planet_ta(active_lord), planet_en(active_lord)
     if signal_type == "TRANSIT_CONJUNCTION":
         return _bi(
-            f"கோசார {source_ta} நடப்பு {lord_ta} தசை கிரகத்தின் பிறப்பு ராசியை தொடுகிறது.",
+            f"கோச்சார {source_ta} நடப்பு {lord_ta} தசை கிரகத்தின் பிறப்பு ராசியை தொடுகிறது.",
             f"Transit {source_en} touches the natal sign of the active {lord_en} period lord.",
         )
     if signal_type == "DASHA_LORD_RETURN":
@@ -1963,7 +1995,7 @@ def _activation_signal_text(source_planet: str, active_lord: str, signal_type: s
             f"{lord_en} is transiting its natal sign, so that planet's themes receive extra focus.",
         )
     return _bi(
-        f"கோசார {source_ta} நடப்பு {lord_ta} தசை கிரகத்தை பார்வையால் தொடுகிறது.",
+        f"கோச்சார {source_ta} நடப்பு {lord_ta} தசை கிரகத்தை பார்வையால் தொடுகிறது.",
         f"Transit {source_en} aspects the natal {lord_en} period lord.",
     )
 
@@ -2022,7 +2054,7 @@ def _activation_explanation(
         (
             f"{level_ta} நிலையில் {planet_ta(period.lord)} செயல்படும் கிரகம். பிறப்பு ஜாதகத்தில் இது லக்னத்திலிருந்து "
             f"{natal_planet.house_from_lagna}-ஆம் இடத்தில் இருந்து {natal_theme.ta} துறையை இயக்குகிறது. "
-            f"இப்போது கோசாரத்தில் லக்னத்திலிருந்து {transit_house_from_lagna}-ஆம் இடம், சந்திரனிலிருந்து "
+            f"இப்போது கோச்சாரத்தில் லக்னத்திலிருந்து {transit_house_from_lagna}-ஆம் இடம், சந்திரனிலிருந்து "
             f"{transit_house_from_moon}-ஆம் இடம்; இதனால் இந்த அடுக்கு {tone_copy.ta} போக்கில் படிக்கப்படுகிறது."
         ),
         (
@@ -2119,7 +2151,7 @@ def _build_current_activation_section(
     )
     transit_summary = _bi(
         (
-            f"கோசாரத்தில் {len(all_signals)} முக்கிய தொடுதல்கள் உள்ளன; {support_count} அடுக்குகள் ஆதரவு போக்கிலும் "
+            f"கோச்சாரத்தில் {len(all_signals)} முக்கிய தொடுதல்கள் உள்ளன; {support_count} அடுக்குகள் ஆதரவு போக்கிலும் "
             f"{caution_count} அடுக்குகள் கவன போக்கிலும் படிக்கப்படுகின்றன."
         ),
         (
@@ -2134,7 +2166,7 @@ def _build_current_activation_section(
         transit_summary=transit_summary,
         active_lords=active_lords,
         explanation=_bi(
-            "இந்த பகுதி பிறப்பு ஜாதக வாக்குறுதியையும் நடப்பு தசை/புக்தி/அந்தரம் மற்றும் கோசார இயக்கத்தையும் இணைக்கிறது.",
+            "இந்த பகுதி பிறப்பு ஜாதக வாக்குறுதியையும் நடப்பு தசை/புக்தி/அந்தரம் மற்றும் கோச்சார இயக்கத்தையும் இணைக்கிறது.",
             "This section connects natal promise with the current Mahadasha, Bhukti, Antaram, and gochar movement.",
         ),
     )

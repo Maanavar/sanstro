@@ -265,9 +265,27 @@ def test_yogakaraka_forms_by_ownership_and_affliction_only_weakens(
 
 
 def test_yogakaraka_afflictions_stack_to_one_rung() -> None:
-    # Debilitated in Mesham (the 7th from Thulam) and combust: still PARTIAL.
-    result = detect_raja_yogakaraka({"SATURN": 1, "SUN": 1}, 7, combust_planets=frozenset({"SATURN"}))
+    # Rishabha lagna: Sani debilitated in Mesham, the 12th, and combust — three
+    # afflictions, still one rung. (Suriya is kept out of a kendra and Sevvai
+    # and Sukran are absent, so no Neecha Bhanga fires.)
+    result = detect_raja_yogakaraka({"SATURN": 1, "SUN": 3}, 2, combust_planets=frozenset({"SATURN"}))
     assert result.is_present is True and result.strength == "PARTIAL"
+
+
+def test_neecha_bhanga_removes_only_the_debility_cost() -> None:
+    """Ruling 2026-10-01, option B. Thulam lagna, Sani neecha in Mesham (the
+    7th, a kendra) with Suriya — who exalts in Mesham — also in that kendra: a
+    valid bhanga. The debility stops costing the rung; nothing else afflicts,
+    so it reads STRONG. Combustion, a separate weakness, still lowers it."""
+    clean = detect_raja_yogakaraka({"SATURN": 1, "SUN": 1}, 7)
+    assert clean.strength == "STRONG"
+    assert "saturn_yogakaraka_debilitated" not in clean.conditions_met
+    assert "saturn_yogakaraka_neecha_bhanga" in clean.conditions_met
+
+    combust = detect_raja_yogakaraka({"SATURN": 1, "SUN": 1}, 7, combust_planets=frozenset({"SATURN"}))
+    assert combust.strength == "PARTIAL"
+    assert "saturn_yogakaraka_combust" in combust.conditions_met
+    assert "saturn_yogakaraka_neecha_bhanga" in combust.conditions_met
 
 
 def test_mesha_lagna_has_no_yogakaraka() -> None:

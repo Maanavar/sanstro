@@ -10,24 +10,50 @@ decision inline and move it to "Resolved".
 
 ## Open
 
-### 2026-09-23 · Does Neecha Bhanga restore a debilitated Yogakaraka's rung? Not decided — today it does not
+### 2026-10-01 · Bell notification panel — new Tamil copy (language only)
 
-- **Where:** `app/calculations/_yoga_detect.py` (`detect_raja_yogakaraka`,
-  `detect_neecha_bhanga`); witness chart `yogakaraka_neecha` in
-  `tests/test_drishti_yoga_golden.py`.
-- **What happens today:** Rishabha lagna, Sani neecha in Mesham (also the 12th).
-  Suriya, who is exalted in Mesham, sits in a kendra, so `NEECHA_BHANGA_RAJA_YOGA`
-  is present. The Yogakaraka card still reads **Moderate (PARTIAL)**: the
-  2026-09-23 ownership ruling lowers one rung for debility and does not look at
-  bhanga. The two cards are computed independently.
-- **Question:** when the yogakaraka's own debility is cancelled by a valid neecha
-  bhanga, should the debility still cost the rung? Options:
-  (a) no change: debility lowers, bhanga is its own yoga (today);
-  (b) a valid bhanga removes the debility affliction only, so the dusthana
-  placement alone still lowers it (on the witness chart it stays PARTIAL);
-  (c) a valid bhanga restores STRONG outright.
-- **Why we did not pick:** it is a lineage choice with direct effect on the
-  strength shown, and the ruling of the day did not address it.
+- **Where:** `web/components/dashboard-hero.tsx` (bell trigger + popover,
+  inline `lang === "ta"` strings) and `web/lib/i18n.ts`
+  (`notif_update_failed`). Commits `63bf3a8` (panel redesign) and `54368ae`
+  (mark-read failure toast).
+- **New Tamil, written without review:**
+
+  | Where it shows | English | Tamil as shipped |
+  |---|---|---|
+  | Unread count chip beside the panel title | `5 new` | `5 புதியவை` |
+  | Bell button's spoken name (screen readers only, `aria-label`) | `Notifications, 5 new` | `அறிவிப்புகள், 5 புதியவை` |
+  | Heading over the day's alerts, selected date = today | `For today` | `இன்றைக்கு` |
+  | Same heading, any other selected date | `For 15 Jan 2026` | `15 ஜனவரி 2026 அன்று` |
+  | Footer button to notification settings | `Settings` | `அமைப்புகள்` |
+  | Toast when marking read fails | `Couldn't update your notifications. Please try again.` | `அறிவிப்புகளைப் புதுப்பிக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.` |
+
+- **Reused, not new** (already live on `/notifications`): the section heading
+  `அறிவிப்பு பெட்டி` (Inbox) and the screen-reader-only `புதியது` (New) on each
+  unread row.
+- **Specific calls worth checking:**
+  1. **`புதியவை` is used for every count, including 1.** It renders as
+     `1 புதியவை`. Should a count of one read `1 புதியது`, or is the plural
+     acceptable in a count chip? The full inbox page uses singular `புதியது`
+     as a per-row badge, so the two surfaces currently differ.
+  2. **`இன்றைக்கு` vs `இன்று`.** The heading means "these alerts are for
+     today" (it follows the date picker, not the clock). `இன்று` alone was
+     avoided because it reads as a time label rather than a scope. The obvious
+     longer form, `இன்றைய அறிவிப்புகள்`, was avoided because it repeats the
+     panel title `அறிவிப்புகள்` directly above it.
+  3. **`{date} அன்று`** for "For {date}": does `அன்று` carry "for that day"
+     here, or does it read only as "on that day"?
+  4. **Bare `அமைப்புகள்`** in the footer, beside `முழு அறிவிப்பு பெட்டி`. The
+     full page says `அறிவிப்பு அமைப்புகள்`; the shorter form was chosen to fit
+     one line at 375px. Is the bare word clear enough in context?
+  5. **Toast register:** `மீண்டும் முயற்சிக்கவும்` (polite imperative). The
+     full inbox page's retry button uses `மீண்டும் முயற்சி`. Is one register
+     wanted across both?
+- **Doctrine:** none — this is a language review only.
+- **Status:** committed on `harden/production-readiness`, not yet pushed.
+  Locked down by `web/components/dashboard-hero.test.tsx` (Tamil test asserts
+  the bell name, `இன்றைக்கு` and `அறிவிப்பு பெட்டி` verbatim) and
+  `web/hooks/useNotificationInbox.test.tsx` (asserts the Tamil toast
+  verbatim), so a wording change should update those too.
 
 ### 2026-09-23 · Which dasha levels "activate" a yoga? We chose Maha + Antar — live after this change
 
@@ -121,7 +147,11 @@ decision inline and move it to "Resolved".
     `<graha>_yogakaraka_<affliction>` marker in `conditions_met`, rendered as
     "…; யோகபலம் சற்று குறையலாம், யோகம் நீங்காது". The three golden charts did
     not move. *Astrologer: please confirm, since this reverses your gate.*
-  - **Names:** யோககாரக ராஜயோகம் (ராஜயோகம் as one word). Every yoga name in
+    **→ Ruled 2026-10-01 (see Resolved):** ownership-only stands; the marker
+    now reads "…; யோககாரகத் தன்மை நீங்காது; பலன் வெளிப்படும் வலிமை குறையலாம்",
+    and the card is renamed "Yogakaraka planet", not a Raja Yoga.
+  - **Names:** யோககாரக ராஜயோகம் (ராஜயோகம் as one word). *Superseded
+    2026-10-01 for this card: யோககாரக கிரகம் / "Yogakaraka planet".* Every yoga name in
     Tamil mode is now in Tamil script, from the registry's `name_ta`
     (`packages/shared/src/yogaDisplay.ts`), instead of English.
   - **Strength words:** வலுவான / மிதமான / **லேசான** (was மென்மையான, which
@@ -233,9 +263,14 @@ decision inline and move it to "Resolved".
      what "Understand" means here. `tab_explore_back` was written as
      **ஆய்வுக்குத் திரும்பு** to agree with it; if ஆய்வு changes, that
      changes with it (the two sit adjacent in `i18n.ts` for exactly this reason).
+     **→ Ruled 2026-10-01:** **விளக்கம்**, since the tab is explanatory. Built:
+     `tab_explore`, `tab_explore_back` (விளக்கத்திற்குத் திரும்பு) and the tab's
+     own kicker, which said ஆராயுங்கள்.
   2. **`GLOSSARY_LABELS` follows almanac usage over Sanskrit** — ஏழரைச் சனி for
      Sade Sati, எமகண்டம் for Yamagandam, கிரகநகர்வு for Gochar. Worth
      confirming ஷட்பலம், திருக் பலம் and காரகாம்சம் read naturally.
+     **→ Gochar ruled 2026-10-01: கோச்சாரம் over கிரகநகர்வு**, applied product-wide
+     (see Resolved). ஷட்பலம், திருக் பலம், காரகாம்சம் and call 3 are still open.
   3. **`yoga` vs `yogam`** now carry disambiguators in both languages
      (யோகம் (ஜாதக அமைப்பு) vs யோகம் (பஞ்சாங்க அங்கம்)) because both render in
      one search-result list where a bare repeated "யோகம்" would be useless.
@@ -319,7 +354,98 @@ decision inline and move it to "Resolved".
 - Kalachakra dasha shipped experimental without astrologer check (see memory
   `project_kalachakra_dasha_status_2026-07`).
 
-### 2026-07-18 · D9 debilitation penalty weighting
+### Corrected 2026-07-16 (stale entries removed)
+
+- ~~Propensity suites: 40 signature definitions need native-Tamil/jyotishi
+  post-hoc review~~ — **already done.** `docs/ASTROLOGER_LIVE_SESSION_BACKLOG_2026-07.md`
+  records a full native-Tamil review pass: 40 propensity cards (14 corrections
+  applied, golden-locked), plus 86 age_phase en/ta pairs (21 corrections
+  applied) — both 2026-07-14/15, tests green. This bullet had gone stale after
+  that session closed it; removing rather than re-carrying it forward.
+
+## Resolved
+
+### 2026-10-01 · Astrologer rulings on six queued questions — ✅ built
+
+1. **Yogakaraka affliction wording.** "யோகம் நீங்காது" said the *yoga* stands,
+   which overclaims. Now: "‹graha› ‹affliction›; யோககாரகத் தன்மை நீங்காது; பலன்
+   வெளிப்படும் வலிமை குறையலாம்" (en: "it stays the yogakaraka, but its results
+   may come through less strongly"). Same idea in the card's "what this is" and
+   Moderate-strength lines. `web/components/dashboard-yoga-dosham-panel.tsx`.
+2. **Understand tab: விளக்கம்**, replacing ஆய்வு, because the tab explains the
+   ideas behind a reading. `tab_explore`, `tab_explore_back` and the tab
+   kicker (`web/lib/i18n.ts`, `dashboard-explore-tab-nova.tsx`).
+3. **கோச்சாரம் over கிரகநகர்வு.** Applied as a vocabulary rule, not only to the
+   glossary label: the codebase carried three spellings (கிரகநகர்வு, கோசாரம்,
+   கோச்சாரம்), now one. 39 files across `app/`, `web/` and one test fixture,
+   inflected by grammar: கோச்சார before a noun (கோச்சார ஆதரவு), கோச்சாரம்
+   standing alone, கோச்சாரமும், கோச்சாரங்கள், கோச்சாரத்தை. The render-time
+   normaliser in `web/lib/tamil-astro.ts` used to rewrite கோசாரம் →
+   கிரகநகர்வு; it now rewrites கோசார → கோச்சார. *Native reader, please spot-check
+   the attributive forms; we did not add sandhi doubling (கோச்சாரப் …) except
+   where a string already had it.*
+4. **Sign edge: keep max(sandhi, Baladi), labelled `[PRODUCT]`.** No scoring
+   change. The comment on `SANDHI_PENALTY` in `chart_strength.py` and
+   DOCTRINE_DECISIONS_V1 §15 now say this is Vinaadi's rule for not counting one
+   degree fact twice, not a classical combination rule.
+5. **Neecha Bhanga on a yogakaraka: option B. And it is a yogakaraka *planet*,
+   not a Raja Yoga.**
+   - A debility cancelled by `neecha_bhanga_cancelled` (the same predicate as
+     the Neecha Bhanga card and the +14 strength term) no longer costs the
+     rung. It is recorded as `<graha>_yogakaraka_neecha_bhanga` and shown as a
+     protective factor. Combustion and a 6/8/12 placement still lower it. On the
+     witness chart (Rishabha lagna, Sani neecha in the 12th, Suriya in a kendra)
+     the card stays **Moderate**, now because of the 12th house only. A
+     yogakaraka whose only affliction is a cancelled debility reads **Strong**.
+   - The card is renamed **Yogakaraka planet / யோககாரக கிரகம்** everywhere it is
+     displayed (`yoga_rules.py` `YOG-RY-04`, `packages/shared/src/yogaDisplay.ts`,
+     detector descriptions, card copy). Ownership makes a graha the yogakaraka;
+     it does not by itself form a Raja Yoga. **Not changed:** the wire key
+     `YOGAKARAKA_RAJA_YOGA`, kept as a stable API identifier so no client or
+     test fixture breaks. Renaming the key is a separate, coordinated change if
+     wanted.
+   - Tests: `test_neecha_bhanga_removes_only_the_debility_cost`, the golden
+     `test_weakened_yogakaraka_is_lowered_not_cancelled`, and
+     `web/components/yogakaraka-weakness-display.test.tsx`.
+6. **D9 debility penalty stays; the vargottama exemption is removed.**
+   Vargottama and debility are now two separate rows. A graha vargottama in its
+   own neecha sign takes the D9 penalty (−5) *and* keeps its +4 vargottama term,
+   and its Kala Bala D9 tier stays −1 instead of being lifted to +1. Net about −6
+   points for those grahas only; no other chart moves. The planet-card prose
+   now says both facts ("vargottama makes the placement consistent; it does not
+   lift the debility") instead of reading it as a boost.
+   `CHART_CALCULATION_VERSION` → v1.5. Tests:
+   `test_neecha_vargottama_charges_the_d9_penalty_and_keeps_the_vargottama_bonus`,
+   `test_neecha_vargottama_states_both_facts_and_is_not_a_boost`.
+
+**New Tamil written in this pass, not yet read by a native reader:** the
+Neecha-Bhanga yogakaraka line, the rewritten yogakaraka "what this is" and
+Moderate lines, the neecha-vargottama planet-card lines
+(`VARGOTTAMA_NEECHA_MEANING`, the navamsa facet, the synthesis closing), and
+விளக்கத்திற்குத் திரும்பு.
+
+The two queue entries this answers in full are kept below as they were asked.
+
+### 2026-09-23 · Does Neecha Bhanga restore a debilitated Yogakaraka's rung? — ✅ RULED 2026-10-01: option B (above)
+
+- **Where:** `app/calculations/_yoga_detect.py` (`detect_raja_yogakaraka`,
+  `detect_neecha_bhanga`); witness chart `yogakaraka_neecha` in
+  `tests/test_drishti_yoga_golden.py`.
+- **What happens today:** Rishabha lagna, Sani neecha in Mesham (also the 12th).
+  Suriya, who is exalted in Mesham, sits in a kendra, so `NEECHA_BHANGA_RAJA_YOGA`
+  is present. The Yogakaraka card still reads **Moderate (PARTIAL)**: the
+  2026-09-23 ownership ruling lowers one rung for debility and does not look at
+  bhanga. The two cards are computed independently.
+- **Question:** when the yogakaraka's own debility is cancelled by a valid neecha
+  bhanga, should the debility still cost the rung? Options:
+  (a) no change: debility lowers, bhanga is its own yoga (today);
+  (b) a valid bhanga removes the debility affliction only, so the dusthana
+  placement alone still lowers it (on the witness chart it stays PARTIAL);
+  (c) a valid bhanga restores STRONG outright.
+- **Why we did not pick:** it is a lineage choice with direct effect on the
+  strength shown, and the ruling of the day did not address it.
+
+### 2026-07-18 · D9 debilitation penalty weighting — ✅ RULED 2026-10-01: penalty stays, vargottama exemption removed (above)
 
 - **Where:** `app/calculations/chart_strength.py::_d9_dignity_tier`,
   `D9_DEBILITATION_PENALTY`, and its two call sites (Kala Bala `d9_bonus`,
@@ -344,17 +470,6 @@ decision inline and move it to "Resolved".
 - **Pinned by:** `tests/test_calculations.py::test_d9_debilitation_penalises_a_rasi_exalted_planet`
   and `::test_d9_debilitation_is_exempt_when_vargottama` — both assert
   *direction* only, so a magnitude change will not break them.
-
-### Corrected 2026-07-16 (stale entries removed)
-
-- ~~Propensity suites: 40 signature definitions need native-Tamil/jyotishi
-  post-hoc review~~ — **already done.** `docs/ASTROLOGER_LIVE_SESSION_BACKLOG_2026-07.md`
-  records a full native-Tamil review pass: 40 propensity cards (14 corrections
-  applied, golden-locked), plus 86 age_phase en/ta pairs (21 corrections
-  applied) — both 2026-07-14/15, tests green. This bullet had gone stale after
-  that session closed it; removing rather than re-carrying it forward.
-
-## Resolved
 
 ### 2026-09-23 · Sign-edge grahas: four questions, plus new Tamil copy — ✅ RULED 2026-09-23, built
 
@@ -399,7 +514,8 @@ decision inline and move it to "Resolved".
     ruling also said this equals "sandhi replaces Baladi". That holds only
     while the Baladi cost is ≤ 8. It is not true for dignity ≥ ~60 in a Mrita
     zone (an exalted graha at 0.4° of an even sign costs 13.5). We kept "the
-    larger". Please confirm.
+    larger". Please confirm. **→ Confirmed 2026-10-01: keep max(sandhi,
+    Baladi), and label it a `[PRODUCT]` scoring rule** (see Resolved).
   - **Q2: the text is right; the scorer now drops Baladi for Rahu/Ketu**
     (multiplier 1.0, label NEUTRAL). Jagradadi was not ruled on and is unchanged.
   - **Q3: the astrologer's wording is adopted** ("only from ‹sign›… never

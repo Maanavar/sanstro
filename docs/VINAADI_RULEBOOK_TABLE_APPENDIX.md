@@ -581,7 +581,7 @@ lagna-dependent but tabled statically (Dhana, Vipareetha) the listed set is a
 | `YOG-RY-01` | Raja Yoga — trikona/kendra lord association | `RAJA_YOGA` | `_yoga_detect.detect_raja_yoga` | `[VARIANT]` `[PRODUCT]` | Per chart: This instance's own trikona lord and kendra lord (the fixed list is only a fallback). |
 | `YOG-RY-02` | Raja Yoga — trikona/kendra lord exchange | `RAJA_YOGA` | `yogas.detect_yogas_and_doshams` | `[VARIANT]` | Per chart: The two exchanging lords of this instance. |
 | `YOG-RY-03` | Raja Yoga — formulations deliberately not implemented | — (not detected) | `—` | `[LIMIT]` | — (not detected) |
-| `YOG-RY-04` | Yogakaraka Raja Yoga | `YOGAKARAKA_RAJA_YOGA` | `_yoga_detect.detect_raja_yogakaraka` | `[TRADITION]` `[PRODUCT]` | Per chart: The yogakaraka graha itself. |
+| `YOG-RY-04` | Yogakaraka planet | `YOGAKARAKA_RAJA_YOGA` | `_yoga_detect.detect_raja_yogakaraka` | `[TRADITION]` `[PRODUCT]` | Per chart: The yogakaraka graha itself. |
 | `YOG-DN-01` | Dhana Yoga | `DHANA_YOGA` | `_yoga_detect.detect_dhana_yoga` | `[TRADITION]` `[PRODUCT]` | Jupiter, Venus, Mercury |
 | `YOG-DN-02` | Dhana Yoga (supportive) | `DHANA_SUPPORTIVE_YOGA` | `_yoga_detect.detect_dhana_yoga_supportive` | `[PRODUCT]` | Jupiter, Venus, Mercury |
 | `YOG-NBR-01` | Neecha Bhanga Raja Yoga | `NEECHA_BHANGA_RAJA_YOGA` | `_yoga_detect.detect_neecha_bhanga` | `[TRADITION]` | Jupiter |
@@ -670,21 +670,21 @@ lagna-dependent but tabled statically (Dhana, Vipareetha) the listed set is a
 | **Cancellation** | — |
 | **Source** | — |
 | **Activation grahas** | — (not detected) |
-| **Note** | Not reported by Vinaadi under any name: (a) retired 2026-09-23 — the lone yogakaraka is now `YOG-RY-04`, its own card; (b) the two lords merely occupying kendras from each other, without conjunction, drishti or exchange; (c) raja yogas read from the Navamsa or from Chandra lagna rather than from the Lagna; (d) Dharma-Karmadhipati as a **separately named** yoga — the 9th/10th pair does form `YOG-RY-01`, but it is never distinguished from any other trikona-kendra link on the card. Neecha Bhanga and Vipareetha raja yogas are detected, under their own IDs. |
+| **Note** | Not reported by Vinaadi under any name: (a) retired 2026-09-23 — the lone yogakaraka is now `YOG-RY-04`, its own card, which since 2026-10-01 reports the yogakaraka planet's strength and makes no Raja Yoga claim; (b) the two lords merely occupying kendras from each other, without conjunction, drishti or exchange; (c) raja yogas read from the Navamsa or from Chandra lagna rather than from the Lagna; (d) Dharma-Karmadhipati as a **separately named** yoga — the 9th/10th pair does form `YOG-RY-01`, but it is never distinguished from any other trikona-kendra link on the card. Neecha Bhanga and Vipareetha raja yogas are detected, under their own IDs. |
 
-#### `YOG-RY-04` Yogakaraka Raja Yoga (யோககாரக ராஜயோகம்)
+#### `YOG-RY-04` Yogakaraka planet (யோககாரக கிரகம்)
 
 |  |  |
 |---|---|
 | **Emitted as** | `YOGAKARAKA_RAJA_YOGA` |
 | **Detector** | `_yoga_detect.detect_raja_yogakaraka` |
 | **Markers** | `[TRADITION]` `[PRODUCT]` |
-| **Present when** | One graha owns both a kendra (4/7/10) and a trikona (5/9) for the lagna — Sani for Rishabha/Thulam, Sevvai for Kataka/Simha, Sukran for Makara/Kumbam. Ownership alone establishes it. |
-| **Strength** | STRONG on formation; PARTIAL when the yogakaraka is debilitated, combust or placed in the 6th/8th/12th from Lagna — one rung however many apply, each recorded as `<graha>_yogakaraka_<affliction>`. Strength is then lowered one rung per condition by `_yoga_helpers.gate_yoga_strength` — a key graha's composite natal score below 45, or a key graha combust — and floored at PARTIAL, so a gate never hides a formed yoga. Here the gate reads the composite score only; combustion is already counted once, above. |
-| **Cancellation** | None. Debility, combustion and a dusthana placement weaken the yoga; they never remove it (owner ruling 2026-09-23, superseding the first-pass dignity gate). |
+| **Present when** | One graha owns both a kendra (4/7/10) and a trikona (5/9) for the lagna — Sani for Rishabha/Thulam, Sevvai for Kataka/Simha, Sukran for Makara/Kumbam. Ownership alone makes it the yogakaraka. |
+| **Strength** | STRONG on formation; PARTIAL when the yogakaraka is debilitated, combust or placed in the 6th/8th/12th from Lagna — one rung however many apply, each recorded as `<graha>_yogakaraka_<affliction>`. A debility cancelled by Neecha Bhanga (`neecha_bhanga_cancelled`, the same predicate as `YOG-NBR-01`) costs nothing and is recorded as `<graha>_yogakaraka_neecha_bhanga`; the other afflictions still apply (ruling 2026-10-01, option B). Strength is then lowered one rung per condition by `_yoga_helpers.gate_yoga_strength` — a key graha's composite natal score below 45, or a key graha combust — and floored at PARTIAL, so a gate never hides a formed yoga. Here the gate reads the composite score only; combustion is already counted once, above. |
+| **Cancellation** | None. Debility, combustion and a dusthana placement lower its yogakaraka strength; they never remove its yogakaraka status (owner ruling 2026-09-23, superseding the first-pass dignity gate). |
 | **Source** | Yogakaraka graha, BPHS — a single lord of a kendra and a trikona. |
 | **Activation grahas** | Per chart: The yogakaraka graha itself. |
-| **Note** | Astrologer ruling 2026-09-23: a **distinct yoga type**, not a loosening of `YOG-RY-01`'s different-graha pairing, so existing Raja Yoga presence is unchanged and this addition is reviewable on its own. The yogakaraka is carried per chart in `YogaResult.key_grahas`. |
+| **Note** | Astrologer ruling 2026-10-01: this card reports the yogakaraka **planet and its strength**, not a distinct Raja Yoga. Ownership alone does not create a yoga; a Raja Yoga still needs `YOG-RY-01`'s link between lords. The emitted code keeps its historical name `YOGAKARAKA_RAJA_YOGA` as a stable API key only. Supersedes the 2026-09-23 framing as 'a distinct yoga type'. The yogakaraka is carried per chart in `YogaResult.key_grahas`. |
 
 #### `YOG-DN-01` Dhana Yoga (தன யோகம்)
 

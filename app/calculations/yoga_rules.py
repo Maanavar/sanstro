@@ -245,7 +245,9 @@ YOGA_RULES: tuple[YogaRule, ...] = (
         key_planets=(),
         note=(
             "Not reported by Vinaadi under any name: (a) retired 2026-09-23 — the "
-            "lone yogakaraka is now `YOG-RY-04`, its own card; (b) the two lords merely occupying kendras from "
+            "lone yogakaraka is now `YOG-RY-04`, its own card, which since 2026-10-01 reports "
+            "the yogakaraka planet's strength and makes no Raja Yoga claim; (b) the two lords "
+            "merely occupying kendras from "
             "each other, without conjunction, drishti or exchange; (c) raja yogas "
             "read from the Navamsa or from Chandra lagna rather than from the "
             "Lagna; (d) Dharma-Karmadhipati as a **separately named** yoga — the "
@@ -257,35 +259,42 @@ YOGA_RULES: tuple[YogaRule, ...] = (
     YogaRule(
         rule_id="YOG-RY-04",
         yoga_name="YOGAKARAKA_RAJA_YOGA",
-        name_en="Yogakaraka Raja Yoga",
-        name_ta="யோககாரக ராஜயோகம்",
+        name_en="Yogakaraka planet",
+        name_ta="யோககாரக கிரகம்",
         markers=("TRADITION", "PRODUCT"),
         detector="_yoga_detect.detect_raja_yogakaraka",
         present_when=(
             "One graha owns both a kendra (4/7/10) and a trikona (5/9) for the "
             "lagna — Sani for Rishabha/Thulam, Sevvai for Kataka/Simha, Sukran for "
-            "Makara/Kumbam. Ownership alone establishes it."
+            "Makara/Kumbam. Ownership alone makes it the yogakaraka."
         ),
         strength_rule=(
             "STRONG on formation; PARTIAL when the yogakaraka is debilitated, "
             "combust or placed in the 6th/8th/12th from Lagna — one rung however "
             "many apply, each recorded as `<graha>_yogakaraka_<affliction>`. "
+            "A debility cancelled by Neecha Bhanga (`neecha_bhanga_cancelled`, "
+            "the same predicate as `YOG-NBR-01`) costs nothing and is recorded "
+            "as `<graha>_yogakaraka_neecha_bhanga`; the other afflictions still "
+            "apply (ruling 2026-10-01, option B). "
             f"{_GATE_NOTE} Here the gate reads the composite score only; "
             "combustion is already counted once, above."
         ),
         cancellation=(
-            "None. Debility, combustion and a dusthana placement weaken the yoga; "
-            "they never remove it (owner ruling 2026-09-23, superseding the "
-            "first-pass dignity gate)."
+            "None. Debility, combustion and a dusthana placement lower its "
+            "yogakaraka strength; they never remove its yogakaraka status (owner "
+            "ruling 2026-09-23, superseding the first-pass dignity gate)."
         ),
         source="Yogakaraka graha, BPHS — a single lord of a kendra and a trikona.",
         key_planets=(),
         per_chart_activation="The yogakaraka graha itself.",
         note=(
-            "Astrologer ruling 2026-09-23: a **distinct yoga type**, not a "
-            "loosening of `YOG-RY-01`'s different-graha pairing, so existing Raja "
-            "Yoga presence is unchanged and this addition is reviewable on its own. "
-            "The yogakaraka is carried per chart in `YogaResult.key_grahas`."
+            "Astrologer ruling 2026-10-01: this card reports the yogakaraka "
+            "**planet and its strength**, not a distinct Raja Yoga. Ownership "
+            "alone does not create a yoga; a Raja Yoga still needs `YOG-RY-01`'s "
+            "link between lords. The emitted code keeps its historical name "
+            "`YOGAKARAKA_RAJA_YOGA` as a stable API key only. Supersedes the "
+            "2026-09-23 framing as 'a distinct yoga type'. The yogakaraka is "
+            "carried per chart in `YogaResult.key_grahas`."
         ),
     ),
     # ── Dhana ────────────────────────────────────────────────────────────────
