@@ -19,7 +19,7 @@ Every assertion here fails if its fix is reverted; the docstrings say how.
 """
 from __future__ import annotations
 
-from ctypes import c_double
+from ctypes import c_double, create_string_buffer
 from datetime import date, time
 from types import SimpleNamespace
 
@@ -191,6 +191,10 @@ def _ffi_backend(monkeypatch, *, retflag: int, serr: bytes = b"", tret0: float =
     monkeypatch.setattr(ephemeris, "SE_CALC_RISE", 1, raising=False)
     monkeypatch.setattr(ephemeris, "SE_CALC_SET", 2, raising=False)
     monkeypatch.setattr(ephemeris, "SEFLG_SWIEPH", 2, raising=False)
+    # The ffi branch imports these from ctypes only when pyswisseph is absent,
+    # so on a pyswisseph install (CI, 3.12) they are not module names at all.
+    monkeypatch.setattr(ephemeris, "c_double", c_double, raising=False)
+    monkeypatch.setattr(ephemeris, "create_string_buffer", create_string_buffer, raising=False)
     return calls
 
 
