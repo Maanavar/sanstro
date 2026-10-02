@@ -10,6 +10,84 @@ decision inline and move it to "Resolved".
 
 ## Open
 
+### 2026-10-02 · v1.6 review fixes — O-21 to O-23 and corrected Tamil
+
+- **O-21:** Budhan rules Kanni, its own exaltation sign. Read literally, NB-b
+  lets a debilitated Budhan in a kendra cancel its own debility — the NB-e rule
+  DD-09 deleted. Default now skips the self-reference. Confirm.
+- **O-22:** may a waxing Chandran be the benefic that supports Guru in strict
+  Gaja Kesari, when Chandran is itself one of the yoga's two grahas? Default:
+  yes (literal).
+- **O-23:** the 2026-09-23 moolatrikona test excludes Kadagam Guru (the 9th
+  lord) and Sani, Kanni Sani (the 5th lord) and Kumbam Budhan (the 5th lord)
+  from every Raja Yoga. Keep, or let lordship decide and grade them MIXED?
+  The packet's new section A2 shows the whole participation table.
+- **O-9 addition:** the E8 status on Dhanusu-Moon and Magaram-Sun — does the
+  Sun/Moon exemption from 8th-lordship blemish apply?
+- **Calibration:** the packet's section B2 lists the frequencies (Raja Yoga on
+  ~4 charts in 5; Neecha Bhanga on ~98% of debilitated charts) for a ruling
+  rather than silent tuning.
+- **Tamil corrected, still unread by a native speaker:**
+  `strong_eighth_lord_or_benefic_on_eighth` (said a benefic *afflicts* the
+  8th — now "உள்ளது / பார்க்கிறது"); `ADHI_RAJA_GRADE` label and marker (Tamil
+  dropped "candidate" — now "பரிசீலனையில்"; the "Saravali verse not located"
+  research note is no longer shown to users); `bright_rays_engine_non_combust`;
+  Gaja Kesari base copy ("அமைப்பு", and "சந்திரனிலிருந்து" for the malformed
+  "சந்திரத்திலிருந்து"). Combustion term: அஸ்தங்கம் (yoga cards) vs அஸ்தமனம்
+  (Budha-Aditya, panchangam) — choose one.
+- **Engine fix (no ruling needed, Tier C):** Rahu–Ketu now raises the grade per
+  aggravation up to Strong *before* subtracting mitigations, as DD-03's
+  "+1 / −1 grade" reads; previously surplus aggravations made nivarthi
+  unreachable on every chart with two or more aggravations.
+
+### 2026-10-02 - v1.5 executable alternatives and one signable packet
+
+- **Review packet:** [`DOCTRINE_V15_PRACTITIONER_SIGNOFF_PACKET.md`](DOCTRINE_V15_PRACTITIONER_SIGNOFF_PACKET.md) is generated from the live matrix. It contains the complete O-9 84-cell table, row and C12/E8 focus checks, the separate node-rule attestation, signature fields, the section 18 physical-edition ledger and the native-Tamil checklist. Generation is not sign-off; `MATRIX_SIGNED_OFF` remains `False`.
+- **O-2:** the engine can accept a practitioner-named node-dignity lineage plus explicit Rahu/Ketu rasi tuples. It is disabled and deliberately contains no Vinaadi-chosen sign list.
+- **O-11:** the separate retrograde/debilitated rule is implemented but off. Confirm adoption and whether non-combust is an acceptable provisional proxy for "bright rays".
+- **O-17:** choose literal/unlabelled or `BHAGYA_SUPPORT` for dignified but incomplete Lakshmi cases.
+- **O-18:** choose shipped full cancellation or DD-06-style strong mitigation for the Mesham/Viruchigam exception.
+- **Native Tamil added in this pass:** O-2's lineage marker; O-11's card and four condition markers; O-17's missing-kendra, weak-lagna-lord and dignified-support wording. These join every earlier unreviewed string below.
+- **Physical citations:** none of the section 18 Tier A/B claims was closed in this pass. The Phaladeepika 7.26-30 map remains online-only until a physical edition is recorded.
+
+
+### 2026-10-01 · DD-01/DD-08 P2 labels, Adhi O-20, and Sevvai residual copy
+
+- **O-20:** confirm whether a poorna drishti from a malefic onto a forming Adhi
+  benefic disqualifies the candidate raja-grade form. The live default counts
+  malefic occupants in the 6th/7th/8th from Chandran only.
+- **Source checks still open:** BPHS 36.3–4 numbering for strict Gaja Kesari;
+  Saravali/Brihat Jataka commentary wording for the Adhi raja-grade candidate.
+- **New Tamil awaiting native review:** the strict/base Gaja Kesari labels and
+  descriptions, the Adhi base/raja-grade labels and descriptions, and the
+  `mars_combust` / `mars_joined_saturn_or_rahu` consumer marker labels.
+
+### 2026-10-01 · DOCTRINE_DECISIONS v1.3 implemented — O-1 to O-20 await ruling
+
+- **Where:** `docs/DOCTRINE_DECISIONS_V1.2.md` §16 (open items) and §19
+  (implementation status). That file is the record; this entry only points
+  at it. Every default below is live, and each one with a switch is an admin
+  flag (`doctrine_o<n>_…`). A ruling is a code default change plus one line
+  in §16 (v1.6: runtime overrides are refused with more than one worker).
+- **Raised by implementation, not by the audit (O-12 to O-19):**
+  1. **O-12** — two neecha-bhanga conditions the engine shipped are not in
+     DD-09's Phaladeepika table; switched off until a verse is cited.
+  2. **O-13** — confirm each of Phaladeepika 7.26–30 states a raja-yoga result.
+  3. **O-14** — the 2026-09-23 moolatrikona ruling and O-4 disagree on three
+     12th co-lords (Rishabam Sevvai, Thulam Budhan, Viruchigam Sukran).
+  4. **O-15** — Raja Yoga link: mutual aspect only, or a one-way special aspect?
+  5. **O-16** — Chandran as a secondary activator (DD-15) vs "Chandran is the
+     reference, not a trigger" (2026-09-23).
+  6. **O-17** — two Lakshmi-adjacent cases have no label.
+  7. **O-18** — the Mesham/Viruchigam Sevvai exemption still cancels outright.
+  8. **O-19** — when the relevant lord is Chandran, "kendra from the Moon" is
+     always true, so every debilitated Sevvai (and Guru) is cancelled.
+- **New Tamil, written without review:** the Rahu–Ketu, neecha-bhanga
+  (per-verse) and Raja-grade marker labels in
+  `web/components/dashboard-yoga-dosham-panel.tsx`; the DD-15 activation states
+  in `packages/shared/src/yogaDisplay.ts` (`yogaActivationLabel`); `பாக்கிய
+  ஆதரவு` (Fortune support); the one Sevvai sentence for every chart (DD-05).
+
 ### 2026-10-01 · Bell notification panel — new Tamil copy (language only)
 
 - **Where:** `web/components/dashboard-hero.tsx` (bell trigger + popover,
