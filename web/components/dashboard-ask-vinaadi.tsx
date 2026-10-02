@@ -108,10 +108,10 @@ function AnswerCard({ entry, lang }: { entry: { question: string; data: AskVinaa
            two-pan balance says "weighed, came out even", where the
            approximately-equal sign says "roughly", which is not the verdict. */
         const palette: Record<string, { fg: string; bg: string; bd: string; Icon: LucideIcon }> = {
-          GO:      { fg: "var(--color-score-high, #5C7654)", bg: "var(--color-high-bg, rgba(92,118,84,0.1))", bd: "var(--color-high-border, rgba(92,118,84,0.35))", Icon: Check },
-          WAIT:    { fg: "var(--color-score-mid, #B85A2C)",  bg: "var(--color-accent-muted, rgba(184,90,44,0.08))", bd: "rgba(184,90,44,0.35)", Icon: Hourglass },
-          MIXED:   { fg: "var(--color-score-mid, #B85A2C)",  bg: "var(--color-accent-muted, rgba(184,90,44,0.08))", bd: "rgba(184,90,44,0.35)", Icon: Scale },
-          CAUTION: { fg: "var(--color-score-low, #A8482F)",  bg: "var(--color-low-bg, rgba(168,72,47,0.1))", bd: "var(--color-low-border, rgba(168,72,47,0.35))", Icon: AlertTriangle },
+          GO:      { fg: "var(--color-score-high)", bg: "var(--color-high-bg)",      bd: "var(--color-high-border)", Icon: Check },
+          WAIT:    { fg: "var(--color-score-mid)",  bg: "var(--color-accent-muted)", bd: "var(--color-mid-border)",  Icon: Hourglass },
+          MIXED:   { fg: "var(--color-score-mid)",  bg: "var(--color-accent-muted)", bd: "var(--color-mid-border)",  Icon: Scale },
+          CAUTION: { fg: "var(--color-score-low)",  bg: "var(--color-low-bg)",       bd: "var(--color-low-border)",  Icon: AlertTriangle },
         };
         const p = palette[v.kind] ?? palette.MIXED;
         return (

@@ -77,7 +77,7 @@ describe("WCAG 1.4.11 — control boundaries, both themes", () => {
 describe("WCAG 1.4.11 — keyboard focus ring, both themes", () => {
   // UXD-07 points --focus-ring at the theme's accent gold on .cd-shell. That
   // declaration is on the shell, not on :root, which is easy to miss when
-  // reading the cascade by hand — globals.css sets a near-black #1A1612 that
+  // reading the cascade by hand — globals.css sets a near-black ring that
   // would be invisible on the dark shell if the shell rule ever went away.
   for (const theme of THEMES) {
     for (const ground of ["--color-surface", "--color-bg", "--color-surface-2"] as const) {

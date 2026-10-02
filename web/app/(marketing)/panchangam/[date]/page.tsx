@@ -189,7 +189,7 @@ export default async function PanchangamDatePage({ params }: Props) {
               }}
             >
               {L("Showing panchangam for Chennai by default. ", "இயல்பாக சென்னைக்கான பஞ்சாங்கம் காட்டப்படுகிறது. ")}
-              <Link href="/tools/daily-panchangam-planner" style={{ color: "#8A4B1F", fontWeight: 700, textDecoration: "none" }}>
+              <Link href="/tools/daily-panchangam-planner" style={{ color: "var(--cl-accent)", fontWeight: 700, textDecoration: "none" }}>
                 {L("Set your city", "உங்கள் நகரத்தை அமைக்கவும்")}
               </Link>
               {L(" for accurate sunrise, Rahu Kalam, and Nalla Neram.", " துல்லியமான சூரிய உதயம், ராகு காலம், நல்ல நேரத்திற்கு.")}

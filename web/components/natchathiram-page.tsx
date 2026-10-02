@@ -79,7 +79,7 @@ export async function NatchathiramPageContent({ data }: Props) {
                 <div style={{ marginTop: "1rem" }}>
                   <Link href={`/natchathiram/${data.slug}/visual`} className="cl-btn cl-btn--ghost"
                     style={{ fontSize: "0.82rem", padding: "0.45rem 1.1rem" }}>
-                    &#9654; {lang === "ta" ? "காட்சிச் சுயவிவரத்தைப் பார்க்க" : "View Visual Profile"}
+                    {"▶"} {lang === "ta" ? "காட்சிச் சுயவிவரத்தைப் பார்க்க" : "View Visual Profile"}
                   </Link>
                 </div>
               )}

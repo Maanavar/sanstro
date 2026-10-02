@@ -470,7 +470,7 @@ export function NovaPoruthamPanel({
               <div style={{ flex: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-2)" }}>
                 <div style={{ position: "relative", width: "116px", height: "116px", borderRadius: "var(--radius-pill)", background: `conic-gradient(${scoreTone} ${pct * 360}deg, var(--color-border) 0)`, display: "grid", placeItems: "center" }}>
                   {/* The donut's inner disc. Was --color-surface-3, which on
-                      the light theme is the palette's DEEPEST cream (#DDD6C8)
+                      the light theme is the palette's DEEPEST cream
                       — and every ink here is dark, so a deeper ground costs
                       contrast rather than adding it. "/ 10 PORUTHAMS" in
                       --color-faint measured 4.47 and the red verdict tone
