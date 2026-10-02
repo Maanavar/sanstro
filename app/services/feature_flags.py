@@ -1,6 +1,7 @@
 """Runtime-editable feature flags stored in process memory."""
 from __future__ import annotations
 
+import os
 from typing import Any
 
 from app.calculations.doctrine_options import DoctrineOptions, validated
@@ -308,10 +309,62 @@ def get_flag(name: str) -> Any:
     return defaults.get(name)
 
 
+class UnknownFlagError(ValueError):
+    pass
+
+
+class FlagValueError(ValueError):
+    pass
+
+
+def _coerce_doctrine_value(name: str, default: Any, value: Any) -> Any:
+    """Type-check one doctrine flag against its default's type. JSON has no
+    tuple, so a list of rasis is accepted and stored as a tuple."""
+    if isinstance(default, bool):
+        if not isinstance(value, bool):
+            raise FlagValueError(f"{name} expects true/false, got {value!r}")
+    elif isinstance(default, int):
+        if isinstance(value, bool) or not isinstance(value, int):
+            raise FlagValueError(f"{name} expects an integer, got {value!r}")
+    elif isinstance(default, str):
+        if not isinstance(value, str):
+            raise FlagValueError(f"{name} expects a string, got {value!r}")
+    elif isinstance(default, tuple):
+        if not isinstance(value, (list, tuple)):
+            raise FlagValueError(f"{name} expects a list of rasi numbers, got {value!r}")
+        value = tuple(value)
+    return value
+
+
+def doctrine_runtime_override_allowed() -> bool:
+    """Overrides live in this process's memory. With more than one worker an
+    admin change would reach one worker only — the same chart would read two
+    doctrines on alternate requests — and vanish on restart. A ruling is a code
+    default (change control), so runtime doctrine overrides are refused there."""
+    try:
+        workers = int(os.getenv("WEB_CONCURRENCY", "1"))
+    except ValueError:
+        workers = 1
+    return workers <= 1
+
+
 def set_flag(name: str, value: Any) -> None:
     defaults = _defaults()
     if name not in defaults:
-        raise ValueError(f"Unknown flag: {name}")
+        raise UnknownFlagError(f"Unknown flag: {name}")
+    if name.startswith(_DOCTRINE_FLAG_PREFIX):
+        # Validate before storing: a bad doctrine value would otherwise be
+        # accepted here and then fail every chart build that reads it.
+        value = _coerce_doctrine_value(name, defaults[name], value)
+        field = name[len(_DOCTRINE_FLAG_PREFIX):]
+        fields = {
+            f: (value if f == field else get_flag(f"{_DOCTRINE_FLAG_PREFIX}{f}"))
+            for f in DoctrineOptions.__dataclass_fields__
+        }
+        try:
+            validated(DoctrineOptions(**fields))
+        except ValueError as exc:
+            raise FlagValueError(str(exc)) from exc
     _overrides[name] = value
 
 

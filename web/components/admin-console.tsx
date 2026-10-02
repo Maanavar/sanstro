@@ -657,6 +657,15 @@ export function AdminConsole() {
     if (rawValue === "true") value = true;
     else if (rawValue === "false") value = false;
     else if (!Number.isNaN(Number(rawValue)) && rawValue.trim() !== "") value = Number(rawValue);
+    else if (rawValue.trim().startsWith("[")) {
+      // List-valued flags (e.g. doctrine_o2_rahu_favourable_rasis: [3, 6]).
+      try {
+        value = JSON.parse(rawValue);
+      } catch {
+        setError(`Flag ${name}: "${rawValue}" is not a valid list, e.g. [3, 6].`);
+        return;
+      }
+    }
 
     setLoading(true);
     setError(null);

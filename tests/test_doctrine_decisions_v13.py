@@ -710,3 +710,27 @@ def test_dd08_one_adhi_card_when_the_raja_grade_forms() -> None:
     contaminated, _, _ = detect_yogas_and_doshams({**clean, SANI: 6}, MESHAM, 1)
     present = {y.name for y in contaminated if y.is_present}
     assert "ADHI_BASE" in present and "ADHI_RAJA_GRADE" not in present
+
+
+def test_set_flag_validates_doctrine_values_before_storing(monkeypatch) -> None:
+    from app.services import feature_flags as ff
+
+    monkeypatch.setattr(ff, "_overrides", {})
+    with pytest.raises(ff.FlagValueError):
+        ff.set_flag("doctrine_o6_sevvai_cancer_leo", "full")
+    with pytest.raises(ff.FlagValueError):
+        ff.set_flag("doctrine_o8_lagna_lord_threshold", True)  # bool is not an int here
+    with pytest.raises(ff.UnknownFlagError):
+        ff.set_flag("doctrine_nope", True)
+    ff.set_flag("doctrine_o2_ketu_favourable_rasis", [9, 12])
+    assert ff.get_flag("doctrine_o2_ketu_favourable_rasis") == (9, 12)
+    assert ff.current_doctrine_options().o2_ketu_favourable_rasis == (9, 12)
+
+
+def test_doctrine_runtime_override_follows_worker_count(monkeypatch) -> None:
+    from app.services.feature_flags import doctrine_runtime_override_allowed
+
+    monkeypatch.delenv("WEB_CONCURRENCY", raising=False)
+    assert doctrine_runtime_override_allowed() is True
+    monkeypatch.setenv("WEB_CONCURRENCY", "2")
+    assert doctrine_runtime_override_allowed() is False
