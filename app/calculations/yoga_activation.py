@@ -20,9 +20,14 @@ graha for a yoga that has none is a doctrine call, not a code fix.
 Chandran, Sakata on Chandran and Guru. Daridra's key graha is the *11th lord*,
 which is chart-dependent and therefore cannot live in a static registry row — so
 ``YogaResult.key_grahas`` carries it per chart and ``key_planets_for`` below
-prefers it over the registry table. Parivartana, Chandala, Lakshmi,
-Sunapha/Anapha/Durudhura, Vasumati and Kartari remain dormant-capped and are
-still awaiting a ruling.
+prefers it over the registry table.
+
+**DOCTRINE_DECISIONS v1.3, DD-15** assigned activators to the rest — Parivartana,
+Chandala, Lakshmi, Sunapha/Anapha/Durudhura, Vasumati, Kartari and Neecha
+Bhanga — as primary and secondary sets carried per chart in
+``YogaResult.key_grahas`` / ``secondary_grahas``, each with an activation basis
+in the registry. No yoga is dormant merely because nobody assigned it an
+activator.
 
 **Astrologer ruling, 2026-09-23:** triggers are the planets that *form* the
 instance, recorded at detection time. Raja Yoga carries its own kendra/trikona
@@ -58,6 +63,36 @@ def key_planets_for(yoga_name: str, chart_key_grahas: tuple[str, ...] = ()) -> l
     return YOGA_KEY_PLANETS.get(yoga_name, [])
 
 
+def activation_tier(
+    yoga_name: str,
+    *,
+    is_present: bool,
+    maha: str,
+    antar: str,
+    key_grahas: tuple[str, ...] = (),
+    secondary_grahas: tuple[str, ...] = (),
+    both_lords: bool = False,
+    detector_activated: bool = False,
+) -> str:
+    """DD-15's timing state for a present yoga: "STRONG", "MODERATE" or "NONE".
+
+    STRONG — two distinct forming planets run the Maha and Antar of one instance
+    (the 2026-09-23 step). MODERATE — one primary activator runs, or only a
+    secondary one does. NONE — present in the chart, not a dominant influence
+    in this period. Bhukti counts, not only Mahadasha.
+    """
+    if not is_present:
+        return "NONE"
+    running = {maha, antar}
+    if both_lords:
+        return "STRONG"
+    if detector_activated or running & set(key_planets_for(yoga_name, key_grahas)):
+        return "MODERATE"
+    if running & set(secondary_grahas):
+        return "MODERATE"
+    return "NONE"
+
+
 def yoga_activation_score(
     yoga_name: str,
     yoga_is_present: bool,
@@ -68,6 +103,7 @@ def yoga_activation_score(
     chart_key_grahas: tuple[str, ...] = (),
     activated: bool | None = None,
     both_lords: bool = False,
+    chart_secondary_grahas: tuple[str, ...] = (),
 ) -> int:
     """
     Returns 0-100 activation intensity for a yoga.
@@ -90,20 +126,24 @@ def yoga_activation_score(
     lords are two distinct planets that formed the same instance of this yoga —
     the "Strong" tier, worth ``BOTH_LORDS_STEP``. One of them alone, or a
     planet in its own bhukti, is "Moderate": the score unchanged.
+
+    ``chart_secondary_grahas`` are DD-15's secondary activators. Their dasha
+    activates the yoga at the Moderate tier only; they never earn the step.
     """
     if not yoga_is_present:
         return 0
 
     key_planets = key_planets_for(yoga_name, chart_key_grahas)
+    activators = [*key_planets, *(g for g in chart_secondary_grahas if g not in key_planets)]
     dasha_lords = {mahadasha_lord, antardasha_lord}
     if activated is None:
-        activated = bool(dasha_lords & set(key_planets))
+        activated = bool(dasha_lords & set(activators))
 
     strength_base = {"STRONG": 75, "MODERATE": 55, "PARTIAL": 40, "WEAK": 25}.get(yoga_strength, 50)
     if not activated:
         return round(strength_base * 0.45)
 
-    best_planet_score = max((planet_scores.get(p, 50) for p in key_planets if p in dasha_lords), default=50)
+    best_planet_score = max((planet_scores.get(p, 50) for p in activators if p in dasha_lords), default=50)
     intensity = strength_base * 0.60 + best_planet_score * 0.40
     if both_lords:
         intensity += BOTH_LORDS_STEP

@@ -25,7 +25,12 @@ _CALC_DIR = Path(__file__).resolve().parent.parent / "app" / "calculations"
 _DETECTOR_SOURCES = ("_yoga_detect.py", "yogas.py", "_yoga_helpers.py")
 
 # Yoga codes that do not end in _YOGA and so are not caught by the suffix rule.
-_NON_SUFFIXED_YOGA_CODES = frozenset({"KALASARPA", "MARANA_KARAKA_STHANA"})
+_NON_SUFFIXED_YOGA_CODES = frozenset({
+    "KALASARPA", "MARANA_KARAKA_STHANA",
+    # DD-02 (v1.3): the honest fallback and the Phaladeepika variant.
+    "BHAGYA_SUPPORT", "LAKSHMI_YOGA_PHALADEEPIKA",
+    "GAJA_KESARI_PARASHARA", "ADHI_BASE", "ADHI_RAJA_GRADE",
+})
 
 # Doshams carry their own explanation_what/why/how fields and are out of scope
 # for this catalogue.

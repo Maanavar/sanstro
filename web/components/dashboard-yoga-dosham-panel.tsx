@@ -43,16 +43,25 @@ export {
 // Used only for bullet lists — write them as complete short sentences
 
 const MARKER_LABELS: Record<string, { ta: string; en: string }> = {
+  mars_combust: {
+    ta: "செவ்வாய் அஸ்தங்கம் அடைந்திருப்பதால் மீதமுள்ள தோஷ அழுத்தம் கூடுகிறது",
+    en: "Mars is combust, increasing the residual dosham pressure",
+  },
+  mars_joined_saturn_or_rahu: {
+    ta: "செவ்வாய் சனி அல்லது ராகுவுடன் சேர்ந்திருப்பதால் மீதமுள்ள தோஷ அழுத்தம் கூடுகிறது",
+    en: "Mars is joined by Saturn or Rahu, increasing the residual dosham pressure",
+  },
   // Sevvai trigger
   from_lagna:  { ta: "செவ்வாய் லக்னத்திலிருந்து தோஷ வீட்டில் உள்ளது", en: "Mars is in a dosha house counted from your Lagna" },
   from_moon:   { ta: "செவ்வாய் சந்திரனிலிருந்து தோஷ வீட்டில் உள்ளது", en: "Mars is in a dosha house counted from your Moon sign" },
   from_venus:  { ta: "செவ்வாய் சுக்கிரனிலிருந்து தோஷ வீட்டில் உள்ளது", en: "Mars is in a dosha house counted from your Venus" },
-  female_high_attention_house: { ta: "பெண் ஜாதகம்: இந்த வீட்டில் செவ்வாய் கூடுதல் கவனம் தேவை", en: "Female chart: this house position of Mars needs extra attention" },
-  male_high_attention_house:   { ta: "ஆண் ஜாதகம்: இந்த வீட்டில் செவ்வாய் கூடுதல் கவனம் தேவை", en: "Male chart: this house position of Mars needs extra attention" },
+  // DD-05: the gender-weighted labels ("Female chart: …") were removed. Gender
+  // weighting is for the astrologer / porutham view only.
   // Sevvai nivarthi / cancellation
   mars_own_sign:                   { ta: "செவ்வாய் சொந்த ராசியில் — தோஷம் பெரும்பாலும் நீர்த்துப்போகும்", en: "Mars is in its own sign — dosham intensity is significantly reduced" },
   mars_exaltation:                  { ta: "செவ்வாய் உச்ச ராசியில் — தோஷம் மிகவும் குறையும்", en: "Mars is exalted — dosham is greatly softened" },
-  mars_yogakaraka_lagna:            { ta: "இந்த லக்னத்திற்கு செவ்வாய் யோககாரகன் — தோஷம் ரத்தாகிறது", en: "Mars is a Yogakaraka planet for your Lagna — dosham is cancelled" },
+  // DD-06: a strong mitigation, never "cancelled" on its own.
+  tamil_sevvai_exception_cancer_leo: { ta: "கடகம்/சிம்ம லக்னத்திற்கான பாரம்பரிய விதிவிலக்கு — தோஷம் வலுவாகக் குறைகிறது, ஆனால் முழுமையாக நீங்குவதில்லை", en: "The traditional exception for Kadagam/Simmam lagna applies — the dosham is strongly reduced, not erased" },
   mars_lagna_lord_mitigation:       { ta: "செவ்வாய் லக்னாதிபதி — லக்னாதிபதி விதியால் தோஷம் குறைகிறது", en: "Mars rules your Lagna — lagna-lord rule reduces dosham" },
   house_sign_nivarthi:              { ta: "செவ்வாயின் ராசி இந்த வீட்டிற்கான நிவர்த்தி ராசி — தோஷம் குறைகிறது", en: "Mars occupies the nivarthi rasi for that house — dosham is reduced" },
   jupiter_aspect_on_mars:           { ta: "குரு செவ்வாயை பார்க்கிறார் — நலமான தோஷ குறைப்பு", en: "Jupiter aspects Mars — a strong protective influence" },
@@ -61,19 +70,21 @@ const MARKER_LABELS: Record<string, { ta: string; en: string }> = {
   mars_dispositor_kendra_trikona:   { ta: "செவ்வாயின் வீட்டு அதிபதி கேந்திர/திரிகோணத்தில் — குறைந்த தாக்கம்", en: "Mars sign-lord is in a kendra or trikona — reduced impact" },
   benefic_strong_seventh_lord:      { ta: "வலுவான சுப 7-ம் அதிபதி பாதுகாப்பு தருகிறார்", en: "A strong benefic 7th lord provides protection" },
   both_partners_have_sevvai:        { ta: "இருவருக்கும் ஒப்பான செவ்வாய் நிலை — ஒத்திசைவு சீர்படுகிறது", en: "Both partners have comparable Sevvai — compatibility balances out" },
-  // Rahu-Ketu triggers
-  rahu_in_marriage_house:  { ta: "ராகு திருமண-உணர்வு வீட்டில் (1/2/7/8) உள்ளது", en: "Rahu is in a marriage-sensitive house (1, 2, 7, or 8)" },
-  ketu_in_marriage_house:  { ta: "கேது திருமண-உணர்வு வீட்டில் (1/2/7/8) உள்ளது", en: "Ketu is in a marriage-sensitive house (1, 2, 7, or 8)" },
-  rahu_in_sarpa_house:     { ta: "ராகு சர்ப்ப/நாக வீட்டில் (5/9) உள்ளது", en: "Rahu is in a Sarpa/Naga house (5th or 9th)" },
-  ketu_in_sarpa_house:     { ta: "கேது சர்ப்ப/நாக வீட்டில் (5/9) உள்ளது", en: "Ketu is in a Sarpa/Naga house (5th or 9th)" },
+  // Rahu-Ketu — one axis finding (DD-03), then each aggravation raises the grade
+  rahu_ketu_axis_1_7:      { ta: "ராகு-கேது அச்சு லக்னத்திலிருந்து 1, 7-ம் வீடுகளில் உள்ளது", en: "The Rahu–Ketu axis falls on houses 1 and 7 from your Lagna" },
+  rahu_ketu_axis_2_8:      { ta: "ராகு-கேது அச்சு லக்னத்திலிருந்து 2, 8-ம் வீடுகளில் உள்ளது", en: "The Rahu–Ketu axis falls on houses 2 and 8 from your Lagna" },
   node_with_seventh_lord:  { ta: "ராகு/கேது 7-ம் அதிபதியுடன் சேர்ந்திருக்கிறது — திருமண சுட்டி பாதிக்கப்படுகிறது", en: "Rahu/Ketu is with the 7th lord — marriage significator is affected" },
   node_with_venus:         { ta: "ராகு/கேது சுக்கிரனுடன் சேர்ந்திருக்கிறது — உறவு பண்பு பாதிக்கப்படுகிறது", en: "Rahu/Ketu is with Venus — relationship quality is affected" },
   node_afflicts_moon:      { ta: "ராகு/கேது சந்திரனுடன் சேர்ந்திருக்கிறது — உணர்ச்சி நிலை பாதிக்கப்படுகிறது", en: "Rahu/Ketu is with the Moon — emotional stability is affected" },
-  rahu_ketu_upachaya:      { ta: "ராகு/கேது உபச்சய வீட்டில் (3/6/10/11) — நேரடி தோஷம் குறைவு", en: "Rahu/Ketu is in an upachaya house (3/6/10/11) — less direct impact" },
-  // Rahu-Ketu nivarthi
+  malefic_influence_on_seventh:      { ta: "பாவ கிரகம் 7-ம் வீட்டில் உள்ளது அல்லது அதைப் பார்க்கிறது", en: "A malefic occupies or aspects the 7th house" },
+  node_afflicts_from_moon_or_venus:  { ta: "சந்திரன் அல்லது சுக்கிரனிலிருந்தும் இந்த அச்சு திருமண வீட்டில் விழுகிறது", en: "Counted from the Moon or Venus too, the axis falls on a marriage house" },
+  // Rahu-Ketu nivarthi — each lowers the grade one step; none is a veto
+  guru_joins_or_aspects_node:              { ta: "குரு ராகு/கேதுவுடன் சேர்ந்துள்ளார் அல்லது பார்க்கிறார் — தாக்கம் குறைகிறது", en: "Jupiter joins or aspects a node — the impact is reduced" },
+  node_in_favourable_sign_lineage: { ta: "தேர்ந்தெடுக்கப்பட்ட மரபின்படி இந்த ராகு/கேது ராசி சாதகமாகக் கருதப்படுகிறது", en: "The selected practitioner lineage treats this node sign as favourable" },
+  guru_aspects_seventh_or_its_lord:        { ta: "குரு 7-ம் வீட்டையோ அதன் அதிபதியையோ பார்க்கிறார் — திருமணத்திற்குப் பாதுகாப்பு", en: "Jupiter aspects the 7th house or its lord — a protective influence on marriage" },
+  strong_eighth_lord_or_benefic_on_eighth: { ta: "8-ம் அதிபதி வலுவாக உள்ளார், அல்லது சுப கிரகம் 8-ம் வீட்டில் உள்ளது / அதைப் பார்க்கிறது — தாக்கம் குறைகிறது", en: "The 8th lord is strong, or a benefic influences the 8th house — the impact is reduced" },
   jupiter_kendra_trikona_support: { ta: "குரு கேந்திர/திரிகோணத்தில் — ராகு/கேது தாக்கம் குறைகிறது", en: "Jupiter is in a kendra or trikona — Rahu/Ketu impact is reduced" },
   strong_seventh_lord:             { ta: "வலுவான 7-ம் அதிபதி திருமண ஆண்மையை காக்கிறார்", en: "Strong 7th lord protects marriage significations" },
-  strong_venus:                    { ta: "வலுவான சுக்கிரன் பாதுகாக்கிறார் — உறவு தரம் நல்லது", en: "Strong Venus protects relationship quality" },
   // Pitru
   sun_with_node:       { ta: "சூரியன் ராகு/கேதுவுடன் சேர்ந்திருக்கிறது — பித்ரு சுட்டி முக்கியம்", en: "Sun is with Rahu/Ketu — Pitru significator is linked to nodes" },
   node_in_ninth:       { ta: "ராகு/கேது 9-ம் வீட்டில் — பித்ரு/தர்ம வீடு பாதிக்கப்படுகிறது", en: "Rahu/Ketu is in the 9th house — Pitru/Dharma house is affected" },
@@ -86,9 +97,26 @@ const MARKER_LABELS: Record<string, { ta: string; en: string }> = {
   second_eleventh_exchange:                 { ta: "2-ம் மற்றும் 11-ம் அதிபதிகள் பரிவர்த்தனை", en: "2nd and 11th lords are in mutual exchange" },
   both_lords_in_strong_houses:              { ta: "2-ம் மற்றும் 11-ம் அதிபதிகள் இருவரும் வலுவான வீட்டில்", en: "Both 2nd and 11th lords are in strong houses" },
   planet_debilitated:                       { ta: "கிரகம் நீசத்தில் உள்ளது", en: "The planet is in debilitation" },
-  debilitation_sign_lord_in_kendra:         { ta: "நீச ராசி அதிபதி கேந்திரத்தில்", en: "The debilitation sign's lord is in a kendra" },
+  // Neecha Bhanga — one marker per Phaladeepika verse (DD-09)
+  nb_a_debilitation_lord_in_kendra:    { ta: "நீச ராசி அதிபதி லக்னம் அல்லது சந்திரனிலிருந்து கேந்திரத்தில் (பலதீபிகை 7.26)", en: "The debilitation sign's lord is in a kendra from the Lagna or Moon (Phaladeepika 7.26)" },
+  nb_b_exaltation_lord_in_kendra:      { ta: "உச்ச ராசி அதிபதி லக்னம் அல்லது சந்திரனிலிருந்து கேந்திரத்தில் (பலதீபிகை 7.26)", en: "The exaltation sign's lord is in a kendra from the Lagna or Moon (Phaladeepika 7.26)" },
+  nb_c_lords_in_mutual_kendras:        { ta: "நீச ராசி அதிபதியும் உச்ச ராசி அதிபதியும் ஒருவருக்கொருவர் கேந்திரத்தில் (பலதீபிகை 7.27)", en: "The debilitation and exaltation sign lords are in kendras from each other (Phaladeepika 7.27)" },
+  nb_d_aspected_by_debilitation_lord:  { ta: "நீசக் கிரகத்தை நீச ராசி அதிபதி பார்க்கிறார் (பலதீபிகை 7.28)", en: "The debilitation sign's lord aspects the debilitated planet (Phaladeepika 7.28)" },
+  nb_d_plus_outside_dusthana:          { ta: "அந்தப் பார்வையுடன் நீசக் கிரகம் 6/8/12-க்கு வெளியே — வலுவான பலன் (பலதீபிகை 7.28)", en: "With that aspect, the planet stands outside 6/8/12 — the stronger result (Phaladeepika 7.28)" },
+  nb_g_lord_in_kendra:                 { ta: "நீச அல்லது உச்ச ராசி அதிபதி லக்னத்திலிருந்து கேந்திரத்தில் (பலதீபிகை 7.30)", en: "The debilitation or exaltation sign's lord is in a kendra from the Lagna (Phaladeepika 7.30)" },
+  // Off by default (O-12); labels kept in case a ruling switches them on
   exalter_of_debilitation_sign_in_kendra:   { ta: "நீச ராசியை உச்சப்படுத்தும் கிரகம் கேந்திரத்தில்", en: "The planet that exalts in this sign is in a kendra" },
   exaltation_sign_lord_aspects_debilitated: { ta: "உச்ச ராசி அதிபதி நீசக் கிரகத்தை பார்க்கிறார்", en: "The exaltation sign's lord aspects the debilitated planet" },
+  // Raja Yoga grade (DD-07, Tier C display label)
+  raja_grade_full:      { ta: "இரு அதிபதிகளுக்கும் வேறு சிக்கலான ஆதிபத்தியம் இல்லை — முழு ராஜயோகம்", en: "Neither lord carries a difficult second lordship — a full Raja Yoga" },
+  raja_grade_qualified: { ta: "ஒரு அதிபதி 2/3/11/12-ஐயும் ஆள்கிறார் — நிபந்தனையுடன் கூடிய ராஜயோகம்", en: "One lord also rules the 2nd, 3rd, 11th or 12th — a qualified Raja Yoga" },
+  raja_grade_mixed:     { ta: "ஒரு அதிபதி 6/8-ஐயும் ஆள்கிறார் — கலப்பு பலன்", en: "One lord also rules the 6th or 8th — mixed results" },
+  ninth_lord_without_dignity: { ta: "9-ம் அதிபதிக்கு ஆட்சி/உச்ச பலம் இல்லை", en: "The 9th lord is not in its own or exaltation sign" },
+  // DD-02 (v1.3): ninth_lord_{exalted|own_sign|moolatrikona} — the dignity
+  // half of Lakshmi Yoga's presence test.
+  ninth_lord_exalted:      { ta: "9-ம் அதிபதி உச்சத்தில் உள்ளார்", en: "The 9th lord is exalted" },
+  ninth_lord_own_sign:     { ta: "9-ம் அதிபதி சொந்த ராசியில் உள்ளார்", en: "The 9th lord is in its own sign" },
+  ninth_lord_moolatrikona: { ta: "9-ம் அதிபதி மூலத்திரிகோண ராசியில் உள்ளார்", en: "The 9th lord is in its moolatrikona sign" },
   all_planets_between_rahu_and_ketu:        { ta: "அனைத்து 7 கிரகங்களும் ராகு-கேது வில்லுக்குள் — கால சர்ப்ப அமைப்பு", en: "All 7 planets are within the Rahu–Ketu arc — Kala Sarpa pattern" },
   all_planets_between_ketu_and_rahu:        { ta: "அனைத்து 7 கிரகங்களும் கேது-ராகு வில்லுக்குள் — கால சர்ப்ப அமைப்பு", en: "All 7 planets are within the Ketu–Rahu arc — Kala Sarpa pattern" },
   // Doctrine A-4: how the arc was judged is disclosed, so a reader can tell an
@@ -114,6 +142,11 @@ const MARKER_LABELS: Record<string, { ta: string; en: string }> = {
   // Neecha Bhanga / debilitation-cancellation detail
   debilitated_planet_strong_d9:      { ta: "நீசக் கிரகம் நவாம்சத்தில் வலுவாக உள்ளது — நீசம் கணிசமாக ரத்தாகிறது", en: "The debilitated planet is strong in the Navamsa (D9) — the debilitation is substantially cancelled" },
   debilitated_planet_retrograde_note: { ta: "நீசக் கிரகம் வக்ர கதியில் உள்ளது — பாரம்பரியமாக நீசத்தை மென்மையாக்கும் காரணி", en: "The debilitated planet is retrograde — traditionally read as softening the debilitation" },
+  debilitated_planet_retrograde: { ta: "நீசக் கிரகம் வக்ர கதியில் உள்ளது", en: "The debilitated planet is retrograde" },
+  bright_rays_engine_non_combust: { ta: "கிரகம் அஸ்தங்கம் அடையவில்லை — நூல் கூறும் 'ஒளி நிறைந்த' நிலைக்கு வினாடி தற்காலிகமாக இதையே அளவாகக் கொள்கிறது", en: "The planet is non-combust, Vinaadi's provisional proxy for bright rays" },
+  debilitated_planet_outside_dusthana: { ta: "நீசக் கிரகம் 6/8/12 அல்லாத வீட்டில் உள்ளது", en: "The debilitated planet is outside houses 6, 8 and 12" },
+  ninth_lord_not_in_lakshmi_kendra: { ta: "9-ம் அதிபதி லக்ஷ்மி யோகத்திற்கான கேந்திரத்தில் இல்லை", en: "The 9th lord is not in a Lakshmi-Yoga kendra" },
+  lagna_lord_below_baladhya_threshold: { ta: "லக்னாதிபதி நிர்ணயிக்கப்பட்ட பல வரம்பை அடையவில்லை", en: "The lagna lord is below the selected baladhya threshold" },
   // Dhana / Daridra (wealth axis)
   eleventh_lord_weak_malefic_conj: { ta: "11-ம் அதிபதி பலவீனமாக, பாபக்கிரகத்துடன் சேர்ந்துள்ளார் — வருமான வழியில் அழுத்தம்", en: "The 11th lord is weak and joined by a malefic — pressure on the income channel" },
   // Kalathra / marriage protection
@@ -139,6 +172,29 @@ const MARKER_LABELS: Record<string, { ta: string; en: string }> = {
   // A FULL bhanga since YOG-KD-01 (2026-08-28), not a softener — it annuls the
   // yoga outright. The copy said "softens" until 2026-09-11.
   planet_kendra_from_moon:           { ta: "சந்திரனிலிருந்து கேந்திரத்தில் ஒரு கிரகம் உள்ளது — கேமத்ரும நிலை முற்றிலும் நிவர்த்தியாகிறது", en: "A planet sits in a kendra from the Moon — this cancels the Kemadruma condition outright" },
+  // Gaja Kesari strict form (DD-01, v1.3) — GAJA_KESARI_PARASHARA's own
+  // conditions; the supportive-benefic and planet-state conditions are
+  // parametrized below in MARKER_PATTERNS.
+  jupiter_in_kendra_from_lagna: { ta: "குரு லக்னத்திலிருந்து கேந்திரத்தில் உள்ளார்", en: "Jupiter is in a kendra from the Lagna" },
+  jupiter_not_debilitated:      { ta: "குரு நீசம் பெறவில்லை", en: "Jupiter is not debilitated" },
+  jupiter_not_combust:          { ta: "குரு அஸ்தங்கம் அடையவில்லை", en: "Jupiter is not combust" },
+  jupiter_not_in_enemy_sign:    { ta: "குரு பகைவீட்டில் இல்லை", en: "Jupiter is not in an enemy's sign" },
+  // Gaja Kesari base form (DD-01) — the supportive Moon-kendra geometry that
+  // stays visible even where the strict Parashara form does not qualify.
+  gaja_kesari_base_geometry: { ta: "சந்திரனிலிருந்து குரு கேந்திரத்தில் இருப்பதே கஜகேசரியின் அடிப்படை வடிவமைப்பு", en: "Jupiter's kendra placement from the Moon is the base Gaja Kesari geometry" },
+  gaja_base_jupiter_debilitated_with_neecha_bhanga:    { ta: "குரு நீசம் பெற்றிருந்தாலும் நீசபங்கம் உள்ளது — கஜகேசரி அமைப்பு தொடர்கிறது, பலம் குறைந்த நிலையில்", en: "Jupiter is debilitated, but Neecha Bhanga cancels it — the Gaja Kesari pattern still forms, at a lowered strength" },
+  gaja_base_jupiter_debilitated_without_neecha_bhanga: { ta: "குரு நீசம் பெற்றுள்ளார், நீசபங்கமும் இல்லை — அடிப்படை அமைப்பு மட்டும் தெரிகிறது, பலவீனமாக", en: "Jupiter is debilitated with no Neecha Bhanga — only the base geometry shows, and it reads weak" },
+  // Adhi Yoga (DD-08, v1.3) — ADHI_BASE and ADHI_RAJA_GRADE's fixed
+  // conditions; benefic/malefic/strength/count markers are parametrized
+  // below in MARKER_PATTERNS.
+  adhi_base_geometry: { ta: "புதன், குரு அல்லது சுக்கிரன் சந்திரனிலிருந்து 6, 7 அல்லது 8-ம் வீட்டில் — அதி யோகத்தின் அடிப்படை வடிவமைப்பு (பிருஹத் ஜாதகம் 13.2)", en: "Mercury, Jupiter or Venus occupies the 6th, 7th or 8th from the Moon — Adhi Yoga's base geometry (Brihat Jataka 13.2)" },
+  adhi_distribution_interpretation: { ta: "இந்த மூன்று வீடுகளில் ஒன்றோ, இரண்டோ, மூன்றுமோ ஆக்கிரமிக்கப்பட்டாலும் யோகம் உருவாகிறது (ஸ்ருதகீர்த்தி உரை, பிருஹத் ஜாதகம் 13.2)", en: "The yoga forms whether one, two, or all three of those houses are occupied (Srutakeerti's commentary on Brihat Jataka 13.2)" },
+  adhi_single_planet_sufficiency: { ta: "ஒரே ஒரு வலுவான சுபகிரகமே பகுதி அதி யோகத்தை உருவாக்க போதுமானது (பி. வி. ராமன், யோகம் 7)", en: "One sufficiently strong benefic alone is enough to form a partial Adhi Yoga (Raman, 300 Combinations, Yoga 7)" },
+  // A candidate grade, so both languages say so. The unfinished source check
+  // (Saravali verse, §18) is recorded in the doctrine file, not told to users.
+  adhi_raja_grade_candidate: { ta: "முழு (ராஜ தர) அதி யோகத்திற்கான பரிசீலனையில் உள்ள அமைப்பு — உருவாக்கும் சுபகிரகங்கள் அஸ்தங்கம், கடுமையான பாவக்கிரகப் பாதிப்பு இன்றி உள்ளன", en: "A candidate for the full (raja-grade) Adhi Yoga — the forming benefics are free of combustion and serious malefic affliction" },
+  adhi_no_forming_benefic_combust: { ta: "யோகத்தை உருவாக்கும் சுபகிரகங்களில் எதுவும் அஸ்தங்கம் அடையவில்லை", en: "None of the forming benefics is combust" },
+  adhi_no_serious_malefic_affliction: { ta: "யோகத்தை உருவாக்கும் சுபகிரகங்களுக்கு கடுமையான பாவக்கிரக பாதிப்பு இல்லை", en: "No serious malefic affliction touches the forming benefics" },
 };
 
 // Planet display names for the parametrized markers below.
@@ -280,6 +336,25 @@ const MARKER_PATTERNS: { re: RegExp; label: (m: RegExpMatchArray, lang: Lang) =>
     }),
   },
   {
+    // DD-02 (v1.3): Lakshmi Yoga's kendra test, `ninth_lord_<planet>_in_kendra_<house>`.
+    re: /^ninth_lord_([a-z]+)_in_kendra_(\d+)$/,
+    label: (m, lang) => ({
+      ta: `9-ம் அதிபதி ${planetLabel(m[1].toUpperCase(), lang)} கேந்திரத்தில் (${m[2]}-ம் வீடு) உள்ளார்`,
+      en: `The 9th lord (${planetLabel(m[1].toUpperCase(), lang)}) is in a kendra (house ${m[2]})`,
+    }),
+  },
+  {
+    // DD-02 (v1.3): the lagna lord's balāḍhya (strength) score,
+    // `lagna_lord_<planet>_baladhya_<score>`. The score is dropped from the
+    // sentence for the same reason `weak_key_planet_<graha>_<score>` drops
+    // it above — a bare number beside a yoga reads as a verdict it is not.
+    re: /^lagna_lord_([a-z]+)_baladhya_\d+$/,
+    label: (m, lang) => ({
+      ta: `லக்னாதிபதி ${planetLabel(m[1].toUpperCase(), lang)} போதிய பலத்துடன் (பலாட்யம்) உள்ளார்`,
+      en: `The lagna lord (${planetLabel(m[1].toUpperCase(), lang)}) is strong enough (balāḍhya)`,
+    }),
+  },
+  {
     // Raja Yoga: the trikona lord and the kendra lord are linked.
     re: /^([A-Z]+)_([A-Z]+)_link$/,
     label: (m, lang) => ({
@@ -317,6 +392,70 @@ const MARKER_PATTERNS: { re: RegExp; label: (m: RegExpMatchArray, lang: Lang) =>
         en: `${joined} ${names.length > 1 ? "are" : "is"} combust (asthangamam) — too close to the Sun to give results freely`,
       };
     },
+  },
+  {
+    // DD-01 (v1.3): GAJA_KESARI_PARASHARA's chart-dynamic benefic supporter,
+    // `jupiter_supported_by_benefic_<planet>` (planet lower-case).
+    re: /^jupiter_supported_by_benefic_([a-z]+)$/,
+    label: (m, lang) => ({
+      ta: `${planetLabel(m[1].toUpperCase(), lang)} குருவுடன் சேர்ந்துள்ளார் அல்லது அவரைப் பார்க்கிறார் — சுப ஆதரவு`,
+      en: `${planetLabel(m[1].toUpperCase(), lang)} joins or aspects Jupiter — benefic support`,
+    }),
+  },
+  {
+    // DD-08 (v1.3): ADHI_BASE's benefic count, `adhi_benefic_count_<1|2|3>`.
+    re: /^adhi_benefic_count_(\d+)$/,
+    label: (m, lang) => ({
+      ta: `சந்திரனிலிருந்து 6/7/8-ல் ${m[1]} சுபகிரகம்(கள்) உள்ளன`,
+      en: `${m[1]} benefic${m[1] === "1" ? "" : "s"} occupy the 6th/7th/8th from the Moon`,
+    }),
+  },
+  {
+    // DD-08: ADHI_BASE's contamination grade, `adhi_purity_<pure|mixed|adverse>`.
+    re: /^adhi_purity_(pure|mixed|adverse)$/,
+    label: (m, lang) => {
+      const text = {
+        pure:    { ta: "பாவக்கிரக கலப்பு இல்லை — தூய்மையான அதி யோகம்", en: "No malefic contamination — a pure Adhi Yoga" },
+        mixed:   { ta: "ஒரு பாவக்கிரகம் கலந்துள்ளது — கலப்பு பலன்", en: "One malefic contaminates it — mixed results" },
+        adverse: { ta: "ஒன்றுக்கு மேற்பட்ட பாவக்கிரகங்கள் கலந்துள்ளன — பாதிக்கப்பட்ட அதி யோகம்", en: "More than one malefic contaminates it — an afflicted Adhi Yoga" },
+      }[m[1] as "pure" | "mixed" | "adverse"];
+      return text;
+    },
+  },
+  {
+    // DD-08: a forming benefic's own chart strength, `adhi_benefic_strength_<planet>_<score>`.
+    // The score is dropped from the sentence — same reason `weak_key_planet_<graha>_<score>`
+    // drops it above: a bare number beside a yoga reads as a verdict it is not.
+    re: /^adhi_benefic_strength_([a-z]+)_\d+$/,
+    label: (m, lang) => ({
+      ta: `${planetLabel(m[1].toUpperCase(), lang)}-ன் சொந்த ஜாதக பலம் யோக தரத்தில் கணக்கில் கொள்ளப்படுகிறது`,
+      en: `${planetLabel(m[1].toUpperCase(), lang)}'s own chart strength feeds into the yoga's grade`,
+    }),
+  },
+  {
+    // DD-08: a malefic also occupying 6/7/8 from Moon, `adhi_malefic_contamination_<planet>`.
+    re: /^adhi_malefic_contamination_([a-z]+)$/,
+    label: (m, lang) => ({
+      ta: `${planetLabel(m[1].toUpperCase(), lang)} (பாவக்கிரகம்) சந்திரனிலிருந்து 6/7/8-ல் உள்ளது — அதி யோகத்தைக் கலக்கிறது`,
+      en: `${planetLabel(m[1].toUpperCase(), lang)} (a malefic) also occupies the 6th/7th/8th from the Moon — contaminating the Adhi Yoga`,
+    }),
+  },
+  {
+    // DD-08: a forming benefic that is itself combust, `adhi_combust_<planet>`.
+    re: /^adhi_combust_([a-z]+)$/,
+    label: (m, lang) => ({
+      ta: `${planetLabel(m[1].toUpperCase(), lang)} அஸ்தங்கம் அடைந்துள்ளார் — யோக பலம் குறைகிறது`,
+      en: `${planetLabel(m[1].toUpperCase(), lang)} is combust — the yoga's strength is reduced`,
+    }),
+  },
+  {
+    // DD-08: the Moon itself reading weak, `adhi_moon_strength_<score>`. The
+    // score is dropped from the sentence for the same reason as above.
+    re: /^adhi_moon_strength_\d+$/,
+    label: (_m, lang) => ({
+      ta: "சந்திரன் இந்த ஜாதகத்தில் பலவீனமாக உள்ளார் — யோக பலம் குறைகிறது",
+      en: "The Moon itself is weak in this chart — the yoga's strength is reduced",
+    }),
   },
 ];
 

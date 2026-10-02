@@ -34,7 +34,7 @@ from app.calculations.equal_bhava import compute_equal_bhava
 from app.calculations.functional_nature import get_functional_nature
 from app.calculations.panchangam import NAKSHATRA_NAMES, calculate_daily_panchangam
 from app.calculations.transits import RASI_NAMES, is_cazimi, is_combust
-from app.calculations.yoga_activation import key_planets_for, yoga_activation_score
+from app.calculations.yoga_activation import activation_tier, key_planets_for, yoga_activation_score
 from app.calculations.yoga_effects import yoga_effect
 from app.calculations.yogas import detect_yogas_and_doshams
 from app.constants.versions import CHART_CALCULATION_VERSION
@@ -59,15 +59,15 @@ from app.services._chart_planets import (
     _aspect_counts,
     _compute_nakshatra_analysis,
     _compute_vargas,
-    resolve_daytime_birth_for_profile,
     _mandhi_longitude,
     _mandhi_planet_position,
     _paksha_is_shukla,
     _planet_position_from_snapshot,
     _speed_ratio,
     _varga_reliability,
+    resolve_daytime_birth_for_profile,
 )
-from app.services.feature_flags import get_flag
+from app.services.feature_flags import current_doctrine_options, get_flag
 
 # The chart engine's version now lives in app/constants/versions.py, with its
 # per-revision notes, because `app.schemas.charts` needs it too and cannot import
@@ -355,6 +355,9 @@ def _apply_holistic_strength_synthesis(
         d9_rasi_map=d9_map,
         d9_lagna_rasi=d9_lagna_rasi,
         planet_longitude={p.graha: float(p.absolute_longitude) for p in natal},
+        # The same doctrine the yoga detector reads, so the +14 bhanga term and
+        # the Neecha Bhanga card follow one set of rules (audit C2).
+        doctrine=current_doctrine_options(),
     )
     for p in natal:
         terms = synthesis.get(p.graha)
@@ -478,6 +481,7 @@ def _build_yoga_dosham_insights(
         # Doctrine A-4: Kala Sarpa is a degree-exact arc test. `planet_map`
         # carries rasi only, so the sidereal longitudes go across separately.
         longitudes_in={planet.graha: planet.absolute_longitude for planet in planets},
+        doctrine=current_doctrine_options(),
     )
 
     # A detector that cannot see the running dasha hardcodes `dasha_activated`
@@ -495,7 +499,10 @@ def _build_yoga_dosham_insights(
             return True
         if not item.is_present:
             return False
-        return bool(running_lords & set(key_planets_for(item.name, item.key_grahas)))
+        # DD-15: a secondary activator's dasha lights the yoga too, at the
+        # moderate tier only (see `activation_tier`).
+        activators = set(key_planets_for(item.name, item.key_grahas)) | set(item.secondary_grahas)
+        return bool(running_lords & activators)
 
     def _yoga_model(item) -> ChartYogaInsight:
         activated = _dasha_activated(item)
@@ -503,6 +510,16 @@ def _build_yoga_dosham_insights(
             _yoga_timing(item, maha=mahadasha_lord, antar=antardasha_lord,
                          antaram=timeline.current_pratyantardasha)
             if activated else (False, None)
+        )
+        tier = activation_tier(
+            item.name,
+            is_present=item.is_present,
+            maha=mahadasha_lord,
+            antar=antardasha_lord,
+            key_grahas=item.key_grahas,
+            secondary_grahas=item.secondary_grahas,
+            both_lords=both,
+            detector_activated=activated,
         )
         return ChartYogaInsight(
             name=item.name,
@@ -523,8 +540,10 @@ def _build_yoga_dosham_insights(
                 chart_key_grahas=item.key_grahas,
                 activated=activated,
                 both_lords=both,
+                chart_secondary_grahas=item.secondary_grahas,
             ),
             isCurrentlyActive=activated,
+            activationTier=tier,
             descriptionTa=item.description_ta,
             descriptionEn=item.description_en,
             # description_* states the mechanism (how the yoga forms); effect_*

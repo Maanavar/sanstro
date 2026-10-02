@@ -168,11 +168,32 @@ CHARTS: dict[str, tuple[dict[str, int], int, int]] = {
 #:   * `RAJA_YOGA` did not move on any chart under the moolatrikona test for
 #:     dusthana-owning lords — none of these three lagnas has a disqualified lord
 #:     that was forming its Raja Yoga.
+#:
+#: RE-FROZEN 2026-10-01 for DOCTRINE_DECISIONS v1.3 (P0/P1). Five cells moved,
+#: each traced to a decision; nothing else did:
+#:   * `clustered` and `spread` gain `BHAGYA_SUPPORT` (DD-02's honest fallback):
+#:     the 9th lord sits in a kendra without the own/exaltation dignity that
+#:     Lakshmi Yoga now requires.
+#:   * `NEECHA_BHANGA_RAJA_YOGA` is graded by distinct Phaladeepika conditions
+#:     (DD-09, Tier C): `nodal` fires NB-c alone -> WEAK ("Mild"); `spread`
+#:     fires NB-b, NB-d, NB-d+ (and NB-g, which adds no point) -> STRONG;
+#:     `yogakaraka_neecha` fires NB-c and NB-d -> PARTIAL, unchanged.
+#:   * `RAJA_YOGA` presence did not move on any chart under DD-07's mutual-aspect
+#:     link and matrix eligibility.
+#:
+#: RE-FROZEN 2026-10-01 for DD-01/DD-08. Gaja Kesari now exposes the strict
+#: Parashara key separately and hides the supportive base when strict fires;
+#: Adhi now exposes its >=1 dynamic-benefic base and its clean raja-grade
+#: candidate separately. These are the only intended row changes below.
 GOLDEN_YOGAS: dict[str, tuple[tuple[str, bool, str], ...]] = {
     "clustered": (
-        ("ADHI_YOGA", False, "WEAK"),
+        # 2026-10-02: the raja-grade candidate carries the one Adhi label, so
+        # the base card is absent here (DD-08, as DD-01 does for Gaja Kesari).
+        ("ADHI_BASE", False, "WEAK"),
+        ("ADHI_RAJA_GRADE", True, "STRONG"),
         ("AMALA_YOGA", False, "WEAK"),
         ("BHADRA_YOGA", True, "STRONG"),
+        ("BHAGYA_SUPPORT", True, "PARTIAL"),
         ("BUDHA_ADITYA_YOGA", True, "STRONG"),
         ("CHANDALA_KETU_YOGA", False, "WEAK"),
         ("CHANDALA_YOGA", False, "WEAK"),
@@ -181,7 +202,8 @@ GOLDEN_YOGAS: dict[str, tuple[tuple[str, bool, str], ...]] = {
         ("DARIDRA_YOGA", False, "WEAK"),
         ("DHANA_SUPPORTIVE_YOGA", True, "PARTIAL"),
         ("DHANA_YOGA", True, "STRONG"),
-        ("GAJA_KESARI_YOGA", True, "STRONG"),
+        ("GAJA_KESARI_PARASHARA", True, "STRONG"),
+        ("GAJA_KESARI_YOGA", False, "WEAK"),
         ("HAMSA_YOGA", True, "STRONG"),
         ("KARTARI_YOGA", False, "WEAK"),
         ("KEMADRUMA_YOGA", False, "WEAK"),
@@ -199,7 +221,8 @@ GOLDEN_YOGAS: dict[str, tuple[tuple[str, bool, str], ...]] = {
         ("YOGAKARAKA_RAJA_YOGA", False, "WEAK"),
     ),
     "nodal": (
-        ("ADHI_YOGA", False, "WEAK"),
+        ("ADHI_BASE", False, "WEAK"),
+        ("ADHI_RAJA_GRADE", False, "WEAK"),
         ("AMALA_YOGA", False, "WEAK"),
         ("BHADRA_YOGA", False, "WEAK"),
         ("BUDHA_ADITYA_YOGA", True, "STRONG"),
@@ -210,13 +233,14 @@ GOLDEN_YOGAS: dict[str, tuple[tuple[str, bool, str], ...]] = {
         ("DARIDRA_YOGA", False, "WEAK"),
         ("DHANA_SUPPORTIVE_YOGA", True, "PARTIAL"),
         ("DHANA_YOGA", False, "WEAK"),
+        ("GAJA_KESARI_PARASHARA", False, "WEAK"),
         ("GAJA_KESARI_YOGA", True, "STRONG"),
         ("HAMSA_YOGA", False, "WEAK"),
         ("KARTARI_YOGA", False, "WEAK"),
         ("KEMADRUMA_YOGA", False, "WEAK"),
         ("LAKSHMI_YOGA", False, "WEAK"),
         ("MALAVYA_YOGA", False, "WEAK"),
-        ("NEECHA_BHANGA_RAJA_YOGA", True, "PARTIAL"),
+        ("NEECHA_BHANGA_RAJA_YOGA", True, "WEAK"),
         ("PARIVARTANA_YOGA", True, "STRONG"),
         ("RAJA_YOGA", True, "STRONG"),
         ("RUCHAKA_YOGA", False, "WEAK"),
@@ -228,10 +252,12 @@ GOLDEN_YOGAS: dict[str, tuple[tuple[str, bool, str], ...]] = {
         ("YOGAKARAKA_RAJA_YOGA", True, "STRONG"),
     ),
     "spread": (
-        ("ADHI_YOGA", False, "WEAK"),
+        ("ADHI_BASE", True, "WEAK"),
+        ("ADHI_RAJA_GRADE", False, "WEAK"),
         # Was PARTIAL until 2026-09-23: malefic drishti on the occupied 10th.
         ("AMALA_YOGA", True, "WEAK"),
         ("BHADRA_YOGA", False, "WEAK"),
+        ("BHAGYA_SUPPORT", True, "PARTIAL"),
         ("BUDHA_ADITYA_YOGA", False, "WEAK"),
         ("CHANDALA_KETU_YOGA", False, "WEAK"),
         ("CHANDALA_YOGA", False, "WEAK"),
@@ -243,13 +269,14 @@ GOLDEN_YOGAS: dict[str, tuple[tuple[str, bool, str], ...]] = {
         ("DARIDRA_YOGA", False, "WEAK"),
         ("DHANA_SUPPORTIVE_YOGA", False, "WEAK"),
         ("DHANA_YOGA", False, "WEAK"),
-        ("GAJA_KESARI_YOGA", True, "STRONG"),
+        ("GAJA_KESARI_PARASHARA", False, "WEAK"),
+        ("GAJA_KESARI_YOGA", True, "PARTIAL"),
         ("HAMSA_YOGA", False, "WEAK"),
         ("KARTARI_YOGA", False, "WEAK"),
         ("KEMADRUMA_YOGA", False, "WEAK"),
         ("LAKSHMI_YOGA", False, "WEAK"),
         ("MALAVYA_YOGA", False, "WEAK"),
-        ("NEECHA_BHANGA_RAJA_YOGA", True, "PARTIAL"),
+        ("NEECHA_BHANGA_RAJA_YOGA", True, "STRONG"),
         ("PARIVARTANA_YOGA", False, "WEAK"),
         ("RAJA_YOGA", True, "STRONG"),
         ("RUCHAKA_YOGA", False, "WEAK"),
@@ -268,11 +295,13 @@ GOLDEN_YOGAS: dict[str, tuple[tuple[str, bool, str], ...]] = {
     # Frozen 2026-09-23 when the chart was added. The row that matters is the
     # last: present, PARTIAL. On the code before the ownership ruling this read
     # absent (the first-pass dignity gate removed a neecha yogakaraka).
-    # NEECHA_BHANGA_RAJA_YOGA is present too — Suriya, exalted in Mesham, is in
-    # a kendra — and whether that bhanga should restore the yogakaraka's rung is
-    # an open question in docs/ASTROLOGER_REVIEW_QUEUE.md, not decided here.
+    # NEECHA_BHANGA_RAJA_YOGA is present too. Since DD-09 it forms by NB-c
+    # (Sevvai and Sukran in mutual kendras) and NB-d (Sevvai aspects Mesham);
+    # the old route — Suriya, who exalts in Mesham, in a kendra — is NB-x1,
+    # off by default (O-12).
     "yogakaraka_neecha": (
-        ("ADHI_YOGA", False, "WEAK"),
+        ("ADHI_BASE", True, "WEAK"),
+        ("ADHI_RAJA_GRADE", False, "WEAK"),
         ("AMALA_YOGA", False, "WEAK"),
         ("ANAPHA_YOGA", True, "PARTIAL"),
         ("BHADRA_YOGA", False, "WEAK"),
@@ -285,6 +314,7 @@ GOLDEN_YOGAS: dict[str, tuple[tuple[str, bool, str], ...]] = {
         ("DHANA_SUPPORTIVE_YOGA", False, "WEAK"),
         ("DHANA_YOGA", False, "WEAK"),
         ("DURUDHURA_YOGA", True, "STRONG"),
+        ("GAJA_KESARI_PARASHARA", False, "WEAK"),
         ("GAJA_KESARI_YOGA", False, "WEAK"),
         ("HAMSA_YOGA", False, "WEAK"),
         ("KARTARI_YOGA", False, "WEAK"),
@@ -378,24 +408,16 @@ def test_aspect_pattern_rotates_with_the_source_rasi() -> None:
             )
 
 
-def test_adhi_yoga_no_longer_fires_on_every_chart_here() -> None:
-    """`YOG-AD-01` landed 2026-08-28 (">= 2 present; 3 = full; grade by planets,
-    not houses"). Before it, Adhi fired on ONE of Guru/Sukran/Budhan in the
-    6th/7th/8th from Chandran — present on all three fixtures here, which was
-    the live evidence the ruling cited (a yoga always present tells a reader
-    nothing).
-
-    Inverted from `test_adhi_yoga_fires_on_every_chart_here`, per that test's
-    own instruction, now that the tightening has shipped: at least one chart
-    here must NOT show Adhi, or the tightening did not take."""
+def test_adhi_base_and_raja_grade_are_distinct_across_the_fixture_set() -> None:
+    """DD-08 keeps broad geometry visible without calling every base a raja grade."""
     rows_by_label = {
         label: dict((name, present) for name, present, _ in _yoga_rows(label))
         for label in CHARTS
     }
-    assert not all(rows["ADHI_YOGA"] for rows in rows_by_label.values()), (
-        "Adhi Yoga still fires on every fixture chart — YOG-AD-01's tightening "
-        "did not take"
-    )
+    assert any(rows["ADHI_BASE"] for rows in rows_by_label.values())
+    assert not all(rows["ADHI_BASE"] for rows in rows_by_label.values())
+    assert any(rows["ADHI_RAJA_GRADE"] for rows in rows_by_label.values())
+    assert not all(rows["ADHI_RAJA_GRADE"] for rows in rows_by_label.values())
 
 
 def test_weakened_yogakaraka_is_lowered_not_cancelled() -> None:

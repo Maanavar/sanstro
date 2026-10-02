@@ -147,6 +147,10 @@ class ChartYogaInsight(BaseModel):
     effect_en: str = Field(default="", alias="effectEn")
     # Nullable and additive: clients that do not render it lose nothing.
     peak_window: YogaPeakWindow | None = Field(default=None, alias="peakWindow")
+    # DD-15 timing state: "STRONG" (strongly activated), "MODERATE" (moderately
+    # activated, including by a secondary activator) or "NONE" (present, not a
+    # dominant influence this period). Additive; replaces nothing.
+    activation_tier: str = Field(default="NONE", alias="activationTier")
 
     model_config = ConfigDict(populate_by_name=True)
 

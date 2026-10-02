@@ -45,6 +45,7 @@ from app.calculations.display_names import (
     sani_cycle_en,
     sani_cycle_ta,
 )
+from app.calculations.doctrine_options import DEFAULT_DOCTRINE, DoctrineOptions
 from app.calculations.ephemeris import EphemerisBody, calculate_sidereal_planets
 from app.calculations.functional_nature import get_functional_nature
 from app.calculations.lagna_edge import (
@@ -95,6 +96,7 @@ from app.services.age_phase_service import (
     remedy_lead_in_for_stage,
 )
 from app.services.chart_service import load_persisted_chart_response
+from app.services.feature_flags import current_doctrine_options
 from app.services.narrative_engine import PLANET_NAME
 from app.services.peyarchi_service import get_peyarchi_summary
 
@@ -1721,6 +1723,8 @@ def _build_bhava_section(
     planets: list[PlanetPosition],
     lagna_rasi: int,
     d9_lagna_rasi: int | None = None,
+    *,
+    doctrine: DoctrineOptions = DEFAULT_DOCTRINE,
 ) -> ChartExplanationBhavaSection:
     """Read all twelve bhavas as life areas.
 
@@ -1805,6 +1809,7 @@ def _build_bhava_section(
                 house_bala,
                 d9_rasi=d9_rasi,
                 d9_lagna_rasi=d9_lagna_rasi,
+                doctrine=doctrine,
             )
             if house_bala is not None
             else None
@@ -2454,6 +2459,7 @@ def build_chart_explanation(
     as_of: date,
     peyarchi_window_days: int = 700,
 ) -> ChartExplanationResponse:
+    doctrine = current_doctrine_options()
     chart = session.get(Chart, chart_id)
     if chart is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chart not found.")
@@ -2511,7 +2517,12 @@ def build_chart_explanation(
             conjunctions=_build_conjunctions(planets, data.lagna.rasi),
             aspects=_build_aspects(planets),
             house_groups=_build_house_groups(planets),
-            bhavas=_build_bhava_section(planets, data.lagna.rasi, data.lagna.d9_rasi),
+            bhavas=_build_bhava_section(
+                planets,
+                data.lagna.rasi,
+                data.lagna.d9_rasi,
+                doctrine=doctrine,
+            ),
             functional_nature=functional_nature,
             yoga_dosham=ChartExplanationYogaDoshamSection(
                 yogas=data.yogas,

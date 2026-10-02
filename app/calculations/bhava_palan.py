@@ -64,6 +64,7 @@ from app.calculations.chart_strength import (
     neecha_bhanga_cancelled,
 )
 from app.calculations.display_names import planet_en, planet_ta
+from app.calculations.doctrine_options import DEFAULT_DOCTRINE, DoctrineOptions
 from app.constants.astrology import SIGN_LORD
 
 Polarity = Literal["DIRECT", "UPACHAYA", "INVERTED"]
@@ -252,7 +253,7 @@ def dominant_term(
     )
 
     # Weighted distance from neutral, matching each term's share of the composite.
-    candidates = [
+    candidates: list[tuple[Literal["LORD", "OCCUPANT", "DRISHTI"], float, bool]] = [
         ("LORD", abs(lord_score - 50) * 0.5, lord_score >= 50),
         ("OCCUPANT", abs(occupant - 50) * 0.25, occupant >= 50),
         ("DRISHTI", abs(drishti - 50) * 0.25, drishti >= 50),
@@ -339,13 +340,15 @@ def lord_dignity_of(
     planets_rasi: Mapping[str, int],
     d9_rasi: Mapping[str, int] | None = None,
     d9_lagna_rasi: int | None = None,
+    *,
+    doctrine: DoctrineOptions = DEFAULT_DOCTRINE,
 ) -> LordDignity:
     """Read the lord's dignity in both vargas.
 
-    Without `d9_rasi` the D9 flags stay False and neecha bhanga is tested on its three
-    Rasi-side routes only — the caller simply has no Navamsa to look at. The service
-    always passes it; the pure unit tests mostly do not, and a missing D9 must degrade
-    to a quieter sentence, never to a wrong one.
+    Without `d9_rasi` the D9 flags stay False — the caller simply has no Navamsa to
+    look at. Since DD-09 the Navamsa route (NB-f) is off by default anyway (O-7), so
+    `bhanga_via_d9` is False unless that flag is on. This reads the default doctrine,
+    not the admin flags: it decides a sentence, not a number.
     """
     rasi = planets_rasi.get(lord)
     if rasi is None:
@@ -363,6 +366,7 @@ def lord_dignity_of(
             lagna_rasi=lagna_rasi,
             d9_rasi_map=d9_rasi,
             d9_lagna_rasi=d9_lagna_rasi,
+            options=doctrine,
         )
         via_d9 = "debilitated_planet_strong_d9" in conditions
 
@@ -403,6 +407,7 @@ def build_palan(
     *,
     d9_rasi: Mapping[str, int] | None = None,
     d9_lagna_rasi: int | None = None,
+    doctrine: DoctrineOptions = DEFAULT_DOCTRINE,
 ) -> BhavaPalan:
     """Band one house and work out who is responsible for that band.
 
@@ -423,7 +428,8 @@ def build_palan(
         dominant=dominant_term(house, lagna_rasi, planets_rasi, planet_scores),
         karaka_conflict=karaka_in_own_bhava(house, lagna_rasi, planets_rasi),
         lord_dignity=lord_dignity_of(
-            SIGN_LORD[house_rasi], lagna_rasi, planets_rasi, d9_rasi, d9_lagna_rasi
+            SIGN_LORD[house_rasi], lagna_rasi, planets_rasi, d9_rasi, d9_lagna_rasi,
+            doctrine=doctrine,
         ),
     )
 

@@ -326,6 +326,8 @@ def _stub_strong_layers(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(ci_module, "_apply_mutual_sevvai_cancellation", lambda a, b: (a, b))
     monkeypatch.setattr(ci_module, "_compute_dasha_harmony", lambda a, b, jd: _STRONG_DASHA)
     monkeypatch.setattr(ci_module, "_compute_emotional_compatibility", lambda a, b: _STRONG_EMOTIONAL)
+    # DD-03 samyam lines read real snapshots; text only, no score effect.
+    monkeypatch.setattr(ci_module, "marriage_samyam_lines", lambda a, b: ([], []))
 
 
 def _fake_porutham_result(*, rajju_dosha: bool, vedha_dosha: bool) -> SimpleNamespace:

@@ -9,6 +9,7 @@ from dataclasses import dataclass
 
 from app.calculations.aspects import aspect_strength, aspects_house, effective_natural_class
 from app.calculations.astro import house_from_reference
+from app.calculations.doctrine_options import DEFAULT_DOCTRINE, DoctrineOptions
 from app.calculations.transits import combustion_severity, is_cazimi, is_gandanta
 from app.constants.astrology import SIGN_LORD as _SIGN_LORD_CONSTANT
 
@@ -1184,73 +1185,36 @@ def neecha_bhanga_cancelled(
     lagna_rasi: int,
     d9_rasi_map: Mapping[str, int] | None = None,
     d9_lagna_rasi: int | None = None,
+    options: DoctrineOptions = DEFAULT_DOCTRINE,
 ) -> tuple[bool, list[str]]:
     """Canonical Neecha Bhanga (debilitation-cancellation) test for ONE planet.
 
     THE single source of truth, shared by the yoga detector
-    (``_yoga_detect.detect_neecha_bhanga`` — the visible yoga card) and the
-    strength synthesis (``_neecha_bhanga_planets`` — the +14 bhanga term).
-    Before this existed the two carried divergent condition sets and could
-    disagree on the same chart (audit C2,
+    (``_yoga_detect.detect_neecha_bhanga`` — the visible yoga card), the
+    strength synthesis (``_neecha_bhanga_planets`` — the +14 bhanga term), the
+    yogakaraka card and bhava palan. Before this existed they carried divergent
+    condition sets and could disagree on the same chart (audit C2,
     docs/THIRUKANITHAM_ENGINE_AUDIT_2026-07-23.md). Returns
-    ``(cancelled, conditions)`` naming the classical rules that fired.
+    ``(cancelled, conditions)``, one marker per rule that fired.
 
-    A planet not standing in its own debilitation rasi is never a candidate →
-    ``(False, [])``. The four substantive rules (BPHS / standard Tamil
-    Thirukanitham):
-      1. the lord of the debilitation sign sits in a kendra from lagna or Moon,
-      2. the planet that *exalts* in the debilitation sign sits in a kendra from
-         lagna or Moon,
-      3. the lord of the sign where THIS planet exalts casts a drishti on it,
-      4. the planet is strong in the Navamsa — in a kendra/trikona from the D9
-         lagna when that is known, else dignified (own/exaltation) in D9.
+    The rules themselves live in `app.calculations.neecha_bhanga`, one row per
+    Phaladeepika verse (DOCTRINE_DECISIONS v1.3, DD-09). Any one rule cancels;
+    there is no count threshold. The Navamsa rule and the two conditions the
+    engine shipped without a verse are switched off by default (O-7, O-12).
     Retrograde is a supporting *note* only (added by the caller), never on its
     own a cancellation — closing the old lone-retrograde over-detection (G6).
     """
-    deb_rasi = DEBILITATION_RASI.get(planet)
-    if deb_rasi is None or planet_rasi.get(planet) != deb_rasi:
-        return False, []
+    from app.calculations.neecha_bhanga import evaluate_neecha_bhanga
 
-    moon_rasi = planet_rasi.get("MOON")
-
-    def _in_kendra(from_rasi: int | None, target_rasi: int | None) -> bool:
-        if from_rasi is None or target_rasi is None:
-            return False
-        return house_from_reference(from_rasi, target_rasi) in _KENDRA_HOUSES
-
-    conditions: list[str] = []
-
-    # (1) lord of the debilitation sign in a kendra from lagna or Moon
-    deb_lord = SIGN_LORD.get(deb_rasi)
-    deb_lord_rasi = planet_rasi.get(deb_lord) if deb_lord else None
-    if _in_kendra(lagna_rasi, deb_lord_rasi) or _in_kendra(moon_rasi, deb_lord_rasi):
-        conditions.append("debilitation_sign_lord_in_kendra")
-
-    # (2) the planet that exalts in the debilitation sign, in a kendra
-    exalter = {rasi: p for p, rasi in EXALTATION_RASI.items()}.get(deb_rasi)
-    exalter_rasi = planet_rasi.get(exalter) if exalter else None
-    if _in_kendra(lagna_rasi, exalter_rasi) or _in_kendra(moon_rasi, exalter_rasi):
-        conditions.append("exalter_of_debilitation_sign_in_kendra")
-
-    # (3) the lord of the sign where THIS planet exalts casts a drishti on it
-    own_exalt_rasi = EXALTATION_RASI.get(planet)
-    if own_exalt_rasi is not None:
-        exaltation_sign_lord = SIGN_LORD[own_exalt_rasi]
-        esl_rasi = planet_rasi.get(exaltation_sign_lord)
-        if esl_rasi is not None and aspects_house(exaltation_sign_lord, esl_rasi, deb_rasi):
-            conditions.append("exaltation_sign_lord_aspects_debilitated")
-
-    # (4) the debilitated planet strong in the Navamsa (D9)
-    if d9_rasi_map is not None and planet in d9_rasi_map:
-        d9_rasi = d9_rasi_map[planet]
-        if d9_lagna_rasi is not None:
-            strong_d9 = house_from_reference(d9_lagna_rasi, d9_rasi) in _KENDRA_TRIKONA_HOUSES
-        else:
-            strong_d9 = _has_d9_dignity(planet, d9_rasi)
-        if strong_d9:
-            conditions.append("debilitated_planet_strong_d9")
-
-    return bool(conditions), conditions
+    evaluation = evaluate_neecha_bhanga(
+        planet,
+        planet_rasi=planet_rasi,
+        lagna_rasi=lagna_rasi,
+        d9_rasi_map=d9_rasi_map,
+        d9_lagna_rasi=d9_lagna_rasi,
+        options=options,
+    )
+    return evaluation.cancelled, evaluation.markers
 
 
 def _neecha_bhanga_planets(
@@ -1258,10 +1222,12 @@ def _neecha_bhanga_planets(
     lagna_rasi: int,
     d9_rasi_map: Mapping[str, int] | None,
     d9_lagna_rasi: int | None = None,
+    doctrine: DoctrineOptions = DEFAULT_DOCTRINE,
 ) -> frozenset[str]:
     """Planets whose debilitation is cancelled, via the canonical
     ``neecha_bhanga_cancelled`` predicate (shared with the yoga detector so the
-    strength number and the yoga card can never disagree — audit C2)."""
+    strength number and the yoga card can never disagree — audit C2). The
+    caller passes the same `doctrine` the yoga detector gets, for the same reason."""
     return frozenset(
         planet
         for planet in DEBILITATION_RASI
@@ -1271,6 +1237,7 @@ def _neecha_bhanga_planets(
             lagna_rasi=lagna_rasi,
             d9_rasi_map=d9_rasi_map,
             d9_lagna_rasi=d9_lagna_rasi,
+            options=doctrine,
         )[0]
     )
 
@@ -1285,6 +1252,7 @@ def apply_holistic_synthesis(
     d9_rasi_map: Mapping[str, int] | None = None,
     d9_lagna_rasi: int | None = None,
     planet_longitude: Mapping[str, float] | None = None,
+    doctrine: DoctrineOptions = DEFAULT_DOCTRINE,
 ) -> dict[str, dict[str, float]]:
     """Second-pass relational refinement of base natal strength (spec §4).
 
@@ -1301,7 +1269,7 @@ def apply_holistic_synthesis(
     ``yuti_orb_factor``). Omitted, every same-sign companion carries full weight
     — the pre-G2 whole-sign reading.
     """
-    neecha = _neecha_bhanga_planets(planet_rasi, lagna_rasi, d9_rasi_map, d9_lagna_rasi)
+    neecha = _neecha_bhanga_planets(planet_rasi, lagna_rasi, d9_rasi_map, d9_lagna_rasi, doctrine)
     grahas = [g for g in base_scores if g in planet_rasi]
     out: dict[str, dict[str, float]] = {}
 

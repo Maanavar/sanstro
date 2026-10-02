@@ -43,7 +43,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
-from app.calculations._yoga_dosham import detect_sevvai_dosham
+from app.calculations._yoga_dosham import detect_rahu_ketu_dosham, detect_sevvai_dosham
 from app.calculations.astro import utc_datetime_to_julian_day
 from app.calculations.chart_strength import (
     _NATURAL_ENEMIES,
@@ -54,6 +54,7 @@ from app.calculations.chart_strength import (
 )
 from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.display_names import planet_en, planet_ta
+from app.calculations.dosha_samyam import compare_marriage_doshams
 
 # ---------------------------------------------------------------------------
 # Internal helpers
@@ -339,6 +340,33 @@ def sevvai_risk_lines(
             )
 
     return risks_en, risks_ta
+
+
+def marriage_samyam_lines(snap_a: Any, snap_b: Any) -> tuple[list[str], list[str]]:
+    """DD-03 samyam lines, (english, tamil). Report text only: no score moves.
+
+    `rahu_ketu_samyam` is its own concept, kept apart from the Sevvai mutual
+    cancellation above and from papa samyam. Cross-samyam (O-3) is off by
+    default, so its line appears only when that open item is switched on.
+    """
+    def doshams(snap: Any) -> tuple[Any, Any]:
+        planets = {p.graha: p.rasi for p in snap.data.planets}
+        lagna = snap.data.lagna.rasi
+        gender = getattr(snap.data.birth_profile, "gender_for_traditional_rules", None)
+        return detect_rahu_ketu_dosham(planets, lagna), detect_sevvai_dosham(planets, lagna, gender=gender)
+
+    rk_a, sv_a = doshams(snap_a)
+    rk_b, sv_b = doshams(snap_b)
+    samyam = compare_marriage_doshams(rk_a, rk_b, sv_a, sv_b)
+    lines_en: list[str] = []
+    lines_ta: list[str] = []
+    if samyam.rahu_ketu:
+        lines_en.append("Rahu-Ketu samyam: both charts carry a comparable Rahu-Ketu marriage axis, so it is balanced for porutham")
+        lines_ta.append("ராகு-கேது சாம்யம்: இரு ஜாதகங்களிலும் ஒத்த ராகு-கேது திருமண அச்சு உள்ளதால் பொருத்தத்தில் சமன்படுகிறது")
+    if samyam.cross:
+        lines_en.append("Cross-samyam: Rahu-Ketu in one chart is balanced by Sevvai in the other (astrologer view)")
+        lines_ta.append("குறுக்கு சாம்யம்: ஒரு ஜாதகத்தின் ராகு-கேது மற்றதின் செவ்வாயால் சமன்படுகிறது (ஜோதிடர் பார்வை)")
+    return lines_en, lines_ta
 
 
 def _apply_mutual_sevvai_cancellation(a: SevvaiDoshamDetail, b: SevvaiDoshamDetail) -> tuple[SevvaiDoshamDetail, SevvaiDoshamDetail]:
@@ -945,6 +973,10 @@ def compute_compatibility_intelligence(
     sevvai_risks_en, sevvai_risks_ta = sevvai_risk_lines(sevvai_a, sevvai_b)
     risks_en.extend(sevvai_risks_en)
     risks_ta.extend(sevvai_risks_ta)
+
+    samyam_en, samyam_ta = marriage_samyam_lines(snap_a, snap_b)
+    strengths_en.extend(samyam_en)
+    strengths_ta.extend(samyam_ta)
 
     if porutham_result.rajju_dosha:
         risks_en.append("Rajju Dosha is present — health/longevity remedies advised")

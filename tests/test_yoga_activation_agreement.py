@@ -210,9 +210,15 @@ def test_peak_window_is_an_antaram_former_inside_an_open_period() -> None:
 
 
 def test_dusthana_dual_lords_are_decided_by_moolatrikona() -> None:
+    from app.calculations.doctrine_options import DoctrineOptions
+
     assert raja_lord_qualifies(3, "SATURN") is True     # Mithuna: MT Kumbam is the 9th
     assert raja_lord_qualifies(4, "JUPITER") is False   # Kataka: MT Dhanusu is the 6th
-    assert raja_lord_qualifies(2, "MARS") is False      # Rishabha: MT Mesham is the 12th
+    # DD-07 / O-4 (v1.3): a 12th co-lord is never downgraded for the 12th
+    # alone. Rishabha Sevvai (7+12) now qualifies; the 2026-09-23 moolatrikona
+    # reading survives as the switchable alternative (open item O-14).
+    assert raja_lord_qualifies(2, "MARS") is True
+    assert raja_lord_qualifies(2, "MARS", DoctrineOptions(o4_twelfth_colord_mode="moolatrikona")) is False
     # Lagna ownership decides first (amendment): MT Thulam / Mesham is the 6th,
     # yet the lagna lord qualifies.
     assert raja_lord_qualifies(2, "VENUS") is True      # Rishabha lagna
@@ -274,15 +280,23 @@ def test_yogakaraka_afflictions_stack_to_one_rung() -> None:
 
 def test_neecha_bhanga_removes_only_the_debility_cost() -> None:
     """Ruling 2026-10-01, option B. Thulam lagna, Sani neecha in Mesham (the
-    7th, a kendra) with Suriya — who exalts in Mesham — also in that kendra: a
-    valid bhanga. The debility stops costing the rung; nothing else afflicts,
-    so it reads STRONG. Combustion, a separate weakness, still lowers it."""
-    clean = detect_raja_yogakaraka({"SATURN": 1, "SUN": 1}, 7)
+    7th, a kendra). Sevvai — lord of Mesham, the debilitation sign — sits in
+    Kadagam, the 10th: NB-a, Phaladeepika 7.26, a valid bhanga. The debility
+    stops costing the rung; nothing else afflicts, so it reads STRONG.
+    Combustion, a separate weakness, still lowers it.
+
+    The fixture used Suriya (who *exalts* in Mesham) in that kendra until
+    DD-09 (v1.3); that route is NB-x1, off by default (O-12), so on its own it
+    no longer cancels the debility."""
+    sun_only = detect_raja_yogakaraka({"SATURN": 1, "SUN": 1}, 7)
+    assert "saturn_yogakaraka_debilitated" in sun_only.conditions_met
+
+    clean = detect_raja_yogakaraka({"SATURN": 1, "SUN": 1, "MARS": 4}, 7)
     assert clean.strength == "STRONG"
     assert "saturn_yogakaraka_debilitated" not in clean.conditions_met
     assert "saturn_yogakaraka_neecha_bhanga" in clean.conditions_met
 
-    combust = detect_raja_yogakaraka({"SATURN": 1, "SUN": 1}, 7, combust_planets=frozenset({"SATURN"}))
+    combust = detect_raja_yogakaraka({"SATURN": 1, "SUN": 1, "MARS": 4}, 7, combust_planets=frozenset({"SATURN"}))
     assert combust.strength == "PARTIAL"
     assert "saturn_yogakaraka_combust" in combust.conditions_met
     assert "saturn_yogakaraka_neecha_bhanga" in combust.conditions_met

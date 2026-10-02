@@ -102,6 +102,16 @@ YOGA_EFFECT: dict[str, tuple[str, str]] = {
         "Associated with prosperity paired with good standing — opportunity arriving through people "
         "who think well of you.",
     ),
+    "LAKSHMI_YOGA_PHALADEEPIKA": (
+        "வளமும் நல்லெண்ணமும் சேரும் அமைப்பின் பலதீபிகை வடிவம்; சுக்கிரனின் ஆதரவு கூடுதலாக உள்ளது.",
+        "The Phaladeepika reading of a prosperity pattern, with Venus adding its own support to "
+        "good fortune.",
+    ),
+    "BHAGYA_SUPPORT": (
+        "பாக்கியத்திற்கு ஆதரவான அமைப்பு; முழு லக்ஷ்மி யோகம் அல்ல, ஆனால் முயற்சிக்குப் பின்புலம் தரும்.",
+        "A supportive placement for fortune — not the full Lakshmi Yoga, but a steady backing for "
+        "effort you put in.",
+    ),
     "VASUMATI_YOGA": (
         "சொந்த முயற்சியால் வளம் சேரும் அமைப்பு; பிறரைச் சார்ந்திராத நிதி நிலை.",
         "Describes resources built by your own effort — a financial position that does not depend on "
@@ -221,6 +231,13 @@ YOGA_EFFECT: dict[str, tuple[str, str]] = {
         "arrive slowly and indirectly rather than not at all.",
     ),
 }
+
+# DD-01/DD-08 split stable engine keys while intentionally retaining the
+# already-reviewed bilingual effect copy for the corresponding family.
+YOGA_EFFECT["GAJA_KESARI_PARASHARA"] = YOGA_EFFECT["GAJA_KESARI_YOGA"]
+YOGA_EFFECT["ADHI_BASE"] = YOGA_EFFECT["ADHI_YOGA"]
+YOGA_EFFECT["ADHI_RAJA_GRADE"] = YOGA_EFFECT["ADHI_YOGA"]
+YOGA_EFFECT["RETROGRADE_DEBILITATED_RAJA_YOGA"] = YOGA_EFFECT["NEECHA_BHANGA_RAJA_YOGA"]
 
 
 def yoga_effect(name: str) -> tuple[str, str]:

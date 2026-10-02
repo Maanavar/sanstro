@@ -411,6 +411,13 @@ export interface ChartYogaInsight {
    * Null otherwise. Dates are ISO `YYYY-MM-DD`. Not rendered yet; additive.
    */
   peakWindow?: { start: string; end: string; antaramLord: string } | null;
+  /**
+   * DD-15 timing tier (DOCTRINE_DECISIONS v1.3): "STRONG", "MODERATE" (one
+   * forming planet, or only a secondary activator, is running) or "NONE"
+   * (present, not a dominant influence this period). Read it through
+   * `yogaActivationState`. Optional so an older payload still types.
+   */
+  activationTier?: "STRONG" | "MODERATE" | "NONE";
 }
 
 export interface ChartDoshamInsight {

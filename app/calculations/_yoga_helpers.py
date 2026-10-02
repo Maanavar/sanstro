@@ -7,11 +7,12 @@ from dataclasses import dataclass
 from app.calculations.astro import house_from_reference
 from app.calculations.chart_strength import (
     EXALTATION_RASI,
-    MOOLATRIKONA_ZONE,
     OWN_SIGN_RASI,
     SIGN_LORD,
 )
+from app.calculations.doctrine_options import DEFAULT_DOCTRINE, DoctrineOptions
 from app.calculations.functional_nature import FunctionalNature, get_functional_nature
+from app.calculations.functional_status import raja_participation
 from app.calculations.yoga_rules import rule_ids_for_yoga
 
 PlanetInput = int | Mapping[str, int | float | str]
@@ -24,7 +25,6 @@ DUSTHANA_HOUSES = {6, 8, 12}
 # Tamil house set, including the 1st house — see docs/SEVVAIRAGU.MD §4.1.
 TAMIL_SEVVAI_HOUSES = {1, 2, 4, 7, 8, 12}
 RAHU_KETU_MARRIAGE_HOUSES = {1, 2, 7, 8}
-RAHU_KETU_SARPA_HOUSES = {5, 9}
 SEVEN_PLANETS = ("SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN")
 NATURAL_BENEFICS = {"JUPITER", "VENUS", "MERCURY", "MOON"}
 # Mandhi/Gulika counts as a malefic occupant/aspect for yoga detection, same
@@ -39,11 +39,11 @@ HOUSE_SIGN_NIVARTHI: dict[int, frozenset[int]] = {
     12: frozenset({2, 7}),
 }
 
-FEMALE_HIGH_ATTENTION_SEVVAI_HOUSES = {4, 8, 12}
-MALE_HIGH_ATTENTION_SEVVAI_HOUSES = {2, 7, 8}
+# DD-05: astrologer / porutham view only — see `DoshamResult.astrologer_markers`.
+FEMALE_HIGH_ATTENTION_SEVVAI_HOUSES = frozenset({4, 8, 12})
+MALE_HIGH_ATTENTION_SEVVAI_HOUSES = frozenset({2, 7, 8})
 KADAGAM_SIMMAM_LAGNA_EXCEPTION = {4, 5}
 SEVVAI_BENEFIC_REDUCERS = {"JUPITER", "VENUS", "MERCURY", "MOON"}
-RAHU_KETU_UPACHAYA_HOUSES = {3, 6, 10, 11}
 
 
 @dataclass(frozen=True, slots=True)
@@ -75,6 +75,10 @@ class YogaResult:
     #: with a Raja Yoga's forming lord (ruling 2026-09-23). Their dashas do not
     #: activate the yoga. Engine-internal; not on the wire.
     supporting_grahas: tuple[str, ...] = ()
+    #: DD-15 secondary activators resolved per chart (the planets causing a
+    #: neecha bhanga, a node's dispositor, the Moon for the Chandra yogas).
+    #: Their dasha lights the yoga at the *moderate* tier only. Engine-internal.
+    secondary_grahas: tuple[str, ...] = ()
 
     @property
     def rule_ids(self) -> tuple[str, ...]:
@@ -113,6 +117,10 @@ class DoshamResult:
     # doshams that have no variant. Rendered as a badge on the dosham card.
     variant_ta: str = ""
     variant_en: str = ""
+    #: Observations for the astrologer / porutham view only — never on the
+    #: consumer wire. DD-05: gender-weighted Sevvai houses live here, not in
+    #: `conditions_met`, so no consumer surface can print "Female chart: …".
+    astrologer_markers: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -209,30 +217,19 @@ def houses_owned(lagna_rasi: int, planet: str) -> set[int]:
     return {h for h in range(1, 13) if _house_lord(lagna_rasi, h) == planet}
 
 
-def raja_lord_qualifies(lagna_rasi: int, planet: str) -> bool:
+def raja_lord_qualifies(
+    lagna_rasi: int, planet: str, doctrine: DoctrineOptions = DEFAULT_DOCTRINE
+) -> bool:
     """May this kendra/trikona lord form a Raja Yoga, given a dusthana it also owns?
 
-    Astrologer ruling 2026-09-23: a lord that also owns the 6th, 8th or 12th is
-    decided by its **moolatrikona** sign. If that sign is the kendra/trikona it
-    owns, the lord qualifies (Sani for Mithuna lagna: Kumbam is the 9th); if it
-    is the dusthana, it does not (Guru for Kataka lagna: Dhanusu is the 6th).
-
-    Precedence (ruling 2026-09-23, amended): **lagna ownership first, then
-    moolatrikona.** The lagna lord qualifies as both a kendra and a trikona
-    lord whatever else it owns — it does not carry its second house's stigma —
-    so Sukran for Rishabha lagna and Sevvai for Vrischika lagna qualify even
-    though their moolatrikona sign is the 6th. The moolatrikona test applies
-    only to non-lagna lords with a dusthana.
+    Kept as a name; the rule itself now lives in one place,
+    `functional_status.raja_participation` (DD-07). Lagna ownership decides
+    first; a 6th/8th co-lord is decided by its moolatrikona sign (ruling
+    2026-09-23); a 12th co-lord is no longer downgraded for the 12th alone
+    (DD-07, O-4), which reverses the 2026-09-23 reading for Rishabam Sevvai,
+    Thulam Budhan and Viruchigam Sukran — open item O-14.
     """
-    owned = houses_owned(lagna_rasi, planet)
-    if 1 in owned:  # lagna ownership decides first
-        return True
-    if not (owned & DUSTHANA_HOUSES):
-        return True
-    mt = MOOLATRIKONA_ZONE.get(planet)
-    if mt is None:
-        return True
-    return house_from_reference(lagna_rasi, mt[0]) in KENDRA_HOUSES | TRIKONA_HOUSES
+    return raja_participation(lagna_rasi, planet, doctrine).eligible
 
 
 def _is_kendra_from(reference_rasi: int, target_rasi: int) -> bool:
@@ -278,7 +275,7 @@ def _marker_explain(marker: str) -> str:
         "mars_own_sign": "Mars is in own sign",
         "mars_exaltation": "Mars is exalted",
         "mars_lagna_lord_mitigation": "Lagna-based mitigation applies",
-        "mars_yogakaraka_lagna": "Mars is Yogakaraka for this Lagna (Kadagam/Simmam)",
+        "tamil_sevvai_exception_cancer_leo": "The traditional Tamil exception for Kadagam/Simmam lagna applies as a strong mitigation, not a full cancellation",
         "house_sign_nivarthi": "House-sign nivarthi: Mars rasi cancels dosham for that house",
         "benefic_strong_seventh_lord": "7th lord strength gives protection",
         "jupiter_aspect_on_mars": "Jupiter influence on Mars reduces intensity",
@@ -286,19 +283,19 @@ def _marker_explain(marker: str) -> str:
         "benefic_association_mars": "Benefic planet (Venus/Mercury/Moon) is conjunct Mars",
         "mars_dispositor_kendra_trikona": "Mars sign-lord is in kendra/trikona from Mars",
         "both_partners_have_sevvai": "Comparable Sevvai in both charts",
-        "female_high_attention_house": "Female chart: extra attention on this house for Sevvai",
-        "male_high_attention_house": "Male chart: extra attention on this house for Sevvai",
-        "node_afflicts_moon": "Rahu/Ketu is conjunct Moon (emotional/stability concern)",
-        "rahu_ketu_upachaya": "Rahu/Ketu in upachaya house (3/6/10/11) — more manageable",
-        "rahu_in_marriage_house": "Rahu is in marriage-sensitive house",
-        "ketu_in_marriage_house": "Ketu is in marriage-sensitive house",
-        "rahu_in_sarpa_house": "Rahu is in Sarpa/Naga-sensitive house",
-        "ketu_in_sarpa_house": "Ketu is in Sarpa/Naga-sensitive house",
-        "node_with_seventh_lord": "Node links with 7th lord",
-        "node_with_venus": "Node links with Venus",
+        "node_afflicts_moon": "Rahu/Ketu is joined with the Moon",
+        "rahu_ketu_axis_1_7": "The Rahu-Ketu axis falls on houses 1 and 7 from Lagna",
+        "rahu_ketu_axis_2_8": "The Rahu-Ketu axis falls on houses 2 and 8 from Lagna",
+        "node_with_seventh_lord": "A node is joined with the 7th lord",
+        "node_with_venus": "A node is joined with Venus",
+        "malefic_influence_on_seventh": "A malefic occupies or aspects the 7th house",
+        "node_afflicts_from_moon_or_venus": "The axis also falls on a marriage house counted from the Moon or Venus",
+        "guru_joins_or_aspects_node": "Jupiter joins or aspects a node",
+        "node_in_favourable_sign_lineage": "A practitioner-selected node-dignity lineage treats this node sign as favourable",
+        "guru_aspects_seventh_or_its_lord": "Jupiter aspects the 7th house or its lord",
+        "strong_eighth_lord_or_benefic_on_eighth": "The 8th lord is strong, or a benefic influences the 8th house",
         "jupiter_kendra_trikona_support": "Jupiter support exists",
         "strong_seventh_lord": "7th lord is strong",
-        "strong_venus": "Venus is strong",
         "sun_with_node": "Sun is linked with Rahu/Ketu",
         "node_in_ninth": "Node is linked to 9th house",
         "saturn_in_ninth": "Saturn is in 9th house",
@@ -326,7 +323,7 @@ def _marker_explain_ta(marker: str) -> str:
         "mars_own_sign": "செவ்வாய் சொந்த ராசியில் உள்ளது",
         "mars_exaltation": "செவ்வாய் உச்சத்தில் உள்ளது",
         "mars_lagna_lord_mitigation": "லக்ன அடிப்படையில் தணிக்கை பொருந்துகிறது",
-        "mars_yogakaraka_lagna": "இந்த லக்னத்திற்கு செவ்வாய் யோககாரகனாக செயல்படுகிறது",
+        "tamil_sevvai_exception_cancer_leo": "கடகம்/சிம்ம லக்னத்திற்கான பாரம்பரிய தமிழ் விதிவிலக்கு வலுவான தணிக்கையாகப் பொருந்துகிறது; முழு நிவர்த்தி அல்ல",
         "house_sign_nivarthi": "இட-ராசி நிவர்த்தி தோஷத்தை குறைக்கிறது",
         "benefic_strong_seventh_lord": "7ம் அதிபதியின் வலிமை பாதுகாப்பு தருகிறது",
         "jupiter_aspect_on_mars": "குரு செவ்வாயை பார்க்கிறது; தீவிரம் குறைகிறது",
@@ -334,19 +331,19 @@ def _marker_explain_ta(marker: str) -> str:
         "benefic_association_mars": "சுபகிரகம் செவ்வாயுடன் சேர்ந்துள்ளது",
         "mars_dispositor_kendra_trikona": "செவ்வாயின் ராசி அதிபதி கேந்திரம்/திரிகோணத்தில் உள்ளது",
         "both_partners_have_sevvai": "இரு ஜாதகங்களிலும் ஒத்த செவ்வாய் நிலை உள்ளது",
-        "female_high_attention_house": "பெண் ஜாதகத்தில் இந்த செவ்வாய் வீட்டிற்கு கூடுதல் கவனம் தேவை",
-        "male_high_attention_house": "ஆண் ஜாதகத்தில் இந்த செவ்வாய் வீட்டிற்கு கூடுதல் கவனம் தேவை",
         "node_afflicts_moon": "ராகு/கேது சந்திரனுடன் சேர்ந்துள்ளது",
-        "rahu_ketu_upachaya": "ராகு/கேது உபசய வீட்டில் இருப்பதால் சமாளிக்கும் திறன் உண்டு",
-        "rahu_in_marriage_house": "ராகு திருமண உணர்திறன் வீட்டில் உள்ளது",
-        "ketu_in_marriage_house": "கேது திருமண உணர்திறன் வீட்டில் உள்ளது",
-        "rahu_in_sarpa_house": "ராகு சர்ப்ப/நாக உணர்திறன் வீட்டில் உள்ளது",
-        "ketu_in_sarpa_house": "கேது சர்ப்ப/நாக உணர்திறன் வீட்டில் உள்ளது",
-        "node_with_seventh_lord": "கிரக கணு 7ம் அதிபதியுடன் தொடர்பு கொள்கிறது",
-        "node_with_venus": "கிரக கணு சுக்கிரனுடன் தொடர்பு கொள்கிறது",
+        "rahu_ketu_axis_1_7": "ராகு-கேது அச்சு லக்னத்திலிருந்து 1, 7ஆம் வீடுகளில் உள்ளது",
+        "rahu_ketu_axis_2_8": "ராகு-கேது அச்சு லக்னத்திலிருந்து 2, 8ஆம் வீடுகளில் உள்ளது",
+        "node_with_seventh_lord": "ராகு/கேது 7ம் அதிபதியுடன் சேர்ந்துள்ளது",
+        "node_with_venus": "ராகு/கேது சுக்கிரனுடன் சேர்ந்துள்ளது",
+        "malefic_influence_on_seventh": "பாவ கிரகம் 7ம் வீட்டில் உள்ளது அல்லது அதைப் பார்க்கிறது",
+        "node_afflicts_from_moon_or_venus": "சந்திரன் அல்லது சுக்கிரனிலிருந்தும் அச்சு திருமண வீட்டில் விழுகிறது",
+        "guru_joins_or_aspects_node": "குரு ராகு/கேதுவுடன் சேர்ந்துள்ளார் அல்லது பார்க்கிறார்",
+        "node_in_favourable_sign_lineage": "தேர்ந்தெடுக்கப்பட்ட மரபின்படி இந்த ராகு/கேது ராசி சாதகமாகக் கருதப்படுகிறது",
+        "guru_aspects_seventh_or_its_lord": "குரு 7ம் வீட்டையோ அதன் அதிபதியையோ பார்க்கிறார்",
+        "strong_eighth_lord_or_benefic_on_eighth": "8ம் அதிபதி வலிமையாக உள்ளார், அல்லது சுப கிரகம் 8ம் வீட்டைப் பாதிக்கிறது",
         "jupiter_kendra_trikona_support": "குரு ஆதரவு உள்ளது",
         "strong_seventh_lord": "7ம் அதிபதி வலிமையாக உள்ளது",
-        "strong_venus": "சுக்கிரன் வலிமையாக உள்ளது",
         "sun_with_node": "சூரியன் ராகு/கேதுவுடன் தொடர்பில் உள்ளது",
         "node_in_ninth": "கிரக கணு 9ம் வீட்டுடன் தொடர்பில் உள்ளது",
         "saturn_in_ninth": "சனி 9ம் வீட்டில் உள்ளது",

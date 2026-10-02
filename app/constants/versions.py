@@ -69,9 +69,23 @@ from __future__ import annotations
 #: for a graha within an arc-second of a boundary, so almost every stored chart
 #: is identical; the version records which ephemeris produced it.
 #:
+#: v1.7 (2026-10-01): the yoga/dosham layer follows DOCTRINE_DECISIONS v1.3
+#: (P0 + P1 + P2, docs/DOCTRINE_DECISIONS_V1.2.md). Rahu–Ketu is one graded axis
+#: finding that can be mitigated (DD-03); Lakshmi requires a dignified 9th lord
+#: in a kendra (DD-02); Neecha Bhanga is one rule per Phaladeepika verse and
+#: drops two verse-less conditions, which also moves the +14 bhanga strength
+#: term on charts that relied on them (DD-09); Raja Yoga reads a functional-
+#: status matrix and a mutual aspect (DD-07); the Moon's class has exact
+#: amavasya/pournami boundaries (DD-12); Gaja Kesari gets a strict Parashara
+#: form alongside the supportive base, labelled separately (DD-01); Adhi Yoga
+#: splits into a broad base and an explicit raja-grade candidate (DD-08); Kala
+#: Sarpa's node-boundary equality uses the same float-safety epsilon as DD-12
+#: (DD-10). Yoga and dosham cards are not persisted, so they change on the
+#: next response; persisted planet rows do not change.
+#:
 #: Bumping this does NOT recompute anything on its own — see the module
 #: docstring. A recompute is a deliberate migration.
-CHART_CALCULATION_VERSION = "jothidam-formula-engine-v1.6-2026"
+CHART_CALCULATION_VERSION = "jothidam-formula-engine-v1.7-2026"
 
 #: The platform label for non-chart responses. Deliberately NOT the chart
 #: engine version: a daily-guidance digest, a dasha story, a varshaphala sheet
