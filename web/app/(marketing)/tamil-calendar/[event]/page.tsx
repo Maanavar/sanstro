@@ -1,4 +1,8 @@
 import type { Metadata } from "next";
+import { JsonLd } from "@/lib/json-ld";
+import { eventFaqLd, eventItemListLd } from "../calendar-jsonld";
+import { withTamilTwin } from "@/lib/localized-metadata";
+import { TAMIL_CALENDAR_TA, calendarEventTa } from "@/lib/marketing-seo-ta";
 import {
   TamilCalendarEventContent,
   type EventDetail,
@@ -59,15 +63,6 @@ export function generateStaticParams() {
   return EVENT_KEYS.map((key) => ({ event: `${key}-${YEAR}` }));
 }
 
-function fmt(iso: string): string {
-  return new Date(iso + "T00:00:00").toLocaleDateString("en-GB", {
-    weekday: "short",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-}
-
 function fmtShort(iso: string): string {
   return new Date(iso + "T00:00:00").toLocaleDateString("en-GB", {
     day: "numeric",
@@ -81,83 +76,46 @@ type Props = { params: Promise<{ event: string }> };
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { event } = await params;
   const data = await fetchEvent(event);
-  if (!data) return { title: "Tamil Calendar 2026 | Vinaadi" };
+  // A backend hiccup must not hand the crawler the homepage's canonical: this
+  // branch is what Google indexes if the fetch fails while it visits.
+  if (!data) {
+    return withTamilTwin(
+      { title: "Tamil Calendar 2026", alternates: { canonical: `https://vinaadi.com/tamil-calendar/${event}` } },
+      `/tamil-calendar/${event}`,
+      { title: "தமிழ் நாட்காட்டி 2026", description: TAMIL_CALENDAR_TA.description },
+    );
+  }
 
   const next = data.nextDate ? `Next: ${fmtShort(data.nextDate)}.` : "";
-  const title = `${data.name.en} 2026 Dates (${data.name.ta}) - All ${data.count} Dates | Vinaadi`;
+  const title = `${data.name.en} 2026 Dates (${data.name.ta}) - All ${data.count} Dates`;
   const description = `${data.name.en} (${data.name.ta}) 2026: all ${data.count} dates with weekday and Tamil date. ${data.summary.en} ${next}`.slice(0, 300);
 
-  return {
-    title,
-    description,
-    keywords: data.keywords,
-    alternates: { canonical: `https://vinaadi.com/tamil-calendar/${data.slug}` },
-    openGraph: {
-      title: `${data.name.en} 2026 - All Dates`,
-      description: data.summary.en,
-      url: `https://vinaadi.com/tamil-calendar/${data.slug}`,
-      type: "website",
+  return withTamilTwin(
+    {
+      title,
+      description,
+      keywords: data.keywords,
+      alternates: { canonical: `https://vinaadi.com/tamil-calendar/${data.slug}` },
+      openGraph: {
+        title: `${data.name.en} 2026 - All Dates`,
+        description: data.summary.en,
+        url: `https://vinaadi.com/tamil-calendar/${data.slug}`,
+        type: "website",
+      },
     },
-  };
+    `/tamil-calendar/${data.slug}`,
+    calendarEventTa(data.name.ta, data.count, data.summary.ta),
+  );
 }
 
 export default async function EventPage({ params }: Props) {
   const { event } = await params;
   const [data, allEvents] = await Promise.all([fetchEvent(event), fetchEvents()]);
 
-  const faqJsonld = data
-    ? {
-        "@context": "https://schema.org",
-        "@type": "FAQPage",
-        mainEntity: [
-          {
-            "@type": "Question",
-            name: `When is the next ${data.name.en} in 2026?`,
-            acceptedAnswer: {
-              "@type": "Answer",
-              text: data.nextDate
-                ? `The next ${data.name.en} is on ${fmt(data.nextDate)}.`
-                : `All ${data.name.en} dates for 2026 have passed; see the full list above.`,
-            },
-          },
-          {
-            "@type": "Question",
-            name: `How many ${data.name.en} days are there in 2026?`,
-            acceptedAnswer: {
-              "@type": "Answer",
-              text: `There are ${data.count} ${data.name.en} dates in 2026.`,
-            },
-          },
-          {
-            "@type": "Question",
-            name: `What is ${data.name.en} (${data.name.ta})?`,
-            acceptedAnswer: {
-              "@type": "Answer",
-              text: `${data.summary.en} ${data.significance.en}`,
-            },
-          },
-        ],
-      }
-    : null;
-
-  const itemListJsonld = data
-    ? {
-        "@context": "https://schema.org",
-        "@type": "ItemList",
-        name: `${data.name.en} 2026 Dates`,
-        numberOfItems: data.count,
-        itemListElement: data.dates.map((date, index) => ({
-          "@type": "ListItem",
-          position: index + 1,
-          name: `${data.name.en} - ${fmtShort(date.date)}`,
-        })),
-      }
-    : null;
-
   return (
     <>
-      {faqJsonld && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonld) }} />}
-      {itemListJsonld && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonld) }} />}
+      {data && <JsonLd en={eventFaqLd(data, "en")} ta={eventFaqLd(data, "ta")} />}
+      {data && <JsonLd en={eventItemListLd(data, "en")} ta={eventItemListLd(data, "ta")} />}
       <TamilCalendarEventContent data={data} allEvents={allEvents} />
     </>
   );

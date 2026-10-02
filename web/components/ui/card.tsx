@@ -51,7 +51,7 @@ export function Card({
   ...rest
 }: CardProps) {
   const Tag = as;
-  const classes = ["ui-card", VARIANT_CLASS[variant], compact ? "ui-card--pad-sm" : "", className]
+  const classes = ["ui-card", VARIANT_CLASS[variant], compact ? "ui-card--pad-sm" : "", onClick ? "ui-card--interactive" : "", className]
     .filter(Boolean)
     .join(" ");
   return (

@@ -11,6 +11,17 @@ from sqlalchemy.orm import Session
 
 from app.calculations.aspects import aspect_houses, aspects_house
 from app.calculations.astro import RASI_NAMES, house_from_reference, utc_datetime_to_julian_day
+from app.calculations.bhava_palan import (
+    HOUSE_LABEL,
+    band_word,
+    build_palan,
+    render_conduct,
+    render_contrast,
+    render_framing,
+    render_karaka_note,
+    render_polarity_note,
+    render_why,
+)
 from app.calculations.chart_strength import (
     _NATURAL_ENEMIES,
     _NATURAL_FRIENDS,
@@ -18,21 +29,36 @@ from app.calculations.chart_strength import (
     EXALTATION_RASI,
     MOOLATRIKONA_ZONE,
     OWN_SIGN_RASI,
+    SANDHI_EDGE_DEGREES,
+    _baladi_avastha,
     _dignity_score,
     compute_all_bhava_bala,
     d9_dignity_tier,
     detect_planetary_wars,
 )
 from app.calculations.dasha import DashaPeriod, calculate_vimshottari_timeline
-from app.calculations.display_names import planet_en, planet_ta, sani_cycle_en, sani_cycle_ta
+from app.calculations.display_names import (
+    planet_en,
+    planet_ta,
+    rasi_en,
+    rasi_ta,
+    sani_cycle_en,
+    sani_cycle_ta,
+)
+from app.calculations.doctrine_options import DEFAULT_DOCTRINE, DoctrineOptions
 from app.calculations.ephemeris import EphemerisBody, calculate_sidereal_planets
 from app.calculations.functional_nature import get_functional_nature
+from app.calculations.lagna_edge import (
+    lagna_edge_note_for_profile,
+    navamsa_lagna_edge_note_for_profile,
+)
 from app.calculations.nakshatra_lord_dynamics import nakshatra_lord, nakshatra_lord_note
 from app.calculations.planet_conditions import (
     CAZIMI_MEANING,
     D9_DEBILITATED_MEANING,
     D9_DIGNIFIED_MEANING,
     VARGOTTAMA_MEANING,
+    VARGOTTAMA_NEECHA_MEANING,
     combust_meaning,
     retrograde_meaning,
 )
@@ -70,6 +96,7 @@ from app.services.age_phase_service import (
     remedy_lead_in_for_stage,
 )
 from app.services.chart_service import load_persisted_chart_response
+from app.services.feature_flags import current_doctrine_options
 from app.services.narrative_engine import PLANET_NAME
 from app.services.peyarchi_service import get_peyarchi_summary
 
@@ -223,7 +250,7 @@ def _current_period_text(
         return ta, en
     ta = (
         "இந்த கிரகம் இப்போது நேரடி தசை/புக்தி/அந்தர அதிபதி அல்ல; "
-        "அது தசை அல்லது புக்தியாக வரும்போதும், கோசாரத்தில் குரு/சனி இதைத் தொடும்போதும் அதன் முழு பலன் வெளிப்படும்."
+        "அது தசை அல்லது புக்தியாக வரும்போதும், கோச்சாரத்தில் குரு/சனி இதைத் தொடும்போதும் அதன் முழு பலன் வெளிப்படும்."
     )
     en = (
         "This planet is not one of the active period lords right now; "
@@ -481,13 +508,13 @@ def _contact_clause(contact: _TransitContact) -> tuple[str, str]:
         # A return is the graha's own cycle closing, so it is described as the
         # planet's theme coming round again rather than an outside influence.
         return (
-            f"கோசார {planet_ta(contact.source)} {verb_ta}; அதன் சுழற்சி ஒன்று முடிந்து "
+            f"கோச்சார {planet_ta(contact.source)} {verb_ta}; அதன் சுழற்சி ஒன்று முடிந்து "
             f"புதிதாகத் தொடங்குகிறது — இது {effect.ta}",
             f"Transiting {planet_en(contact.source)} {verb_en}, closing one full cycle and "
             f"beginning another; this {effect.en}",
         )
     return (
-        f"கோசார {planet_ta(contact.source)} இதை {verb_ta}; இது {effect.ta}",
+        f"கோச்சார {planet_ta(contact.source)} இதை {verb_ta}; இது {effect.ta}",
         f"Transiting {planet_en(contact.source)} {verb_en}; this {effect.en}",
     )
 
@@ -638,11 +665,12 @@ _FACET_LABELS: dict[str, ChartExplanationText] = {
     "placement": _bi("இப்போதைய நிலை", "Where it sits"),
     "role": _bi("ஜாதகத்தில் பங்கு", "Its role in your chart"),
     "strength": _bi("பலம்", "How strong it is"),
+    "avastha": _bi("அவஸ்தை (பாலாதி)", "Life-stage in its sign (Baladi avastha)"),
     "condition": _bi("சிறப்பு நிலை", "What to work with"),
     "navamsa": _bi("நவாம்ச நிலை", "In the Navamsa (D9)"),
     "activation": _bi("இப்போது இயங்குகிறதா", "Active right now?"),
     "nakshatra": _bi("நட்சத்திர அதிபதி", "Its star lord"),
-    "transit": _bi("நடப்பு கோசாரம்", "Current transit"),
+    "transit": _bi("நடப்பு கோச்சாரம்", "Current transit"),
     "remedy": _bi("பரிகாரம்", "Traditional support"),
     "lordship": _bi("அதிபதி நிலை", "What it rules, and from where"),
     "company": _bi("உடன் இருப்பவை", "Shares its house with"),
@@ -761,6 +789,11 @@ def _score_term_detail(detail_key: str | None, value: str | None) -> ChartExplan
         )
     if detail_key == "degree_in_sign":
         return _bi(f"ராசியில் {value}°", f"{value}° into the sign")
+    if detail_key == "absorbed_by" and value == "baladi":
+        return _bi(
+            "பாலாதி அவஸ்தையின் குறைப்பு பெரியது; அதுவே ஸ்தான பலத்தில் கணக்கில் உள்ளது",
+            "the larger Baladi avastha reduction already counts it, inside sthana bala",
+        )
     if detail_key == "lost_to":
         graha = value or ""
         return _bi(f"{planet_ta(graha)}-இடம் தோற்றது", f"lost to {planet_en(graha)}")
@@ -804,6 +837,20 @@ def _navamsa_facet_value(planet: PlanetPosition) -> tuple[ChartExplanationText |
     d9_name = RASI_NAMES.get(d9_rasi, str(d9_rasi))
     tier = d9_dignity_tier(planet.graha, d9_rasi)
 
+    if planet.is_vargottama and tier < 0:
+        # Neecha in both charts. Both facts, neither erasing the other (ruling
+        # 2026-10-01); the scorer nets +4 vargottama against the D9 penalty.
+        return (
+            _bi(
+                f"நவாம்சத்திலும் அதே {d9_name} ராசி — வர்கோத்தமம். ஆனால் இது இந்தக் கிரகத்தின் "
+                "நீச ராசி; ராசியிலும் நவாம்சத்திலும் நீசம். வர்கோத்தமம் நிலையை உறுதியாக்கும், "
+                "நீசத்தை நீக்காது.",
+                f"Same sign ({d9_name}) in the Navamsa — vargottama. But that is this planet's "
+                "debilitation sign, so it is debilitated in both charts. Vargottama makes the "
+                "placement consistent; it does not lift the debility.",
+            ),
+            "NEUTRAL",
+        )
     if planet.is_vargottama:
         return (
             _bi(
@@ -857,12 +904,131 @@ class _ConditionState:
     polarity: int  # +1 strengthening, -1 restraining, 0 descriptive
 
 
-_SANDHI_MEANING: tuple[str, str] = (
-    "ராசியின் விளிம்பில் (சந்தி) அமர்ந்துள்ளது — இதன் விஷயங்கள் ஒரு நிலையிலிருந்து "
-    "இன்னொரு நிலைக்கு மாறும் கட்டத்தில் உள்ளன; பலன் முழுமையாக நிலைபெற நேரம் எடுக்கும்.",
-    "It sits right at the edge of its sign (sandhi) — its themes are in transition between one "
-    "sign's terms and the next, so results here settle later than the placement alone suggests.",
-)
+# Grahas whose natal motion runs backwards through the zodiac. The nodes always
+# do (mean or true); any other graha does when retrograde. Direction decides
+# which neighbour a sign-edge graha has just left and which it is heading into.
+_ALWAYS_BACKWARD = frozenset({"RAHU", "KETU"})
+
+
+def _sandhi_meaning(planet: PlanetPosition) -> tuple[str, str]:
+    """The sign-edge sentence, naming the neighbour and the direction of travel.
+
+    The generic version ("in transition between one sign's terms and the next")
+    never said WHICH neighbour, so a reader of Saturn at 0°56' Meenam could not
+    tell it had just left Kumbam — and popular write-ups then fill that gap with
+    "it carries the previous house's results", which this whole-sign chart does
+    not do. The sentence says both halves: which edge, and that house and
+    lordship are still read fully from the sign it occupies.
+    """
+    deg = planet.absolute_longitude % 30
+    rasi = planet.rasi
+    prev_rasi = 12 if rasi == 1 else rasi - 1
+    next_rasi = 1 if rasi == 12 else rasi + 1
+    at_start = deg <= SANDHI_EDGE_DEGREES
+    backward = planet.is_retrograde or planet.graha in _ALWAYS_BACKWARD
+    # Forward at the start: just arrived from the previous sign.
+    # Backward at the start: about to slip back into the previous sign.
+    # Forward at the end: about to move on into the next sign.
+    # Backward at the end: just arrived (backwards) from the next sign.
+    neighbour = prev_rasi if at_start else next_rasi
+    arriving = at_start != backward
+    here_ta, here_en = rasi_ta(rasi), rasi_en(rasi)
+    other_ta, other_en = rasi_ta(neighbour), rasi_en(neighbour)
+    deg_text = f"{deg:.2f}°"
+    if arriving:
+        ta_edge = f"{other_ta} ராசியிலிருந்து இப்போதுதான் {here_ta} ராசிக்குள் நுழைந்துள்ளது ({here_ta} {deg_text})"
+        en_edge = f"it has only just crossed from {other_en} into {here_en} ({deg_text} {here_en})"
+    else:
+        ta_edge = f"{here_ta} ராசியை விட்டு {other_ta} ராசிக்குச் செல்லும் விளிம்பில் உள்ளது ({here_ta} {deg_text})"
+        en_edge = f"it is on the point of leaving {here_en} for {other_en} ({deg_text} {here_en})"
+    # Wording is the astrologer's (2026-09-23, sign-edge Q3). "Fully" was
+    # dropped: it read as "undiminished strength", which the edge penalty
+    # contradicts. The rule is about WHICH sign, not how strong.
+    return (
+        f"ராசி சந்தி: {ta_edge}. இது தன் ராசி, வீட்டுப் பலன்களை {here_ta} ராசியிலிருந்து "
+        f"மட்டுமே தருகிறது. விளிம்பில் இருப்பது இதன் பலத்தைக் குறைக்கலாம்; ஆனால் இதை "
+        f"{other_ta} ராசிக்கு ஒருபோதும் நகர்த்தாது.",
+        f"Sign edge (sandhi): {en_edge}. It gives its sign and house results only from "
+        f"{here_en}. Nearness to the edge can lower its strength but never moves it into "
+        f"{other_en}.",
+    )
+
+
+# Baladi avastha. The zoning and the even-sign reversal are BPHS and signed off
+# (see chart_strength's block comment); the multiplier curve is [PRODUCT] and is
+# deliberately NOT quoted here — this copy says what the stage means, not what
+# fraction of effect it yields, because that fraction is still page-needed (PN-2).
+_BALADI_TEXT: dict[str, tuple[str, str, str]] = {
+    "BALA": (
+        "பால அவஸ்தை (குழந்தை நிலை) — இதன் பலன்கள் இன்னும் முழுமையாக உருவாகவில்லை; காலப்போக்கில் மெல்ல வளரும்.",
+        "Bala avastha (infant) — its results are not yet fully formed and grow slowly with time.",
+        "NEUTRAL",
+    ),
+    "KUMARA": (
+        "குமார அவஸ்தை (இளமை நிலை) — பலன்கள் வளர்ந்து வரும் நிலையில், நல்ல அளவில் கிடைக்கும்.",
+        "Kumara avastha (youth) — its results are growing and come through in good measure.",
+        "NEUTRAL",
+    ),
+    "YUVA": (
+        "யுவ அவஸ்தை (முழு வாலிப நிலை) — இதன் பலன்கள் முழுமையாக வெளிப்படும் சிறந்த நிலை.",
+        "Yuva avastha (prime) — the stage in which a graha gives its results in full.",
+        "BOOST",
+    ),
+    "VRIDDHA": (
+        "விருத்த அவஸ்தை (முதுமை நிலை) — பலன்கள் குறைந்து, மெலிந்து வெளிப்படும்.",
+        "Vriddha avastha (old age) — its results come through thinned and reduced.",
+        "NEUTRAL",
+    ),
+    "MRITA": (
+        "மிருத அவஸ்தை — பாரம்பரியமாக மிகப் பலவீனமான நிலை; இதன் சொந்தப் பலன்கள் மங்கலாகவே "
+        "வரும். ராசி பலம், பார்வை, தசை போன்ற மற்ற ஆதரவுகளே இங்கு அதிக எடை பெறுகின்றன.",
+        "Mrita avastha — classically the weakest stage; its own results come through only "
+        "faintly, so the chart's other supports (sign dignity, aspects, dasha) carry more weight here.",
+        "CAUTION",
+    ),
+}
+
+
+def _avastha_facet_value(planet: PlanetPosition) -> tuple[ChartExplanationText | None, str]:
+    """Baladi avastha, stated with the degree band and the odd/even rule.
+
+    Computed from the planet's own longitude by the scorer's function rather
+    than read from `strength_breakdown`, whose model default claims "YUVA" for
+    any planet built without one — a default that would silently narrate the
+    wrong stage.
+
+    Nodes and Mandhi get no line. Baladi is defined for the seven grahas
+    (astrologer ruling 2026-09-23, sign-edge Q2); the scorer exempts the nodes
+    too, so the text and the number agree.
+    """
+    if planet.graha not in _NATAL_PLANETS or planet.graha in _NODES:
+        return None, "NEUTRAL"
+    stage = _baladi_avastha(planet.absolute_longitude, planet.rasi)
+    text = _BALADI_TEXT.get(stage)
+    if text is None:
+        return None, "NEUTRAL"
+    stage_ta, stage_en, tone = text
+    deg = planet.absolute_longitude % 30
+    zone = min(int(deg / 6.0), 4)
+    band = f"{zone * 6}°–{zone * 6 + 6}°"
+    is_odd = planet.rasi % 2 == 1
+    here_ta, here_en = rasi_ta(planet.rasi), rasi_en(planet.rasi)
+    if is_odd:
+        rule_ta = f"{here_ta} ஒற்றை ராசி; {deg:.2f}° என்பது {band} பகுதி."
+        rule_en = f"{here_en} is an odd sign; {deg:.2f}° falls in the {band} band."
+    else:
+        # The case popular write-ups get wrong: they apply the odd-sign order
+        # everywhere and call 0-6° of Meenam "infant". In an even sign the
+        # order runs backwards, so the first band is Mrita.
+        rule_ta = (
+            f"{here_ta} இரட்டை ராசி — இங்கு அவஸ்தை வரிசை தலைகீழ் "
+            f"(முதல் 6° மிருத அவஸ்தை, கடைசி 6° பால அவஸ்தை); {deg:.2f}° என்பது {band} பகுதி."
+        )
+        rule_en = (
+            f"{here_en} is an even sign, where the order runs backwards "
+            f"(first 6° Mrita, last 6° Bala); {deg:.2f}° falls in the {band} band."
+        )
+    return _bi(f"{stage_ta} {rule_ta}", f"{stage_en} {rule_en}"), tone
 
 
 def _planet_condition_states(
@@ -914,16 +1080,23 @@ def _planet_condition_states(
             states.append(_ConditionState("retrograde", ta, en, polarity=0))
 
     deg_in_sign = planet.absolute_longitude % 30
-    if deg_in_sign <= 1.0 or deg_in_sign >= 29.0:
-        # Scored (-8 in chart_strength) since long before it was ever said out
-        # loud. It is frequently the entire reason an otherwise-dignified graha
+    if deg_in_sign <= SANDHI_EDGE_DEGREES or deg_in_sign >= 30.0 - SANDHI_EDGE_DEGREES:
+        # Scored in chart_strength (-8, or absorbed by a larger Baladi cost —
+        # never both). It is frequently the reason an otherwise-dignified graha
         # lands mid-scale, which made the number look wrong.
-        states.append(_ConditionState("sandhi", *_SANDHI_MEANING, polarity=-1))
+        states.append(_ConditionState("sandhi", *_sandhi_meaning(planet), polarity=-1))
 
     d9_rasi = getattr(planet, "d9_rasi", None)
     tier = d9_dignity_tier(graha, d9_rasi) if d9_rasi is not None else 0
+    # Vargottama no longer outranks a D9 debility (ruling 2026-10-01): the
+    # scorer charges both rows, so the prose states both. A positive D9 tier is
+    # still folded into vargottama — same direction, nothing to reconcile.
     if planet.is_vargottama:
         states.append(_ConditionState("vargottama", *VARGOTTAMA_MEANING, polarity=1))
+        if tier < 0:
+            states.append(
+                _ConditionState("d9_debilitated", *VARGOTTAMA_NEECHA_MEANING, polarity=-1)
+            )
     elif tier < 0:
         states.append(_ConditionState("d9_debilitated", *D9_DEBILITATED_MEANING, polarity=-1))
     elif tier > 0:
@@ -981,7 +1154,14 @@ def _synthesis_facet_value(
 ) -> tuple[ChartExplanationText | None, str]:
     """The one sentence that reconciles this planet's competing signals."""
     restraints = [s for s in states if s.polarity < 0]
-    supports = [s for s in states if s.polarity > 0]
+    # Vargottama in the neecha sign steadies a debility, it does not protect
+    # against it (ruling 2026-10-01) — so it never reads as "yet X protects it".
+    neecha_vargottama = any(s.key == "vargottama" for s in states) and any(
+        s.key == "d9_debilitated" for s in states
+    )
+    supports = [
+        s for s in states if s.polarity > 0 and not (neecha_vargottama and s.key == "vargottama")
+    ]
     strong_dignity = dignity in _STRONG_DIGNITIES
     weak_dignity = dignity in _WEAK_DIGNITIES
 
@@ -1013,7 +1193,10 @@ def _synthesis_facet_value(
     # which is a materially different reading from the same restraints with an
     # unsupportive Navamsa.
     d9_backs = any(s.key in {"vargottama", "d9_dignified"} for s in supports)
-    if d9_backs:
+    if neecha_vargottama:
+        closing_ta = "வர்கோத்தமம் இந்த நிலையை உறுதியாக்குகிறது, ஆனால் நீசத்தை நீக்குவதில்லை; தொடர் முயற்சி தேவை."
+        closing_en = "Vargottama makes the placement consistent but does not lift the debility, so sustained effort matters here."
+    elif d9_backs:
         closing_ta = "நவாம்சம் இதை ஆதரிப்பதால் இந்த பலம் உண்மையானது — காலப்போக்கில் முதிர்ந்து வெளிப்படும்."
         closing_en = "The Navamsa backs it, so the strength is real and matures with time."
     elif any(s.key == "d9_debilitated" for s in states):
@@ -1112,6 +1295,19 @@ def _planet_facets(
             ),
         ),
     ]
+
+    # Directly under strength, because it is the half of strength the dignity
+    # line cannot say: the same sign reads differently at 0°56' than at 15°.
+    avastha_value, avastha_tone = _avastha_facet_value(planet)
+    if avastha_value is not None:
+        facets.append(
+            ChartExplanationFacet(
+                key="avastha",
+                label=_FACET_LABELS["avastha"],
+                value=avastha_value,
+                tone=avastha_tone,
+            )
+        )
 
     # Bhavat-bhavam: "as 5th lord placed in the 8th, learning and children pass
     # through periods of deep change." The card stated lordship (in `role`) and
@@ -1288,6 +1484,7 @@ def _build_planet_sections(
     # House of every plotted body, so a planet's star-lord note can say where
     # that lord actually sits instead of only naming it.
     lord_house_by_graha = {p.graha: p.house_from_lagna for p in planets}
+    rasi_by_graha = {p.graha: p.rasi for p in planets}
     longitudes = {p.graha: p.absolute_longitude for p in planets}
     # Graha yuddham. Detected by the same canonical function the scorer uses, so
     # the -15 the reader can see in the breakdown and the sentence explaining it
@@ -1311,7 +1508,9 @@ def _build_planet_sections(
     items: list[ChartExplanationPlanet] = []
     for planet in planets:
         dignity = _dignity_label(planet)
-        dignity_score = _dignity_score(planet.graha, planet.rasi, planet.absolute_longitude)
+        # Same compound (G1) grading the scorer uses, so the label and the
+        # number beside it cannot disagree.
+        dignity_score = _dignity_score(planet.graha, planet.rasi, planet.absolute_longitude, rasi_by_graha)
         fn = functional.get(planet.graha, "NEUTRAL")
         contacts = _planet_transit_contacts(planet, transit_bodies)
         transit_contact, hidden_contacts = _split_transit_contact(contacts)
@@ -1523,6 +1722,9 @@ _SIGN_LORD_BY_RASI: dict[int, str] = SIGN_LORD
 def _build_bhava_section(
     planets: list[PlanetPosition],
     lagna_rasi: int,
+    d9_lagna_rasi: int | None = None,
+    *,
+    doctrine: DoctrineOptions = DEFAULT_DOCTRINE,
 ) -> ChartExplanationBhavaSection:
     """Read all twelve bhavas as life areas.
 
@@ -1538,6 +1740,11 @@ def _build_bhava_section(
         p.graha: p.strength_score for p in planets if p.strength_score is not None
     }
     bhava_bala = compute_all_bhava_bala(lagna_rasi, planets_rasi, planet_scores)
+    # Read for the why-line only — D9 already reached `bhava_bala` upstream, inside
+    # each lord's `strength_score` (vargottama, D9 dignity, and the +14 neecha bhanga
+    # term). Passing it here lets the sentence say so when the Rasi chart drawn beside
+    # it appears to contradict the verdict; it moves no number.
+    d9_rasi = {p.graha: p.d9_rasi for p in planets}
 
     bhavas: list[ChartExplanationBhava] = []
     for house in range(1, 13):
@@ -1589,6 +1796,36 @@ def _build_bhava_section(
             aspect_ta = " எந்த கிரகப் பார்வையும் இதன் மேல் விழவில்லை."
             aspect_en = " No planetary aspect falls on it."
 
+        # Bhava palan — the verdict/why/conduct triple (2026-09-28). Built from the
+        # bala already computed above rather than recomputing it, so the panel and
+        # the number can never disagree.
+        house_bala = bhava_bala.get(house)
+        palan = (
+            build_palan(
+                house,
+                lagna_rasi,
+                planets_rasi,
+                planet_scores,
+                house_bala,
+                d9_rasi=d9_rasi,
+                d9_lagna_rasi=d9_lagna_rasi,
+                doctrine=doctrine,
+            )
+            if house_bala is not None
+            else None
+        )
+        if palan is not None:
+            band_ta, band_en = band_word(palan.verdict, house)
+            label_ta, label_en = HOUSE_LABEL[house]
+            framing_ta, framing_en = render_framing(palan)
+            why_ta, why_en = render_why(palan, lord_house)
+            lean, slow = render_conduct(palan)
+            karaka = render_karaka_note(palan)
+            polarity_note = render_polarity_note(palan)
+            contrast = render_contrast(
+                house, lagna_rasi, planets_rasi, planet_scores, palan.verdict
+            )
+
         bhavas.append(
             ChartExplanationBhava(
                 house=house,
@@ -1599,7 +1836,18 @@ def _build_bhava_section(
                 lord_strength=planet_scores.get(lord),
                 occupants=occupants,
                 aspecting_planets=aspecting,
-                bhava_bala=bhava_bala.get(house),
+                bhava_bala=house_bala,
+                verdict=palan.verdict if palan else None,
+                polarity=palan.polarity if palan else None,
+                band_word=_bi(band_ta, band_en) if palan else None,
+                house_label=_bi(label_ta, label_en) if palan else None,
+                framing=_bi(framing_ta, framing_en) if palan else None,
+                why=_bi(why_ta, why_en) if palan else None,
+                lean_on=[_bi(t, e) for t, e in lean] if palan else [],
+                go_slowly_with=[_bi(t, e) for t, e in slow] if palan else [],
+                karaka_note=_bi(*karaka) if palan and karaka else None,
+                polarity_note=_bi(*polarity_note) if palan and polarity_note else None,
+                contrast=_bi(*contrast) if palan and contrast else None,
                 theme=theme,
                 explanation=_bi(
                     (
@@ -1648,7 +1896,7 @@ def _house_group_synthesis(name: str, group_planets: list[PlanetPosition]) -> Ch
     if name == "TRIKONA":
         if count == 0:
             return _bi(
-                "உங்கள் ஜாதகத்தில் திரிகோண வீடுகளில் (1/5/9) கிரகம் இல்லை; நல்லூழ் தொடர்பான ஆதரவு பெரும்பாலும் தசை/கோசாரம் மூலம் மட்டுமே வெளிப்படும், நிலையான பின்புலமாக இல்லை.",
+                "உங்கள் ஜாதகத்தில் திரிகோண வீடுகளில் (1/5/9) கிரகம் இல்லை; நல்லூழ் தொடர்பான ஆதரவு பெரும்பாலும் தசை/கோச்சாரம் மூலம் மட்டுமே வெளிப்படும், நிலையான பின்புலமாக இல்லை.",
                 "No planets sit in your Trikona houses (1/5/9); grace-related support mostly surfaces only through dasha and transit timing, rather than as a steady background presence.",
             )
         return _bi(
@@ -1743,7 +1991,7 @@ def _activation_signal_text(source_planet: str, active_lord: str, signal_type: s
     lord_ta, lord_en = planet_ta(active_lord), planet_en(active_lord)
     if signal_type == "TRANSIT_CONJUNCTION":
         return _bi(
-            f"கோசார {source_ta} நடப்பு {lord_ta} தசை கிரகத்தின் பிறப்பு ராசியை தொடுகிறது.",
+            f"கோச்சார {source_ta} நடப்பு {lord_ta} தசை கிரகத்தின் பிறப்பு ராசியை தொடுகிறது.",
             f"Transit {source_en} touches the natal sign of the active {lord_en} period lord.",
         )
     if signal_type == "DASHA_LORD_RETURN":
@@ -1752,7 +2000,7 @@ def _activation_signal_text(source_planet: str, active_lord: str, signal_type: s
             f"{lord_en} is transiting its natal sign, so that planet's themes receive extra focus.",
         )
     return _bi(
-        f"கோசார {source_ta} நடப்பு {lord_ta} தசை கிரகத்தை பார்வையால் தொடுகிறது.",
+        f"கோச்சார {source_ta} நடப்பு {lord_ta} தசை கிரகத்தை பார்வையால் தொடுகிறது.",
         f"Transit {source_en} aspects the natal {lord_en} period lord.",
     )
 
@@ -1811,7 +2059,7 @@ def _activation_explanation(
         (
             f"{level_ta} நிலையில் {planet_ta(period.lord)} செயல்படும் கிரகம். பிறப்பு ஜாதகத்தில் இது லக்னத்திலிருந்து "
             f"{natal_planet.house_from_lagna}-ஆம் இடத்தில் இருந்து {natal_theme.ta} துறையை இயக்குகிறது. "
-            f"இப்போது கோசாரத்தில் லக்னத்திலிருந்து {transit_house_from_lagna}-ஆம் இடம், சந்திரனிலிருந்து "
+            f"இப்போது கோச்சாரத்தில் லக்னத்திலிருந்து {transit_house_from_lagna}-ஆம் இடம், சந்திரனிலிருந்து "
             f"{transit_house_from_moon}-ஆம் இடம்; இதனால் இந்த அடுக்கு {tone_copy.ta} போக்கில் படிக்கப்படுகிறது."
         ),
         (
@@ -1908,7 +2156,7 @@ def _build_current_activation_section(
     )
     transit_summary = _bi(
         (
-            f"கோசாரத்தில் {len(all_signals)} முக்கிய தொடுதல்கள் உள்ளன; {support_count} அடுக்குகள் ஆதரவு போக்கிலும் "
+            f"கோச்சாரத்தில் {len(all_signals)} முக்கிய தொடுதல்கள் உள்ளன; {support_count} அடுக்குகள் ஆதரவு போக்கிலும் "
             f"{caution_count} அடுக்குகள் கவன போக்கிலும் படிக்கப்படுகின்றன."
         ),
         (
@@ -1923,7 +2171,7 @@ def _build_current_activation_section(
         transit_summary=transit_summary,
         active_lords=active_lords,
         explanation=_bi(
-            "இந்த பகுதி பிறப்பு ஜாதக வாக்குறுதியையும் நடப்பு தசை/புக்தி/அந்தரம் மற்றும் கோசார இயக்கத்தையும் இணைக்கிறது.",
+            "இந்த பகுதி பிறப்பு ஜாதக வாக்குறுதியையும் நடப்பு தசை/புக்தி/அந்தரம் மற்றும் கோச்சார இயக்கத்தையும் இணைக்கிறது.",
             "This section connects natal promise with the current Mahadasha, Bhukti, Antaram, and gochar movement.",
         ),
     )
@@ -2179,6 +2427,13 @@ def _build_peyarchi_section(session: Session, chart_id: UUID, *, as_of: date, wi
     )
 
 
+def _core_lagna_edge_note(chart: Chart, data, *, navamsa: bool = False) -> ChartExplanationText | None:
+    """Lagna (or D9 Lagna) edge note for a persisted chart; None when safe."""
+    build = navamsa_lagna_edge_note_for_profile if navamsa else lagna_edge_note_for_profile
+    note = build(data.lagna.absolute_longitude, data.julian_day, getattr(chart, "birth_profile", None))
+    return _bi(*note) if note is not None else None
+
+
 def _reader_life_stage(chart: Chart, as_of: date) -> str:
     """Life stage of the person this chart belongs to, ADULT when unknowable.
 
@@ -2204,6 +2459,7 @@ def build_chart_explanation(
     as_of: date,
     peyarchi_window_days: int = 700,
 ) -> ChartExplanationResponse:
+    doctrine = current_doctrine_options()
     chart = session.get(Chart, chart_id)
     if chart is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chart not found.")
@@ -2249,6 +2505,8 @@ def build_chart_explanation(
             "இந்த பகுதி லக்னம், சந்திர ராசி, நடப்பு தசை ஆகியவற்றை ஒரே அடிப்படையாக இணைக்கிறது.",
             "This section connects Lagna, Moon sign, and the current dasha as the chart's working base.",
         ),
+        lagna_edge_note=_core_lagna_edge_note(chart, data),
+        navamsa_lagna_edge_note=_core_lagna_edge_note(chart, data, navamsa=True),
     )
 
     response = ChartExplanationResponse(
@@ -2259,7 +2517,12 @@ def build_chart_explanation(
             conjunctions=_build_conjunctions(planets, data.lagna.rasi),
             aspects=_build_aspects(planets),
             house_groups=_build_house_groups(planets),
-            bhavas=_build_bhava_section(planets, data.lagna.rasi),
+            bhavas=_build_bhava_section(
+                planets,
+                data.lagna.rasi,
+                data.lagna.d9_rasi,
+                doctrine=doctrine,
+            ),
             functional_nature=functional_nature,
             yoga_dosham=ChartExplanationYogaDoshamSection(
                 yogas=data.yogas,

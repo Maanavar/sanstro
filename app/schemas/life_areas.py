@@ -78,6 +78,16 @@ class LifeAreaData(BaseModel):
     reading: str | None = Field(default=None)
     score_breakdown: dict[str, int] | None = Field(default=None, alias="scoreBreakdown")
     structured_remedy: dict[str, object] | None = Field(default=None, alias="structuredRemedy")
+    #: "REMEDY" when the area needs care, "MAINTAIN" when it is well supported
+    #: and `remedy` carries a light practice instead of a parikaram (owner
+    #: ruling 2026-10-01). None for a phase-skipped or score-suppressed area.
+    remedy_kind: str | None = Field(default=None, alias="remedyKind")
+    #: The one-line reading of `score` itself, from the shared interpretation
+    #: scale (EXCEPTIONAL / STRONG / GOOD / MIXED / DIFFICULT / VERY_WEAK) and
+    #: its owner-approved copy. Read from the score the card displays, never
+    #: from an intermediate one. None when no score is claimed.
+    score_band: str | None = Field(default=None, alias="scoreBand")
+    score_band_text: LifeAreaText | None = Field(default=None, alias="scoreBandText")
     # Root-cause chain (plan Phase 5, D-synthesis): an ordered "because ...
     # therefore ..." reading in place of the flat factor list, for LOW-
     # confidence areas only. Additive — populated only when the

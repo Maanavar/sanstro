@@ -14,6 +14,7 @@ from app.models.family_vault import FamilyVault
 from app.models.feedback import Feedback
 from app.models.interpretation_output import InterpretationOutput
 from app.models.journal_entry import JournalEntry
+from app.models.life_focus_event import LifeFocusEvent
 from app.models.newsletter_subscriber import NewsletterSubscriber
 from app.models.notification import Notification
 from app.models.numerology_name_session import NumerologyNameSession
@@ -53,6 +54,7 @@ __all__ = [
     "Feedback",
     "InterpretationOutput",
     "JournalEntry",
+    "LifeFocusEvent",
     "NewsletterSubscriber",
     "Notification",
     "NumerologyNameSession",

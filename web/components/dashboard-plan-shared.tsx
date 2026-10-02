@@ -281,7 +281,7 @@ export function PlanEventsPanel({ lang, chartId }: { lang: Lang; chartId: string
       <div className="surface__body">
         <p style={{ margin: "0 0 var(--space-3)", fontSize: "var(--text-base)", color: "var(--color-faint)", lineHeight: 1.5 }}>
           {lang === "ta"
-            ? "அடுத்த ஐந்து ஆண்டுகளில் தொழில், திருமணம், படிப்பு, இடமாற்றம் மற்றும் ஆரோக்கியம் தொடர்பான முக்கிய காலகட்டங்கள் — தசை மற்றும் கிரகநகர்வு ஆதரவு சேரும் இடங்களில்."
+            ? "அடுத்த ஐந்து ஆண்டுகளில் தொழில், திருமணம், படிப்பு, இடமாற்றம் மற்றும் ஆரோக்கியம் தொடர்பான முக்கிய காலகட்டங்கள் — தசை மற்றும் கோச்சார ஆதரவு சேரும் இடங்களில்."
             : "Key windows for career, marriage, studies, relocation, and health over the next five years — where dasha and transit support converge."}
         </p>
         <DashboardLifeEvents lang={lang} chartId={chartId || null} />

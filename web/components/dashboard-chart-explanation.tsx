@@ -3,7 +3,7 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { formatDateLabel } from "@/lib/format";
-import { D1_RASI_NAMES } from "@/lib/chart-utils";
+import { rasiDisplayName, rasiLabel } from "@/lib/chart-utils";
 import { tNakshatra, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type {
@@ -28,7 +28,6 @@ import {
   type BiCopy,
   type RelationshipTone,
   type SectionId,
-  TAMIL_RASI_NAMES,
   KENDRA_HOUSES,
   TRIKONA_HOUSES,
   DUSTHANA_HOUSES,
@@ -75,7 +74,7 @@ function tx(copy: BiCopy, lang: Lang): string {
 
 function rasiName(rasi: number | null | undefined, lang: Lang): string {
   if (!rasi) return lang === "ta" ? "தெரியவில்லை" : "Unknown";
-  return lang === "ta" ? (TAMIL_RASI_NAMES[rasi] ?? `${rasi}`) : (D1_RASI_NAMES[rasi] ?? `Rasi ${rasi}`);
+  return rasiLabel(rasi, lang);
 }
 
 function ordinalHouse(house: number, lang: Lang): string {
@@ -240,10 +239,10 @@ function activationToneColor(tone: string): string {
 }
 
 function signalTypeLabel(signalType: string, lang: Lang): string {
-  if (signalType === "DASHA_LORD_RETURN") return lang === "ta" ? "சுய ராசி கிரகநகர்வு" : "Natal sign return";
+  if (signalType === "DASHA_LORD_RETURN") return lang === "ta" ? "சுய ராசி கோச்சாரம்" : "Natal sign return";
   if (signalType === "TRANSIT_RETURN") return lang === "ta" ? "சுய ராசிக்கு திரும்புதல்" : "Return to its own natal sign";
-  if (signalType === "TRANSIT_CONJUNCTION") return lang === "ta" ? "கிரகநகர்வு சேர்க்கை" : "Transit conjunction";
-  if (signalType.startsWith("TRANSIT_ASPECT_")) return lang === "ta" ? "கிரகநகர்வு பார்வை" : "Transit aspect";
+  if (signalType === "TRANSIT_CONJUNCTION") return lang === "ta" ? "கோச்சார சேர்க்கை" : "Transit conjunction";
+  if (signalType.startsWith("TRANSIT_ASPECT_")) return lang === "ta" ? "கோச்சார பார்வை" : "Transit aspect";
   return signalType.replaceAll("_", " ");
 }
 
@@ -493,6 +492,9 @@ function houseGroupFor(house: number): "kendra" | "trikona" | "dusthana" | "othe
 
 function normalizeHouseGroup(group: string): "kendra" | "trikona" | "dusthana" | "other" {
   const key = group.toLowerCase();
+  // The lagna arrives as KENDRA_TRIKONA; without this a planet in the 1st house
+  // was chipped "Other". Kendra wins, matching houseGroupFor above.
+  if (key === "kendra_trikona") return "kendra";
   if (key === "kendra" || key === "trikona" || key === "dusthana") return key;
   return "other";
 }
@@ -775,7 +777,7 @@ function Chevron({ open }: { open: boolean }) {
         width: "14px",
         height: "14px",
         transform: open ? "rotate(180deg)" : "rotate(0deg)",
-        transition: "transform 140ms ease",
+        transition: "transform 140ms var(--ease-nova)",
       }}
     >
       <path d="M5 8l5 5 5-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
@@ -898,7 +900,7 @@ export function ChartExplanationPanel({
           ? `சனி சந்திரனிலிருந்து ${derived.saturnFromMoon}-ஆம் இடம்`
           : `Saturn ${derived.saturnFromMoon} from Moon`
         : lang === "ta"
-          ? "சனி கிரகநகர்வு ஏற்றப்படுகிறது"
+          ? "சனி கோச்சாரம் ஏற்றப்படுகிறது"
           : "Saturn transit loading";
     return lang === "ta"
       ? `${derived.kendraPlanets.length} கிரகங்கள் கேந்திரத்தில்; ${moonPhrase}; ${saniShort}.`
@@ -954,9 +956,14 @@ export function ChartExplanationPanel({
             {teaser}
           </p>
         </div>
+        {/* Kit variants carry the two states (OD-4 button kind): secondary
+            while closed, primary while open. The inline fills gave no hover
+            or press. The pill shape and size stay inline; neither blocks a
+            state. */}
         <button
           ref={toggleRef}
           type="button"
+          className={open ? "ui-btn ui-btn--primary" : "ui-btn ui-btn--secondary"}
           aria-expanded={open}
           onClick={() => {
             pinTo(toggleRef.current);
@@ -964,21 +971,8 @@ export function ChartExplanationPanel({
           }}
           style={{
             overflowAnchor: "none",
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "var(--space-1_5)",
-            minHeight: "36px",
-            padding: "var(--space-1_5) var(--space-4)",
             borderRadius: "var(--radius-pill)",
-            border: "1.5px solid var(--color-border-strong)",
-            background: open ? "var(--color-text-strong)" : "var(--color-surface)",
-            color: open ? "var(--color-bg)" : "var(--color-text)",
             fontSize: "var(--text-base)",
-            fontWeight: 700,
-            cursor: "pointer",
-            fontFamily: "inherit",
-            whiteSpace: "nowrap",
           }}
         >
           <Chevron open={open} />
@@ -1058,14 +1052,25 @@ export function ChartExplanationPanel({
                     <DetailRow
                       label={lang === "ta" ? "லக்னம்" : "Lagna"}
                       value={coreIdentity
-                        ? coreIdentity.lagnaRasi
+                        ? rasiDisplayName(coreIdentity.lagnaRasi, lang)
                         : `${rasiName(chart.lagna.rasi, lang)} - ${tNakshatra(chart.lagna.nakshatraName, lang)} ${lang === "ta" ? "பாதம்" : "Pada"} ${chart.lagna.pada}`}
                     />
+                    {[coreIdentity?.lagnaEdgeNote, coreIdentity?.navamsaLagnaEdgeNote].map((note, index) =>
+                      note ? (
+                        <p
+                          key={index}
+                          role="note"
+                          style={{ margin: 0, fontSize: "var(--text-sm)", lineHeight: 1.5, color: "var(--color-text)" }}
+                        >
+                          {tx(note, lang)}
+                        </p>
+                      ) : null,
+                    )}
                     <DetailRow
                       label={lang === "ta" ? "சந்திரன்" : "Moon"}
                       value={
                         coreIdentity
-                          ? `${coreIdentity.moonRasi} - ${coreIdentity.janmaNakshatra} ${lang === "ta" ? "பாதம்" : "Pada"} ${coreIdentity.janmaPada}`
+                          ? `${rasiDisplayName(coreIdentity.moonRasi, lang)} - ${tNakshatra(coreIdentity.janmaNakshatra, lang)} ${lang === "ta" ? "பாதம்" : "Pada"} ${coreIdentity.janmaPada}`
                           : derived.moon
                           ? `${rasiName(derived.moon.rasi, lang)} - ${tNakshatra(derived.moon.nakshatraName, lang)} ${lang === "ta" ? "பாதம்" : "Pada"} ${derived.moon.pada}`
                           : (lang === "ta" ? "சந்திர தரவு இல்லை" : "Moon data unavailable")
@@ -1100,7 +1105,7 @@ export function ChartExplanationPanel({
                           value={tx(backendCurrentActivation.periodSummary, lang)}
                         />
                         <DetailRow
-                          label={lang === "ta" ? "கிரகநகர்வு நிலை" : "Transit status"}
+                          label={lang === "ta" ? "கோச்சார நிலை" : "Transit status"}
                           value={tx(backendCurrentActivation.transitSummary, lang)}
                         />
                       </div>
@@ -1123,7 +1128,7 @@ export function ChartExplanationPanel({
                               <Chip>{lang === "ta" ? "சந்திரனிலிருந்து" : "From Moon"}: {ordinalHouse(item.natalHouseFromMoon, lang)}</Chip>
                               <Chip>{natureLabel(item.functionalNature, lang)}</Chip>
                               <Chip>{Math.round(item.natalStrengthScore)}/100</Chip>
-                              <Chip>{lang === "ta" ? "கிரகநகர்வு" : "Transit"}: {ordinalHouse(item.transitHouseFromLagna, lang)}</Chip>
+                              <Chip>{lang === "ta" ? "கோச்சாரம்" : "Transit"}: {ordinalHouse(item.transitHouseFromLagna, lang)}</Chip>
                               {item.transitIsRetrograde && <Chip>{lang === "ta" ? "வக்கிரம்" : "Retrograde"}</Chip>}
                             </div>
                             <p style={{ margin: "0 0 var(--space-2)", fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.55 }}>
@@ -1136,7 +1141,7 @@ export function ChartExplanationPanel({
                                       {displayPlanet(signal.sourcePlanet, lang)}: {signalTypeLabel(signal.signalType, lang)}
                                     </Chip>
                                   ))
-                                : <Chip>{lang === "ta" ? "நேரடி பெரிய கிரகநகர்வு தொடுதல் இல்லை" : "No direct major transit contact"}</Chip>}
+                                : <Chip>{lang === "ta" ? "நேரடி பெரிய கோச்சார தொடுதல் இல்லை" : "No direct major transit contact"}</Chip>}
                             </div>
                           </Card>
                         ))}
@@ -1440,7 +1445,7 @@ export function ChartExplanationPanel({
 
                   <div style={{ display: "grid", gap: "var(--space-2)" }}>
                     <p style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>
-                      {lang === "ta" ? "இன்றைய குரு / சனி கோசாரப் பார்வை" : "Guru / Sani — Current Transit Aspects"}
+                      {lang === "ta" ? "இன்றைய குரு / சனி கோச்சாரப் பார்வை" : "Guru / Sani — Current Transit Aspects"}
                     </p>
                     <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-faint)", lineHeight: 1.45 }}>
                       {lang === "ta"
@@ -1449,7 +1454,7 @@ export function ChartExplanationPanel({
                     </p>
                     {[derived.jupiterTransit, derived.saturnTransit].filter(Boolean).length === 0 ? (
                       <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.55 }}>
-                        {lang === "ta" ? "கிரகநகர்விலான குரு/சனி தரவு இல்லை." : "Transit Guru/Sani data is unavailable."}
+                        {lang === "ta" ? "கோச்சார குரு/சனி தரவு இல்லை." : "Transit Guru/Sani data is unavailable."}
                       </p>
                     ) : (
                       [derived.jupiterTransit, derived.saturnTransit].filter(Boolean).map((item) => {

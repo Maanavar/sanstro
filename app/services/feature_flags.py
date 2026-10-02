@@ -1,8 +1,10 @@
 """Runtime-editable feature flags stored in process memory."""
 from __future__ import annotations
 
+import os
 from typing import Any
 
+from app.calculations.doctrine_options import DoctrineOptions, validated
 from app.core.config import get_settings
 
 
@@ -244,7 +246,57 @@ def _defaults() -> dict[str, Any]:
         # one_minute_reading's own rollout did. Set back to False if that pass
         # finds something that can't be fixed in the same sitting.
         "five_minute_reading": True,
+        # ── Yoga/dosham doctrine, DOCTRINE_DECISIONS v1.3 §16 ──────────────
+        # Unfrozen open items. Each default is the decision file's "default
+        # until ruled" and equals `doctrine_options.DEFAULT_DOCTRINE`. A ruling
+        # changes the default here and in `doctrine_options.py` plus a §16
+        # line; a runtime override is for single-process trials only (see
+        # `doctrine_runtime_override_allowed`). O-9 is a sign-off state
+        # (`functional_status.MATRIX_SIGNED_OFF`), not a flag. Bool unless noted.
+        "doctrine_o1_rk_moon_venus_secondary": True,
+        "doctrine_o2_node_dignity_mode": "disabled",
+        "doctrine_o2_node_dignity_source": "",
+        "doctrine_o2_rahu_favourable_rasis": (),
+        "doctrine_o2_ketu_favourable_rasis": (),
+        "doctrine_o3_cross_samyam": False,
+        "doctrine_o4_twelfth_colord_mode": "contextual",       # | "moolatrikona" (O-4/O-14)
+        "doctrine_o5_gk_base_nb_guru": "graded",               # | "suppressed"
+        "doctrine_o6_sevvai_cancer_leo": "strong_mitigation",  # | "full_exemption"
+        "doctrine_o7_nb_navamsa": False,
+        "doctrine_o8_lagna_lord_threshold": 60,                # int 0-100
+        "doctrine_o10_nbg_reference": "lagna",                 # | "lagna_or_moon"
+        "doctrine_o11_retrograde_debilitated_raja_yoga": False,
+        "doctrine_o12_nb_unlisted_conditions": False,
+        "doctrine_o13_nb_verses_give_raja_yoga": True,
+        "doctrine_o15_raja_one_way_aspect": False,
+        "doctrine_o16_moon_secondary_activator": True,
+        "doctrine_o17_bhagya_support_scope": "literal",
+        "doctrine_o18_aries_scorpio_sevvai": "full_cancellation",
+        "doctrine_o19_nb_moon_self_reference": True,
+        "doctrine_o20_adhi_raja_malefic_aspects": False,
+        "doctrine_o21_nb_planet_as_own_lord": False,
+        "doctrine_o22_gk_moon_as_support": True,
+        "doctrine_o23_six_eight_colord_mode": "moolatrikona",  # | "lordship_only"
+        "doctrine_moon_72_degree_convention": False,           # DD-12 legacy convention
+        "doctrine_show_lakshmi_phaladeepika": False,           # DD-02 variant, consumer UI
     }
+
+
+_DOCTRINE_FLAG_PREFIX = "doctrine_"
+
+
+def current_doctrine_options() -> DoctrineOptions:
+    """The yoga/dosham doctrine options as the admin flags currently set them.
+
+    The calculation layer never reads flags itself; the chart build calls this
+    once and passes the result down, so the yoga cards and the strength
+    synthesis see the same choices on one chart.
+    """
+    fields = {
+        name: get_flag(f"{_DOCTRINE_FLAG_PREFIX}{name}")
+        for name in DoctrineOptions.__dataclass_fields__
+    }
+    return validated(DoctrineOptions(**fields))
 
 
 _overrides: dict[str, Any] = {}
@@ -257,10 +309,62 @@ def get_flag(name: str) -> Any:
     return defaults.get(name)
 
 
+class UnknownFlagError(ValueError):
+    pass
+
+
+class FlagValueError(ValueError):
+    pass
+
+
+def _coerce_doctrine_value(name: str, default: Any, value: Any) -> Any:
+    """Type-check one doctrine flag against its default's type. JSON has no
+    tuple, so a list of rasis is accepted and stored as a tuple."""
+    if isinstance(default, bool):
+        if not isinstance(value, bool):
+            raise FlagValueError(f"{name} expects true/false, got {value!r}")
+    elif isinstance(default, int):
+        if isinstance(value, bool) or not isinstance(value, int):
+            raise FlagValueError(f"{name} expects an integer, got {value!r}")
+    elif isinstance(default, str):
+        if not isinstance(value, str):
+            raise FlagValueError(f"{name} expects a string, got {value!r}")
+    elif isinstance(default, tuple):
+        if not isinstance(value, (list, tuple)):
+            raise FlagValueError(f"{name} expects a list of rasi numbers, got {value!r}")
+        value = tuple(value)
+    return value
+
+
+def doctrine_runtime_override_allowed() -> bool:
+    """Overrides live in this process's memory. With more than one worker an
+    admin change would reach one worker only — the same chart would read two
+    doctrines on alternate requests — and vanish on restart. A ruling is a code
+    default (change control), so runtime doctrine overrides are refused there."""
+    try:
+        workers = int(os.getenv("WEB_CONCURRENCY", "1"))
+    except ValueError:
+        workers = 1
+    return workers <= 1
+
+
 def set_flag(name: str, value: Any) -> None:
     defaults = _defaults()
     if name not in defaults:
-        raise ValueError(f"Unknown flag: {name}")
+        raise UnknownFlagError(f"Unknown flag: {name}")
+    if name.startswith(_DOCTRINE_FLAG_PREFIX):
+        # Validate before storing: a bad doctrine value would otherwise be
+        # accepted here and then fail every chart build that reads it.
+        value = _coerce_doctrine_value(name, defaults[name], value)
+        field = name[len(_DOCTRINE_FLAG_PREFIX):]
+        fields = {
+            f: (value if f == field else get_flag(f"{_DOCTRINE_FLAG_PREFIX}{f}"))
+            for f in DoctrineOptions.__dataclass_fields__
+        }
+        try:
+            validated(DoctrineOptions(**fields))
+        except ValueError as exc:
+            raise FlagValueError(str(exc)) from exc
     _overrides[name] = value
 
 

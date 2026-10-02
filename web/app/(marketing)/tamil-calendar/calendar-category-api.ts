@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { withTamilTwin } from "@/lib/localized-metadata";
+import { CALENDAR_CATEGORY_TA } from "@/lib/marketing-seo-ta";
 
 const BACKEND_URL = process.env.BACKEND_URL ?? "http://127.0.0.1:8000";
 export const CALENDAR_CATEGORY_YEAR = 2026;
@@ -42,22 +44,22 @@ export interface CalendarCategoryDetail extends CalendarCategorySummary {
 
 export const CATEGORY_META: Record<CalendarCategorySlug, { title: string; description: string; keywords: string[] }> = {
   "hindu-festivals-2026": {
-    title: "Hindu Festivals 2026 - Tamil Calendar Dates | Vinaadi",
+    title: "Hindu Festivals 2026 - Tamil Calendar Dates",
     description: "Complete Hindu festival dates for 2026 with Tamil names, weekday, notes and panchangam links.",
     keywords: ["hindu festivals 2026", "tamil festival dates 2026", "pongal 2026", "deepavali 2026"],
   },
   "muslim-festivals-2026": {
-    title: "Muslim Festivals 2026 - Ramzan, Bakrid, Muharram Dates | Vinaadi",
+    title: "Muslim Festivals 2026 - Ramzan, Bakrid, Muharram Dates",
     description: "Muslim festival dates for 2026 including Ramzan, Bakrid, Muharram, Hijri New Year and Milad-un-Nabi.",
     keywords: ["muslim festivals 2026", "ramzan 2026", "bakrid 2026", "milad un nabi 2026"],
   },
   "christian-festivals-2026": {
-    title: "Christian Festivals 2026 - Easter, Good Friday, Christmas | Vinaadi",
+    title: "Christian Festivals 2026 - Easter, Good Friday, Christmas",
     description: "Christian festival and observance dates for 2026 including Lent, Holy Week, Easter and Christmas.",
     keywords: ["christian festivals 2026", "good friday 2026", "easter 2026", "christmas 2026"],
   },
   "tamil-nadu-government-holidays-2026": {
-    title: "Tamil Nadu Government Holidays 2026 - Public Holiday List | Vinaadi",
+    title: "Tamil Nadu Government Holidays 2026 - Public Holiday List",
     description: "Tamil Nadu government public holidays for 2026 with dates, weekdays, Tamil names and panchangam links.",
     keywords: ["tamil nadu government holidays 2026", "tn public holidays 2026", "bank holidays tamil nadu 2026"],
   },
@@ -77,6 +79,11 @@ export function metadataForCategory(slug: CalendarCategorySlug): Metadata {
       type: "website",
     },
   };
+}
+
+/** `metadataForCategory` with its Tamil twin (GRW-06). */
+export async function localizedCategoryMetadata(slug: CalendarCategorySlug): Promise<Metadata> {
+  return withTamilTwin(metadataForCategory(slug), `/tamil-calendar/${slug}`, CALENDAR_CATEGORY_TA[slug]);
 }
 
 export async function fetchCalendarCategory(slug: CalendarCategorySlug): Promise<CalendarCategoryDetail | null> {

@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import { withTamilTwin } from "@/lib/localized-metadata";
+import { natchathiramVisualTa } from "@/lib/marketing-seo-ta";
 import { MAGHA } from "@/lib/natchathiram-data";
 import { NatchathiramVisualContent, type NatchathiramVisualData } from "@/components/natchathiram-visual";
 
-export const metadata: Metadata = {
-  title: "Magam Nakshathiram — Visual Profile | Vinaadi",
+const EN_METADATA: Metadata = {
+  title: "Magam Nakshathiram — Visual Profile",
   description: "Visual profile of Magam Nakshathiram: personality traits, career strengths, dasa timeline, compatible nakshathirams, and spiritual guidance.",
   alternates: { canonical: "https://vinaadi.com/natchathiram/magha/visual" },
   openGraph: {
@@ -13,6 +15,10 @@ export const metadata: Metadata = {
     type: "article",
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/natchathiram/magha/visual", natchathiramVisualTa("magha")!);
+}
 
 const MAGHA_VISUAL: NatchathiramVisualData = {
   atAGlance: [

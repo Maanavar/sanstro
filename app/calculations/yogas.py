@@ -17,9 +17,13 @@ from app.calculations._yoga_detect import (
     NakshatraCautionResult,
     ParivartanaResult,
     _merge_yoga_list,
+    _nodes_with,
     _parivartana_as_yogas,
+    detect_adhi_base,
+    detect_adhi_raja_grade,
     detect_adhi_yoga,
     detect_amala_yoga,
+    detect_bhagya_support,
     detect_budha_aditya,
     detect_chandala_yoga,
     detect_chandala_yoga_ketu_variant,
@@ -29,18 +33,23 @@ from app.calculations._yoga_detect import (
     detect_dhana_yoga,
     detect_dhana_yoga_supportive,
     detect_gaja_kesari,
+    detect_gaja_kesari_parashara,
     detect_kartari_yoga,
     detect_kemadruma_yoga,
     detect_lakshmi_yoga,
+    detect_lakshmi_yoga_phaladeepika,
     detect_nakshatra_cautions,
     detect_neecha_bhanga,
     detect_pancha_mahapurusha,
     detect_parivartana,
     detect_raja_yoga,
+    detect_raja_yogakaraka,
+    detect_retrograde_debilitated_raja_yoga,
     detect_sakata_yoga,
     detect_sunapha_anapha_durudhura,
     detect_vasumati_yoga,
     detect_vipareetha_raja,
+    raja_lord_sets,
 )
 from app.calculations._yoga_dosham import (
     detect_badhaka_dosham,
@@ -62,8 +71,6 @@ from app.calculations._yoga_helpers import (
     NATURAL_BENEFICS,
     NATURAL_MALEFICS,
     RAHU_KETU_MARRIAGE_HOUSES,
-    RAHU_KETU_SARPA_HOUSES,
-    RAHU_KETU_UPACHAYA_HOUSES,
     SEVEN_PLANETS,
     SEVVAI_BENEFIC_REDUCERS,
     TAMIL_SEVVAI_HOUSES,
@@ -84,9 +91,12 @@ from app.calculations._yoga_helpers import (
     _planets_as_rasi_map,
     _strong_planet_house,
 )
+from app.calculations.aspects import moon_is_natural_benefic
 from app.calculations.astro import house_from_reference
 from app.calculations.chart_strength import SIGN_LORD
+from app.calculations.doctrine_options import DEFAULT_DOCTRINE, DoctrineOptions, validated
 from app.calculations.functional_nature import get_functional_nature
+from app.calculations.functional_status import raja_grade
 
 
 def detect_yogas_and_doshams(
@@ -106,11 +116,20 @@ def detect_yogas_and_doshams(
     equal_bhava_map: Mapping[str, int] | None = None,
     planet_scores_in: Mapping[str, int] | None = None,
     longitudes_in: Mapping[str, float] | None = None,
+    doctrine: DoctrineOptions = DEFAULT_DOCTRINE,
 ) -> tuple[list[YogaResult], list[DoshamResult], list[NakshatraCautionResult]]:
     _ = equal_bhava_map
+    doctrine = validated(doctrine)
     planets_rasi = _planets_as_rasi_map(planets)
     if longitudes_in and {"SUN", "MOON"} <= set(longitudes_in):
-        paksha_is_shukla = ((longitudes_in["MOON"] - longitudes_in["SUN"]) % 360.0) < 180.0
+        # DD-12: the Moon's natural class from its elongation, with exact
+        # amavasya (not benefic) and pournami (benefic) boundaries. This is the
+        # *class* only — Kala Bala's paksha term is computed elsewhere and does
+        # not read it.
+        paksha_is_shukla: bool | None = moon_is_natural_benefic(
+            longitudes_in["MOON"] - longitudes_in["SUN"],
+            legacy_72_degree=doctrine.moon_72_degree_convention,
+        )
     else:
         # The shared classifier can derive this rasi-only fallback itself; keep
         # the decision here explicit because this facade owns chart context.
@@ -137,34 +156,49 @@ def detect_yogas_and_doshams(
             for planet, value in planets.items()
         }
     yogas: list[YogaResult] = []
+    gaja_kesari_strict = detect_gaja_kesari_parashara(
+        planets, lagna_rasi, moon_rasi, active_lords=active_lords,
+        planet_scores=planet_scores, combust_planets=combust_planets,
+        paksha_is_shukla=paksha_is_shukla,
+        moon_counts_as_support=doctrine.o22_gk_moon_as_support,
+    )
+    yogas.append(gaja_kesari_strict)
     yogas.append(detect_gaja_kesari(
         planets, moon_rasi, active_lords=active_lords,
         planet_scores=planet_scores, combust_planets=combust_planets,
+        lagna_rasi=lagna_rasi, d9_rasi_map=d9_rasi_map,
+        d9_lagna_rasi=d9_lagna_rasi, doctrine=doctrine,
+        strict_form_present=gaja_kesari_strict.is_present,
     ))
     raja_list = detect_raja_yoga(
         planets, lagna_rasi, active_lords=active_lords,
         planet_scores=planet_scores, combust_planets=combust_planets,
+        doctrine=doctrine,
     )
 
     parivartana = detect_parivartana(planets, lagna_rasi)
     active_set = set(active_lords or ())
     resolved_maha_lord = current_maha_lord or (sorted(active_set)[0] if active_set else "")
+    kendra_lords, trikona_lords = raja_lord_sets(lagna_rasi, doctrine)
     for pv in parivartana:
         if pv.sub_type == "MAHA":
-            p1_house = house_from_reference(lagna_rasi, _planet_rasi(planets, pv.planet_a))  # noqa: F841
-            p2_house = house_from_reference(lagna_rasi, _planet_rasi(planets, pv.planet_b))  # noqa: F841
-            kendra_trikona = KENDRA_HOUSES | TRIKONA_HOUSES  # noqa: F841
-            kendra_lords = {_house_lord(lagna_rasi, h) for h in (1, 4, 7, 10)}
-            trikona_lords = {_house_lord(lagna_rasi, h) for h in (1, 5, 9)}
             if pv.planet_a in kendra_lords and pv.planet_b in trikona_lords or \
                pv.planet_b in kendra_lords and pv.planet_a in trikona_lords:
+                grade = raja_grade(lagna_rasi, pv.planet_a, pv.planet_b)
                 raja_list.append(YogaResult(
                     name="RAJA_YOGA",
                     is_present=True,
                     strength="STRONG",
-                    conditions_met=[f"{pv.planet_a.lower()}_{pv.planet_b.lower()}_parivartana_link"],
+                    conditions_met=[
+                        f"{pv.planet_a.lower()}_{pv.planet_b.lower()}_parivartana_link",
+                        f"raja_grade_{grade.lower()}",
+                    ],
                     cancellation_factors=[],
                     dasha_activated=_is_active(active_set, pv.planet_a, pv.planet_b),
+                    key_grahas=(pv.planet_a, pv.planet_b),  # ruling 2026-09-23: this instance's formers
+                    supporting_grahas=_nodes_with(
+                        planets, _planet_rasi(planets, pv.planet_a), _planet_rasi(planets, pv.planet_b),
+                    ),
                     description_ta="திரிகோண-கேந்திர அதிபதிகளின் பரிவர்தனம் ராஜயோகமாக கருதப்படுகிறது.",
                     description_en="Parivartana between Trikona and Kendra lords is treated as Raja Yoga.",
                 ))
@@ -183,6 +217,12 @@ def detect_yogas_and_doshams(
             description_en="No Trikona-Kendra lord linkage found.",
         )
     )
+    yogas.append(detect_raja_yogakaraka(
+        planets, lagna_rasi, active_lords=active_lords,
+        planet_scores=planet_scores, combust_planets=combust_planets,
+        d9_rasi_map=d9_rasi_map, d9_lagna_rasi=d9_lagna_rasi,
+        doctrine=doctrine,
+    ))
     yogas.append(detect_dhana_yoga(
         planets, lagna_rasi, active_lords=active_lords,
         planet_scores=planet_scores, combust_planets=combust_planets,
@@ -197,6 +237,7 @@ def detect_yogas_and_doshams(
         retrograde_planets=retrograde_planets,
         d9_rasi_map=d9_rasi_map,
         d9_lagna_rasi=d9_lagna_rasi,
+        doctrine=doctrine,
     )
     yogas.append(
         _merge_yoga_list(neecha_list, "NEECHA_BHANGA_RAJA_YOGA")
@@ -212,6 +253,28 @@ def detect_yogas_and_doshams(
             description_en="No Neecha Bhanga condition present.",
         )
     )
+    if doctrine.o11_retrograde_debilitated_raja_yoga:
+        retrograde_neecha = detect_retrograde_debilitated_raja_yoga(
+            planets, lagna_rasi,
+            active_lords=active_lords,
+            retrograde_planets=retrograde_planets,
+            combust_planets=combust_planets,
+            doctrine=doctrine,
+        )
+        yogas.append(
+            _merge_yoga_list(retrograde_neecha, "RETROGRADE_DEBILITATED_RAJA_YOGA")
+            if retrograde_neecha
+            else YogaResult(
+                name="RETROGRADE_DEBILITATED_RAJA_YOGA",
+                is_present=False,
+                strength="WEAK",
+                conditions_met=[],
+                cancellation_factors=[],
+                dasha_activated=False,
+                description_ta="வக்ர நீச கிரக ராஜயோக விதி நிறைவேறவில்லை.",
+                description_en="The retrograde debilitated-planet raja-yoga rule is not met.",
+            )
+        )
 
     yogas.extend(detect_pancha_mahapurusha(
         planets, lagna_rasi, active_lords=active_lords,
@@ -246,18 +309,47 @@ def detect_yogas_and_doshams(
     yogas.append(detect_amala_yoga(
         planets_rasi, lagna_rasi, moon_rasi, lagna_nature_map, paksha_is_shukla=paksha_is_shukla,
     ))
-    yogas.append(detect_adhi_yoga(
+    adhi_raja = detect_adhi_raja_grade(
+        planets_rasi, moon_rasi, paksha_is_shukla=paksha_is_shukla,
+        planet_scores=planet_scores, combust_planets=combust_planets,
+        moon_secondary=doctrine.o16_moon_secondary_activator,
+        include_malefic_aspects=doctrine.o20_adhi_raja_malefic_aspects,
+    )
+    yogas.append(detect_adhi_base(
         planets_rasi, moon_rasi, lagna_nature_map, paksha_is_shukla=paksha_is_shukla,
+        planet_scores=planet_scores, combust_planets=combust_planets,
+        moon_secondary=doctrine.o16_moon_secondary_activator,
+        raja_grade_present=adhi_raja.is_present,
     ))
+    yogas.append(adhi_raja)
     yogas.append(detect_daridra_yoga(planets_rasi, lagna_rasi, planet_scores))
     yogas.append(detect_daridra_yoga_proxy(planets_rasi, lagna_rasi, planet_scores))
-    yogas.append(detect_lakshmi_yoga(planets_rasi, lagna_rasi, planet_scores, combust_planets=combust_planets))
-    yogas.extend(detect_sunapha_anapha_durudhura(planets_rasi, moon_rasi))
+    yogas.append(detect_lakshmi_yoga(
+        planets_rasi, lagna_rasi, planet_scores, combust_planets=combust_planets,
+        d9_rasi_map=d9_rasi_map, d9_lagna_rasi=d9_lagna_rasi, doctrine=doctrine,
+    ))
+    bhagya = detect_bhagya_support(
+        planets_rasi, lagna_rasi, planet_scores, combust_planets=combust_planets,
+        d9_rasi_map=d9_rasi_map, d9_lagna_rasi=d9_lagna_rasi, doctrine=doctrine,
+    )
+    if bhagya is not None:
+        yogas.append(bhagya)
+    if doctrine.show_lakshmi_phaladeepika:
+        lakshmi_pd = detect_lakshmi_yoga_phaladeepika(
+            planets_rasi, lagna_rasi, planet_scores, combust_planets=combust_planets,
+        )
+        if lakshmi_pd is not None:
+            yogas.append(lakshmi_pd)
+    yogas.extend(detect_sunapha_anapha_durudhura(
+        planets_rasi, moon_rasi, moon_secondary=doctrine.o16_moon_secondary_activator,
+    ))
     yogas.append(detect_vasumati_yoga(
         planets_rasi, moon_rasi, lagna_rasi, paksha_is_shukla=paksha_is_shukla,
+        planet_scores=planet_scores,
     ))
     yogas.append(detect_kartari_yoga(
         planets_rasi, lagna_rasi, "LAGNA", paksha_is_shukla=paksha_is_shukla,
+        planet_scores=planet_scores,
     ))
 
     # Doctrine A-4: Kala Sarpa is judged on actual longitudes where the caller
@@ -290,15 +382,16 @@ def detect_yogas_and_doshams(
             combust_planets=combust_planets,
             d9_rasi_map=d9_rasi_map,
             d9_lagna_rasi=d9_lagna_rasi,
+            doctrine=doctrine,
         ),
         detect_rahu_ketu_dosham(
             planets,
             lagna_rasi,
-            gender=gender,
             active_lords=active_lords,
             combust_planets=combust_planets,
-            d9_rasi_map=d9_rasi_map,
-            d9_lagna_rasi=d9_lagna_rasi,
+            moon_benefic=paksha_is_shukla,
+            planet_scores=planet_scores,
+            doctrine=doctrine,
         ),
         detect_pitru_dosham(
             planets,
@@ -373,8 +466,6 @@ __all__ = [
     "ParivartanaResult",
     "PlanetInput",
     "RAHU_KETU_MARRIAGE_HOUSES",
-    "RAHU_KETU_SARPA_HOUSES",
-    "RAHU_KETU_UPACHAYA_HOUSES",
     "SEVEN_PLANETS",
     "SEVVAI_BENEFIC_REDUCERS",
     "SIGN_LORD",
@@ -395,7 +486,10 @@ __all__ = [
     "_planets_as_rasi_map",
     "_strong_planet_house",
     "detect_adhi_yoga",
+    "detect_adhi_base",
+    "detect_adhi_raja_grade",
     "detect_amala_yoga",
+    "detect_bhagya_support",
     "detect_badhaka_dosham",
     "detect_budha_aditya",
     "detect_chandala_yoga",
@@ -406,11 +500,13 @@ __all__ = [
     "detect_dhana_yoga",
     "detect_dhana_yoga_supportive",
     "detect_gaja_kesari",
+    "detect_gaja_kesari_parashara",
     "detect_kalasarpa",
     "detect_kalathra_dosham",
     "detect_kartari_yoga",
     "detect_kemadruma_yoga",
     "detect_lakshmi_yoga",
+    "detect_lakshmi_yoga_phaladeepika",
     "detect_marana_karaka_sthana",
     "detect_nakshatra_cautions",
     "detect_neecha_bhanga",
@@ -420,6 +516,9 @@ __all__ = [
     "detect_putra_sarpa_dosham",
     "detect_rahu_ketu_dosham",
     "detect_raja_yoga",
+    "detect_raja_yogakaraka",
+    "detect_retrograde_debilitated_raja_yoga",
+    "raja_lord_sets",
     "detect_sakata_yoga",
     "detect_sevvai_dosham",
     "detect_sunapha_anapha_durudhura",

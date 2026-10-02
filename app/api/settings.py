@@ -1,51 +1,34 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import Literal
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
-from app.core.age_gate import compute_age, get_blocked_life_modes, is_minor
+from app.core.age_gate import is_minor
 from app.core.auth import get_current_user
-from app.core.life_mode import ALL_LIFE_MODES
+from app.core.life_mode import ALL_LIFE_MODES, effective_life_mode, focus_mapping, is_focus_nudge_due
 from app.db.session import get_db
-from app.models.birth_profile import BirthProfile
+from app.models.life_focus_event import LifeFocusEvent
 from app.models.user import User
 from app.models.user_preference import UserPreference
 from app.schemas.settings import JournalSettingsResponse, JournalSettingsUpdateRequest
+from app.services.life_focus_service import self_birth_profile, user_blocked_modes
 from app.services.settings_service import get_journal_settings, update_journal_settings
 
 router = APIRouter()
 
 
-def _self_birth_profile(session: Session, user_id) -> BirthProfile | None:
-    """The user's own birth profile (not a family member) — used for age gating."""
-    return (
-        session.query(BirthProfile)
-        .filter(
-            BirthProfile.owner_user_id == user_id,
-            BirthProfile.family_member_id.is_(None),
-            BirthProfile.deleted_at.is_(None),
-        )
-        .order_by(BirthProfile.created_at.asc())
-        .first()
-    )
-
-
 def _user_is_minor(session: Session, user_id) -> bool:
-    profile = _self_birth_profile(session, user_id)
+    profile = self_birth_profile(session, user_id)
     return profile is not None and is_minor(profile.birth_date_local)
 
 
 def _user_blocked_modes(session: Session, user_id) -> frozenset[str]:
-    """Comprehensive blocked life modes based on age and marital status."""
-    profile = _self_birth_profile(session, user_id)
-    if profile is None:
-        return frozenset()
-    age = compute_age(profile.birth_date_local)
-    return get_blocked_life_modes(age, profile.marital_status)
+    return user_blocked_modes(session, user_id)
 
 
 def _get_or_create_preference(session: Session, user_id) -> UserPreference:
@@ -106,11 +89,43 @@ class LifeModeResponse(BaseModel):
     life_mode_set_at: datetime | None = Field(default=None, alias="lifeModeSetAt")
     show_life_mode_picker: bool = Field(alias="showLifeModePicker")
     blocked_modes: list[str] = Field(default_factory=list, alias="blockedModes")
+    # Server-computed so web and mobile share one cadence (LIFE_MODE_STALE_DAYS).
+    focus_nudge_due: bool = Field(default=False, alias="focusNudgeDue")
+    # The D1 table's answer for this focus, so clients never re-derive it.
+    focus_area: str | None = Field(default=None, alias="focusArea")
+    focus_activities: list[str] = Field(default_factory=list, alias="focusActivities")
     model_config = ConfigDict(populate_by_name=True)
+
+
+def _life_mode_response(pref: UserPreference | None, blocked: frozenset[str]) -> LifeModeResponse:
+    show_picker = pref.show_life_mode_picker if pref else True
+    set_at = pref.life_mode_set_at if pref else None
+    mode = effective_life_mode(pref.life_mode if pref else None, blocked)
+    mapping = focus_mapping(mode)
+    return LifeModeResponse(
+        mode=mode,
+        focusArea=mapping.area,
+        focusActivities=list(mapping.activities),
+        lifeModeSetAt=set_at,
+        showLifeModePicker=show_picker,
+        blockedModes=sorted(blocked),
+        focusNudgeDue=is_focus_nudge_due(show_picker=show_picker, set_at=set_at),
+    )
+
+
+LifeModeIntent = Literal["SELECT", "SKIP", "KEEP"]
+# Where the write came from. FIRST_RUN_PICKER is the only place a reader is
+# offered Skip, so it is the Skip-rate denominator; a mobile reader's first
+# choice arrives as MOBILE and must not dilute it (mobile has no first-run
+# modal). None means an old client that predates the field.
+LifeModeSurface = Literal["FIRST_RUN_PICKER", "WEB", "MOBILE"]
 
 
 class LifeModeUpdateRequest(BaseModel):
     mode: str
+    # Both optional on the wire for old clients; every current surface sends them.
+    intent: LifeModeIntent = "SELECT"
+    surface: LifeModeSurface | None = None
     model_config = ConfigDict(populate_by_name=True)
 
 
@@ -121,12 +136,7 @@ def get_life_mode(
 ) -> LifeModeResponse:
     pref = session.query(UserPreference).filter_by(owner_user_id=current_user.user_id).first()
     blocked = _user_blocked_modes(session, current_user.user_id)
-    return LifeModeResponse(
-        mode=getattr(pref, "life_mode", "BALANCED") if pref else "BALANCED",
-        lifeModeSetAt=getattr(pref, "life_mode_set_at", None) if pref else None,
-        showLifeModePicker=getattr(pref, "show_life_mode_picker", True) if pref else True,
-        blockedModes=sorted(blocked),
-    )
+    return _life_mode_response(pref, blocked)
 
 
 @router.patch("/settings/life-mode", response_model=LifeModeResponse, tags=["settings"])
@@ -149,18 +159,50 @@ def update_life_mode(
             detail=f"The '{mode}' focus is not available for your profile.",
         )
 
-    pref = _get_or_create_preference(session, current_user.user_id)
+    existing_pref = session.query(UserPreference).filter_by(owner_user_id=current_user.user_id).first()
+    is_first_run = existing_pref is None or existing_pref.show_life_mode_picker
+    previous_mode = existing_pref.life_mode if existing_pref else "BALANCED"
+
+    if payload.intent == "SKIP" and (
+        not is_first_run or mode != "BALANCED" or payload.surface != "FIRST_RUN_PICKER"
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="SKIP is valid only for BALANCED on the first-run picker.",
+        )
+    # KEEP answers "still focused on X?", so X must be the focus the reader was
+    # shown. The strip shows the effective (D5-masked) mode, not the stored one.
+    if payload.intent == "KEEP" and mode != effective_life_mode(previous_mode, blocked):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="KEEP must confirm the current focus; use SELECT to change it.",
+        )
+
+    pref = existing_pref or _get_or_create_preference(session, current_user.user_id)
     pref.life_mode = mode
     pref.life_mode_set_at = datetime.now(tz=UTC)
     pref.show_life_mode_picker = False
+    # Write-through (plan Phase 1): keep the legacy column in step for old
+    # clients reading /auth/me. Backend readers derive it via
+    # life_focus_service.resolve_goal_track, which also honours D5.
+    # Loaded here rather than mutating current_user, which need not belong to
+    # this session.
+    user_row = session.get(User, current_user.user_id)
+    if user_row is not None:
+        user_row.goal_track = focus_mapping(mode).goal_track
+    session.add(
+        LifeFocusEvent(
+            user_id=current_user.user_id,
+            intent=payload.intent,
+            previous_mode=previous_mode,
+            new_mode=mode,
+            is_first_run=is_first_run,
+            surface=payload.surface,
+        )
+    )
     session.flush()
     session.refresh(pref)
-    return LifeModeResponse(
-        mode=pref.life_mode,
-        lifeModeSetAt=pref.life_mode_set_at,
-        showLifeModePicker=pref.show_life_mode_picker,
-        blockedModes=sorted(blocked),
-    )
+    return _life_mode_response(pref, blocked)
 
 
 @router.get("/settings/journal", response_model=JournalSettingsResponse, tags=["settings"])

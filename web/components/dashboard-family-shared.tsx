@@ -8,8 +8,9 @@
 // DasaBhuktiAntaramDetail.
 
 import { getScoreBand, formatClockLabel, scoreColor, SCORE_LOW } from "@/lib/format";
-import { t, tPlanetLord } from "@/lib/i18n";
+import { t, tNakshatra, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
+import { rasiDisplayName } from "@/lib/chart-utils";
 import type {
   ChartCalculateResponseData,
   ChartExplanationData,
@@ -50,7 +51,7 @@ const SCORE_CHIP_KEYS = ["moonTransit", "gocharSupport", "dashaSupport", "pancha
 type ScoreChipMeta = { max: number; signed?: boolean; labelEn: string; labelTa: string; descEn: string; descTa: string };
 const SCORE_CHIP_META: Record<typeof SCORE_CHIP_KEYS[number], ScoreChipMeta> = {
   moonTransit:           { max: 28,               labelEn: "Moon transit",        labelTa: "சந்திர நகர்வு",       descEn: "Moon's position relative to your natal Moon today",       descTa: "இன்று சந்திரன் உங்கள் ஜாதக சந்திரனிலிருந்து எந்த இடத்தில் உள்ளார்" },
-  gocharSupport:         { max: 24,               labelEn: "Gochar transits",     labelTa: "கோசார ஆதரவு",        descEn: "Today's transiting planets interacting with your chart",   descTa: "இன்றைய கோசார கிரகங்கள் உங்கள் ஜாதகத்தை எவ்வாறு பாதிக்கின்றன" },
+  gocharSupport:         { max: 24,               labelEn: "Gochar transits",     labelTa: "கோச்சார ஆதரவு",        descEn: "Today's transiting planets interacting with your chart",   descTa: "இன்றைய கோச்சார கிரகங்கள் உங்கள் ஜாதகத்தை எவ்வாறு பாதிக்கின்றன" },
   dashaSupport:          { max: 19,               labelEn: "Dasa support",        labelTa: "தசை ஆதரவு",          descEn: "Current Mahadasha & Antardasha lord strength",             descTa: "நடப்பு மகாதசை மற்றும் அந்தர்தசை ஆதரவு" },
   panchangam:            { max: 14,               labelEn: "Panchangam",          labelTa: "பஞ்சாங்கம்",         descEn: "Tithi, Yoga & Karana quality today",                       descTa: "இன்றைய திதி, யோகம், கரணம் தரம்" },
   personalCautions:      { max:  9,               labelEn: "Personal safety",     labelTa: "தனிப்பட்ட பாதுகாப்பு",  descEn: "Personal safety score — lower when Saturn cycle, Chandrashtama or combustion is active", descTa: "தனிப்பட்ட பாதுகாப்பு — சனி சுழற்சி, சந்திராஷ்டமம் அல்லது கிரக அஸ்தமனம் உள்ளபோது குறையும்" },
@@ -142,9 +143,9 @@ export function MemberDetailExpanded({
   const dasha = memberChart?.dasha;
 
   const identityParts: string[] = [];
-  if (summary?.lagnaRasi) identityParts.push(`${summary.lagnaRasi} ${t("label_lagnam", lang)}`);
-  if (summary?.moonRasi)   identityParts.push(`${summary.moonRasi} ${t("label_janma_rasi", lang)}`);
-  if (summary?.janmaNakshatra) identityParts.push(summary.janmaNakshatra);
+  if (summary?.lagnaRasi) identityParts.push(`${rasiDisplayName(summary.lagnaRasi, lang)} ${t("label_lagnam", lang)}`);
+  if (summary?.moonRasi)   identityParts.push(`${rasiDisplayName(summary.moonRasi, lang)} ${t("label_janma_rasi", lang)}`);
+  if (summary?.janmaNakshatra) identityParts.push(tNakshatra(summary.janmaNakshatra, lang));
 
   const birthDateLocal = memberChart?.chart?.birthProfile?.birthDateLocal ?? null;
   const memberAge = birthDateLocal ? ageFromBirth(birthDateLocal, today) : null;
@@ -216,12 +217,12 @@ export function MemberDetailExpanded({
       <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
         {bestW && (
           <span style={{ padding: "var(--space-1) var(--space-3)", borderRadius: "var(--radius-pill)", fontSize: "var(--text-sm)", fontWeight: 600, background: "var(--color-surface-soft)", border: "1px solid var(--color-border)", color: "var(--color-text)" }}>
-            {lang === "ta" ? "சிறந்த நேரம்" : "Best"} {formatClockLabel(bestW.start)} – {formatClockLabel(bestW.end)}
+            {lang === "ta" ? "சிறந்த நேரம்" : "Best"} {formatClockLabel(bestW.start, lang)} – {formatClockLabel(bestW.end, lang)}
           </span>
         )}
         {avoidW && (
           <span style={{ padding: "var(--space-1) var(--space-3)", borderRadius: "var(--radius-pill)", fontSize: "var(--text-sm)", fontWeight: 600, background: "var(--color-low-bg)", border: "1px solid var(--color-low-border)", color: SCORE_LOW }}>
-            {lang === "ta" ? "தவிர்க்கவும்" : "Avoid"} {formatClockLabel(avoidW.start)} – {formatClockLabel(avoidW.end)}
+            {lang === "ta" ? "தவிர்க்கவும்" : "Avoid"} {formatClockLabel(avoidW.start, lang)} – {formatClockLabel(avoidW.end, lang)}
           </span>
         )}
         {member.activeCycleTags.map((tag) => (

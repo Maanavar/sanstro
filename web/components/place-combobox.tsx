@@ -5,6 +5,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { searchPlaces, type PlaceSearchResult } from "@vinaadi/shared/api/places";
 import { apiFetchJson } from "@/lib/api";
 import { t } from "@/lib/i18n";
+import { useLang } from "@/components/lang-context";
 import type { Lang } from "@/lib/i18n";
 
 export type CityEntry = {
@@ -80,7 +81,13 @@ type PlaceComboboxProps = {
  * old synchronous array lookup did; `place-coordinates-field.tsx`'s "matched"
  * state is set by the caller from this same explicit selection.
  */
-export function PlaceCombobox({ value, onChange, className = "", placeholder = "Type a city...", "aria-label": ariaLabel, lang = "en", ...inputProps }: PlaceComboboxProps) {
+export function PlaceCombobox({ value, onChange, className = "", placeholder, "aria-label": ariaLabel, lang: langProp, ...inputProps }: PlaceComboboxProps) {
+  // A caller that knows the language passes it; one that does not follows the
+  // page. Defaulting to English here left the placeholder and the "searching" /
+  // "no results" lines English on a Tamil page for every caller that forgot.
+  const [pageLang] = useLang();
+  const lang = langProp ?? pageLang;
+  const shownPlaceholder = placeholder ?? (lang === "ta" ? "நகரத்தைத் தட்டச்சு செய்யவும்…" : "Type a city...");
   const [query, setQuery] = useState(value);
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -243,7 +250,7 @@ export function PlaceCombobox({ value, onChange, className = "", placeholder = "
       <input
         value={query}
         className={className || undefined}
-        placeholder={placeholder}
+        placeholder={shownPlaceholder}
         autoComplete="off"
         role="combobox"
         aria-label={ariaLabel}

@@ -6,6 +6,7 @@ from typing import Protocol
 
 from app.calculations.chart_strength import SIGN_LORD
 from app.calculations.functional_nature import FunctionalNature, get_functional_nature
+from app.calculations.prediction_score import SUPPORTIVE_SCORE_FLOOR
 from app.calculations.yogas import get_badhaka_lord
 
 # Safety notes that MUST accompany every prescribed remedy.
@@ -231,25 +232,73 @@ def select_remedy_focus(
     )
 
 
-def _gemstone_policy(functional_nature: FunctionalNature) -> tuple[bool, str, str, str | None, str | None]:
+#: Owner ruling 2026-10-01: the app never prescribes a gemstone. A stone was
+#: only ever suggested after the full chart, the navamsa and the running dasha
+#: had been read, usually with a trial period, and a wrong stone on a functional
+#: malefic does real harm — responsibility an app cannot take. Where a stone is
+#: named at all it is a traditional reference, always with this note.
+GEMSTONE_NOTE_TA = (
+    "இது பாரம்பரியக் குறிப்பு மட்டுமே. எந்த ரத்தினத்தையும் அணிவதற்கு முன், "
+    "முழு ஜாதகத்தையும் ஆராயும் அனுபவமிக்க ஜோதிடரை அணுகுங்கள்."
+)
+GEMSTONE_NOTE_EN = (
+    "Traditional reference only. Consult an experienced astrologer after a "
+    "full-chart review before wearing any gemstone."
+)
+
+#: Neelam, Gomedhakam and Vaiduryam (blue sapphire, hessonite, cat's eye) were
+#: never suggested casually, whatever the planet's role — no reference is shown.
+_NO_GEMSTONE_REFERENCE = frozenset({"SATURN", "RAHU", "KETU"})
+
+
+def _gemstone_policy(
+    planet: str, functional_nature: FunctionalNature,
+) -> tuple[bool, str, str, str | None, str | None]:
+    """(show_reference, reason_ta, reason_en, caution_ta, caution_en).
+
+    `show_reference` decides only whether the stone is *named*. Nothing is ever
+    prescribed: `is_gemstone_prescribed` stays in the payload, always False, so
+    the apps that read it keep working.
+    """
     if functional_nature in {FunctionalNature.DUSTHANA, FunctionalNature.MARAKA}:
-        return False, "இந்த கிரகத்திற்கு ரத்தினம் பரிந்துரை செய்யப்படாது.", "Gemstone is not prescribed for this functional malefic.", "Malefic", "Malefic"
-    if functional_nature in {FunctionalNature.YOGAKARAKA, FunctionalNature.TRIKONA, FunctionalNature.LAGNA_LORD}:
-        return True, "இந்த கிரகத்திற்கு ரத்தினம் பரிந்துரைக்கப்படுகிறது.", "Gemstone is prescribed for this benefic functional role.", None, None
-    return True, "எச்சரிக்கையுடன் அணியலாம்.", "Gemstone is optional with caution.", "Use after expert review", "Use after expert review"
+        return (
+            False,
+            "உங்கள் ஜாதகத்தில் இந்த கிரகத்திற்கு ரத்தினம் பாரம்பரியமாகத் தவிர்க்கப்படுகிறது.",
+            "A gemstone is traditionally avoided for this planet in your chart.",
+            None,
+            None,
+        )
+    if planet in _NO_GEMSTONE_REFERENCE:
+        return (
+            False,
+            "இந்த கிரகத்தின் ரத்தினம் முழு ஜாதக ஆய்வுக்குப் பின்னரே பாரம்பரியமாகப் பரிசீலிக்கப்படுகிறது.",
+            "This planet's stone is traditionally considered only after a full-chart review.",
+            GEMSTONE_NOTE_TA,
+            GEMSTONE_NOTE_EN,
+        )
+    return (
+        True,
+        "உங்கள் ஜாதகத்திற்கான பாரம்பரியக் குறிப்பு மட்டுமே.",
+        "Named only as a traditional reference for your chart.",
+        GEMSTONE_NOTE_TA,
+        GEMSTONE_NOTE_EN,
+    )
 
 
 def get_remedy(planet: str, functional_nature: FunctionalNature, severity: str) -> dict:
     remedy = PLANET_REMEDY_CATALOG[planet]
-    prescribe, reason_ta, reason_en, caution_ta, caution_en = _gemstone_policy(functional_nature)
+    show_reference, reason_ta, reason_en, caution_ta, caution_en = _gemstone_policy(planet, functional_nature)
     payload = asdict(remedy)
     payload.update(
         {
             "functional_nature": functional_nature.value,
             "severity": severity,
-            "is_gemstone_prescribed": prescribe,
-            "gemstone_ta": remedy.gemstone_ta if prescribe else None,
-            "gemstone_en": remedy.gemstone_en if prescribe else None,
+            # Always False (ruling 2026-10-01); kept so web/mobile keep parsing.
+            "is_gemstone_prescribed": False,
+            "gemstone_ta": remedy.gemstone_ta if show_reference else None,
+            "gemstone_en": remedy.gemstone_en if show_reference else None,
+            "gemstone_note_ta": GEMSTONE_NOTE_TA,
+            "gemstone_note_en": GEMSTONE_NOTE_EN,
             "reason_ta": reason_ta,
             "reason_en": reason_en,
             "caution_ta": caution_ta,
@@ -258,9 +307,33 @@ def get_remedy(planet: str, functional_nature: FunctionalNature, severity: str) 
             # health caveat so a strict food-fast is never read as mandatory.
             "fasting_caution_ta": FASTING_CAUTION_TA,
             "fasting_caution_en": FASTING_CAUTION_EN,
+            # The second of the two notes the header says MUST accompany every
+            # remedy. The remedy API adds it at response level, but the
+            # life-areas `structuredRemedy` carries only this payload, so
+            # without it there the no-guarantee note never reached the reader.
+            "guarantee_note_ta": GUARANTEE_NOTE_TA,
+            "guarantee_note_en": GUARANTEE_NOTE_EN,
         }
     )
     return payload
+
+
+#: At or above this area score the area is well supported and gets no remedy.
+#: It is the floor of the band the approved copy calls supportive ("Good —
+#: results come with sustained effort"), read from the same scale, so the Life
+#: areas card cannot say "Mixed — plan carefully" above "this area is well
+#: supported". (A first cut used 55; 56-60 would have contradicted itself.)
+AREA_REMEDY_SCORE_CEILING = SUPPORTIVE_SCORE_FLOOR
+
+#: Owner-approved wording, 2026-10-01.
+MAINTAIN_PRACTICE_TA = (
+    "இந்தப் பகுதி நன்றாக உள்ளது. உங்கள் முயற்சியைத் தொடருங்கள்; குலதெய்வ "
+    "வழிபாடு அல்லது ஒரு நன்றிச் செயல் இதை நிலைப்படுத்தும்."
+)
+MAINTAIN_PRACTICE_EN = (
+    "This area is well supported. Continue your effort; a visit to your kula "
+    "deivam or a simple act of gratitude keeps it steady."
+)
 
 
 def get_area_remedy(
@@ -270,13 +343,37 @@ def get_area_remedy(
     functional_nature_map: dict[str, FunctionalNature],
     score: int,
 ) -> dict:
-    target = weak_planets[0] if weak_planets else "JUPITER"
+    """The life-area remedy, or a light practice when the area is well supported.
+
+    Owner ruling 2026-10-01: a parikaram is for a difficulty, not for a blessing.
+    Telling someone whose career is strong to propitiate a planet only plants
+    doubt, so an area at or above `AREA_REMEDY_SCORE_CEILING` gets
+    `kind="MAINTAIN"` and one light practice, with no planet and no remedy.
+    The old Jupiter fallback (a remedy for Guru when no karaka was given) is
+    gone for the same reason: no weak planet means no planet remedy.
+
+    The keys are unchanged so existing readers keep parsing; `kind` is additive.
+    This governs the life-area card only. The Today card's dasha-lord worship
+    (`select_remedy_focus`) is a separate, always-on practice.
+    """
+    if score >= AREA_REMEDY_SCORE_CEILING or not weak_planets:
+        return {
+            "area": area,
+            "lagna_rasi": lagna_rasi,
+            "kind": "MAINTAIN",
+            "primary_planet": None,
+            "remedy": None,
+            "practice_ta": MAINTAIN_PRACTICE_TA,
+            "practice_en": MAINTAIN_PRACTICE_EN,
+        }
+    target = weak_planets[0]
     fn = functional_nature_map.get(target, FunctionalNature.NEUTRAL)
-    severity = "SEVERE" if score < 35 else ("MODERATE" if score < 55 else "MILD")
+    severity = "SEVERE" if score < 35 else "MODERATE"
     remedy = get_remedy(target, fn, severity)
     return {
         "area": area,
         "lagna_rasi": lagna_rasi,
+        "kind": "REMEDY",
         "primary_planet": target,
         "remedy": remedy,
     }

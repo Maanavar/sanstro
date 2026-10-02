@@ -23,6 +23,10 @@ RUN pip install -r requirements.txt
 # Then copy the source and install the package itself without re-resolving deps.
 COPY pyproject.toml README.md ./
 COPY app ./app
+# Swiss Ephemeris data files (owner ruling 2026-10-01). Without them every
+# calculation silently falls back to the Moshier analytic ephemeris.
+COPY ephe ./ephe
+ENV JOTHIDAM_SWISSEPH_PATH=/app/ephe
 COPY migrations ./migrations
 COPY alembic.ini ./alembic.ini
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh

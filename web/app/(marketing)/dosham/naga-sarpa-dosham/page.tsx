@@ -1,9 +1,11 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
+import { JsonLd, articleTa, faqPageLd } from "@/lib/json-ld";
 import type { Metadata } from "next";
 import { DOSHAM_NAGA_FAQ } from "@/lib/marketing-i18n";
 import { NagaDoshamContent } from "./PageContent";
 
-export const metadata: Metadata = {
-  title: "Naga Dosham (Sarpa Dosham) — Meaning, Chart Check & Pariharam | Vinaadi",
+const EN_METADATA: Metadata = {
+  title: "Naga Dosham (Sarpa Dosham) — Meaning, Chart Check & Pariharam",
   description:
     "Naga or Sarpa dosham forms when Rahu or Ketu presses the 5th house, its lord, or Jupiter. Learn what it means for children and lineage, how to read your chart, when it is cancelled, and the traditional pariharam with Rahu slokam.",
   keywords: [
@@ -33,15 +35,12 @@ export const metadata: Metadata = {
   },
 };
 
-const FAQ_JSONLD = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: DOSHAM_NAGA_FAQ.map((f) => ({
-    "@type": "Question",
-    name: f.q.en,
-    acceptedAnswer: { "@type": "Answer", text: f.a.en },
-  })),
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/dosham/naga-sarpa-dosham");
+}
+
+const FAQ_JSONLD = faqPageLd(DOSHAM_NAGA_FAQ, "en");
+const FAQ_JSONLD_TA = faqPageLd(DOSHAM_NAGA_FAQ, "ta");
 
 const ARTICLE_JSONLD = {
   "@context": "https://schema.org",
@@ -56,8 +55,8 @@ const ARTICLE_JSONLD = {
 export default function NagaDoshamPage() {
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ARTICLE_JSONLD) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSONLD) }} />
+      <JsonLd en={ARTICLE_JSONLD} ta={articleTa(ARTICLE_JSONLD)} />
+      <JsonLd en={FAQ_JSONLD} ta={FAQ_JSONLD_TA} />
       <NagaDoshamContent />
     </>
   );

@@ -1,3 +1,5 @@
+import { SUPPORT_EMAIL } from "../constants/site";
+
 export interface LegalSection {
   heading: { ta: string; en: string };
   body: { ta: string; en: string };
@@ -33,8 +35,8 @@ export const PRIVACY_POLICY: {
     {
       heading: { en: "Your Rights", ta: "உங்கள் உரிமைகள்" },
       body: {
-        en: "You have the right to access, update, or delete your personal information at any time. You can export your data, request corrections, or close your account by contacting us at support@vinaadi.app. We will respond to all requests within 30 days.",
-        ta: "உங்கள் தனிப்பட்ட தகவல்களை எந்த நேரத்திலும் அணுக, புதுப்பிக்க அல்லது நீக்க உங்களுக்கு உரிமை உள்ளது. support@vinaadi.app என்ற முகவரியில் தொடர்பு கொள்வதன் மூலம் உங்கள் தரவை ஏற்றுமதி செய்யலாம், திருத்தங்களை கோரலாம் அல்லது உங்கள் கணக்கை மூடலாம்.",
+        en: `You have the right to access, update, or delete your personal information at any time. You can export your data, request corrections, or close your account by contacting us at ${SUPPORT_EMAIL}. We will respond to all requests within 30 days.`,
+        ta: `உங்கள் தனிப்பட்ட தகவல்களை எந்த நேரத்திலும் அணுக, புதுப்பிக்க அல்லது நீக்க உங்களுக்கு உரிமை உள்ளது. ${SUPPORT_EMAIL} என்ற முகவரியில் தொடர்பு கொள்வதன் மூலம் உங்கள் தரவை ஏற்றுமதி செய்யலாம், திருத்தங்களை கோரலாம் அல்லது உங்கள் கணக்கை மூடலாம்.`,
       },
     },
     {
@@ -47,8 +49,8 @@ export const PRIVACY_POLICY: {
     {
       heading: { en: "Contact Us", ta: "தொடர்பு கொள்ளுங்கள்" },
       body: {
-        en: "If you have questions about this Privacy Policy, please contact us at support@vinaadi.app or write to Vinaadi AI, Chennai, Tamil Nadu, India.",
-        ta: "இந்த தனியுரிமைக் கொள்கையைப் பற்றி கேள்விகள் இருந்தால், support@vinaadi.app என்ற முகவரியில் எங்களை தொடர்பு கொள்ளுங்கள்.",
+        en: `If you have questions about this Privacy Policy, please contact us at ${SUPPORT_EMAIL} or write to Vinaadi AI, Chennai, Tamil Nadu, India.`,
+        ta: `இந்த தனியுரிமைக் கொள்கையைப் பற்றி கேள்விகள் இருந்தால், ${SUPPORT_EMAIL} என்ற முகவரியில் எங்களை தொடர்பு கொள்ளுங்கள்.`,
       },
     },
   ],
@@ -105,8 +107,8 @@ export const TERMS_OF_SERVICE: {
     {
       heading: { en: "Contact", ta: "தொடர்பு" },
       body: {
-        en: "For questions about these Terms of Service, contact us at support@vinaadi.app.",
-        ta: "இந்த சேவை விதிமுறைகளைப் பற்றிய கேள்விகளுக்கு, support@vinaadi.app என்ற முகவரியில் எங்களை தொடர்பு கொள்ளுங்கள்.",
+        en: `For questions about these Terms of Service, contact us at ${SUPPORT_EMAIL}.`,
+        ta: `இந்த சேவை விதிமுறைகளைப் பற்றிய கேள்விகளுக்கு, ${SUPPORT_EMAIL} என்ற முகவரியில் எங்களை தொடர்பு கொள்ளுங்கள்.`,
       },
     },
   ],

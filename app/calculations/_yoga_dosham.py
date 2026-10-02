@@ -10,8 +10,6 @@ from app.calculations._yoga_helpers import (
     KENDRA_HOUSES,
     MALE_HIGH_ATTENTION_SEVVAI_HOUSES,
     RAHU_KETU_MARRIAGE_HOUSES,
-    RAHU_KETU_SARPA_HOUSES,
-    RAHU_KETU_UPACHAYA_HOUSES,
     SEVEN_PLANETS,
     SEVVAI_BENEFIC_REDUCERS,
     TAMIL_SEVVAI_HOUSES,
@@ -26,10 +24,12 @@ from app.calculations._yoga_helpers import (
     _is_kendra_from,
     _planet_is_strong,
     _planet_rasi,
+    _planets_as_rasi_map,
 )
-from app.calculations.aspects import aspects_house
+from app.calculations.aspects import aspects_house, effective_natural_class
 from app.calculations.astro import house_from_reference
 from app.calculations.chart_strength import EXALTATION_RASI, OWN_SIGN_RASI, SIGN_LORD
+from app.calculations.doctrine_options import DEFAULT_DOCTRINE, LONGITUDE_EPSILON, DoctrineOptions
 
 _MOVABLE_LAGNAS = {1, 4, 7, 10}
 _FIXED_LAGNAS = {2, 5, 8, 11}
@@ -62,9 +62,13 @@ def detect_sevvai_dosham(
     combust_planets: frozenset[str] = frozenset(),
     d9_rasi_map: Mapping[str, int] | None = None,
     d9_lagna_rasi: int | None = None,
+    doctrine: DoctrineOptions = DEFAULT_DOCTRINE,
 ) -> DoshamResult:
     active = set(active_lords or ())
-    missing_data = [planet for planet in ("MARS", "MOON", "VENUS") if planet not in planets]
+    # JUPITER is read unconditionally below (its drishti on Mars is a
+    # cancellation), so it is required here too. It was left out, and a chart
+    # without it raised KeyError instead of returning INCOMPLETE_DATA.
+    missing_data = [planet for planet in ("MARS", "MOON", "VENUS", "JUPITER") if planet not in planets]
     if missing_data:
         what_ta, what_en, why_ta, why_en, how_ta, how_en = _build_dosham_explanations(
             "SEVVAI_DOSHAM",
@@ -84,8 +88,8 @@ def detect_sevvai_dosham(
             cancellation_factors=[],
             missing_data=missing_data,
             dasha_activated=False,
-            description_ta="செவ்வாய் தோஷம் பகுப்பாய்விற்கு செவ்வாய், சந்திரன், சுக்கிரன் நிலைகள் தேவை.",
-            description_en="Sevvai dosham analysis needs Mars, Moon, and Venus placements.",
+            description_ta="செவ்வாய் தோஷம் பகுப்பாய்விற்கு செவ்வாய், சந்திரன், சுக்கிரன், குரு நிலைகள் தேவை.",
+            description_en="Sevvai dosham analysis needs Mars, Moon, Venus, and Jupiter placements.",
             explanation_what_ta=what_ta,
             explanation_what_en=what_en,
             explanation_why_ta=why_ta,
@@ -98,7 +102,6 @@ def detect_sevvai_dosham(
     moon_rasi = _planet_rasi(planets, "MOON")
     venus_rasi = _planet_rasi(planets, "VENUS")
     conditions_met: list[str] = []
-    severity_notes: list[str] = []
     house_hits: dict[str, int] = {}
 
     lagna_house = house_from_reference(lagna_rasi, mars_rasi)
@@ -115,20 +118,34 @@ def detect_sevvai_dosham(
         conditions_met.append("from_venus")
         house_hits["from_venus"] = venus_house
 
+    aggravation_count = 0
+    if conditions_met and "MARS" in combust_planets:
+        conditions_met.append("mars_combust")
+        aggravation_count += 1
+    if conditions_met and any(
+        planet in planets and _planet_rasi(planets, planet) == mars_rasi
+        for planet in ("SATURN", "RAHU")
+    ):
+        conditions_met.append("mars_joined_saturn_or_rahu")
+        aggravation_count += 1
+
+    # DD-05: gender weighting is for the astrologer / porutham view only. It is
+    # recorded beside the result, never in `conditions_met`, so no consumer
+    # surface can say "Female chart: …". It never decided presence anyway.
     gender_norm = (gender or "").lower()
-    for _ref_key, house_num in house_hits.items():
-        if gender_norm == "female" and house_num in FEMALE_HIGH_ATTENTION_SEVVAI_HOUSES:
-            severity_notes.append("female_high_attention_house")
-            if "female_high_attention_house" not in conditions_met:
-                conditions_met.append("female_high_attention_house")
-        elif gender_norm == "male" and house_num in MALE_HIGH_ATTENTION_SEVVAI_HOUSES:
-            severity_notes.append("male_high_attention_house")
-            if "male_high_attention_house" not in conditions_met:
-                conditions_met.append("male_high_attention_house")
+    weighted = FEMALE_HIGH_ATTENTION_SEVVAI_HOUSES if gender_norm == "female" else (
+        MALE_HIGH_ATTENTION_SEVVAI_HOUSES if gender_norm == "male" else frozenset()
+    )
+    astrologer_markers = tuple(
+        f"{gender_norm}_weighted_house_{house_num}_{ref_key}"
+        for ref_key, house_num in house_hits.items() if house_num in weighted
+    )
 
     cancellation_factors: list[str] = []
     mitigation_score = 0
     major_cancellation = False
+    exempt_lagna = False
+    softened_by_exception = False
 
     if mars_rasi in OWN_SIGN_RASI["MARS"]:
         cancellation_factors.append("mars_own_sign")
@@ -138,13 +155,28 @@ def detect_sevvai_dosham(
         mitigation_score += 1
 
     if lagna_rasi in KADAGAM_SIMMAM_LAGNA_EXCEPTION:
-        cancellation_factors.append("mars_yogakaraka_lagna")
-        mitigation_score += 1
-        major_cancellation = True
+        # DD-06: the traditional Tamil exception for Kadagam/Simmam lagna. The
+        # marker is always recorded, so a later ruling (O-6) can switch to full
+        # exemption without recomputing anything. Until then it is a strong
+        # mitigation — one grade off and one mitigation point — and never by
+        # itself an erasure: Mars's house, dignity and the other references
+        # still set what remains.
+        cancellation_factors.append("tamil_sevvai_exception_cancer_leo")
+        if doctrine.o6_sevvai_cancer_leo == "full_exemption":
+            exempt_lagna = True
+        else:
+            mitigation_score += 1
+            softened_by_exception = True
     elif lagna_rasi in {1, 8} and lagna_house in {1, 2}:
+        # O-18 is now operational without choosing the ruling: preserve the
+        # shipped full cancellation by default, or switch to DD-06's strong
+        # mitigation posture through DoctrineOptions.
         cancellation_factors.append("mars_lagna_lord_mitigation")
         mitigation_score += 1
-        major_cancellation = True
+        if doctrine.o18_aries_scorpio_sevvai == "full_cancellation":
+            major_cancellation = True
+        else:
+            softened_by_exception = True
 
     for _ref_key, house_num in house_hits.items():
         if house_num in HOUSE_SIGN_NIVARTHI and mars_rasi in HOUSE_SIGN_NIVARTHI[house_num]:
@@ -208,15 +240,17 @@ def detect_sevvai_dosham(
         cancellation_factors.append("both_partners_have_sevvai")
         major_cancellation = True
 
-    is_present = len([c for c in conditions_met if c not in {"female_high_attention_house", "male_high_attention_house"}]) > 0
+    is_present = bool(conditions_met) and not exempt_lagna
     is_cancelled = is_present and (major_cancellation or mitigation_score >= 2)
     strong_house_hit = any(house_hits.get(key) in {7, 8} for key in house_hits)
     if not is_present or is_cancelled:
         strength = "WEAK"
     elif strong_house_hit or len([c for c in conditions_met if c.startswith("from_")]) >= 2:
-        strength = "STRONG"
+        strength = "PARTIAL" if softened_by_exception else "STRONG"
     else:
-        strength = "PARTIAL"
+        strength = "WEAK" if softened_by_exception else "PARTIAL"
+    if is_present and not is_cancelled and aggravation_count:
+        strength = {"WEAK": "PARTIAL", "PARTIAL": "STRONG", "STRONG": "STRONG"}[strength]
 
     if not is_present:
         label = "NO_SEVVAI_DOSHAM"
@@ -247,15 +281,65 @@ def detect_sevvai_dosham(
         cancellation_factors=cancellation_factors,
         missing_data=[],
         dasha_activated=_is_active(active, "MARS"),
-        description_ta="செவ்வாய் தோஷம் ஒரு வழிகாட்டல் குறிப்பான் மட்டுமே; நிவர்த்தி காரணங்கள் தீவிரத்தை குறைக்கலாம்.",
-        description_en="Sevvai dosham is treated as a traditional tendency indicator; cancellation factors can soften intensity.",
+        # DD-05: one sentence for every reader, whatever the chart's gender.
+        description_ta=(
+            "இந்த ஜாதகத்தில் செவ்வாய் திருமண உணர்திறன் உள்ள இடத்தில் உள்ளது. அதன் உண்மையான "
+            "தாக்கம் செவ்வாயின் வலிமை, பார்வைகள், மற்ற திருமண சுட்டிகள் ஆகியவற்றைப் பொறுத்தது."
+            if is_present else
+            "செவ்வாய் தோஷம் ஒரு வழிகாட்டல் குறிப்பான் மட்டுமே; நிவர்த்தி காரணங்கள் தீவிரத்தை குறைக்கலாம்."
+        ),
+        description_en=(
+            "Mars is in a marriage-sensitive position in this chart. Its actual effect depends on "
+            "Mars's strength, aspects and the rest of the marriage indicators."
+            if is_present else
+            "Sevvai dosham is treated as a traditional tendency indicator; cancellation factors can soften intensity."
+        ),
         explanation_what_ta=what_ta,
         explanation_what_en=what_en,
         explanation_why_ta=why_ta,
         explanation_why_en=why_en,
         explanation_how_ta=how_ta,
         explanation_how_en=how_en,
+        astrologer_markers=astrologer_markers,
     )
+
+
+#: DD-03 severity arithmetic, all Tier C. A formed axis starts at Moderate; each
+#: aggravation adds one grade, up to Strong, and then each mitigation removes
+#: one. 2 is Strong, 1 Moderate, 0 Mild, and below 0 the mitigations outweigh
+#: the axis: the dosham is reported as mitigated (nivarthi), never erased.
+#:
+#: The ceiling is applied *before* the mitigations, as the tables' "+1 grade /
+#: −1 grade" wording reads. Summing first and clamping last let surplus
+#: aggravations absorb mitigations: one Sukran with Rahu (7th lord, Venus and
+#: the O-1 from-Venus check) scored +3, while the default mitigations total at
+#: most 3, so no chart with two aggravations could ever reach nivarthi — the
+#: "uncancellable" P0 defect again, by arithmetic. Nothing locks the grade.
+RK_BASE_SEVERITY = 1
+RK_MAX_SEVERITY = 2
+_RK_GRADE: dict[int, tuple[str, str]] = {
+    2: ("STRONG", "STRONG_ACTIVE_RAHU_KETU_DOSHAM"),
+    1: ("PARTIAL", "ACTIVE_RAHU_KETU_DOSHAM"),
+    0: ("WEAK", "ACTIVE_RAHU_KETU_DOSHAM"),
+}
+_RK_MALEFIC_CANDIDATES = ("SUN", "MOON", "MARS", "MERCURY", "SATURN")
+_RK_BENEFIC_CANDIDATES = ("MOON", "MERCURY", "JUPITER", "VENUS")
+_SEVENTH_LORD_AFFLICTORS = {"MARS", "SATURN", "RAHU", "KETU"}
+
+
+def _rk_lord_is_strong(
+    planets: Mapping[str, PlanetInput], lord: str, lagna_rasi: int, combust_planets: frozenset[str]
+) -> bool:
+    """Engine reading of a "strong" 7th/8th lord (Tier C): own sign, exalted or
+    in a kendra/trikona, not joined by Sevvai/Sani/Rahu/Ketu, not combust."""
+    if lord not in planets:
+        return False
+    lord_rasi = _planet_rasi(planets, lord)
+    joined = any(
+        p in planets and _planet_rasi(planets, p) == lord_rasi
+        for p in _SEVENTH_LORD_AFFLICTORS if p != lord
+    )
+    return _planet_is_strong(planets, lord, lagna_rasi) and not joined and lord not in combust_planets
 
 
 def detect_rahu_ketu_dosham(
@@ -267,7 +351,30 @@ def detect_rahu_ketu_dosham(
     combust_planets: frozenset[str] = frozenset(),
     d9_rasi_map: Mapping[str, int] | None = None,
     d9_lagna_rasi: int | None = None,
+    moon_benefic: bool | None = None,
+    planet_scores: Mapping[str, int] | None = None,
+    doctrine: DoctrineOptions = DEFAULT_DOCTRINE,
 ) -> DoshamResult:
+    """Rahu–Ketu marriage axis — DOCTRINE_DECISIONS v1.3, DD-03 (Tier B).
+
+    Formation: a node in house 1, 2, 7 or 8 from Lagna, reported as **one** axis
+    finding (`rahu_ketu_axis_1_7` or `rahu_ketu_axis_2_8`), never as two doshas
+    for two nodes. Houses 5 and 9 are no longer read here (DD-04): node-in-5th
+    belongs to the progeny analysis and the 9th to dharma/father.
+
+    Severity is graded, never vetoed (see `RK_BASE_SEVERITY`). Aggravations land
+    in `conditions_met`, mitigations in `cancellation_factors`. The old rule
+    that a 7th/8th node "blocks every cancellation" is gone: it made nivarthi
+    impossible for every axis chart, about one chart in three.
+
+    Not read any more, by decision: the gender markers (DD-05 moves them out of
+    this detector), the Navamsa 7th-lord tests, Venus's own strength, and Jupiter
+    merely in a kendra/trikona. O-2's node-sign mitigation exists only when an
+    explicitly named practitioner lineage and exact sign lists are supplied.
+    ``gender``, ``d9_rasi_map`` and ``d9_lagna_rasi`` are accepted for call-site
+    compatibility and ignored.
+    """
+    _ = (gender, d9_rasi_map, d9_lagna_rasi)
     active = set(active_lords or ())
     missing_data = [planet for planet in ("RAHU", "KETU", "VENUS", "JUPITER") if planet not in planets]
     if missing_data:
@@ -301,137 +408,102 @@ def detect_rahu_ketu_dosham(
 
     rahu_rasi = _planet_rasi(planets, "RAHU")
     ketu_rasi = _planet_rasi(planets, "KETU")
+    node_rasis = {rahu_rasi, ketu_rasi}
     jupiter_rasi = _planet_rasi(planets, "JUPITER")
     venus_rasi = _planet_rasi(planets, "VENUS")
     rahu_house = house_from_reference(lagna_rasi, rahu_rasi)
     ketu_house = house_from_reference(lagna_rasi, ketu_rasi)
+    node_houses = {rahu_house, ketu_house}
+
+    # One axis finding. The nodes stand opposite, so an axis chart always has a
+    # node in the 7th (1/7) or the 8th (2/8); the per-node test below only
+    # guards a malformed input in which they are not opposite.
+    if node_houses & {1, 7}:
+        axis = "1_7"
+    elif node_houses & {2, 8}:
+        axis = "2_8"
+    else:
+        axis = ""
 
     conditions_met: list[str] = []
-    marriage_candidates: list[int] = []
-    sarpa_candidates: list[int] = []
-
-    if rahu_house in RAHU_KETU_MARRIAGE_HOUSES:
-        conditions_met.append("rahu_in_marriage_house")
-        marriage_candidates.append(rahu_house)
-    if ketu_house in RAHU_KETU_MARRIAGE_HOUSES:
-        conditions_met.append("ketu_in_marriage_house")
-        marriage_candidates.append(ketu_house)
-
-    if rahu_house in RAHU_KETU_SARPA_HOUSES:
-        conditions_met.append("rahu_in_sarpa_house")
-        sarpa_candidates.append(rahu_house)
-    if ketu_house in RAHU_KETU_SARPA_HOUSES:
-        conditions_met.append("ketu_in_sarpa_house")
-        sarpa_candidates.append(ketu_house)
-
-    seventh_lord = _house_lord(lagna_rasi, 7)
-    if seventh_lord in planets:
-        seventh_lord_rasi = _planet_rasi(planets, seventh_lord)
-        if seventh_lord_rasi in {rahu_rasi, ketu_rasi}:
-            conditions_met.append("node_with_seventh_lord")
-    if venus_rasi in {rahu_rasi, ketu_rasi}:
-        conditions_met.append("node_with_venus")
-
-    if "MOON" in planets:
-        moon_rasi = _planet_rasi(planets, "MOON")
-        if moon_rasi in {rahu_rasi, ketu_rasi}:
-            conditions_met.append("node_afflicts_moon")
-
-    if rahu_house in RAHU_KETU_UPACHAYA_HOUSES and rahu_house not in RAHU_KETU_MARRIAGE_HOUSES:
-        conditions_met.append("rahu_ketu_upachaya")
-    if ketu_house in RAHU_KETU_UPACHAYA_HOUSES and ketu_house not in RAHU_KETU_MARRIAGE_HOUSES:
-        if "rahu_ketu_upachaya" not in conditions_met:
-            conditions_met.append("rahu_ketu_upachaya")
-
     cancellation_factors: list[str] = []
+    seventh_lord = _house_lord(lagna_rasi, 7)
+    eighth_lord = _house_lord(lagna_rasi, 8)
+    seventh_rasi = ((lagna_rasi + 5) % 12) + 1
+    eighth_rasi = ((lagna_rasi + 6) % 12) + 1
+    moon_rasi = _planet_rasi(planets, "MOON") if "MOON" in planets else None
 
-    jupiter_house_from_lagna = house_from_reference(lagna_rasi, jupiter_rasi)
-    if jupiter_house_from_lagna in KENDRA_HOUSES | TRIKONA_HOUSES:
-        cancellation_factors.append("jupiter_kendra_trikona_support")
-    if aspects_house("JUPITER", jupiter_rasi, rahu_rasi):
-        if "jupiter_kendra_trikona_support" not in cancellation_factors:
-            cancellation_factors.append("jupiter_kendra_trikona_support")
-
-    if seventh_lord in planets:
-        seventh_lord_rasi_rk = _planet_rasi(planets, seventh_lord)
-        base_strong = _planet_is_strong(planets, seventh_lord, lagna_rasi)
-        rk_malefics = {"MARS", "SATURN", "RAHU", "KETU"}
-        conjunct_mal_rk = any(
-            p in planets and _planet_rasi(planets, p) == seventh_lord_rasi_rk
-            for p in rk_malefics if p != seventh_lord
+    def natural_class(planet: str) -> str:
+        return effective_natural_class(
+            planet, _planets_as_rasi_map(planets),
+            paksha_is_shukla=moon_benefic, planet_scores=planet_scores,
         )
-        seventh_combust_rk = seventh_lord in combust_planets
-        d9_strong_rk = False
-        if d9_rasi_map and d9_lagna_rasi and seventh_lord in d9_rasi_map:
-            d9_house_rk = house_from_reference(d9_lagna_rasi, d9_rasi_map[seventh_lord])
-            d9_strong_rk = d9_house_rk in (KENDRA_HOUSES | TRIKONA_HOUSES)
-        jup_aspect_7l_rk = False
-        if "JUPITER" in planets:
-            jup_rasi_rk = _planet_rasi(planets, "JUPITER")
-            jup_aspect_7l_rk = aspects_house("JUPITER", jup_rasi_rk, seventh_lord_rasi_rk)
-        if base_strong and not conjunct_mal_rk and not seventh_combust_rk:
+
+    def influences(planet: str, target_rasi: int) -> bool:
+        if planet not in planets:
+            return False
+        rasi = _planet_rasi(planets, planet)
+        return rasi == target_rasi or aspects_house(planet, rasi, target_rasi)
+
+    if axis:
+        conditions_met.append(f"rahu_ketu_axis_{axis}")
+        # Aggravations — DD-03 table, +1 grade each.
+        if seventh_lord in planets and _planet_rasi(planets, seventh_lord) in node_rasis:
+            conditions_met.append("node_with_seventh_lord")
+        if venus_rasi in node_rasis:
+            conditions_met.append("node_with_venus")
+        if moon_rasi in node_rasis:
+            conditions_met.append("node_afflicts_moon")
+        # Malefic influence on the 7th: a natural malefic by DD-12 (waning Moon
+        # and afflicted Budhan included) occupying or aspecting the 7th house.
+        # The nodes are excluded — on the 1/7 axis one of them *is* the finding.
+        if any(natural_class(p) == "MALEFIC" and influences(p, seventh_rasi) for p in _RK_MALEFIC_CANDIDATES):
+            conditions_met.append("malefic_influence_on_seventh")
+        # O-1: the same houses counted from the Moon or from Venus. Secondary —
+        # it can raise the grade, never create the dosham.
+        if doctrine.o1_rk_moon_venus_secondary:
+            secondary_refs = [r for r in (moon_rasi, venus_rasi) if r is not None]
+            if any(
+                house_from_reference(ref, node) in RAHU_KETU_MARRIAGE_HOUSES
+                for ref in secondary_refs for node in node_rasis
+            ):
+                conditions_met.append("node_afflicts_from_moon_or_venus")
+
+        # Mitigations — DD-03 table, −1 grade each.
+        if jupiter_rasi in node_rasis or any(aspects_house("JUPITER", jupiter_rasi, n) for n in node_rasis):
+            cancellation_factors.append("guru_joins_or_aspects_node")
+        if aspects_house("JUPITER", jupiter_rasi, seventh_rasi) or (
+            seventh_lord in planets and aspects_house("JUPITER", jupiter_rasi, _planet_rasi(planets, seventh_lord))
+        ):
+            cancellation_factors.append("guru_aspects_seventh_or_its_lord")
+        if axis == "1_7" and _rk_lord_is_strong(planets, seventh_lord, lagna_rasi, combust_planets):
             cancellation_factors.append("strong_seventh_lord")
-        if d9_strong_rk:
-            cancellation_factors.append("seventh_lord_strong_d9")
-        if jup_aspect_7l_rk:
-            cancellation_factors.append("jupiter_aspects_seventh_lord")
-    if d9_rasi_map and d9_lagna_rasi:
-        d9_7th_lord = SIGN_LORD[((d9_lagna_rasi + 5) % 12) + 1]
-        if d9_7th_lord in d9_rasi_map:
-            d9_7th_lord_house = house_from_reference(d9_lagna_rasi, d9_rasi_map[d9_7th_lord])
-            if d9_7th_lord_house in KENDRA_HOUSES | TRIKONA_HOUSES:
-                # Protective marker (L-4): a strong D9 7th lord is a
-                # cancellation signal, not a trigger — belongs under
-                # cancellation_factors, not conditions_met ("Triggered factors").
-                cancellation_factors.append("d9_seventh_lord_strong")
+        if axis == "2_8" and (
+            _rk_lord_is_strong(planets, eighth_lord, lagna_rasi, combust_planets)
+            or any(natural_class(p) == "BENEFIC" and influences(p, eighth_rasi) for p in _RK_BENEFIC_CANDIDATES)
+        ):
+            cancellation_factors.append("strong_eighth_lord_or_benefic_on_eighth")
+        # O-2: no sign list is assumed. A practitioner must name the lineage
+        # and supply the exact Rahu/Ketu rasis before this mitigation can fire.
+        if doctrine.o2_node_dignity_mode == "explicit_signs" and (
+            rahu_rasi in doctrine.o2_rahu_favourable_rasis
+            or ketu_rasi in doctrine.o2_ketu_favourable_rasis
+        ):
+            cancellation_factors.append("node_in_favourable_sign_lineage")
 
-    if _planet_is_strong(planets, "VENUS", lagna_rasi) and venus_rasi not in {rahu_rasi, ketu_rasi}:
-        cancellation_factors.append("strong_venus")
-
-    gender_norm = (gender or "").lower()
-    if gender_norm == "female":
-        if any(h == 8 for h in marriage_candidates):
-            if "female_high_attention_house" not in conditions_met:
-                conditions_met.append("female_high_attention_house")
-    elif gender_norm == "male":
-        if any(h == 7 for h in marriage_candidates) or "node_with_venus" in conditions_met:
-            if "male_high_attention_house" not in conditions_met:
-                conditions_met.append("male_high_attention_house")
-
-    has_marriage_candidate = len(marriage_candidates) > 0
-    has_sarpa_candidate = len(sarpa_candidates) > 0
-    strong_marriage_affliction = bool(
-        set(marriage_candidates) & {7, 8}
-        or "node_with_seventh_lord" in conditions_met
-        or "node_with_venus" in conditions_met
-        or "node_afflicts_moon" in conditions_met
-    )
-    is_present = has_marriage_candidate or has_sarpa_candidate
-    is_cancelled = has_marriage_candidate and len(cancellation_factors) >= 2 and not strong_marriage_affliction
+    aggravations = len(conditions_met) - 1 if axis else 0
+    aggravated = min(RK_BASE_SEVERITY + aggravations, RK_MAX_SEVERITY)
+    net = aggravated - len(cancellation_factors)
+    is_present = bool(axis)
+    is_cancelled = is_present and net < 0
 
     if not is_present:
-        strength = "WEAK"
-    elif strong_marriage_affliction:
-        strength = "STRONG"
+        strength, label, category = "WEAK", "NO_RAHU_KETU_DOSHAM", "NODES"
+    elif is_cancelled:
+        strength, label, category = "WEAK", "RAHU_KETU_DOSHAM_WITH_NIVARTHI", "MARRIAGE"
     else:
-        strength = "PARTIAL"
-
-    if has_marriage_candidate:
-        if is_cancelled:
-            label = "RAHU_KETU_DOSHAM_WITH_NIVARTHI"
-        elif strong_marriage_affliction:
-            label = "STRONG_ACTIVE_RAHU_KETU_DOSHAM"
-        elif len(marriage_candidates) == 1:
-            label = "RAHU_KETU_DOSHAM_CANDIDATE"
-        else:
-            label = "ACTIVE_RAHU_KETU_DOSHAM"
+        strength, label = _RK_GRADE[net]
         category = "MARRIAGE"
-    elif has_sarpa_candidate:
-        label = "SARPA_NAGA_DOSHAM_CANDIDATE"
-        category = "SARPA_NAGA"
-    else:
-        label = "NO_RAHU_KETU_DOSHAM"
-        category = "NODES"
 
     what_ta, what_en, why_ta, why_en, how_ta, how_en = _build_dosham_explanations(
         "RAHU_KETU_DOSHAM",
@@ -444,7 +516,7 @@ def detect_rahu_ketu_dosham(
         name="RAHU_KETU_DOSHAM",
         is_present=is_present,
         is_cancelled=is_cancelled,
-        strength=strength if not is_cancelled else "WEAK",
+        strength=strength,
         label=label,
         category=category,
         conditions_met=conditions_met,
@@ -628,9 +700,6 @@ KALASARPA_NAGAS: dict[int, dict[str, str]] = {
 # epsilon exists only because longitudes are floats — it is about a hundredth of
 # an arcsecond and is NOT a doctrinal orb. Doctrine A-4 ruled that there is no
 # degree tolerance at the node ends; widening this value reintroduces one.
-_NODE_CONJUNCTION_EPSILON_DEG = 1.0 / 360_000.0
-
-
 def detect_kalasarpa(
     planets: Mapping[str, PlanetInput],
     lagna_rasi: int | None = None,
@@ -685,8 +754,8 @@ def detect_kalasarpa(
             from_rahu = (graha_lon - rahu_lon) % 360.0
             from_ketu = (graha_lon - ketu_lon) % 360.0
             if (
-                min(from_rahu, 360.0 - from_rahu) <= _NODE_CONJUNCTION_EPSILON_DEG
-                or min(from_ketu, 360.0 - from_ketu) <= _NODE_CONJUNCTION_EPSILON_DEG
+                min(from_rahu, 360.0 - from_rahu) <= LONGITUDE_EPSILON
+                or min(from_ketu, 360.0 - from_ketu) <= LONGITUDE_EPSILON
             ):
                 on_node.append(graha)
             if from_rahu > 180.0:

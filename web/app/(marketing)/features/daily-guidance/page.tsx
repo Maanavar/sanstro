@@ -1,9 +1,25 @@
-import Link from "next/link";
+import type { Metadata } from "next";
+import { JsonLd } from "@/lib/json-ld";
+import { withTamilTwin } from "@/lib/localized-metadata";
+import { LocalizedLink as Link } from "@/components/localized-link";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { getServerLang } from "@/lib/server-lang";
 import { FEAT_DAILY, mt } from "@/lib/marketing-i18n";
 import { PanchangamWheelVisual, SouthIndianChartVisual, TimingArcVisual } from "@/components/marketing-visuals";
+import { pageMetadata } from "@/lib/page-metadata";
+
+const EN_METADATA = pageMetadata({
+  path: "/features/daily-guidance",
+  title: "Daily Tamil Astrology Guidance — Your Day, Read From Your Own Chart",
+  description:
+    "One calm reading every morning: your Thirukanitham chart, current dasa, today's transits and the panchangam read together into a best window and a caution window.",
+  keywords: ["daily astrology guidance", "personalised rasi palan", "Tamil daily jothidam", "today nalla neram for me"],
+});
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/features/daily-guidance");
+}
 
 // F7 part two — a Server Component; see lib/server-lang.ts.
 export default async function DailyGuidancePage() {
@@ -36,7 +52,7 @@ export default async function DailyGuidancePage() {
 
   return (
     <div className="clarity-shell">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
+      <JsonLd en={faqJsonLd} />
       <PublicNav />
       <main>
         {/* HERO */}

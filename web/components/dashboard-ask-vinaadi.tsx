@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Sparkles } from "lucide-react";
+import { AlertTriangle, Check, Hourglass, Scale, Sparkles } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { apiFetchJson, getApiError } from "@/lib/api";
+import { track } from "@/lib/analytics";
 import type { Lang } from "@/lib/i18n";
 import type { AskVinaadiResponseData, ConfidenceTier, LifeMode } from "@/lib/types";
 import { getChipsForMode } from "@/lib/ask-vinaadi-chips";
@@ -14,7 +16,12 @@ interface DailyStatus {
   chipsUsed: number;
   chipsRemaining: number | null;
   isPremium: boolean;
-  dailyLimit: number;
+  /** Open beta: a spent allowance is a fair-use cap to wait out, never a paywall. */
+  openBeta: boolean;
+  /** Null for a monthly (premium) allowance. */
+  dailyLimit: number | null;
+  /** Null for a daily allowance. */
+  monthlyLimit: number | null;
 }
 
 interface DashboardAskVinaadiProps {
@@ -26,6 +33,10 @@ interface DashboardAskVinaadiProps {
   /** Drop the standalone top margin when placed inline in a spaced column
       (e.g. the Hybrid Family forecast rail), so it aligns with its siblings. */
   embedded?: boolean;
+  /** Analytics surface for chip taps. The Family rail passes no life mode, so
+   *  its chips are the BALANCED set; a separate surface keeps those taps out
+   *  of the per-focus count for the reader's own Ask. */
+  analyticsSurface?: "web" | "web_family";
 }
 
 const SUGGESTED_QUESTIONS: Record<NonNullable<GoalTrack> | "DEFAULT", { ta: string; en: string }[]> = {
@@ -64,7 +75,7 @@ function QuotaBar({ used, limit, lang }: { used: number; limit: number; lang: La
         <span>{lang === "ta" ? `இன்று ${used} / ${limit} கேள்விகள் பயன்படுத்தப்பட்டன` : `${used} of ${limit} questions used today`}</span>
       </div>
       <div style={{ height: "4px", borderRadius: "2px", background: "var(--veil-white-10)", overflow: "hidden" }}>
-        <div style={{ width: `${pct}%`, height: "100%", background: color, borderRadius: "2px", transition: "width 0.3s ease" }} />
+        <div style={{ width: `${pct}%`, height: "100%", background: color, borderRadius: "2px", transition: "width 0.3s var(--ease-nova)" }} />
       </div>
     </div>
   );
@@ -81,28 +92,66 @@ function AnswerCard({ entry, lang }: { entry: { question: string; data: AskVinaa
       {/* Lead with the plain go/stay verdict, then the reasoning (#6) */}
       {data.verdict && (() => {
         const v = data.verdict;
-        const palette: Record<string, { fg: string; bg: string; bd: string; icon: string }> = {
-          GO:      { fg: "var(--color-score-high, #5C7654)", bg: "var(--color-high-bg, rgba(92,118,84,0.1))", bd: "var(--color-high-border, rgba(92,118,84,0.35))", icon: "✓" },
-          WAIT:    { fg: "var(--color-score-mid, #B85A2C)",  bg: "var(--color-accent-muted, rgba(184,90,44,0.08))", bd: "rgba(184,90,44,0.35)", icon: "⏳" },
-          MIXED:   { fg: "var(--color-score-mid, #B85A2C)",  bg: "var(--color-accent-muted, rgba(184,90,44,0.08))", bd: "rgba(184,90,44,0.35)", icon: "≈" },
-          CAUTION: { fg: "var(--color-score-low, #A8482F)",  bg: "var(--color-low-bg, rgba(168,72,47,0.1))", bd: "var(--color-low-border, rgba(168,72,47,0.35))", icon: "⚠" },
+        /* The four verdict marks were text glyphs — "✓", "⏳", "≈", "⚠" —
+           rendered in an 18px span, and that span set no `color`, so the mark
+           inherited the card's body ink instead of the verdict tone sitting
+           right beside it. Green "Go" arrived with a brown tick.
+
+           "⏳" was the worse half: it is Extended_Pictographic, so Windows and
+           Apple both paint it as a full-COLOUR emoji. It ignored `color`
+           entirely by design, dropped a saturated blue-and-white hourglass
+           into a palette with no blue in it, and did that identically in both
+           themes — the one mark on the page no theme could touch.
+
+           Lucide strokes inherit currentColor, so the mark now carries the
+           same tone as the words. `Scale` for MIXED rather than "≈": a
+           two-pan balance says "weighed, came out even", where the
+           approximately-equal sign says "roughly", which is not the verdict. */
+        const palette: Record<string, { fg: string; bg: string; bd: string; Icon: LucideIcon }> = {
+          GO:      { fg: "var(--color-score-high)", bg: "var(--color-high-bg)",      bd: "var(--color-high-border)", Icon: Check },
+          WAIT:    { fg: "var(--color-score-mid)",  bg: "var(--color-accent-muted)", bd: "var(--color-mid-border)",  Icon: Hourglass },
+          MIXED:   { fg: "var(--color-score-mid)",  bg: "var(--color-accent-muted)", bd: "var(--color-mid-border)",  Icon: Scale },
+          CAUTION: { fg: "var(--color-score-low)",  bg: "var(--color-low-bg)",       bd: "var(--color-low-border)",  Icon: AlertTriangle },
         };
         const p = palette[v.kind] ?? palette.MIXED;
         return (
           <div style={{ display: "flex", alignItems: "center", gap: "10px", margin: "0 0 12px 0", padding: "11px 14px", background: p.bg, border: `1px solid ${p.bd}`, borderRadius: "10px" }}>
-            <span aria-hidden="true" style={{ fontSize: "18px", lineHeight: 1 }}>{p.icon}</span>
+            {/* The disc fixes the optical footprint across four glyphs of very
+                different drawn area (a Check fills its box, an Hourglass
+                leaves it half empty) and derives its own fill from
+                currentColor, so it stays in the verdict's hue. */}
+            <span aria-hidden="true" className="nova-icon-disc" style={{ "--nova-icon-disc-size": "30px", color: p.fg } as React.CSSProperties}>
+              <p.Icon size={16} strokeWidth={2.25} />
+            </span>
             <span style={{ fontSize: "15.5px", fontWeight: 700, color: p.fg, lineHeight: 1.3 }}>{lang === "ta" ? v.ta : v.en}</span>
           </div>
         );
       })()}
       <p style={{ fontSize: "15px", lineHeight: "1.65", margin: "0 0 10px 0", color: "var(--color-text, var(--panel-earth))" }}>{lang === "ta" ? data.answer.ta : data.answer.en}</p>
-      {data.caveat && <p style={{ fontSize: "12px", color: "var(--color-muted, var(--panel-mid-earth))", margin: "0 0 10px 0", padding: "8px 10px", border: "1px solid var(--color-low-border)", borderRadius: "var(--radius-sm)" }}><span style={{ color: "var(--color-low, var(--planet-saturn))" }} aria-hidden="true">⚠ </span>{lang === "ta" ? data.caveat.ta : data.caveat.en}</p>}
+      {/* Same swap, inline: the "⚠ " prefix was a text glyph followed by a
+          space, which wraps away from its sentence at narrow widths and has no
+          fixed metrics across platforms. A flex row with an icon that does not
+          shrink keeps the mark pinned to the first line of the caveat. */}
+      {data.caveat && <p style={{ fontSize: "12px", color: "var(--color-muted, var(--panel-mid-earth))", margin: "0 0 10px 0", padding: "8px 10px", border: "1px solid var(--color-low-border)", borderRadius: "var(--radius-sm)", display: "flex", alignItems: "flex-start", gap: "6px" }}><AlertTriangle aria-hidden="true" focusable="false" size={14} strokeWidth={2.25} style={{ flex: "none", marginTop: "1px", color: "var(--color-low, var(--planet-saturn))" }} />{lang === "ta" ? data.caveat.ta : data.caveat.en}</p>}
       <div style={{ marginTop: "8px" }}>{data.signalsUsed.map((s) => <SignalChip key={s} signal={s} />)}</div>
     </div>
   );
 }
 
-export function DashboardAskVinaadi({ lang, chartId, goalTrack, activeLifeMode = "BALANCED", onUpgrade, embedded = false }: DashboardAskVinaadiProps) {
+/** What to say when the day's questions are spent. Exported for its test. */
+export function askLimitMessage(lang: Lang, dailyLimit: number | null, canUpgrade: boolean): string {
+  const n = dailyLimit ?? 0;
+  if (lang === "ta") {
+    const used = `இன்றைய ${n} கேள்விகளையும் பயன்படுத்திவிட்டீர்கள்.`;
+    return canUpgrade
+      ? `${used} கூடுதல் கேள்விகளுக்கு மேம்படுத்துங்கள், அல்லது நாளை மீண்டும் கேளுங்கள்.`
+      : `${used} நாளை மீண்டும் கேளுங்கள்.`;
+  }
+  const used = `You've used today's ${n} question${n === 1 ? "" : "s"}.`;
+  return canUpgrade ? `${used} Upgrade for more, or ask again tomorrow.` : `${used} Ask again tomorrow.`;
+}
+
+export function DashboardAskVinaadi({ lang, chartId, goalTrack, activeLifeMode = "BALANCED", onUpgrade, embedded = false, analyticsSurface = "web" }: DashboardAskVinaadiProps) {
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -120,8 +169,13 @@ export function DashboardAskVinaadi({ lang, chartId, goalTrack, activeLifeMode =
   }, []);
 
   const isPremium = status?.isPremium ?? false;
+  const openBeta = status?.openBeta ?? false;
+  const dailyLimit = status?.dailyLimit ?? null;
   const chipsRemaining = status?.chipsRemaining ?? null;
   const limitReached = !isPremium && chipsRemaining !== null && chipsRemaining <= 0;
+  // An upgrade is only offered when one exists: not to a subscriber, and not
+  // during the open beta, when /beta has promised every feature is unlocked.
+  const canUpgrade = !isPremium && !openBeta;
 
   const modeChips = getChipsForMode(activeLifeMode);
   const suggestions = SUGGESTED_QUESTIONS[goalTrack ?? "DEFAULT"];
@@ -186,8 +240,9 @@ export function DashboardAskVinaadi({ lang, chartId, goalTrack, activeLifeMode =
               question costs money" unless we say plainly it doesn't (#18). */}
           <p style={{ margin: "3px 0 0", fontSize: "11.5px", color: "var(--color-score-high, #5C7654)", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "4px" }}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+            {/* Premium's allowance is monthly, not unlimited — say what it is. */}
             {isPremium
-              ? (lang === "ta" ? "வரம்பற்ற கேள்விகள் — கூடுதல் கட்டணம் இல்லை" : "Unlimited questions — no extra charge")
+              ? (lang === "ta" ? "Premium-இல் அடங்கும் — ஒவ்வொரு கேள்விக்கும் தனிக் கட்டணம் இல்லை" : "Included in Premium — no charge per question")
               : (lang === "ta" ? "இலவசம் — ஒவ்வொரு கேள்விக்கும் தனிக் கட்டணம் இல்லை" : "Free — no charge per question")}
           </p>
         </div>
@@ -209,7 +264,14 @@ export function DashboardAskVinaadi({ lang, chartId, goalTrack, activeLifeMode =
               <button
                 key={`chip-${i}`}
                 disabled={limitReached}
-                onClick={() => void submit(lang === "ta" ? s.ta : s.en, true)}
+                onClick={() => {
+                  track("life_focus_ask_chip_tapped", {
+                    focus: activeLifeMode,
+                    surface: analyticsSurface,
+                    chip_index: i,
+                  });
+                  void submit(lang === "ta" ? s.ta : s.en, true);
+                }}
                 style={{ fontSize: "12px", padding: "5px 10px", borderRadius: "20px", border: "1px solid var(--cl-brand-edge)", background: limitReached ? "var(--brand-tint-faint)" : "var(--ring-brand)", color: "var(--color-accent, var(--panel-brand))", cursor: limitReached ? "not-allowed" : "pointer", opacity: limitReached ? 0.5 : 1 }}
               >
                 {lang === "ta" ? s.ta : s.en}
@@ -227,14 +289,16 @@ export function DashboardAskVinaadi({ lang, chartId, goalTrack, activeLifeMode =
       {showUpgrade && (
         <div style={{ borderRadius: "12px", background: "var(--glow-brand)", border: "1px solid var(--underline-brand)", padding: "16px", marginBottom: "14px" }}>
           <p style={{ margin: "0 0 12px", fontSize: "14px", lineHeight: 1.5, color: "var(--color-text, var(--panel-earth))" }}>
-            {lang === "ta"
-              ? "இன்று உங்கள் 3 இலவச கேள்விகளைப் பயன்படுத்திவிட்டீர்கள். வரம்பற்ற தினசரி வழிகாட்டுதலுக்கு மேம்படுத்துங்கள்."
-              : "You've used your 3 free questions today. Upgrade for unlimited daily guidance."}
+            {/* The number is the server's (daily-status), never prose: this line
+                once said "3" while the server allowed 7. */}
+            {askLimitMessage(lang, dailyLimit, canUpgrade)}
           </p>
           <div style={{ display: "flex", gap: "8px" }}>
-            <button onClick={goUpgrade} style={{ padding: "8px 18px", borderRadius: "8px", border: "none", background: "var(--color-accent, var(--panel-brand))", color: "white", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
-              {lang === "ta" ? "மேம்படுத்து" : "Upgrade"}
-            </button>
+            {canUpgrade && (
+              <button onClick={goUpgrade} style={{ padding: "8px 18px", borderRadius: "8px", border: "none", background: "var(--color-accent, var(--panel-brand))", color: "white", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
+                {lang === "ta" ? "மேம்படுத்து" : "Upgrade"}
+              </button>
+            )}
             <button onClick={() => setShowUpgrade(false)} style={{ padding: "8px 18px", borderRadius: "8px", border: "1px solid var(--color-border, var(--panel-tan-light))", background: "transparent", color: "var(--color-muted, var(--panel-mid-earth))", fontSize: "13px", cursor: "pointer" }}>
               {lang === "ta" ? "நாளை முயற்சிக்கவும்" : "Try again tomorrow"}
             </button>

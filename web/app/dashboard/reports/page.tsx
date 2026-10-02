@@ -7,6 +7,7 @@ import { apiFetchJson } from "@/lib/api";
 import { LANG_STORAGE_KEY, type Lang } from "@/lib/i18n";
 import { purchaseReport } from "@vinaadi/shared/api/reports";
 import { PPU_REPORT_PRODUCTS, PPU_PORUTHAM_PRODUCTS, PPU_TOPUP_PRODUCTS } from "@vinaadi/shared/constants/tiers";
+import { OPEN_BETA } from "@vinaadi/shared/constants";
 
 type Section = { heading: { en: string; ta: string }; products: typeof PPU_REPORT_PRODUCTS | typeof PPU_PORUTHAM_PRODUCTS | typeof PPU_TOPUP_PRODUCTS };
 
@@ -198,7 +199,9 @@ export default function ReportsPage() {
           </section>
         ))}
 
-        {/* Upgrade CTA */}
+        {/* Upgrade CTA — withheld during the open beta: there is no trial to
+            start and nothing to subscribe to until payments launch. */}
+        {!OPEN_BETA && (
         <div style={{ padding: "20px", borderRadius: "14px", background: "var(--color-surface-soft)", border: "1px solid var(--color-border)", textAlign: "center" }}>
           <p style={{ margin: "0 0 8px", fontWeight: 700, color: "var(--color-text-strong)" }}>
             {ta ? "பிரீமியம் திட்டத்தில் மாதம் 5 விரிவான அறிக்கைகள் இலவசம்" : "Premium plan includes 5 detailed reports per month"}
@@ -213,6 +216,7 @@ export default function ReportsPage() {
             {ta ? "பிரீமியம் பார்க்க →" : "View Premium →"}
           </Link>
         </div>
+        )}
       </div>
     </div>
   );

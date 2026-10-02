@@ -4,9 +4,9 @@ from datetime import date, time
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.schemas.birth_profiles import BirthProfileCreate
+from app.schemas.birth_profiles import BirthProfileCreate, validate_birth_date_bounds
 from app.schemas.daily_guidance import DailyGuidanceWindow
 from app.schemas.dasha import ResponseMeta
 
@@ -97,12 +97,21 @@ class FamilyMemberUpdate(BaseModel):
     relationship_to_owner: str | None = Field(default=None, alias="relationshipToOwner")
     member_weight: float | None = Field(default=None, alias="memberWeight", gt=0)
     gender_for_traditional_rules: str | None = Field(default=None, alias="genderForTraditionalRules")
+    # The edit modal has always sent birthDateLocal; this schema never declared
+    # it, and pydantic drops unknown keys silently, so a corrected birth date
+    # was discarded while the UI reported "updated". It is the one birth field
+    # a reader is most likely to be fixing.
+    birth_date_local: date | None = Field(default=None, alias="birthDateLocal")
     birth_time_local: time | None = Field(default=None, alias="birthTimeLocal")
     birth_place: str | None = Field(default=None, alias="birthPlace", min_length=1)
     birth_latitude: float | None = Field(default=None, alias="birthLatitude", ge=-90.0, le=90.0)
     birth_longitude: float | None = Field(default=None, alias="birthLongitude", ge=-180.0, le=180.0)
     birth_timezone: str | None = Field(default=None, alias="birthTimezone", min_length=1)
-    current_place: str | None = Field(default=None, alias="currentPlace", min_length=1)
+    # No min_length: "" is the only way a reader can say "they moved back — use
+    # the birth place again". `None` already means "not sent" in a PATCH, so it
+    # cannot also mean "clear", and without a sentinel a current location was a
+    # one-way door (settable, changeable, never removable).
+    current_place: str | None = Field(default=None, alias="currentPlace")
     current_latitude: float | None = Field(default=None, alias="currentLatitude", ge=-90.0, le=90.0)
     current_longitude: float | None = Field(default=None, alias="currentLongitude", ge=-180.0, le=180.0)
     current_timezone: str | None = Field(default=None, alias="currentTimezone", min_length=1)
@@ -116,8 +125,16 @@ class FamilyMemberUpdate(BaseModel):
         alias="employmentType",
         description="employed_salaried | self_employed | business_owner | student | unemployed | recently_unemployed | retired | homemaker",
     )
+    # Matches BirthProfileUpdate: a birth-field change without a recalculation
+    # leaves the saved chart disagreeing with the birth data shown beside it.
+    recalculate: bool = Field(default=True, alias="recalculate")
 
     model_config = ConfigDict(populate_by_name=True)
+
+    @field_validator("birth_date_local")
+    @classmethod
+    def validate_birth_date_local(cls, value: date | None) -> date | None:
+        return None if value is None else validate_birth_date_bounds(value)
 
 
 class FamilyMemberData(BaseModel):

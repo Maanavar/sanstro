@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.core.auth import get_current_user
 from app.core.chart_access import assert_chart_owner as _assert_chart_owner
 from app.db.session import get_db
+from app.models import BirthProfile, Chart
 from app.models.user import User
 from app.schemas.journal import (
     VALID_LIFE_AREAS,
@@ -38,6 +39,7 @@ from app.services.journal_service import (
     list_journal_entries,
     update_journal_entry,
 )
+from app.services.life_focus_service import chart_goal_track
 from app.services.settings_service import get_or_create_user_preference
 
 router = APIRouter()
@@ -188,12 +190,18 @@ def get_prompts_for_journal(
     if resolved_score_label not in VALID_SCORE_LABELS:
         raise HTTPException(status_code=422, detail=f"scoreLabel must be one of: {sorted(VALID_SCORE_LABELS)}")
 
+    # Focus-derived track (Life Focus plan, Phase 1); None on a relative's chart (D4).
+    chart = session.get(Chart, chart_id)
+    profile = session.get(BirthProfile, chart.birth_profile_id) if chart is not None else None
+    goal_track = (
+        chart_goal_track(session, profile, current_user.user_id) if profile is not None else None
+    )
     return build_journal_prompts(
         chart_id=chart_id,
         on_date=on_date,
         life_area=resolved_life_area,
         score_label=resolved_score_label,
-        goal_track=getattr(current_user, "goal_track", None),
+        goal_track=goal_track,
     )
 
 

@@ -6,6 +6,7 @@ import { AlertTriangle, Check, X } from "lucide-react";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import { MIN_BIRTH_DATE, maxBirthDateIso } from "@/lib/birth-date";
 import { CULTURAL_CONTEXT, dt, PORUTHAM_VERDICT } from "@/lib/dashboard-i18n";
+import { rasiDisplayName } from "@/lib/chart-utils";
 import { t, tPlanetLord, tNakshatra } from "@/lib/i18n";
 import { verdictPhrase } from "@/lib/verdict-lexicon";
 import { kutaTone, madhyamaLabel, madhyamaGloss, hasMadhyama } from "@/lib/kuta-grade";
@@ -468,7 +469,20 @@ export function NovaPoruthamPanel({
             <div style={{ display: "flex", gap: "var(--space-7)", alignItems: "center", flexWrap: "wrap" }}>
               <div style={{ flex: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-2)" }}>
                 <div style={{ position: "relative", width: "116px", height: "116px", borderRadius: "var(--radius-pill)", background: `conic-gradient(${scoreTone} ${pct * 360}deg, var(--color-border) 0)`, display: "grid", placeItems: "center" }}>
-                  <div style={{ width: "92px", height: "92px", borderRadius: "var(--radius-pill)", background: "var(--color-surface-3)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", border: `1px solid ${scoreTone}` }}>
+                  {/* The donut's inner disc. Was --color-surface-3, which on
+                      the light theme is the palette's DEEPEST cream
+                      — and every ink here is dark, so a deeper ground costs
+                      contrast rather than adding it. "/ 10 PORUTHAMS" in
+                      --color-faint measured 4.47 and the red verdict tone
+                      4.37, both under AA, at --text-xs. Dark was unaffected,
+                      because there surface-3 is genuinely deeper than surface
+                      and the inks are light — the same token inverts meaning
+                      between themes.
+
+                      --color-surface is also the better donut: a gauge reads
+                      as a ring when its centre matches the card it sits on, and
+                      as a disc-on-a-disc when it does not. */}
+                  <div style={{ width: "92px", height: "92px", borderRadius: "var(--radius-pill)", background: "var(--color-surface)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", border: `1px solid ${scoreTone}` }}>
                     <div style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-2xl)", fontWeight: 700, lineHeight: 1, color: scoreTone }}>{porutham.totalScore}</div>
                     <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", letterSpacing: "0.08em", marginTop: "1px" }}>/ {porutham.maxScore} {lang === "ta" ? "பொருத்தம்" : "PORUTHAMS"}</div>
                   </div>
@@ -555,7 +569,7 @@ export function NovaPoruthamPanel({
                     <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)" }}>
                       <ZodiacBadge rasi={moon.rasi} size={32} />
                       <span style={{ fontSize: "var(--text-base)", color: "var(--color-text)" }}>
-                        {moon.rasiName}{" "}
+                        {rasiDisplayName(moon.rasi, lang)}{" "}
                         <GlossaryTerm term="rasi" lang={lang}>{t("label_janma_rasi", lang)}</GlossaryTerm>
                       </span>
                     </span>
@@ -568,7 +582,7 @@ export function NovaPoruthamPanel({
                     </span>
                   </div>
                   <div style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>
-                    {chart.lagna.rasiName} {t("label_lagnam", lang)}
+                    {rasiDisplayName(chart.lagna.rasi, lang)} {t("label_lagnam", lang)}
                   </div>
                   {dasha && (
                     <div style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>
@@ -679,7 +693,7 @@ export function NovaPoruthamPanel({
                 })}
               </Card>
 
-              <div style={{ background: "linear-gradient(120deg, var(--color-accent-muted), transparent)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-lg)", padding: "var(--space-5) var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+              <div style={{ backgroundColor: "var(--color-surface)", backgroundImage: "linear-gradient(120deg, var(--color-accent-muted), transparent)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-lg)", padding: "var(--space-5) var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
                 <Kicker color="var(--color-accent-strong)" style={{ letterSpacing: "0.1em" }}>
                   {lang === "ta" ? "தொடர்ந்தால்" : "If you go ahead"}
                 </Kicker>
@@ -744,7 +758,7 @@ export function NovaPoruthamPanel({
             <div>
               {!showCiReport ? (
                 <div style={{
-                  background: "linear-gradient(120deg, var(--color-high-bg), transparent)",
+                  backgroundColor: "var(--color-surface)", backgroundImage: "linear-gradient(120deg, var(--color-high-bg), transparent)",
                   border: "1px solid var(--color-high-border)", borderRadius: "var(--radius-lg)", padding: "var(--space-5) var(--space-5)",
                   display: "flex", gap: "var(--space-4)", alignItems: "center", flexWrap: "wrap",
                 }}>

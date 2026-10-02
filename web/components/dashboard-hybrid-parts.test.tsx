@@ -281,6 +281,43 @@ describe("HyBhuktiTimeline", () => {
   });
 });
 
+describe("Planet positions - D1 / D9 switch", () => {
+  it("uses the backend D9 Lagna and dignity without inventing D9 degrees", () => {
+    render(
+      <HyPlanetOrbs
+        lang="en"
+        planets={[planet({ d9Rasi: 12, d9Dignity: "OWN_SIGN" })]}
+        d9LagnaRasi={8}
+        animate={false}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("tab", { name: "D9 · Navamsa" }));
+
+    expect(screen.getByText(/D9 Lagna · Viruchigam/i)).toBeInTheDocument();
+    expect(screen.getAllByText("own sign").length).toBeGreaterThan(0);
+    expect(screen.queryByText("15.50°")).toBeNull();
+    expect(screen.getByText("D9 dignity")).toBeInTheDocument();
+  });
+
+  it("renders the Tamil dignity and approximate-time reliability warning", () => {
+    render(
+      <HyPlanetOrbs
+        lang="ta"
+        planets={[planet({ d9Rasi: 12, d9Dignity: "OWN_SIGN" })]}
+        d9LagnaRasi={8}
+        d9Reliability="LOW"
+        animate={false}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("tab", { name: "D9 · நவாம்சம்" }));
+
+    expect(screen.getAllByText("சொந்த ராசி").length).toBeGreaterThan(0);
+    expect(screen.getByText(/D9 லக்னமும் வீடுகளும் மாறக்கூடும்/)).toBeInTheDocument();
+  });
+});
+
 /**
  * A-021 / B-020 — the planet row's dignity marks and pada.
  *
@@ -314,6 +351,7 @@ function planet(partial: Partial<OrbPlanet> = {}): OrbPlanet {
     isCombust: false,
     isCazimi: false,
     d9Rasi: 12,
+    d9Dignity: "OWN_SIGN",
     isVargottama: false,
     showRetrogradeBadge: false,
     ...partial,
@@ -322,7 +360,7 @@ function planet(partial: Partial<OrbPlanet> = {}): OrbPlanet {
 
 /** Render the orbs and open one planet's detail row. */
 function openPlanet(pl: OrbPlanet) {
-  render(<HyPlanetOrbs lang="en" planets={[pl]} animate={false} />);
+  render(<HyPlanetOrbs lang="en" planets={[pl]} d9LagnaRasi={8} animate={false} />);
   fireEvent.click(screen.getAllByRole("button", { name: /Jupiter/i })[0]!);
 }
 

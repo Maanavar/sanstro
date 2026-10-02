@@ -1,9 +1,11 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
+import { JsonLd, articleTa, faqPageLd } from "@/lib/json-ld";
 import type { Metadata } from "next";
 import { PARIHARAM_PUTHRA_FAQ } from "@/lib/marketing-i18n";
 import { PuthraPariharamContent } from "./PageContent";
 
-export const metadata: Metadata = {
-  title: "Pariharam for Childbirth Blessings (Puthra Pariharam) | Vinaadi",
+const EN_METADATA: Metadata = {
+  title: "Pariharam for Childbirth Blessings (Puthra Pariharam)",
   description:
     "Puthra pariharam: when the 5th house feels blocked — Jupiter, Rahu-Ketu, and naga dosham factors — and the traditional remedy: Alangudi, naga propitiation, Santhana Gopala mantra and Murugan worship.",
   keywords: [
@@ -33,15 +35,12 @@ export const metadata: Metadata = {
   },
 };
 
-const FAQ_JSONLD = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: PARIHARAM_PUTHRA_FAQ.map((f) => ({
-    "@type": "Question",
-    name: f.q.en,
-    acceptedAnswer: { "@type": "Answer", text: f.a.en },
-  })),
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/pariharam/puthra-pariharam");
+}
+
+const FAQ_JSONLD = faqPageLd(PARIHARAM_PUTHRA_FAQ, "en");
+const FAQ_JSONLD_TA = faqPageLd(PARIHARAM_PUTHRA_FAQ, "ta");
 
 const ARTICLE_JSONLD = {
   "@context": "https://schema.org",
@@ -56,8 +55,8 @@ const ARTICLE_JSONLD = {
 export default function PuthraPariharamPage() {
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ARTICLE_JSONLD) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSONLD) }} />
+      <JsonLd en={ARTICLE_JSONLD} ta={articleTa(ARTICLE_JSONLD)} />
+      <JsonLd en={FAQ_JSONLD} ta={FAQ_JSONLD_TA} />
       <PuthraPariharamContent />
     </>
   );

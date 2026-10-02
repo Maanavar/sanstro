@@ -31,8 +31,11 @@ export const BETA = {
   ),
   page_free_h:  s("Free while in beta", "பீட்டாவில் இலவசம்"),
   page_free_b:  s(
-    "Every feature is unlocked for now. When we launch the full version, we'll give you plenty of notice before anything changes — and your existing data and readings carry over.",
-    "தற்போது ஒவ்வொரு அம்சமும் திறக்கப்பட்டுள்ளது. முழுப் பதிப்பை வெளியிடும்போது, எதுவும் மாறுவதற்கு முன் உங்களுக்கு முன்னறிவிப்பு வழங்குவோம் — உங்கள் தரவும் வாசிப்புகளும் தொடரும்."
+    // Kept true by the server: JOTHIDAM_OPEN_BETA gives every account premium's
+    // limits (app/core/subscription.py). Ask Vinaadi alone keeps a daily cap —
+    // each answer costs money to generate — so the copy names it.
+    "Every feature is unlocked for now, with no charge. The one limit is a daily fair-use cap on Ask Vinaadi questions. When we launch the full version, we'll give you plenty of notice before anything changes — and your existing data and readings carry over.",
+    "தற்போது ஒவ்வொரு அம்சமும் கட்டணமின்றி திறக்கப்பட்டுள்ளது. ஒரே வரம்பு: விநாடியிடம் கேட்கும் கேள்விகளுக்கு நாள்தோறும் ஒரு நியாயமான அளவு. முழுப் பதிப்பை வெளியிடும்போது, எதுவும் மாறுவதற்கு முன் உங்களுக்கு முன்னறிவிப்பு வழங்குவோம் — உங்கள் தரவும் வாசிப்புகளும் தொடரும்."
   ),
   page_feedback_h: s("Your feedback shapes v1", "உங்கள் கருத்து v1-ஐ வடிவமைக்கிறது"),
   page_feedback_b: s(

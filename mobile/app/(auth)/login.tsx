@@ -38,7 +38,8 @@ export default function LoginScreen() {
       const res = await login(trimmedEmail, password);
       setSession(
         { userId: res.user.userId, email: res.user.email, displayName: res.user.displayName },
-        "registered"
+        res.user.tier ?? "registered",
+        res.user.openBeta
       );
       setUser(res.user.userId);
       router.replace("/(tabs)/today");

@@ -166,7 +166,10 @@ describe("Hero today panel — the promoted window", () => {
     // AMIRTHAM outranks UTHI but runs 10:48-12:19, exactly Rahu Kalam.
     expect(within(best as HTMLElement).getByText("12:19 pm – 1:50 pm")).toBeInTheDocument();
     expect(best.textContent).toContain("Uthi");
-    expect(best.textContent).toContain("Clear of Rahu Kalam, Yamagandam and Kuligai");
+    // R7: the claim names only what was actually checked — Kuligai blocks
+    // nothing, so it is not in the clearance sentence.
+    expect(best.textContent).toContain("Clear of Rahu Kalam and Yamagandam");
+    expect(best.textContent).not.toContain("Kuligai");
   });
 
   it("counts down to the window before it opens", async () => {
@@ -265,9 +268,21 @@ describe("Hero today panel — other traditional timings", () => {
     // minutes. Calling it "auspicious for anyone" one row under a card whose
     // whole argument is "clear of the kalas" gives the reader two contradictory
     // instructions from one panel.
-    const note = container.querySelector(".cl-today__row-note")!;
+    // Scoped to the Abhijit row: since R7 the Kuligai row carries a note too,
+    // and it renders first.
+    const note = container.querySelector('[data-row="abhijit"] .cl-today__row-note')!;
     expect(note.textContent).toContain("overlaps an avoid period");
     expect(note.textContent).toContain("12:19 pm – 12:44 pm");
+  });
+
+  it("gives Kuligai its own conditional note rather than letting the avoid rows speak for it", async () => {
+    // R7.7. Kuligai is listed beside Rahu Kalam and Yamagandam, so without a
+    // note of its own a reader infers it means what its neighbours mean.
+    const { container } = await renderPanel({ at: "10:30" });
+
+    const note = container.querySelector('[data-row="kuligai"] .cl-today__row-note')!;
+    expect(note.textContent).toContain("repeat, continue or grow");
+    expect(note.textContent).toContain("not for a wedding or surgery");
   });
 });
 

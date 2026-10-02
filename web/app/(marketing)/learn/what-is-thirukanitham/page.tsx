@@ -1,8 +1,10 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
+import { JsonLd } from "@/lib/json-ld";
 import type { Metadata } from "next";
 import { ThirukanithamPageContent } from "./PageContent";
 
-export const metadata: Metadata = {
-  title: "What is Thirukanitham? — The Precise Tamil Astrology Calculation System | Vinaadi",
+const EN_METADATA: Metadata = {
+  title: "What is Thirukanitham? — The Precise Tamil Astrology Calculation System",
   description:
     "Thirukanitham is the Tamil astronomical calculation method that uses actual planetary positions — not Vakya's pre-computed tables. Learn how it differs from Vakya, what Lahiri ayanamsa is, and why it matters for your birth chart.",
   keywords: [
@@ -30,6 +32,10 @@ export const metadata: Metadata = {
     description: "Thirukanitham vs Vakya, Lahiri ayanamsa, and why precise planetary positions matter for your jadhagam.",
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/learn/what-is-thirukanitham");
+}
 
 const FAQ_JSONLD = {
   "@context": "https://schema.org",
@@ -73,10 +79,7 @@ const FAQ_JSONLD = {
 export default function WhatIsThirukanithamPage() {
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSONLD) }}
-      />
+      <JsonLd en={FAQ_JSONLD} />
       <ThirukanithamPageContent />
     </>
   );

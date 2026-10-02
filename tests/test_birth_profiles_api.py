@@ -1,6 +1,6 @@
 import json
-from datetime import UTC, datetime, timedelta
-from uuid import UUID
+from datetime import UTC, date, datetime, timedelta
+from uuid import UUID, uuid4
 
 from sqlalchemy import select
 
@@ -327,3 +327,175 @@ def test_children_status_rejects_a_value_outside_the_vocabulary(client):
         json={"children": "two", "recalculate": False},
     )
     assert response.status_code == 422
+
+
+def test_confirm_location_stamps_the_date_without_moving_the_place(client):
+    """§2 / R2: "Keep Chennai" is an answer. Only PATCH stamped
+    currentLocationUpdatedAt, so declining the prompt left the backstop due and
+    the reader would be asked again on the next visit."""
+    profile_id = _create_profile(
+        client,
+        currentPlace="Chennai, Tamil Nadu, India",
+        currentLatitude=13.0827,
+        currentLongitude=80.2707,
+        currentTimezone="Asia/Kolkata",
+    )
+    before = client.get(f"/api/v1/birth-profiles/{profile_id}").json()["data"]
+
+    with SessionLocal() as session:
+        profile = session.get(BirthProfile, UUID(profile_id))
+        profile.current_location_updated_at = datetime.now(tz=UTC) - timedelta(days=90)
+        session.commit()
+
+    response = client.post(f"/api/v1/birth-profiles/{profile_id}/confirm-location")
+
+    assert response.status_code == 200, response.text
+    data = response.json()["data"]
+    assert data["currentPlace"] == before["currentPlace"]
+    assert data["currentLatitude"] == before["currentLatitude"]
+    assert data["currentTimezone"] == before["currentTimezone"]
+    stamped = datetime.fromisoformat(data["currentLocationUpdatedAt"])
+    assert datetime.now(tz=UTC) - stamped < timedelta(minutes=5)
+
+
+def _seed_daily_score(profile_id: str, score_date):
+    from app.models.daily_score import DailyScore
+    with SessionLocal() as session:
+        session.add(DailyScore(
+            score_id=uuid4(),
+            birth_profile_id=UUID(profile_id),
+            score_date=score_date,
+            score=50,
+            label="MIXED",
+            data={"stale": True},
+        ))
+        session.commit()
+
+
+def _daily_score_dates(profile_id: str):
+    from app.models.daily_score import DailyScore
+    with SessionLocal() as session:
+        return sorted(
+            row.score_date
+            for row in session.execute(
+                select(DailyScore).where(DailyScore.birth_profile_id == UUID(profile_id))
+            ).scalars()
+        )
+
+
+def test_moving_drops_cached_daily_guidance_from_today_but_keeps_the_past(client):
+    """DailyScore is keyed on (profile, date) and records nothing about the place
+    it was computed for, unlike PanchangamCache which is keyed on the coordinates.
+    Everything sunrise-derived in a row moves with the place, so a Chennai row
+    must not be served to a reader who just told us they are in Singapore."""
+    profile_id = _create_profile(
+        client,
+        currentPlace="Chennai, Tamil Nadu, India",
+        currentLatitude=13.0827,
+        currentLongitude=80.2707,
+        currentTimezone="Asia/Kolkata",
+    )
+    today = date.today()
+    yesterday = today - timedelta(days=1)
+    tomorrow = today + timedelta(days=1)
+    for day in (yesterday, today, tomorrow):
+        _seed_daily_score(profile_id, day)
+
+    moved = client.patch(
+        f"/api/v1/birth-profiles/{profile_id}",
+        json={
+            "currentPlace": "Singapore",
+            "currentLatitude": 1.3521,
+            "currentLongitude": 103.8198,
+            "currentTimezone": "Asia/Singapore",
+            "recalculate": False,
+        },
+    )
+
+    assert moved.status_code == 200, moved.text
+    assert _daily_score_dates(profile_id) == [yesterday]
+
+
+def test_re_sending_the_same_city_is_a_confirmation_and_keeps_warm_rows(client):
+    # A PATCH that repeats the current values is the "Keep" answer arriving by
+    # another route. Treating "the payload mentioned these fields" as a move
+    # would throw away warm rows for nothing.
+    profile_id = _create_profile(
+        client,
+        currentPlace="Chennai, Tamil Nadu, India",
+        currentLatitude=13.0827,
+        currentLongitude=80.2707,
+        currentTimezone="Asia/Kolkata",
+    )
+    today = date.today()
+    _seed_daily_score(profile_id, today)
+
+    response = client.patch(
+        f"/api/v1/birth-profiles/{profile_id}",
+        json={
+            "currentPlace": "Chennai, Tamil Nadu, India",
+            "currentLatitude": 13.0827,
+            "currentLongitude": 80.2707,
+            "currentTimezone": "Asia/Kolkata",
+            "recalculate": False,
+        },
+    )
+
+    assert response.status_code == 200, response.text
+    assert _daily_score_dates(profile_id) == [today]
+
+
+def test_confirm_location_refuses_a_profile_that_is_gone(client):
+    # The owner check beside this one is the same two lines as the PATCH route
+    # above; reassigning owner_user_id here would need a second real user row,
+    # since the column is a foreign key.
+    profile_id = _create_profile(client)
+    client.delete(f"/api/v1/birth-profiles/{profile_id}")
+
+    response = client.post(f"/api/v1/birth-profiles/{profile_id}/confirm-location")
+
+    assert response.status_code == 404
+
+
+def test_correcting_a_birth_time_actually_moves_the_chart(client):
+    """The cached UTC birth instant must follow a corrected birth time.
+
+    `BirthProfile.birth_datetime_utc` is written once at creation, and the chart
+    builder PREFERS it over `birth_date_local + birth_time_local +
+    birth_timezone` — it falls back to those only when the column is null. No
+    update path refreshed it, so a corrected birth time produced a brand-new
+    Chart row, with a new chart id and a "completed" status, holding exactly the
+    old planetary positions.
+
+    That is the worst shape a bug can take here: the reader is told the edit
+    succeeded, the chart id changes so caches genuinely turn over, and the
+    reading they get back is still cast from a birth minute they have just told
+    us was wrong. Nine hours must move the Lagna.
+    """
+    created = client.post(
+        "/api/v1/birth-profiles",
+        json={
+            "ownerUserId": "22222222-2222-2222-2222-222222222222",
+            "displayName": "Rectification Subject",
+            "birthDateLocal": "1991-07-22",
+            "birthTimeLocal": "06:30:00",
+            "birthPlace": "Chennai, Tamil Nadu, India",
+            "birthLatitude": 13.0827,
+            "birthLongitude": 80.2707,
+            "birthTimezone": "Asia/Kolkata",
+            "calculateNow": True,
+        },
+    ).json()["data"]
+    before = client.get(f"/api/v1/charts/{created['chartId']}").json()["data"]["lagna"]["rasi"]
+
+    updated = client.patch(
+        f"/api/v1/birth-profiles/{created['birthProfileId']}",
+        json={"birthTimeLocal": "15:30:00", "recalculate": True},
+    )
+    assert updated.status_code == 200
+
+    chart_id = updated.json()["data"].get("chartId")
+    assert chart_id is not None
+    after = client.get(f"/api/v1/charts/{chart_id}").json()["data"]
+    assert after["birthProfile"]["birthTimeLocal"].startswith("15:30")
+    assert after["lagna"]["rasi"] != before, "chart recalculated from the old birth instant"

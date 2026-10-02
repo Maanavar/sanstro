@@ -1,8 +1,10 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
+import { JsonLd } from "@/lib/json-ld";
 import type { Metadata } from "next";
 import { VedicVsWesternPageContent } from "./PageContent";
 
-export const metadata: Metadata = {
-  title: "Vedic vs Western Astrology — Zodiac, Lagna, Nakshatra, Dasha | Vinaadi",
+const EN_METADATA: Metadata = {
+  title: "Vedic vs Western Astrology — Zodiac, Lagna, Nakshatra, Dasha",
   description:
     "A plain-language guide to how Vedic astrology differs from Western astrology: sidereal vs tropical zodiac, lagna over sun sign, 27 nakshatras, and multi-year dasha periods.",
   keywords: [
@@ -28,6 +30,10 @@ export const metadata: Metadata = {
     description: "Sidereal zodiac, lagna, nakshatra, and dasha explained in plain language.",
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/learn/vedic-vs-western");
+}
 
 const FAQ_JSONLD = {
   "@context": "https://schema.org",
@@ -63,10 +69,7 @@ const FAQ_JSONLD = {
 export default function VedicVsWesternPage() {
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSONLD) }}
-      />
+      <JsonLd en={FAQ_JSONLD} />
       <VedicVsWesternPageContent />
     </>
   );

@@ -53,12 +53,15 @@ function log(msg: string) {
 }
 
 async function dismissBlockingDialogs(maxAttempts = 20) {
-  // Backdrop click, not a labelled button: on life-mode-picker.tsx "Skip for
-  // now" fires a real PATCH mutation that can hang under chart-calc load.
+  // The focus picker's "Skip for now" closes at once and saves BALANCED in the
+  // background (life-focus plan, Phase 0), so clicking it never waits on the
+  // PATCH and the picker does not come back. Other first-run modals: backdrop.
   for (let i = 0; i < maxAttempts; i++) {
     const dialog = page.locator('[role="dialog"][aria-modal="true"]').first();
     if (!(await dialog.isVisible().catch(() => false))) return;
-    await dialog.click({ position: { x: 3, y: 3 }, force: true }).catch(() => {});
+    const skip = dialog.getByRole("button", { name: /^(Skip for now|இப்போது தவிர்க்கவும்)$/ });
+    if (await skip.isVisible().catch(() => false)) await skip.click({ timeout: 3_000 }).catch(() => {});
+    else await dialog.click({ position: { x: 3, y: 3 }, force: true }).catch(() => {});
     await page.waitForTimeout(400);
   }
 }

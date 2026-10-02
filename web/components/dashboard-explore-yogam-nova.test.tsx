@@ -55,7 +55,8 @@ const noop = () => {};
 describe("DashboardExploreYogamListNova", () => {
   it("shows every yoga with real present/absent and strength badges", () => {
     const yogas = [
-      makeYoga({ name: "GAJA_KESARI_YOGA", isPresent: true, strength: "STRONG" }),
+      // DD-01: the strict key is the full yoga; GAJA_KESARI_YOGA is the pattern.
+      makeYoga({ name: "GAJA_KESARI_PARASHARA", isPresent: true, strength: "STRONG" }),
       makeYoga({ name: "PARIVARTANA_YOGA", isPresent: false, strength: "WEAK" }),
     ];
     render(<DashboardExploreYogamListNova lang="en" yogas={yogas} onSelect={noop} onBack={noop} />);

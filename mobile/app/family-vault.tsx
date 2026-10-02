@@ -483,7 +483,7 @@ export default function FamilyVaultScreen() {
   const { showError } = useToast();
   const { lang } = useI18n();
   const isTamil = lang === "ta";
-  const { tier } = useSession();
+  const { gateTier: tier } = useSession();
   const [selectedMemberIdx, setSelectedMemberIdx] = useState(0);
   const [synastryMember, setSynastryMember] = useState<FamilyMemberDayView | null>(null);
   const synastrySheetRef = useRef<BottomSheet>(null);

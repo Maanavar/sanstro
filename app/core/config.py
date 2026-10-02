@@ -206,6 +206,15 @@ class Settings(BaseSettings):
     anthropic_api_key: str | None = Field(default=None)
     ask_vinaadi_daily_limit: int = Field(default=10)
 
+    # Open beta (owner ruling 2026-09-26): every signed-in account gets premium's
+    # limits until payments launch. JOTHIDAM_OPEN_BETA=false restores the
+    # registered/premium split. Read through app/core/subscription.py only.
+    open_beta: bool = Field(default=True)
+
+    # The one public address printed on share cards (GRW-04). Mirrors
+    # packages/shared/src/constants/site.ts SITE_URL; test_launch_parity pins it.
+    public_site_url: str = Field(default="https://vinaadi.com")
+
     # RevenueCat webhook — shared secret set in RevenueCat dashboard → Platform Settings → Webhooks.
     # If unset, POST /webhooks/revenuecat returns 503.
     revenuecat_webhook_secret: str | None = Field(default=None)

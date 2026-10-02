@@ -53,7 +53,7 @@ export default function RetrospectiveScreen() {
   const C = useColors();
   const styles = useMemo(() => makeStyles(C), [C]);
   const { lang } = useI18n();
-  const { tier } = useSession();
+  const { gateTier: tier } = useSession();
   const isTamil = lang === "ta";
   const type = isTamil ? TamilType : EnType;
   const qc = useQueryClient();

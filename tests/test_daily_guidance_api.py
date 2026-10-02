@@ -94,6 +94,42 @@ def test_daily_guidance_endpoint_returns_daily_card(client, birth_profile_payloa
     assert "journalInsight" in body["data"]
 
 
+def test_personal_palan_follows_the_label_and_backfills_an_old_cache_row(client, birth_profile_payload_factory):
+    chart_id = _create_chart(client, birth_profile_payload_factory)
+    url = f"/api/v1/charts/{chart_id}/daily-guidance"
+    params = {"date": "2026-05-21", "language": "ta-en"}
+
+    data = assert_response(client.get(url, params=params), required_keys=("data",))["data"]
+    palan = data["personalPalan"]
+    expected = {"STRONG_SUPPORT": "FAVOURABLE", "GOOD": "FAVOURABLE", "BALANCED": "MIXED"}.get(data["label"], "CAUTION")
+    assert palan["overallPolarity"] == expected
+    assert len(palan["areas"]) == 12
+    assert palan["basis"]["isChandrashtama"] == data["isChandrashtama"]
+    assert palan["reviewStatus"] == "OWNER_COMMISSIONED_DRAFT"
+    # The period layer: dasha/bhukti and the slow transits, as keys.
+    period = palan["period"]
+    assert period["mahaLord"] and period["antarLord"]
+    assert 1 <= period["guruHouse"] <= 12 and 1 <= period["rahuHouse"] <= 12
+    assert period["antarHouses"] and period["text"]["ta"] and period["text"]["en"]
+    assert palan["dashaAreas"]
+
+    # A row cached before the palan existed must not be served without it.
+    with SessionLocal() as session:
+        row = (
+            session.query(DailyScore)
+            .filter(DailyScore.score_date == date(2026, 5, 21))
+            .order_by(DailyScore.created_at.desc())
+            .first()
+        )
+        assert row is not None and "personalPalan" in row.data
+        stale = dict(row.data)
+        stale.pop("personalPalan", None)
+        row.data = stale
+        session.commit()
+    again = assert_response(client.get(url, params=params), required_keys=("data",))["data"]
+    assert again["personalPalan"] == palan
+
+
 def test_daily_guidance_remedy_focus_is_chart_driven_and_structured(client, birth_profile_payload_factory):
     chart_id = _create_chart(client, birth_profile_payload_factory)
 

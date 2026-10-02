@@ -86,7 +86,7 @@
   padding: 11px 14px;
   color: var(--panel-earth-dark);
   font-size: 0.9rem;
-  transition: border-color 150ms ease, box-shadow 150ms ease;
+  transition: border-color 150ms var(--ease-nova, ease-in-out), box-shadow 150ms var(--ease-nova, ease-in-out);
 }
 
 .gcm-panel .input::placeholder {
@@ -161,7 +161,7 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: border-color 150ms ease, background 150ms ease, color 150ms ease;
+  transition: border-color 150ms var(--ease-nova, ease-in-out), background 150ms var(--ease-nova, ease-in-out), color 150ms var(--ease-nova, ease-in-out);
 }
 
 .gcm-close:hover {
@@ -235,7 +235,7 @@
   cursor: pointer;
   text-decoration: underline;
   text-decoration-color: var(--panel-tan);
-  transition: color 150ms ease;
+  transition: color 150ms var(--ease-nova, ease-in-out);
 }
 
 .gcm-location-manual-toggle:hover {
@@ -289,7 +289,7 @@
   letter-spacing: 0.01em;
   min-height: 48px;
   margin-top: 2px;
-  transition: background 150ms ease, transform 120ms ease, box-shadow 150ms ease;
+  transition: background 150ms var(--ease-nova, ease-in-out), transform 120ms var(--ease-nova, ease-in-out), box-shadow 150ms var(--ease-nova, ease-in-out);
 }
 
 .gcm-submit:hover:not(:disabled) {
@@ -388,7 +388,7 @@
   background: transparent;
   color: var(--panel-warm-muted);
   min-height: 36px;
-  transition: background 150ms ease, color 150ms ease, box-shadow 150ms ease;
+  transition: background 150ms var(--ease-nova, ease-in-out), color 150ms var(--ease-nova, ease-in-out), box-shadow 150ms var(--ease-nova, ease-in-out);
 }
 
 .gcm-view-tab[data-active="true"] {
@@ -438,7 +438,7 @@
   font-family: inherit;
   cursor: pointer;
   min-height: 44px;
-  transition: background 150ms ease, color 150ms ease;
+  transition: background 150ms var(--ease-nova, ease-in-out), color 150ms var(--ease-nova, ease-in-out);
 }
 
 .gcm-cta-btn:hover {

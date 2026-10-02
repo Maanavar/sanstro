@@ -9,7 +9,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.calculations.astro import utc_datetime_to_julian_day
+from app.calculations.astro import format_clock_hhmm, utc_datetime_to_julian_day
 from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.family_harmony_remedies import (
     MemberChartInput,
@@ -18,8 +18,8 @@ from app.calculations.family_harmony_remedies import (
 )
 from app.calculations.panchangam import PanchangamSnapshot, calculate_daily_panchangam
 from app.calculations.remedies import remedy_disclaimer
-from app.core.subscription import is_premium
-from app.core.tier_limits import get_limits
+from app.core.subscription import limits_for_user
+from app.core.tier_limits import TIER_LIMITS
 from app.models import BirthProfile, Chart, FamilyDailyScore, FamilyMember, FamilyVault, User
 from app.schemas.daily_guidance import DailyGuidanceResponse, DailyGuidanceWindow
 from app.schemas.dasha import ResponseMeta
@@ -62,6 +62,15 @@ from app.schemas.family_vaults import (
     FamilyVaultTodayResponse,
 )
 from app.schemas.transits import SaniCycleResponse, TransitSnapshotResponse
+
+# Imported, not redeclared: this module used to carry its own copy of the
+# constant, and the two had already drifted — this one still said v1.2 while
+# `_chart_build` had moved to v1.3 for the sunrise convention. Every chart
+# `_latest_chart` computed for a vault member was therefore cast at the old
+# anchor and, being a version nothing else asks for, was recomputed on the next
+# read that did. One name, one place.
+from app.services._chart_build import DEFAULT_CALCULATION_VERSION
+from app.services.birth_profile_service import apply_birth_profile_changes
 from app.services.chart_service import (
     calculate_chart_for_persisted_profile,
     create_birth_profile_record,
@@ -71,7 +80,6 @@ from app.services.daily_guidance_service import build_daily_guidance_response
 from app.services.location_service import local_midnight_as_jd_for_profile, resolve_effective_daily_location
 from app.services.transit_service import build_sani_cycle_response, build_transit_snapshot
 
-DEFAULT_CALCULATION_VERSION = "jothidam-formula-engine-v1.2-2026"
 MAJOR_SANI_TAGS = {"JANMA_SANI", "ARDHASHTAMA_SANI", "ASHTAMA_SANI", "KANTAKA_SANI", "KANDAKA_SANI"}
 SUPPORTIVE_HORA_TAGS = {"JUPITER_HORA", "VENUS_HORA", "MERCURY_HORA"}
 
@@ -526,8 +534,8 @@ def _owner_day_view(
         saniCycleActive=sani_active,
         saniCycleType=sani_type,
         nallaNeramStart=nalla_neram_start,
-        rahuKalamStart=panchangam.rahu_kalam.start.strftime("%H:%M"),
-        rahuKalamEnd=panchangam.rahu_kalam.end.strftime("%H:%M"),
+        rahuKalamStart=format_clock_hhmm(panchangam.rahu_kalam.start),
+        rahuKalamEnd=format_clock_hhmm(panchangam.rahu_kalam.end),
     )
 
 
@@ -671,9 +679,9 @@ def _family_best_windows(
 def _family_avoid_windows(member_snapshots: list[_MemberSnapshot]) -> list[DailyGuidanceWindow]:
     panchangam = member_snapshots[0].panchangam
     return [
-        DailyGuidanceWindow(type="RAHU_KALAM", start=panchangam.rahu_kalam.start.strftime("%H:%M"), end=panchangam.rahu_kalam.end.strftime("%H:%M")),
-        DailyGuidanceWindow(type="YAMAGANDAM", start=panchangam.yamagandam.start.strftime("%H:%M"), end=panchangam.yamagandam.end.strftime("%H:%M")),
-        DailyGuidanceWindow(type="KULIGAI", start=panchangam.kuligai.start.strftime("%H:%M"), end=panchangam.kuligai.end.strftime("%H:%M")),
+        DailyGuidanceWindow(type="RAHU_KALAM", start=format_clock_hhmm(panchangam.rahu_kalam.start), end=format_clock_hhmm(panchangam.rahu_kalam.end)),
+        DailyGuidanceWindow(type="YAMAGANDAM", start=format_clock_hhmm(panchangam.yamagandam.start), end=format_clock_hhmm(panchangam.yamagandam.end)),
+        DailyGuidanceWindow(type="KULIGAI", start=format_clock_hhmm(panchangam.kuligai.start), end=format_clock_hhmm(panchangam.kuligai.end)),
     ]
 
 
@@ -1047,8 +1055,7 @@ def add_family_member(
             detail="This family member already exists in the vault.",
         )
 
-    tier = "premium" if is_premium(owner_user_id, session) else "registered"
-    vault_limit = get_limits(tier).family_vault_profiles_max
+    vault_limit = limits_for_user(owner_user_id, session).family_vault_profiles_max
     existing_count = session.execute(
         select(func.count(FamilyMember.family_member_id)).where(
             FamilyMember.family_vault_id == family_vault.family_vault_id,
@@ -1056,9 +1063,16 @@ def add_family_member(
         )
     ).scalar_one()
     if int(existing_count) >= vault_limit:
+        # Offer Premium only when Premium would actually lift this cap — an
+        # open-beta account already holds premium's.
+        upgrade = (
+            " Upgrade to Premium to add more."
+            if vault_limit < TIER_LIMITS["premium"].family_vault_profiles_max
+            else ""
+        )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Family Vault limit reached ({vault_limit} profile{'s' if vault_limit != 1 else ''}). Upgrade to Premium to add more.",
+            detail=f"Family Vault limit reached ({vault_limit} profile{'s' if vault_limit != 1 else ''}).{upgrade}",
         )
 
     family_member = FamilyMember(
@@ -1596,13 +1610,23 @@ def update_family_member(
         member.gender_for_traditional_rules = payload.gender_for_traditional_rules
     member.updated_at = datetime.now(tz=UTC)
 
-    # Update birth profile fields if any profile data was supplied
-    profile_fields_touched = any(v is not None for v in (
-        payload.birth_place, payload.birth_latitude, payload.birth_longitude,
-        payload.birth_timezone, payload.birth_time_local,
-        payload.current_place, payload.current_latitude, payload.current_longitude,
-        payload.current_timezone, payload.marital_status, payload.employment_type,
-    ))
+    # Update birth profile fields if any profile data was supplied.
+    #
+    # `exclude_unset` rather than a hand-written "is not None" list: the list had
+    # gone stale (it never mentioned birth_date_local, which the schema now
+    # carries) and an omitted field is the only thing that means "leave alone".
+    # It also lets `current_place=""` survive as the clear sentinel, which an
+    # is-not-None test would have kept but a truthiness test would have eaten.
+    _PROFILE_FIELDS = {
+        "birth_date_local", "birth_time_local", "birth_place", "birth_latitude",
+        "birth_longitude", "birth_timezone", "current_place", "current_latitude",
+        "current_longitude", "current_timezone", "marital_status", "employment_type",
+    }
+    profile_updates = {
+        field: value
+        for field, value in payload.model_dump(exclude_unset=True).items()
+        if field in _PROFILE_FIELDS
+    }
     profile = session.execute(
         select(BirthProfile)
         .where(
@@ -1612,40 +1636,30 @@ def update_family_member(
         .order_by(BirthProfile.created_at.desc())
     ).scalar_one_or_none()
 
-    if profile_fields_touched:
+    # The member's name is the profile's name — keep the profile authoritative so
+    # `_sync_linked_family_member` has nothing to fight with. Added only when a
+    # profile exists, so that a rename still succeeds for a member whose profile
+    # was separately deleted; it must not be the field that starts demanding one.
+    if profile is not None and payload.display_name is not None:
+        profile_updates["display_name"] = payload.display_name
+
+    if profile_updates:
         if profile is None:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="No birth profile found for this member to update.",
             )
-        if payload.birth_place is not None:
-            profile.birth_place = payload.birth_place
-        if payload.birth_latitude is not None:
-            profile.birth_latitude = payload.birth_latitude
-        if payload.birth_longitude is not None:
-            profile.birth_longitude = payload.birth_longitude
-        if payload.birth_timezone is not None:
-            profile.birth_timezone = payload.birth_timezone
-        if payload.birth_time_local is not None:
-            profile.birth_time_local = payload.birth_time_local
-        if payload.current_place is not None:
-            profile.current_place = payload.current_place
-        if payload.current_latitude is not None:
-            profile.current_latitude = payload.current_latitude
-        if payload.current_longitude is not None:
-            profile.current_longitude = payload.current_longitude
-        if payload.current_timezone is not None:
-            profile.current_timezone = payload.current_timezone
-        if payload.marital_status is not None:
-            profile.marital_status = payload.marital_status
-        if payload.employment_type is not None:
-            profile.employment_type = payload.employment_type
-        if any(v is not None for v in (
-            payload.current_place, payload.current_latitude,
-            payload.current_longitude, payload.current_timezone,
-        )):
-            profile.current_location_updated_at = datetime.now(tz=UTC)
-        profile.updated_at = datetime.now(tz=UTC)
+        # Delegated, not re-implemented. This block used to setattr the columns
+        # itself and stop there, which meant a member edit skipped chart
+        # recalculation and daily-score invalidation entirely — see
+        # `apply_birth_profile_changes`.
+        apply_birth_profile_changes(
+            session,
+            profile,
+            profile_updates,
+            recalculate=payload.recalculate,
+            calculation_version=calculation_version,
+        )
 
     # When relationship becomes spouse, ensure profile reflects married status
     # so all prediction gates fire without requiring an explicit separate update.
@@ -1777,8 +1791,8 @@ def get_family_vault_today(
         if guidance.data.best_windows:
             nalla_neram_start = guidance.data.best_windows[0].start
 
-        rahu_start = panchangam.rahu_kalam.start.strftime("%H:%M")
-        rahu_end = panchangam.rahu_kalam.end.strftime("%H:%M")
+        rahu_start = format_clock_hhmm(panchangam.rahu_kalam.start)
+        rahu_end = format_clock_hhmm(panchangam.rahu_kalam.end)
 
         birth_profile = _latest_birth_profile(session, member)
 

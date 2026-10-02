@@ -215,9 +215,9 @@ export function NovaRemediesPanel({ lang, chartId, remedyPlan, gemstoneAdvice, l
                 <NovaRemedyRow label={t("remedies_behaviour", lang)} value={lang === "ta" ? item.behaviouralTa : item.behaviouralEn} />
                 <NovaRemedyRow label={t("remedies_seva", lang)} value={lang === "ta" ? item.sevaTa : item.sevaEn} />
                 {practiceMode === "traditional" && item.gemstoneTa && (
-                  <div style={{ marginTop: "8px", padding: "var(--space-2) var(--space-3)", borderRadius: "var(--space-2)", background: "var(--color-high-bg)", border: "1px solid var(--color-high-border)", fontSize: "var(--text-sm)", color: "var(--color-high)", display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+                  <div style={{ marginTop: "8px", padding: "var(--space-2) var(--space-3)", borderRadius: "var(--space-2)", background: "var(--color-surface-soft)", border: "1px solid var(--color-border)", fontSize: "var(--text-sm)", color: "var(--color-muted)", display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
                     <Gem size={12} strokeWidth={1.5} aria-hidden="true" />
-                    {lang === "ta" ? item.gemstoneTa : item.gemstoneEn}
+                    {lang === "ta" ? item.gemstoneTa : item.gemstoneEn} — {dt(GEMSTONE_GROUPS.planReference, lang)}
                   </div>
                 )}
               </div>
@@ -230,8 +230,8 @@ export function NovaRemediesPanel({ lang, chartId, remedyPlan, gemstoneAdvice, l
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
           <div style={{ padding: "var(--space-3) var(--space-3)", borderRadius: "var(--space-2)", background: "var(--color-surface-soft)", border: "1px solid var(--color-border)", fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.5 }}>
             {lang === "ta"
-              ? "கற்கள் திருகணிதம் அடிப்படையில் கணக்கிடப்படுகின்றன — ஒவ்வொரு கிரகத்தின் செயல்பாட்டு தன்மை (பயனளிப்பவர் / தீங்கு செய்பவர்), வலிமை, மற்றும் லக்னம் அடிப்படையில். ஒரு கல் பாரம்பரியமாக அணியப்படுகிறது என்றால், அந்த கிரகம் உங்கள் ஜாதகத்தில் நேர்மறையான கிரகம் மற்றும் வலிமை குறைவாக உள்ளது என்று பொருள்."
-              : "Gemstone readings follow Thirukanitham — each planet's functional nature (benefic/malefic for your Lagna), its strength, and whether strengthening it helps or harms your chart. A stone is traditionally worn when the planet is a functional benefic AND needs strengthening, and traditionally avoided when the planet is either strong enough already or would harm your chart if strengthened."}
+              ? "Vinaadi எந்த ரத்தினத்தையும் அணியச் சொல்வதில்லை. உங்கள் லக்னத்திற்குச் சாதகமான கிரகத்தின் கல் பாரம்பரியக் குறிப்பாக மட்டும் காட்டப்படுகிறது; தீங்கு தரக்கூடிய கிரகங்களுக்கும், நீலம், கோமேதகம், வைடூரியம் ஆகியவற்றுக்கும் குறிப்பு தரப்படுவதில்லை. ஒரு ரத்தினம் அணிவது, முழு ஜாதகம், நவாம்சம், நடப்பு தசை ஆகியவற்றை ஆராய்ந்த ஜோதிடர் மட்டுமே எடுக்க வேண்டிய முடிவு."
+              : "Vinaadi never tells you to wear a gemstone. For a planet that is benefic for your Lagna, its stone is shown only as a traditional reference; none is named for a planet that could harm your chart, nor blue sapphire, hessonite or cat's eye. Wearing a stone is a decision for an astrologer who has read your full chart, navamsa and running dasha."}
             <p style={{ margin: "var(--space-2) 0 0" }}>{dt(GEMSTONE_GROUPS.note, lang)}</p>
           </div>
 

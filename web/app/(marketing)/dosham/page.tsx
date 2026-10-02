@@ -1,8 +1,10 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
+import { JsonLd } from "@/lib/json-ld";
 import type { Metadata } from "next";
 import { DoshamIndexContent } from "./IndexContent";
 
-export const metadata: Metadata = {
-  title: "Doshams in Tamil Astrology — Meaning, Calculation & Pariharam | Vinaadi",
+const EN_METADATA: Metadata = {
+  title: "Doshams in Tamil Astrology — Meaning, Calculation & Pariharam",
   description:
     "Understand the doshams in your horoscope — Sevvai (Mangal) dosham, Naga dosham, Kala Sarpa, Pithru and Kalathra dosham. What each means, how it is calculated in Thirukanitham, and how its strength can be softened.",
   keywords: [
@@ -18,13 +20,17 @@ export const metadata: Metadata = {
   ],
   alternates: { canonical: "https://vinaadi.com/dosham" },
   openGraph: {
-    title: "Doshams in Tamil Astrology — Meaning, Calculation & Pariharam | Vinaadi",
+    title: "Doshams in Tamil Astrology — Meaning, Calculation & Pariharam",
     description:
       "What every dosham means, how it is calculated, and the traditional pariharam — explained calmly in Tamil and English.",
     url: "https://vinaadi.com/dosham",
     type: "website",
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/dosham");
+}
 
 const JSONLD = {
   "@context": "https://schema.org",
@@ -44,7 +50,7 @@ const JSONLD = {
 export default function DoshamIndexPage() {
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSONLD) }} />
+      <JsonLd en={JSONLD} />
       <DoshamIndexContent />
     </>
   );

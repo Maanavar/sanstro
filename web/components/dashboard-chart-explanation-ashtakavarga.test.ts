@@ -29,6 +29,10 @@ function planet(rasi: number, houseFromLagna: number): ChartPlanet {
     isRetrograde: false,
     isCombust: false,
     d9Rasi: 1,
+    // Mesham is the Sun's exaltation sign. Unread here, but a fixture that
+    // pairs a sign with a dignity it cannot carry teaches the next reader a
+    // rule the engine does not hold.
+    d9Dignity: "EXALTED",
     isVargottama: false,
     showRetrogradeBadge: false,
   } as ChartPlanet;

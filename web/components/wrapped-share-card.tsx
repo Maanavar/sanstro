@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import {
   drawBranding,
@@ -133,7 +134,7 @@ function drawWrappedCard(
     { label: ta ? "உச்ச மதிப்பெண்" : "Peak score", value: `${wrapped.peakScore} · ${formatShortDate(wrapped.peakDate, ta)}` },
     { label: ta ? "குறைந்த மதிப்பெண்" : "Lowest score", value: `${wrapped.valleyScore} · ${formatShortDate(wrapped.valleyDate, ta)}` },
     { label: ta ? "கணிக்கப்பட்ட நாட்கள்" : "Days scored", value: String(wrapped.totalDaysScored) },
-    { label: ta ? "முதன்மை தசை" : "Dominant dasha", value: `${PLANET_EMOJI[wrapped.dominantDashaLord] ?? "⭐"} ${wrapped.dominantDashaLord}` },
+    { label: ta ? "முதன்மை தசை" : "Dominant dasha", value: `${PLANET_EMOJI[wrapped.dominantDashaLord] ?? "⭐"} ${tPlanetLord(wrapped.dominantDashaLord, lang)}` },
   ];
 
   const margin = 64, gap = 16;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 
 import { RasiChart, NavamsaChart } from "./dashboard-charts";
 import type { ChartCalculateResponseData } from "@/lib/types";
@@ -32,24 +32,31 @@ function sampleChart(): ChartCalculateResponseData {
     julianDay: 2447892.5,
     ayanamsa: { type: "LAHIRI", valueDegrees: 23.5 },
     lagna: {
-      rasi: 1, rasiName: "Mesham", absoluteLongitude: 10, degreeInRasi: 10,
+      // `d9Rasi` is server-sent and travels with the longitude it was derived
+      // from: navamsa of 10° Mesham is Kadagam. The grid reads this field
+      // rather than re-deriving it, so a fixture that moves one without the
+      // other describes a chart the API cannot produce.
+      rasi: 1, rasiName: "Mesham", absoluteLongitude: 10, degreeInRasi: 10, d9Rasi: 4,
       nakshatra: 1, nakshatraName: "Aswini", pada: 4,
     },
     planets: [
       {
         graha: "SUN", rasiName: "Mesham", absoluteLongitude: 20, rasi: 1, degreeInRasi: 20,
         nakshatra: 2, nakshatraName: "Bharani", pada: 2, houseFromLagna: 1, speedDegPerDay: 1,
-        isRetrograde: false, isCombust: false, d9Rasi: 2, isVargottama: false, showRetrogradeBadge: false,
+        // Rishabam is Venus's sign; Venus is the Sun's natural enemy.
+        isRetrograde: false, isCombust: false, d9Rasi: 2, d9Dignity: "ENEMY_SIGN", isVargottama: false, showRetrogradeBadge: false,
       },
       {
         graha: "SATURN", rasiName: "Kanni", absoluteLongitude: 170, rasi: 6, degreeInRasi: 20,
         nakshatra: 14, nakshatraName: "Chitra", pada: 1, houseFromLagna: 6, speedDegPerDay: 0.1,
-        isRetrograde: true, isCombust: false, d9Rasi: 6, isVargottama: true, showRetrogradeBadge: true,
+        // Kanni is Mercury's sign; Mercury is Saturn's natural friend.
+        isRetrograde: true, isCombust: false, d9Rasi: 6, d9Dignity: "FRIEND_SIGN", isVargottama: true, showRetrogradeBadge: true,
       },
       {
         graha: "RAHU", rasiName: "Kadagam", absoluteLongitude: 100, rasi: 4, degreeInRasi: 10,
         nakshatra: 9, nakshatraName: "Ayilyam", pada: 1, houseFromLagna: 4, speedDegPerDay: -0.05,
-        isRetrograde: true, isCombust: false, d9Rasi: 4, isVargottama: false, showRetrogradeBadge: false,
+        // A node carries no sign-lord dignity in this model.
+        isRetrograde: true, isCombust: false, d9Rasi: 4, d9Dignity: "NEUTRAL_SIGN", isVargottama: false, showRetrogradeBadge: false,
       },
     ],
     yogas: [],
@@ -201,6 +208,71 @@ describe("tap-to-explain chip (A-025)", () => {
   it("applies to the D9 grid on the same terms", () => {
     render(<NavamsaChart chart={sampleChart()} lang="en" showExplain={false} />);
     expect(screen.queryByText("Tap to explain")).toBeNull();
+  });
+});
+
+/**
+ * The owner's report (2026-09-22): "Mesha rasi is always highlighted even when
+ * it is not the lagnam". The grid seeded its selection once, from the FIRST
+ * chart it was given; Family & Charts hands the same grid a new chart on every
+ * member switch, so the first chart's Mesha lagna stayed lit on the rest.
+ * `sampleChart()` is a Mesha lagna; `simmamChart()` is not.
+ */
+function simmamChart(): ChartCalculateResponseData {
+  const chart = sampleChart();
+  return {
+    ...chart,
+    chartId: "chart-2",
+    // 12° Simmam (a fixed sign, so its navamsas start from Mesham) is the 4th
+    // navamsa → Kadagam.
+    lagna: { ...chart.lagna, rasi: 5, rasiName: "Simmam", absoluteLongitude: 132, degreeInRasi: 12, d9Rasi: 4 },
+  } as ChartCalculateResponseData;
+}
+
+function cell(name: RegExp): HTMLElement {
+  return screen.getByRole("button", { name });
+}
+
+describe("kattam — the lagna is the only standing highlight", () => {
+  it("moves the selection to the new chart's lagna when the chart changes", () => {
+    const { rerender } = render(<RasiChart chart={sampleChart()} lang="en" />);
+    rerender(<RasiChart chart={simmamChart()} lang="en" />);
+    expect(cell(/^Mesham/).getAttribute("aria-pressed")).toBe("false");
+    expect(cell(/^Mesham/).style.background).toBe("var(--chart-cell-default)");
+    expect(cell(/^Simmam/).getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("does the same on the D9 grid", () => {
+    // 15° Mesham is the 5th navamsa → Simmam; 12° Simmam is the 4th → Kadagam.
+    // (Not the sample's 10°: that is exactly a navamsa boundary — which is why
+    // the derivation itself now lives on the server, where it is bounded by an
+    // epsilon, and is pinned by tests/test_charts_api.py and the 108-pada case
+    // in lib/chart-utils.test.ts. What this asserts is the grid's own job:
+    // that the standing highlight sits on the sign the response names, and
+    // moves when a different chart is rendered into the same component.)
+    const first = sampleChart();
+    first.lagna = { ...first.lagna, absoluteLongitude: 15, degreeInRasi: 15, d9Rasi: 5 };
+    const { rerender } = render(<NavamsaChart chart={first} lang="en" />);
+    expect(cell(/^Simmam/).getAttribute("aria-pressed")).toBe("true");
+    rerender(<NavamsaChart chart={simmamChart()} lang="en" />);
+    expect(cell(/^Simmam/).getAttribute("aria-pressed")).toBe("false");
+    expect(cell(/^Kadagam/).getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("paints no selection where there is no explain panel for it to drive", () => {
+    // Family & Charts renders both grids this way; a tapped cell there lit up
+    // with nothing to explain it, next to the real lagna.
+    const { container } = render(<RasiChart chart={simmamChart()} lang="en" showExplain={false} />);
+    fireEvent.click(cell(/^Mesham/));
+    expect(container.querySelectorAll("button[aria-pressed]").length).toBe(0);
+    expect(cell(/^Mesham/).style.background).toBe("var(--chart-cell-default)");
+    expect(cell(/^Simmam/).style.background).toBe("var(--chart-d1-lagna-bg)");
+  });
+
+  it("marks the lagna box, and only it, with the corner stroke", () => {
+    render(<RasiChart chart={simmamChart()} lang="en" showExplain={false} />);
+    expect(cell(/^Simmam/).querySelectorAll("[data-lagna-mark]").length).toBe(1);
+    expect(document.querySelectorAll("[data-lagna-mark]").length).toBe(1);
   });
 });
 

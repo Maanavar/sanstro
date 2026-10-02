@@ -24,6 +24,7 @@ from app.calculations.birth_conditions import (
 from app.calculations.chart_strength import (
     apply_holistic_synthesis,
     compute_strength_breakdown,
+    d9_dignity_label,
     detect_planetary_wars,
     explain_natal_planet_score,
 )
@@ -33,9 +34,10 @@ from app.calculations.equal_bhava import compute_equal_bhava
 from app.calculations.functional_nature import get_functional_nature
 from app.calculations.panchangam import NAKSHATRA_NAMES, calculate_daily_panchangam
 from app.calculations.transits import RASI_NAMES, is_cazimi, is_combust
-from app.calculations.yoga_activation import key_planets_for, yoga_activation_score
+from app.calculations.yoga_activation import activation_tier, key_planets_for, yoga_activation_score
 from app.calculations.yoga_effects import yoga_effect
 from app.calculations.yogas import detect_yogas_and_doshams
+from app.constants.versions import CHART_CALCULATION_VERSION
 from app.models import Chart
 from app.schemas.birth_profiles import BirthProfileResponse
 from app.schemas.charts import (
@@ -50,23 +52,34 @@ from app.schemas.charts import (
     PlanetPosition,
     PlanetScoreTerm,
     ResponseMeta,
+    YogaPeakWindow,
 )
 from app.services._chart_planets import (
     _NATAL_GRAHAS,
     _aspect_counts,
     _compute_nakshatra_analysis,
     _compute_vargas,
-    _is_daytime_birth,
     _mandhi_longitude,
     _mandhi_planet_position,
     _paksha_is_shukla,
     _planet_position_from_snapshot,
     _speed_ratio,
     _varga_reliability,
+    resolve_daytime_birth_for_profile,
 )
-from app.services.feature_flags import get_flag
+from app.services.feature_flags import current_doctrine_options, get_flag
 
-DEFAULT_CALCULATION_VERSION = "jothidam-formula-engine-v1.2-2026"
+# The chart engine's version now lives in app/constants/versions.py, with its
+# per-revision notes, because `app.schemas.charts` needs it too and cannot import
+# a service. Re-exported here under the old name: fifteen modules import
+# `DEFAULT_CALCULATION_VERSION` from this one, and the indirection is cheaper
+# than touching all of them.
+#
+# It no longer claims that bumping it invalidates stored charts. It never did:
+# `load_persisted_chart_response` rebuilds from the stored rows without
+# consulting the version, and every caller that passed the old frozen literal
+# compared a string that could not change. See the versions module docstring.
+DEFAULT_CALCULATION_VERSION = CHART_CALCULATION_VERSION
 RASI_NUMBERS = {name: number for number, name in RASI_NAMES.items()}
 PLANET_ORDER = {
     "SUN": 0,
@@ -85,13 +98,24 @@ PLANET_ORDER = {
 def _public_planets(planets: list[PlanetPosition]) -> list[PlanetPosition]:
     """Return the API planet set.
 
-    Mandhi (Gulika) is exposed here as an 8th pseudo-planet entry, same shape
-    as Rahu/Ketu — per docs/THIRUKANITHAM_DEPTH_EXPANSION_PLAN.md Phase 1.2,
-    classical Tamil Thirukanitham practice reads Gulika's house placement and
-    aspects like a graha, not just as a muhurtham time-window (see
-    panchangam.py: KULIGAI_SLOT for the time-window usage). Previously this
-    function filtered Mandhi out of every consumer of ChartCalculateResponse;
-    it no longer does.
+    Maandhi is exposed here as a tenth entry, same shape as Rahu/Ketu — per
+    docs/THIRUKANITHAM_DEPTH_EXPANSION_PLAN.md Phase 1.2, classical Tamil
+    Thirukanitham practice reads an upagraha's house placement and aspects like
+    a graha's. Previously this function filtered Maandhi out of every consumer
+    of ChartCalculateResponse; it no longer does.
+
+    It is **Maandhi, not Gulika.** The owner ruling of 2026-09-29 adopted the
+    Uttara-Kalamrita distinction: Maandhi is the proportional nazhigai measure in
+    `_chart_planets.MAANDHI_DAY_NAZHIGAI`, and Gulika is Saturn's eighth-part,
+    whose tables live with Gulika in panchangam.py (`KULIGAI_SLOT`). Nothing
+    here derives one from the other. This docstring said "Mandhi (Gulika)" for
+    months after that ruling, which is how a reader concludes the code still
+    aliases them.
+
+    Note that a graha rule does not automatically extend to Maandhi just because
+    it fits inside `PlanetPosition`. The natal scoring paths select on the
+    positive set `_chart_planets._NATAL_GRAHAS` rather than excluding Maandhi by
+    name, so a second upagraha can be added without auditing every consumer.
     """
     return planets
 
@@ -330,6 +354,10 @@ def _apply_holistic_strength_synthesis(
         benefic_planets=frozenset(benefics),
         d9_rasi_map=d9_map,
         d9_lagna_rasi=d9_lagna_rasi,
+        planet_longitude={p.graha: float(p.absolute_longitude) for p in natal},
+        # The same doctrine the yoga detector reads, so the +14 bhanga term and
+        # the Neecha Bhanga card follow one set of rules (audit C2).
+        doctrine=current_doctrine_options(),
     )
     for p in natal:
         terms = synthesis.get(p.graha)
@@ -365,26 +393,46 @@ def _apply_holistic_strength_synthesis(
                 p.score_terms.append(PlanetScoreTerm(key="clamp", points=residual))
 
 
-def _active_dasha_lords(birth_jd: float, moon_longitude: float) -> set[str]:
-    timeline = calculate_vimshottari_timeline(
+def _current_timeline(birth_jd: float, moon_longitude: float):
+    return calculate_vimshottari_timeline(
         birth_jd,
         moon_longitude,
         utc_datetime_to_julian_day(datetime.now(tz=UTC)),
     )
-    return {
-        timeline.current_mahadasha.lord,
-        timeline.current_antardasha.lord,
-        timeline.current_pratyantardasha.lord,
-    }
 
 
 def _current_dasha_lords(birth_jd: float, moon_longitude: float) -> tuple[str, str]:
-    timeline = calculate_vimshottari_timeline(
-        birth_jd,
-        moon_longitude,
-        utc_datetime_to_julian_day(datetime.now(tz=UTC)),
-    )
+    timeline = _current_timeline(birth_jd, moon_longitude)
     return timeline.current_mahadasha.lord, timeline.current_antardasha.lord
+
+
+def _former_groups(item) -> tuple[tuple[str, ...], ...]:
+    """One tuple of forming grahas per instance behind this card."""
+    if item.former_groups:
+        return item.former_groups
+    formers = tuple(key_planets_for(item.name, item.key_grahas))
+    return (formers,) if formers else ()
+
+
+def _yoga_timing(item, *, maha: str, antar: str, antaram) -> tuple[bool, YogaPeakWindow | None]:
+    """The two 2026-09-23 timing refinements, for a yoga already activated.
+
+    * **Strong**: two *distinct* forming planets are the Mahadasha and
+      Antardasha lords of the same instance. A planet's own bhukti (maha ==
+      antar) is Moderate — swa-bhukti classically gives mixed results, not a
+      peak — so a single-former yoga (Hamsa, the yogakaraka) never reaches
+      Strong (ruling 2026-09-23, amended).
+    * **Peak window**: the running Antaram's lord formed an instance that an
+      activating Maha/Antar lord also formed. Never activates on its own.
+    """
+    groups = [set(g) for g in _former_groups(item)]
+    both = maha != antar and any({maha, antar} <= g for g in groups)
+    peak = any(antaram.lord in g and (maha in g or antar in g) for g in groups)
+    window = (
+        YogaPeakWindow(start=antaram.start_date, end=antaram.end_date, antaramLord=antaram.lord)
+        if peak else None
+    )
+    return both, window
 
 
 def _build_yoga_dosham_insights(
@@ -398,11 +446,18 @@ def _build_yoga_dosham_insights(
     equal_bhava_map: dict[str, int] | None = None,
 ) -> tuple[list[ChartYogaInsight], list[ChartDoshamInsight], list[ChartNakshatraCaution]]:
     planet_map: dict[str, int] = {planet.graha: planet.rasi for planet in planets}
-    active_lords = _active_dasha_lords(birth_jd, next(planet.absolute_longitude for planet in planets if planet.graha == "MOON"))
-    mahadasha_lord, antardasha_lord = _current_dasha_lords(
+    timeline = _current_timeline(
         birth_jd,
         next(planet.absolute_longitude for planet in planets if planet.graha == "MOON"),
     )
+    mahadasha_lord = timeline.current_mahadasha.lord
+    antardasha_lord = timeline.current_antardasha.lord
+    # Mahadasha + Antardasha only — the same two lords `yoga_activation_score`
+    # reads. The detectors used to get the Pratyantar lord as well, so a yoga
+    # lit only by a weeks-long Pratyantar printed "Active" beside the dormant
+    # score 34/100 (a Guru Pratyantar under a Suriya/Ketu period lit Gaja
+    # Kesari, Hamsa and Vipareetha, 2026-09-23). One definition of "running".
+    active_lords = {mahadasha_lord, antardasha_lord}
     planet_scores = {p.graha: p.strength_score for p in planets}
     combust_set = frozenset(p.graha for p in planets if p.is_combust)
     retrograde_set = frozenset(p.graha for p in planets if p.is_retrograde)
@@ -426,6 +481,7 @@ def _build_yoga_dosham_insights(
         # Doctrine A-4: Kala Sarpa is a degree-exact arc test. `planet_map`
         # carries rasi only, so the sidereal longitudes go across separately.
         longitudes_in={planet.graha: planet.absolute_longitude for planet in planets},
+        doctrine=current_doctrine_options(),
     )
 
     # A detector that cannot see the running dasha hardcodes `dasha_activated`
@@ -443,16 +499,37 @@ def _build_yoga_dosham_insights(
             return True
         if not item.is_present:
             return False
-        return bool(running_lords & set(key_planets_for(item.name, item.key_grahas)))
+        # DD-15: a secondary activator's dasha lights the yoga too, at the
+        # moderate tier only (see `activation_tier`).
+        activators = set(key_planets_for(item.name, item.key_grahas)) | set(item.secondary_grahas)
+        return bool(running_lords & activators)
 
-    yoga_models = [
-        ChartYogaInsight(
+    def _yoga_model(item) -> ChartYogaInsight:
+        activated = _dasha_activated(item)
+        both, peak = (
+            _yoga_timing(item, maha=mahadasha_lord, antar=antardasha_lord,
+                         antaram=timeline.current_pratyantardasha)
+            if activated else (False, None)
+        )
+        tier = activation_tier(
+            item.name,
+            is_present=item.is_present,
+            maha=mahadasha_lord,
+            antar=antardasha_lord,
+            key_grahas=item.key_grahas,
+            secondary_grahas=item.secondary_grahas,
+            both_lords=both,
+            detector_activated=activated,
+        )
+        return ChartYogaInsight(
             name=item.name,
             isPresent=item.is_present,
             strength=item.strength,
             conditionsMet=item.conditions_met,
             cancellationFactors=item.cancellation_factors,
-            dashaActivated=_dasha_activated(item),
+            dashaActivated=activated,
+            # The flag above and this score must never disagree, so the score
+            # is handed the flag instead of re-deciding it.
             activationScore=yoga_activation_score(
                 yoga_name=item.name,
                 yoga_is_present=item.is_present,
@@ -461,8 +538,12 @@ def _build_yoga_dosham_insights(
                 antardasha_lord=antardasha_lord,
                 planet_scores=planet_scores,
                 chart_key_grahas=item.key_grahas,
+                activated=activated,
+                both_lords=both,
+                chart_secondary_grahas=item.secondary_grahas,
             ),
-            isCurrentlyActive=_dasha_activated(item),
+            isCurrentlyActive=activated,
+            activationTier=tier,
             descriptionTa=item.description_ta,
             descriptionEn=item.description_en,
             # description_* states the mechanism (how the yoga forms); effect_*
@@ -470,9 +551,10 @@ def _build_yoga_dosham_insights(
             # than in each detector so the catalogue has one home.
             effectTa=yoga_effect(item.name)[0],
             effectEn=yoga_effect(item.name)[1],
+            peakWindow=peak,
         )
-        for item in yogas
-    ]
+
+    yoga_models = [_yoga_model(item) for item in yogas]
     dosham_models = [
         ChartDoshamInsight(
             name=item.name,
@@ -510,6 +592,36 @@ def _build_yoga_dosham_insights(
     return yoga_models, dosham_models, nakshatra_caution_models
 
 
+def _relationship_to_owner(profile: Any) -> str:
+    """Resolve the relationship from wherever it actually lives.
+
+    `relationship` is a column on **FamilyMember**, not on BirthProfile — the
+    profile model has no such attribute at all. This used to be
+    `_value(profile, "relationship_to_owner", "self")`, which meant every
+    persisted profile reported `"self"` unconditionally: `getattr` found
+    nothing and handed back the default. Only `BirthProfileCreate`, which does
+    declare the field, ever produced a real answer, so the bug was invisible on
+    the create path and total on every read.
+
+    It was not cosmetic. `dashboard-workspace.handleEditFamilyMember` seeds the
+    edit modal's relationship dropdown from `chart.birthProfile`, so opening a
+    member's editor showed "Self" for a spouse or a child, and saving wrote that
+    back over `family_members.relationship`. A member tagged `self` is then
+    dropped from `useFamilyData`'s `memberCharts` by design (it would otherwise
+    duplicate the owner's own pill), which empties the member picker on every
+    tab. One phantom field, and the whole vault disappears from the app.
+
+    Mirrors `birth_profile_service._profile_response`, which has always read the
+    linked member correctly.
+    """
+    declared = _value(profile, "relationship_to_owner")
+    if declared:
+        return str(declared)
+    member = _value(profile, "family_member")
+    relationship = _value(member, "relationship_to_owner") if member is not None else None
+    return str(relationship) if relationship else "self"
+
+
 def _birth_profile_response(
     profile: Any,
     birth_profile_id: UUID,
@@ -523,7 +635,7 @@ def _birth_profile_response(
         owner_user_id=_value(profile, "owner_user_id"),
         family_vault_id=_value(profile, "family_vault_id"),
         family_member_id=_value(profile, "family_member_id"),
-        relationship_to_owner=_value(profile, "relationship_to_owner", "self"),
+        relationship_to_owner=_relationship_to_owner(profile),
         display_name=_value(profile, "display_name"),
         birth_date_local=_value(profile, "birth_date_local"),
         birth_time_local=_value(profile, "birth_time_local"),
@@ -591,13 +703,14 @@ def _chart_response_from_profile(profile: Any, calculation_version: str, chart_i
         nakshatra=nakshatra_from_degree(lagna_degree),
         nakshatra_name=NAKSHATRA_NAMES[nakshatra_from_degree(lagna_degree) - 1],
         pada=pada_from_degree(lagna_degree),
+        d9_rasi=navamsa_rasi_from_degree(lagna_degree),
     )
 
     planet_positions = []
     sun_degree = snapshot.bodies["SUN"].absolute_longitude
     moon_degree = snapshot.bodies["MOON"].absolute_longitude
     birth_time_local = _value(profile, "birth_time_local")
-    is_daytime = _is_daytime_birth(birth_time_local)
+    is_daytime = resolve_daytime_birth_for_profile(profile)
     paksha_is_shukla = _paksha_is_shukla(moon_degree, sun_degree)
     snapshot_rasi_map = {body.graha: body.rasi for body in snapshot.bodies.values() if body.graha in _NATAL_GRAHAS}
     # Cazimi (heart of the Sun) is empowered, not burnt — exclude it from the
@@ -630,10 +743,16 @@ def _chart_response_from_profile(profile: Any, calculation_version: str, chart_i
                 benefic_aspect_count=benefic_aspects,
                 malefic_aspect_count=malefic_aspects,
                 planetary_wars=planetary_wars,
+                planet_rasi_map=snapshot_rasi_map,
             )
         )
 
-    # Mandhi (Maandi) upagraha — lagna degree at start of Mandhi kalam on birth date
+    # Maandhi (மாந்தி) upagraha — the nirayana ascendant at the proportionally
+    # calculated Maandhi INSTANT. Not the start of a "Maandhi kalam": Maandhi is
+    # a point, not a window, and it is not on the eighth-part grid at all (the
+    # constants are thirtieths of the span). The window on that grid is Kuligai,
+    # which is Gulika's, and Maandhi falls strictly inside it — see
+    # tests/test_gulika.py.
     mandhi_lng = _mandhi_longitude(
         _value(profile, "birth_date_local"),
         _value(profile, "birth_time_local"),
@@ -744,7 +863,21 @@ def _chart_response_from_record(chart: Chart) -> ChartCalculateResponse:
         nakshatra=lagna_nakshatra,
         nakshatra_name=NAKSHATRA_NAMES[lagna_nakshatra - 1],
         pada=pada_from_degree(float(chart.lagna_longitude)),
+        d9_rasi=navamsa_rasi_from_degree(float(chart.lagna_longitude)),
     )
+
+    def _stored_d9_rasi(planet: Any) -> int:
+        """The navamsa sign of a persisted planet row.
+
+        Rows written before the `d9_rasi` column existed fall back to deriving
+        it from the stored longitude, with the same function the fresh path
+        uses. One definition, because `d9_rasi` and `d9_dignity` must never
+        disagree about which sign they are describing — two copies of this
+        expression is how they would.
+        """
+        if planet.d9_rasi is not None:
+            return RASI_NUMBERS.get(str(planet.d9_rasi), 1)
+        return navamsa_rasi_from_degree(float(planet.absolute_longitude))
 
     planets = sorted(chart.planets, key=lambda planet: PLANET_ORDER.get(planet.graha, 99))
     planet_positions = [
@@ -761,16 +894,57 @@ def _chart_response_from_record(chart: Chart) -> ChartCalculateResponse:
             speed_deg_per_day=float(planet.speed_deg_per_day) if planet.speed_deg_per_day is not None else 0.0,
             is_retrograde=bool(planet.is_retrograde),
             is_combust=bool(planet.is_combust),
-            d9_rasi=RASI_NUMBERS.get(str(planet.d9_rasi), 1) if planet.d9_rasi is not None else navamsa_rasi_from_degree(float(planet.absolute_longitude)),
+            d9_rasi=_stored_d9_rasi(planet),
+            d9_dignity=d9_dignity_label(planet.graha, _stored_d9_rasi(planet)),
             is_vargottama=bool(planet.is_vargottama),
             show_retrograde_badge=bool(planet.is_retrograde) and planet.graha not in {"RAHU", "KETU"},
         )
         for planet in planets
     ]
 
+    # Maandhi is always DERIVED here, never read back from `chart_planets`.
+    #
+    # Two independent reasons, and each alone would be enough:
+    #
+    # 1. This function rebuilds the chart strictly from the persisted rows, so a
+    #    chart written when the engine emitted nine grahas serves nine grahas
+    #    forever. Nothing repairs it: `load_persisted_chart_response` recomputes
+    #    only when a chart has NO planet rows at all, and the read path does not
+    #    consult `calculation_version` — bumping that constant invalidates
+    #    nothing here, and it no longer claims to (see
+    #    app/constants/versions.py). Maandhi was simply missing from the wheel,
+    #    the bhava table and every Maandhi-dependent yoga on every older chart,
+    #    with no error anywhere.
+    #
+    # 2. The owner ruling of 2026-09-29 redefined Maandhi from Saturn's
+    #    eighth-part (which is GULIKA) to the proportional nazhigai measure in
+    #    `_chart_planets.MAANDHI_DAY_NAZHIGAI`. Rows written before that ruling
+    #    hold the old position — up to ~20 deg away, routinely a different rasi
+    #    — and there is no field on the row that distinguishes the two
+    #    definitions. A stored value cannot be trusted, so it is not consulted.
+    #
+    # Cheap: Maandhi is a pure function of birth data and place, one rise/set
+    # plus one ascendant. Derived against the STORED lagna so the house it
+    # lands in cannot disagree with the rest of this response. Unconditional on
+    # purpose — the version strings are unified now, but a version gate would
+    # still be the wrong mechanism here: reason 2 above is that no field on the
+    # row distinguishes the two Maandhi definitions, and that stays true however
+    # the chart is stamped.
+    planet_positions = [planet for planet in planet_positions if planet.graha != "MANDHI"]
+    mandhi_lng = _mandhi_longitude(
+        birth_profile.birth_date_local,
+        birth_profile.birth_time_local,
+        float(birth_profile.birth_latitude),
+        float(birth_profile.birth_longitude),
+        birth_profile.birth_timezone,
+    )
+    if mandhi_lng is not None:
+        planet_positions.append(_mandhi_planet_position(mandhi_lng, lagna_rasi))
+        planet_positions.sort(key=lambda planet: PLANET_ORDER.get(planet.graha, 99))
+
     sun_degree = next(planet.absolute_longitude for planet in planet_positions if planet.graha == "SUN")
     moon_degree = next(planet.absolute_longitude for planet in planet_positions if planet.graha == "MOON")
-    is_daytime = _is_daytime_birth(_value(birth_profile, "birth_time_local"))
+    is_daytime = resolve_daytime_birth_for_profile(birth_profile)
     paksha_is_shukla = _paksha_is_shukla(moon_degree, sun_degree)
     planet_rasi_map = {p.graha: p.rasi for p in planet_positions if p.graha in _NATAL_GRAHAS}
     planetary_wars = detect_planetary_wars({p.graha: p.absolute_longitude for p in planet_positions})
@@ -812,6 +986,7 @@ def _chart_response_from_record(chart: Chart) -> ChartCalculateResponse:
             benefic_aspect_count=benefic_aspects,
             malefic_aspect_count=malefic_aspects,
             planetary_wars=planetary_wars,
+            planet_rasi_map=planet_rasi_map,
         )
         planet.score_terms = [
             PlanetScoreTerm(
@@ -835,6 +1010,7 @@ def _chart_response_from_record(chart: Chart) -> ChartCalculateResponse:
             benefic_aspect_count=benefic_aspects,
             malefic_aspect_count=malefic_aspects,
             speed_ratio=speed_ratio,
+            planet_rasi_map=planet_rasi_map,
         )
 
     # Holistic Strength Synthesis — shared across both build paths (audit C1).
@@ -851,15 +1027,28 @@ def _chart_response_from_record(chart: Chart) -> ChartCalculateResponse:
         d9_lagna_rasi=d9_lagna_rasi_val,
     )
 
-    equal_bhava_map = {
-        p.graha: (int(p_row.bhava_house) if getattr(p_row, "bhava_house", None) is not None else 0)
-        for p, p_row in zip(planet_positions, planets, strict=False)
-    }
-    if not all(v in range(1, 13) for v in equal_bhava_map.values()):
-        equal_bhava_map = compute_equal_bhava(
-            float(chart.lagna_longitude),
-            {p.graha: p.absolute_longitude for p in planet_positions},
-        )
+    # Recomputed from the FINAL longitudes, never zipped against the stored rows.
+    #
+    # `compute_equal_bhava` is pure arithmetic — (longitude - lagna) // 30 — over
+    # exactly the inputs that wrote `chart_planets.bhava_house` in the first
+    # place, so for the nine grahas this is bit-identical to reading the column.
+    # For Maandhi it is not, and that is the point: Maandhi is rederived above
+    # (see the note there), so any stored row beside it is describing a different
+    # longitude.
+    #
+    # The positional `zip(planet_positions, planets)` this replaced got it wrong
+    # both ways round. With no stored MANDHI row the lengths differed by one, so
+    # `strict=False` dropped the newly derived Maandhi and left it with no bhava
+    # entry at all — and the nine surviving values could still all be valid
+    # houses, so the `all(...)` guard below passed and never triggered the
+    # recompute. With a stored MANDHI row written before the 2026-09-29 ruling,
+    # the lengths matched and the OLD eighth-part Gulika bhava house was welded
+    # onto the NEW proportional Maandhi, which is precisely the stale value the
+    # rederivation exists to discard.
+    equal_bhava_map = compute_equal_bhava(
+        float(chart.lagna_longitude),
+        {p.graha: p.absolute_longitude for p in planet_positions},
+    )
 
     moon_rasi = next(planet.rasi for planet in planet_positions if planet.graha == "MOON")
     yogas, doshams, nakshatra_cautions = _build_yoga_dosham_insights(

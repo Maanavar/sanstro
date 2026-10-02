@@ -16,21 +16,6 @@ export type SectionId =
   | "summary"
   | "peyarchi";
 
-export const TAMIL_RASI_NAMES: Record<number, string> = {
-  1: "மேஷம்",
-  2: "ரிஷபம்",
-  3: "மிதுனம்",
-  4: "கடகம்",
-  5: "சிம்மம்",
-  6: "கன்னி",
-  7: "துலாம்",
-  8: "விருச்சிகம்",
-  9: "தனுசு",
-  10: "மகரம்",
-  11: "கும்பம்",
-  12: "மீனம்",
-};
-
 export const KENDRA_HOUSES = new Set([1, 4, 7, 10]);
 export const TRIKONA_HOUSES = new Set([1, 5, 9]);
 export const DUSTHANA_HOUSES = new Set([6, 8, 12]);
@@ -103,7 +88,7 @@ export const SECTION_META: Array<{ id: SectionId; title: BiCopy; hint: BiCopy }>
   {
     id: "activation",
     title: { ta: "இப்போது உங்களுக்கு செயல்படும் காலம்", en: "What is active for you now" },
-    hint: { ta: "தசை / புக்தி / அந்தரம் + கிரகநகர்வு", en: "Dasa / Bhukti / Antaram + transit" },
+    hint: { ta: "தசை / புக்தி / அந்தரம் + கோச்சாரம்", en: "Dasa / Bhukti / Antaram + transit" },
   },
   {
     id: "positions",
@@ -119,7 +104,7 @@ export const SECTION_META: Array<{ id: SectionId; title: BiCopy; hint: BiCopy }>
     id: "drishti",
     // New Tamil, pending native review
     title: { ta: "எந்த கிரகம் எதைப் பார்க்கிறது", en: "Which planets look at which" },
-    hint: { ta: "7-ஆம் பார்வை மற்றும் கிரகநகர்விலான குரு/சனி பார்வை", en: "7th aspect and Guru/Sani transit aspects" },
+    hint: { ta: "7-ஆம் பார்வை மற்றும் கோச்சார குரு/சனி பார்வை", en: "7th aspect and Guru/Sani transit aspects" },
   },
   {
     id: "houses",

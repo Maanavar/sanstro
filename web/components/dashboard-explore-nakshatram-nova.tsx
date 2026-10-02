@@ -170,7 +170,7 @@ export function DashboardExploreNakshatramListNova({
                 fontFamily: "inherit",
                 width: "100%",
                 border: isOwn ? "1px solid var(--color-border-strong)" : "1px solid var(--color-border)",
-                background: isOwn ? "linear-gradient(120deg, var(--color-accent-muted), transparent)" : "var(--color-surface)",
+                backgroundColor: "var(--color-surface)", backgroundImage: isOwn ? "linear-gradient(120deg, var(--color-accent-muted), transparent)" : "none",
               }}
             >
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -365,7 +365,7 @@ export function DashboardExploreNakshatramNova({
         {/* RIGHT rail */}
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
           {isOwnStar && (
-            <Card variant="accent" style={{ background: "linear-gradient(120deg, var(--color-accent-muted), transparent)" }}>
+            <Card variant="accent" style={{ backgroundColor: "var(--color-surface)", backgroundImage: "linear-gradient(120deg, var(--color-accent-muted), transparent)" }}>
               <Kicker color="var(--color-accent-strong)">{lang === "ta" ? "உங்கள் ஜாதகத்தில்" : "In your chart"}</Kicker>
               <p style={{ margin: 0, fontSize: "var(--text-base)", lineHeight: 1.6, color: "var(--color-text)" }}>
                 {lang === "ta"

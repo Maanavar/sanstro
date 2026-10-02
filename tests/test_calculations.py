@@ -579,15 +579,21 @@ def test_d9_debilitation_penalises_a_rasi_exalted_planet():
     assert neecha_d9 < neutral_d9
 
 
-def test_d9_debilitation_is_exempt_when_vargottama():
-    """Vargottama holds the sign across D1/D9, which is stabilising even in a
-    debilitation sign — it must not be charged the neecha penalty as well."""
-    from app.calculations.chart_strength import compute_natal_planet_score
-    plain = compute_natal_planet_score("JUPITER", 10, 10 * 30 + 5.0, 1, 0.0, False, d9_rasi=10)
-    vargottama = compute_natal_planet_score(
+def test_neecha_vargottama_charges_the_d9_penalty_and_keeps_the_vargottama_bonus():
+    """Ruling 2026-10-01: vargottama in the debilitation sign is neecha in both
+    charts. Vargottama is its own stabilising term and does not exempt the
+    debility; both rows appear in the breakdown, neither erasing the other."""
+    from app.calculations.chart_strength import (
+        D9_DEBILITATION_PENALTY,
+        explain_natal_planet_score,
+    )
+    # Jupiter debilitated in Magaram (10) in both Rasi and Navamsa.
+    _, terms = explain_natal_planet_score(
         "JUPITER", 10, 10 * 30 + 5.0, 1, 0.0, False, is_vargottama=True, d9_rasi=10
     )
-    assert vargottama > plain
+    rows = {t.key: t.points for t in terms}
+    assert rows.get("vargottama") == 4.0
+    assert rows.get("d9_debilitated") == -D9_DEBILITATION_PENALTY
 
 
 def test_benefic_aspects_improve_natal_strength():

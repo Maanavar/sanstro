@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { LocalizedLink as Link } from "@/components/localized-link";
 import { useState, useEffect } from "react";
 import { useLang } from "@/components/lang-toggle";
 import { getPublicPanchangamDay } from "@vinaadi/shared/api";
@@ -16,6 +16,7 @@ import { MarketingIcon, type MarketingIconName } from "@/components/marketing-ic
 import { HomeTodayPanel } from "@/components/home-today-panel";
 import { useGuestStore } from "@/hooks/useGuestStore";
 import { getFeatureFlag, initAnalytics, track } from "@/lib/analytics";
+import { PLAY_STORE_URL } from "@vinaadi/shared/constants";
 
 function makeSample(lang: "en" | "ta", rasiOverride?: { en: string; ta: string } | null) {
   const en = lang === "en";
@@ -118,8 +119,8 @@ export function HomeContent() {
     if (flag === "variant_b") setCtaVariant("B");
   }, []);
   const SAMPLE = makeSample(lang, selectedRasi);
-  const bestWindowLabel = `${formatClockLabel(SAMPLE.bestWindow.start)} - ${formatClockLabel(SAMPLE.bestWindow.end)}`;
-  const holdWindowLabel = `${formatClockLabel(SAMPLE.holdWindow.start)} - ${formatClockLabel(SAMPLE.holdWindow.end)}`;
+  const bestWindowLabel = `${formatClockLabel(SAMPLE.bestWindow.start, lang)} - ${formatClockLabel(SAMPLE.bestWindow.end, lang)}`;
+  const holdWindowLabel = `${formatClockLabel(SAMPLE.holdWindow.start, lang)} - ${formatClockLabel(SAMPLE.holdWindow.end, lang)}`;
 
   // The section-3 sample card always shows *today*, so it must show the limbs
   // actually running, not the ones the day is named after. Printing the sunrise
@@ -287,10 +288,10 @@ export function HomeContent() {
                 href: "/privacy",
               },
             ].map((p, i) => (
-              <a key={i} href={p.href} className="cl-testimonial" style={{ textDecoration: "none", display: "block" }}>
+              <Link key={i} href={p.href} className="cl-testimonial" style={{ textDecoration: "none", display: "block" }}>
                 <p className="cl-testimonial__quote">{p.claim}</p>
                 <footer className="cl-testimonial__name">{p.tag} →</footer>
-              </a>
+              </Link>
             ))}
           </div>
         </div>
@@ -487,10 +488,18 @@ export function HomeContent() {
             <div className="cl-connect-card cl-connect-card--app">
               <span className="cl-connect-card__icon"><MarketingIcon name="phone" size={22} /></span>
               <h3 className="cl-connect-card__title">{mt(HOME.connect_app_title, lang)}</h3>
-              <p className="cl-connect-card__body">{mt(HOME.connect_app_body, lang)}</p>
+              <p className="cl-connect-card__body">
+                {mt(PLAY_STORE_URL || APP_STORE_URL ? HOME.connect_app_body : HOME.connect_app_soon, lang)}
+              </p>
+              {!(PLAY_STORE_URL || APP_STORE_URL) && (
+                <Link href="/login" className="cl-btn cl-btn--ghost" style={{ alignSelf: "start" }}>
+                  {lang === "en" ? "Open Vinaadi" : "விநாடியைத் திற"}
+                </Link>
+              )}
               <div className="cl-connect-badges">
+                {PLAY_STORE_URL && (
                 <a
-                  href="https://play.google.com/store/apps/details?id=ai.vinaadi.app"
+                  href={PLAY_STORE_URL}
                   className="cl-store-badge"
                   aria-label="Get Vinaadi on Google Play"
                   onClick={() => track("app_dl_clicked", { store: "play" })}
@@ -508,6 +517,7 @@ export function HomeContent() {
                     <p className="cl-store-badge__name">Google Play</p>
                   </div>
                 </a>
+                )}
                 {APP_STORE_URL && (
                   <a
                     href={APP_STORE_URL}

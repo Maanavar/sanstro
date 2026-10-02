@@ -56,9 +56,16 @@ export const HOME = {
   today_starts_in:     s("starts in %s",        "%s இல் தொடங்குகிறது"),
   today_on_now:        s("on now · %s left",    "இப்போது நடக்கிறது · %s மீதம்"),
   today_passed:        s("has passed",          "முடிந்துவிட்டது"),
+  // R7 (2026-09-22): Kuligai is not in this clearance claim, because it is not
+  // an avoid period and nothing checked it. It is named separately, in its own
+  // conditional voice, by `today_kuligai_note`.
   today_clear_of:      s(
-    "Clear of Rahu Kalam, Yamagandam and Kuligai.",
-    "ராகு காலம், எமகண்டம், குளிகை — மூன்றிலிருந்தும் விலகி உள்ளது."
+    "Clear of Rahu Kalam and Yamagandam.",
+    "ராகு காலம், எமகண்டம் — இரண்டிலிருந்தும் விலகி உள்ளது."
+  ),
+  today_kuligai_note:  s(
+    "Suits what you mean to repeat, continue or grow; not for a wedding or surgery.",
+    "மீண்டும் நிகழ வேண்டிய, தொடர வேண்டிய செயல்களுக்கு ஏற்றது; திருமணம், அறுவை சிகிச்சைக்கு அல்ல."
   ),
   today_not_clear:     s(
     "Every good kala today runs into an avoid period — this is the best of them, not a clear one.",
@@ -79,6 +86,11 @@ export const HOME = {
   today_rahu:          s("Rahu Kalam",          "ராகு காலம்"),
   today_yama:          s("Yamagandam",          "எமகண்டம்"),
   today_kuligai:       s("Kuligai",             "குளிகை"),
+  today_durmuhurtham:  s("Durmuhurtham",        "துர்முகூர்த்தம்"),
+  today_durmuhurtham_note: s(
+    "Avoid for auspicious or new beginnings; it is not a blanket warning for the whole day.",
+    "சுப காரியங்கள் அல்லது புதிய தொடக்கங்களுக்கு தவிர்க்கவும்; நாள் முழுவதற்குமான பொதுத் தடை அல்ல."
+  ),
   today_abhijit:       s("Abhijit",             "அபிஜித்"),
   // Finding 7 of the dashboard hero review, same doctrine on this surface:
   // Abhijit is a fixed ~49-min slot at solar noon and Friday's Rahu Kalam
@@ -120,7 +132,7 @@ export const HOME = {
   help1_title:    s("Understand today",              "இன்றைய நாளைப் புரிந்து கொள்ளுங்கள்"),
   help1_body:     s(
     "One daily score combining your chart, dasa period, transits, and panchangam. Clear reasoning, no guesswork.",
-    "ஜாதகம், தசை, கிரகநகர்வு, பஞ்சாங்கம் ஆகியவை சேர்ந்த ஒரு தினசரி மதிப்பெண். ஏன் அந்த முடிவு வருகிறது என்பதும் தெளிவாகத் தெரியும்."
+    "ஜாதகம், தசை, கோச்சாரம், பஞ்சாங்கம் ஆகியவை சேர்ந்த ஒரு தினசரி மதிப்பெண். ஏன் அந்த முடிவு வருகிறது என்பதும் தெளிவாகத் தெரியும்."
   ),
   help2_title:    s("Plan important actions",         "முக்கியமான செயல்களை திட்டமிடுங்கள்"),
   help2_body:     s(
@@ -135,7 +147,7 @@ export const HOME = {
   help4_title:    s("Understand chart patterns",      "ஜாதக அமைப்பைப் புரிந்து கொள்ளுங்கள்"),
   help4_body:     s(
     "Your lagna, dasa lord, transiting planets, yogas, and doshas — explained in plain language, not jargon.",
-    "லக்னம், தசைநாதன், கிரகநகர்வு, யோகம், தோஷம் ஆகியவை எளிய சொல்லில் விளக்கப்படும். அரிய தொழில்சொற்களில் சிக்கிக்கொள்ள வேண்டாம்."
+    "லக்னம், தசைநாதன், கோச்சாரம், யோகம், தோஷம் ஆகியவை எளிய சொல்லில் விளக்கப்படும். அரிய தொழில்சொற்களில் சிக்கிக்கொள்ள வேண்டாம்."
   ),
   help5_title:    s("Check compatibility when needed", "தேவைப்படும்போது பொருத்தம் பாருங்கள்"),
   help5_body:     s(
@@ -156,10 +168,10 @@ export const HOME = {
   ),
   daily_body:     s(
     "Vinaadi reads your chart, dasa, transits, and panchangam together — and gives you one balanced answer for the day. Not four separate reports. One reading.",
-    "விநாடி உங்கள் ஜாதகம், தசை, கிரகநகர்வு, பஞ்சாங்கம் ஆகியவற்றை ஒன்றாகப் படிக்கிறது — நாளுக்கு ஒரு சமச்சீர் பதிலைத் தருகிறது. நான்கு தனித்தனி அறிக்கைகள் அல்ல; ஒரே ஒரு வாசிப்பு."
+    "விநாடி உங்கள் ஜாதகம், தசை, கோச்சாரம், பஞ்சாங்கம் ஆகியவற்றை ஒன்றாகப் படிக்கிறது — நாளுக்கு ஒரு சமச்சீர் பதிலைத் தருகிறது. நான்கு தனித்தனி அறிக்கைகள் அல்ல; ஒரே ஒரு வாசிப்பு."
   ),
   daily_sig1: s("Dasa and bhukti period quality — how your current planetary cycle frames the day", "தசை மற்றும் புக்தி தரம் — இன்றைய நடப்பு கிரக சுழற்சி நாளை எவ்வாறு வடிவமைக்கிறது"),
-  daily_sig2: s("Planet transits — how Saturn, Jupiter, Rahu, Ketu, and the rest are influencing your birth chart", "கிரகநகர்வு — சனி, குரு, ராகு, கேது போன்றவை உங்கள் பிறப்பு ஜாதகத்தில் இப்போது என்ன தாக்கம் தருகின்றன"),
+  daily_sig2: s("Planet transits — how Saturn, Jupiter, Rahu, Ketu, and the rest are influencing your birth chart", "கோச்சாரம் — சனி, குரு, ராகு, கேது போன்றவை உங்கள் பிறப்பு ஜாதகத்தில் இப்போது என்ன தாக்கம் தருகின்றன"),
   daily_sig3: s("Panchangam quality — Tithi, Vara, Nakshathiram, Yoga, Karana for the day", "பஞ்சாங்க தரம் — நாளுக்கான திதி, வாரம், நட்சத்திரம், யோகம், கரணம்"),
   daily_sig4: s("Best window and caution window — specific times, not vague ranges", "சிறந்த நேரம் மற்றும் எச்சரிக்கை நேரம் — குறிப்பிட்ட நேரங்கள், தெளிவற்ற வரம்புகள் அல்ல"),
   daily_sig5: s("Chandrashtama tracking when relevant — named clearly, not dramatised", "தொடர்புடையபோது சந்திராஷ்டமம் கண்காணிப்பு — தெளிவாக பெயரிடப்பட்டது, நாடகமயமாக்கப்படவில்லை"),
@@ -229,10 +241,10 @@ export const HOME = {
     "பிறந்த தேதி, நேரம், இடம். விநாடி இதை பயன்படுத்தி உங்கள் திருக்கணிதம் ஜாதகத்தை கணக்கிடுகிறது — லக்னம், நட்சத்திரங்கள், ராசி, தசை."
   ),
   step2_num:   s("02", "02"),
-  step2_title: s("Vinaadi reads chart, dasa, transits, and panchangam together", "விநாடி ஜாதகம், தசை, கிரகநகர்வு, பஞ்சாங்கம் ஆகியவற்றை ஒன்றாகப் படிக்கிறது"),
+  step2_title: s("Vinaadi reads chart, dasa, transits, and panchangam together", "விநாடி ஜாதகம், தசை, கோச்சாரம், பஞ்சாங்கம் ஆகியவற்றை ஒன்றாகப் படிக்கிறது"),
   step2_body:  s(
     "Every day, the assistant combines your birth-chart reading with the current dasa period, transit positions, and the day's panchangam into one view.",
-    "ஒவ்வொரு நாளும், உதவியாளர் உங்கள் பிறப்பு ஜாதகப் பார்வையை நடப்பு தசை, கிரகநகர்வு, அந்த நாளின் பஞ்சாங்கம் ஆகியவற்றுடன் சேர்த்து ஒரு வாசிப்பாகத் தருகிறது."
+    "ஒவ்வொரு நாளும், உதவியாளர் உங்கள் பிறப்பு ஜாதகப் பார்வையை நடப்பு தசை, கோச்சாரம், அந்த நாளின் பஞ்சாங்கம் ஆகியவற்றுடன் சேர்த்து ஒரு வாசிப்பாகத் தருகிறது."
   ),
   step3_num:   s("03", "03"),
   step3_title: s("Get one balanced answer", "ஒரு சமச்சீர் பதிலை பெறுங்கள்"),
@@ -255,7 +267,7 @@ export const HOME = {
   meth3_title: s("Drik ephemeris precision", "திரிக் கோளக்கணித துல்லியம்"),
   meth3_body:  s("High-accuracy astronomical data — the same source used in modern Tamil panchang publications.", "உயர் துல்லியமான வானியல் தரவு — நவீன தமிழ் பஞ்சாங்க வெளியீடுகளில் பயன்படுத்தப்படும் அதே மூலம்."),
   meth4_title: s("Multi-signal daily score",  "பல சமிக்ஞை தினசரி மதிப்பெண்"),
-  meth4_body:  s("Dasa + transit + panchangam + Moon star combined into one reading. Not a single-factor verdict.", "தசை + கிரகநகர்வு + பஞ்சாங்கம் + சந்திர நட்சத்திரம் ஒன்றாக சேர்ந்த வாசிப்பு. ஒரு காரணியை மட்டும் வைத்த முடிவு அல்ல."),
+  meth4_body:  s("Dasa + transit + panchangam + Moon star combined into one reading. Not a single-factor verdict.", "தசை + கோச்சாரம் + பஞ்சாங்கம் + சந்திர நட்சத்திரம் ஒன்றாக சேர்ந்த வாசிப்பு. ஒரு காரணியை மட்டும் வைத்த முடிவு அல்ல."),
   meth5_title: s("Calm interpretation",       "அமைதியான விளக்கம்"),
   meth5_body:  s("No fear language. No doom predictions. Vinaadi frames astrology as a planning tool, not a fatalistic oracle.", "பயமுறுத்தும் வார்த்தைகள் இல்லை. அழிவு கணிப்புகள் இல்லை. விநாடி ஜோதிடத்தை திட்டமிடல் கருவியாக கட்டமைக்கிறது, விதி நிர்ணயிக்கும் ஆரக்கிள் அல்ல."),
   method_panel_title: s(
@@ -285,7 +297,12 @@ export const HOME = {
     "தினசரி திருக்கணித வழிகாட்டுதல், நீங்கள் எங்கு பார்த்தாலும் — மின்னஞ்சலிலோ அல்லது கைபேசியிலோ."
   ),
   connect_email_title: s("Daily email summary", "தினசரி மின்னஞ்சல் சுருக்கம்"),
-  connect_email_body:  s("Score, transit alerts, and timing highlights — delivered every morning.", "மதிப்பெண், கோசார எச்சரிக்கைகள், நல்ல நேர தகவல்கள் — ஒவ்வொரு காலையும்."),
+  // GRW-16 — nothing sends to newsletter subscribers yet, so this promises the
+  // list, not a delivery. Restore "delivered every morning" when the send ships.
+  connect_email_body:  s("Score, transit alerts, and timing highlights each morning. Join the list and we'll write when the daily email starts.", "மதிப்பெண், கோச்சார எச்சரிக்கைகள், நல்ல நேர தகவல்கள் — ஒவ்வொரு காலையும். பட்டியலில் இணையுங்கள்; தினசரி மின்னஞ்சல் தொடங்கும்போது தெரிவிப்போம்."),
   connect_app_title:   s("Mobile app", "மொபைல் பயன்பாடு"),
   connect_app_body:    s("Jadhagam, family timing, and daily guidance on your phone. Free 7-day trial.", "ஜாதகம், குடும்ப நேரங்கள், தினசரி வழிகாட்டுதல் — உங்கள் கையில். 7 நாள் இலவச சோதனை."),
+  // Shown instead of connect_app_body while no store listing exists
+  // (PLAY_STORE_URL / APP_STORE_URL null): no badge to press, no trial to start.
+  connect_app_soon:    s("The Android app is on its way. Until then, Vinaadi works fully in your phone's browser — sign in and everything is there.", "Android செயலி விரைவில் வருகிறது. அதுவரை உங்கள் கைபேசி உலாவியிலேயே விநாடி முழுமையாகச் செயல்படும் — உள்நுழைந்தால் எல்லாம் அங்கே இருக்கும்."),
 };

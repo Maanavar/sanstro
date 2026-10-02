@@ -11,8 +11,8 @@ function today(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-function clockRange(start: string, end: string): string {
-  return `${formatClockLabel(start)} – ${formatClockLabel(end)}`;
+function clockRange(start: string, end: string, lang: Lang): string {
+  return `${formatClockLabel(start, lang)} – ${formatClockLabel(end, lang)}`;
 }
 
 export default function PanchangamWidget() {
@@ -123,16 +123,16 @@ export default function PanchangamWidget() {
       {/* Timings */}
       <div style={{ background: "var(--widget-card-bg)", borderRadius: "8px", overflow: "hidden" }}>
         {[
-          { lbl: en ? "Rahu Kalam" : "ராகு காலம்", val: clockRange(data.kalam.rahuKalam.start, data.kalam.rahuKalam.end), color: "var(--widget-red)" },
-          { lbl: en ? "Yamagandam" : "எமகண்டம்", val: clockRange(data.kalam.yamagandam.start, data.kalam.yamagandam.end), color: "var(--widget-amber)" },
+          { lbl: en ? "Rahu Kalam" : "ராகு காலம்", val: clockRange(data.kalam.rahuKalam.start, data.kalam.rahuKalam.end, params.lang), color: "var(--widget-red)" },
+          { lbl: en ? "Yamagandam" : "எமகண்டம்", val: clockRange(data.kalam.yamagandam.start, data.kalam.yamagandam.end, params.lang), color: "var(--widget-amber)" },
           ...(data.kalam.nallaNeram.slice(0, 2).map(s => ({
             lbl: en ? "Nalla Neram" : "நல்ல நேரம்",
-            val: clockRange(s.start, s.end),
+            val: clockRange(s.start, s.end, params.lang),
             color: "var(--widget-green)",
           }))),
         ].map((item, i) => (
           <div key={i} style={{
-            display: "flex", justifyContent: "space-between",
+            display: "flex", justifyContent: "space-between", flexWrap: "wrap", columnGap: "8px",
             padding: "7px 10px",
             borderBottom: "1px solid var(--widget-row-border)",
           }}>
@@ -145,10 +145,10 @@ export default function PanchangamWidget() {
       {/* Sunrise row */}
       <div style={{ display: "flex", justifyContent: "space-between", marginTop: "10px", paddingTop: "10px", borderTop: "1px solid var(--widget-divider)" }}>
         <span style={{ color: muted, fontSize: "11px" }}>
-          {en ? "Sunrise" : "சூரிய உதயம்"} {formatClockLabel(data.sunrise)}
+          {en ? "Sunrise" : "சூரிய உதயம்"} {formatClockLabel(data.sunrise, params.lang)}
         </span>
         <span style={{ color: muted, fontSize: "11px" }}>
-          {en ? "Sunset" : "சூரிய அஸ்தமனம்"} {formatClockLabel(data.sunset)}
+          {en ? "Sunset" : "சூரிய அஸ்தமனம்"} {formatClockLabel(data.sunset, params.lang)}
         </span>
       </div>
     </div>

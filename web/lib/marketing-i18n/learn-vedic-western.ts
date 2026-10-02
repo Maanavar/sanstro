@@ -27,7 +27,7 @@ export const LEARN_VEDIC_WESTERN = {
   dasha_h2: s("Life runs in planetary periods", "வாழ்க்கை கிரக காலங்களாகப் படிக்கப்படுகிறது"),
   dasha_body: s(
     "Vedic astrology uses multi-year planetary periods called dashas to read timing. A daily transit matters, but it is interpreted inside the larger period you are already living through.",
-    "வேத ஜோதிடம் தசை எனப்படும் பல வருட கிரக காலங்களின் வழியாக நேரத்தைப் படிக்கிறது. தினசரி கோசாரம் முக்கியமானது; ஆனால் அது நீங்கள் ஏற்கனவே வாழும் பெரிய காலத்தின் உள்ளே விளக்கப்படுகிறது.",
+    "வேத ஜோதிடம் தசை எனப்படும் பல வருட கிரக காலங்களின் வழியாக நேரத்தைப் படிக்கிறது. தினசரி கோச்சாரம் முக்கியமானது; ஆனால் அது நீங்கள் ஏற்கனவே வாழும் பெரிய காலத்தின் உள்ளே விளக்கப்படுகிறது.",
   ),
   related_h2: s("Related guides", "தொடர்புடைய வழிகாட்டிகள்"),
 } as const;

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { LocalizedLink as Link } from "@/components/localized-link";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { scoreColorPct } from "@/lib/format";
@@ -25,10 +25,12 @@ type Props = { params: Promise<{ token: string }> };
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { token } = await params;
   const data = await fetchShare(token);
-  if (!data) return { title: "Porutham Result | Vinaadi AI" };
+  // Private to the couple who shared it, found or not — the not-found branch
+  // used to drop `noindex` and inherit the homepage's canonical.
+  if (!data) return { title: "Porutham Result", robots: { index: false, follow: false } };
 
   const names = [data.labelA, data.labelB].filter(Boolean).join(" & ") || "This match";
-  const title = `${names} — ${data.totalScore}/${data.maxScore} Porutham | Vinaadi AI`;
+  const title = `${names} — ${data.totalScore}/${data.maxScore} Porutham`;
   const description = data.summary.en || "View this Tamil marriage porutham (compatibility) result — shared via Vinaadi AI.";
 
   return {
@@ -86,7 +88,9 @@ export default async function PoruthamSharePage({ params }: Props) {
               <p className="cl-pub-lead" style={{ marginBottom: "24px" }}>
                 The porutham result may have been revoked, or the share link has expired (links last 30 days).
               </p>
-              <Link href="/dashboard" className="cl-btn cl-btn--solid">Go to Vinaadi AI →</Link>
+              {/* Still useful to whoever opened a dead link: the calculator is
+                  free and needs no account. */}
+              <Link href="/tools/marriage-porutham-calculator" className="cl-btn cl-btn--solid">Check a porutham yourself →</Link>
             </div>
           </section>
         </main>
@@ -201,7 +205,9 @@ export default async function PoruthamSharePage({ params }: Props) {
               <h2 className="cl-cta-strip__title">Check your own compatibility</h2>
               <p className="cl-cta-strip__body">Create a free account for the full compatibility intelligence report, charts, and daily guidance.</p>
             </div>
-            <Link href="/dashboard" className="cl-btn cl-btn--solid">Get started free →</Link>
+            {/* Straight to the signup form: /dashboard bounces a visitor
+                with no session through a redirect first. */}
+            <Link href="/login?mode=signup" className="cl-btn cl-btn--solid">Get started free →</Link>
           </div>
         </section>
       </main>

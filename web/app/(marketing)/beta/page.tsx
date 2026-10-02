@@ -1,23 +1,24 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
 import type { Metadata } from "next";
 
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { BetaPageContent } from "@/components/beta-page-content";
 
-export const metadata: Metadata = {
-  title: "Open Beta — Vinaadi",
+const EN_METADATA: Metadata = {
+  title: "Open Beta",
   description:
     "Vinaadi is in open beta — every feature is free while we refine it. Here's what that means for you, what's coming next, and how your feedback shapes the final version.",
   alternates: { canonical: "https://vinaadi.com/beta" },
   robots: { index: true, follow: true },
   openGraph: {
-    title: "Open Beta — Vinaadi",
+    title: "Open Beta",
     description:
       "Every feature free while we refine Vinaadi. See what's coming and how your feedback shapes v1.",
     url: "https://vinaadi.com/beta",
     images: [
       {
-        url: "/brand/vinaadi-og-image.png",
+        url: "/brand/vinaadi-og-image.jpg",
         width: 1792,
         height: 612,
         alt: "Vinaadi - Your Cosmic Copilot",
@@ -26,11 +27,15 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Open Beta — Vinaadi",
+    title: "Open Beta",
     description: "Every feature free while we refine Vinaadi. Your feedback shapes v1.",
-    images: ["/brand/vinaadi-og-image.png"],
+    images: ["/brand/vinaadi-og-image.jpg"],
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/beta");
+}
 
 export default function BetaPage() {
   return (

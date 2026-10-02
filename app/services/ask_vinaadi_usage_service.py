@@ -1,8 +1,11 @@
 """Ask Vinaadi chip-usage accounting — tier-aware.
 
-Guest:      2 questions / day  (tracked client-side; backend enforces for authenticated calls)
-Registered: 5 questions / day  (DB-backed, resets at local date boundary)
-Premium:    30 questions / month (summed from daily rows, no schema change needed)
+The numbers live in app/core/tier_limits.py; this module only reads them through
+`limits_for_user`, so the open beta (OPEN_BETA_LIMITS: a daily fair-use cap) and
+a paid subscription (a monthly allowance) resolve in one place.
+
+Daily caps are DB-backed and reset at the local date boundary; the monthly cap
+is summed from the same daily rows, so it needs no schema of its own.
 """
 from __future__ import annotations
 
@@ -14,13 +17,13 @@ from sqlalchemy import func, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
-from app.core.subscription import is_premium
-from app.core.tier_limits import ask_vinaadi_limit_for_tier
+from app.core.subscription import is_premium, limits_for_user, open_beta_active
+from app.core.tier_limits import ask_vinaadi_limits
 from app.models.ask_vinaadi_usage import AskVinaadiUsage
 
 
-def _tier(user_id: UUID, session: Session) -> str:
-    return "premium" if is_premium(user_id, session) else "registered"
+def _limits(user_id: UUID, session: Session) -> tuple[int | None, int | None]:
+    return ask_vinaadi_limits(limits_for_user(user_id, session))
 
 
 def _month_start() -> date:
@@ -47,16 +50,23 @@ def _get_monthly_count(session: Session, user_id: UUID) -> int:
 
 
 def get_daily_status(session: Session, user_id: UUID) -> dict:
-    """Return chip usage: {chipsUsed, chipsRemaining, isPremium, dailyLimit, monthlyLimit}."""
-    tier = _tier(user_id, session)
-    daily_limit, monthly_limit = ask_vinaadi_limit_for_tier(tier)
+    """Return chip usage: {chipsUsed, chipsRemaining, isPremium, openBeta, dailyLimit, monthlyLimit}.
+
+    `isPremium` is the subscription fact. `openBeta` tells the client that a
+    spent daily allowance is a fair-use cap to wait out, not a paywall — so it
+    must not offer an upgrade.
+    """
+    premium = is_premium(user_id, session)
+    open_beta = open_beta_active() and not premium
+    daily_limit, monthly_limit = _limits(user_id, session)
 
     if monthly_limit is not None:
         used = _get_monthly_count(session, user_id)
         return {
             "chipsUsed": used,
             "chipsRemaining": max(0, monthly_limit - used),
-            "isPremium": True,
+            "isPremium": premium,
+            "openBeta": open_beta,
             "dailyLimit": None,
             "monthlyLimit": monthly_limit,
         }
@@ -66,7 +76,8 @@ def get_daily_status(session: Session, user_id: UUID) -> dict:
     return {
         "chipsUsed": used,
         "chipsRemaining": max(0, (daily_limit or 0) - used),
-        "isPremium": False,
+        "isPremium": premium,
+        "openBeta": open_beta,
         "dailyLimit": daily_limit,
         "monthlyLimit": None,
     }
@@ -74,8 +85,7 @@ def get_daily_status(session: Session, user_id: UUID) -> dict:
 
 def assert_chip_available(session: Session, user_id: UUID) -> None:
     """Raise 429 if the user has exhausted their quota (daily for registered, monthly for premium)."""
-    tier = _tier(user_id, session)
-    daily_limit, monthly_limit = ask_vinaadi_limit_for_tier(tier)
+    daily_limit, monthly_limit = _limits(user_id, session)
 
     if monthly_limit is not None:
         used = _get_monthly_count(session, user_id)
@@ -106,8 +116,7 @@ def consume_chip(session: Session, user_id: UUID) -> int | None:
     two answers advanced the counter by one. The increment is now done by the
     database.
     """
-    tier = _tier(user_id, session)
-    daily_limit, monthly_limit = ask_vinaadi_limit_for_tier(tier)
+    daily_limit, monthly_limit = _limits(user_id, session)
     today = date.today()
 
     _ensure_today_row(session, user_id, today)
@@ -163,8 +172,7 @@ def reserve_chip(session: Session, user_id: UUID) -> int | None:
     verdict. The reservation is taken up front so a concurrent request sees it,
     and `refund_chip` gives it back if the answer never arrives.
     """
-    tier = _tier(user_id, session)
-    daily_limit, monthly_limit = ask_vinaadi_limit_for_tier(tier)
+    daily_limit, monthly_limit = _limits(user_id, session)
     today = date.today()
 
     _ensure_today_row(session, user_id, today)

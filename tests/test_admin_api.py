@@ -387,6 +387,37 @@ def test_feature_flags_round_trip(raw_client):
         # it here is one change, not two.
         "one_minute_reading",
         "five_minute_reading",
+        # DOCTRINE_DECISIONS v1.3 (docs/DOCTRINE_DECISIONS_V1.2.md §16, §19) —
+        # the yoga/dosham open-item defaults, one flag per `DoctrineOptions`
+        # field (`doctrine_options.py`), mirrored here by
+        # `current_doctrine_options()`. Same failure mode as every comment
+        # above: register a flag and list it here in the same change.
+        "doctrine_o1_rk_moon_venus_secondary",
+        "doctrine_o2_node_dignity_mode",
+        "doctrine_o2_node_dignity_source",
+        "doctrine_o2_rahu_favourable_rasis",
+        "doctrine_o2_ketu_favourable_rasis",
+        "doctrine_o3_cross_samyam",
+        "doctrine_o4_twelfth_colord_mode",
+        "doctrine_o5_gk_base_nb_guru",
+        "doctrine_o6_sevvai_cancer_leo",
+        "doctrine_o7_nb_navamsa",
+        "doctrine_o8_lagna_lord_threshold",
+        "doctrine_o10_nbg_reference",
+        "doctrine_o11_retrograde_debilitated_raja_yoga",
+        "doctrine_o12_nb_unlisted_conditions",
+        "doctrine_o13_nb_verses_give_raja_yoga",
+        "doctrine_o15_raja_one_way_aspect",
+        "doctrine_o16_moon_secondary_activator",
+        "doctrine_o17_bhagya_support_scope",
+        "doctrine_o18_aries_scorpio_sevvai",
+        "doctrine_o19_nb_moon_self_reference",
+        "doctrine_o20_adhi_raja_malefic_aspects",
+        "doctrine_o21_nb_planet_as_own_lord",
+        "doctrine_o22_gk_moon_as_support",
+        "doctrine_o23_six_eight_colord_mode",
+        "doctrine_moon_72_degree_convention",
+        "doctrine_show_lakshmi_phaladeepika",
     } == names
 
     set_response = raw_client.patch(
@@ -402,6 +433,50 @@ def test_feature_flags_round_trip(raw_client):
     assert reset_response.status_code == 200
     assert reset_response.json()["reset"] is True
     assert reset_response.json()["current_value"] is False
+
+
+def test_doctrine_flag_values_are_validated_when_set(raw_client, monkeypatch):
+    """A bad doctrine value used to be stored and then fail every chart build."""
+    monkeypatch.delenv("WEB_CONCURRENCY", raising=False)
+    admin_user_id = _create_user("admin@example.com")
+    headers = _admin_headers(admin_user_id, "test-admin-key")
+    try:
+        bad = raw_client.patch(
+            "/api/v1/admin/flags/doctrine_o6_sevvai_cancer_leo", headers=headers, json={"value": "full"},
+        )
+        assert bad.status_code == 422
+        wrong_type = raw_client.patch(
+            "/api/v1/admin/flags/doctrine_o3_cross_samyam", headers=headers, json={"value": "yes"},
+        )
+        assert wrong_type.status_code == 422
+        # O-2 refuses explicit signs until the lineage and rasis are set first.
+        early = raw_client.patch(
+            "/api/v1/admin/flags/doctrine_o2_node_dignity_mode", headers=headers, json={"value": "explicit_signs"},
+        )
+        assert early.status_code == 422
+        rasis = raw_client.patch(
+            "/api/v1/admin/flags/doctrine_o2_rahu_favourable_rasis", headers=headers, json={"value": [3, 6]},
+        )
+        assert rasis.status_code == 200
+        assert rasis.json()["value"] == [3, 6]
+        unknown = raw_client.patch("/api/v1/admin/flags/doctrine_nope", headers=headers, json={"value": True})
+        assert unknown.status_code == 404
+    finally:
+        raw_client.delete("/api/v1/admin/flags/doctrine_o2_rahu_favourable_rasis/reset", headers=headers)
+
+
+def test_doctrine_flags_refuse_runtime_override_with_several_workers(raw_client, monkeypatch):
+    monkeypatch.setenv("WEB_CONCURRENCY", "2")
+    admin_user_id = _create_user("admin@example.com")
+    headers = _admin_headers(admin_user_id, "test-admin-key")
+    response = raw_client.patch(
+        "/api/v1/admin/flags/doctrine_o3_cross_samyam", headers=headers, json={"value": True},
+    )
+    assert response.status_code == 409
+    assert "§16" in response.json()["detail"]
+    other = raw_client.patch("/api/v1/admin/flags/maintenance_mode", headers=headers, json={"value": False})
+    assert other.status_code == 200
+    raw_client.delete("/api/v1/admin/flags/maintenance_mode/reset", headers=headers)
 
 
 def test_calibration_requires_admin(raw_client):

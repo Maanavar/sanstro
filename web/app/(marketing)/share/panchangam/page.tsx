@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { LocalizedLink as Link } from "@/components/localized-link";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { formatDateLabel } from "@/lib/format";
@@ -13,7 +13,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   const { date, city } = await searchParams;
   const dateLabel = date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? formatDateLabel(date) : "Today";
   const place = city ?? DEFAULT_CITY;
-  const title = `Today's Panchangam Card — ${dateLabel}, ${place} | Vinaadi AI`;
+  const title = `Today's Panchangam Card — ${dateLabel}, ${place}`;
   const description = `Share today's Tamil Panchangam — Tithi, Nakshatra, Rahu Kalam, and auspicious timings for ${place}. Free shareable card from Vinaadi AI.`;
   return {
     title,
@@ -59,7 +59,7 @@ export default async function SharePanchangamPage({ searchParams }: Props) {
                 Create a free account for daily guidance that combines your chart, dasa, and panchangam together.
               </p>
             </div>
-            <Link href="/dashboard" className="cl-btn cl-btn--solid">Get started free →</Link>
+            <Link href="/login?mode=signup" className="cl-btn cl-btn--solid">Get started free →</Link>
           </div>
         </section>
       </main>

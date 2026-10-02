@@ -160,10 +160,18 @@ describe("the activation score no longer claims a transit input", () => {
 });
 
 describe("adverse yogas have their own 'what it can do now' copy", () => {
+  it.each([
+    ["STRONGLY_ACTIVATED", "Currently strongly activated"],
+    ["MODERATELY_ACTIVATED", "Currently moderately activated"],
+    ["NOT_DOMINANT", "Not a dominant influence in the current period"],
+  ] as const)("uses the shared %s activation label in yoga prose", (state, label) => {
+    expect(getYogaPowerContext("GAJA_KESARI_YOGA", "STRONG", state, "en")).toContain(label);
+  });
+
   it.each(["KEMADRUMA_YOGA", "SAKATA_YOGA", "DARIDRA_YOGA", "DARIDRA_PROXY_YOGA"])(
     "%s does not fall through to the generic line",
     (name) => {
-      const text = getYogaPowerContext(name, "STRONG", true, "en");
+      const text = getYogaPowerContext(name, "STRONG", "STRONGLY_ACTIVATED", "en");
       expect(text).not.toMatch(/varies with your current Dasha period/);
       expect(text.length).toBeGreaterThan(80);
     },
@@ -172,7 +180,7 @@ describe("adverse yogas have their own 'what it can do now' copy", () => {
   it("has Tamil for each band", () => {
     for (const name of ["KEMADRUMA_YOGA", "SAKATA_YOGA", "DARIDRA_YOGA", "DARIDRA_PROXY_YOGA"]) {
       for (const strength of ["STRONG", "PARTIAL", "WEAK"]) {
-        const ta = getYogaPowerContext(name, strength, true, "ta");
+        const ta = getYogaPowerContext(name, strength, "MODERATELY_ACTIVATED", "ta");
         expect(ta).toMatch(/[஀-௿]/);
         expect(ta).not.toMatch(/varies with/);
       }
@@ -180,13 +188,13 @@ describe("adverse yogas have their own 'what it can do now' copy", () => {
   });
 
   it("tells an adverse yoga's reader the pressure sits lighter, not that it awaits support", () => {
-    const text = getYogaPowerContext("KEMADRUMA_YOGA", "STRONG", false, "en");
+    const text = getYogaPowerContext("KEMADRUMA_YOGA", "STRONG", "NOT_DOMINANT", "en");
     expect(text).toMatch(/lighter/);
     expect(text).not.toMatch(/supporting Dasha/);
   });
 
   it("keeps the original wording for an unactivated benefic", () => {
-    const text = getYogaPowerContext("GAJA_KESARI_YOGA", "STRONG", false, "en");
+    const text = getYogaPowerContext("GAJA_KESARI_YOGA", "STRONG", "NOT_DOMINANT", "en");
     expect(text).toMatch(/next supporting Dasha/);
   });
 });
@@ -194,9 +202,9 @@ describe("adverse yogas have their own 'what it can do now' copy", () => {
 describe("no surface claims a transit input that does not exist", () => {
   it("keeps transits out of the yoga fallback copy", () => {
     for (const lang of ["en", "ta"] as const) {
-      const text = getYogaPowerContext("SOME_UNMAPPED_YOGA", "STRONG", true, lang);
+      const text = getYogaPowerContext("SOME_UNMAPPED_YOGA", "STRONG", "STRONGLY_ACTIVATED", lang);
       expect(text).not.toMatch(/transit/i);
-      expect(text).not.toMatch(/கிரகநகர்வு/);
+      expect(text).not.toMatch(/கோச்சார|கோசார|கிரகநகர்வு/); // any spelling of "transit"
     }
   });
 
@@ -214,7 +222,7 @@ describe("no surface claims a transit input that does not exist", () => {
     for (const lang of ["en", "ta"] as const) {
       const text = getDoshamPowerContext(dosham, lang);
       expect(text).not.toMatch(/transit/i);
-      expect(text).not.toMatch(/கிரகநகர்வு/);
+      expect(text).not.toMatch(/கோச்சார|கோசார|கிரகநகர்வு/); // any spelling of "transit"
     }
   });
 });

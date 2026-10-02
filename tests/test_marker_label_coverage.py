@@ -42,6 +42,29 @@ _NOT_MARKERS = frozenset(
         "explanation_why_ta",
         "explanation_how_en",
         "explanation_how_ta",
+        # `_ninth_lord_dignity`'s bare return values (`_yoga_detect.py`). Never
+        # appended to conditions_met/cancellation_factors on their own — they
+        # are only ever embedded inside the f-string marker
+        # `ninth_lord_{dignity}`, which `_fill` below expands to a real token
+        # ("ninth_lord_exalted") that IS covered by a MARKER_PATTERNS rule.
+        "exalted",
+        "own_sign",
+        "moolatrikona",
+        # `DoctrineOptions.o6_sevvai_cancer_leo`'s string value, compared with
+        # `==` in `_yoga_dosham.py` — a config value, not a marker.
+        "full_exemption",
+        # O-2 and O-18 option values compared in `_yoga_dosham.py`; they
+        # select branches but are never appended as rendered markers.
+        "explicit_signs",
+        "full_cancellation",
+        # DD-05 (DOCTRINE_DECISIONS v1.3): `DoshamResult.astrologer_markers` is
+        # a THIRD list, separate from conditions_met/cancellation_factors, and
+        # is never rendered by this panel by design — it is the astrologer /
+        # porutham view only (see `_yoga_dosham.detect_sevvai_dosham`'s
+        # `astrologer_markers` build). Its f-string shape is excluded here
+        # rather than given a label, because giving it one would be a standing
+        # invitation to actually render it on a consumer surface.
+        "{gender_norm}_weighted_house_{house_num}_{ref_key}",
     }
 )
 
@@ -115,6 +138,16 @@ def _expand_fstring_markers(source_markers: set[str]) -> set[str]:
         # never emit, which then failed against a correctly planet-shaped rule.
         if name in {"p", "planet", "graha"} or name.endswith("_lord"):
             return "JUPITER"
+        # DD-03 (v1.3): `rahu_ketu_axis_{axis}` — axis is "1_7" or "2_8", never
+        # a house number. Filling it with "7" produced the unmatchable
+        # "rahu_ketu_axis_7" against a rule written for the real values.
+        if name == "axis":
+            return "1_7"
+        # DD-02 (v1.3): `ninth_lord_{dignity}` — dignity is one of
+        # "exalted" / "own_sign" / "moolatrikona" (`_ninth_lord_dignity`),
+        # never a house number.
+        if name == "dignity":
+            return "exalted"
         return "7"
 
     expanded: set[str] = set()

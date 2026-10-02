@@ -153,8 +153,8 @@ export function DashboardFamilyHarmonyRemedies({
           </p>
         </div>
         {!loaded && (
-          <button type="button" onClick={() => void load()} disabled={memberCount < 1}
-            style={{ flexShrink: 0, fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--color-on-accent)", background: "var(--color-accent)", border: "none", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-4)", cursor: "pointer", fontFamily: "inherit" }}>
+          <button type="button" className="ui-btn ui-btn--primary" onClick={() => void load()} disabled={memberCount < 1}
+            style={{ flexShrink: 0 }}>
             {lang === "ta" ? "பரிகாரங்களைக் காட்டு" : "Show remedies"}
           </button>
         )}

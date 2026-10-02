@@ -153,6 +153,12 @@ class PanchangamKalam(BaseModel):
     gowri_panchangam: list[PanchangamSlot] = Field(default_factory=list, alias="gowriPanchangam")
     nalla_neram: list[PanchangamSlot] = Field(alias="nallaNeram")
     gowri_nalla_neram: list[PanchangamSlot] = Field(alias="gowriNallaNeram")
+    #: The day's Durmuhurtham windows, 1-2 of the fifteen equal daylight
+    #: muhurtas by weekday. Computed since 2026-08-16 and cached with the rest
+    #: of the snapshot, but withheld from this response until 2026-09-22.
+    #: Defaults to empty so a client reading an older cached payload, or one
+    #: built before this field existed, still validates.
+    durmuhurtham: list[PanchangamSlot] = Field(default_factory=list)
 
     model_config = ConfigDict(populate_by_name=True)
 

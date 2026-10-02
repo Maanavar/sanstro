@@ -8,6 +8,7 @@ from uuid import UUID, uuid4
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.constants.versions import CHART_CALCULATION_VERSION
 from app.core.config import get_settings
 from app.models.porutham_share import PoruthamShare
 from app.schemas.dasha import ResponseMeta
@@ -70,8 +71,8 @@ def create_porutham_share(
         )
 
     try:
-        chart_a = _chart_response_from_profile(_ShareSourceProfile(person_a), "thirukanitham-2026-v1")
-        chart_b = _chart_response_from_profile(_ShareSourceProfile(person_b), "thirukanitham-2026-v1")
+        chart_a = _chart_response_from_profile(_ShareSourceProfile(person_a), CHART_CALCULATION_VERSION)
+        chart_b = _chart_response_from_profile(_ShareSourceProfile(person_b), CHART_CALCULATION_VERSION)
     except (ValueError, HTTPException) as exc:
         msg = exc.detail if isinstance(exc, HTTPException) else str(exc)
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=msg) from exc
@@ -122,7 +123,7 @@ def create_porutham_share(
             label_a=share.label_a,
             label_b=share.label_b,
         ),
-        meta=ResponseMeta(calculation_version="thirukanitham-2026-v1", generated_at=now),
+        meta=ResponseMeta(calculation_version=CHART_CALCULATION_VERSION, generated_at=now),
     )
 
 

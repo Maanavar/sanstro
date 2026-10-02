@@ -15,7 +15,8 @@
         "qa:screenshots": "node scripts/capture-screenshots.mjs",
         "test:e2e": "playwright test e2e",
         "test:visual": "playwright test tests/visual",
-        "test:visual:baseline": "playwright test tests/visual --update-snapshots"
+        "test:visual:baseline": "playwright test tests/visual --update-snapshots",
+        "test:contrast": "node scripts/theme-contrast-matrix.mjs"
     },
     "dependencies": {
         "@hookform/resolvers": "^5.4.0",

@@ -50,6 +50,8 @@ Quick map to the right document for each purpose. **Last regenerated: 2026-07-16
 - [SEVVAIRAGU.MD](SEVVAIRAGU.MD) — Sevvai/Rahu dosha validation rules (Tamil-specific, with test scenarios)
 - [FAQ_COMPARISON_WITH_OTHER_SOFTWARE.md](FAQ_COMPARISON_WITH_OTHER_SOFTWARE.md) — Why Vinaadi's output deliberately differs from JHora / Parashara Light etc.
 - [ASTROLOGER_REVIEW_QUEUE.md](ASTROLOGER_REVIEW_QUEUE.md) — Open items awaiting astrologer sign-off
+- [DOCTRINE_DECISIONS_V1.2.md](DOCTRINE_DECISIONS_V1.2.md) - Yoga/dosham doctrine v1.5 implementation record; defaults, open items, physical-source checklist and explicit limitations
+- [DOCTRINE_V15_PRACTITIONER_SIGNOFF_PACKET.md](DOCTRINE_V15_PRACTITIONER_SIGNOFF_PACKET.md) - Generated, unsigned practitioner packet: live 84-cell O-9 matrix, O-2/O-11/O-17/O-18 choices, physical-edition ledger and native-Tamil review
 - [ASTROLOGER_LIVE_SESSION_BACKLOG_2026-07.md](ASTROLOGER_LIVE_SESSION_BACKLOG_2026-07.md) — Backlog worked through in the live Tamil-reader astrologer session
 - [STAKEHOLDER_AUDIT_ASTROLOGER_CUSTOMER_2026-07.md](STAKEHOLDER_AUDIT_ASTROLOGER_CUSTOMER_2026-07.md) — Combined jyotishi + customer audit findings
 - [PROPENSITY_ASTROLOGER_REVIEW_2026-07.md](PROPENSITY_ASTROLOGER_REVIEW_2026-07.md) — Astrologer review of the propensity ("chances & cautions") card set
@@ -69,6 +71,7 @@ Quick map to the right document for each purpose. **Last regenerated: 2026-07-16
 - [REASONING_LAYER_UPGRADE_PLAN.md](REASONING_LAYER_UPGRADE_PLAN.md) — Reasoning-layer upgrade plan (calibration, explanation surfaces)
 
 ## Content & Tamil Astrology Reference
+- [PERSONAL_PALAN_CONTENT_REVIEW_2026-09-23.md](PERSONAL_PALAN_CONTENT_REVIEW_2026-09-23.md) — Review packet and release gate for the chart-personalised daily palan; 144-row area/Moon-house matrix, tara modifiers, precedence cases, safety rules and dual sign-off
 - [NATCHATHIRAM_DASHA_WRITING_GUIDE.md](NATCHATHIRAM_DASHA_WRITING_GUIDE.md) — Rules and patterns for writing dasha content for all 27 nakshatrams
 - [tamil-review-age-phase.md](tamil-review-age-phase.md) — Native-Tamil review notes: age-phase content
 - [tamil-review-daily-briefing.md](tamil-review-daily-briefing.md) — Native-Tamil review notes: daily briefing

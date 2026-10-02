@@ -112,7 +112,8 @@ function RootNavigation() {
           // the backend. `?? null` makes that explicit instead of storing
           // `undefined` in a slot typed `string | null`.
           { userId: me.userId, email: me.email, displayName: me.displayName ?? null },
-              effectiveTier
+              effectiveTier,
+              me.openBeta
             );
             setUser(me.userId);
             return;
@@ -126,7 +127,8 @@ function RootNavigation() {
           // the backend. `?? null` makes that explicit instead of storing
           // `undefined` in a slot typed `string | null`.
           { userId: me.userId, email: me.email, displayName: me.displayName ?? null },
-          me.tier
+          me.tier,
+          me.openBeta
         );
         setUser(me.userId);
       } catch (err: unknown) {

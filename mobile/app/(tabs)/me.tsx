@@ -19,6 +19,7 @@ import { setAnalyticsConsent } from "@/lib/analytics";
 import { logout, getMySubscription } from "@/api/auth";
 import { clearTokens } from "@/lib/secureStore";
 import { clearUserPrefs, getPrimaryChartId } from "@/lib/userPrefs";
+import { FocusSettingsRow } from "@/components/LifeFocus";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { entranceDelay, spring, staggerInterval, duration } from "@/theme/motion";
 
@@ -306,6 +307,9 @@ export default function MeScreen() {
             <Text style={styles.menuSectionHeader}>
               {isTamil ? "வழிகாட்டுதல்" : "Guidance"}
             </Text>
+            {/* Life focus (Phase 3), the mobile twin of Settings → "Your focus". */}
+            <FocusSettingsRow />
+            <View style={styles.divider} />
             {primaryChartId && (
               <>
                 <TouchableOpacity

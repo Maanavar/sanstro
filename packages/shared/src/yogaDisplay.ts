@@ -12,25 +12,40 @@
 
 export type YogaDisplayLang = "ta" | "en";
 
+// Tamil mode shows every yoga name in Tamil script (native-Tamil review,
+// 2026-09-23): the familiar Sanskrit terms transliterated, not translated.
+// English names inside an otherwise Tamil screen "feel unfinished". Names match
+// the rule registry's `name_ta` (`app/calculations/yoga_rules.py`), with
+// ராஜயோகம் written as one word per the same review.
 export const YOGA_DISPLAY: Record<string, { ta: string; en: string }> = {
-  GAJA_KESARI_YOGA: { ta: "Gaja Kesari Yoga", en: "Gaja Kesari Yoga" },
-  GAJA_KESARI:      { ta: "Gaja Kesari Yoga", en: "Gaja Kesari Yoga" },
-  RAJA_YOGA:        { ta: "Raja Yoga",         en: "Raja Yoga" },
-  DHANA_YOGA:       { ta: "Dhana Yoga",        en: "Dhana Yoga" },
-  DHANA_SUPPORTIVE_YOGA: { ta: "Dhana Yoga (துணை)", en: "Dhana Yoga (supportive)" },
-  NEECHA_BHANGA_RAJA_YOGA: { ta: "Neecha Bhanga Raja Yoga", en: "Neecha Bhanga Raja Yoga" },
+  GAJA_KESARI_YOGA: { ta: "கஜகேசரி அமைப்பு", en: "Gaja Kesari pattern" },
+  GAJA_KESARI_PARASHARA: { ta: "கஜகேசரி யோகம்", en: "Gaja Kesari Yoga" },
+  GAJA_KESARI:      { ta: "கஜகேசரி யோகம்", en: "Gaja Kesari Yoga" },
+  RAJA_YOGA:        { ta: "ராஜயோகம்",       en: "Raja Yoga" },
+  // The key keeps its historical name for the API; the card reports the
+  // yogakaraka planet and its strength, not a separate Raja Yoga (ruling
+  // 2026-10-01).
+  YOGAKARAKA_RAJA_YOGA:  { ta: "யோககாரக கிரகம்", en: "Yogakaraka planet" },
+  DHANA_YOGA:       { ta: "தன யோகம்",        en: "Dhana Yoga" },
+  DHANA_SUPPORTIVE_YOGA: { ta: "தன யோகம் (துணை)", en: "Dhana Yoga (supportive)" },
+  NEECHA_BHANGA_RAJA_YOGA: { ta: "நீசபங்க ராஜயோகம்", en: "Neecha Bhanga Raja Yoga" },
+  RETROGRADE_DEBILITATED_RAJA_YOGA: { ta: "வக்ர நீச ராஜயோகம்", en: "Retrograde debilitated-planet Raja Yoga" },
   KALASARPA:        { ta: "காலசர்ப்ப யோகம்",   en: "Kala Sarpa Yoga" },
-  BUDHA_ADITYA_YOGA:   { ta: "Budha-Aditya Yoga",    en: "Budha-Aditya Yoga" },
-  VIPAREETHA_RAJA_YOGA:{ ta: "Vipareetha Raja Yoga", en: "Vipareetha Raja Yoga" },
-  PARIVARTANA_YOGA:    { ta: "Parivartana Yoga",     en: "Parivartana Yoga" },
-  CHANDRA_MANGALA_YOGA:{ ta: "Chandra-Mangala Yoga", en: "Chandra-Mangala Yoga" },
-  SAKATA_YOGA:         { ta: "Sakata Yoga",          en: "Sakata Yoga" },
-  KEMADRUMA_YOGA:      { ta: "Kemadruma Yoga",       en: "Kemadruma Yoga" },
-  CHANDALA_YOGA:       { ta: "Guru-Chandala Yoga",   en: "Guru-Chandala Yoga" },
-  CHANDALA_KETU_YOGA:  { ta: "Guru-Chandala Yoga (குரு-கேது)", en: "Guru-Chandala Yoga (Ketu variant)" },
-  AMALA_YOGA:          { ta: "Amala Yoga",           en: "Amala Yoga" },
-  ADHI_YOGA:           { ta: "Adhi Yoga",            en: "Adhi Yoga" },
-  DARIDRA_YOGA:        { ta: "Daridra Yoga",         en: "Daridra Yoga" },
+  BUDHA_ADITYA_YOGA:   { ta: "புத ஆதித்ய யோகம்",   en: "Budha-Aditya Yoga" },
+  VIPAREETHA_RAJA_YOGA:{ ta: "விபரீத ராஜயோகம்",    en: "Vipareetha Raja Yoga" },
+  PARIVARTANA_YOGA:    { ta: "பரிவர்தன யோகம்",en: "Parivartana Yoga" },
+  CHANDRA_MANGALA_YOGA:{ ta: "சந்திர மங்கள யோகம்", en: "Chandra-Mangala Yoga" },
+  SAKATA_YOGA:         { ta: "சகட யோகம்",          en: "Sakata Yoga" },
+  KEMADRUMA_YOGA:      { ta: "கேமத்ரும யோகம்",      en: "Kemadruma Yoga" },
+  CHANDALA_YOGA:       { ta: "குரு சண்டாள யோகம்",   en: "Guru-Chandala Yoga" },
+  CHANDALA_KETU_YOGA:  { ta: "குரு சண்டாள யோகம் (குரு-கேது)", en: "Guru-Chandala Yoga (Ketu variant)" },
+  AMALA_YOGA:          { ta: "அமல யோகம்",          en: "Amala Yoga" },
+  ADHI_YOGA:           { ta: "அதி யோகம்",           en: "Adhi Yoga" },
+  ADHI_BASE:           { ta: "அதி யோக அமைப்பு",     en: "Adhi pattern (base)" },
+  // "Candidate" in both languages: DD-08's raja grade is a Tier A *candidate*
+  // until the Saravali verse is located, and Tamil must not claim more.
+  ADHI_RAJA_GRADE:     { ta: "அதி யோகம் (ராஜ தரம், பரிசீலனையில்)", en: "Adhi Yoga (raja-grade candidate)" },
+  DARIDRA_YOGA:        { ta: "தரித்ர யோகம்",        en: "Daridra Yoga" },
   // NOT "(supportive)" — that wording was copy-pasted from DHANA_SUPPORTIVE_YOGA
   // above, where "supportive" means a supportive *variant of a wealth yoga*.
   // Daridra-proxy is an adverse income-pressure indicator, so the same word told
@@ -39,15 +54,19 @@ export const YOGA_DISPLAY: Record<string, { ta: string; en: string }> = {
   // precisely because the 2026-08-28 ruling required the proxy to be labelled as
   // ours; keep the attribution.
   DARIDRA_PROXY_YOGA:  { ta: "தரித்ர யோகம் (வினாடி அளவுகோல்)", en: "Daridra Yoga (Vinaadi measure)" },
-  LAKSHMI_YOGA:        { ta: "Lakshmi Yoga",         en: "Lakshmi Yoga" },
-  VASUMATI_YOGA:       { ta: "Vasumati Yoga",        en: "Vasumati Yoga" },
-  RUCHAKA_YOGA:        { ta: "Ruchaka Yoga",         en: "Ruchaka Yoga" },
-  BHADRA_YOGA:         { ta: "Bhadra Yoga",          en: "Bhadra Yoga" },
-  HAMSA_YOGA:          { ta: "Hamsa Yoga",           en: "Hamsa Yoga" },
-  MALAVYA_YOGA:        { ta: "Malavya Yoga",         en: "Malavya Yoga" },
-  SASA_YOGA:           { ta: "Sasa Yoga",            en: "Sasa Yoga" },
-  SUNAPHA_YOGA:        { ta: "Sunapha Yoga",         en: "Sunapha Yoga" },
-  PAPA_KARTARI_YOGA:   { ta: "Papa Kartari Yoga",    en: "Papa Kartari Yoga" },
+  LAKSHMI_YOGA:        { ta: "லக்ஷ்மி யோகம்",       en: "Lakshmi Yoga" },
+  // DD-02 (v1.3): the Phaladeepika variant (off in the consumer UI by default)
+  // and the honest fallback for a well-placed 9th lord without the dignity.
+  LAKSHMI_YOGA_PHALADEEPIKA: { ta: "லக்ஷ்மி யோகம் (பலதீபிகை வடிவம்)", en: "Lakshmi Yoga (Phaladeepika form)" },
+  BHAGYA_SUPPORT:      { ta: "பாக்கிய ஆதரவு",        en: "Fortune support" },
+  VASUMATI_YOGA:       { ta: "வசுமதி யோகம்",        en: "Vasumati Yoga" },
+  RUCHAKA_YOGA:        { ta: "ருசக யோகம்",          en: "Ruchaka Yoga" },
+  BHADRA_YOGA:         { ta: "பத்ர யோகம்",          en: "Bhadra Yoga" },
+  HAMSA_YOGA:          { ta: "ஹம்ச யோகம்",          en: "Hamsa Yoga" },
+  MALAVYA_YOGA:        { ta: "மாளவ்ய யோகம்",        en: "Malavya Yoga" },
+  SASA_YOGA:           { ta: "சஸ யோகம்",           en: "Sasa Yoga" },
+  SUNAPHA_YOGA:        { ta: "சுனபா யோகம்",         en: "Sunapha Yoga" },
+  PAPA_KARTARI_YOGA:   { ta: "பாப கர்த்தரி யோகம்",   en: "Papa Kartari Yoga" },
   SEVVAI_DOSHAM:    { ta: "செவ்வாய் தோஷம்",      en: "Sevvai Dosham" },
   RAHU_KETU_DOSHAM: { ta: "ராகு-கேது தோஷம்",  en: "Rahu-Ketu Dosham" },
   PITRU_DOSHAM:     { ta: "பித்ரு தோஷம்",       en: "Pitru Dosham" },
@@ -155,6 +174,129 @@ export function yogaReadingStatusLabel(
   // 2026-07-18 (T-01). The longer sentence form elsewhere keeps "உள்ளது",
   // where it reads naturally as part of a clause.
   return lang === "ta" ? "உண்டு" : "Present";
+}
+
+/**
+ * Two questions, two answers — never one chip for both.
+ *
+ * 1. **Standing** — how a yoga or dosham stands in the *birth chart*. Lifelong.
+ *    Strong / Moderate / Mild, or Mitigated (dosham) / Cancelled (yoga).
+ * 2. **Running** — is the current Mahadasha or Antardasha lord lighting it?
+ *    Changes every bhukti. Only `isRunningInDasha` answers this.
+ *
+ * Before 2026-09-23 each surface picked its own word for the chip. The Charts
+ * card printed a dosham's natal strength ("Partial"), Life Areas printed
+ * "Active" for anything not cancelled under an "Active right now" heading, and
+ * the Charts card used the same "Active" for a *yoga's* dasha timing. One chart
+ * showed Marana Karaka Sthana as "Partial" on one tab and "Active" on the next,
+ * and the engine said neither: PARTIAL in the chart, not running in the dasha.
+ * Every surface resolves through these two functions so they cannot drift.
+ */
+export type StandingTone = "good" | "caution" | "mid" | "muted";
+export type Standing = { label: string; tone: StandingTone };
+
+/** The natal-strength word. Same scale for yogas and doshams. */
+export function natalStrengthWord(strength: string, lang: YogaDisplayLang): string {
+  if (strength === "STRONG") return lang === "ta" ? "வலுவான" : "Strong";
+  if (strength === "PARTIAL") return lang === "ta" ? "மிதமான" : "Moderate";
+  // லேசான, not மென்மையான: "மென்மையான தோஷம்" reads as a *gentle* dosham
+  // (native-Tamil review, 2026-09-23).
+  return lang === "ta" ? "லேசான" : "Mild";
+}
+
+/**
+ * Presence only — for a slot that sits beside a separate strength and a
+ * separate dasha line (Explore, the full dosham cards). "Active" is not a
+ * presence word: it is reserved for dasha timing.
+ */
+export function doshamPresenceLabel(
+  d: { isPresent: boolean; isCancelled: boolean },
+  lang: YogaDisplayLang,
+): string {
+  if (!d.isPresent) return lang === "ta" ? "இல்லை" : "Absent";
+  if (d.isCancelled) return lang === "ta" ? "நிவர்த்தி" : "Mitigated";
+  return lang === "ta" ? "உண்டு" : "Present";
+}
+
+/** Presence and strength in one word — for a surface with room for one chip. */
+export function doshamStanding(
+  d: { isPresent: boolean; isCancelled: boolean; strength: string },
+  lang: YogaDisplayLang,
+): Standing {
+  if (!d.isPresent || d.isCancelled) {
+    return { label: doshamPresenceLabel(d, lang), tone: d.isPresent ? "good" : "muted" };
+  }
+  return { label: natalStrengthWord(d.strength, lang), tone: d.strength === "STRONG" ? "caution" : "mid" };
+}
+
+export function yogaStanding(
+  y: { name: string; isPresent: boolean; strength: string; cancellationFactors?: string[] | null },
+  lang: YogaDisplayLang,
+): Standing {
+  const status = yogaReadingStatus(y);
+  if (status !== "PRESENT") return { label: yogaReadingStatusLabel(status, lang), tone: status === "CANCELLED" ? "mid" : "muted" };
+  const label = natalStrengthWord(y.strength, lang);
+  // Valence before strength — a strong Kemadruma is a demand, not a prize.
+  if (isAdverseYoga(y.name)) return { label, tone: y.strength === "STRONG" ? "caution" : "mid" };
+  return { label, tone: "good" };
+}
+
+/**
+ * Is the running Mahadasha/Antardasha lighting this now? A mitigated dosham is
+ * never "running" as a concern — the engine's own power text drops its dasha
+ * clause once nivarthi applies.
+ */
+export function isRunningInDasha(item: {
+  isPresent: boolean;
+  isCancelled?: boolean;
+  dashaActivated: boolean;
+  isCurrentlyActive?: boolean;
+}): boolean {
+  if (!item.isPresent || item.isCancelled) return false;
+  return item.isCurrentlyActive ?? item.dashaActivated;
+}
+
+/**
+ * DD-15's four timing states for a yoga (DOCTRINE_DECISIONS v1.3), replacing
+ * any "Dormant" reading. A present yoga the running dasha does not light is
+ * "not a dominant influence in the current period" — never dormant, because a
+ * yoga with no assigned activator is no longer possible.
+ *
+ * `activationTier` comes from the backend (`STRONG` | `MODERATE` | `NONE`).
+ * A payload without it falls back to `isRunningInDasha`, read as Moderate.
+ */
+export type YogaActivationState = "STRONGLY_ACTIVATED" | "MODERATELY_ACTIVATED" | "NOT_DOMINANT" | "ABSENT";
+
+export function yogaActivationState(y: {
+  isPresent: boolean;
+  isCancelled?: boolean;
+  dashaActivated: boolean;
+  isCurrentlyActive?: boolean;
+  activationTier?: string | null;
+}): YogaActivationState {
+  if (!y.isPresent) return "ABSENT";
+  if (y.activationTier === "STRONG") return "STRONGLY_ACTIVATED";
+  if (y.activationTier === "MODERATE") return "MODERATELY_ACTIVATED";
+  if (y.activationTier === "NONE") return "NOT_DOMINANT";
+  return isRunningInDasha(y) ? "MODERATELY_ACTIVATED" : "NOT_DOMINANT";
+}
+
+export function yogaActivationLabel(state: YogaActivationState, lang: YogaDisplayLang): string {
+  switch (state) {
+    case "STRONGLY_ACTIVATED":
+      return lang === "ta" ? "தற்போது வலுவாகச் செயல்படுகிறது" : "Currently strongly activated";
+    case "MODERATELY_ACTIVATED":
+      return lang === "ta" ? "தற்போது மிதமாகச் செயல்படுகிறது" : "Currently moderately activated";
+    case "NOT_DOMINANT":
+      return lang === "ta" ? "இந்தக் காலத்தில் முதன்மைத் தாக்கம் இல்லை" : "Not a dominant influence in the current period";
+    default:
+      return lang === "ta" ? "இல்லை" : "Absent";
+  }
+}
+
+/** The fourth DD-15 state, for a present yoga's standing slot. */
+export function presentInBirthChartLabel(lang: YogaDisplayLang): string {
+  return lang === "ta" ? "ஜாதகத்தில் உண்டு" : "Present in birth chart";
 }
 
 export function displayName(name: string, lang: YogaDisplayLang): string {

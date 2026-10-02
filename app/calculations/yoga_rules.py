@@ -49,13 +49,24 @@ should rule on.
 The ``dasha_activated`` flag on a card is a **separate** computation from the
 activation score, and the two can disagree on one chart. The detectors for
 Sakata, Kemadruma, Kartari, Chandala, Daridra, Lakshmi, Sunapha/Anapha/
-Durudhura and Vasumati hardcode it to ``False`` whatever dasha is running; Amala
-and Adhi set it from the *functional nature* of a benefic rather than from any
-dasha at all. Both are disclosed on the rows concerned and left for a verdict.
+Durudhura and Vasumati hardcode it to ``False`` whatever dasha is running. Since
+2026-09-23 ``_chart_build`` resolves the published flag against the same key
+grahas the score reads and hands the score that verdict, so the two agree on
+every chart (`tests/test_yoga_activation_agreement.py`).
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import Enum
+
+
+class ActivationBasis(str, Enum):  # noqa: UP042 — str-mixin, as FunctionalNature
+    """Why a graha is an activator (DOCTRINE_DECISIONS v1.3, DD-15)."""
+
+    SOURCE_EXPLICIT = "SOURCE_EXPLICIT"        # a cited text names this activator for this yoga
+    SOURCE_INFERRED = "SOURCE_INFERRED"        # follows from a stated general principle
+    VINAADI_CONVENTION = "VINAADI_CONVENTION"  # engine choice, Tier C
+
 
 #: Markers legal in :attr:`YogaRule.markers`. Kept in step with the rulebook's
 #: own marker table; `tests/test_yoga_rules.py` rejects anything else.
@@ -91,9 +102,24 @@ class YogaRule:
     #: Grahas whose maha/antar dasha activates this yoga in the activation
     #: score. Empty tuple = dormant-capped; see the module docstring.
     key_planets: tuple[str, ...] = ()
+    #: When the activating grahas are resolved **per chart** and carried in
+    #: ``YogaResult.key_grahas``, a plain statement of which grahas they are.
+    #: Such a yoga is *not* dormant-capped even with an empty ``key_planets``;
+    #: the appendix prints this instead of "none — dormant-capped".
+    per_chart_activation: str = ""
     #: The school choice, the departure from the classical form, or the thing a
     #: reviewer would otherwise have to read the source to discover.
     note: str = ""
+    #: DD-15: the basis for the primary activators (``key_planets`` or the
+    #: per-chart ones). The general principle — a yoga gives its results in the
+    #: dashas of the planets that form it — is Raman's, stated for Sunapha and
+    #: applied to Gaja Kesari; applying it elsewhere is inference.
+    activation_basis: ActivationBasis = ActivationBasis.SOURCE_INFERRED
+    #: DD-15 secondary activators, stated in words because most are per chart
+    #: (carried in ``YogaResult.secondary_grahas``). Their dasha activates at the
+    #: moderate tier only. "" = none.
+    secondary_activation: str = ""
+    secondary_basis: ActivationBasis | None = None
 
 
 # --------------------------------------------------------------------------- #
@@ -125,13 +151,36 @@ _BENEFIC_SET_NOTE = (
 
 
 YOGA_RULES: tuple[YogaRule, ...] = (
+    YogaRule(
+        rule_id="YOG-GK-02",
+        yoga_name="GAJA_KESARI_PARASHARA",
+        name_en="Gaja Kesari Yoga",
+        name_ta="கஜகேசரி யோகம்",
+        markers=("TRADITION", "PRODUCT"),
+        detector="_yoga_detect.detect_gaja_kesari_parashara",
+        present_when=(
+            "Guru is in a kendra from Lagna or Chandran, is joined or aspected "
+            "by a chart-dynamic benefic, and is not debilitated, combust, or in "
+            "an enemy sign. Same-sign placement counts as the first kendra."
+        ),
+        strength_rule="STRONG on formation, then gated over Guru and Chandran.",
+        cancellation="Any failed formation clause makes this strict form absent; neecha bhanga does not rescue it.",
+        source="BPHS 36.3-4 (verse numbering remains external-review pending).",
+        key_planets=("JUPITER", "MOON"),
+        activation_basis=ActivationBasis.SOURCE_EXPLICIT,
+        note=(
+            "Strict Parashara form. Dynamic benefic classification follows DD-12. "
+            "Whether the waxing Moon may itself be the supporting benefic is open "
+            "item O-22 (default: yes, literal)."
+        ),
+    ),
     # ── Gaja Kesari ──────────────────────────────────────────────────────────
     YogaRule(
         rule_id="YOG-GK-01",
         yoga_name="GAJA_KESARI_YOGA",
-        name_en="Gaja Kesari Yoga",
-        name_ta="கஜகேசரி யோகம்",
-        markers=("TRADITION", "PRODUCT"),
+        name_en="Gaja Kesari pattern",
+        name_ta="கஜகேசரி அமைப்பு",
+        markers=("VARIANT", "PRODUCT"),
         detector="_yoga_detect.detect_gaja_kesari",
         present_when=(
             "Guru occupies a kendra (1/4/7/10) counted from **Chandran's** rasi, "
@@ -144,6 +193,7 @@ YOGA_RULES: tuple[YogaRule, ...] = (
         ),
         source="Yoga chapters of BPHS and Phaladeepika; kendra-from-Chandran is the standard form.",
         key_planets=("JUPITER", "MOON"),
+        activation_basis=ActivationBasis.SOURCE_EXPLICIT,
         note=(
             "Presence is counted from Chandran only. Texts that additionally "
             "require Guru to be free of debilitation or combustion are honoured "
@@ -155,20 +205,22 @@ YOGA_RULES: tuple[YogaRule, ...] = (
         rule_id="YOG-RY-01",
         yoga_name="RAJA_YOGA",
         name_en="Raja Yoga — trikona/kendra lord association",
-        name_ta="ராஜ யோகம் — இணைப்பு",
+        name_ta="ராஜயோகம் — இணைப்பு",
         markers=("VARIANT", "PRODUCT"),
         detector="_yoga_detect.detect_raja_yoga",
         present_when=(
-            "For every pair of a trikona lord (of 1/5/9) and a kendra lord (of "
-            "1/4/7/10) that are different grahas: the two share a rasi, **or** the "
-            "trikona lord casts a drishti on the kendra lord's rasi, **or** the "
-            "kendra lord casts a drishti on the trikona lord's rasi. Parashari "
-            "aspects including the special 4/8, 5/9 and 3/10 (`CORE-11`); the "
-            "either-direction test exists because the special aspects are "
-            "asymmetric (audit L-3)."
+            "For every pair of an eligible trikona lord (of 1/5/9) and an eligible "
+            "kendra lord (of 1/4/7/10) that are different grahas: the two share a "
+            "rasi, **or** each casts a drishti on the other's rasi (a **mutual** "
+            "aspect, DD-07). Parashari aspects including the special 4/8, 5/9 and "
+            "3/10 (`CORE-11`). A one-way special aspect (audit L-3) links only "
+            "under open item O-15. Eligibility is read from the functional-status "
+            "rule table (`functional_status.raja_participation`, DD-07)."
         ),
         strength_rule=(
-            "STRONG per firing pair, gated over that pair's two lords. The chart "
+            "STRONG per firing pair, gated over that pair's two lords. Each "
+            "instance also records a Tier C grade, `raja_grade_full` / "
+            "`_qualified` / `_mixed`, from both lords' co-lordships. The chart "
             "card is the merge of every pair — best strength, union of conditions, "
             "activated if any pair is activated."
         ),
@@ -178,6 +230,7 @@ YOGA_RULES: tuple[YogaRule, ...] = (
             "association reading is one of several live formulations, not the only one."
         ),
         key_planets=("SUN", "MOON", "MARS", "JUPITER"),
+        per_chart_activation="This instance's own trikona lord and kendra lord (the fixed list is only a fallback).",
         note=(
             "**This is the formulation choice the reviewer asked to see.** At "
             "least four are in live Tamil use: (a) association of a trikona and a "
@@ -188,17 +241,27 @@ YOGA_RULES: tuple[YogaRule, ...] = (
             "(b). Because every lagna has one lord shared between the two sets, "
             "the association test is generous: it iterates all trikona × kendra "
             "pairs and one hit forms the yoga. "
-            "**`key_planets` here is a `[PRODUCT]` approximation** — the true key "
-            "grahas are the specific lords that linked, which are lagna-dependent, "
-            "and the activation table cannot express that. `dasha_activated` on the "
-            "same card *is* computed from the real lords, so the two can disagree."
+            "**Ruling 2026-09-23:** (1) each instance activates on its own two "
+            "lords, carried in `YogaResult.key_grahas`; the `key_planets` below is "
+            "now only a fallback for a card with no instance. (2) A lord that also "
+            "owns the 6th/8th qualifies only if its moolatrikona sign is the "
+            "kendra/trikona it owns. This excludes Kadagam Guru (6+9) and Sani "
+            "(7+8), Kanni Sani (5+6) and Kumbam Budhan (5+8) from every Raja Yoga; "
+            "set against DD-07's trikona-dominates reading it is open item O-23 "
+            "(default: this ruling). Precedence is lagna ownership first: the lagna "
+            "lord always qualifies. **DD-07 (v1.3) changed the 12th:** a 12th "
+            "co-lord is never downgraded for the 12th alone (O-4), which "
+            "re-admits Rishabam Sevvai, Thulam Budhan and Viruchigam Sukran — "
+            "the conflict with this ruling is open item O-14. (3) Rahu/Ketu sharing a sign with a forming "
+            "lord are recorded as supporting (`supporting_grahas`), never forming, "
+            "and their dashas do not activate the card."
         ),
     ),
     YogaRule(
         rule_id="YOG-RY-02",
         yoga_name="RAJA_YOGA",
         name_en="Raja Yoga — trikona/kendra lord exchange",
-        name_ta="ராஜ யோகம் — பரிவர்தனம்",
+        name_ta="ராஜயோகம் — பரிவர்தனம்",
         markers=("VARIANT",),
         detector="yogas.detect_yogas_and_doshams",
         present_when=(
@@ -210,11 +273,14 @@ YOGA_RULES: tuple[YogaRule, ...] = (
         cancellation="—",
         source="Parivartana raja yoga, standard in the Tamil commentaries on the exchange yogas.",
         key_planets=(),
+        per_chart_activation="The two exchanging lords of this instance.",
         note=(
             "Merges into the same `RAJA_YOGA` card as `YOG-RY-01`. **This path is "
             "not strength-gated** while `YOG-RY-01` is — a combust or badly placed "
             "pair still reports STRONG here. That asymmetry is disclosed rather "
-            "than quietly evened out, because evening it out is a doctrine call."
+            "than quietly evened out, because evening it out is a doctrine call. "
+            "The same 2026-09-23 lord-eligibility, per-instance trigger and "
+            "Rahu/Ketu rules as `YOG-RY-01` apply."
         ),
     ),
     YogaRule(
@@ -230,15 +296,59 @@ YOGA_RULES: tuple[YogaRule, ...] = (
         source="—",
         key_planets=(),
         note=(
-            "Not reported by Vinaadi under any name: (a) a yogakaraka graha owning "
-            "both a kendra and a trikona forming raja yoga by itself, with no "
-            "second lord involved; (b) the two lords merely occupying kendras from "
+            "Not reported by Vinaadi under any name: (a) retired 2026-09-23 — the "
+            "lone yogakaraka is now `YOG-RY-04`, its own card, which since 2026-10-01 reports "
+            "the yogakaraka planet's strength and makes no Raja Yoga claim; (b) the two lords "
+            "merely occupying kendras from "
             "each other, without conjunction, drishti or exchange; (c) raja yogas "
             "read from the Navamsa or from Chandra lagna rather than from the "
             "Lagna; (d) Dharma-Karmadhipati as a **separately named** yoga — the "
             "9th/10th pair does form `YOG-RY-01`, but it is never distinguished "
             "from any other trikona-kendra link on the card. Neecha Bhanga and "
             "Vipareetha raja yogas are detected, under their own IDs."
+        ),
+    ),
+    YogaRule(
+        rule_id="YOG-RY-04",
+        yoga_name="YOGAKARAKA_RAJA_YOGA",
+        name_en="Yogakaraka planet",
+        name_ta="யோககாரக கிரகம்",
+        markers=("TRADITION", "PRODUCT"),
+        detector="_yoga_detect.detect_raja_yogakaraka",
+        present_when=(
+            "One graha holds `DUAL_LORD_YOGAKARAKA` in the functional-status "
+            "matrix (DD-07): it owns one of {4, 7, 10} **and** one of {5, 9}; house "
+            "1 never satisfies either side. Exactly six lagnas have one — Sani for "
+            "Rishabha/Thulam, Sevvai for Kataka/Simha, Sukran for Makara/Kumbam. "
+            "Ownership alone makes it the yogakaraka."
+        ),
+        strength_rule=(
+            "STRONG on formation; PARTIAL when the yogakaraka is debilitated, "
+            "combust or placed in the 6th/8th/12th from Lagna — one rung however "
+            "many apply, each recorded as `<graha>_yogakaraka_<affliction>`. "
+            "A debility cancelled by Neecha Bhanga (`neecha_bhanga_cancelled`, "
+            "the same predicate as `YOG-NBR-01`) costs nothing and is recorded "
+            "as `<graha>_yogakaraka_neecha_bhanga`; the other afflictions still "
+            "apply (ruling 2026-10-01, option B). "
+            f"{_GATE_NOTE} Here the gate reads the composite score only; "
+            "combustion is already counted once, above."
+        ),
+        cancellation=(
+            "None. Debility, combustion and a dusthana placement lower its "
+            "yogakaraka strength; they never remove its yogakaraka status (owner "
+            "ruling 2026-09-23, superseding the first-pass dignity gate)."
+        ),
+        source="Yogakaraka graha, BPHS — a single lord of a kendra and a trikona.",
+        key_planets=(),
+        per_chart_activation="The yogakaraka graha itself.",
+        note=(
+            "Astrologer ruling 2026-10-01: this card reports the yogakaraka "
+            "**planet and its strength**, not a distinct Raja Yoga. Ownership "
+            "alone does not create a yoga; a Raja Yoga still needs `YOG-RY-01`'s "
+            "link between lords. The emitted code keeps its historical name "
+            "`YOGAKARAKA_RAJA_YOGA` as a stable API key only. Supersedes the "
+            "2026-09-23 framing as 'a distinct yoga type'. The yogakaraka is "
+            "carried per chart in `YogaResult.key_grahas`."
         ),
     ),
     # ── Dhana ────────────────────────────────────────────────────────────────
@@ -259,6 +369,7 @@ YOGA_RULES: tuple[YogaRule, ...] = (
         cancellation="—",
         source="The 2nd/11th dhana formulation of the BPHS dhana yoga chapter.",
         key_planets=("JUPITER", "VENUS", "MERCURY"),
+        activation_basis=ActivationBasis.VINAADI_CONVENTION,
         note=(
             "**Separated by the 2026-08-28 ruling** ('Separate `[PRODUCT]`'). "
             "This card now carries only the two sourced conditions, so a reader "
@@ -279,6 +390,7 @@ YOGA_RULES: tuple[YogaRule, ...] = (
         cancellation="—",
         source="No single source claimed. A Vinaadi proxy for 'both wealth lords are well placed', not a classical dhana yoga.",
         key_planets=("JUPITER", "VENUS", "MERCURY"),
+        activation_basis=ActivationBasis.VINAADI_CONVENTION,
         note=(
             "**Split off `YOG-DN-01` by ruling, kept rather than dropped.** This "
             "is much the commonest of the original three Dhana conditions, so it "
@@ -292,38 +404,82 @@ YOGA_RULES: tuple[YogaRule, ...] = (
         rule_id="YOG-NBR-01",
         yoga_name="NEECHA_BHANGA_RAJA_YOGA",
         name_en="Neecha Bhanga Raja Yoga",
-        name_ta="நீசபங்க ராஜ யோகம்",
+        name_ta="நீசபங்க ராஜயோகம்",
         markers=("TRADITION",),
         detector="_yoga_detect.detect_neecha_bhanga",
         present_when=(
-            "A graha stands in its debilitation rasi **and** "
-            "`chart_strength.neecha_bhanga_cancelled` returns cancelled. That "
-            "predicate tests four classical rules: the lord of the debilitation "
-            "sign in a kendra from Lagna or Chandran; the graha that *exalts* in "
-            "that sign in a kendra from Lagna or Chandran; the lord of the sign "
-            "where this graha exalts casting a drishti on it; and this graha "
-            "strong in the Navamsa."
+            "A graha stands in its debilitation rasi **and** at least one rule of "
+            "`neecha_bhanga.NEECHA_BHANGA_RULES` fires whose verse states a "
+            "raja-yoga result (O-13). One rule per Phaladeepika verse (DD-09): "
+            "NB-a debilitation-sign lord in a kendra from Lagna or Chandran "
+            "(7.26/7.29); NB-b exaltation-sign lord in a kendra from Lagna or "
+            "Chandran (7.26/7.29); NB-c the two lords in mutual kendras (7.27); "
+            "NB-d the debilitated graha aspected by its debilitation-sign lord "
+            "(7.28), NB-d+ the same outside 6/8/12 (7.28, second half); NB-g "
+            "either lord in a kendra from Lagna (7.30, reference point O-10). "
+            "**Any one rule cancels** — there is no count threshold."
         ),
-        strength_rule="PARTIAL when cancelled, WEAK when not. Ungated.",
+        strength_rule=(
+            "By distinct conditions, not verses (Tier C): one → WEAK (shown as "
+            "'Mild'), two → PARTIAL, three or more → STRONG. NB-g never adds a "
+            "point NB-a/NB-b already counted; NB-d+ adds one. Ungated."
+        ),
         cancellation=(
             "Retrogression of the debilitated graha is recorded as a supporting "
             "note only (`debilitated_planet_retrograde_note`) and never forms the "
-            "yoga by itself — closing the old lone-retrograde over-detection (G6)."
+            "yoga by itself — the retrograde verse is open item O-11. Off by "
+            "default: NB-f, Navamsa strength (O-7); NB-x1/NB-x2, two conditions "
+            "the engine shipped without a verse in DD-09's table (O-12). Budhan "
+            "rules its own exaltation sign, so for a debilitated Budhan NB-b, NB-c "
+            "and NB-g would test Budhan's own position — the deleted NB-e; that "
+            "self-reference is skipped (O-21)."
         ),
-        source="BPHS neechabhanga rules; standard Tamil Thirukanitham practice.",
-        key_planets=("JUPITER",),
+        source=(
+            "Phaladeepika 7.26–30, verse map checked against the Subrahmanya "
+            "Sastri translation online (siva.sh, 2026-10-01); physical edition "
+            "pending (§18). DOCTRINE_DECISIONS v1.3, DD-09."
+        ),
+        key_planets=(),
+        per_chart_activation="The debilitated graha itself (DD-15).",
+        secondary_activation="The grahas whose placement or aspect produced the bhanga.",
+        secondary_basis=ActivationBasis.VINAADI_CONVENTION,
         note=(
-            "The cancellation clauses are **not** in the yoga module: "
-            "`chart_strength.neecha_bhanga_cancelled` is the single source of "
-            "truth, shared with the +14 bhanga term in the strength synthesis, so "
-            "the card and the score cannot disagree on one chart (audit C2). "
-            "**`key_planets = (JUPITER,)` is wrong on its face** — the key graha is "
-            "the debilitated graha, which varies by chart. It is left unchanged "
-            "here because correcting it changes a shipped number, and is flagged "
-            "for the reviewer's verdict."
+            "The rules are **not** in the yoga module: `neecha_bhanga` holds them "
+            "and `chart_strength.neecha_bhanga_cancelled` wraps them, so this card, "
+            "the +14 bhanga term in the strength synthesis and the yogakaraka "
+            "card cannot disagree on one chart (audit C2). DD-09 removed the "
+            "verse-less conditions the predicate used to carry and NB-e (the "
+            "debilitated graha itself in a kendra), which no cited verse states. "
+            "With any one condition the yoga fires on many charts, so the card "
+            "must always show its strength. The old static key graha "
+            "(`JUPITER`) is retired by DD-15: the debilitated graha activates."
         ),
     ),
     # ── Pancha Mahapurusha — five rules, not one ─────────────────────────────
+    YogaRule(
+        rule_id="YOG-NRV-01",
+        yoga_name="RETROGRADE_DEBILITATED_RAJA_YOGA",
+        name_en="Retrograde debilitated-planet Raja Yoga",
+        name_ta="வக்ர நீச ராஜயோகம்",
+        markers=("TRADITION", "PRODUCT", "LIMIT"),
+        detector="_yoga_detect.detect_retrograde_debilitated_raja_yoga",
+        present_when=(
+            "A debilitated graha is retrograde, outside houses 6/8/12 from "
+            "Lagna, and has bright rays. O-11 must be enabled."
+        ),
+        strength_rule="STRONG when every formation clause is met; no composite-score gate.",
+        cancellation="Combustion fails the engine's provisional bright-rays test.",
+        source=(
+            "Phaladeepika chapter 7, retrograde debilitated-planet verse; verse "
+            "number and physical-edition wording remain pending section 18."
+        ),
+        per_chart_activation="The debilitated retrograde graha itself.",
+        activation_basis=ActivationBasis.SOURCE_INFERRED,
+        note=(
+            "Off by default under O-11. Vinaadi provisionally translates bright "
+            "rays as non-combust; that translation is Tier C and must be ruled."
+        ),
+    ),
     YogaRule(
         rule_id="YOG-PMP-01",
         yoga_name="RUCHAKA_YOGA",
@@ -439,7 +595,7 @@ YOGA_RULES: tuple[YogaRule, ...] = (
         rule_id="YOG-VRY-01",
         yoga_name="VIPAREETHA_RAJA_YOGA",
         name_en="Vipareetha Raja Yoga (Harsha / Sarala / Vimala)",
-        name_ta="விபரீத ராஜ யோகம்",
+        name_ta="விபரீத ராஜயோகம்",
         markers=("VARIANT",),
         detector="_yoga_detect.detect_vipareetha_raja",
         present_when=(
@@ -451,6 +607,7 @@ YOGA_RULES: tuple[YogaRule, ...] = (
         cancellation="—",
         source="Harsha, Sarala and Vimala of the vipareetha raja yoga chapter, Phaladeepika.",
         key_planets=("SATURN", "MARS", "JUPITER"),
+        activation_basis=ActivationBasis.VINAADI_CONVENTION,
         note=(
             "**Three named sub-forms share this one ID**, separable from "
             "`conditions_met`: **Harsha** = 6th lord in a dusthana, **Sarala** = "
@@ -484,14 +641,15 @@ YOGA_RULES: tuple[YogaRule, ...] = (
         cancellation="—",
         source="The three-fold Maha / Dainya / Kahala classification of the exchange yogas, Phaladeepika.",
         key_planets=(),
+        per_chart_activation="Both exchanging lords (DD-15).",
         note=(
             "The Maha house set is kendra ∪ trikona **plus the 2nd and 11th** "
             "(audit L-2): a 2↔11 dhana exchange has to grade MAHA, not KAHALA. The "
             "classical taxonomy names the three grades by the houses involved; "
             "this particular house partition is Vinaadi's reading of it and is the "
             "`[PRODUCT]` half of the marker. The nodes never form a parivartana, "
-            "ruling no sign. No key grahas are defined, so this yoga's activation "
-            "score is dormant-capped — deliberate, since the exchanging pair varies."
+            "ruling no sign. Activation (DD-15): the two exchanging lords, carried "
+            "per chart in `YogaResult.key_grahas`."
         ),
     ),
     # ── Chandra Mangala ──────────────────────────────────────────────────────
@@ -619,6 +777,9 @@ YOGA_RULES: tuple[YogaRule, ...] = (
         cancellation="A benefic on either side prevents the formation outright.",
         source="Papa/Shubha kartari (hemming) of the Phaladeepika bhava chapters.",
         key_planets=(),
+        per_chart_activation="The hemming planets (DD-15).",
+        secondary_activation="The lord of the hemmed sign.",
+        secondary_basis=ActivationBasis.VINAADI_CONVENTION,
         note=(
             "Called with `target_rasi = lagna_rasi` **only** — the hemming of any "
             "other bhava, or of Chandran, is not computed, though the function "
@@ -643,6 +804,9 @@ YOGA_RULES: tuple[YogaRule, ...] = (
         cancellation="A malefic on either side prevents the formation outright.",
         source="Papa/Shubha kartari (hemming) of the Phaladeepika bhava chapters.",
         key_planets=(),
+        per_chart_activation="The hemming planets (DD-15).",
+        secondary_activation="The lord of the hemmed sign.",
+        secondary_basis=ActivationBasis.VINAADI_CONVENTION,
         note=f"Lagna only, as `YOG-KT-01`. {_BENEFIC_SET_NOTE}",
     ),
     YogaRule(
@@ -676,6 +840,9 @@ YOGA_RULES: tuple[YogaRule, ...] = (
         cancellation="—",
         source="Guru Chandala, standard in the Tamil dosha/yoga lists.",
         key_planets=(),
+        per_chart_activation="Guru and Rahu (DD-15).",
+        secondary_activation="Rahu's dispositor (BPHS: a node gives the results of its sign lord; verse to verify).",
+        secondary_basis=ActivationBasis.SOURCE_INFERRED,
         note=(
             "**Guru+Rahu ONLY (2026-08-28 ruling).** Whole sign, **no degree "
             "orb**: a Guru-Rahu pair 25° apart inside one rasi forms it, while a "
@@ -683,8 +850,8 @@ YOGA_RULES: tuple[YogaRule, ...] = (
             "lineage uses and it can be tightened. The Guru-Ketu form some "
             "schools also use is split into its own `[VARIANT]` card "
             "(`YOG-CH-02`, `CHANDALA_KETU_YOGA`) rather than folded in here, so "
-            "the Ketu form never reads as the same yoga. No key grahas defined, "
-            "so activation is dormant-capped."
+            "the Ketu form never reads as the same yoga. Activation (DD-15): Guru "
+            "and Rahu primary, Rahu's dispositor secondary."
         ),
     ),
     YogaRule(
@@ -699,12 +866,15 @@ YOGA_RULES: tuple[YogaRule, ...] = (
         cancellation="—",
         source="Not classical Guru Chandala (Guru+Rahu). Some schools extend the yoga to either node; no printed source claimed for the extension.",
         key_planets=(),
+        per_chart_activation="Guru and Ketu (DD-15).",
+        secondary_activation="Ketu's dispositor (BPHS node principle; verse to verify).",
+        secondary_basis=ActivationBasis.SOURCE_INFERRED,
         note=(
             "Split off `YOG-CH-01` by the 2026-08-28 ruling: **'Guru + Rahu "
             "ONLY. Guru + Ketu = separate [VARIANT] card.'** Same whole-sign, "
             "no-orb test as the Rahu form, applied to Kethu instead. Emitted "
-            "unconditionally alongside `CHANDALA_YOGA` on its own card. No key "
-            "grahas defined, so activation is dormant-capped."
+            "unconditionally alongside `CHANDALA_YOGA` on its own card. Activation "
+            "(DD-15): Guru and Ketu primary, Ketu's dispositor secondary."
         ),
     ),
     # ── Amala ────────────────────────────────────────────────────────────────
@@ -716,56 +886,86 @@ YOGA_RULES: tuple[YogaRule, ...] = (
         markers=("TRADITION", "PRODUCT"),
         detector="_yoga_detect.detect_amala_yoga",
         present_when=(
-            "At least one of Guru, Sukran, Budhan or Chandran occupies the 10th "
-            "rasi from the Lagna **or** the 10th from Chandran."
+            "At least one of Guru, Sukran or Budhan occupies the 10th rasi from "
+            "the Lagna **or** the 10th from Chandran. Budhan counts only when no "
+            "afflicting malefic (below) shares its sign — **not Suriya**, whose "
+            "nearness to Budhan is constant and whose combustion is judged "
+            "separately; Chandran never counts (ruling 2026-09-23, amended)."
         ),
-        strength_rule="STRONG when two or more such benefics are found, PARTIAL for one.",
-        cancellation="—",
+        strength_rule=(
+            "STRONG when two or more such benefics are found, PARTIAL for one; "
+            "then one rung lower when an afflicting malefic casts poorna drishti "
+            "on an occupied 10th (recorded as `malefic_aspect_on_10th_<graha>`). "
+            "**Afflicting malefics** are one set, `AMALA_AFFLICTING_MALEFICS`, read "
+            "by both this test and Budhan's: Sani, Sevvai, Rahu, Ketu and Mandhi. "
+            "Nodes per `CORE-10`; Mandhi's 7th aspect per `EC-A21`. Suriya is "
+            "excluded: karaka of the 10th with dig bala there."
+        ),
+        cancellation="None. Malefic aspect weakens, never cancels (ruling 2026-09-23).",
         source="Amala yoga, Phaladeepika — a benefic in the 10th from Lagna or Chandran.",
         key_planets=(),
+        per_chart_activation="The benefics occupying the 10th — never the 10th lord.",
         note=(
             "Classical Amala is satisfied by a **single** benefic in that position; "
             "the two-or-more → STRONG rung is Vinaadi's grading, not a source "
-            f"distinction. {_BENEFIC_SET_NOTE} `dasha_activated` here is not a "
-            "dasha test at all — it is true when any of the found benefics is a "
-            "yogakaraka or trikona lord for the lagna, which is a different "
-            "statement from 'this yoga is running now'. Flagged for a verdict."
+            "distinction. Activation (ruling 2026-09-23): the benefics occupying "
+            "the 10th, carried per chart in `YogaResult.key_grahas` — never the "
+            "10th lord. The old functional-nature `dasha_activated` test is retired."
         ),
     ),
     # ── Adhi ─────────────────────────────────────────────────────────────────
     YogaRule(
         rule_id="YOG-AD-01",
-        yoga_name="ADHI_YOGA",
-        name_en="Adhi Yoga",
-        name_ta="அதி யோகம்",
+        yoga_name="ADHI_BASE",
+        name_en="Adhi pattern (base)",
+        name_ta="அதி யோக அமைப்பு",
         markers=("VARIANT", "PRODUCT"),
-        detector="_yoga_detect.detect_adhi_yoga",
+        detector="_yoga_detect.detect_adhi_base",
         present_when=(
-            "**At least two** of Guru, Sukran and Budhan occupy the 6th, 7th or "
-            "8th rasi from Chandran (2026-08-28 ruling: '≥2 of Guru/Sukran/Budhan "
-            "= present; 3 = full; grade by planets, not houses')."
+            "At least one chart-dynamic benefic among Budhan, Guru and Sukran "
+            "occupies the 6th, 7th or 8th rasi from Chandran, and the raja-grade "
+            "candidate does not form (when it does, it carries the one Adhi label)."
         ),
         strength_rule=(
-            "By the count of qualifying *planets*, not houses: 3 → STRONG "
-            "('full'), 2 → PARTIAL. Below 2, absent."
+            "Base rung by qualifying planets: 3 is STRONG, 2 PARTIAL and 1 WEAK; "
+            "then lower for weak/combust formers, malefic contamination, weak "
+            "Chandran and impure distribution."
         ),
-        cancellation="—",
+        cancellation="No base cancellation; adverse factors lower its grade.",
         source="Adhi yoga, BPHS and Phaladeepika — the three benefics in the 6th/7th/8th from Chandran.",
         key_planets=(),
-        note=(
-            "**Tightened by ruling from the loosest presence test in the yoga "
-            "set.** The old test fired on a single benefic in a single house, "
-            "which made Adhi present on most charts and near-universal, so a "
-            "present Adhi carried no information — `tests/test_drishti_yoga_"
-            "golden.py` pinned that as the live evidence behind this ruling. "
-            "Presence and grading now both count distinct *benefics* found in the "
-            "6th/7th/8th, matching the classical 'three as a set' reading. "
-            "`dasha_activated` here is read from the functional nature of Guru, "
-            "Sukran and Budhan for the lagna — **all three, whether or not they "
-            "are among the grahas that formed the yoga** — so it is neither a "
-            "dasha test nor restricted to this yoga's own participants; left "
-            "unchanged, since the ruling addressed only presence and grading."
+        per_chart_activation="The benefics in the 6th/7th/8th from Chandran.",
+        secondary_activation=(
+            "Chandran (DD-15, Vinaadi convention). This sits against the 2026-09-23 "
+            "ruling that Chandran is the reference, not a trigger — open item O-16."
         ),
+        secondary_basis=ActivationBasis.VINAADI_CONVENTION,
+        note=(
+            "DD-08 separates broad geometry from any raja-grade claim. Geometry "
+            "is Tier A; distribution is commentary; Raman's one-strong-planet "
+            "sufficiency is recorded separately. Formers activate it; Chandran "
+            "is secondary only under O-16."
+        ),
+    ),
+    YogaRule(
+        rule_id="YOG-AD-02",
+        yoga_name="ADHI_RAJA_GRADE",
+        name_en="Adhi Yoga (raja-grade candidate)",
+        name_ta="அதி யோகம் (ராஜ தரம், பரிசீலனையில்)",
+        markers=("LIMIT", "PRODUCT"),
+        detector="_yoga_detect.detect_adhi_raja_grade",
+        present_when=(
+            "ADHI_BASE forms, no forming benefic is combust, and no serious "
+            "malefic affliction is found. O-20 controls whether aspects count."
+        ),
+        strength_rule="STRONG on clean formation, then gated over forming benefics and Chandran.",
+        cancellation="Combustion of a forming benefic or serious malefic affliction makes this candidate absent.",
+        source="Candidate synthesis pending Tier-A textual confirmation; not marked TRADITION.",
+        key_planets=(),
+        per_chart_activation="The forming benefics in the 6th/7th/8th from Chandran.",
+        secondary_activation="Chandran under O-16.",
+        secondary_basis=ActivationBasis.VINAADI_CONVENTION,
+        note="Candidate only; the registry deliberately withholds the TRADITION marker.",
     ),
     # ── Daridra ──────────────────────────────────────────────────────────────
     YogaRule(
@@ -792,6 +992,7 @@ YOGA_RULES: tuple[YogaRule, ...] = (
             "'11th lord in a dusthana' test this used to implement."
         ),
         key_planets=(),
+        per_chart_activation="The 11th lord of this lagna.",
         note=(
             "**Redefined by the 2026-09-11 ruling**, and the *reading* of the "
             "chosen words was settled by measurement rather than taste "
@@ -826,6 +1027,7 @@ YOGA_RULES: tuple[YogaRule, ...] = (
         cancellation="—",
         source="No source claimed. A Vinaadi proxy, not a classical daridra yoga.",
         key_planets=(),
+        per_chart_activation="The 11th lord of this lagna.",
         note=(
             "**Split off `YOG-DR-01` by ruling** ('the weak-and-afflicted proxy is "
             "labelled as ours'), kept rather than dropped. The `< 40` cut-off "
@@ -844,27 +1046,76 @@ YOGA_RULES: tuple[YogaRule, ...] = (
         markers=("TRADITION", "PRODUCT"),
         detector="_yoga_detect.detect_lakshmi_yoga",
         present_when=(
-            "The 9th lord scores 60 or more **and** stands in a kendra or trikona, "
-            "**and** the Lagna lord scores 60 or more."
+            "Parāśari form (DD-02, primary): the 9th lord in a **kendra** "
+            "(1/4/7/10 — not a trikona) **and** in its own, moolatrikona or "
+            "exaltation sign, **and** the lagna lord balāḍhya — "
+            "`lagna_lord_strength` at or above the O-8 threshold (60)."
         ),
         strength_rule=(
             "STRONG when formed, then gated over the two lords (2026-08-28 "
             "ruling: 'Presence gated on strength'). WEAK when not formed."
         ),
         cancellation="—",
-        source="Lakshmi yoga, Phaladeepika — a strong and well-placed 9th lord with a strong lagna lord.",
+        source="BPHS 36.27–28 (Santhanam ed.; verse number and 'kendra' wording to verify).",
         key_planets=(),
+        per_chart_activation="The 9th lord and the lagna lord (DD-15).",
         note=(
-            "**The principle is classical; the two 60s are Vinaadi's.** The source "
-            "rule reads dignity — the 9th lord in its own or exaltation sign in a "
-            "kendra/trikona — and Vinaadi substitutes the composite natal score "
-            "(§3.3.4) with a 60 cut-off in both places. A reviewer should judge the "
-            "direction, not the number. Note this yoga is one of the four that "
-            "silently go inert if `planet_scores_in` is not threaded from the real "
-            "chart-strength computation, since the fallback yields a uniform 50. "
-            f"Now runs `gate_yoga_strength` like the other TRADITION+PRODUCT rows "
-            f"rather than reporting flat STRONG/WEAK; presence itself is unchanged "
-            f"— the gate only lowers a *present* yoga's reported strength. {_GATE_NOTE}"
+            "**Rewritten by DD-02 (v1.3).** Dignity is mandatory; the old rule — "
+            "9th lord in a kendra *or trikona* with both composite scores >= 60 — "
+            "was broader than every source. BPHS asks only that the lagna lord be "
+            "balāḍhya; Vinaadi's translation of that word is a Tier C strength "
+            "model (composite score, a 6/8/12 penalty waived in own/exaltation "
+            "sign, a malefic-company penalty, and a cap for debility without "
+            "bhanga), threshold O-8. The wire key `LAKSHMI_YOGA` is kept as a "
+            "stable identifier for this form. A 9th lord well placed without the "
+            f"dignity is `YOG-LK-03`, never this name. {_GATE_NOTE}"
+        ),
+    ),
+    YogaRule(
+        rule_id="YOG-LK-02",
+        yoga_name="LAKSHMI_YOGA_PHALADEEPIKA",
+        name_en="Lakshmi Yoga (Phaladeepika form)",
+        name_ta="லக்ஷ்மி யோகம் (பலதீபிகை வடிவம்)",
+        markers=("VARIANT",),
+        detector="_yoga_detect.detect_lakshmi_yoga_phaladeepika",
+        present_when=(
+            "The 9th lord **and** Sukran both in their own or exaltation sign, "
+            "both in a kendra or trikona from Lagna."
+        ),
+        strength_rule=f"STRONG when formed, gated over the two. {_GATE_NOTE}",
+        cancellation="—",
+        source="Phaladeepika 6.21 (verse number to verify).",
+        key_planets=(),
+        per_chart_activation="The 9th lord and Sukran (DD-15).",
+        note=(
+            "A lineage variant kept beside the Parāśari form, never blended into "
+            "it. **Off in the consumer UI by default** (DD-02): emitted only "
+            "when `show_lakshmi_phaladeepika` is on, and only when present."
+        ),
+    ),
+    YogaRule(
+        rule_id="YOG-LK-03",
+        yoga_name="BHAGYA_SUPPORT",
+        name_en="Fortune support",
+        name_ta="பாக்கிய ஆதரவு",
+        markers=("PRODUCT",),
+        detector="_yoga_detect.detect_bhagya_support",
+        present_when=(
+            "The 9th lord in a kendra or trikona from Lagna **without** its own, "
+            "moolatrikona or exaltation sign."
+        ),
+        strength_rule=f"PARTIAL when formed, gated over the 9th lord. {_GATE_NOTE}",
+        cancellation="—",
+        source="No source claimed. DD-02's honest fallback label, Tier C.",
+        key_planets=(),
+        per_chart_activation="The 9th lord.",
+        note=(
+            "Principle 5 of the decision file — strict name, honest fallback: "
+            "partial Lakshmi geometry gets its own label instead of the yoga's "
+            "name. Emitted only when present. Two cases stay unlabelled under the "
+            "literal DD-02 text — a dignified 9th lord in a trikona only, and a "
+            "dignified 9th lord in a kendra with a lagna lord below threshold "
+            "(open item O-17)."
         ),
     ),
     # ── Sunapha / Anapha / Durudhura ─────────────────────────────────────────
@@ -883,6 +1134,10 @@ YOGA_RULES: tuple[YogaRule, ...] = (
         cancellation="—",
         source="Chandra yogas of BPHS — Sunapha, Anapha and Durudhura.",
         key_planets=(),
+        per_chart_activation="The planets in the 2nd from Chandran (DD-15).",
+        activation_basis=ActivationBasis.SOURCE_EXPLICIT,
+        secondary_activation="Chandran (DD-15, Vinaadi convention; open item O-16).",
+        secondary_basis=ActivationBasis.VINAADI_CONVENTION,
         note=(
             "The exclusion set is classical for Suriyan and the nodes; excluding "
             "**Mandhi** is the WI-15 ruling — an upagraha is not a graha for this "
@@ -907,6 +1162,9 @@ YOGA_RULES: tuple[YogaRule, ...] = (
         cancellation="—",
         source="Chandra yogas of BPHS — Sunapha, Anapha and Durudhura.",
         key_planets=(),
+        per_chart_activation="The planets in the 12th from Chandran (DD-15).",
+        secondary_activation="Chandran (DD-15, Vinaadi convention; open item O-16).",
+        secondary_basis=ActivationBasis.VINAADI_CONVENTION,
         note="Same exclusion set, same emit-only-when-present behaviour and same flat rung as `YOG-SAD-01`.",
     ),
     YogaRule(
@@ -921,6 +1179,9 @@ YOGA_RULES: tuple[YogaRule, ...] = (
         cancellation="—",
         source="Chandra yogas of BPHS — Sunapha, Anapha and Durudhura.",
         key_planets=(),
+        per_chart_activation="The planets on both sides of Chandran (DD-15).",
+        secondary_activation="Chandran (DD-15, Vinaadi convention; open item O-16).",
+        secondary_basis=ActivationBasis.VINAADI_CONVENTION,
         note=(
             "Emitted **in addition to** Sunapha and Anapha, not instead of them, so "
             "a chart with both sides occupied shows three cards for one "
@@ -945,6 +1206,7 @@ YOGA_RULES: tuple[YogaRule, ...] = (
         cancellation="—",
         source="Vasumati yoga — benefics in the upachayas.",
         key_planets=(),
+        per_chart_activation="Each qualifying benefic in the upachayas (DD-15).",
         note=(
             "**Widened by ruling from Chandran-only.** Each graha counts once if "
             "*either* reference places it in an upachaya — the union, not the "

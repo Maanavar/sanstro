@@ -13,12 +13,14 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { describe, expect, it, vi } from "vitest";
 import type { DailyActivityBoard } from "@/lib/types";
 import { getActivityTimingBatch } from "@vinaadi/shared/api/activityTiming";
+import { track } from "@/lib/analytics";
 
 import { DashboardTodayActivityBoardNova } from "./dashboard-today-activity-board-nova";
 
 vi.mock("@vinaadi/shared/api/activityTiming", () => ({
   getActivityTimingBatch: vi.fn(() => new Promise(() => {})),
 }));
+vi.mock("@/lib/analytics", () => ({ track: vi.fn() }));
 
 function verdict(activity: string, label: string, alignment: "SUPPORTS" | "NEUTRAL" | "CAUTION", reason: string) {
   return { activity, label: { ta: label, en: label }, alignment, reason: { ta: reason, en: reason } };
@@ -154,5 +156,127 @@ describe("DashboardTodayActivityBoardNova — no repeated reasons", () => {
     await waitFor(() => expect(row.title).toContain("Next good dates: 20 Jul, 23 Jul, 28 Jul"));
     fireEvent.mouseEnter(row);
     expect(screen.getByRole("tooltip")).toHaveTextContent("Next good dates: 20 Jul, 23 Jul, 28 Jul");
+  });
+});
+
+/** Life focus T3 (docs/LIFE_FOCUS_PLAN_2026-09-22.md): the focus activities
+ *  lead the carousel, verdicts untouched, and a focus with nothing to say
+ *  today says so once. */
+describe("DashboardTodayActivityBoardNova — life focus", () => {
+  const board: DailyActivityBoard = {
+    favourable: [verdict("property", "Property", "SUPPORTS", "Panchami tithi favourable")],
+    caution: [verdict("marriage", "Marriage", "CAUTION", "Saturday unfavourable")],
+    neutral: [
+      verdict("health", "Health", "NEUTRAL", "Neutral for this activity"),
+      verdict("job_change", "Job moves", "NEUTRAL", "Neutral for this activity"),
+    ],
+    isChandrashtama: false,
+  };
+
+  function renderWithFocus(b: DailyActivityBoard, focusActivities: string[]) {
+    return render(
+      <DashboardTodayActivityBoardNova
+        board={b}
+        lang="en"
+        chartId={null}
+        selectedDate="2026-07-18"
+        bestWindow={null}
+        now={new Date("2026-07-18T12:00:00Z")}
+        isToday
+        onOpenAskVinaadi={() => {}}
+        focusActivities={focusActivities}
+        focusMode="MARRIAGE"
+      />,
+    );
+  }
+
+  const cardLabels = () =>
+    screen.getAllByRole("listitem").map((li) => li.textContent ?? "");
+
+  it("leads with the focus activity and keeps its own tone", () => {
+    renderWithFocus(board, ["marriage"]);
+    const first = cardLabels()[0];
+    expect(first).toContain("Marriage");
+    expect(first).toContain("Your focus");
+    expect(first).toContain("Worth a second look");
+  });
+
+  it("changes order only: the same cards with the same verdicts", () => {
+    const { unmount } = renderWithFocus(board, []);
+    const neutralOrder = cardLabels().sort();
+    unmount();
+    renderWithFocus(board, ["job_change"]);
+    const focusOrder = cardLabels().map((text) => text.replace("Your focus", "")).sort();
+    expect(focusOrder).toEqual(neutralOrder);
+  });
+
+  it("says once when every focus activity is neutral today", () => {
+    renderWithFocus(board, ["job_change", "business_start"]);
+    expect(screen.getByText(/Job moves: nothing specific today\./)).toBeTruthy();
+  });
+
+  it("says nothing extra when a focus activity has a verdict", () => {
+    renderWithFocus(board, ["property"]);
+    expect(screen.queryByText(/nothing specific today/)).toBeNull();
+  });
+
+  it("stays quiet on a Chandrashtama day, which already explains the neutral column", () => {
+    renderWithFocus({ ...board, isChandrashtama: true }, ["job_change"]);
+    expect(screen.queryByText(/nothing specific today/)).toBeNull();
+  });
+
+  it("records a focus-row tap without sending its rendered label or reason", () => {
+    vi.mocked(track).mockClear();
+    renderWithFocus(board, ["marriage"]);
+    fireEvent.click(screen.getByText("Marriage").closest("li") as HTMLElement);
+
+    expect(track).toHaveBeenCalledTimes(1);
+    expect(track).toHaveBeenCalledWith("life_focus_row_tapped", {
+      focus: "MARRIAGE",
+      activity: "marriage",
+      surface: "web",
+      target: "card",
+    });
+  });
+
+  it("does not record taps on a card outside the focus", () => {
+    vi.mocked(track).mockClear();
+    renderWithFocus(board, ["marriage"]);
+    fireEvent.click(screen.getByText("Property").closest("li") as HTMLElement);
+    expect(track).not.toHaveBeenCalled();
+  });
+
+  it("names the better-date link as the target instead of counting a bare card tap", async () => {
+    vi.mocked(track).mockClear();
+    vi.mocked(getActivityTimingBatch).mockResolvedValueOnce({
+      data: { results: { marriage: { nextFavourableDates: ["2026-07-24"] } } },
+    } as unknown as Awaited<ReturnType<typeof getActivityTimingBatch>>);
+    const onGoToCalendar = vi.fn();
+    render(
+      <DashboardTodayActivityBoardNova
+        board={board}
+        lang="en"
+        chartId="synthetic-chart-id"
+        selectedDate="2026-07-18"
+        bestWindow={null}
+        now={new Date("2026-07-18T12:00:00Z")}
+        isToday
+        onOpenAskVinaadi={() => {}}
+        onGoToCalendar={onGoToCalendar}
+        focusActivities={["marriage"]}
+        focusMode="MARRIAGE"
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: /better/ }));
+
+    expect(onGoToCalendar).toHaveBeenCalledTimes(1);
+    expect(track).toHaveBeenCalledTimes(1);
+    expect(track).toHaveBeenCalledWith("life_focus_row_tapped", {
+      focus: "MARRIAGE",
+      activity: "marriage",
+      surface: "web",
+      target: "better_date",
+    });
   });
 });

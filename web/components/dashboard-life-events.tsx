@@ -59,7 +59,7 @@ function LifeEventCard({ window: w, lang }: { window: LifeEventWindow; lang: Lan
           lang={lang}
         />
         <span className="life-event-expand-toggle" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" width="12" height="12" style={{ transform: expanded ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 150ms ease" }}><path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" width="12" height="12" style={{ transform: expanded ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 150ms var(--ease-nova)" }}><path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </span>
       </div>
 
@@ -71,7 +71,7 @@ function LifeEventCard({ window: w, lang }: { window: LifeEventWindow; lang: Lan
               <span>{lang === "ta" ? w.dashaSupport.ta : w.dashaSupport.en}</span>
             </p>
             <p className="life-event-support-label">
-              {lang === "ta" ? "கிரகநகர்வு ஆதரவு" : "Transit support"}:&nbsp;
+              {lang === "ta" ? "கோச்சார ஆதரவு" : "Transit support"}:&nbsp;
               <span>{lang === "ta" ? w.gocharSupport.ta : w.gocharSupport.en}</span>
             </p>
           </div>
@@ -176,7 +176,7 @@ export function DashboardLifeEvents({ lang, chartId, yearsAhead = 5 }: Dashboard
 
       <p className="life-events-disclaimer">
         {lang === "ta"
-          ? "இந்த ஜன்னல்கள் தசை, அந்தர தசை மற்றும் கிரகநகர்வு ஆதரவின் அடிப்படையில் கணக்கிடப்படுகின்றன."
+          ? "இந்த ஜன்னல்கள் தசை, அந்தர தசை மற்றும் கோச்சார ஆதரவின் அடிப்படையில் கணக்கிடப்படுகின்றன."
           : "Windows are calculated from dasha, antardasha, and transit support signals."}
       </p>
     </div>

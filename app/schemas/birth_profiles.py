@@ -26,7 +26,10 @@ _VALID_EMPLOYMENT_TYPES: frozenset[str] = frozenset({
 })
 
 
-def _validate_birth_date_bounds(value: date) -> date:
+def validate_birth_date_bounds(value: date) -> date:
+    """Shared birth-date bounds. Also used by `FamilyMemberUpdate`, so a member
+    edited through the family endpoint gets the same rejection as one edited
+    through /birth-profiles rather than a quietly different rule."""
     if value.year < 1900:
         raise ValueError("Birth year must be 1900 or later.")
     if value > date.today():
@@ -83,7 +86,7 @@ class BirthProfileCreate(BaseModel):
     @field_validator("birth_date_local")
     @classmethod
     def validate_birth_date_local(cls, value: date) -> date:
-        return _validate_birth_date_bounds(value)
+        return validate_birth_date_bounds(value)
 
     @field_validator("marital_status", mode="before")
     @classmethod
@@ -170,7 +173,7 @@ class BirthProfileUpdate(BaseModel):
     def validate_birth_date_local(cls, value: date | None) -> date | None:
         if value is None:
             return None
-        return _validate_birth_date_bounds(value)
+        return validate_birth_date_bounds(value)
 
     @field_validator("marital_status", mode="before")
     @classmethod

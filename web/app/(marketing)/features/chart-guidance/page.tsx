@@ -1,9 +1,24 @@
-import Link from "next/link";
+import type { Metadata } from "next";
+import { withTamilTwin } from "@/lib/localized-metadata";
+import { LocalizedLink as Link } from "@/components/localized-link";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { getServerLang } from "@/lib/server-lang";
 import { FEAT_CHART, mt } from "@/lib/marketing-i18n";
 import { SouthIndianChartVisual } from "@/components/marketing-visuals";
+import { pageMetadata } from "@/lib/page-metadata";
+
+const EN_METADATA = pageMetadata({
+  path: "/features/chart-guidance",
+  title: "Jadhagam Guidance — Understand What Your Tamil Birth Chart Says",
+  description:
+    "Your Thirukanitham jadhagam explained in plain language: lagna, planet positions, dasa context, yogas and doshas, with the reasoning shown.",
+  keywords: ["jadhagam explained", "Tamil birth chart reading", "lagna meaning", "yoga and dosham in chart"],
+});
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/features/chart-guidance");
+}
 
 // F7 part two - a Server Component; see lib/server-lang.ts.
 export default async function ChartGuidancePage() {
@@ -44,7 +59,7 @@ export default async function ChartGuidancePage() {
               <p className="cl-hero-figure__label">{lang === "en" ? "Chart Summary · Sample" : "ஜாதக சுருக்கம் · மாதிரி"}</p>
               <SouthIndianChartVisual lang={lang} />
               <div className="cl-hero-figure__art">
-                <svg viewBox="0 0 240 240" role="img" aria-label="South Indian square chart">
+                <svg viewBox="0 0 240 240" role="img" aria-label={lang === "en" ? "South Indian square chart" : "தென்னிந்திய சதுர ஜாதகக் கட்டம்"}>
                   <rect x="1" y="1" width="238" height="238" rx="6" fill="var(--cl-surface-2)" stroke="var(--cl-border-2)" strokeWidth="1.4" />
                   <g className="clf-grid-line">
                     <line x1="60" y1="1" x2="60" y2="239" /><line x1="120" y1="1" x2="120" y2="239" /><line x1="180" y1="1" x2="180" y2="239" />

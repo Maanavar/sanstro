@@ -5,6 +5,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { ChartYogaInsight, ChartDoshamInsight } from "@/lib/types";
+import { yogaActivationState } from "@vinaadi/shared/yogaDisplay";
 import { getDoshamGuideForEngineName, getYogaGuideForEngineName, type BiText } from "@/lib/guide-detail-content";
 import { CollapsibleSection } from "./collapsible-section";
 import {
@@ -16,7 +17,9 @@ import {
   yogaCardTone,
   yogaReadingStatus,
   yogaReadingStatusLabel,
+  yogaFactorHeading,
   doshamSeverityBand,
+  doshamPresenceLabel,
   getDoshamPowerContext,
   getYogaPowerContext,
   resolveYogaKey,
@@ -50,7 +53,7 @@ import {
 function NovaChevron({ open }: { open: boolean }) {
   return (
     <span style={{ color: "var(--color-faint)", flexShrink: 0 }} aria-hidden="true">
-      <svg viewBox="0 0 24 24" fill="none" width="12" height="12" style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 150ms ease" }}>
+      <svg viewBox="0 0 24 24" fill="none" width="12" height="12" style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 150ms var(--ease-nova)" }}>
         <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     </span>
@@ -145,9 +148,10 @@ function NovaYogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
   const status = yogaReadingStatus(yoga);
   const tone = yogaCardTone(yoga.name, status, yoga.strength);
   const color = tone.fg;
+  const activationState = yogaActivationState(yoga);
 
-  const whyText = buildWhyText(yoga.conditionsMet, yoga.cancellationFactors, yoga.isPresent, false, yoga.dashaActivated, lang);
-  const powerText = yoga.isPresent ? getYogaPowerContext(yoga.name, yoga.strength, yoga.dashaActivated, lang) : null;
+  const whyText = buildWhyText(yoga.conditionsMet, yoga.cancellationFactors, yoga.isPresent, false, false, lang);
+  const powerText = yoga.isPresent ? getYogaPowerContext(yoga.name, yoga.strength, activationState, lang) : null;
 
   const cardBg = tone.bg;
   const cardBorder = tone.border;
@@ -246,7 +250,7 @@ function NovaYogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
             {Array.isArray(yoga.cancellationFactors) && yoga.cancellationFactors.length > 0 && (
               <div style={{ marginTop: "10px" }}>
                 <p style={{ margin: "0 0 4px", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                  {lang === "ta" ? "நிவர்த்தி காரணங்கள்" : "Cancellation factors"}
+                  {yogaFactorHeading(yoga.cancellationFactors, lang)}
                 </p>
                 {yoga.cancellationFactors.map((factor) => (
                   <p key={factor} style={{ margin: "3px 0", fontSize: "var(--text-base)", color: "var(--color-muted)" }}>
@@ -390,18 +394,15 @@ function NovaDoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: La
   const color = isActiveAndPresent ? "var(--color-low)" : isCancelledAndPresent ? "var(--color-high)" : "var(--color-faint)";
   const severityBand = doshamSeverityBand(dosham, lang);
 
-  const statusLabel = !dosham.isPresent
-    ? (lang === "ta" ? "இல்லை" : "Absent")
-    : dosham.isCancelled
-    ? (lang === "ta" ? "நிவர்த்தி" : "Mitigated")
-    : (lang === "ta" ? "கவனம்" : "Active");
+  const statusLabel = doshamPresenceLabel(dosham, lang);
 
   const whyText = buildWhyText(dosham.conditionsMet, dosham.cancellationFactors, dosham.isPresent, dosham.isCancelled, dosham.dashaActivated, lang);
   const powerText = getDoshamPowerContext(dosham, lang);
 
   const annotationMarkers = new Set(["female_high_attention_house", "male_high_attention_house", "rahu_ketu_upachaya"]);
   const triggerBullets = dosham.conditionsMet.filter((c) => !annotationMarkers.has(c));
-  const attentionBullets = dosham.conditionsMet.filter((c) => annotationMarkers.has(c));
+  // DD-05: gender markers are never voiced on a consumer card, even from an old payload.
+  const attentionBullets = dosham.conditionsMet.filter((c) => annotationMarkers.has(c) && !c.endsWith("_high_attention_house"));
 
   const cardBg = isActiveAndPresent ? "var(--color-low-bg)" : isCancelledAndPresent ? "var(--color-high-bg)" : "var(--color-surface-soft)";
   const cardBorder = isActiveAndPresent ? "var(--color-low-border)" : isCancelledAndPresent ? "var(--color-high-border)" : "var(--color-border)";

@@ -43,6 +43,13 @@ YOGA_EFFECT: dict[str, tuple[str, str]] = {
         "Linked to advancement, responsibility, and recognition; the pattern typically opens doors "
         "when you step toward responsibility rather than wait to be offered it.",
     ),
+    "YOGAKARAKA_RAJA_YOGA": (
+        "ஒரே கிரகம் கேந்திரத்திற்கும் திரிகோணத்திற்கும் அதிபதியாக இருப்பதால், அந்த கிரகம் சிறப்பான "
+        "சுபபலன்களை வழங்கக்கூடியதாக பாரம்பரிய ஜோதிடத்தில் கருதப்படுகிறது. குறிப்பாக அதன் தசை மற்றும் "
+        "புக்தி காலங்கள் முக்கியமானவை.",
+        "Classically read as effort and fortune running through one planet, since it rules both a "
+        "kendra and a trikona — its own dasha is traditionally the period to watch.",
+    ),
     "DHANA_YOGA": (
         "வருமானமும் சேமிப்பும் திட்டமிட்ட முயற்சியால் வளரும் என்று சுட்டுகிறது; "
         "திடீர் ஆதாயம் அல்ல, தொடர்ச்சியான கட்டமைப்பு.",
@@ -94,6 +101,16 @@ YOGA_EFFECT: dict[str, tuple[str, str]] = {
         "வளமையும் நல்ல பெயரும் சேர்ந்து வரும் அமைப்பு; உறவுகள் வழியாக வாய்ப்புகள் திறக்கும்.",
         "Associated with prosperity paired with good standing — opportunity arriving through people "
         "who think well of you.",
+    ),
+    "LAKSHMI_YOGA_PHALADEEPIKA": (
+        "வளமும் நல்லெண்ணமும் சேரும் அமைப்பின் பலதீபிகை வடிவம்; சுக்கிரனின் ஆதரவு கூடுதலாக உள்ளது.",
+        "The Phaladeepika reading of a prosperity pattern, with Venus adding its own support to "
+        "good fortune.",
+    ),
+    "BHAGYA_SUPPORT": (
+        "பாக்கியத்திற்கு ஆதரவான அமைப்பு; முழு லக்ஷ்மி யோகம் அல்ல, ஆனால் முயற்சிக்குப் பின்புலம் தரும்.",
+        "A supportive placement for fortune — not the full Lakshmi Yoga, but a steady backing for "
+        "effort you put in.",
     ),
     "VASUMATI_YOGA": (
         "சொந்த முயற்சியால் வளம் சேரும் அமைப்பு; பிறரைச் சார்ந்திராத நிதி நிலை.",
@@ -214,6 +231,13 @@ YOGA_EFFECT: dict[str, tuple[str, str]] = {
         "arrive slowly and indirectly rather than not at all.",
     ),
 }
+
+# DD-01/DD-08 split stable engine keys while intentionally retaining the
+# already-reviewed bilingual effect copy for the corresponding family.
+YOGA_EFFECT["GAJA_KESARI_PARASHARA"] = YOGA_EFFECT["GAJA_KESARI_YOGA"]
+YOGA_EFFECT["ADHI_BASE"] = YOGA_EFFECT["ADHI_YOGA"]
+YOGA_EFFECT["ADHI_RAJA_GRADE"] = YOGA_EFFECT["ADHI_YOGA"]
+YOGA_EFFECT["RETROGRADE_DEBILITATED_RAJA_YOGA"] = YOGA_EFFECT["NEECHA_BHANGA_RAJA_YOGA"]
 
 
 def yoga_effect(name: str) -> tuple[str, str]:

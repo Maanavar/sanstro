@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 
+import { captureFirstTouch } from "@/lib/acquisition";
 import { initAnalytics, trackPageview } from "@/lib/analytics";
 
 /**
@@ -18,6 +19,9 @@ export function PostHogProvider() {
   const pathname = usePathname();
 
   useEffect(() => {
+    // First-party attribution runs whether or not PostHog is configured: it is
+    // what the backend's admin acquisition report is built from (GRW-03).
+    captureFirstTouch();
     initAnalytics();
   }, []);
 

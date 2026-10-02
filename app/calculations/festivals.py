@@ -87,7 +87,12 @@ _YEARLY_FESTIVALS: dict[int, list[FestivalEntry]] = {
         ("01-15", "Pongal", "tamilnadu_govt"),
         ("01-15", "Mattu Pongal", "hindu"),
         ("01-16", "Thiruvalluvar Day", "tamilnadu_govt"),
-        ("01-16", "Kaanum Pongal / Uzhavar Thirunal", "hindu"),
+        # 2026-09-15: was "Kaanum Pongal / Uzhavar Thirunal" — Uzhavar
+        # Thirunal already has its own row below on 01-17, so the combined
+        # name here just duplicated it under a different spelling on the
+        # wrong day. Plain "Kaanum Pongal" also matches the canonical name in
+        # app/data/calendar_categories_2026.py for the same date.
+        ("01-16", "Kaanum Pongal", "hindu"),
         ("01-17", "Uzhavar Thirunal", "tamilnadu_govt"),
         ("02-01", "Thai Poosam", "tamilnadu_govt"),
         ("04-14", "Tamil New Year (Puthandu) / Ambedkar Jayanti", "tamilnadu_govt"),

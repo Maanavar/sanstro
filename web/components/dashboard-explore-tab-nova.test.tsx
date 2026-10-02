@@ -9,6 +9,7 @@
  */
 import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type {
   ChartCalculateResponseData,
@@ -40,6 +41,12 @@ vi.mock("@/lib/api", () => ({
     };
     return { success: true, data: card };
   }),
+}));
+
+// AnimatePresence retains the outgoing view; browser coverage proves that
+// crossfade, while RTL keeps its existing synchronous navigation assertions.
+vi.mock("./ui/view-swap", () => ({
+  ViewSwap: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 
 import { DashboardExploreTabNova } from "./dashboard-explore-tab-nova";
@@ -77,7 +84,7 @@ function makeDosham(overrides: Partial<ChartDoshamInsight>): ChartDoshamInsight 
 
 function makeYoga(overrides: Partial<ChartYogaInsight>): ChartYogaInsight {
   return {
-    name: "GAJA_KESARI_YOGA",
+    name: "GAJA_KESARI_PARASHARA",
     isPresent: true,
     strength: "STRONG",
     conditionsMet: [],
@@ -192,7 +199,9 @@ describe("DashboardExploreTabNova — Dosham list-first navigation", () => {
     expect(screen.getByText("All doshams")).toBeInTheDocument();
     expect(screen.getByText("Sevvai Dosham")).toBeInTheDocument();
     expect(screen.getByText("Rahu-Ketu Dosham")).toBeInTheDocument();
-    expect(screen.getByText("Active")).toBeInTheDocument();
+    // Presence word, not "Active" — that word is reserved for dasha timing.
+    expect(screen.getByText("Present")).toBeInTheDocument();
+    expect(screen.queryByText("Active")).not.toBeInTheDocument();
     expect(screen.getByText("Absent")).toBeInTheDocument();
 
     fireEvent.click(screen.getByText("Rahu-Ketu Dosham"));
@@ -208,7 +217,7 @@ describe("DashboardExploreTabNova — Dosham list-first navigation", () => {
 describe("DashboardExploreTabNova — Yogam list-first navigation", () => {
   function propsWithYogas() {
     const yogas = [
-      makeYoga({ name: "GAJA_KESARI_YOGA", isPresent: true, strength: "STRONG" }),
+      makeYoga({ name: "GAJA_KESARI_PARASHARA", isPresent: true, strength: "STRONG" }),
       makeYoga({ name: "PARIVARTANA_YOGA", isPresent: false, strength: "WEAK" }),
     ];
     return {

@@ -1,9 +1,11 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
+import { JsonLd, articleTa, faqPageLd } from "@/lib/json-ld";
 import type { Metadata } from "next";
 import { PARIHARAM_KADAN_FAQ } from "@/lib/marketing-i18n";
 import { KadanPariharamContent } from "./PageContent";
 
-export const metadata: Metadata = {
-  title: "Pariharam for Debt & Financial Strain (Kadan Pariharam) | Vinaadi",
+const EN_METADATA: Metadata = {
+  title: "Pariharam for Debt & Financial Strain (Kadan Pariharam)",
   description:
     "Why the chart shows persistent debt — 2nd, 6th, 11th house pressure — and the traditional pariharam: Mahalakshmi Friday worship, Kubera mantra, Kanjanur and Alangudi temples.",
   keywords: [
@@ -33,15 +35,12 @@ export const metadata: Metadata = {
   },
 };
 
-const FAQ_JSONLD = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: PARIHARAM_KADAN_FAQ.map((f) => ({
-    "@type": "Question",
-    name: f.q.en,
-    acceptedAnswer: { "@type": "Answer", text: f.a.en },
-  })),
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/pariharam/kadan-pariharam");
+}
+
+const FAQ_JSONLD = faqPageLd(PARIHARAM_KADAN_FAQ, "en");
+const FAQ_JSONLD_TA = faqPageLd(PARIHARAM_KADAN_FAQ, "ta");
 
 const ARTICLE_JSONLD = {
   "@context": "https://schema.org",
@@ -56,8 +55,8 @@ const ARTICLE_JSONLD = {
 export default function KadanPariharamPage() {
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ARTICLE_JSONLD) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSONLD) }} />
+      <JsonLd en={ARTICLE_JSONLD} ta={articleTa(ARTICLE_JSONLD)} />
+      <JsonLd en={FAQ_JSONLD} ta={FAQ_JSONLD_TA} />
       <KadanPariharamContent />
     </>
   );

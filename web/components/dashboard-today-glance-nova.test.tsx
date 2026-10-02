@@ -48,7 +48,7 @@ describe("DashboardTodayLifeAreasDasaRowNova — dasha sentiment doctrine", () =
         functionalNature: { SATURN: "YOGAKARAKA" },
       }),
     );
-    expect(screen.getByText("supportive period")).toBeInTheDocument();
+    expect(screen.getByText("Supportive period")).toBeInTheDocument();
   });
 
   it("shows testing for a Mesha-lagna native in Venus antardasha (Venus is Maraka for Mesha)", () => {
@@ -59,7 +59,7 @@ describe("DashboardTodayLifeAreasDasaRowNova — dasha sentiment doctrine", () =
         functionalNature: { VENUS: "MARAKA" },
       }),
     );
-    expect(screen.getByText("testing period · go gently")).toBeInTheDocument();
+    expect(screen.getByText("Testing period · go gently")).toBeInTheDocument();
   });
 
   it("falls back to the natural benefic split when functionalNature is missing (Jupiter -> supportive)", () => {
@@ -70,7 +70,7 @@ describe("DashboardTodayLifeAreasDasaRowNova — dasha sentiment doctrine", () =
         functionalNature: undefined,
       }),
     );
-    expect(screen.getByText("supportive period")).toBeInTheDocument();
+    expect(screen.getByText("Supportive period")).toBeInTheDocument();
   });
 
   it("shows 'grows with effort' (not 'testing period') for Upachaya — DASH-10.2 ruling", () => {
@@ -81,8 +81,8 @@ describe("DashboardTodayLifeAreasDasaRowNova — dasha sentiment doctrine", () =
         functionalNature: { MARS: "UPACHAYA" },
       }),
     );
-    expect(screen.getByText("grows with effort")).toBeInTheDocument();
-    expect(screen.queryByText("testing period · go gently")).not.toBeInTheDocument();
+    expect(screen.getByText("Grows with effort")).toBeInTheDocument();
+    expect(screen.queryByText("Testing period · go gently")).not.toBeInTheDocument();
   });
 
   it("still shows testing for Dusthana (Upachaya split-out doesn't affect it)", () => {
@@ -93,7 +93,7 @@ describe("DashboardTodayLifeAreasDasaRowNova — dasha sentiment doctrine", () =
         functionalNature: { MARS: "DUSTHANA" },
       }),
     );
-    expect(screen.getByText("testing period · go gently")).toBeInTheDocument();
+    expect(screen.getByText("Testing period · go gently")).toBeInTheDocument();
   });
 });
 
@@ -511,5 +511,60 @@ describe("Family Today card — member Chandrashtama", () => {
     ], "ta");
     expect(screen.getAllByText(/சந்திராஷ்டமம்/).length).toBeGreaterThan(0);
     expect(screen.queryByText(/Chandrashtama/)).not.toBeInTheDocument();
+  });
+});
+
+describe("glance cards — loading is not empty (DXA-03)", () => {
+  function renderLaDasa(pending: boolean) {
+    return render(
+      <DashboardTodayLifeAreasDasaRowNova
+        lang="en"
+        personalChartSummary={null}
+        dasha={null}
+        dashaAntar={[]}
+        selectedDate="2026-01-15"
+        lifeAreas={null}
+        pending={pending}
+      />,
+    );
+  }
+
+  function renderFamilyRow(familyPending: boolean) {
+    return render(
+      <DashboardTodayFamilyRemedyRowNova
+        lang="en"
+        familyAggregate={null}
+        familyPending={familyPending}
+        remedy={null}
+        savingReminder={false}
+        reminderMessage={null}
+        onSaveReminder={vi.fn()}
+      />,
+    );
+  }
+
+  it("shows placeholders, not the empty copy, while personal data is pending", () => {
+    renderLaDasa(true);
+    expect(screen.queryByText("Daily guidance loads after a profile is calculated.")).not.toBeInTheDocument();
+    expect(screen.queryByText("Create a birth profile to load chart data.")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("status")).toHaveLength(2);
+  });
+
+  it("shows the empty copy once the lookup has finished with nothing", () => {
+    renderLaDasa(false);
+    expect(screen.getByText("Daily guidance loads after a profile is calculated.")).toBeInTheDocument();
+    expect(screen.getByText("Create a birth profile to load chart data.")).toBeInTheDocument();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("does not claim 'No family members yet' while the family is loading", () => {
+    renderFamilyRow(true);
+    expect(screen.queryByText("No family members yet")).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveAttribute("aria-busy", "true");
+  });
+
+  it("says 'No family members yet' once the family has loaded empty", () => {
+    renderFamilyRow(false);
+    expect(screen.getByText("No family members yet")).toBeInTheDocument();
   });
 });

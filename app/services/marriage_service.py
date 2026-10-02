@@ -724,9 +724,9 @@ def assess_marriage_prediction(
     if payload.transit_jupiter_rasi == seventh_house_rasi or seventh_house_rasi in jupiter_aspects or payload.transit_venus_rasi == seventh_house_rasi:
         transit_support = "STRONG"
         score += 8
-        supports.append(BiText("கோசார ஆதரவு உள்ளது.", "Transit support is present."))
+        supports.append(BiText("கோச்சார ஆதரவு உள்ளது.", "Transit support is present."))
     else:
-        challenges.append(BiText("கோசார ஆதரவு குறைவு.", "Transit support is limited."))
+        challenges.append(BiText("கோச்சார ஆதரவு குறைவு.", "Transit support is limited."))
 
     if married_harmony_mode:
         # Age range is irrelevant for married users — skip the timing-oriented age check.
@@ -772,7 +772,7 @@ def assess_marriage_prediction(
             support_phrase = " மற்றும் ".join(top_supports) if top_supports else "பொதுவாக வலுவான அமைப்பு"
             main = (
                 f"உங்கள் திருமண பந்தம் இந்த கட்டத்தில் வலுவாக உள்ளது. {support_phrase}. "
-                "தசை மற்றும் கோசாரம் உறவு ஒற்றுமைக்கு சாதகமான சூழலை உருவாக்குகின்றன.",
+                "தசை மற்றும் கோச்சாரம் உறவு ஒற்றுமைக்கு சாதகமான சூழலை உருவாக்குகின்றன.",
                 f"Your marital bond appears strong in this phase. {'; '.join(top_supports_en) if top_supports_en else 'Overall indicators are favourable'}. "
                 "Dasha and transit support a harmonious period in your relationship.",
             )
@@ -799,7 +799,7 @@ def assess_marriage_prediction(
         support_phrase = "குறிப்பாக " + " மற்றும் ".join(top_supports) if top_supports else "பொதுவாக நல்ல அமைப்பு உள்ளது"
         main = (
             f"திருமண விஷயங்களில் ஆதரவான நேரம் தெரிகிறது. {support_phrase}. "
-            "தசை மற்றும் கோசாரம் இணைந்து இந்த சாதகமான கட்டத்தை உருவாக்குகின்றன.",
+            "தசை மற்றும் கோச்சாரம் இணைந்து இந்த சாதகமான கட்டத்தை உருவாக்குகின்றன.",
             f"The current phase appears supportive for marriage matters. {'; '.join(top_supports_en) if top_supports_en else 'General indicators are favourable'}. "
             "Dasha and transit together create this favourable window.",
         )
