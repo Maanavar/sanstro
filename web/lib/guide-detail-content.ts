@@ -613,7 +613,7 @@ DOSHAM_DETAILS["naga-sarpa-dosham"].sections = [
     body: [
       b(
         "Tamil astrologers do not call Naga dosham from Rahu and Ketu alone. They examine the 5th house, its lord, Jupiter, putra-karaka indicators, and whether the nodal axis is truly afflicting that line from Lagna and Moon.",
-        "தமிழ் ஜோதிடர்கள் ராகு-கேதுவை மட்டும் வைத்து நாக தோஷம் என்று சொல்லமாட்டார்கள். 5-ஆம் பாவம், அதன் அதிபதி, குரு, புத்திர காரக குறிகள், லக்னம் மற்றும் சந்திரத்திலிருந்து நோடு அச்சு அந்த வரிசையை உண்மையில் அழுத்துகிறதா என்று பார்க்கிறார்கள்."
+        "தமிழ் ஜோதிடர்கள் ராகு-கேதுவை மட்டும் வைத்து நாக தோஷம் என்று சொல்லமாட்டார்கள். 5-ஆம் பாவம், அதன் அதிபதி, குரு, புத்திர காரக குறிகள், லக்னம் மற்றும் சந்திரனிலிருந்து ராகு-கேது அச்சு அந்த வரிசையை உண்மையில் அழுத்துகிறதா என்று பார்க்கிறார்கள்."
       ),
       b(
         "The running dasa matters just as much. Naga dosham reads stronger when Rahu-Ketu periods activate a weak 5th house; it reads milder when Guru is strong and benefics protect childbirth and family continuity.",
@@ -1430,6 +1430,8 @@ export const YOGAM_DETAILS: Record<string, GuideDetail> = {
  */
 export const YOGA_ENGINE_NAME_TO_GUIDE_SLUG: Record<string, string> = {
   GAJA_KESARI_YOGA: "gaja-kesari-yogam",
+  // DD-01 strict form: the full Gaja Kesari, so it keeps the same guide page.
+  GAJA_KESARI_PARASHARA: "gaja-kesari-yogam",
   DHANA_YOGA: "dhana-yogam",
   BUDHA_ADITYA_YOGA: "budha-aditya-yogam",
   NEECHA_BHANGA_RAJA_YOGA: "neecha-bhanga-raja-yogam",

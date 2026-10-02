@@ -125,7 +125,7 @@ describe.each<Lang>(["en", "ta"])("Charts card and Life Areas agree (%s)", (lang
 
   it("lists under the heading only what the running dasha lights", () => {
     const { container } = renderSummary(lang);
-    const quietHeading = lang === "ta" ? "ஜாதகத்தில் உள்ளது, ஆனால் இந்த தசையில் செயல்படவில்லை" : "In the chart, quiet in this dasha";
+    const quietHeading = lang === "ta" ? "ஜாதகத்தில் உண்டு; இந்தக் காலத்தில் முதன்மைத் தாக்கம் இல்லை" : "Present in birth chart — not a dominant influence in the current period";
     expect(screen.getByText(quietHeading)).toBeInTheDocument();
     const [runningPart, quietPart] = (container.textContent ?? "").split(quietHeading);
     // Lit by the running dasha: Rahu-Ketu and Raja Yoga. Not lit: Marana

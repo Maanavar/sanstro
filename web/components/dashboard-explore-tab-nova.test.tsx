@@ -84,7 +84,7 @@ function makeDosham(overrides: Partial<ChartDoshamInsight>): ChartDoshamInsight 
 
 function makeYoga(overrides: Partial<ChartYogaInsight>): ChartYogaInsight {
   return {
-    name: "GAJA_KESARI_YOGA",
+    name: "GAJA_KESARI_PARASHARA",
     isPresent: true,
     strength: "STRONG",
     conditionsMet: [],
@@ -217,7 +217,7 @@ describe("DashboardExploreTabNova — Dosham list-first navigation", () => {
 describe("DashboardExploreTabNova — Yogam list-first navigation", () => {
   function propsWithYogas() {
     const yogas = [
-      makeYoga({ name: "GAJA_KESARI_YOGA", isPresent: true, strength: "STRONG" }),
+      makeYoga({ name: "GAJA_KESARI_PARASHARA", isPresent: true, strength: "STRONG" }),
       makeYoga({ name: "PARIVARTANA_YOGA", isPresent: false, strength: "WEAK" }),
     ];
     return {

@@ -16,7 +16,7 @@ import type { ChartYogaInsight } from "@/lib/types";
 
 function makeGajaKesari(overrides: Partial<ChartYogaInsight> = {}): ChartYogaInsight {
   return {
-    name: "GAJA_KESARI_YOGA",
+    name: "GAJA_KESARI_PARASHARA",
     isPresent: true,
     strength: "STRONG",
     conditionsMet: ["jupiter_in_kendra_from_moon"],
@@ -30,11 +30,17 @@ function makeGajaKesari(overrides: Partial<ChartYogaInsight> = {}): ChartYogaIns
   };
 }
 
-describe("YogaDoshamPanel — Gaja Kesari outcomes/how-to/remedies cards", () => {
+// DD-01 (v1.3): GAJA_KESARI_PARASHARA is the full yoga; GAJA_KESARI_YOGA is
+// the base pattern. Both must carry the content cards — the strict form once
+// rendered bare because every table was keyed on the base name only.
+describe.each([
+  { name: "GAJA_KESARI_PARASHARA", en: "Gaja Kesari Yoga", ta: "கஜகேசரி யோகம்" },
+  { name: "GAJA_KESARI_YOGA", en: "Gaja Kesari pattern", ta: "கஜகேசரி அமைப்பு" },
+])("YogaDoshamPanel — $name outcomes/how-to/remedies cards", ({ name, en, ta }) => {
   it("renders real text for What This Brings, How to Strengthen, and Remedies once expanded", () => {
-    render(<YogaDoshamPanel lang="en" yogas={[makeGajaKesari()]} doshams={[]} />);
+    render(<YogaDoshamPanel lang="en" yogas={[makeGajaKesari({ name })]} doshams={[]} />);
 
-    fireEvent.click(screen.getByText("Gaja Kesari Yoga"));
+    fireEvent.click(screen.getByText(en));
 
     expect(screen.getByText("What This Brings")).toBeInTheDocument();
     expect(
@@ -48,10 +54,10 @@ describe("YogaDoshamPanel — Gaja Kesari outcomes/how-to/remedies cards", () =>
   });
 
   it("renders real Tamil text for the same cards when lang=ta", () => {
-    render(<YogaDoshamPanel lang="ta" yogas={[makeGajaKesari()]} doshams={[]} />);
+    render(<YogaDoshamPanel lang="ta" yogas={[makeGajaKesari({ name })]} doshams={[]} />);
 
     // Tamil-script yoga names in Tamil mode (native-Tamil review, 2026-09-23).
-    fireEvent.click(screen.getByText("கஜகேசரி யோகம்"));
+    fireEvent.click(screen.getByText(ta));
 
     expect(screen.getByText(/இந்த யோகம் உள்ளவர்களுக்கு தொழில்முறை மரியாதை/)).toBeInTheDocument();
     expect(screen.getByText(/வியாழக்கிழமை குரு வழிபாடு/)).toBeInTheDocument();

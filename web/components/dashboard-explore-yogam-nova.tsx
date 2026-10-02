@@ -24,6 +24,7 @@ import {
   yogaReadingStatusLabel,
   yogaFactorHeading,
 } from "./dashboard-yoga-dosham-panel";
+import { yogaActivationLabel, yogaActivationState } from "@vinaadi/shared/yogaDisplay";
 import { NovaAskEntryChip, NovaAttributeBand, NovaDetailBreadcrumb, NovaDetailHero, novaDetailCardStyle } from "./dashboard-explore-detail-nova";
 import { Card, Kicker } from "./ui";
 
@@ -262,8 +263,9 @@ export function DashboardExploreYogamNova({
     { ta: yoga.descriptionTa, en: yoga.descriptionEn },
     { ta: yoga.effectTa, en: yoga.effectEn },
   );
-  const whyText = buildWhyText(yoga.conditionsMet, yoga.cancellationFactors, yoga.isPresent, false, yoga.dashaActivated, lang);
-  const powerText = operating ? getYogaPowerContext(yoga.name, yoga.strength, yoga.dashaActivated, lang) : null;
+  const activationState = yogaActivationState(yoga);
+  const whyText = buildWhyText(yoga.conditionsMet, yoga.cancellationFactors, yoga.isPresent, false, false, lang);
+  const powerText = operating ? getYogaPowerContext(yoga.name, yoga.strength, activationState, lang) : null;
 
   const ownStatusLabel = yogaStatusLabel(yoga, lang);
   const ownStatusColor = yogaStatusColor(yoga);
@@ -314,8 +316,9 @@ export function DashboardExploreYogamNova({
           { label: lang === "ta" ? "பலம்" : "Strength", value: strengthBand(yoga.strength, yoga.isPresent, lang) },
           {
             label: lang === "ta" ? "தசை" : "Dasha",
-            value: yoga.dashaActivated
-              ? (lang === "ta" ? "இப்போது செயல்பாட்டில்" : "Active now")
+            // DD-15: one of the four shared states, never "dormant".
+            value: yoga.isPresent
+              ? yogaActivationLabel(yogaActivationState(yoga), lang)
               : (lang === "ta" ? "இப்போது செயல்படவில்லை" : "Not active now"),
           },
           {
@@ -369,9 +372,10 @@ export function DashboardExploreYogamNova({
                 <span style={{ fontSize: "var(--text-xs)", color: "var(--color-text)", background: "color-mix(in srgb, var(--color-text-strong) 5%, transparent)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)" }}>
                   {lang === "ta" ? "பலம்" : "Strength"} · {strengthBand(yoga.strength, true, lang)}
                 </span>
-                {yoga.dashaActivated && (
+                {yogaActivationState(yoga) !== "NOT_DOMINANT" && (
                   <span style={{ fontSize: "var(--text-xs)", color: "var(--color-text)", background: "color-mix(in srgb, var(--color-text-strong) 5%, transparent)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)" }}>
-                    {lang === "ta" ? "இப்போது செயலில் உள்ளது (உங்கள் தற்போதைய கிரக காலம் இதைத் தூண்டுகிறது)" : "Active right now (your current planetary period is triggering it)"}
+                    {yogaActivationLabel(yogaActivationState(yoga), lang)}
+                    {lang === "ta" ? " (உங்கள் தற்போதைய கிரக காலம் இதைத் தூண்டுகிறது)" : " (your current planetary period is triggering it)"}
                   </span>
                 )}
                 <button

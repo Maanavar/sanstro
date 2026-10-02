@@ -81,7 +81,8 @@ describe("NovaYogaDoshamPanel — nested Full dosham guide", () => {
 
 describe("NovaYogaDoshamPanel — nested Full yogam guide", () => {
   it("reveals real guide text for Gaja Kesari Yogam once the row and the nested guide are both expanded", () => {
-    const gajaKesari = makeYoga({ name: "GAJA_KESARI_YOGA" });
+    // DD-01: the strict key is the full yoga and must keep the guide link.
+    const gajaKesari = makeYoga({ name: "GAJA_KESARI_PARASHARA" });
     render(<NovaYogaDoshamPanel lang="en" yogas={[gajaKesari]} doshams={[]} />);
 
     // Row starts collapsed — nested guide toggle shouldn't exist yet.
@@ -104,11 +105,13 @@ describe("NovaYogaDoshamPanel — nested Full yogam guide", () => {
   });
 
   it("renders the yogam guide in Tamil when lang=ta", () => {
-    const gajaKesari = makeYoga({ name: "GAJA_KESARI_YOGA" });
+    const gajaKesari = makeYoga({ name: "GAJA_KESARI_PARASHARA" });
     render(<NovaYogaDoshamPanel lang="ta" yogas={[gajaKesari]} doshams={[]} />);
 
     fireEvent.click(screen.getByText("கஜகேசரி யோகம்"));
     fireEvent.click(screen.getByText("முழுமையான யோக வழிகாட்டி"));
-    expect(screen.getByText(/சந்திரனிலிருந்து கேந்திரத்தில்/)).toBeInTheDocument();
+    // The guide's own sentence — the card's formation line now also says
+    // "சந்திரனிலிருந்து கேந்திரத்தில்", so match the guide-only phrase.
+    expect(screen.getByText(/கஜகேசரி யோகம் உருவாகிறது/)).toBeInTheDocument();
   });
 });

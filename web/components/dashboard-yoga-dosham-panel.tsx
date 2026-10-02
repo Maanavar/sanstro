@@ -17,8 +17,10 @@ import {
   doshamStanding,
   yogaStanding,
   isRunningInDasha,
+  yogaActivationLabel,
+  yogaActivationState,
 } from "@vinaadi/shared/yogaDisplay";
-import type { YogaReadingStatus } from "@vinaadi/shared/yogaDisplay";
+import type { YogaActivationState, YogaReadingStatus } from "@vinaadi/shared/yogaDisplay";
 import { Card } from "./ui/card";
 
 // ── Display name maps ────────────────────────────────────────────────────────
@@ -509,9 +511,15 @@ export function markerLabel(marker: string, lang: Lang): string {
 // ── What is this yoga/dosham — plain explanation ─────────────────────────────
 
 const YOGA_WHAT: Record<string, { ta: string; en: string }> = {
+  // DD-01: the strict form is the full yoga; the base key is now the pattern
+  // shown only when the strict form does not qualify.
+  GAJA_KESARI_PARASHARA: {
+    ta: "குரு லக்னம் அல்லது சந்திரனிலிருந்து கேந்திரத்தில் (1/4/7/10) இருந்து, சுபகிரகத்துடன் சேர்ந்தோ அதன் பார்வை பெற்றோ, நீசம், அஸ்தங்கம், பகை ராசி இன்றி இருக்கும்போது உருவாகும் முழு கஜகேசரி யோகம். மனத் தெளிவு, பொது அங்கீகாரம், நல்ல நினைவாற்றல் என்பவற்றுடன் தொடர்புடையது.",
+    en: "The full Gaja Kesari Yoga: Jupiter in a kendra (1/4/7/10) from the Lagna or Moon, joined or aspected by a benefic, and free of debility, combustion and an enemy sign. Traditionally linked to mental clarity, public respect, and strong memory.",
+  },
   GAJA_KESARI_YOGA: {
-    ta: "குரு (Jupiter) சந்திரனிலிருந்து கேந்திர வீட்டில் (1/4/7/10) இருக்கும்போது உருவாகும் யோகம். மனத் தெளிவு, பொது அங்கீகாரம், நல்ல நினைவாற்றல் என்பவற்றுடன் தொடர்புடையது.",
-    en: "Formed when Jupiter is in a kendra (1/4/7/10) from your Moon. Traditionally linked to mental clarity, public respect, and strong memory.",
+    ta: "குரு சந்திரனிலிருந்து கேந்திரத்தில் (1/4/7/10) இருக்கும் கஜகேசரி அமைப்பு. முழு யோகத்தின் எல்லா நிபந்தனைகளும் (சுப ஆதரவு; நீசம், அஸ்தங்கம், பகை ராசி இன்மை) பூர்த்தியாகவில்லை; பலன் குரு, சந்திரன் இருவரின் பலத்தைப் பொறுத்தது.",
+    en: "The Gaja Kesari pattern: Jupiter in a kendra (1/4/7/10) from your Moon, without every condition of the full yoga (benefic support; free of debility, combustion and an enemy sign). Its results follow Jupiter's and the Moon's strength.",
   },
   RAJA_YOGA: {
     ta: "ஒரு திரிகோண அதிபதியும் ஒரு கேந்திர அதிபதியும் சேரும்போது அல்லது ஒருவரை ஒருவர் பார்க்கும்போது உருவாகும் யோகம். முன்னேற்றம், பொறுப்பு, மற்றும் சாதனை ஆகியவற்றுடன் தொடர்புடையது.",
@@ -607,9 +615,14 @@ const YOGA_WHAT_EXTRA: Record<string, { ta: string; en: string }> = {
     ta: "லக்னம்/சந்திரனிலிருந்து 10-ம் வீட்டில் சுபக்கிரகம் இருக்கும்போது உருவாகும் யோகம். தூய புகழ், நல்ல பெயர், மரியாதைக்குரிய தொழில் என்பவற்றுடன் தொடர்புடையது.",
     en: "Formed when a benefic occupies the 10th from the Lagna or Moon. Linked to a clean reputation, good name, and respected work.",
   },
-  ADHI_YOGA: {
-    ta: "சந்திரனிலிருந்து 6, 7, 8-ம் வீடுகளில் சுபக்கிரகங்கள் இருக்கும்போது உருவாகும் யோகம். தலைமை, செல்வாக்கு, நிலையான முன்னேற்றம் ஆகியவற்றுடன் தொடர்புடையது.",
-    en: "Formed when benefics occupy the 6th, 7th, and 8th from the Moon. Linked to leadership, influence, and steady advancement.",
+  // DD-08: the engine emits ADHI_BASE / ADHI_RAJA_GRADE, never ADHI_YOGA.
+  ADHI_BASE: {
+    ta: "சந்திரனிலிருந்து 6, 7, 8-ம் வீடுகளில் ஒன்றிலாவது சுபக்கிரகம் (புதன், குரு, சுக்கிரன்) இருக்கும் அதி யோக அமைப்பு. எத்தனை சுபக்கிரகங்கள், எவ்வளவு பலம் என்பதைப் பொறுத்து தலைமை, செல்வாக்கு, நிலையான முன்னேற்றம் ஆகியவற்றுடன் தொடர்புடையது.",
+    en: "The Adhi pattern: at least one benefic (Mercury, Jupiter or Venus) in the 6th, 7th or 8th from the Moon. Linked to leadership, influence and steady advancement, in proportion to how many benefics take part and how strong they are.",
+  },
+  ADHI_RAJA_GRADE: {
+    ta: "சந்திரனிலிருந்து 6, 7, 8-ம் வீடுகளில் உள்ள சுபக்கிரகங்கள் அஸ்தங்கம், பாவக்கிரகக் கலப்பு இன்றி உள்ளன — முழு அதி யோகத்திற்கான பரிசீலனையில் உள்ள அமைப்பு. தலைமை, செல்வாக்கு, நிலையான முன்னேற்றம் ஆகியவற்றுடன் தொடர்புடையது.",
+    en: "A candidate for the full Adhi Yoga: the benefics in the 6th, 7th or 8th from the Moon are free of combustion and malefic company. Linked to leadership, influence and steady advancement.",
   },
   // Redefined 2026-09-11 to the parivartana form — see YOG-DR-01. The card
   // described the pre-proxy-split merged condition until then, and the detector
@@ -622,9 +635,10 @@ const YOGA_WHAT_EXTRA: Record<string, { ta: string; en: string }> = {
     ta: "11-ம் அதிபதி பலவீனமாகவும் பாதக கிரகத்துடன் சேர்ந்தும் இருக்கும்போது வினாடி பயன்படுத்தும் அளவுகோல் — பாரம்பரிய தரித்ர யோகம் அல்ல. வருமான ஆதாரங்களைப் பலப்படுத்துவதில் கவனம் தேவை.",
     en: "A Vinaadi measure, not a classical daridra yoga: the 11th lord is weak and shares its sign with a malefic. It points to the same need to shore up income sources, at a lighter grade.",
   },
+  // DD-02: dignity is mandatory and the 9th lord must be in a kendra.
   LAKSHMI_YOGA: {
-    ta: "9-ம் அதிபதியும் லக்னாதிபதியும் வலுவாக இருக்கும்போது உருவாகும் சுப யோகம். அதிர்ஷ்டம், செழிப்பு, நன்மதிப்பு ஆகியவற்றுடன் தொடர்புடையது.",
-    en: "An auspicious yoga formed when the 9th lord and the lagna lord are both strong. Linked to fortune, prosperity, and goodwill.",
+    ta: "9-ம் அதிபதி கேந்திரத்தில் ஆட்சி, மூலத்திரிகோணம் அல்லது உச்சம் பெற்று, லக்னாதிபதியும் வலுவாக இருக்கும்போது உருவாகும் சுப யோகம். அதிர்ஷ்டம், செழிப்பு, நன்மதிப்பு ஆகியவற்றுடன் தொடர்புடையது.",
+    en: "An auspicious yoga formed when the 9th lord stands in a kendra in its own, moolatrikona or exaltation sign, and the lagna lord is strong. Linked to fortune, prosperity, and goodwill.",
   },
   VASUMATI_YOGA: {
     ta: "சந்திரனிலிருந்து உபசய வீடுகளில் (3/6/10/11) சுபக்கிரகங்கள் இருக்கும்போது உருவாகும் யோகம். சுயமாக சம்பாதித்து செல்வம் சேர்க்கும் திறனுடன் தொடர்புடையது.",
@@ -698,10 +712,6 @@ export function buildWhyText(
     ...cancellationFactors.filter((c) => !isWeakeningMarker(c)),
     ...conditionsMet.filter((c) => PROTECTIVE_NOTE_RE.test(c)),
   ];
-  const attentionMarkers = conditionsMet.filter((c) =>
-    ["female_high_attention_house", "male_high_attention_house"].includes(c),
-  );
-
   const parts: string[] = [];
 
   if (triggerMarkers.length > 0) {
@@ -740,13 +750,10 @@ export function buildWhyText(
     );
   }
 
-  if (attentionMarkers.length > 0) {
-    parts.push(
-      lang === "ta"
-        ? "உங்கள் பாலின அடிப்படையில் இந்த வீட்டு நிலை கூடுதல் கவனம் பெறுகிறது."
-        : "Based on your gender, this house placement carries extra traditional attention.",
-    );
-  }
+  // DD-05 (DOCTRINE_DECISIONS v1.3): no gender-specific sentence here. The
+  // backend no longer sends gender markers to consumer surfaces; any that
+  // arrive (an old cached chart) are filtered out of the trigger list above
+  // and are not voiced.
 
   if (dashaActivated) {
     parts.push(
@@ -978,6 +985,14 @@ const YOGA_POWER_CONTEXT: Record<string, { strong: { ta: string; en: string }; p
   },
 };
 
+// DD-01: the strict form is the full Gaja Kesari Yoga. It shares the base
+// key's outcomes, remedies, enhancement advice and power context; without this
+// the full yoga rendered bare while the weaker pattern carried all the content.
+for (const table of [YOGA_OUTCOMES, YOGA_REMEDIES, YOGA_HOW_TO]) {
+  table.GAJA_KESARI_PARASHARA = table.GAJA_KESARI_YOGA;
+}
+YOGA_POWER_CONTEXT.GAJA_KESARI_PARASHARA = YOGA_POWER_CONTEXT.GAJA_KESARI_YOGA;
+
 const DOSHAM_POWER_CONTEXT: Record<string, {
   active: { ta: string; en: string };
   cancelled: { ta: string; en: string };
@@ -1094,7 +1109,7 @@ const ADVERSE_POWER_CONTEXT: Record<string, { strong: { ta: string; en: string }
   },
 };
 
-export function getYogaPowerContext(name: string, strength: string, dashaActivated: boolean, lang: Lang): string {
+export function getYogaPowerContext(name: string, strength: string, activationState: YogaActivationState, lang: Lang): string {
   const entry =
     resolveYogaKey(YOGA_POWER_CONTEXT, name) ?? resolveYogaKey(ADVERSE_POWER_CONTEXT, name);
   if (!entry) {
@@ -1109,6 +1124,8 @@ export function getYogaPowerContext(name: string, strength: string, dashaActivat
   }
   const band = strength === "STRONG" ? "strong" : strength === "PARTIAL" ? "partial" : "weak";
   const base = lang === "ta" ? entry[band].ta : entry[band].en;
+  const activationLabel = yogaActivationLabel(activationState, lang);
+  const dashaActivated = activationState === "STRONGLY_ACTIVATED" || activationState === "MODERATELY_ACTIVATED";
   if (!dashaActivated) {
     // "may express more strongly in the next supporting Dasha" is the wrong
     // register for a demanding yoga — nobody is waiting for their Daridra to be
@@ -1122,9 +1139,9 @@ export function getYogaPowerContext(name: string, strength: string, dashaActivat
       : (lang === "ta"
         ? " தற்போதைய தசை இந்த யோகத்தை நேரடியாக செயல்படுத்தவில்லை — அடுத்த ஆதரவு தசையில் வலுவாக வெளிப்படலாம்."
         : " Your current Dasha does not directly activate this yoga — it may express more strongly in the next supporting Dasha.");
-    return base + suffix;
+    return `${base + suffix} ${activationLabel}.`;
   }
-  return base;
+  return `${base} ${activationLabel}.`;
 }
 
 export function getDoshamPowerContext(dosham: ChartDoshamInsight, lang: Lang): string {
@@ -1251,18 +1268,19 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
   const [open, setOpen] = useState(false);
   const status = yogaReadingStatus(yoga);
   const tone = yogaCardTone(yoga.name, status, yoga.strength);
+  const activationState = yogaActivationState(yoga);
 
   const whyText = buildWhyText(
     yoga.conditionsMet,
     yoga.cancellationFactors,
     yoga.isPresent,
     false,
-    yoga.dashaActivated,
+    false,
     lang,
   );
 
   const powerText = yoga.isPresent
-    ? getYogaPowerContext(yoga.name, yoga.strength, yoga.dashaActivated, lang)
+    ? getYogaPowerContext(yoga.name, yoga.strength, activationState, lang)
     : null;
 
   const color = tone.fg;
@@ -1280,9 +1298,9 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
           <span style={{ fontSize: "var(--text-base)", fontWeight: 600, color: yoga.isPresent ? "var(--color-text-strong)" : "var(--color-faint)" }}>
             {displayName(yoga.name, lang)}
           </span>
-          {yoga.isPresent && yoga.dashaActivated && (
+          {yoga.isPresent && (
             <span style={{ fontSize: "var(--text-2xs)", fontWeight: 700, color: "var(--color-mid-text)", border: "1px solid var(--color-mid-border)", borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2)" }}>
-              {t("yoga_dasha_activated", lang)}
+              {yogaActivationLabel(activationState, lang)}
             </span>
           )}
         </div>
@@ -1503,7 +1521,8 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
   // Separate trigger and protective bullets cleanly
   const annotationMarkers = new Set(["female_high_attention_house", "male_high_attention_house", "rahu_ketu_upachaya"]);
   const triggerBullets = dosham.conditionsMet.filter((c) => !annotationMarkers.has(c));
-  const attentionBullets = dosham.conditionsMet.filter((c) => annotationMarkers.has(c));
+  // DD-05: gender markers are never voiced on a consumer card, even from an old payload.
+  const attentionBullets = dosham.conditionsMet.filter((c) => annotationMarkers.has(c) && !c.endsWith("_high_attention_house"));
 
   const cardBg = isActiveAndPresent ? "var(--color-low-bg)" : isCancelledAndPresent ? "var(--chart-d9-active-bg)" : "var(--color-surface-2)";
   const cardBorder = isActiveAndPresent ? "var(--color-mid-border)" : isCancelledAndPresent ? "var(--color-high-border)" : "var(--color-border)";

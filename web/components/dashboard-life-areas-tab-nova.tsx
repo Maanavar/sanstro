@@ -177,7 +177,8 @@ export function YogaActivationSummary({
         {quiet.length > 0 && (
           <div style={{ marginTop: "var(--space-4)" }}>
             <p style={{ margin: "0 0 6px", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-faint)" }}>
-              {lang === "ta" ? "ஜாதகத்தில் உள்ளது, ஆனால் இந்த தசையில் செயல்படவில்லை" : "In the chart, quiet in this dasha"}
+              {/* DD-15 wording for a present yoga or dosham the running dasha is not lighting. */}
+              {lang === "ta" ? "ஜாதகத்தில் உண்டு; இந்தக் காலத்தில் முதன்மைத் தாக்கம் இல்லை" : "Present in birth chart — not a dominant influence in the current period"}
             </p>
             <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.6 }}>
               {quiet.map((it) => `${yogaDisplayName(it.name, lang)} (${it.standing.label})`).join(" · ")}

@@ -16,7 +16,7 @@ import type { ChartCalculateResponseData, ChartYogaInsight } from "@/lib/types";
 
 function makeGajaKesari(overrides: Partial<ChartYogaInsight> = {}): ChartYogaInsight {
   return {
-    name: "GAJA_KESARI_YOGA",
+    name: "GAJA_KESARI_PARASHARA",
     isPresent: true,
     strength: "STRONG",
     conditionsMet: ["jupiter_in_kendra_from_moon"],
@@ -118,7 +118,7 @@ describe("ChartExplanationPanel — Yogas section renderYogaDoshamPanel override
     expect(renderYogaDoshamPanel).toHaveBeenCalledWith(
       expect.objectContaining({
         lang: "en",
-        yogas: expect.arrayContaining([expect.objectContaining({ name: "GAJA_KESARI_YOGA" })]),
+        yogas: expect.arrayContaining([expect.objectContaining({ name: "GAJA_KESARI_PARASHARA" })]),
         doshams: [],
       }),
     );

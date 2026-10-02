@@ -5,6 +5,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { ChartYogaInsight, ChartDoshamInsight } from "@/lib/types";
+import { yogaActivationState } from "@vinaadi/shared/yogaDisplay";
 import { getDoshamGuideForEngineName, getYogaGuideForEngineName, type BiText } from "@/lib/guide-detail-content";
 import { CollapsibleSection } from "./collapsible-section";
 import {
@@ -147,9 +148,10 @@ function NovaYogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
   const status = yogaReadingStatus(yoga);
   const tone = yogaCardTone(yoga.name, status, yoga.strength);
   const color = tone.fg;
+  const activationState = yogaActivationState(yoga);
 
-  const whyText = buildWhyText(yoga.conditionsMet, yoga.cancellationFactors, yoga.isPresent, false, yoga.dashaActivated, lang);
-  const powerText = yoga.isPresent ? getYogaPowerContext(yoga.name, yoga.strength, yoga.dashaActivated, lang) : null;
+  const whyText = buildWhyText(yoga.conditionsMet, yoga.cancellationFactors, yoga.isPresent, false, false, lang);
+  const powerText = yoga.isPresent ? getYogaPowerContext(yoga.name, yoga.strength, activationState, lang) : null;
 
   const cardBg = tone.bg;
   const cardBorder = tone.border;
@@ -399,7 +401,8 @@ function NovaDoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: La
 
   const annotationMarkers = new Set(["female_high_attention_house", "male_high_attention_house", "rahu_ketu_upachaya"]);
   const triggerBullets = dosham.conditionsMet.filter((c) => !annotationMarkers.has(c));
-  const attentionBullets = dosham.conditionsMet.filter((c) => annotationMarkers.has(c));
+  // DD-05: gender markers are never voiced on a consumer card, even from an old payload.
+  const attentionBullets = dosham.conditionsMet.filter((c) => annotationMarkers.has(c) && !c.endsWith("_high_attention_house"));
 
   const cardBg = isActiveAndPresent ? "var(--color-low-bg)" : isCancelledAndPresent ? "var(--color-high-bg)" : "var(--color-surface-soft)";
   const cardBorder = isActiveAndPresent ? "var(--color-low-border)" : isCancelledAndPresent ? "var(--color-high-border)" : "var(--color-border)";
