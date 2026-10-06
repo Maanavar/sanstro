@@ -16,6 +16,8 @@
     "./constants": "./src/constants/index.ts",
     "./constants/tiers": "./src/constants/tiers.ts",
     "./yogaDisplay": "./src/yogaDisplay.ts",
+    "./doshamReckoning": "./src/doshamReckoning.ts",
+    "./reading": "./src/reading.ts",
     "./nakshatraLord": "./src/nakshatraLord.ts",
     "./utils/score": "./src/utils/score.ts",
     "./utils/panchangamLimb": "./src/utils/panchangamLimb.ts",

@@ -268,15 +268,23 @@ def _defaults() -> dict[str, Any]:
         "doctrine_o11_retrograde_debilitated_raja_yoga": False,
         "doctrine_o12_nb_unlisted_conditions": False,
         "doctrine_o13_nb_verses_give_raja_yoga": True,
+        "doctrine_o13_nb_raja_min_points": 2,                  # int 1-3 (ruled 2026-10-03)
         "doctrine_o15_raja_one_way_aspect": False,
         "doctrine_o16_moon_secondary_activator": True,
         "doctrine_o17_bhagya_support_scope": "literal",
-        "doctrine_o18_aries_scorpio_sevvai": "full_cancellation",
+        "doctrine_o18_aries_scorpio_sevvai": "strong_mitigation",  # | "full_cancellation" (ruled 2026-10-03)
         "doctrine_o19_nb_moon_self_reference": True,
         "doctrine_o20_adhi_raja_malefic_aspects": False,
-        "doctrine_o21_nb_planet_as_own_lord": False,
+        "doctrine_o21_nb_planet_as_own_lord": True,            # tagged, never STRONG alone (ruled 2026-10-03)
         "doctrine_o22_gk_moon_as_support": True,
-        "doctrine_o23_six_eight_colord_mode": "moolatrikona",  # | "lordship_only"
+        "doctrine_o23_six_eight_colord_mode": "moolatrikona_3_6_8_11",  # | "moolatrikona" | "lordship_only"
+        "doctrine_o23_lineage_exceptions": True,               # Kadagam Guru (ruled 2026-10-03, v1.8)
+        "doctrine_o24_kendradhipati_two_kendras": "mixed",     # | "exclude" (ruled 2026-10-03, v1.8)
+        "doctrine_o26_sevvai_dispositor_mitigation": "off",    # | "from_mars" (ruled 2026-10-06, DD-17)
+        "doctrine_o27_sevvai_seventh_lord_strength": "dignity_or_kendra_trikona",  # | "kendra_functional_benefic"
+        "doctrine_o28_rk_second_house_support": "dignity",     # | "strong_or_benefic" | "off" (DD-17)
+        "doctrine_o29_rk_guru_counted_once": True,             # ruled 2026-10-06, DD-17
+        "doctrine_o32_putra_sarpa_thulam_sani": "neutralized", # | "ordinary" (owner ruling 2026-10-06)
         "doctrine_moon_72_degree_convention": False,           # DD-12 legacy convention
         "doctrine_show_lakshmi_phaladeepika": False,           # DD-02 variant, consumer UI
     }

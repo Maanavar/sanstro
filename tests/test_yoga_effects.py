@@ -30,6 +30,8 @@ _NON_SUFFIXED_YOGA_CODES = frozenset({
     # DD-02 (v1.3): the honest fallback and the Phaladeepika variant.
     "BHAGYA_SUPPORT", "LAKSHMI_YOGA_PHALADEEPIKA",
     "GAJA_KESARI_PARASHARA", "ADHI_BASE", "ADHI_RAJA_GRADE",
+    # O-13 (v1.7): one neecha-bhanga condition, no raja-yoga claim.
+    "NEECHA_NIVARTHI",
 })
 
 # Doshams carry their own explanation_what/why/how fields and are out of scope

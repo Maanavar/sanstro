@@ -19,7 +19,8 @@ import type {
 import type { MemberChart } from "@/hooks/useFamilyData";
 import { RasiChart, NavamsaChart } from "./dashboard-charts";
 import { DASHA_COLORS } from "./dashboard-dasha";
-import { YOGA_DISPLAY } from "./dashboard-yoga-dosham-panel";
+import { displayName, doshamStanding, yogaStanding } from "./dashboard-yoga-dosham-panel";
+import { doshamVerdictLine } from "@vinaadi/shared/doshamReckoning";
 import { NovaScoreDial, NovaProgressBar } from "./dashboard-ui-nova";
 import { Card, Kicker } from "./ui";
 
@@ -245,18 +246,25 @@ export function DashboardFamilyMemberNova({
   const presentYogas: ChartYogaInsight[] = (chart?.yogas ?? []).filter((y) => y.isPresent);
   const presentDoshams: ChartDoshamInsight[] = (chart?.doshams ?? []).filter((d) => d.isPresent);
   const activeCount = presentYogas.length + presentDoshams.length;
+  // Names through the localiser and standing through the shared helpers. The
+  // dosham row used to print `d.label` — the engine status enum
+  // ("SEVVAI_DOSHAM_WITH_NIVARTHI") — and gave every present yoga, adverse ones
+  // included, the same green tone. A mitigated dosham now reads
+  // "Mitigated · mild residual", never as cleared (DD-17).
   const combinedInsights = [
     ...presentYogas.map((y) => ({
       type: "YOGA" as const,
-      name: YOGA_DISPLAY[y.name] ? (lang === "ta" ? YOGA_DISPLAY[y.name]!.ta : YOGA_DISPLAY[y.name]!.en) : y.name.replaceAll("_", " "),
+      name: displayName(y.name, lang),
       desc: lang === "ta" ? y.descriptionTa : y.descriptionEn,
-      cancelled: false,
+      standing: yogaStanding(y, lang),
     })),
     ...presentDoshams.map((d) => ({
       type: "DOSHAM" as const,
-      name: d.label || d.name.replaceAll("_", " "),
-      desc: lang === "ta" ? d.descriptionTa : d.descriptionEn,
-      cancelled: d.isCancelled,
+      name: displayName(d.name, lang),
+      // L2 verdict for Sevvai / Rahu–Ketu, else the chart-specific meaning,
+      // else the engine description (plan 2026-10-06).
+      desc: doshamVerdictLine(d, lang) || (lang === "ta" ? d.meaningTa : d.meaningEn) || (lang === "ta" ? d.descriptionTa : d.descriptionEn),
+      standing: doshamStanding(d, lang),
     })),
   ];
   const visibleInsights = showAllYogas ? combinedInsights : combinedInsights.slice(0, 3);
@@ -507,21 +515,25 @@ export function DashboardFamilyMemberNova({
         <NovaCard>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
             <Kicker>{lang === "ta" ? "யோகங்கள் & தோஷங்கள்" : "Yogas & Doshams"}</Kicker>
-            <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>{activeCount} {lang === "ta" ? "செயலில்" : "active"}</span>
+            {/* "Active" is reserved for dasha timing (yogaDisplay.ts); this counts what the chart holds. */}
+            <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>{activeCount} {lang === "ta" ? "உள்ளன" : "present"}</span>
           </div>
           {combinedInsights.length === 0 ? (
             <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>{t("yogas_empty", lang)}</p>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
               {visibleInsights.map((item, i) => {
-                const isYoga = item.type === "YOGA";
-                const tone = isYoga ? "high" : item.cancelled ? "mid" : "low";
+                const tone = item.standing.tone === "good" ? "high" : item.standing.tone === "caution" ? "low" : "mid";
                 const badgeColor = tone === "high" ? "var(--color-high)" : tone === "mid" ? "var(--color-mid)" : "var(--color-low)";
+                const kind = item.type === "YOGA"
+                  ? (lang === "ta" ? "யோகம்" : "Yoga")
+                  : (lang === "ta" ? "தோஷம்" : "Dosham");
                 return (
-                  <Card key={`${item.type}-${item.name}-${i}`} variant={tone} style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "var(--space-2_5)", borderRadius: "var(--radius-sm)", padding: "var(--space-2_5) var(--space-3)" }}>
-                    <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-on-accent)", background: badgeColor, borderRadius: "var(--radius-sm)", padding: "var(--space-0_75) var(--space-2)", flexShrink: 0 }}>{item.type}</span>
-                    <span style={{ fontSize: "var(--text-sm)", fontWeight: 600, flex: 1 }}>{item.name}</span>
-                    <span style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", textAlign: "right" }}>{item.desc}</span>
+                  <Card key={`${item.type}-${item.name}-${i}`} variant={tone} style={{ display: "flex", flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: "var(--space-2_5)", borderRadius: "var(--radius-sm)", padding: "var(--space-2_5) var(--space-3)" }}>
+                    <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-on-accent)", background: badgeColor, borderRadius: "var(--radius-sm)", padding: "var(--space-0_75) var(--space-2)", flexShrink: 0 }}>{kind}</span>
+                    <span style={{ fontSize: "var(--text-sm)", fontWeight: 600, flex: "1 1 140px", minWidth: 0 }}>{item.name}</span>
+                    <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: badgeColor, flexShrink: 0 }}>{item.standing.label}</span>
+                    <span style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", flexBasis: "100%" }}>{item.desc}</span>
                   </Card>
                 );
               })}

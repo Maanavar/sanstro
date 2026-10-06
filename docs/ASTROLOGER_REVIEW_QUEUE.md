@@ -10,7 +10,120 @@ decision inline and move it to "Resolved".
 
 ## Open
 
+### 2026-10-06 · DD-17 dosham reckoning (O-26 to O-29, residual) — applied; sign-off wanted
+
+Prompted by a practitioner's written review of one real chart, passed on by the
+owner. Applied as engine defaults by Claude acting for the owner (DOCTRINE_DECISIONS
+v2.1, DD-17; packet §B). Each has an option that restores v2.0. Frequencies in
+`docs/DOSHAM_DD17_FREQUENCY_REPORT_2026-10-06.md`. **A practicing jyotishi should
+confirm or correct:**
+
+- **O-26:** Sevvai's "Mars's sign lord in a kendra/trikona from Mars" mitigation
+  is **off**. No printed source is known; it came from our design note.
+- **O-27:** a 7th lord in own/exaltation sign or a kendra/trikona, unafflicted and
+  not combust, protects against Sevvai. Before, only the four dual-sign lagnas'
+  7th lords could ever qualify.
+- **O-28 / O-29:** on the Rahu–Ketu 2/8 axis a dignified 2nd lord (own/exalted,
+  unafflicted) now protects the 2nd house; one Guru aspect is no longer counted
+  twice. The 8th side's broader "strong lord" test is deliberately not reused
+  for the 2nd — measured, it doubled nivarthi.
+- **Residual:** every mitigated dosham shows "Mitigated · mild/moderate residual",
+  never a bare "Mitigated" or "Low intensity". Moderate only when a strong Lagna
+  formation was offset by exactly the threshold. **Confirm the threshold rule.**
+- **Context shown, never graded:** Sevvai not counted from the Lagna; the
+  Rahu–Ketu axis not repeating from the Moon/Venus; the axis repeating (or not)
+  in the Navamsa.
+- **New Tamil, unread by a native reader:** the residual chips
+  (*நிவர்த்தி · லேசான/மிதமான மீதத் தாக்கம்*, *மீதத் தாக்கம்: …*), the
+  before/after line, the four context notes, the eight node-in-house meanings
+  (`RK_NODE_HOUSE_MEANING`), the 2nd-house support line, the "Counted from"
+  rows (*{குறிப்பு} ({ராசி}): செவ்வாய் N-ஆம் வீட்டில் — தோஷ வீடு*), and the
+  rewritten Sevvai / Rahu–Ketu / Pitru / Badhaka / Kalathra / Putra Sarpa
+  "mitigated" lines.
+
+### 2026-10-05 · O-25 and Tamil T1–T4 — AI review, applied; human sign-off still wanted
+
+The owner passed on a review signed "ChatGPT — GPT-5.6 Sol, OpenAI". It is
+applied as owner rulings (DOCTRINE_DECISIONS v2.0, DD-16 D4; packet §D). **A
+practicing jyotishi and a named native Tamil reader should still confirm:**
+
+- **O-25:** "practical impact" is not classical. It is `structural_reach`, a
+  Vinaadi tie-break: houses ruled ×100 → houses occupied ×10 → +1 for Lagna or
+  Lagna-lord involvement. "Lasting gifts" no longer rank by the running dasa;
+  "Running now" lists only activated yogas. **Confirm the formula itself.** The
+  review named its ingredients but no weights; the ×100/×10 ordering is ours.
+- **ADHI_RAJA_GRADE:** out of both Top-3 lists until Saravali is verified.
+- **Tamil:** planets take அமைந்துள்ளது, never உள்ளார், in the reading; ஆடை in
+  all remedies; the நீசபங்க நிபந்தனை sentence; the qualified-Raja line (and
+  `raja_grade_mixed`, by analogy); the 8th-support line.
+- **Open, not swept:** about 40 older strings elsewhere give a graha -ார்.
+  Bhava Palan's *ஆதரவாக உள்ளார்* was a reviewed choice, so a human reader
+  decides whether the app-wide rule overrides it.
+
+### 2026-10-03 · v1.8 second-round owner rulings — confirm or correct
+
+Live as engine defaults; an owner decision, not a practitioner signature. The
+packet shows both A2 items as "applied" with confirm/correct boxes.
+
+- **Kadagam Guru (6+9):** re-admitted to Raja Yoga as a named exception to the
+  moolatrikona test. It carries its 6th, so every pair it forms (with Sevvai,
+  Chandran or Sukran) grades MIXED, never FULL. No other excluded lord moves.
+  Tier C lineage choice: the owner's sources were web summaries.
+- **O-24 ruled `mixed`:** kendradhipati grades a lord, it never removes Raja Yoga
+  eligibility; pair vetoes still apply (Mithunam Guru + Sani stays vetoed).
+  Dhanus Surya + Budhan stays yoga-capable. The verse was read in an online
+  transcription; the printed edition is still to be checked.
+- **Tamil, owner-supplied wording (packet §D):** the one-condition card is now
+  **நீசபங்கம்**; `ADHI_RAJA_GRADE` → அதி யோகம் — முழுப் பலம் உறுதியாகவில்லை;
+  new copy for `nb_self_reference`, `raja_grade_mixed_kendradhipati`, the
+  source-vetoed pair, Gaja Kesari base, BHAGYA_SUPPORT and the O-2/O-11/O-17
+  markers. Four deliberate deviations are listed in §D.
+- **Reader review, same day: "approve with minor copy corrections" — applied**
+  (packet §D lists them; combustion verb now guarded by a web test). The review
+  does not name its reader, so §D's signature is blank. **Still wanted: a named
+  native reader's sign-off on the rendered cards in Tamil mode**. ~~Three
+  leftovers~~: settled by the 2026-10-05 review (entry above).
+- ~~**Owner question:** should ADHI_RAJA_GRADE be hidden from consumers?~~
+  Ruled 2026-10-05: kept out of the Top-3 lists, still in the Astrologer view.
+
+### 2026-10-03 · v1.7 owner rulings on the packet — confirm or correct
+
+_Kadagam Guru, O-24 and the Tamil wording are superseded by v1.8 above._
+
+The owner ruled on the v1.5 packet ("approve with corrections"). The rulings
+are live as engine defaults; they are an owner decision, not a practitioner
+signature. The regenerated
+[`DOCTRINE_V15_PRACTITIONER_SIGNOFF_PACKET.md`](DOCTRINE_V15_PRACTITIONER_SIGNOFF_PACKET.md)
+shows each as "applied" with a confirm/correct box.
+
+- **O-9 matrix:** Sun/Moon 8th lordship carries no blemish
+  (`EIGHTH_LUMINARY_EXEMPT`); `KENDRA_LORD` plus a kendradhipati benefic/malefic
+  modifier; the lagna lord overrides the 8th. Still unsigned.
+- **A2:** moolatrikona co-lord test extended to the 3rd/11th — also excludes
+  Mesham Sani, Simmam Sukran and **Kumbam Sevvai** (the last was not in the
+  owner's review; it follows from the same rule). Three BPHS 34 pairs vetoed.
+  **Kadagam Guru: known dissent — rule on it consciously.**
+- **O-24 (new, open):** natural benefics owning two kendras (Guru for
+  Mithunam/Kanni, Budhan for Dhanusu/Meenam) take part at a MIXED grade.
+  Excluding them would also remove Dhanus Surya + Budhan; check that verse.
+- **O-13:** Neecha Bhanga Raja Yoga needs two or more conditions; one is
+  நீச நிவர்த்தி. **O-18:** strong mitigation. **O-21:** Budhan's self-reference
+  counts, tagged, never Strong alone. **O-2** disabled, **O-11** off, **O-17**
+  literal, **O-22** Moon counts when conjunct/opposite.
+- **Calibration:** the re-run (`DOCTRINE_V17_FREQUENCY_REPORT_2026-10-03.md`)
+  shows Raja Yoga still on 76.4% of charts — the doctrine fixes do not make it
+  rare; the all-pairs sweep (`YOG-RY-01`) does that.
+- **Tamil ruled by the owner, unread by a native speaker:** அஸ்தங்கம் for all
+  combustion (அஸ்தமனம் = sunset only); Budha-Aditya expanded copy;
+  `ADHI_RAJA_GRADE` → ராஜ நிலைக்கு வாய்ப்புள்ள அதி யோக அமைப்பு;
+  `strong_eighth_lord_or_benefic_on_eighth` → 8-ஆம் வீடு ஆதரவு பெறுகிறது…;
+  new `NEECHA_NIVARTHI`, `nb_self_reference`, `raja_grade_mixed_kendradhipati`,
+  `raja_pair_source_vetoed_<a>_<b>` copy.
+
 ### 2026-10-02 · v1.6 review fixes — O-21 to O-23 and corrected Tamil
+
+_Superseded in part by the 2026-10-03 owner rulings above (O-21, O-22, O-23,
+the E8 question and the combustion term); kept for the record._
 
 - **O-21:** Budhan rules Kanni, its own exaltation sign. Read literally, NB-b
   lets a debilitated Budhan in a kendra cancel its own debility — the NB-e rule

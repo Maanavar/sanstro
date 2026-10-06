@@ -31,9 +31,18 @@ describe("yogaActivationState — DD-15's four states, shared by web and mobile"
 });
 
 describe("candidate labels say so in both languages", () => {
-  it("ADHI_RAJA_GRADE is a candidate in Tamil as in English", () => {
-    expect(displayName("ADHI_RAJA_GRADE", "en")).toMatch(/candidate/);
-    expect(displayName("ADHI_RAJA_GRADE", "ta")).toContain("பரிசீலனையில்");
+  it("ADHI_RAJA_GRADE claims no full strength in Tamil as in English", () => {
+    // Owner-ruled wording (2026-10-03, v1.8): "full strength not confirmed",
+    // and no "candidate"/"grade" engine term in either language.
+    expect(displayName("ADHI_RAJA_GRADE", "en")).toMatch(/not confirmed/);
+    expect(displayName("ADHI_RAJA_GRADE", "en")).not.toMatch(/candidate|grade/i);
+    expect(displayName("ADHI_RAJA_GRADE", "ta")).toContain("உறுதியாகவில்லை");
+    expect(displayName("ADHI_RAJA_GRADE", "ta")).not.toContain("பரிசீலனையில்");
+  });
+
+  it("one cancellation condition is நீசபங்கம், never the raja-yoga name", () => {
+    expect(displayName("NEECHA_NIVARTHI", "ta")).toBe("நீசபங்கம்");
+    expect(displayName("NEECHA_NIVARTHI", "ta")).not.toContain("ராஜயோகம்");
   });
 
   it("the Gaja Kesari base is a pattern and the strict form is the yoga", () => {

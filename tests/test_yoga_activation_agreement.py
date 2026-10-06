@@ -213,7 +213,11 @@ def test_dusthana_dual_lords_are_decided_by_moolatrikona() -> None:
     from app.calculations.doctrine_options import DoctrineOptions
 
     assert raja_lord_qualifies(3, "SATURN") is True     # Mithuna: MT Kumbam is the 9th
-    assert raja_lord_qualifies(4, "JUPITER") is False   # Kataka: MT Dhanusu is the 6th
+    assert raja_lord_qualifies(4, "SATURN") is False    # Kataka: MT Kumbam is the 8th
+    # Kataka Guru: MT Dhanusu is the 6th. Excluded by the test itself; the
+    # owner's named exception (2026-10-03, v1.8) re-admits it as the 9th lord.
+    assert raja_lord_qualifies(4, "JUPITER", DoctrineOptions(o23_lineage_exceptions=False)) is False
+    assert raja_lord_qualifies(4, "JUPITER") is True
     # DD-07 / O-4 (v1.3): a 12th co-lord is never downgraded for the 12th
     # alone. Rishabha Sevvai (7+12) now qualifies; the 2026-09-23 moolatrikona
     # reading survives as the switchable alternative (open item O-14).
@@ -227,11 +231,12 @@ def test_dusthana_dual_lords_are_decided_by_moolatrikona() -> None:
 
 
 def test_disqualified_lord_forms_no_raja_yoga() -> None:
-    """Kataka lagna: Guru lords the 9th but its moolatrikona is the 6th. Guru
-    conjunct Chandran (lagna lord) would have formed a Raja Yoga before."""
-    results = detect_raja_yoga({"JUPITER": 1, "MOON": 1, "SUN": 11, "MARS": 11,
-                                "MERCURY": 11, "VENUS": 11, "SATURN": 11}, 4)
-    assert not any("JUPITER" in r.key_grahas for r in results)
+    """Kataka lagna: Sani lords the 7th but its moolatrikona is the 8th. Sani
+    conjunct Chandran (lagna lord) would have formed a Raja Yoga before. (Guru,
+    6th+9th, was the example until the v1.8 Kadagam-Guru exception.)"""
+    results = detect_raja_yoga({"SATURN": 1, "MOON": 1, "SUN": 11, "MARS": 11,
+                                "MERCURY": 11, "VENUS": 11, "JUPITER": 11}, 4)
+    assert not any("SATURN" in r.key_grahas for r in results)
 
 
 def test_rahu_ketu_support_but_never_form_a_raja_yoga() -> None:

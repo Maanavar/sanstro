@@ -14,13 +14,18 @@ import { CollapsibleSection } from "./collapsible-section";
 import {
   buildWhyText,
   displayName,
-  DOSHAM_REMEDIES,
   doshamPresenceLabel,
+  doshamStanding,
   getDoshamPowerContext,
+  getDoshamRemedies,
+  doshamMeaningCoversMarkers,
   getWhat,
+  isRunningInDasha,
   markerLabel,
   strengthBand,
 } from "./dashboard-yoga-dosham-panel";
+import { doshamSeverityChip } from "@vinaadi/shared/doshamReckoning";
+import { DoshamReckoningBlock } from "./dosham-reckoning-block";
 import { NovaAskEntryChip, NovaAttributeBand, NovaDetailBreadcrumb, NovaDetailHero, novaDetailCardStyle } from "./dashboard-explore-detail-nova";
 import { Card, Kicker } from "./ui";
 
@@ -188,6 +193,16 @@ export function doshamStatusLabel(d: ChartDoshamInsight, lang: Lang): string {
   return doshamPresenceLabel(d, lang);
 }
 
+/**
+ * The severity word beside the status: natal strength while active, the
+ * residual once mitigated (DD-17). A mitigated dosham's `strength` is always
+ * WEAK, so it used to print "Mild" whatever it had been before its protections.
+ */
+export function doshamSeverityWord(d: ChartDoshamInsight, lang: Lang): string {
+  if (d.isPresent && d.isCancelled) return doshamSeverityChip(d, lang) ?? strengthBand(d.strength, true, lang);
+  return strengthBand(d.strength, d.isPresent, lang);
+}
+
 export function doshamStatusColor(d: ChartDoshamInsight): string {
   if (!d.isPresent) return "var(--color-faint)";
   if (d.isCancelled) return "var(--color-high)";
@@ -250,7 +265,7 @@ export function DashboardExploreDoshamListNova({
               <span style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexShrink: 0 }}>
                 {d.isPresent && (
                   <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)" }}>
-                    {strengthBand(d.strength, true, lang)}
+                    {doshamSeverityWord(d, lang)}
                   </span>
                 )}
                 <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)" }}>
@@ -305,15 +320,20 @@ export function DashboardExploreDoshamNova({
   const nextDosham = doshams[wrapIndex(viewedIndex + 1, doshams.length)];
 
   const key = dosham.name.toUpperCase();
-  const remedy = DOSHAM_REMEDIES[key];
+  const remedy = getDoshamRemedies(dosham, lang);
   const categoryLabel = DOSHAM_CATEGORY_LABEL[dosham.category];
 
   const whatText = getWhat(dosham.name, false, lang, {
     ta: dosham.explanationWhatTa || dosham.descriptionTa,
     en: dosham.explanationWhatEn || dosham.descriptionEn,
   });
-  const whyText = buildWhyText(dosham.conditionsMet, dosham.cancellationFactors, dosham.isPresent, dosham.isCancelled, dosham.dashaActivated, lang);
-  const triggerBullets = dosham.conditionsMet.filter((c) => !ANNOTATION_ONLY_MARKERS.has(c));
+  const whyText = buildWhyText(dosham.conditionsMet, dosham.cancellationFactors, dosham.isPresent, dosham.isCancelled, dosham.dashaActivated, lang, { listsShown: true, kind: "dosham" });
+  // Same rule as the cards: where "In your chart" names every marker, the
+  // bullets would repeat it.
+  const listsInMeaning = doshamMeaningCoversMarkers(dosham);
+  const triggerBullets = listsInMeaning ? [] : dosham.conditionsMet.filter((c) => !ANNOTATION_ONLY_MARKERS.has(c));
+  const protectiveBullets = listsInMeaning ? [] : dosham.cancellationFactors;
+  const showWhy = whyText !== "" || triggerBullets.length > 0 || protectiveBullets.length > 0;
   const powerText = getDoshamPowerContext(dosham, lang);
 
   const ownStatusLabel = doshamStatusLabel(dosham, lang);
@@ -348,7 +368,7 @@ export function DashboardExploreDoshamNova({
         badge={
           <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-xs)", fontWeight: 700, color: ownStatusColor, background: `${ownStatusColor}18`, border: `1px solid ${ownStatusColor}55`, borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)" }}>
             {dosham.isPresent
-              ? `${lang === "ta" ? "உங்கள் ஜாதகத்தில் உள்ளது" : "Present in your chart"} · ${strengthBand(dosham.strength, true, lang)}`
+              ? `${lang === "ta" ? "உங்கள் ஜாதகத்தில் உள்ளது" : "Present in your chart"} · ${dosham.isCancelled ? doshamStanding(dosham, lang).label : strengthBand(dosham.strength, true, lang)}`
               : (lang === "ta" ? "உங்கள் ஜாதகத்தில் இல்லை" : "Not present in your chart")}
           </span>
         }
@@ -364,10 +384,11 @@ export function DashboardExploreDoshamNova({
             value: categoryLabel ? (lang === "ta" ? categoryLabel.ta : categoryLabel.en) : dosham.category.replaceAll("_", " "),
           },
           { label: lang === "ta" ? "உங்கள் ஜாதகத்தில்" : "In your chart", value: ownStatusLabel },
-          { label: lang === "ta" ? "தீவிரம்" : "Severity", value: strengthBand(dosham.strength, dosham.isPresent, lang) },
+          { label: lang === "ta" ? "தீவிரம்" : "Severity", value: doshamSeverityWord(dosham, lang) },
           {
             label: lang === "ta" ? "தசை" : "Dasha",
-            value: dosham.dashaActivated
+            // A mitigated dosham is never "running" as a concern (isRunningInDasha).
+            value: isRunningInDasha(dosham)
               ? (lang === "ta" ? "இப்போது செயல்பாட்டில்" : "Active now")
               : (lang === "ta" ? "இப்போது செயல்படவில்லை" : "Not active now"),
           },
@@ -380,10 +401,9 @@ export function DashboardExploreDoshamNova({
         {/* LEFT */}
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
           <Card>
-            <Kicker>{lang === "ta" ? "இது உண்மையில் என்ன பொருள்" : "What it actually means"}</Kicker>
-            <p style={{ margin: 0, fontFamily: "var(--font-nova-prose, var(--font-body))", fontSize: "var(--text-base)", lineHeight: 1.7, color: "var(--color-text)" }}>
-              {astroText(whatText)}
-            </p>
+            {/* The hero above already prints `whatText`; this card kept a
+                second copy of it. Only the reading guidance stays here. */}
+            <Kicker>{lang === "ta" ? "இதை எப்படிப் படிப்பது" : "How to read this"}</Kicker>
             <Card variant="high" compact style={{ flexDirection: "row", gap: "var(--space-3)" }}>
               <span style={{ flex: "none", color: "var(--color-high)", fontSize: "var(--text-md)" }}>{"☘"}</span>
               <p style={{ margin: 0, fontSize: "var(--text-sm)", lineHeight: 1.6, color: "var(--color-text)" }}>
@@ -392,9 +412,15 @@ export function DashboardExploreDoshamNova({
             </Card>
           </Card>
 
-          <Card>
+          {dosham.isPresent && (dosham.referenceHouses?.length || dosham.contextNotes?.length || dosham.meaningEn || dosham.formationStrength) ? (
+            <Card>
+              <DoshamReckoningBlock dosham={dosham} lang={lang} />
+            </Card>
+          ) : null}
+
+          {showWhy && <Card>
             <Kicker>{lang === "ta" ? "ஏன் தூண்டப்படுகிறது / குறைகிறது" : "Why it triggers or softens"}</Kicker>
-            <p style={{ margin: 0, fontSize: "var(--text-base)", lineHeight: 1.6, color: "var(--color-text)" }}>{astroText(whyText)}</p>
+            {whyText && <p style={{ margin: 0, fontSize: "var(--text-base)", lineHeight: 1.6, color: "var(--color-text)" }}>{astroText(whyText)}</p>}
             {triggerBullets.length > 0 && (
               <ul style={{ margin: 0, paddingLeft: "var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
                 {triggerBullets.map((c, i) => (
@@ -402,18 +428,20 @@ export function DashboardExploreDoshamNova({
                 ))}
               </ul>
             )}
-            {dosham.cancellationFactors.length > 0 && (
+            {protectiveBullets.length > 0 && (
               <ul style={{ margin: 0, paddingLeft: "var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-                {dosham.cancellationFactors.map((c, i) => (
+                {protectiveBullets.map((c, i) => (
                   <li key={i} style={{ fontSize: "var(--text-sm)", color: "var(--color-high)", lineHeight: 1.5 }}>{"✓ "}{markerLabel(c, lang)}</li>
                 ))}
               </ul>
             )}
-          </Card>
+          </Card>}
 
           {dosham.isPresent && (
             <Card variant="accent" style={{ backgroundColor: "var(--color-surface)", backgroundImage: "linear-gradient(120deg, var(--color-accent-muted), transparent)" }}>
-              <Kicker color="var(--color-accent-strong)">{lang === "ta" ? "உங்கள் ஜாதகத்தில்" : "In your chart"}</Kicker>
+              {/* Was headed "In your chart" — the reckoning block above
+                  already carries that heading on this page. */}
+              <Kicker color="var(--color-accent-strong)">{lang === "ta" ? "இப்போது என்ன பொருள்" : "What this means for you now"}</Kicker>
               <p style={{ margin: 0, fontSize: "var(--text-base)", lineHeight: 1.6, color: "var(--color-text)" }}>{astroText(powerText)}</p>
               <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap", alignItems: "center" }}>
                 <span style={{ fontSize: "var(--text-xs)", color: "var(--color-text)", background: "color-mix(in srgb, var(--color-text-strong) 5%, transparent)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)" }}>
@@ -444,7 +472,7 @@ export function DashboardExploreDoshamNova({
             <Card>
               <Kicker>{lang === "ta" ? "பரிகாரம்" : "Pariharam"}</Kicker>
               <p style={{ margin: 0, fontSize: "var(--text-sm)", lineHeight: 1.6, color: "var(--color-muted)" }}>
-                {astroText(lang === "ta" ? remedy.ta : remedy.en)}
+                {astroText(remedy)}
               </p>
             </Card>
           )}
@@ -473,7 +501,9 @@ export function DashboardExploreDoshamNova({
                     <span>{mc.displayName}</span>
                   </div>
                   <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "var(--radius-sm)", padding: "var(--space-1) var(--space-2)" }}>
-                    {doshamStatusLabel(entry, lang)}
+                    {/* Standing, not bare presence: a mitigated member reads
+                        "Mitigated · mild residual" (DD-17), never cleared. */}
+                    {doshamStanding(entry, lang).label}
                   </span>
                 </div>
               );

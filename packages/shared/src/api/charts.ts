@@ -1,6 +1,7 @@
 import { getApiClient } from "./client";
 import type {
   ChartCalculateResponseData,
+  ChartExplanationData,
   ChartSummaryData,
   BirthProfileCreateResponseData,
   BirthProfileResponse,
@@ -95,5 +96,45 @@ export function getChartFull(
   return getApiClient().get(`/charts/${chartId}`) as Promise<{
     success: boolean;
     data: ChartCalculateResponseData;
+  }>;
+}
+
+export type JadhagamPdfDetail = "summary" | "astrologer";
+
+/**
+ * GET /charts/{chart_id}/export/pdf (`export_chart_pdf`, app/api/charts.py) —
+ * query params `asOf` (date), `lang` ("en" | "ta"), `detail` ("summary" |
+ * "astrologer"; FTR-22 appends the Astrologer ledgers). Checked against the
+ * route decorator: path param + three query params, GET.
+ *
+ * A path, not a wrapper: the response is a PDF and `ApiClient` speaks JSON
+ * only, so each surface fetches the bytes itself (web: credentialed fetch;
+ * mobile: `fetchWithAuth`). The URL shape still lives in one place.
+ */
+export function jadhagamPdfPath(
+  chartId: string,
+  options: { lang: "en" | "ta"; asOf?: string; detail?: JadhagamPdfDetail },
+): string {
+  // Built by hand: React Native's URLSearchParams has thrown "not implemented"
+  // for `set` on some versions, and this runs on mobile too.
+  const query = [`lang=${options.lang}`];
+  if (options.asOf) query.push(`asOf=${encodeURIComponent(options.asOf)}`);
+  if (options.detail && options.detail !== "summary") query.push(`detail=${options.detail}`);
+  return `/charts/${encodeURIComponent(chartId)}/export/pdf?${query.join("&")}`;
+}
+
+/**
+ * GET /charts/{chart_id}/explanation (`get_explanation`, app/api/charts.py) —
+ * path param + optional `asOf` (date) and `peyarchiWindowDays` (1..1200)
+ * query params, GET. Checked against the route decorator. Carries the Story
+ * view's server picks in `story` (FTR-21), which mobile's reading renders.
+ */
+export function getChartExplanation(
+  chartId: string,
+  asOf?: string,
+): Promise<{ success: boolean; data: ChartExplanationData }> {
+  return getApiClient().get(`/charts/${encodeURIComponent(chartId)}/explanation`, asOf ? { asOf } : undefined) as Promise<{
+    success: boolean;
+    data: ChartExplanationData;
   }>;
 }

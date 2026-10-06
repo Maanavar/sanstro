@@ -17,6 +17,7 @@ from app.calculations._yoga_helpers import (
     DoshamResult,
     KalasarpaResult,
     PlanetInput,
+    ReferenceHouse,
     _build_dosham_explanations,
     _house_lord,
     _is_active,
@@ -25,10 +26,12 @@ from app.calculations._yoga_helpers import (
     _planet_is_strong,
     _planet_rasi,
     _planets_as_rasi_map,
+    dosham_residual,
 )
 from app.calculations.aspects import aspects_house, effective_natural_class
 from app.calculations.astro import house_from_reference
 from app.calculations.chart_strength import EXALTATION_RASI, OWN_SIGN_RASI, SIGN_LORD
+from app.calculations.display_names import planet_en, planet_ta, rasi_en, rasi_ta
 from app.calculations.doctrine_options import DEFAULT_DOCTRINE, LONGITUDE_EPSILON, DoctrineOptions
 
 _MOVABLE_LAGNAS = {1, 4, 7, 10}
@@ -50,6 +53,73 @@ MARANA_KARAKA_STHANA: dict[str, int] = {
     "VENUS": 6,
     "SATURN": 1,
 }
+
+# What each graha signifies (its karakatva), for the MKS "In your chart" line.
+# Saturn's ayush karakatva is left out on purpose: beside the word "marana" it
+# would read as the life-span prediction this indicator explicitly is not.
+_MKS_KARAKA: dict[str, tuple[str, str]] = {
+    "SUN": ("தந்தை, அதிகாரம், அரசுத் தொடர்பு, உடல் உயிர்ப்பு", "father, authority, government and vitality"),
+    "MOON": ("தாய், மனம், உணர்வுகள், மன அமைதி", "mother, mind, emotions and peace of mind"),
+    "MARS": ("தைரியம், உடன்பிறந்தோர், நிலம், சொத்து", "courage, siblings, land and property"),
+    "MERCURY": ("அறிவு, பேச்சு, கல்வி, வணிகம்", "intellect, speech, learning and trade"),
+    "JUPITER": ("ஞானம், குழந்தைகள், ஆசிரியர், செல்வம்", "wisdom, children, teachers and wealth"),
+    "VENUS": ("திருமணம், சுகம், வாகனம், கலை", "marriage, comforts, vehicles and the arts"),
+    "SATURN": ("உழைப்பு, ஒழுக்கம், சேவை, நீண்டகாலப் பொறுப்புகள்", "work, discipline, service and long-term duties"),
+}
+
+# The nature of each MKS house — why that house is the hard one for its graha.
+_MKS_HOUSE_NATURE: dict[int, tuple[str, str]] = {
+    12: ("செலவையும் இழப்பையும் குறிக்கும் வீடு", "the house of expense and loss"),
+    8: ("மறைவையும் திடீர் மாற்றங்களையும் குறிக்கும் வீடு", "the house of upheaval and hidden matters"),
+    7: ("கூட்டாண்மையைக் குறிக்கும் வீடு", "the house of partnership"),
+    3: ("முயற்சியையும் தைரியத்தையும் குறிக்கும் வீடு", "the house of effort and courage"),
+    6: ("பகை, கடன், நோயைக் குறிக்கும் வீடு", "the house of conflict, debt and illness"),
+    1: ("உங்களையும் உடலையும் குறிக்கும் வீடு", "the house of self and body"),
+}
+
+
+def _mks_meaning(
+    planets: Mapping[str, PlanetInput],
+    afflicted: list[str],
+    *,
+    jupiter_aspects: set[str],
+) -> tuple[str, str]:
+    """Per-graha reading for Marana Karaka Sthana (DD-17 "In your chart").
+
+    The card used to say only "mercury in marana karaka sthana" (a raw marker)
+    and "the impact varies with your current Dasha period" — it never said
+    which house, what the planet stands for, or when it matters.
+    """
+    parts_ta: list[str] = []
+    parts_en: list[str] = []
+    for planet in afflicted:
+        rasi = _planet_rasi(planets, planet)
+        house = MARANA_KARAKA_STHANA[planet]
+        karaka_ta, karaka_en = _MKS_KARAKA[planet]
+        nature_ta, nature_en = _MKS_HOUSE_NATURE[house]
+        name_ta, name_en = planet_ta(planet), planet_en(planet)
+        # The fact only: what MKS means is the card's "What this is", what it
+        # brings and when are their own sections (said once, 2026-10-06).
+        ta = (
+            f"{karaka_ta} ஆகியவற்றின் காரகனான {name_ta} உங்கள் {house}-ஆம் வீட்டில் ({rasi_ta(rasi)}) உள்ளது — "
+            f"{nature_ta}; இது அதன் மரண காரக ஸ்தானம்."
+        )
+        en = (
+            f"{name_en}, the planet of {karaka_en}, sits in your {_ordinal_en(house)} house ({rasi_en(rasi)}), "
+            f"{nature_en} — its Marana Karaka Sthana."
+        )
+        if rasi == EXALTATION_RASI.get(planet):
+            ta += " இங்கு அது உச்சம் பெற்றுள்ளது; இது அந்தப் பலவீனத்தைப் பெருமளவு ஈடுசெய்கிறது."
+            en += " Here it is exalted, which largely offsets the weakness."
+        elif rasi in OWN_SIGN_RASI.get(planet, set()):
+            ta += " இங்கு அது ஆட்சி பெற்றுள்ளது; இது அந்தப் பலவீனத்தைப் பெருமளவு ஈடுசெய்கிறது."
+            en += " Here it is in its own sign, which largely offsets the weakness."
+        if planet in jupiter_aspects:
+            ta += " குருவின் பார்வை அதன் மீது உள்ளது; இது பாதுகாப்பு தருகிறது."
+            en += " Jupiter aspects it there, which protects it."
+        parts_ta.append(ta)
+        parts_en.append(en)
+    return " ".join(parts_ta), " ".join(parts_en)
 
 
 def detect_sevvai_dosham(
@@ -201,8 +271,12 @@ def detect_sevvai_dosham(
             mitigation_score += 1
             break
 
+    # O-26 (DD-17): off by default. The rule counted the sign lord *from Mars*,
+    # had no cited source, and alone could turn a strong active dosham into
+    # nivarthi — while its card label dropped "from Mars", so readers checked it
+    # from the Lagna and found it false.
     mars_sign_lord = SIGN_LORD[mars_rasi]
-    if mars_sign_lord in planets:
+    if doctrine.o26_sevvai_dispositor_mitigation != "off" and mars_sign_lord in planets:
         lord_rasi = _planet_rasi(planets, mars_sign_lord)
         if house_from_reference(mars_rasi, lord_rasi) in KENDRA_HOUSES | TRIKONA_HOUSES:
             cancellation_factors.append("mars_dispositor_kendra_trikona")
@@ -211,13 +285,18 @@ def detect_sevvai_dosham(
     seventh_lord = _house_lord(lagna_rasi, 7)
     if seventh_lord in planets:
         seventh_lord_rasi = _planet_rasi(planets, seventh_lord)
-        seventh_lord_is_strong = _is_functional_benefic(lagna_rasi, seventh_lord) and _is_kendra_from(lagna_rasi, seventh_lord_rasi)
         malefics = {"MARS", "SATURN", "RAHU", "KETU"}
         conjunct_malefic = any(
             p in planets and _planet_rasi(planets, p) == seventh_lord_rasi
             for p in malefics if p != seventh_lord
         )
         seventh_lord_combust = seventh_lord in combust_planets
+        # O-27 (DD-17): a dignified 7th lord protects even outside a kendra —
+        # one definition of "strong 7th lord" for both marriage doshams.
+        if doctrine.o27_sevvai_seventh_lord_strength == "kendra_functional_benefic":
+            seventh_lord_is_strong = _is_functional_benefic(lagna_rasi, seventh_lord) and _is_kendra_from(lagna_rasi, seventh_lord_rasi)
+        else:
+            seventh_lord_is_strong = _lord_is_strong(planets, seventh_lord, lagna_rasi, combust_planets)
         d9_strong = False
         if d9_rasi_map and d9_lagna_rasi and seventh_lord in d9_rasi_map:
             d9_house = house_from_reference(d9_lagna_rasi, d9_rasi_map[seventh_lord])
@@ -243,6 +322,11 @@ def detect_sevvai_dosham(
     is_present = bool(conditions_met) and not exempt_lagna
     is_cancelled = is_present and (major_cancellation or mitigation_score >= 2)
     strong_house_hit = any(house_hits.get(key) in {7, 8} for key in house_hits)
+    reference_count = len([c for c in conditions_met if c.startswith("from_")])
+    # DD-17: the formation's own grade, before any mitigation softens it.
+    formation_strength = ""
+    if is_present:
+        formation_strength = "STRONG" if (strong_house_hit or reference_count >= 2 or aggravation_count) else "PARTIAL"
     if not is_present or is_cancelled:
         strength = "WEAK"
     elif strong_house_hit or len([c for c in conditions_met if c.startswith("from_")]) >= 2:
@@ -263,12 +347,40 @@ def detect_sevvai_dosham(
     else:
         label = "ACTIVE_SEVVAI_DOSHAM"
 
+    residual = dosham_residual(
+        is_present=is_present,
+        is_cancelled=is_cancelled,
+        strength=strength,
+        formation_strength=formation_strength,
+        narrow_margin=not major_cancellation and mitigation_score == 2,
+        # The Lagna is the primary reference; a dosham counted only from the
+        # Moon or Venus is the lighter reading (DD-17).
+        primary_reference="from_lagna" in conditions_met,
+    )
+    context_notes = ("sevvai_not_from_lagna",) if is_present and "from_lagna" not in conditions_met else ()
+    reference_houses = tuple(
+        ReferenceHouse(reference=ref, reference_rasi=ref_rasi, houses=(house,), counts=house in TAMIL_SEVVAI_HOUSES)
+        for ref, ref_rasi, house in (
+            ("LAGNA", lagna_rasi, lagna_house),
+            ("MOON", moon_rasi, moon_house),
+            ("VENUS", venus_rasi, venus_house),
+        )
+    )
+
+    # A protection of nothing is not a nivarthi (the L-5 invariant). Sent on an
+    # unformed dosham, the web card read it as "did form … and was annulled"
+    # and the chip as "Neutralized". Kept only when a lagna exemption (O-18
+    # "full_cancellation") is what un-formed it.
+    if not is_present and not exempt_lagna:
+        cancellation_factors = []
     what_ta, what_en, why_ta, why_en, how_ta, how_en = _build_dosham_explanations(
         "SEVVAI_DOSHAM",
         label,
         conditions_met=conditions_met,
         cancellation_factors=cancellation_factors,
         missing_data=[],
+        residual=residual,
+        context_notes=context_notes,
     )
     return DoshamResult(
         name="SEVVAI_DOSHAM",
@@ -301,6 +413,10 @@ def detect_sevvai_dosham(
         explanation_how_ta=how_ta,
         explanation_how_en=how_en,
         astrologer_markers=astrologer_markers,
+        formation_strength=formation_strength,
+        residual=residual,
+        context_notes=context_notes,
+        reference_houses=reference_houses,
     )
 
 
@@ -317,6 +433,62 @@ def detect_sevvai_dosham(
 #: "uncancellable" P0 defect again, by arithmetic. Nothing locks the grade.
 RK_BASE_SEVERITY = 1
 RK_MAX_SEVERITY = 2
+
+#: DD-17: what a node in each marriage-axis house tends to bring, by bhava.
+#: Tendencies, never outcomes — the old reading ("Ketu in 2 = family destroyed")
+#: is exactly the overstatement this copy exists to replace. A graha takes no
+#: honorific (O-25 review, 2026-10-05). Tamil pending native review.
+RK_NODE_HOUSE_MEANING: dict[tuple[str, int], tuple[str, str]] = {
+    ("RAHU", 1): (
+        "லக்னத்தில் ராகு (சுயம், உடல், வாழ்க்கைத் திசை): அமைதியற்ற உந்துதல், தன்னைத் தொடர்ந்து புதுப்பித்துக்கொள்ளும் அடையாளம், பொறுமையை மீறும் லட்சியம் இருக்கலாம்.",
+        "Rahu in the 1st (self, body, direction): a restless drive, a self-image that keeps reinventing itself, and ambition that can outrun patience.",
+    ),
+    ("KETU", 1): (
+        "லக்னத்தில் கேது (சுயம், உடல், வாழ்க்கைத் திசை): உள்நோக்கிய, சில நேரங்களில் தன்னம்பிக்கை குறையும் இயல்பு; ஆன்மீக அல்லது மாறுபட்ட வழிகள் நோக்கிய இயல்பான ஈர்ப்பு இருக்கலாம்.",
+        "Ketu in the 1st (self, body, direction): an inward, sometimes self-doubting nature, with a natural pull toward spiritual or unconventional paths.",
+    ),
+    ("RAHU", 2): (
+        "2-ஆம் வீட்டில் ராகு (குடும்பம், பேச்சு, சேமிப்பு): சேர்க்க வேண்டும் என்ற வலுவான உந்துதல், கூர்மையான அல்லது வசீகரமான பேச்சு, குடும்ப வழக்கத்திலிருந்து மாறுபட்ட உணவு, பழக்கங்கள் இருக்கலாம். சீரான சேமிப்புப் பழக்கம் உதவும்.",
+        "Rahu in the 2nd (family, speech, savings): a strong drive to accumulate, speech that can be sharp or persuasive, and food or habits that differ from the family's own. Steady saving habits help.",
+    ),
+    ("KETU", 2): (
+        "2-ஆம் வீட்டில் கேது (குடும்பம், பேச்சு, சேமிப்பு): சில காலங்களில் குடும்பத்திலிருந்து விலகியிருப்பது போன்ற உணர்வு, சட்டென்று வெளிப்படும் பேச்சு, பணம், சேமிப்பு பற்றிய வழக்கத்திற்கு மாறான அணுகுமுறை இருக்கலாம். குடும்பப் பிணைப்புகள் தானாக அமைவதை விட, கவனமான முயற்சியால் வளரக்கூடும்.",
+        "Ketu in the 2nd (family, speech, savings): periods of feeling apart from the family, speech that comes out abruptly, and an unusual attitude to money or saving. Family bonds may need conscious care rather than coming effortlessly.",
+    ),
+    ("RAHU", 7): (
+        "7-ஆம் வீட்டில் ராகு (கூட்டாண்மை): தீவிரமான அல்லது வழக்கத்திற்கு மாறான உறவுகள் — மாறுபட்ட பின்னணியுள்ள துணை, அல்லது அதிக எதிர்பார்ப்புகள் இருக்கலாம். தெளிவான, நேர்மையான உரையாடல் இதைச் சீராக்கும்.",
+        "Rahu in the 7th (partnership): intense or unconventional partnerships — a partner from a different background, or expectations that run high. Clear, honest communication steadies it.",
+    ),
+    ("KETU", 7): (
+        "7-ஆம் வீட்டில் கேது (கூட்டாண்மை): துணையோ உறவோ சில காலங்களில் தொலைவாக உணரப்படலாம்; நெருக்கம் கவனமான முயற்சியைக் கேட்கலாம். எதிர்பார்ப்பை விட பொதுவான நோக்கம் அதிகம் உதவும்.",
+        "Ketu in the 7th (partnership): periods when a partner or the partnership feels distant, or when closeness takes conscious effort. Shared purpose helps more than expectation.",
+    ),
+    ("RAHU", 8): (
+        "8-ஆம் வீட்டில் ராகு (மறைவான விஷயங்கள், கூட்டு நிதி, திடீர் மாற்றம்): மறைவான விஷயங்கள், நம்பிக்கை, பிறரின் நோக்கம் பற்றி அதிகம் யோசிக்கும் போக்கு, கூட்டுப் பணம் அல்லது திடீர் மாற்றங்களில் கூடுதல் உணர்திறன் இருக்கலாம். ஆராய்ச்சி, மறைபொருள் அறிவில் ஆர்வமும் இருக்கலாம்.",
+        "Rahu in the 8th (hidden matters, joint finances, sudden change): a tendency to overthink hidden issues, trust and other people's intentions, and sensitivity around joint money or sudden change. Also an interest in research and hidden knowledge.",
+    ),
+    ("KETU", 8): (
+        "8-ஆம் வீட்டில் கேது (மறைவான விஷயங்கள், கூட்டு நிதி, திடீர் மாற்றம்): மாற்றங்களின் போது திடீர் பற்றின்மை, உள்ளுணர்வு, ஆராய்ச்சி, ஆன்மீக ஆழம் நோக்கிய ஈர்ப்பு இருக்கலாம். கூட்டு நிதியில் தெளிவான ஏற்பாடுகள் நல்லது.",
+        "Ketu in the 8th (hidden matters, joint finances, sudden change): sudden detachment when things change, and a quiet pull toward intuition, research or spiritual depth. Joint finances need clear arrangements.",
+    ),
+}
+
+
+def rk_placement_meaning(rahu_house: int, ketu_house: int) -> tuple[str, str]:
+    """The chart-specific reading of a formed axis (DD-17): each node's house,
+    in the order the houses fall, closed by the tendency-not-outcome line."""
+    rows = sorted(
+        (house, node) for node, house in (("RAHU", rahu_house), ("KETU", ketu_house))
+        if (node, house) in RK_NODE_HOUSE_MEANING
+    )
+    if not rows:
+        return "", ""
+    ta = " ".join(RK_NODE_HOUSE_MEANING[(node, house)][0] for house, node in rows)
+    en = " ".join(RK_NODE_HOUSE_MEANING[(node, house)][1] for house, node in rows)
+    return (
+        f"{ta} இவை கவனிக்க வேண்டிய போக்குகள் மட்டுமே; உறுதியான விளைவுகள் அல்ல.",
+        f"{en} These are tendencies to watch, not fixed outcomes.",
+    )
 _RK_GRADE: dict[int, tuple[str, str]] = {
     2: ("STRONG", "STRONG_ACTIVE_RAHU_KETU_DOSHAM"),
     1: ("PARTIAL", "ACTIVE_RAHU_KETU_DOSHAM"),
@@ -327,11 +499,14 @@ _RK_BENEFIC_CANDIDATES = ("MOON", "MERCURY", "JUPITER", "VENUS")
 _SEVENTH_LORD_AFFLICTORS = {"MARS", "SATURN", "RAHU", "KETU"}
 
 
-def _rk_lord_is_strong(
+def _lord_is_strong(
     planets: Mapping[str, PlanetInput], lord: str, lagna_rasi: int, combust_planets: frozenset[str]
 ) -> bool:
-    """Engine reading of a "strong" 7th/8th lord (Tier C): own sign, exalted or
-    in a kendra/trikona, not joined by Sevvai/Sani/Rahu/Ketu, not combust."""
+    """Engine reading of a "strong" house lord (Tier C): own sign, exalted or
+    in a kendra/trikona, not joined by Sevvai/Sani/Rahu/Ketu, not combust.
+
+    One test for every marriage-dosham lord (DD-17): the Rahu–Ketu 7th, 8th
+    and 2nd lords and, since O-27, the Sevvai 7th lord."""
     if lord not in planets:
         return False
     lord_rasi = _planet_rasi(planets, lord)
@@ -340,6 +515,23 @@ def _rk_lord_is_strong(
         for p in _SEVENTH_LORD_AFFLICTORS if p != lord
     )
     return _planet_is_strong(planets, lord, lagna_rasi) and not joined and lord not in combust_planets
+
+
+def _lord_is_dignified(
+    planets: Mapping[str, PlanetInput], lord: str, combust_planets: frozenset[str]
+) -> bool:
+    """The stricter reading (O-28): own or exaltation sign only, not joined by
+    Sevvai/Sani/Rahu/Ketu, not combust. Placement alone does not qualify."""
+    if lord not in planets:
+        return False
+    lord_rasi = _planet_rasi(planets, lord)
+    dignified = lord_rasi in OWN_SIGN_RASI.get(lord, set()) or lord_rasi == EXALTATION_RASI.get(lord)
+    joined = any(
+        p in planets and _planet_rasi(planets, p) == lord_rasi
+        for p in _SEVENTH_LORD_AFFLICTORS if p != lord
+    )
+    return dignified and not joined and lord not in combust_planets
+
 
 
 def detect_rahu_ketu_dosham(
@@ -367,14 +559,19 @@ def detect_rahu_ketu_dosham(
     that a 7th/8th node "blocks every cancellation" is gone: it made nivarthi
     impossible for every axis chart, about one chart in three.
 
-    Not read any more, by decision: the gender markers (DD-05 moves them out of
-    this detector), the Navamsa 7th-lord tests, Venus's own strength, and Jupiter
-    merely in a kendra/trikona. O-2's node-sign mitigation exists only when an
-    explicitly named practitioner lineage and exact sign lists are supplied.
-    ``gender``, ``d9_rasi_map`` and ``d9_lagna_rasi`` are accepted for call-site
-    compatibility and ignored.
+    Not read for the grade, by decision: the gender markers (DD-05 moves them
+    out of this detector), the Navamsa 7th-lord tests, Venus's own strength, and
+    Jupiter merely in a kendra/trikona. O-2's node-sign mitigation exists only
+    when an explicitly named practitioner lineage and exact sign lists are
+    supplied. ``gender`` is accepted for call-site compatibility and ignored.
+
+    DD-17 (2026-10-06): ``d9_rasi_map`` / ``d9_lagna_rasi`` are read for
+    *context only* — whether the axis repeats in the Navamsa — and never move
+    the grade, so DD-03's decision stands. The 2/8 axis now weighs the 2nd
+    house's support as it already weighed the 8th's (O-28), and one Guru
+    aspect is counted once (O-29).
     """
-    _ = (gender, d9_rasi_map, d9_lagna_rasi)
+    _ = gender
     active = set(active_lords or ())
     missing_data = [planet for planet in ("RAHU", "KETU", "VENUS", "JUPITER") if planet not in planets]
     if missing_data:
@@ -427,11 +624,19 @@ def detect_rahu_ketu_dosham(
 
     conditions_met: list[str] = []
     cancellation_factors: list[str] = []
+    context_notes: list[str] = []
     seventh_lord = _house_lord(lagna_rasi, 7)
     eighth_lord = _house_lord(lagna_rasi, 8)
+    second_lord = _house_lord(lagna_rasi, 2)
     seventh_rasi = ((lagna_rasi + 5) % 12) + 1
     eighth_rasi = ((lagna_rasi + 6) % 12) + 1
+    second_rasi = (lagna_rasi % 12) + 1
     moon_rasi = _planet_rasi(planets, "MOON") if "MOON" in planets else None
+    # O-29: Guru's influence on a node's house is already
+    # `guru_joins_or_aspects_node`; the house-support tests read the others.
+    house_supporters = tuple(
+        p for p in _RK_BENEFIC_CANDIDATES if not (doctrine.o29_rk_guru_counted_once and p == "JUPITER")
+    )
 
     def natural_class(planet: str) -> str:
         return effective_natural_class(
@@ -468,6 +673,11 @@ def detect_rahu_ketu_dosham(
                 for ref in secondary_refs for node in node_rasis
             ):
                 conditions_met.append("node_afflicts_from_moon_or_venus")
+            elif moon_rasi is not None:
+                # DD-17: the absence was checked too, and a reader is owed it —
+                # an axis that does not repeat from the Moon or Venus is the
+                # lighter reading. Context only; the grade was simply not raised.
+                context_notes.append("rk_axis_not_repeated_from_moon_venus")
 
         # Mitigations — DD-03 table, −1 grade each.
         if jupiter_rasi in node_rasis or any(aspects_house("JUPITER", jupiter_rasi, n) for n in node_rasis):
@@ -476,13 +686,26 @@ def detect_rahu_ketu_dosham(
             seventh_lord in planets and aspects_house("JUPITER", jupiter_rasi, _planet_rasi(planets, seventh_lord))
         ):
             cancellation_factors.append("guru_aspects_seventh_or_its_lord")
-        if axis == "1_7" and _rk_lord_is_strong(planets, seventh_lord, lagna_rasi, combust_planets):
+        if axis == "1_7" and _lord_is_strong(planets, seventh_lord, lagna_rasi, combust_planets):
             cancellation_factors.append("strong_seventh_lord")
         if axis == "2_8" and (
-            _rk_lord_is_strong(planets, eighth_lord, lagna_rasi, combust_planets)
-            or any(natural_class(p) == "BENEFIC" and influences(p, eighth_rasi) for p in _RK_BENEFIC_CANDIDATES)
+            _lord_is_strong(planets, eighth_lord, lagna_rasi, combust_planets)
+            or any(natural_class(p) == "BENEFIC" and influences(p, eighth_rasi) for p in house_supporters)
         ):
             cancellation_factors.append("strong_eighth_lord_or_benefic_on_eighth")
+        # O-28: the node in the 2nd sits in the kudumba sthana, and the 2nd
+        # lord's dignity protects it. The default reads dignity only: the 8th
+        # side's broader test (any kendra/trikona placement) doubled the 2/8
+        # nivarthi rate when applied here too (DD-17 frequency report).
+        if axis == "2_8" and doctrine.o28_rk_second_house_support == "dignity" and _lord_is_dignified(
+            planets, second_lord, combust_planets
+        ):
+            cancellation_factors.append("second_lord_dignified")
+        elif axis == "2_8" and doctrine.o28_rk_second_house_support == "strong_or_benefic" and (
+            _lord_is_strong(planets, second_lord, lagna_rasi, combust_planets)
+            or any(natural_class(p) == "BENEFIC" and influences(p, second_rasi) for p in house_supporters)
+        ):
+            cancellation_factors.append("strong_second_lord_or_benefic_on_second")
         # O-2: no sign list is assumed. A practitioner must name the lineage
         # and supply the exact Rahu/Ketu rasis before this mitigation can fire.
         if doctrine.o2_node_dignity_mode == "explicit_signs" and (
@@ -505,13 +728,48 @@ def detect_rahu_ketu_dosham(
         strength, label = _RK_GRADE[net]
         category = "MARRIAGE"
 
+    formation_strength = _RK_GRADE[aggravated][0] if is_present else ""
+    residual = dosham_residual(
+        is_present=is_present,
+        is_cancelled=is_cancelled,
+        strength=strength,
+        formation_strength=formation_strength,
+        narrow_margin=net == -1,
+    )
+
+    def node_houses_from(ref_rasi: int) -> tuple[int, int]:
+        return house_from_reference(ref_rasi, rahu_rasi), house_from_reference(ref_rasi, ketu_rasi)
+
+    reference_houses: list[ReferenceHouse] = [
+        ReferenceHouse("LAGNA", lagna_rasi, (rahu_house, ketu_house), bool(axis)),
+    ]
+    for ref, ref_rasi in (("MOON", moon_rasi), ("VENUS", venus_rasi)):
+        if ref_rasi is not None:
+            houses = node_houses_from(ref_rasi)
+            reference_houses.append(
+                ReferenceHouse(ref, ref_rasi, houses, any(h in RAHU_KETU_MARRIAGE_HOUSES for h in houses))
+            )
+    # DD-17: the Navamsa repetition, context only (DD-03 keeps D9 out of the grade).
+    if d9_rasi_map and d9_lagna_rasi and "RAHU" in d9_rasi_map and "KETU" in d9_rasi_map:
+        d9_houses = (
+            house_from_reference(d9_lagna_rasi, d9_rasi_map["RAHU"]),
+            house_from_reference(d9_lagna_rasi, d9_rasi_map["KETU"]),
+        )
+        d9_repeats = any(h in RAHU_KETU_MARRIAGE_HOUSES for h in d9_houses)
+        reference_houses.append(ReferenceHouse("D9_LAGNA", d9_lagna_rasi, d9_houses, d9_repeats))
+        if axis:
+            context_notes.append("rk_axis_repeated_in_navamsa" if d9_repeats else "rk_axis_not_repeated_in_navamsa")
+
     what_ta, what_en, why_ta, why_en, how_ta, how_en = _build_dosham_explanations(
         "RAHU_KETU_DOSHAM",
         label,
         conditions_met=conditions_met,
         cancellation_factors=cancellation_factors,
         missing_data=[],
+        residual=residual,
+        context_notes=context_notes,
     )
+    meaning_ta, meaning_en = rk_placement_meaning(rahu_house, ketu_house) if axis else ("", "")
     return DoshamResult(
         name="RAHU_KETU_DOSHAM",
         is_present=is_present,
@@ -531,6 +789,16 @@ def detect_rahu_ketu_dosham(
         explanation_why_en=why_en,
         explanation_how_ta=how_ta,
         explanation_how_en=how_en,
+        formation_strength=formation_strength,
+        residual=residual,
+        context_notes=tuple(context_notes),
+        reference_houses=tuple(reference_houses),
+        meaning_ta=meaning_ta,
+        meaning_en=meaning_en,
+        # The axis names the finding (review 2026-10-06): "Rahu–Ketu Dosham ·
+        # 2/8 axis", never a bare traditional alias like Naga Dosham.
+        variant_ta=f"{axis.replace('_', '/')} அச்சு" if axis else "",
+        variant_en=f"{axis.replace('_', '/')} axis" if axis else "",
     )
 
 
@@ -622,12 +890,25 @@ def detect_pitru_dosham(
     else:
         label = "ACTIVE_DOSHAM"
 
+    # DD-17: two mitigations exist and both are needed, so every nivarthi here
+    # is at the threshold — a STRONG formation keeps a moderate residual.
+    formation_strength = strength if is_present else ""
+    residual = dosham_residual(
+        is_present=is_present,
+        is_cancelled=is_cancelled,
+        strength="WEAK" if is_cancelled else strength,
+        formation_strength=formation_strength,
+        narrow_margin=len(cancellation_factors) == 2,
+    )
+    if not is_present:
+        cancellation_factors = []  # a protection of nothing (L-5); see Sevvai
     what_ta, what_en, why_ta, why_en, how_ta, how_en = _build_dosham_explanations(
         "PITRU_DOSHAM",
         label,
         conditions_met=conditions_met,
         cancellation_factors=cancellation_factors,
         missing_data=[],
+        residual=residual,
     )
     return DoshamResult(
         name="PITRU_DOSHAM",
@@ -648,6 +929,8 @@ def detect_pitru_dosham(
         explanation_why_en=why_en,
         explanation_how_ta=how_ta,
         explanation_how_en=how_en,
+        formation_strength=formation_strength,
+        residual=residual,
     )
 
 
@@ -913,25 +1196,37 @@ def detect_kalathra_dosham(
         if d9_rasi in OWN_SIGN_RASI.get(seventh_lord, set()) or d9_rasi == EXALTATION_RASI.get(seventh_lord):
             cancellation_factors.append("seventh_lord_strong_d9")
 
-    is_cancelled = len(cancellation_factors) >= 2 or (
+    # `is_present and`: a cancellation of nothing is not a nivarthi (the L-5
+    # invariant Putra Sarpa and Badhaka also hold to).
+    is_cancelled = is_present and (len(cancellation_factors) >= 2 or (
         len(cancellation_factors) == 1
         and cancellation_factors[0] in {"seventh_lord_exalted", "jupiter_aspects_seventh_lord"}
+    ))
+    strong_formation = seventh_lord_house == 8 or bool(
+        legacy_affliction and planet_scores and planet_scores.get(seventh_lord, 50) < 40
     )
+    formation_strength = ("STRONG" if strong_formation else "PARTIAL") if is_present else ""
     if not is_present:
         label = "NO_KALATHRA_DOSHAM"
         strength = "WEAK"
     elif is_cancelled:
         label = "KALATHRA_DOSHAM_CANCELLED"
         strength = "WEAK"
-    elif seventh_lord_house == 8:
-        label = "STRONG_KALATHRA_DOSHAM"
-        strength = "STRONG"
-    elif legacy_affliction and planet_scores and planet_scores.get(seventh_lord, 50) < 40:
+    elif strong_formation:
         label = "STRONG_KALATHRA_DOSHAM"
         strength = "STRONG"
     else:
         label = "KALATHRA_DOSHAM"
-        strength = "MODERATE"
+        # Was "MODERATE", a value no other dosham uses; every shared strength
+        # helper read it as Mild, so an active Kalathra dosham displayed as mild.
+        strength = "PARTIAL"
+    residual = dosham_residual(
+        is_present=is_present,
+        is_cancelled=is_cancelled,
+        strength=strength,
+        formation_strength=formation_strength,
+        narrow_margin=len(cancellation_factors) <= 2,
+    )
 
     house_name_ta = {
         6: "6ம் வீட்டில் (ரிபு ஸ்தானம்)",
@@ -943,12 +1238,15 @@ def detect_kalathra_dosham(
         8: "house 8 (Ayush sthana)",
         12: "house 12 (Viraya sthana)",
     }.get(seventh_lord_house, f"house {seventh_lord_house}")
+    if not is_present:
+        cancellation_factors = []  # a protection of nothing (L-5); see Sevvai
     what_ta, what_en, why_ta, why_en, how_ta, how_en = _build_dosham_explanations(
         "KALATHRA_DOSHAM",
         label,
         conditions_met=conditions_met,
         cancellation_factors=cancellation_factors,
         missing_data=[],
+        residual=residual,
     )
 
     return DoshamResult(
@@ -963,14 +1261,14 @@ def detect_kalathra_dosham(
         missing_data=[],
         dasha_activated=_is_active(active, seventh_lord, "VENUS"),
         description_ta=(
-            f"களத்திர தோஷம்: 7ம் அதிபதி ({seventh_lord}) {house_name_ta} உள்ளது; திருமண விஷயங்களில் கவனம் தேவை."
+            f"களத்திர தோஷம்: 7ம் அதிபதி ({planet_ta(seventh_lord)}) {house_name_ta} உள்ளது; திருமண விஷயங்களில் கவனம் தேவை."
             if is_present
-            else f"7ம் அதிபதி ({seventh_lord}) {house_name_ta} உள்ளது; களத்திர தோஷம் இல்லை."
+            else f"7ம் அதிபதி ({planet_ta(seventh_lord)}) {house_name_ta} உள்ளது; களத்திர தோஷம் இல்லை."
         ),
         description_en=(
-            f"Kalathra dosham: 7th lord ({seventh_lord}) is in {house_name_en}; marriage matters need attention."
+            f"Kalathra dosham: 7th lord ({planet_en(seventh_lord)}) is in {house_name_en}; marriage matters need attention."
             if is_present
-            else f"7th lord ({seventh_lord}) is in {house_name_en}; no Kalathra dosham."
+            else f"7th lord ({planet_en(seventh_lord)}) is in {house_name_en}; no Kalathra dosham."
         ),
         explanation_what_ta=what_ta,
         explanation_what_en=what_en,
@@ -978,6 +1276,8 @@ def detect_kalathra_dosham(
         explanation_why_en=why_en,
         explanation_how_ta=how_ta,
         explanation_how_en=how_en,
+        formation_strength=formation_strength,
+        residual=residual,
     )
 
 
@@ -1024,6 +1324,7 @@ def detect_marana_karaka_sthana(
     jupiter_rasi = _planet_rasi(planets, "JUPITER") if "JUPITER" in planets else None
     afflicted: list[str] = []
     mitigated: set[str] = set()
+    jupiter_aspects: set[str] = set()
     cancellation_factors: list[str] = []
 
     for planet, mks_house in MARANA_KARAKA_STHANA.items():
@@ -1037,6 +1338,7 @@ def detect_marana_karaka_sthana(
         if jupiter_rasi is not None and planet != "JUPITER" and aspects_house("JUPITER", jupiter_rasi, rasi):
             cancellation_factors.append(f"jupiter_aspects_{planet.lower()}_in_mks")
             mitigated.add(planet)
+            jupiter_aspects.add(planet)
 
     conditions_met = [f"{planet.lower()}_in_marana_karaka_sthana" for planet in afflicted]
     is_present = bool(afflicted)
@@ -1061,13 +1363,24 @@ def detect_marana_karaka_sthana(
     else:
         label = "MARANA_KARAKA_STHANA_CANDIDATE"
 
+    formation_strength = ("STRONG" if dasha_activated else "PARTIAL") if is_present else ""
+    residual = dosham_residual(
+        is_present=is_present,
+        is_cancelled=is_cancelled,
+        strength=strength,
+        formation_strength=formation_strength,
+        # Each afflicted graha mitigated by exactly one factor: at the threshold.
+        narrow_margin=len(cancellation_factors) <= len(afflicted),
+    )
     what_ta, what_en, why_ta, why_en, how_ta, how_en = _build_dosham_explanations(
         "MARANA_KARAKA_STHANA",
         label,
         conditions_met=conditions_met,
         cancellation_factors=cancellation_factors,
         missing_data=[],
+        residual=residual,
     )
+    meaning_ta, meaning_en = _mks_meaning(planets, afflicted, jupiter_aspects=jupiter_aspects)
     return DoshamResult(
         name="MARANA_KARAKA_STHANA",
         is_present=is_present,
@@ -1095,27 +1408,150 @@ def detect_marana_karaka_sthana(
         explanation_why_en=why_en,
         explanation_how_ta=how_ta,
         explanation_how_en=how_en,
+        formation_strength=formation_strength,
+        residual=residual,
+        meaning_ta=meaning_ta,
+        meaning_en=meaning_en,
     )
 
 
-def detect_putra_sarpa_dosham(planets: dict[str, int], lagna_rasi: int, planet_scores: dict[str, int]) -> DoshamResult:
+def _ordinal_en(n: int) -> str:
+    tail = "th" if 11 <= n % 100 <= 13 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    return f"{n}{tail}"
+
+
+def _join_en(items: list[str], word: str = "and") -> str:
+    return items[0] if len(items) == 1 else f"{', '.join(items[:-1])} {word} {items[-1]}"
+
+
+_PUTRA_SARPA_AFFLICTORS = ("RAHU", "KETU", "SATURN")
+
+
+def _putra_sarpa_meaning(
+    *,
+    fifth_house_rasi: int,
+    fifth_lord: str,
+    in_house: list[str],
+    beside_lord: list[str],
+    beside_guru: list[str],
+    lord_strong: bool,
+    jupiter_house: int | None,
+) -> tuple[str, str]:
+    """The chart's own reading (DD-17 "In your chart"), Tamil and English.
+
+    Names what disturbs the 5th house and what guards it, separately. The card
+    used to say "the 5th house or its lord is afflicted" as the cause and "a
+    strong 5th lord" as the cure, so a reader saw the 5th house on both sides
+    and could not tell which fact in *their* chart did what.
+    """
+    lord_ta, lord_en = planet_ta(fifth_lord), planet_en(fifth_lord)
+    disturb_ta: list[str] = []
+    disturb_en: list[str] = []
+    if in_house:
+        disturb_ta.append(f"{', '.join(planet_ta(p) for p in in_house)} அந்த வீட்டிலேயே இருப்பது")
+        disturb_en.append(f"{_join_en([planet_en(p) for p in in_house])} in the house itself")
+    if beside_lord:
+        disturb_ta.append(f"அதன் அதிபதியான {lord_ta} இருக்கும் ராசியிலேயே {', '.join(planet_ta(p) for p in beside_lord)} இருப்பது")
+        disturb_en.append(f"{_join_en([planet_en(p) for p in beside_lord])} beside its lord, {lord_en}")
+    if beside_guru:
+        disturb_ta.append(f"புத்திர காரகனான குரு இருக்கும் ராசியிலேயே {', '.join(planet_ta(p) for p in beside_guru)} இருப்பது")
+        disturb_en.append(f"{_join_en([planet_en(p) for p in beside_guru])} beside Jupiter, the karaka for children")
+
+    guard_ta: list[str] = []
+    guard_en: list[str] = []
+    if lord_strong:
+        # When the lord is itself the one a malefic sits beside, it is the same
+        # planet on both sides — say so rather than naming it twice.
+        guard_ta.append("அந்த அதிபதி வலுவாக இருப்பது" if beside_lord else f"அதன் அதிபதி {lord_ta} வலுவாக இருப்பது")
+        guard_en.append("the strength of that lord" if beside_lord else f"the strength of its own lord, {lord_en}")
+    if jupiter_house is not None:
+        guard_ta.append(f"புத்திர காரகனான குரு உங்கள் {jupiter_house}-ஆம் வீட்டில் (கேந்திரம்) இருப்பது")
+        guard_en.append(f"Jupiter, the karaka for children, in your {_ordinal_en(jupiter_house)} house (a kendra)")
+
+    dasha = list(dict.fromkeys(in_house + beside_lord + beside_guru))
+    dasha_ta = " அல்லது ".join(planet_ta(p) for p in dasha)
+    dasha_en = _join_en([planet_en(p) for p in dasha], "or")
+    house_ta = f"உங்கள் 5-ஆம் வீட்டை ({rasi_ta(fifth_house_rasi)}) பாதிப்பது: {'; '.join(disturb_ta)}."
+    house_en = f"What disturbs your 5th house ({rasi_en(fifth_house_rasi)}): {'; '.join(disturb_en)}."
+    # Facts and timing only. What it may bring, what to do and the medical
+    # note each have their own section on the card (said once, 2026-10-06).
+    when_ta = f"{dasha_ta} தசை அல்லது புக்தியில் இது அதிகம் உணரப்படலாம்."
+    when_en = f"Most noticeable in the dasha or bhukti of {dasha_en}."
+    if guard_en:
+        return (
+            f"{house_ta} அதைக் காப்பது: {'; '.join(guard_ta)}. {when_ta}",
+            f"{house_en} What guards it: {'; '.join(guard_en)}. {when_en}",
+        )
+    return (
+        f"{house_ta} இந்த ஜாதகத்தில் அதைக் காக்கும் காரணம் இல்லை. {when_ta}",
+        f"{house_en} Nothing in this chart guards it. {when_en}",
+    )
+
+
+def detect_putra_sarpa_dosham(
+    planets: dict[str, int],
+    lagna_rasi: int,
+    planet_scores: dict[str, int],
+    *,
+    doctrine: DoctrineOptions = DEFAULT_DOCTRINE,
+) -> DoshamResult:
     fifth_lord = _house_lord(lagna_rasi, 5)
     fifth_rasi = planets.get(fifth_lord, lagna_rasi)
     fifth_house_rasi = ((lagna_rasi + 5 - 2) % 12) + 1
-    afflicted = any(planets.get(p) == fifth_rasi for p in {"RAHU", "KETU", "SATURN"})
     # Nodes/Saturn occupying the 5th house itself, not just conjunct its lord
     # elsewhere (L-5) — the dosham's own description promises "5th house …
     # afflicted", which the lord-conjunction check alone doesn't cover.
-    fifth_house_occupied_by_malefic = any(
-        planets.get(p) == fifth_house_rasi for p in {"RAHU", "KETU", "SATURN"}
+    in_house = [p for p in _PUTRA_SARPA_AFFLICTORS if planets.get(p) == fifth_house_rasi]
+    # O-32 (owner ruling 2026-10-06): for Thulam lagna, Sani in Kumbam is the
+    # 5th lord in its own sign and the yogakaraka (4th + 5th). The placement is
+    # recorded but does not form the dosham on its own; an independent
+    # affliction still does. This one case only, not "own sign always cancels".
+    sani_neutralized = (
+        doctrine.o32_putra_sarpa_thulam_sani == "neutralized"
+        and lagna_rasi == 7 and "SATURN" in in_house
     )
-    guru_afflicted = any(planets.get(p) == planets.get("JUPITER") for p in {"RAHU", "KETU"})
-    present = afflicted or fifth_house_occupied_by_malefic or guru_afflicted
-    cancellation = []
-    if planet_scores.get(fifth_lord, 50) >= 65:
-        cancellation.append("strong_fifth_lord")
-    if house_from_reference(lagna_rasi, planets.get("JUPITER", lagna_rasi)) in KENDRA_HOUSES:
-        cancellation.append("jupiter_kendra")
+    if sani_neutralized:
+        in_house.remove("SATURN")
+    # A planet does not join itself. For Thulam lagna Saturn *is* the 5th lord,
+    # and comparing Saturn's rasi with its own formed this dosham in every
+    # Thulam-lagna chart. One already counted in the house is not counted twice.
+    beside_lord = [
+        p for p in _PUTRA_SARPA_AFFLICTORS
+        if p != fifth_lord and p not in in_house and planets.get(p) == fifth_rasi
+    ]
+    # Guarded on presence: a chart missing both Jupiter and a node compared
+    # None == None and formed the dosham. Where Jupiter is the 5th lord
+    # (Simmam, Viruchigam lagna) a node beside it is already counted above.
+    beside_guru = [
+        p for p in ("RAHU", "KETU")
+        if "JUPITER" in planets and p in planets and p not in beside_lord
+        and planets[p] == planets["JUPITER"] and not (fifth_lord == "JUPITER" and p in in_house)
+    ]
+    present = bool(in_house or beside_lord or beside_guru)
+    conditions_met: list[str] = (
+        [f"fifth_house_has_{p.lower()}" for p in in_house]
+        + [f"fifth_lord_{fifth_lord.lower()}_joined_by_{p.lower()}" for p in beside_lord]
+        + [f"jupiter_joined_by_{p.lower()}" for p in beside_guru]
+    )
+    lord_strong = planet_scores.get(fifth_lord, 50) >= 65
+    jupiter_house = house_from_reference(lagna_rasi, planets["JUPITER"]) if "JUPITER" in planets else None
+    jupiter_kendra_house = jupiter_house if jupiter_house in KENDRA_HOUSES else None
+    # Each marker names its planet or house, so the card can say *which* lord
+    # is strong and *where* Jupiter stands (was `strong_fifth_lord` /
+    # `jupiter_kendra`; their labels stay in the web panel for older payloads).
+    # Read only for a formed dosham: they were sent on unformed charts too, and
+    # the web card then said "this combination did form … and was annulled".
+    cancellation: list[str] = []
+    if present and lord_strong:
+        cancellation.append(f"fifth_lord_{fifth_lord.lower()}_strong")
+    if present and jupiter_kendra_house is not None:
+        cancellation.append(f"jupiter_in_kendra_house_{jupiter_kendra_house}")
+    # O-32 neutralized and nothing else formed it: "formation detected,
+    # neutralized" — the placement and its reason, with is_present False.
+    neutralized = sani_neutralized and not present
+    if neutralized:
+        conditions_met = ["fifth_house_has_saturn"]
+        cancellation = ["saturn_yogakaraka_own_fifth"]
     label = "NO_DOSHAM"
     if present and cancellation:
         label = "DOSHAM_WITH_NIVARTHI"
@@ -1123,34 +1559,71 @@ def detect_putra_sarpa_dosham(planets: dict[str, int], lagna_rasi: int, planet_s
         label = "STRONG_ACTIVE_DOSHAM"
     elif present:
         label = "ACTIVE_DOSHAM"
+    # is_cancelled must never be True when is_present is False (L-5) —
+    # there's nothing to cancel if the dosham was never triggered.
+    is_cancelled = present and bool(cancellation)
+    formation_strength = ("STRONG" if planet_scores.get(fifth_lord, 50) < 40 else "PARTIAL") if present else ""
+    # DD-17: a mitigated dosham reads WEAK like every other detector's; it
+    # used to keep PARTIAL beside its nivarthi label.
+    strength = "WEAK" if is_cancelled or not present else formation_strength
+    residual = dosham_residual(
+        is_present=present,
+        is_cancelled=is_cancelled,
+        strength=strength,
+        formation_strength=formation_strength,
+        narrow_margin=len(cancellation) == 1,
+    )
     what_ta, what_en, why_ta, why_en, how_ta, how_en = _build_dosham_explanations(
         "PUTRA_SARPA_DOSHAM",
         label,
-        conditions_met=["fifth_afflicted"] if present else [],
+        conditions_met=conditions_met,
         cancellation_factors=cancellation,
         missing_data=[],
+        residual=residual,
     )
+    meaning_ta, meaning_en = _putra_sarpa_meaning(
+        fifth_house_rasi=fifth_house_rasi,
+        fifth_lord=fifth_lord,
+        in_house=in_house,
+        beside_lord=beside_lord,
+        beside_guru=beside_guru,
+        lord_strong=lord_strong,
+        jupiter_house=jupiter_kendra_house,
+    ) if present else ("", "")
+    if neutralized:
+        why_ta = (
+            "சனி உங்கள் 5-ஆம் வீடான கும்பத்தில் உள்ளது. ஆனால் துலாம் லக்னத்திற்கு சனி 5-ஆம் அதிபதி, "
+            "ஆட்சி பெற்றுள்ளது, யோககாரகனும் கூட; தன் சொந்த வீட்டை அது காக்கிறது. "
+            "5-ஆம் வீடு, அதன் அதிபதி அல்லது குருவுக்கு வேறு பாதிப்பு இல்லாததால் புத்ர சர்ப்ப தோஷம் செயல்படவில்லை."
+        )
+        why_en = (
+            "Saturn sits in your 5th house, Kumbam. For Thulam lagna Saturn is the 5th lord, in its own sign, "
+            "and the yogakaraka, so it guards the house it owns. With no other affliction to the 5th house, "
+            "its lord or Jupiter, Putra Sarpa Dosham is not active."
+        )
     return DoshamResult(
         name="PUTRA_SARPA_DOSHAM",
         is_present=present,
-        # is_cancelled must never be True when is_present is False (L-5) —
-        # there's nothing to cancel if the dosham was never triggered.
-        is_cancelled=present and bool(cancellation),
-        strength="STRONG" if label == "STRONG_ACTIVE_DOSHAM" else ("PARTIAL" if present else "WEAK"),
+        is_cancelled=is_cancelled,
+        strength=strength,
+        formation_strength=formation_strength,
+        residual=residual,
         label=label,
         category="CHILDREN",
-        conditions_met=["fifth_afflicted"] if present else [],
+        conditions_met=conditions_met,
         cancellation_factors=cancellation,
         missing_data=[],
         dasha_activated=False,
-        description_ta="புத்ர/சர்ப்ப தோஷம் — 5ஆம் பாவம் அல்லது குரு பாதிப்பு.",
-        description_en="Putra/Sarpa dosham — affliction to 5th house or Jupiter.",
+        description_ta="புத்ர சர்ப்ப தோஷம் — 5-ஆம் வீடு, அதன் அதிபதி அல்லது குரு ராகு, கேது அல்லது சனியால் பாதிக்கப்படுவது.",
+        description_en="Putra Sarpa dosham — the 5th house, its lord or Jupiter afflicted by Rahu, Ketu or Saturn.",
         explanation_what_ta=what_ta,
         explanation_what_en=what_en,
         explanation_why_ta=why_ta,
         explanation_why_en=why_en,
         explanation_how_ta=how_ta,
         explanation_how_en=how_en,
+        meaning_ta=meaning_ta,
+        meaning_en=meaning_en,
     )
 
 
@@ -1179,18 +1652,33 @@ def detect_badhaka_dosham(
         label = "STRONG_ACTIVE_DOSHAM"
     elif active:
         label = "ACTIVE_DOSHAM"
+    # Was `bool(cancellation)` alone, so a strong badhaka lord reported a
+    # nivarthi on charts where the dosham never formed (the L-5 invariant).
+    is_cancelled = active and bool(cancellation)
+    formation_strength = ("STRONG" if current_maha_lord == badhaka_lord else "PARTIAL") if active else ""
+    strength = "WEAK" if is_cancelled or not active else formation_strength
+    residual = dosham_residual(
+        is_present=active,
+        is_cancelled=is_cancelled,
+        strength=strength,
+        formation_strength=formation_strength,
+        narrow_margin=True,  # one mitigation exists, so any nivarthi is at the threshold
+    )
     what_ta, what_en, why_ta, why_en, how_ta, how_en = _build_dosham_explanations(
         "BADHAKA_DOSHAM",
         label,
         conditions_met=["badhaka_active"] if active else [],
         cancellation_factors=cancellation,
         missing_data=[],
+        residual=residual,
     )
     return DoshamResult(
         name="BADHAKA_DOSHAM",
         is_present=active,
-        is_cancelled=bool(cancellation),
-        strength="STRONG" if label == "STRONG_ACTIVE_DOSHAM" else ("PARTIAL" if active else "WEAK"),
+        is_cancelled=is_cancelled,
+        strength=strength,
+        formation_strength=formation_strength,
+        residual=residual,
         label=label,
         category="OBSTACLES",
         conditions_met=["badhaka_active"] if active else [],

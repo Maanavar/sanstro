@@ -23,7 +23,7 @@ import { Card, Kicker } from "./ui";
  */
 
 const SIGNAL_META: Record<string, { Icon: LucideIcon; ta: string; en: string; color: string }> = {
-  COMBUST_SHARED:    { Icon: Sun,      ta: "அஸ்தமனம்", en: "Combust",    color: "var(--color-accent-strong)" },
+  COMBUST_SHARED:    { Icon: Sun,      ta: "அஸ்தங்கம்", en: "Combust",    color: "var(--color-accent-strong)" },
   NODE_FRICTION:     { Icon: Orbit,    ta: "ராகு-கேது", en: "Nodes",      color: "var(--color-low)" },
   RETROGRADE_LOAD:   { Icon: RotateCcw, ta: "வக்ரம்",     en: "Retrograde", color: "var(--color-mid-text)" },
   CHILD_WEAK_PLANET: { Icon: Baby,     ta: "குழந்தை",   en: "Child",      color: "var(--color-high)" },
@@ -148,7 +148,7 @@ export function DashboardFamilyHarmonyRemedies({
           <Kicker>{lang === "ta" ? "குடும்ப ஒற்றுமை பரிகாரங்கள்" : "Family harmony remedies"}</Kicker>
           <p style={{ margin: "5px 0 0", fontSize: "var(--text-sm)", lineHeight: 1.55, color: "var(--color-muted)", maxWidth: "52ch" }}>
             {lang === "ta"
-              ? "அனைவரின் ஜாதகத்தையும் ஒன்றாகப் படித்து, அஸ்தமனம் · வக்ரம் · ராகு-கேது நிலை அடிப்படையில் பொதுவான பரிகாரங்கள்."
+              ? "அனைவரின் ஜாதகத்தையும் ஒன்றாகப் படித்து, அஸ்தங்கம் · வக்ரம் · ராகு-கேது நிலை அடிப்படையில் பொதுவான பரிகாரங்கள்."
               : "Everyone's charts read together — shared remedies drawn from combustion, retrogression and node placements across the family."}
           </p>
         </div>

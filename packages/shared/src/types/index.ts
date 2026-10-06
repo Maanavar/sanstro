@@ -418,6 +418,14 @@ export interface ChartYogaInsight {
    * `yogaActivationState`. Optional so an older payload still types.
    */
   activationTier?: "STRONG" | "MODERATE" | "NONE";
+  /**
+   * O-25 (2026-10-05): the forming grahas' structural reach, a Vinaadi
+   * tie-break for the Top-3 yoga lists, not classical doctrine. Lexicographic
+   * in one integer: houses ruled ×100, houses occupied ×10, +1 when the Lagna
+   * or its lord takes part. Compare it, never display it. Optional so an older
+   * payload still types (reads as 0).
+   */
+  structuralReach?: number;
 }
 
 export interface ChartDoshamInsight {
@@ -442,6 +450,32 @@ export interface ChartDoshamInsight {
   /** Optional named sub-type, e.g. the specific Kala Sarpa naga (Ananta..Sheshanaga). */
   variantTa?: string;
   variantEn?: string;
+  // DD-17 (2026-10-06). Optional so an older cached payload still types; read
+  // them through `@vinaadi/shared/doshamReckoning`, which falls back safely.
+  /** Grade before any mitigation; "" when the dosham did not form. */
+  formationStrength?: "STRONG" | "PARTIAL" | "WEAK" | "";
+  /** What remains after mitigation. Never "NONE" while `isPresent`. */
+  residual?: DoshamResidual;
+  /** Context that shapes the reading without moving the grade (language-free keys). */
+  contextNotes?: string[];
+  /** Where the dosham was counted from, one row per reference point. */
+  referenceHouses?: DoshamReferenceHouse[];
+  /** What this placement tends to bring in this chart (e.g. Ketu in the 2nd). */
+  meaningTa?: string;
+  meaningEn?: string;
+}
+
+export type DoshamResidual = "NONE" | "MILD" | "MODERATE" | "STRONG";
+
+/** DD-17: one reference point a dosham was counted from. */
+export interface DoshamReferenceHouse {
+  reference: "LAGNA" | "MOON" | "VENUS" | "D9_LAGNA";
+  /** Rasi number 1–12 — render it through the localiser, never a name field. */
+  referenceRasi: number;
+  /** Mars's house; for the nodes, the Rahu house then the Ketu house. */
+  houses: number[];
+  /** Whether the placement falls in the dosham's houses from this reference. */
+  counts: boolean;
 }
 
 /**
@@ -1240,6 +1274,29 @@ export interface ChartExplanationData {
   summary: ChartExplanationSummarySection;
   peyarchi: ChartExplanationPeyarchiSection;
   methodNote: BiText;
+  /** The Story view's picks (FTR-21, app/services/reading_story.py). Optional —
+   *  older servers and cached payloads omit it; clients then select locally. */
+  story?: ChartExplanationStory | null;
+}
+
+export interface ChartExplanationStoryPlanet {
+  graha: string;
+  /** Keys into this planet's `facets`, at most two, in display order. */
+  whyFacetKeys: string[];
+  activeNow: boolean;
+}
+
+export interface ChartExplanationStoryCare {
+  name: string;
+  kind: "DOSHAM" | "YOGA";
+}
+
+export interface ChartExplanationStory {
+  headline?: BiText | null;
+  planets: ChartExplanationStoryPlanet[];
+  topNatalYogas: string[];
+  topActiveYogas: string[];
+  carePatterns: ChartExplanationStoryCare[];
 }
 
 export type PanchangamFestivalCategory =

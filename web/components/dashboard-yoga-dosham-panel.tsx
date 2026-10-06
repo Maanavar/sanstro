@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { t, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { ChartYogaInsight, ChartDoshamInsight } from "@/lib/types";
@@ -21,7 +21,10 @@ import {
   yogaActivationState,
 } from "@vinaadi/shared/yogaDisplay";
 import type { YogaActivationState, YogaReadingStatus } from "@vinaadi/shared/yogaDisplay";
+import { doshamResidual, doshamSeverityChip } from "@vinaadi/shared/doshamReckoning";
 import { Card } from "./ui/card";
+import { DoshamReckoningBlock } from "./dosham-reckoning-block";
+import { doshamAnchorId, useDoshamCardRequest } from "@/lib/dosham-deep-link";
 
 // ── Display name maps ────────────────────────────────────────────────────────
 // These now live in @vinaadi/shared so mobile renders the same names. Re-exported
@@ -46,7 +49,7 @@ export {
 
 const MARKER_LABELS: Record<string, { ta: string; en: string }> = {
   mars_combust: {
-    ta: "செவ்வாய் அஸ்தங்கம் அடைந்திருப்பதால் மீதமுள்ள தோஷ அழுத்தம் கூடுகிறது",
+    ta: "செவ்வாய் அஸ்தங்கமடைந்திருப்பதால் மீதமுள்ள தோஷ அழுத்தம் கூடுகிறது",
     en: "Mars is combust, increasing the residual dosham pressure",
   },
   mars_joined_saturn_or_rahu: {
@@ -69,7 +72,10 @@ const MARKER_LABELS: Record<string, { ta: string; en: string }> = {
   jupiter_aspect_on_mars:           { ta: "குரு செவ்வாயை பார்க்கிறார் — நலமான தோஷ குறைப்பு", en: "Jupiter aspects Mars — a strong protective influence" },
   jupiter_conjunct_mars:            { ta: "குரு செவ்வாயுடன் சேர்ந்திருக்கிறார் — மிகவும் வலுவான நிவர்த்தி", en: "Jupiter is conjunct Mars in the same house — very strong cancellation" },
   benefic_association_mars:         { ta: "சுபக்கிரகம் செவ்வாயுடன் இணைந்துள்ளது — தோஷம் மெலிகிறது", en: "A benefic planet is with Mars — dosham is weakened" },
-  mars_dispositor_kendra_trikona:   { ta: "செவ்வாயின் வீட்டு அதிபதி கேந்திர/திரிகோணத்தில் — குறைந்த தாக்கம்", en: "Mars sign-lord is in a kendra or trikona — reduced impact" },
+  // O-26 (DD-17): off by default; if switched on it is counted *from Mars*, and
+  // the label must say so — "in a kendra or trikona" alone was checked from the
+  // Lagna by a reviewing practitioner and found false.
+  mars_dispositor_kendra_trikona:   { ta: "செவ்வாயிலிருந்து எண்ணும்போது, செவ்வாயின் ராசி அதிபதி கேந்திரம் அல்லது திரிகோணத்தில் உள்ளது — குறைந்த தாக்கம்", en: "Counted from Mars, Mars's sign lord is in a kendra or trikona — reduced impact" },
   benefic_strong_seventh_lord:      { ta: "வலுவான சுப 7-ம் அதிபதி பாதுகாப்பு தருகிறார்", en: "A strong benefic 7th lord provides protection" },
   both_partners_have_sevvai:        { ta: "இருவருக்கும் ஒப்பான செவ்வாய் நிலை — ஒத்திசைவு சீர்படுகிறது", en: "Both partners have comparable Sevvai — compatibility balances out" },
   // Rahu-Ketu — one axis finding (DD-03), then each aggravation raises the grade
@@ -82,9 +88,19 @@ const MARKER_LABELS: Record<string, { ta: string; en: string }> = {
   node_afflicts_from_moon_or_venus:  { ta: "சந்திரன் அல்லது சுக்கிரனிலிருந்தும் இந்த அச்சு திருமண வீட்டில் விழுகிறது", en: "Counted from the Moon or Venus too, the axis falls on a marriage house" },
   // Rahu-Ketu nivarthi — each lowers the grade one step; none is a veto
   guru_joins_or_aspects_node:              { ta: "குரு ராகு/கேதுவுடன் சேர்ந்துள்ளார் அல்லது பார்க்கிறார் — தாக்கம் குறைகிறது", en: "Jupiter joins or aspects a node — the impact is reduced" },
-  node_in_favourable_sign_lineage: { ta: "தேர்ந்தெடுக்கப்பட்ட மரபின்படி இந்த ராகு/கேது ராசி சாதகமாகக் கருதப்படுகிறது", en: "The selected practitioner lineage treats this node sign as favourable" },
+  // Lineage-dependent, so never worded as a universal rule (owner ruling 2026-10-03, v1.8).
+  node_in_favourable_sign_lineage: { ta: "தேர்ந்தெடுக்கப்பட்ட ஜோதிட மரபுப்படி, ராகு/கேது இருக்கும் இந்த ராசி சாதகமானதாகக் கருதப்படுகிறது", en: "By the selected astrological lineage, the sign this node occupies is treated as favourable" },
   guru_aspects_seventh_or_its_lord:        { ta: "குரு 7-ம் வீட்டையோ அதன் அதிபதியையோ பார்க்கிறார் — திருமணத்திற்குப் பாதுகாப்பு", en: "Jupiter aspects the 7th house or its lord — a protective influence on marriage" },
-  strong_eighth_lord_or_benefic_on_eighth: { ta: "8-ம் அதிபதி வலுவாக உள்ளார், அல்லது சுப கிரகம் 8-ம் வீட்டில் உள்ளது / அதைப் பார்க்கிறது — தாக்கம் குறைகிறது", en: "The 8th lord is strong, or a benefic influences the 8th house — the impact is reduced" },
+  // Tamil per owner ruling 2026-10-03: the 8th *receives support*; never "afflicts".
+  // Same sentence as the backend (`_yoga_helpers`); native-reader correction 2026-10-03,
+  // "8-ஆம்" said once (O-25 review, 2026-10-05).
+  strong_eighth_lord_or_benefic_on_eighth: { ta: "8-ஆம் வீட்டிற்கு ஆதரவு உள்ளது: அதன் அதிபதி வலுவாக உள்ளது அல்லது சுப கிரக ஆதரவு கிடைக்கிறது — இதனால் தாக்கம் குறைகிறது.", en: "The 8th house is supported: the 8th lord is strong, or a benefic influences the 8th house — the impact is reduced" },
+  // O-28 (DD-17): the node in the 2nd weighed by the 2nd house's own support.
+  // Default reads the 2nd lord's dignity only; the broader form is an option.
+  // Guru is excluded from the broader form because its aspect on a node is
+  // already counted (O-29).
+  second_lord_dignified: { ta: "2-ஆம் அதிபதி ஆட்சி அல்லது உச்ச ராசியில், பாவ கிரகச் சேர்க்கையின்றி உள்ளது — 2-ஆம் வீட்டிற்குப் பாதுகாப்பு.", en: "The 2nd lord is in its own or exaltation sign, unafflicted — the 2nd house is protected" },
+  strong_second_lord_or_benefic_on_second: { ta: "2-ஆம் வீட்டிற்கு ஆதரவு உள்ளது: அதன் அதிபதி வலுவாக உள்ளது அல்லது குரு அல்லாத சுப கிரக ஆதரவு கிடைக்கிறது — இதனால் தாக்கம் குறைகிறது.", en: "The 2nd house is supported: the 2nd lord is strong, or a benefic other than Jupiter influences the 2nd house — the impact is reduced" },
   jupiter_kendra_trikona_support: { ta: "குரு கேந்திர/திரிகோணத்தில் — ராகு/கேது தாக்கம் குறைகிறது", en: "Jupiter is in a kendra or trikona — Rahu/Ketu impact is reduced" },
   strong_seventh_lord:             { ta: "வலுவான 7-ம் அதிபதி திருமண ஆண்மையை காக்கிறார்", en: "Strong 7th lord protects marriage significations" },
   // Pitru
@@ -111,8 +127,18 @@ const MARKER_LABELS: Record<string, { ta: string; en: string }> = {
   exaltation_sign_lord_aspects_debilitated: { ta: "உச்ச ராசி அதிபதி நீசக் கிரகத்தை பார்க்கிறார்", en: "The exaltation sign's lord aspects the debilitated planet" },
   // Raja Yoga grade (DD-07, Tier C display label)
   raja_grade_full:      { ta: "இரு அதிபதிகளுக்கும் வேறு சிக்கலான ஆதிபத்தியம் இல்லை — முழு ராஜயோகம்", en: "Neither lord carries a difficult second lordship — a full Raja Yoga" },
-  raja_grade_qualified: { ta: "ஒரு அதிபதி 2/3/11/12-ஐயும் ஆள்கிறார் — நிபந்தனையுடன் கூடிய ராஜயோகம்", en: "One lord also rules the 2nd, 3rd, 11th or 12th — a qualified Raja Yoga" },
-  raja_grade_mixed:     { ta: "ஒரு அதிபதி 6/8-ஐயும் ஆள்கிறார் — கலப்பு பலன்", en: "One lord also rules the 6th or 8th — mixed results" },
+  // A graha is not a person: no ஒருவர், no -ார் verb (O-25 review T4, 2026-10-05).
+  raja_grade_qualified: { ta: "தொடர்பில் உள்ள கிரகங்களில் ஒன்று 2, 3, 11 அல்லது 12-ஆம் வீட்டிற்கும் அதிபதியாக உள்ளது — அதனால் இது நிபந்தனையுடனான ராஜயோகம்.", en: "One lord also rules the 2nd, 3rd, 11th or 12th — a qualified Raja Yoga" },
+  // "6/8-ஐயும்" read as developer shorthand (native-reader correction, 2026-10-03);
+  // the T4 construction applied by analogy (2026-10-05, not itself reviewed).
+  raja_grade_mixed:     { ta: "தொடர்பில் உள்ள கிரகங்களில் ஒன்று 6 அல்லது 8-ஆம் வீட்டிற்கும் அதிபதியாக உள்ளது — அதனால் பலன் கலப்பாகிறது.", en: "One lord also rules the 6th or 8th — mixed results" },
+  // v1.7 (O-24): a natural benefic ruling two kendras. Wording owner-ruled
+  // 2026-10-03 (v1.8): no "Mixed Raja Yoga", no bare "dosham" claim.
+  raja_grade_mixed_kendradhipati: { ta: "கேந்திர–திரிகோண அதிபதிகளுக்கு தொடர்பு உள்ளது. ஆனால் தொடர்புடைய கிரகத்தின் மற்றொரு வீட்டு அதிபத்தியம் முழுமையான சுபபலத்தைத் தளர்த்துகிறது. எனவே இது முழுப் பல ராஜயோகமாக அல்லாது, கலப்பு பலனுடைய அமைப்பாக மதிப்பிடப்படுகிறது.", en: "The kendra and trikona lords are linked, but one planet's other lordship loosens its full benefic strength, so this is assessed as mixed rather than a full-strength Raja Yoga." },
+  // O-21: Budhan is the lord of its own exaltation sign. The tag is emitted
+  // only when a self-referenced rule fired, i.e. its kendra condition held, so
+  // the "condition is met" wording applies (owner ruling 2026-10-03, v1.8).
+  nb_self_reference: { ta: "புதனின் உச்சராசியான கன்னிக்கும் புதனே அதிபதி. தேவையான கேந்திர நிலையில் புதன் இருப்பதால், இந்த நீசபங்க நிபந்தனை நிறைவேறுகிறது.", en: "Mercury's exaltation sign, Kanni, is also ruled by Mercury. With Mercury in the required kendra, this cancellation condition is met." },
   ninth_lord_without_dignity: { ta: "9-ம் அதிபதிக்கு ஆட்சி/உச்ச பலம் இல்லை", en: "The 9th lord is not in its own or exaltation sign" },
   // DD-02 (v1.3): ninth_lord_{exalted|own_sign|moolatrikona} — the dignity
   // half of Lakshmi Yoga's presence test.
@@ -141,14 +167,19 @@ const MARKER_LABELS: Record<string, { ta: string; en: string }> = {
   fifth_afflicted:       { ta: "5-ம் வீடு/அதிபதி ராகு-கேது அல்லது பாதக கிரகங்களால் பாதிக்கப்பட்டுள்ளது", en: "The 5th house or its lord is afflicted by the nodes or malefics (progeny/creativity house)" },
   strong_fifth_lord:     { ta: "5-ம் அதிபதி வலுவாக உள்ளார் — தாக்கம் குறைகிறது", en: "The 5th lord is strong — impact is reduced" },
   jupiter_kendra:        { ta: "குரு கேந்திரத்தில் — சந்தான காரகன் பாதுகாக்கிறார்", en: "Jupiter is in a kendra — the progeny significator protects" },
+  // O-32 (owner ruling 2026-10-06): Thulam lagna, Sani in its own 5th.
+  saturn_yogakaraka_own_fifth: { ta: "துலாம் லக்னத்திற்கு சனி 5-ஆம் அதிபதியும் யோககாரகனும்; ஆட்சி பெற்று தன் வீட்டிலேயே இருப்பதால் அந்த வீட்டைக் காக்கிறது", en: "For Thulam lagna Saturn is the 5th lord and the yogakaraka, in its own sign, so it guards the house it occupies" },
   // Neecha Bhanga / debilitation-cancellation detail
   debilitated_planet_strong_d9:      { ta: "நீசக் கிரகம் நவாம்சத்தில் வலுவாக உள்ளது — நீசம் கணிசமாக ரத்தாகிறது", en: "The debilitated planet is strong in the Navamsa (D9) — the debilitation is substantially cancelled" },
   debilitated_planet_retrograde_note: { ta: "நீசக் கிரகம் வக்ர கதியில் உள்ளது — பாரம்பரியமாக நீசத்தை மென்மையாக்கும் காரணி", en: "The debilitated planet is retrograde — traditionally read as softening the debilitation" },
-  debilitated_planet_retrograde: { ta: "நீசக் கிரகம் வக்ர கதியில் உள்ளது", en: "The debilitated planet is retrograde" },
-  bright_rays_engine_non_combust: { ta: "கிரகம் அஸ்தங்கம் அடையவில்லை — நூல் கூறும் 'ஒளி நிறைந்த' நிலைக்கு வினாடி தற்காலிகமாக இதையே அளவாகக் கொள்கிறது", en: "The planet is non-combust, Vinaadi's provisional proxy for bright rays" },
-  debilitated_planet_outside_dusthana: { ta: "நீசக் கிரகம் 6/8/12 அல்லாத வீட்டில் உள்ளது", en: "The debilitated planet is outside houses 6, 8 and 12" },
-  ninth_lord_not_in_lakshmi_kendra: { ta: "9-ம் அதிபதி லக்ஷ்மி யோகத்திற்கான கேந்திரத்தில் இல்லை", en: "The 9th lord is not in a Lakshmi-Yoga kendra" },
-  lagna_lord_below_baladhya_threshold: { ta: "லக்னாதிபதி நிர்ணயிக்கப்பட்ட பல வரம்பை அடையவில்லை", en: "The lagna lord is below the selected baladhya threshold" },
+  // O-11 / O-17 wording, owner-ruled 2026-10-03 (v1.8). O-11's three markers
+  // render only if that detector is switched on; "bright rays" is never
+  // claimed as met.
+  debilitated_planet_retrograde: { ta: "நீச நிலையில் உள்ள கிரகம் வக்கிர நிலையில் அமைந்துள்ளது. இந்த நிலை, பயன்படுத்தப்படும் இந்த ராஜயோக விதியின் ஒரு நிபந்தனையாகக் கணக்கில் எடுத்துக்கொள்ளப்படுகிறது.", en: "The debilitated planet is retrograde. This rule counts that as one of its conditions." },
+  bright_rays_engine_non_combust: { ta: "கிரகம் அஸ்தங்க நிலையில் இல்லை. மூலநூலில் குறிப்பிடப்படும் ‘பிரகாசமான கதிர்கள்’ என்ற நிபந்தனையை நேரடியாக அளவிட முடியாததால், கணக்கீட்டில் அஸ்தங்கமின்மை ஒரு மாற்றுக் குறியீடாக மட்டும் பயன்படுத்தப்படுகிறது; இரண்டும் ஒன்றே அல்ல.", en: "The planet is not combust. The classical 'bright rays' condition cannot be measured directly, so the calculation uses non-combustion only as a stand-in; the two are not the same." },
+  debilitated_planet_outside_dusthana: { ta: "நீச நிலையில் உள்ள கிரகம் 6, 8 அல்லது 12-ஆம் வீட்டில் இல்லை. இந்த விதியில் இது சாதகமான ஒரு நிபந்தனையாகக் கணக்கில் எடுத்துக்கொள்ளப்படுகிறது.", en: "The debilitated planet is not in the 6th, 8th or 12th house. This rule counts that as a favourable condition." },
+  ninth_lord_not_in_lakshmi_kendra: { ta: "9-ஆம் வீட்டின் அதிபதி தேவையான கேந்திர நிலையில் இல்லாததால், லக்ஷ்மி யோகத்தின் இந்த நிபந்தனை நிறைவேறவில்லை.", en: "The 9th lord is not in the required kendra, so this Lakshmi Yoga condition is not met." },
+  lagna_lord_below_baladhya_threshold: { ta: "இந்த லக்ஷ்மி யோக விதிக்குத் தேவையான அளவுக்கு லக்ன அதிபதி பலமாக இல்லை. அதனால் முழு யோக நிபந்தனை நிறைவேறவில்லை.", en: "The lagna lord is not as strong as this Lakshmi Yoga rule requires, so the full yoga condition is not met." },
   // Dhana / Daridra (wealth axis)
   eleventh_lord_weak_malefic_conj: { ta: "11-ம் அதிபதி பலவீனமாக, பாபக்கிரகத்துடன் சேர்ந்துள்ளார் — வருமான வழியில் அழுத்தம்", en: "The 11th lord is weak and joined by a malefic — pressure on the income channel" },
   // Kalathra / marriage protection
@@ -161,7 +192,7 @@ const MARKER_LABELS: Record<string, { ta: string; en: string }> = {
   moon_mars_mutual_seventh: { ta: "சந்திரனும் செவ்வாயும் ஒருவரையொருவர் 7-ல் பார்க்கின்றனர்", en: "Moon and Mars are in mutual 7th-house aspect" },
   // Budha-Aditya detail
   mercury_sun_same_rasi:   { ta: "புதனும் சூரியனும் ஒரே ராசியில் உள்ளனர்", en: "Mercury and the Sun are in the same sign" },
-  mercury_combust_partial: { ta: "புதன் சூரியனுக்கு அருகில் அஸ்தங்கம் அடைந்துள்ளது — யோகப் பலன் ஓரளவு குறைகிறது", en: "Mercury is combust (asthangamam) close to the Sun — the yoga's result is partly reduced" },
+  mercury_combust_partial: { ta: "சூரியனுக்கு மிக அருகில் இருப்பதால் புதன் அஸ்தங்கமடைந்துள்ளது — யோகப் பலன் ஓரளவு குறைகிறது.", en: "Mercury is combust (asthangamam) close to the Sun — the yoga's result is partly reduced" },
   // Gaja Kesari / Moon-strength detail
   jupiter_aspects_moon:    { ta: "குரு சந்திரனை பார்க்கிறார்", en: "Jupiter aspects the Moon" },
   moon_kendra_from_lagna:  { ta: "சந்திரன் லக்னத்திலிருந்து கேந்திரத்தில் உள்ளார்", en: "The Moon is in a kendra from the Lagna" },
@@ -179,7 +210,7 @@ const MARKER_LABELS: Record<string, { ta: string; en: string }> = {
   // parametrized below in MARKER_PATTERNS.
   jupiter_in_kendra_from_lagna: { ta: "குரு லக்னத்திலிருந்து கேந்திரத்தில் உள்ளார்", en: "Jupiter is in a kendra from the Lagna" },
   jupiter_not_debilitated:      { ta: "குரு நீசம் பெறவில்லை", en: "Jupiter is not debilitated" },
-  jupiter_not_combust:          { ta: "குரு அஸ்தங்கம் அடையவில்லை", en: "Jupiter is not combust" },
+  jupiter_not_combust:          { ta: "குரு அஸ்தங்கமடையவில்லை.", en: "Jupiter is not combust" },
   jupiter_not_in_enemy_sign:    { ta: "குரு பகைவீட்டில் இல்லை", en: "Jupiter is not in an enemy's sign" },
   // Gaja Kesari base form (DD-01) — the supportive Moon-kendra geometry that
   // stays visible even where the strict Parashara form does not qualify.
@@ -192,10 +223,12 @@ const MARKER_LABELS: Record<string, { ta: string; en: string }> = {
   adhi_base_geometry: { ta: "புதன், குரு அல்லது சுக்கிரன் சந்திரனிலிருந்து 6, 7 அல்லது 8-ம் வீட்டில் — அதி யோகத்தின் அடிப்படை வடிவமைப்பு (பிருஹத் ஜாதகம் 13.2)", en: "Mercury, Jupiter or Venus occupies the 6th, 7th or 8th from the Moon — Adhi Yoga's base geometry (Brihat Jataka 13.2)" },
   adhi_distribution_interpretation: { ta: "இந்த மூன்று வீடுகளில் ஒன்றோ, இரண்டோ, மூன்றுமோ ஆக்கிரமிக்கப்பட்டாலும் யோகம் உருவாகிறது (ஸ்ருதகீர்த்தி உரை, பிருஹத் ஜாதகம் 13.2)", en: "The yoga forms whether one, two, or all three of those houses are occupied (Srutakeerti's commentary on Brihat Jataka 13.2)" },
   adhi_single_planet_sufficiency: { ta: "ஒரே ஒரு வலுவான சுபகிரகமே பகுதி அதி யோகத்தை உருவாக்க போதுமானது (பி. வி. ராமன், யோகம் 7)", en: "One sufficiently strong benefic alone is enough to form a partial Adhi Yoga (Raman, 300 Combinations, Yoga 7)" },
-  // A candidate grade, so both languages say so. The unfinished source check
-  // (Saravali verse, §18) is recorded in the doctrine file, not told to users.
-  adhi_raja_grade_candidate: { ta: "முழு (ராஜ தர) அதி யோகத்திற்கான பரிசீலனையில் உள்ள அமைப்பு — உருவாக்கும் சுபகிரகங்கள் அஸ்தங்கம், கடுமையான பாவக்கிரகப் பாதிப்பு இன்றி உள்ளன", en: "A candidate for the full (raja-grade) Adhi Yoga — the forming benefics are free of combustion and serious malefic affliction" },
-  adhi_no_forming_benefic_combust: { ta: "யோகத்தை உருவாக்கும் சுபகிரகங்களில் எதுவும் அஸ்தங்கம் அடையவில்லை", en: "None of the forming benefics is combust" },
+  // A candidate grade, so neither language claims the full yoga. The
+  // unfinished source check (Saravali verse, §18) is recorded in the doctrine
+  // file, not told to users. Owner-ruled wording 2026-10-03 (v1.8); the two
+  // markers below carry the combustion and affliction facts.
+  adhi_raja_grade_candidate: { ta: "அதி யோகத்தின் அடிப்படை அமைப்பு உள்ளது. ஆனால் அதன் முழுப் பலத்திற்குத் தேவையான அனைத்து நிபந்தனைகளும் நிறைவேறியதாக உறுதியாகவில்லை.", en: "The base Adhi Yoga pattern is present, but not every condition for its full strength is confirmed as met." },
+  adhi_no_forming_benefic_combust: { ta: "யோகத்தை உருவாக்கும் சுபகிரகங்களில் எதுவும் அஸ்தங்கமடையவில்லை.", en: "None of the forming benefics is combust" },
   adhi_no_serious_malefic_affliction: { ta: "யோகத்தை உருவாக்கும் சுபகிரகங்களுக்கு கடுமையான பாவக்கிரக பாதிப்பு இல்லை", en: "No serious malefic affliction touches the forming benefics" },
 };
 
@@ -246,7 +279,7 @@ const MARKER_PATTERNS: { re: RegExp; label: (m: RegExpMatchArray, lang: Lang) =>
       const why = m[2] === "debilitated"
         ? { ta: "நீசம் பெற்றுள்ளது", en: "is debilitated" }
         : m[2] === "combust"
-          ? { ta: "அஸ்தங்கம் அடைந்துள்ளது", en: "is combust" }
+          ? { ta: "அஸ்தங்கமடைந்துள்ளது", en: "is combust" }
           : { ta: `${m[3]}-ஆம் வீட்டில் (மறைவு ஸ்தானம்) உள்ளது`, en: `sits in the ${m[3]}th house (a dusthana)` };
       return {
         // Wording per the astrologer, 2026-10-01: the yogakaraka status
@@ -365,6 +398,16 @@ const MARKER_PATTERNS: { re: RegExp; label: (m: RegExpMatchArray, lang: Lang) =>
     }),
   },
   {
+    // v1.7: a kendra–trikona pair BPHS 34 names as giving no Raja Yoga by
+    // mere association for this lagna, `raja_pair_source_vetoed_<a>_<b>`.
+    // Owner-ruled wording 2026-10-03 (v1.8): never "vetoed" in copy.
+    re: /^raja_pair_source_vetoed_([a-z]+)_([a-z]+)$/,
+    label: (m, lang) => ({
+      ta: `${planetLabel(m[1].toUpperCase(), lang)}–${planetLabel(m[2].toUpperCase(), lang)} தொடர்பு அமைந்துள்ளது. இருப்பினும், ஏற்றுக்கொள்ளப்பட்ட மூலநூல் விதிப்படி இந்த இணைவு ராஜயோகமாகக் கொள்ளப்படவில்லை.`,
+      en: `${planetLabel(m[1].toUpperCase(), lang)} and ${planetLabel(m[2].toUpperCase(), lang)} are linked, but by the accepted classical rule this association is not counted as a Raja Yoga.`,
+    }),
+  },
+  {
     // Parivartana: two planets sit in each other's sign of rulership.
     re: /^([a-z]+)_([a-z]+)_parivartana_link$/,
     label: (m, lang) => ({
@@ -390,7 +433,9 @@ const MARKER_PATTERNS: { re: RegExp; label: (m: RegExpMatchArray, lang: Lang) =>
       const names = m[1].split("_").filter(Boolean).map((p) => planetLabel(p, lang));
       const joined = lang === "ta" ? names.join(", ") : names.join(" and ");
       return {
-        ta: `${joined} அஸ்தங்கம் அடைந்துள்ளது — சூரியனுக்கு மிக அருகில் இருப்பதால் பலன் குறைகிறது`,
+        // Verb agrees with the count (native-reader correction, 2026-10-03):
+        // அஸ்தங்கமடைந்துள்ளன for several planets, -துள்ளது for one.
+        ta: `${joined} ${names.length > 1 ? "அஸ்தங்கமடைந்துள்ளன" : "அஸ்தங்கமடைந்துள்ளது"} — சூரியனுக்கு மிக அருகில் இருப்பதால் யோகப் பலம் குறைகிறது.`,
         en: `${joined} ${names.length > 1 ? "are" : "is"} combust (asthangamam) — too close to the Sun to give results freely`,
       };
     },
@@ -446,7 +491,8 @@ const MARKER_PATTERNS: { re: RegExp; label: (m: RegExpMatchArray, lang: Lang) =>
     // DD-08: a forming benefic that is itself combust, `adhi_combust_<planet>`.
     re: /^adhi_combust_([a-z]+)$/,
     label: (m, lang) => ({
-      ta: `${planetLabel(m[1].toUpperCase(), lang)} அஸ்தங்கம் அடைந்துள்ளார் — யோக பலம் குறைகிறது`,
+      // No honorific -ார் for a planet here (native-reader correction, 2026-10-03).
+      ta: `${planetLabel(m[1].toUpperCase(), lang)} அஸ்தங்கமடைந்துள்ளது — யோகப் பலம் குறைகிறது.`,
       en: `${planetLabel(m[1].toUpperCase(), lang)} is combust — the yoga's strength is reduced`,
     }),
   },
@@ -459,7 +505,206 @@ const MARKER_PATTERNS: { re: RegExp; label: (m: RegExpMatchArray, lang: Lang) =>
       en: "The Moon itself is weak in this chart — the yoga's strength is reduced",
     }),
   },
+  // Putra Sarpa (2026-10-06). Each marker names its planet or house; the old
+  // single `fifth_afflicted` put "the 5th house or its lord" on the cause side
+  // and "a strong 5th lord" on the cure side, and a reader could not tell
+  // which fact in their chart did what. Twins of `_parametrized_marker` in
+  // app/calculations/_yoga_helpers.py.
+  {
+    re: /^fifth_house_has_([a-z]+)$/,
+    label: (m, lang) => ({
+      ta: `${planetLabel(m[1].toUpperCase(), lang)} உங்கள் 5-ஆம் வீட்டில் (குழந்தை, படைப்பாற்றல் வீடு) உள்ளது`,
+      en: `${planetLabel(m[1].toUpperCase(), lang)} sits in your 5th house, the house of children and creativity`,
+    }),
+  },
+  {
+    re: /^fifth_lord_([a-z]+)_joined_by_([a-z]+)$/,
+    label: (m, lang) => ({
+      ta: `உங்கள் 5-ஆம் அதிபதி ${planetLabel(m[1].toUpperCase(), lang)} இருக்கும் ராசியிலேயே ${planetLabel(m[2].toUpperCase(), lang)} உள்ளது`,
+      en: `${planetLabel(m[2].toUpperCase(), lang)} shares a sign with your 5th lord, ${planetLabel(m[1].toUpperCase(), lang)}`,
+    }),
+  },
+  {
+    re: /^jupiter_joined_by_([a-z]+)$/,
+    label: (m, lang) => ({
+      ta: `புத்திர காரகனான குரு இருக்கும் ராசியிலேயே ${planetLabel(m[1].toUpperCase(), lang)} உள்ளது`,
+      en: `${planetLabel(m[1].toUpperCase(), lang)} shares a sign with Jupiter, the karaka for children`,
+    }),
+  },
+  {
+    re: /^fifth_lord_([a-z]+)_strong$/,
+    label: (m, lang) => ({
+      ta: `உங்கள் 5-ஆம் அதிபதி ${planetLabel(m[1].toUpperCase(), lang)} வலுவாக உள்ளது; வீட்டின் சொந்த அதிபதி அதைக் காக்கிறது`,
+      en: `Your 5th lord, ${planetLabel(m[1].toUpperCase(), lang)}, is strong; the house's own lord protects it`,
+    }),
+  },
+  {
+    re: /^jupiter_in_kendra_house_(\d+)$/,
+    label: (m, lang) => ({
+      ta: `புத்திர காரகனான குரு கேந்திரத்தில் (உங்கள் ${m[1]}-ஆம் வீடு) உள்ளது; பாதுகாப்பு தருகிறது`,
+      en: `Jupiter, the karaka for children, stands in a kendra (your ${ordinal(Number(m[1]))} house) and protects`,
+    }),
+  },
+  // Marana Karaka Sthana: these printed raw ("mercury in marana karaka sthana")
+  // because the coverage guard's scanner could not read `{planet.lower()}`.
+  {
+    re: /^(sun|moon|mars|mercury|jupiter|venus|saturn)_in_marana_karaka_sthana$/,
+    label: (m, lang) => {
+      const house = MKS_HOUSE[m[1]];
+      return {
+        ta: `${planetLabel(m[1].toUpperCase(), lang)} உங்கள் ${house}-ஆம் வீட்டில் உள்ளது; இது அதன் மரண காரக ஸ்தானம்`,
+        en: `${planetLabel(m[1].toUpperCase(), lang)} is in your ${ordinal(house)} house, its Marana Karaka Sthana`,
+      };
+    },
+  },
+  {
+    re: /^([a-z]+)_dignified_in_mks$/,
+    label: (m, lang) => ({
+      ta: `${planetLabel(m[1].toUpperCase(), lang)} அங்கு ஆட்சி அல்லது உச்சம் பெற்றுள்ளது; பலவீனம் பெருமளவு ஈடுசெய்யப்படுகிறது`,
+      en: `${planetLabel(m[1].toUpperCase(), lang)} is in its own or exaltation sign there, which largely offsets the weakness`,
+    }),
+  },
+  {
+    re: /^jupiter_aspects_([a-z]+)_in_mks$/,
+    label: (m, lang) => ({
+      ta: `குருவின் பார்வை அங்கு ${planetLabel(m[1].toUpperCase(), lang)} மீது உள்ளது; பாதுகாப்பு தருகிறது`,
+      en: `Jupiter aspects ${planetLabel(m[1].toUpperCase(), lang)} there, a protective influence`,
+    }),
+  },
+  // Found when the coverage guard learned to read expression placeholders
+  // (2026-10-06): each of these printed as raw snake_case on its yoga card.
+  {
+    // Pancha Mahapurusha. Mars's two keys are static above (Sevvai wording).
+    re: /^(sun|moon|mars|mercury|jupiter|venus|saturn)_(own_sign|exaltation|moolatrikona)$/,
+    label: (m, lang) => {
+      const planet = planetLabel(m[1].toUpperCase(), lang);
+      const state = {
+        own_sign: { ta: "ஆட்சி பெற்றுள்ளது (சொந்த ராசி)", en: "is in its own sign" },
+        exaltation: { ta: "உச்சம் பெற்றுள்ளது", en: "is exalted" },
+        moolatrikona: { ta: "மூலத்திரிகோண ராசியில் உள்ளது", en: "is in its moolatrikona sign" },
+      }[m[2] as "own_sign" | "exaltation" | "moolatrikona"];
+      return { ta: `${planet} ${state.ta}`, en: `${planet} ${state.en}` };
+    },
+  },
+  {
+    re: /^(sun|moon|mars|mercury|jupiter|venus|saturn)_in_kendra$/,
+    label: (m, lang) => ({
+      ta: `${planetLabel(m[1].toUpperCase(), lang)} லக்னத்திலிருந்து கேந்திரத்தில் (1/4/7/10) உள்ளது`,
+      en: `${planetLabel(m[1].toUpperCase(), lang)} is in a kendra (1/4/7/10) from the Lagna`,
+    }),
+  },
+  {
+    // Vipareetha Raja Yoga: `<lord>_lord_of_<dusthana>_in_<dusthana>`.
+    re: /^([a-z]+)_lord_of_(\d+)_in_(\d+)$/,
+    label: (m, lang) => ({
+      ta: `${m[2]}-ஆம் அதிபதி ${planetLabel(m[1].toUpperCase(), lang)} ${m[3]}-ஆம் வீட்டில் உள்ளது — மறைவு ஸ்தான அதிபதி மறைவு ஸ்தானத்தில்`,
+      en: `${planetLabel(m[1].toUpperCase(), lang)}, lord of the ${ordinal(Number(m[2]))}, sits in the ${ordinal(Number(m[3]))} — a dusthana lord in a dusthana`,
+    }),
+  },
+  {
+    // Parivartana Yoga: `<planet>_<planet>_exchange`.
+    re: /^(sun|moon|mars|mercury|jupiter|venus|saturn)_(sun|moon|mars|mercury|jupiter|venus|saturn)_exchange$/,
+    label: (m, lang) => ({
+      ta: `${planetLabel(m[1].toUpperCase(), lang)} மற்றும் ${planetLabel(m[2].toUpperCase(), lang)} ஒருவர் ராசியில் மற்றொருவர் — பரிவர்த்தனை`,
+      en: `${planetLabel(m[1].toUpperCase(), lang)} and ${planetLabel(m[2].toUpperCase(), lang)} each occupy the other's sign — a parivartana (mutual exchange)`,
+    }),
+  },
+  {
+    // Kahala is what is left when neither house is a dusthana nor both are
+    // maha houses: one of them is the 3rd (`detect_parivartana`).
+    re: /^sub_type_(maha|dainya|kahala)$/,
+    label: (m) => ({
+      maha:   { ta: "மகா பரிவர்த்தனை — இரு வீடுகளும் வலுவானவை (கேந்திரம், திரிகோணம், 2 அல்லது 11)", en: "Maha parivartana — both houses are strong ones (kendra, trikona, 2nd or 11th)" },
+      dainya: { ta: "தைன்ய பரிவர்த்தனை — ஒரு வீடு மறைவு ஸ்தானம் (6/8/12); பலன் கலப்பு", en: "Dainya parivartana — one house is a dusthana (6/8/12), so results are mixed" },
+      kahala: { ta: "கஹல பரிவர்த்தனை — 3-ஆம் வீடு சம்பந்தப்படுகிறது; பலன் முயற்சியால் வரும்", en: "Kahala parivartana — the 3rd house is involved, so results come through effort" },
+    }[m[1] as "maha" | "dainya" | "kahala"]),
+  },
+  {
+    // Kartari: the engine hems the Lagna only today.
+    re: /^(malefics|benefics)_hemming_([a-z_]+)$/,
+    label: (m) => {
+      const target = m[2] === "lagna" ? { ta: "லக்னத்திற்கு", en: "your Lagna" } : { ta: `${m[2].replaceAll("_", " ")}-க்கு`, en: m[2].replaceAll("_", " ") };
+      return m[1] === "malefics"
+        ? { ta: `${target.ta} 2, 12-ஆம் வீடுகள் இரண்டிலும் பாவ கிரகங்கள் உள்ளன — இருபுறமும் நெருக்கம்`, en: `Malefics occupy both the 2nd and the 12th from ${target.en}, hemming it in` }
+        : { ta: `${target.ta} 2, 12-ஆம் வீடுகள் இரண்டிலும் சுப கிரகங்கள் உள்ளன — இருபுறமும் பாதுகாப்பு`, en: `Benefics occupy both the 2nd and the 12th from ${target.en}, guarding it` };
+    },
+  },
+  {
+    // Lakshmi Yoga, Phaladeepika form (off by default): `<planet>_<dignity>_in_house_<n>`.
+    re: /^(sun|moon|mars|mercury|jupiter|venus|saturn)_(exalted|own_sign|moolatrikona)_in_house_(\d+)$/,
+    label: (m, lang) => {
+      const planet = planetLabel(m[1].toUpperCase(), lang);
+      const state = {
+        exalted: { ta: "உச்சம் பெற்று", en: "exalted" },
+        own_sign: { ta: "ஆட்சி பெற்று", en: "in its own sign" },
+        moolatrikona: { ta: "மூலத்திரிகோணத்தில்", en: "in its moolatrikona sign" },
+      }[m[2] as "exalted" | "own_sign" | "moolatrikona"];
+      return {
+        ta: `${planet} ${state.ta} ${m[3]}-ஆம் வீட்டில் உள்ளது`,
+        en: `${planet} is ${state.en}, in the ${ordinal(Number(m[3]))} house`,
+      };
+    },
+  },
+  {
+    // Bhagya Support: `ninth_lord_<planet>_in_house_<n>`.
+    re: /^ninth_lord_([a-z]+)_in_house_(\d+)$/,
+    label: (m, lang) => ({
+      ta: `9-ம் அதிபதி ${planetLabel(m[1].toUpperCase(), lang)} ${m[2]}-ம் வீட்டில் உள்ளார்`,
+      en: `The 9th lord (${planetLabel(m[1].toUpperCase(), lang)}) is in house ${m[2]}`,
+    }),
+  },
+  {
+    // Kala Sarpa naga, named from Rahu's house (`KALASARPA_NAGAS`).
+    re: /^variant_([a-z]+)$/,
+    label: (m) => {
+      const naga = KALASARPA_NAGA[m[1]] ?? { ta: m[1], en: m[1] };
+      return { ta: `ராகு அமர்ந்த வீட்டின்படி இது ${naga.ta}`, en: `By the house Rahu occupies, this is ${naga.en} Kala Sarpa` };
+    },
+  },
 ];
+
+const KALASARPA_NAGA: Record<string, { ta: string; en: string }> = {
+  ananta: { ta: "அனந்த காலசர்ப்பம்", en: "Ananta" },
+  kulika: { ta: "குலிக காலசர்ப்பம்", en: "Kulika" },
+  vasuki: { ta: "வாசுகி காலசர்ப்பம்", en: "Vasuki" },
+  shankhapala: { ta: "சங்கபால காலசர்ப்பம்", en: "Shankhapala" },
+  padma: { ta: "பத்ம காலசர்ப்பம்", en: "Padma" },
+  mahapadma: { ta: "மகாபத்ம காலசர்ப்பம்", en: "Mahapadma" },
+  takshaka: { ta: "தக்ஷக காலசர்ப்பம்", en: "Takshaka" },
+  karkotaka: { ta: "கர்க்கோடக காலசர்ப்பம்", en: "Karkotaka" },
+  shankhachuda: { ta: "சங்கசூட காலசர்ப்பம்", en: "Shankhachuda" },
+  ghataka: { ta: "காடக காலசர்ப்பம்", en: "Ghataka" },
+  vishadhara: { ta: "விஷதர காலசர்ப்பம்", en: "Vishadhara" },
+  sheshanaga: { ta: "சேஷநாக காலசர்ப்பம்", en: "Sheshanaga" },
+};
+
+/** Each graha's Marana Karaka Sthana, counted from the Lagna — the engine's
+ *  `MARANA_KARAKA_STHANA` table (app/calculations/_yoga_dosham.py). */
+const MKS_HOUSE: Record<string, number> = { sun: 12, moon: 8, mars: 7, mercury: 7, jupiter: 3, venus: 6, saturn: 1 };
+
+function ordinal(n: number): string {
+  const tail = n % 100 >= 11 && n % 100 <= 13 ? "th" : ({ 1: "st", 2: "nd", 3: "rd" } as Record<number, string>)[n % 10] ?? "th";
+  return `${n}${tail}`;
+}
+
+/**
+ * Doshams whose "In your chart" line (`meaning*`) is composed from every one
+ * of their markers (`_putra_sarpa_meaning`, `_mks_meaning` in the engine). On
+ * those cards the Planet positions / Protective factors bullets repeated it.
+ */
+const MEANING_COVERS_MARKERS = new Set(["PUTRA_SARPA_DOSHAM", "MARANA_KARAKA_STHANA"]);
+
+export function doshamMeaningCoversMarkers(d: ChartDoshamInsight): boolean {
+  return d.isPresent && MEANING_COVERS_MARKERS.has(d.name.toUpperCase()) && !!(d.meaningEn?.trim() || d.meaningTa?.trim());
+}
+
+/** The grahas a Marana Karaka Sthana finding names, upper-case, in engine order. */
+export function mksPlanets(conditionsMet: string[]): string[] {
+  return conditionsMet
+    .map((c) => c.match(/^([a-z]+)_in_marana_karaka_sthana$/)?.[1])
+    .filter((p): p is string => !!p && p in MKS_HOUSE)
+    .map((p) => p.toUpperCase());
+}
 
 /**
  * Markers that lower a *present* yoga's strength and never remove it: the
@@ -517,9 +762,10 @@ const YOGA_WHAT: Record<string, { ta: string; en: string }> = {
     ta: "குரு லக்னம் அல்லது சந்திரனிலிருந்து கேந்திரத்தில் (1/4/7/10) இருந்து, சுபகிரகத்துடன் சேர்ந்தோ அதன் பார்வை பெற்றோ, நீசம், அஸ்தங்கம், பகை ராசி இன்றி இருக்கும்போது உருவாகும் முழு கஜகேசரி யோகம். மனத் தெளிவு, பொது அங்கீகாரம், நல்ல நினைவாற்றல் என்பவற்றுடன் தொடர்புடையது.",
     en: "The full Gaja Kesari Yoga: Jupiter in a kendra (1/4/7/10) from the Lagna or Moon, joined or aspected by a benefic, and free of debility, combustion and an enemy sign. Traditionally linked to mental clarity, public respect, and strong memory.",
   },
+  // Owner-ruled wording 2026-10-03 (v1.8).
   GAJA_KESARI_YOGA: {
-    ta: "குரு சந்திரனிலிருந்து கேந்திரத்தில் (1/4/7/10) இருக்கும் கஜகேசரி அமைப்பு. முழு யோகத்தின் எல்லா நிபந்தனைகளும் (சுப ஆதரவு; நீசம், அஸ்தங்கம், பகை ராசி இன்மை) பூர்த்தியாகவில்லை; பலன் குரு, சந்திரன் இருவரின் பலத்தைப் பொறுத்தது.",
-    en: "The Gaja Kesari pattern: Jupiter in a kendra (1/4/7/10) from your Moon, without every condition of the full yoga (benefic support; free of debility, combustion and an enemy sign). Its results follow Jupiter's and the Moon's strength.",
+    ta: "சந்திரனிலிருந்து குரு கேந்திர நிலையில் இருப்பதால், கஜகேசரி யோகத்திற்கான அடிப்படை அமைப்பு உள்ளது. முழுமையான கஜகேசரி யோகம் என்று கூற கூடுதல் நிபந்தனைகளும் நிறைவேற வேண்டும்.",
+    en: "Jupiter in a kendra from the Moon gives the base Gaja Kesari pattern. Further conditions must be met before it can be called the full Gaja Kesari Yoga.",
   },
   RAJA_YOGA: {
     ta: "ஒரு திரிகோண அதிபதியும் ஒரு கேந்திர அதிபதியும் சேரும்போது அல்லது ஒருவரை ஒருவர் பார்க்கும்போது உருவாகும் யோகம். முன்னேற்றம், பொறுப்பு, மற்றும் சாதனை ஆகியவற்றுடன் தொடர்புடையது.",
@@ -536,8 +782,14 @@ const YOGA_WHAT: Record<string, { ta: string; en: string }> = {
     en: "Formed when the 2nd and 11th lords are conjunct or in exchange. Suggests income and savings can grow through planned effort.",
   },
   NEECHA_BHANGA_RAJA_YOGA: {
-    ta: "ஒரு கிரகம் நீசத்தில் இருந்தாலும், அதை மீட்கும் நிலைகள் (நீச ராசி அதிபதி கேந்திரத்தில் இருப்பது போன்றவை) சேரும்போது உருவாகும் யோகம். ஆரம்ப சவால்கள் பின்னர் வலிமையாக மாறலாம்.",
-    en: "Formed when a debilitated planet has cancellation factors (like the sign lord in kendra). Initial challenges can convert into strength over time.",
+    ta: "ஒரு கிரகம் நீசத்தில் இருந்தாலும், அதை மீட்கும் இரண்டு அல்லது அதற்கு மேற்பட்ட நிலைகள் (நீச ராசி அதிபதி கேந்திரத்தில் இருப்பது போன்றவை) சேரும்போது உருவாகும் யோகம். ஆரம்ப சவால்கள் பின்னர் வலிமையாக மாறலாம்.",
+    en: "Formed when a debilitated planet has two or more cancellation factors (like the sign lord in a kendra). Initial challenges can convert into strength over time.",
+  },
+  // O-13 (owner ruling 2026-10-03): one cancellation condition removes the
+  // debility but is not a Raja Yoga. Wording owner-ruled in the second round (v1.8).
+  NEECHA_NIVARTHI: {
+    ta: "ஒரு கிரகம் நீச நிலையில் இருந்தாலும், அந்த நீச நிலையைத் தணிக்கும் ஒரு நீசபங்க நிபந்தனை நிறைவேறியுள்ளது. இதை மட்டும் வைத்து நீசபங்க ராஜயோகம் என்று கூற முடியாது.",
+    en: "A planet is debilitated, but one cancellation condition eases it. That alone does not make a Neecha Bhanga Raja Yoga.",
   },
   KALASARPA: {
     ta: "அனைத்து 7 கிரகங்களும் ராகு–கேது அச்சின் ஒரே பக்கத்தில் இருக்கும்போது ஏற்படும் அமைப்பு. வாழ்க்கை குறிப்பிட்ட இடங்களில் மட்டுமே கவனம் செலுத்தும்; சில காலங்களில் அழுத்தமாக உணரலாம்.",
@@ -550,9 +802,11 @@ export const DOSHAM_WHAT: Record<string, { ta: string; en: string }> = {
     ta: "செவ்வாய் (Mars) லக்னம், சந்திரன், அல்லது சுக்கிரனிலிருந்து 2, 4, 7, 8, அல்லது 12-ம் வீட்டில் இருக்கும்போது உருவாகும் பாரம்பரிய திருமண பொருத்த சுட்டி. இது ஒரு சாத்தியமான தாக்கம் மட்டுமே — நிவர்த்தி காரணங்கள் இருந்தால் தீவிரம் மிகவும் குறையும்.",
     en: "A traditional marriage-compatibility sensitivity indicator formed when Mars is in the 2nd, 4th, 7th, 8th, or 12th from your Lagna, Moon, or Venus. It is a tendency signal only — cancellation factors can significantly reduce its intensity.",
   },
+  // Says what the engine actually reads (DD-03, DD-17). The old line promised
+  // that a strong Venus lowers it; Venus's own strength is not read at all.
   RAHU_KETU_DOSHAM: {
-    ta: "ராகு அல்லது கேது திருமண வீடுகளில் (1/2/7/8) இருக்கும்போது அல்லது திருமண சுட்டிகளை பாதிக்கும்போது ஏற்படும் சூழல்-சார்ந்த சுட்டி. வலுவான குரு, 7-ம் அதிபதி, சுக்கிரன் இருந்தால் தாக்கம் குறையும்.",
-    en: "A context-based sensitivity indicator formed when Rahu or Ketu is in marriage houses (1/2/7/8) or affects marriage significators. Strong Jupiter, 7th lord, or Venus can significantly reduce impact.",
+    ta: "லக்னத்திலிருந்து ராகு-கேது அச்சு 1, 7 அல்லது 2, 8 வீடுகளில் விழும்போது உருவாகும் சூழல்-சார்ந்த சுட்டி. இது ஆம்/இல்லை முடிவு அல்ல, தரப்படுத்தப்படுகிறது: 7-ம் அதிபதி, சுக்கிரன் அல்லது சந்திரனுடன் ராகு/கேது சேர்வது தீவிரத்தைக் கூட்டும்; குரு ராகு/கேதுவுடன் சேர்வது அல்லது பார்ப்பது, குரு 7-ம் வீட்டையோ அதன் அதிபதியையோ பார்ப்பது, ராகு-கேது அமர்ந்த வீடுகளுக்கு ஆதரவு ஆகியவை தீவிரத்தைக் குறைக்கும்.",
+    en: "A context-based sensitivity indicator formed when the Rahu–Ketu axis falls on houses 1 and 7, or 2 and 8, counted from your Lagna. It is graded, never a yes/no: a node joining the 7th lord, Venus or the Moon raises it; Jupiter joining or aspecting a node, Jupiter aspecting the 7th house or its lord, and support for the houses the nodes occupy lower it.",
   },
   PITRU_DOSHAM: {
     ta: "சூரியன் ராகு/கேதுவுடன் சேர்வது, 9-ம் வீட்டில் நோட்கள் இருப்பது போன்ற நிலைகளால் உருவாகும் மரபு-கர்ம சுட்டி. குடும்ப உறவுகளிலும் பொறுப்புகளிலும் கூடுதல் கவனம் தேவைப்படலாம்.",
@@ -570,9 +824,16 @@ export const DOSHAM_WHAT: Record<string, { ta: string; en: string }> = {
     ta: "திருமண வாழ்க்கையை குறிக்கும் 7-ம் வீடு அல்லது அதன் அதிபதி பாதிக்கப்படும்போது (7-ம் அதிபதி 6/8/12-ல் இருப்பது, பாதக கிரக சேர்க்கை/பார்வை) உருவாகும் துணை-சார்ந்த உணர்திறன் சுட்டி. திருமணத்தில் தாமதம், சரிசெய்தல் சவால்கள், அல்லது துணையின் உடல்நலம்/மனநிலை குறித்த கவனம் தேவைப்படலாம் என்று மரபு சொல்கிறது. நிவர்த்தி காரணங்கள் இருந்தால் தாக்கம் பெரிதும் குறையும்.",
     en: "A partnership-sensitivity indicator formed when the 7th house (marriage) or its lord is afflicted — e.g. the 7th lord placed in the 6th, 8th, or 12th, or under malefic aspect/conjunction. Tradition reads it as a need for extra care around marriage timing, adjustment, or a partner's wellbeing. Cancellation factors (a strong, own-sign, or exalted 7th lord) substantially reduce the impact.",
   },
+  // Says what the engine checks (Rahu, Ketu, Saturn — not "malefics"), and
+  // separates the two sides: what disturbs the house and what guards it. The
+  // old line named the 5th house as both cause and cure (owner, 2026-10-06).
   PUTRA_SARPA_DOSHAM: {
-    ta: "சந்தானம் மற்றும் படைப்பாற்றலை குறிக்கும் 5-ம் வீடு அல்லது அதன் அதிபதி ராகு/கேது அல்லது பாதக கிரகங்களால் பாதிக்கப்படும்போது உருவாகும் சுட்டி. குழந்தைப்பேறில் தாமதம் அல்லது கூடுதல் கவனம், அல்லது படைப்புத் திட்டங்களில் தடைகள் வரலாம் என்று மரபு கூறுகிறது. வலுவான 5-ம் அதிபதி அல்லது கேந்திரத்தில் குரு இருந்தால் இது பெரிதும் தணியும்.",
-    en: "An indicator formed when the 5th house (children, creativity) or its lord is afflicted by Rahu/Ketu or malefics. Tradition reads it as possible delay or extra attention around progeny, or blocks in creative ventures. A strong 5th lord, or Jupiter in a kendra, greatly softens it.",
+    ta: "குழந்தை, கல்வி, படைப்பாற்றலைக் குறிக்கும் 5-ஆம் வீடு பற்றிய தோஷம். ராகு, கேது அல்லது சனி 5-ஆம் வீட்டில் இருக்கும்போது, அல்லது 5-ஆம் அதிபதி இருக்கும் ராசியிலேயே இருக்கும்போது, அல்லது புத்திர காரகனான குருவுடன் ராகு/கேது சேரும்போது இது உருவாகிறது. இரண்டு தனி விஷயங்கள் பார்க்கப்படுகின்றன: வீட்டைப் பாதிப்பது (அதில் அல்லது அதன் அதிபதியுடன் இருக்கும் பாவ கிரகம்), வீட்டைக் காப்பது (அதிபதியின் சொந்த பலம், அல்லது கேந்திரத்தில் குரு). ஒரே ஜாதகத்தில் இரண்டும் இருக்கலாம்.",
+    en: "A dosham about the 5th house — children, learning and creativity. It forms when Rahu, Ketu or Saturn sits in the 5th house or shares a sign with the 5th lord, or when a node joins Jupiter, the karaka for children. Two separate things are weighed: what disturbs the house (a malefic in it or beside its lord) and what guards it (the lord's own strength, or Jupiter in a kendra). A chart can have both.",
+  },
+  MARANA_KARAKA_STHANA: {
+    ta: "ஒவ்வொரு கிரகத்திற்கும், லக்னத்திலிருந்து எண்ணும்போது, மரபுப்படி அது மிகவும் பலவீனமாகும் ஒரு வீடு உண்டு — அதுவே அதன் மரண காரக ஸ்தானம்: சூரியன் 12, சந்திரன் 8, செவ்வாய் 7, புதன் 7, குரு 3, சுக்கிரன் 6, சனி 1. அங்கு இருக்கும் கிரகம் தன் பலன்களைத் தர சிரமப்படும். 'மரணம்' என்பது மரபுச் சொல் மட்டுமே; இது ஆயுள் பற்றிய கணிப்பு அல்ல. அந்தக் கிரகம் ஆட்சி அல்லது உச்சம் பெற்றிருந்தால், அல்லது குருவின் பார்வை பெற்றிருந்தால், இது பெருமளவு ஈடுசெய்யப்படும்.",
+    en: "Each planet has one house, counted from the Lagna, where tradition holds it weakest — its Marana Karaka Sthana: Sun 12th, Moon 8th, Mars 7th, Mercury 7th, Jupiter 3rd, Venus 6th, Saturn 1st. A planet there struggles to give its own results. 'Marana' is the traditional name only; this is not a prediction about life span. Own sign, exaltation or Jupiter's aspect largely offsets it.",
   },
 };
 
@@ -620,9 +881,12 @@ const YOGA_WHAT_EXTRA: Record<string, { ta: string; en: string }> = {
     ta: "சந்திரனிலிருந்து 6, 7, 8-ம் வீடுகளில் ஒன்றிலாவது சுபக்கிரகம் (புதன், குரு, சுக்கிரன்) இருக்கும் அதி யோக அமைப்பு. எத்தனை சுபக்கிரகங்கள், எவ்வளவு பலம் என்பதைப் பொறுத்து தலைமை, செல்வாக்கு, நிலையான முன்னேற்றம் ஆகியவற்றுடன் தொடர்புடையது.",
     en: "The Adhi pattern: at least one benefic (Mercury, Jupiter or Venus) in the 6th, 7th or 8th from the Moon. Linked to leadership, influence and steady advancement, in proportion to how many benefics take part and how strong they are.",
   },
+  // Owner-ruled wording 2026-10-03 (v1.8).
   ADHI_RAJA_GRADE: {
-    ta: "சந்திரனிலிருந்து 6, 7, 8-ம் வீடுகளில் உள்ள சுபக்கிரகங்கள் அஸ்தங்கம், பாவக்கிரகக் கலப்பு இன்றி உள்ளன — முழு அதி யோகத்திற்கான பரிசீலனையில் உள்ள அமைப்பு. தலைமை, செல்வாக்கு, நிலையான முன்னேற்றம் ஆகியவற்றுடன் தொடர்புடையது.",
-    en: "A candidate for the full Adhi Yoga: the benefics in the 6th, 7th or 8th from the Moon are free of combustion and malefic company. Linked to leadership, influence and steady advancement.",
+    // The closing "linked to…" sentence is deliberate: every YOGA_WHAT entry
+    // ends with what the yoga is traditionally linked to.
+    ta: "அதி யோகத்தின் அடிப்படை அமைப்பு உள்ளது. ஆனால் அதன் முழுப் பலத்திற்குத் தேவையான அனைத்து நிபந்தனைகளும் நிறைவேறியதாக உறுதியாகவில்லை. தலைமை, செல்வாக்கு, நிலையான முன்னேற்றம் ஆகியவற்றுடன் தொடர்புடையது.",
+    en: "The base Adhi Yoga pattern is present, but not every condition for its full strength is confirmed as met. Linked to leadership, influence and steady advancement.",
   },
   // Redefined 2026-09-11 to the parivartana form — see YOG-DR-01. The card
   // described the pre-proxy-split merged condition until then, and the detector
@@ -672,6 +936,17 @@ export function getWhat(
 
 // ── "Why you have this" — builds from actual chart conditions ─────────────────
 
+/**
+ * How `buildWhyText` is placed. A card that prints the trigger and protection
+ * markers as bullets right under the sentence passes `listsShown`: the
+ * sentence then says only what the bullets cannot — that a pattern formed and
+ * was annulled, and whether the running dasha lights it — and returns "" when
+ * that is nothing. Before, the same markers were printed twice, one above the
+ * other (owner report, 2026-10-06). `kind` picks the annulled wording: a yoga
+ * keeps its character (2026-09-11 ruling); a neutralized dosham does not act.
+ */
+export type WhyTextOptions = { listsShown?: boolean; kind?: "yoga" | "dosham" };
+
 export function buildWhyText(
   conditionsMet: string[],
   cancellationFactors: string[],
@@ -679,7 +954,34 @@ export function buildWhyText(
   isCancelled: boolean,
   dashaActivated: boolean,
   lang: Lang,
+  options: WhyTextOptions = {},
 ): string {
+  const { listsShown = false, kind = "yoga" } = options;
+  if (listsShown && !isPresent && cancellationFactors.length > 0) {
+    if (kind === "dosham") {
+      return lang === "ta"
+        ? "இந்த அமைப்பு ஜாதகத்தில் உள்ளது; ஆனால் கீழே உள்ள காரணத்தால் அது தோஷமாகச் செயல்படவில்லை."
+        : "The placement is in your chart, but the factor below neutralizes it, so it does not act as a dosham.";
+    }
+    return lang === "ta"
+      ? "இந்த அமைப்பு உருவானது, ஆனால் கீழே உள்ள பங்க விதியால் நிவர்த்தியாகிவிட்டது. ஆகவே இதன் சுபாவம் உங்களிடம் உண்டு — ஆனால் அதை கடக்கும் வலிமையும் ஜாதகத்திலேயே உள்ளது."
+      : "This combination did form in your chart, and was then annulled by the classical cancellation below. The pattern's character is part of you — and so is the resource that carries you past it.";
+  }
+  if (listsShown && !isPresent && kind === "dosham" && conditionsMet.length > 0) {
+    // Pitru records a lone minor condition without forming; "your chart does
+    // not have the positions" sat above a bullet listing one of them.
+    return lang === "ta"
+      ? "கீழே உள்ள நிலை ஜாதகத்தில் உள்ளது; ஆனால் அது மட்டும் இந்த தோஷத்தை உருவாக்காது."
+      : "The placement below is in your chart, but on its own it does not form this dosham.";
+  }
+  if (listsShown && isPresent) {
+    // The bullets carry every trigger, weakener and protection; the header
+    // chip and "What remains" already say "reduced, not erased".
+    if (!dashaActivated) return "";
+    return lang === "ta"
+      ? "தற்போதைய தசை இந்த கிரக சுட்டியை செயல்படுத்துகிறது — இந்த காலத்தில் இதன் தாக்கம் அதிகமாக உணரப்படலாம்."
+      : "Your current Dasha period activates this planetary indicator — its influence may be more noticeable now.";
+  }
   // Formed-and-annulled is NOT "never formed". A Kemadruma whose full bhanga
   // fired arrives here with isPresent=false and bhanga factors populated — the
   // Moon *was* isolated, and a graha in a kendra from it then cancelled the
@@ -743,10 +1045,11 @@ export function buildWhyText(
   }
 
   if (isCancelled) {
+    // DD-17: nivarthi lowers a dosham; it never erases it.
     parts.push(
       lang === "ta"
-        ? "ஆகவே, தாக்கம் கணிசமாக குறைக்கப்பட்டுள்ளது."
-        : "As a result, the impact is significantly reduced.",
+        ? "ஆகவே, தாக்கம் குறைகிறது — முழுமையாக நீங்கவில்லை."
+        : "As a result, the impact is reduced — not erased.",
     );
   }
 
@@ -792,6 +1095,11 @@ export const YOGA_OUTCOMES: Record<string, { ta: string; en: string }> = {
     ta: "ஆரம்பத்தில் கடினங்களை சந்தித்த பகுதிகளில் பின்னர் வலிமை தெரியும். பிரச்சினைகளை திறமையாக கையாண்டு அவற்றை வலிமையாக மாற்றுவதில் இவர்களுக்கு இயல்பான திறன் இருக்கலாம். அனுபவங்களிலிருந்து கற்று முன்னேறுவார்கள்.",
     en: "Areas where early difficulties were faced can later become strengths. There may be a natural ability to handle challenges and convert them into advantages. These individuals often learn powerfully from experience.",
   },
+  // Native-reader correction 2026-10-03: "may steady", not "will".
+  NEECHA_NIVARTHI: {
+    ta: "அந்தக் கிரகம் சார்ந்த துறைகளில் தொடக்கத்தில் முன்னேற்றம் மெதுவாக இருக்கலாம்; காலப்போக்கில் நிலை சீராகலாம். நீசத்தின் தாக்கம் குறைகிறது; ஆனால் இதனால் மட்டும் தனி யோகப் பலன் உறுதியாகாது.",
+    en: "The areas this planet rules may start slowly and may steady over time. The debility's weight is reduced, but this alone does not promise a separate yoga result.",
+  },
   KALASARPA: {
     ta: "வாழ்க்கையின் குறிப்பிட்ட திசைகளில் தீவிர கவனம் மற்றும் சாதனை சாத்தியம். ஒரு இலக்கில் கவனம் செலுத்தும் குணம் இவர்களுக்கு உண்டு. ஆன்மீக வளர்ச்சி, கலைத்துறை, ஆராய்ச்சி போன்றவற்றில் அசாதாரண செயல்திறன் இருக்கலாம்.",
     en: "Intense focus and achievement in specific life directions is possible. These individuals often have the ability to concentrate deeply on one goal. Exceptional performance in spiritual development, arts, or research may emerge.",
@@ -800,7 +1108,7 @@ export const YOGA_OUTCOMES: Record<string, { ta: string; en: string }> = {
 
 export const YOGA_REMEDIES: Record<string, { ta: string; en: string }> = {
   GAJA_KESARI_YOGA: {
-    ta: "வியாழக்கிழமை குரு வழிபாடு, மஞ்சள் வஸ்திரம் அணிவது, குரு மந்திரம் ஜபிப்பது (ஓம் குரவே நமஹ), தட்சிணாமூர்த்தி வழிபாடு, கல்வி நிறுவனங்களில் தானம் செய்வது.",
+    ta: "வியாழக்கிழமை குரு வழிபாடு, மஞ்சள் ஆடை அணிவது, குரு மந்திரம் ஜபிப்பது (ஓம் குரவே நமஹ), தட்சிணாமூர்த்தி வழிபாடு, கல்வி நிறுவனங்களில் தானம் செய்வது.",
     en: "Jupiter worship on Thursdays, wearing yellow cloth, chanting Jupiter mantra (Om Gurave Namah), Dakshinamurti worship, donating to educational institutions.",
   },
   RAJA_YOGA: {
@@ -818,7 +1126,13 @@ export const YOGA_REMEDIES: Record<string, { ta: string; en: string }> = {
     en: "Lakshmi worship on Fridays, Venus mantra (Om Shukraya Namah), visits to Tirupati or Srirangam, food donations, maintaining financial discipline.",
   },
   NEECHA_BHANGA_RAJA_YOGA: {
-    ta: "நீச கிரகத்திற்கான குறிப்பிட்ட பரிகாரம் செய்வது (எ.கா. சூரியன் நீசம் = ஆதித்யஹ்ருதயம் பாராயணம்), அந்த கிரகம் ஆட்சி செலுத்தும் திரு ஸ்தலத்தை தரிசித்தல், கிரகத்தின் நிறத்தில் வஸ்திரம் அணிவது.",
+    ta: "நீச கிரகத்திற்கான குறிப்பிட்ட பரிகாரம் செய்வது (எ.கா. சூரியன் நீசம் = ஆதித்யஹ்ருதயம் பாராயணம்), அந்த கிரகம் ஆட்சி செலுத்தும் திரு ஸ்தலத்தை தரிசித்தல், கிரகத்தின் நிறத்தில் ஆடை அணிவது.",
+    en: "Perform the specific remedy for the debilitated planet (e.g., if Sun is debilitated — recite Aditya Hridayam), visit the temple associated with that planet, wear the planet's associated color.",
+  },
+  // ஆடை over வஸ்திரம் in consumer copy (native-reader correction 2026-10-03,
+  // extended to every remedy by the O-25 review, 2026-10-05).
+  NEECHA_NIVARTHI: {
+    ta: "நீச கிரகத்திற்கான குறிப்பிட்ட பரிகாரம் செய்வது (எ.கா. சூரியன் நீசம் = ஆதித்யஹ்ருதயம் பாராயணம்), அந்த கிரகம் ஆட்சி செலுத்தும் திரு ஸ்தலத்தை தரிசித்தல், கிரகத்தின் நிறத்தில் ஆடை அணிவது.",
     en: "Perform the specific remedy for the debilitated planet (e.g., if Sun is debilitated — recite Aditya Hridayam), visit the temple associated with that planet, wear the planet's associated color.",
   },
   KALASARPA: {
@@ -848,6 +1162,12 @@ export const YOGA_HOW_TO: Record<string, { ta: string; en: string }> = {
     ta: "யோகத்தை பலப்படுத்த: பலவீனமான கிரகம் ஆட்சி செலுத்தும் விஷயங்களில் கவனமாக உழையுங்கள், தோல்விகளை பாடங்களாக எடுங்கள், நீச கிரகம் சம்பந்தப்பட்ட ஜீவிதத்துறைகளில் தொடர்ந்து முயற்சி செய்யுங்கள். நீச கிரகம் அந்த கிரக சேவையில் — செவ்வாயெனில் இரத்த தானம், புதனெனில் மாணவர் கல்வி உதவி — இந்த யோகம் விழிப்போடு அனுஷ்டித்த போது மிகவும் வலுப்படும்.",
     en: "To strengthen: work carefully in areas governed by the debilitated planet, treat failures as lessons, keep trying in life domains connected to that planet. Serve in the domain of the debilitated planet — if Mars, donate blood or help accident victims; if Mercury, sponsor a student's education. This yoga strengthens most when practiced with conscious effort.",
   },
+  // Native-reader correction 2026-10-03: a donation does not make a birth-chart
+  // cancellation "hold". Service is offered as practice, never as changing the chart.
+  NEECHA_NIVARTHI: {
+    ta: "அந்தக் கிரகம் குறிக்கும் துறைகளில் பொறுமையுடன் தொடர்ந்து செயல்படுங்கள். விரும்பினால், அந்தக் கிரகத்துடன் மரபில் தொடர்புபடுத்தப்படும் தானம் அல்லது சேவையை ஆன்மிக நடைமுறையாக மேற்கொள்ளலாம்.",
+    en: "Keep working patiently in the areas this planet signifies. If you wish, the charity or service tradition links with this planet can be taken up as a spiritual practice.",
+  },
   KALASARPA: {
     ta: "யோகத்தை பயனுள்ளதாக்க: ஒரு குறிப்பிட்ட இலக்கில் ஆழமாக கவனம் செலுத்துங்கள், நிலையான ஒழுக்கம் வளருங்கள், ஆன்மீக பயிற்சி (தியானம், யோகம்) மிகவும் உதவும். சமூக ஒப்பீட்டை தவிர்த்து, சொந்த பாதையில் கவனம் செலுத்துங்கள்.",
     en: "To make this work for you: focus deeply on one specific goal, build consistent discipline, spiritual practice (meditation, yoga) helps greatly. Avoid comparing yourself to others — focus on your own path.",
@@ -859,9 +1179,11 @@ export const DOSHAM_OUTCOMES: Record<string, { ta: string; en: string }> = {
     ta: "திருமண வாழ்க்கையில் உணர்வு ரீதியான கடுமை, சுதந்திரத்திற்கான ஆசை, சில நேரங்களில் சண்டை-சச்சரவு, துணையுடன் ஒத்துழைக்கும் சவால் ஆகியவை சாத்தியம். செவ்வாய் பலமாக இருந்தால் இவை ஆற்றலாக மாறும்.",
     en: "Emotional intensity in married life, desire for independence, occasional conflicts, and challenges in adjustment with partner are possible. When Mars is strong, these become energetic drive and assertiveness.",
   },
+  // The chart-specific reading (which node, which house) is the engine's
+  // `meaning*`, shown under "In your chart"; this stays the general frame.
   RAHU_KETU_DOSHAM: {
-    ta: "திருமண விஷயங்களில் காலதாமதம், அசாதாரண உறவுகள், கர்ம-சார்ந்த பந்தங்கள் சாத்தியம். உணர்வு ரீதியான நிலையின்மை சில காலங்களில் வரலாம். ஆன்மீக கற்றலும் இந்த அமைப்பின் ஒரு பக்கமாக இருக்கலாம்.",
-    en: "Delays in marriage matters, unconventional relationships, karma-driven bonds are possible. Emotional instability may arise in certain periods. Spiritual learning is often an aspect of this configuration.",
+    ta: "இந்த அச்சு அது அமர்ந்துள்ள வீடுகளின் விஷயங்களுடன் தொடர்புடையது — 1/7 அச்சு என்றால் சுயமும் கூட்டாண்மையும், 2/8 அச்சு என்றால் குடும்பம், பேச்சு, சேமிப்பு, நம்பிக்கை, திடீர் மாற்றம். இது கவனமான அணுகுமுறையைக் கேட்கும் ஒரு போக்கு மட்டுமே, உறுதியான விளைவு அல்ல.",
+    en: "Tradition ties this axis to the matters of the houses it occupies — the self and partnership for the 1/7 axis; family, speech, savings, trust and sudden change for the 2/8 axis. It is a tendency that asks for conscious care, not a fixed outcome.",
   },
   PITRU_DOSHAM: {
     ta: "குடும்ப பொறுப்புகள் அதிகமாக உணரப்படலாம், மூதாதையர் வழிபாட்டில் கவனம் தேவைப்படலாம், குடும்ப ஒற்றுமையில் சில சவால்கள் வரலாம். பெரியவர்களுக்கு உதவுவது தேவையாக உணரப்படலாம்.",
@@ -879,9 +1201,17 @@ export const DOSHAM_OUTCOMES: Record<string, { ta: string; en: string }> = {
     ta: "திருமணத்தில் தாமதம், துணையை தேர்வதில் கூடுதல் கவனம், அல்லது திருமணத்திற்குப் பிறகு சரிசெய்தல்/தொடர்பு சவால்கள் சாத்தியம். துணையின் உடல்நலம் குறித்த கவனமும் மரபில் குறிப்பிடப்படுகிறது. முழு பொருத்தம் பார்த்து, நிவர்த்தி இருந்தால் இவை பெரிதும் குறையும்.",
     en: "Possible delay in marriage, a need for extra care in choosing a partner, or adjustment/communication challenges after marriage. Tradition also notes attention to a partner's health. With full compatibility matching and cancellation factors present, these reduce considerably.",
   },
+  // The "softens" sentence is gone: which protection applies is chart-specific
+  // and said under "In your chart" and "Protective factors"; a generic list of
+  // possible protections here read as a claim about this chart.
   PUTRA_SARPA_DOSHAM: {
-    ta: "குழந்தைப்பேறில் தாமதம் அல்லது மருத்துவ கவனம் தேவைப்படலாம்; படைப்புத் திறன், கல்வி, முதலீடு சம்பந்தப்பட்ட திட்டங்களில் தடைகள் வரலாம். வலுவான 5-ம் அதிபதி அல்லது குரு ஆதரவு இருந்தால் இவை மென்மையாகும். இது ஒரு பாரம்பரிய சுட்டி மட்டுமே, மருத்துவ கணிப்பு அல்ல — பலர் பொறுமையுடனும் சரியான மருத்துவ கவனிப்புடனும் இயல்பாக கருத்தரிக்கின்றனர்.",
-    en: "Possible delay or medical attention around having children; creative, educational, or speculative ventures may meet blocks. A strong 5th lord or Jupiter's support softens these. This is a traditional reading, not a medical prediction — many people conceive naturally with time and the right care.",
+    ta: "குழந்தைப்பேறில் தாமதம் அல்லது மருத்துவ கவனம் தேவைப்படலாம்; படைப்புத் திறன், கல்வி, முதலீடு சம்பந்தப்பட்ட திட்டங்களில் தடைகள் வரலாம். இது ஒரு பாரம்பரிய சுட்டி மட்டுமே, மருத்துவ கணிப்பு அல்ல — பலர் பொறுமையுடனும் சரியான மருத்துவ கவனிப்புடனும் இயல்பாக கருத்தரிக்கின்றனர்.",
+    en: "Possible delay or medical attention around having children; creative, educational, or speculative ventures may meet blocks. This is a traditional reading, not a medical prediction — many people conceive naturally with time and the right care.",
+  },
+  MARANA_KARAKA_STHANA: {
+    // Effects only; the concrete steps live under "How to reduce impact".
+    ta: "அந்தக் கிரகம் குறிக்கும் விஷயங்கள் ('உங்கள் ஜாதகத்தில்' பகுதியைப் பாருங்கள்) வராமல் போவதில்லை; மெதுவாகவும் சுற்றுவழியிலும் வரும். அதன் துறையில் உடல்நலமும் பெரிய முடிவுகளும் சற்றுக் கூடுதல் கவனம் கேட்கும்.",
+    en: "The things this planet stands for (see 'In your chart') still come — slowly and by a longer road, not never — and health and major decisions in its area ask for a little more care.",
   },
 };
 
@@ -911,10 +1241,50 @@ export const DOSHAM_REMEDIES: Record<string, { ta: string; en: string }> = {
     en: "Thursday Jupiter worship (to strengthen the 7th house), Venus worship, a full ten-porutham + Navamsa check before marriage, attention to the partner's health, and the Swayamvara Parvati mantra.",
   },
   PUTRA_SARPA_DOSHAM: {
-    ta: "சந்தான கோபால மந்திரம், திருநாகேஸ்வரம்/மன்னார்குடி வழிபாடு, நாக பிரதிஷ்டை பரிகாரம், வியாழக்கிழமை குரு வழிபாடு, மருத்துவ ஆலோசனையுடன் ஆன்மீக பரிகாரத்தையும் சேர்த்து செய்தல்.",
-    en: "Santana Gopala mantra, worship at Thirunageswaram/Mannargudi, Naga pratishtha parihara, Thursday Jupiter worship, and combining medical guidance with the spiritual remedy.",
+    // Medical guidance is said once, under "How to reduce impact".
+    ta: "சந்தான கோபால மந்திரம், திருநாகேஸ்வரம்/மன்னார்குடி வழிபாடு, நாக பிரதிஷ்டை பரிகாரம், வியாழக்கிழமை குரு வழிபாடு.",
+    en: "Santana Gopala mantra, worship at Thirunageswaram/Mannargudi, Naga pratishtha parihara, and Thursday Jupiter worship.",
+  },
+  // Fallback only; `getDoshamRemedies` names the planet's own day and temple.
+  MARANA_KARAKA_STHANA: {
+    ta: "மரண காரக ஸ்தானத்தில் உள்ள கிரகத்திற்குரிய கிழமையில் அதன் வழிபாடு, அதன் நவக்கிரக ஸ்தலத்தில் தரிசனம், அதன் தசை அல்லது புக்தி தொடங்கும் முன் நவக்கிரக வழிபாடு.",
+    en: "Worship of the planet in its Marana Karaka Sthana on its own weekday, a visit to its navagraha temple, and a navagraha puja before its dasha or bhukti begins.",
   },
 };
+
+/** Weekday and navagraha sthalam (the Kumbakonam circuit) for each graha. */
+const NAVAGRAHA_STHALAM: Record<string, { day: { ta: string; en: string }; temple: { ta: string; en: string } }> = {
+  SUN:     { day: { ta: "ஞாயிற்றுக்கிழமை", en: "Sunday" },    temple: { ta: "சூரியனார் கோயில்", en: "Suriyanar Koil" } },
+  MOON:    { day: { ta: "திங்கட்கிழமை", en: "Monday" },      temple: { ta: "திங்களூர்", en: "Thingalur" } },
+  MARS:    { day: { ta: "செவ்வாய்க்கிழமை", en: "Tuesday" },  temple: { ta: "வைத்தீஸ்வரன் கோயில்", en: "Vaitheeswaran Koil" } },
+  MERCURY: { day: { ta: "புதன்கிழமை", en: "Wednesday" },     temple: { ta: "திருவெண்காடு", en: "Thiruvenkadu" } },
+  JUPITER: { day: { ta: "வியாழக்கிழமை", en: "Thursday" },    temple: { ta: "ஆலங்குடி", en: "Alangudi" } },
+  VENUS:   { day: { ta: "வெள்ளிக்கிழமை", en: "Friday" },     temple: { ta: "கஞ்சனூர்", en: "Kanjanur" } },
+  SATURN:  { day: { ta: "சனிக்கிழமை", en: "Saturday" },      temple: { ta: "திருநள்ளாறு", en: "Thirunallar" } },
+};
+
+/**
+ * The Remedies box text for a dosham. Marana Karaka Sthana is about one named
+ * planet, so its remedy names that planet's day and temple; a generic "worship
+ * the planet" told the reader nothing they could act on. Everything else reads
+ * the static table.
+ */
+export function getDoshamRemedies(dosham: ChartDoshamInsight, lang: Lang): string | null {
+  const key = dosham.name.toUpperCase();
+  if (key === "MARANA_KARAKA_STHANA") {
+    const lines = mksPlanets(dosham.conditionsMet).flatMap((p) => {
+      const s = NAVAGRAHA_STHALAM[p];
+      if (!s) return [];
+      const name = planetLabel(p, lang);
+      return [lang === "ta"
+        ? `${name}: ${s.day.ta} வழிபாடு, ${s.temple.ta} (நவக்கிரக ஸ்தலம்) தரிசனம், ${name} தசை அல்லது புக்தி தொடங்கும் முன் நவக்கிரக வழிபாடு.`
+        : `${name}: ${s.day.en} worship, a visit to ${s.temple.en} (its navagraha temple), and a navagraha puja before ${name}'s dasha or bhukti begins.`];
+    });
+    if (lines.length > 0) return lines.join(" ");
+  }
+  const entry = DOSHAM_REMEDIES[key];
+  return entry ? (lang === "ta" ? entry.ta : entry.en) : null;
+}
 
 export const DOSHAM_HOW_TO: Record<string, { ta: string; en: string }> = {
   SEVVAI_DOSHAM: {
@@ -922,8 +1292,8 @@ export const DOSHAM_HOW_TO: Record<string, { ta: string; en: string }> = {
     en: "To reduce impact: do thorough marriage compatibility matching, check for cancellation factors, channel Mars energy through sports/exercise/achievement in life rather than conflict.",
   },
   RAHU_KETU_DOSHAM: {
-    ta: "தீவிரத்தை குறைக்க: குரு, 7-ம் அதிபதி, சுக்கிரன் நிலைகளை பரிசோதியுங்கள் (இவை வலுவாக இருந்தால் தாக்கம் குறையும்). துணையுடன் திறந்த மனதில் பேசுங்கள், ஆன்மீக பயிற்சி தொடருங்கள்.",
-    en: "To reduce impact: examine Jupiter, 7th lord, and Venus positions (if strong, impact reduces). Communicate openly with your partner, continue spiritual practice.",
+    ta: "தாக்கத்தைக் குறைக்க: ராகு-கேது அமர்ந்துள்ள வீடுகளே எங்கு கவனம் தேவை என்பதைக் காட்டும் ('உங்கள் ஜாதகத்தில்' பகுதியைப் பாருங்கள்). துணையுடன் வெளிப்படையாகப் பேசுங்கள், குடும்ப, நிதி ஏற்பாடுகளைத் தெளிவாக வைத்திருங்கள், ஆன்மீகப் பயிற்சியைத் தொடருங்கள்.",
+    en: "To reduce impact: the houses the nodes occupy show where to put conscious care (see 'In your chart'). Communicate openly with your partner, keep family and financial arrangements clear, and continue spiritual practice.",
   },
   PITRU_DOSHAM: {
     ta: "தீவிரத்தை குறைக்க: குடும்ப பெரியவர்களை மரியாதையுடன் நடத்துங்கள், தவறான குடும்ப விஷயங்களை சரிசெய்யுங்கள், கோவில் வழிபாட்டை தொடருங்கள், கோபம்/வாத்தோட்டம் தவிர்த்து ஒற்றுமையை வளருங்கள்.",
@@ -942,8 +1312,15 @@ export const DOSHAM_HOW_TO: Record<string, { ta: string; en: string }> = {
     en: "To reduce impact: do full compatibility + Navamsa matching before marriage, check for cancellation factors, build open communication with the partner, and avoid rushed marriage decisions.",
   },
   PUTRA_SARPA_DOSHAM: {
-    ta: "தாக்கத்தை குறைக்க: மருத்துவ ஆலோசனையை ஆன்மீக பரிகாரத்துடன் இணைக்கவும், 5-ம் அதிபதி/குரு தசை காலத்தை கவனிக்கவும், படைப்புத் திட்டங்களில் பொறுமை வளர்க்கவும், அழுத்தத்தை குறைக்கவும்.",
-    en: "To reduce impact: combine medical guidance with the spiritual remedy, watch the 5th-lord/Jupiter dasha windows, build patience in creative ventures, and keep stress low.",
+    // "Watch the 5th-lord/Jupiter dasha windows" pointed at a different
+    // planet from "In your chart", which names the dasha of what disturbs it.
+    ta: "தாக்கத்தைக் குறைக்க: மருத்துவ ஆலோசனையை ஆன்மீக பரிகாரத்துடன் இணைக்கவும், 'உங்கள் ஜாதகத்தில்' பகுதியில் சொன்ன தசை அல்லது புக்தியில் 5-ஆம் வீட்டு விஷயங்களுக்குக் கூடுதல் காலம் கொடுக்கவும், படைப்புத் திட்டங்களில் பொறுமை வளர்க்கவும், அழுத்தத்தைக் குறைக்கவும்.",
+    en: "To reduce impact: combine medical guidance with the spiritual remedy, give 5th-house matters extra time in the dasha or bhukti named under 'In your chart', build patience in creative ventures, and keep stress low.",
+  },
+  MARANA_KARAKA_STHANA: {
+    // Worship is the Remedies box's job; it was said here too.
+    ta: "தாக்கத்தைக் குறைக்க: அந்தக் கிரகத்தின் தசை அல்லது புக்தி எப்போது என்று தெரிந்துகொண்டு, பெரிய முடிவுகளையும் புதிய தொடக்கங்களையும் முடிந்தால் அந்தக் காலத்திற்கு வெளியே திட்டமிடுங்கள்; அந்தக் காலத்தில் வழக்கமான மருத்துவப் பரிசோதனையும், பெரிய கையெழுத்துக்கு முன் இரண்டாவது கருத்தும் நல்லது.",
+    en: "To reduce impact: know when this planet's dasha or bhukti runs and, where you can, plan major decisions and new starts outside it; in that period keep routine health check-ups and take a second opinion before signing anything major.",
   },
 };
 
@@ -978,6 +1355,15 @@ const YOGA_POWER_CONTEXT: Record<string, { strong: { ta: string; en: string }; p
     partial: { ta: "நீசபங்க ஓரளவு செயல்பாட்டில் உள்ளது. பலவீனங்கள் படிப்படியாக சரியாகலாம்; அவசரப்படவேண்டாம்.", en: "Neecha Bhanga is partially active. Weaknesses may improve gradually; avoid rushing the process." },
     weak:    { ta: "நீசபங்க ஆதரவு குறைவாக உள்ளது. சுய வளர்ச்சி மற்றும் திறன் மேம்பாட்டில் கவனம் செலுத்துங்கள்.", en: "Neecha Bhanga is at low strength. Focus on skill-building and self-improvement." },
   },
+  // Always WEAK on the wire (one condition); the other rungs are defensive.
+  // One term on the card, நீசபங்கம் (native-reader correction 2026-10-03):
+  // "நிவர்த்தி" reads as something the person does, beside the remedies.
+  // "குறைகிறது", never "நீங்குகிறது": the doctrine does not claim full removal.
+  NEECHA_NIVARTHI: {
+    strong:  { ta: "நீசபங்க நிபந்தனைகள் நிறைவேறியுள்ளதால், நீசத்தின் தாக்கம் குறைகிறது.", en: "Neecha Bhanga conditions are met, so the debility's weight is reduced." },
+    partial: { ta: "நீசபங்க நிபந்தனைகள் நிறைவேறியுள்ளதால், நீசத்தின் தாக்கம் குறைகிறது.", en: "Neecha Bhanga conditions are met, so the debility's weight is reduced." },
+    weak:    { ta: "ஒரு நீசபங்க நிபந்தனை நிறைவேறியுள்ளது. நீசத்தின் தாக்கம் குறைகிறது; இது நீசபங்க ராஜயோகம் அல்ல.", en: "One Neecha Bhanga condition is met. The debility's weight is reduced; this is not a Neecha Bhanga Raja Yoga." },
+  },
   KALASARPA: {
     strong:  { ta: "கால சர்ப்ப அமைப்பு வலுவாக உள்ளது. வாழ்க்கையின் குறிப்பிட்ட தேவைகள் அதிகமாக உணரப்படலாம்; ஒழுக்கமான அணுகுமுறை மற்றும் ஆன்மீக அஸ்திவாரம் இந்த காலத்தில் மிகவும் உதவும்.", en: "Kala Sarpa pattern is strongly present. Life demands may feel concentrated; disciplined routine and spiritual grounding help most in this phase." },
     partial: { ta: "கால சர்ப்ப ஓரளவு செயல்பாட்டில் உள்ளது. சில காலங்கள் அழுத்தமாக உணரலாம்; நடைமுறை பராமரிப்பு உதவும்.", en: "Kala Sarpa is partially active. Some phases may feel intense; practical self-care helps." },
@@ -1001,19 +1387,31 @@ const DOSHAM_POWER_CONTEXT: Record<string, {
 }> = {
   SEVVAI_DOSHAM: {
     active:    { ta: "செவ்வாய் தோஷம் செயல்பாட்டில் உள்ளது. திருமண பொருத்தம் பார்க்கும்போது இரு ஜாதகங்களும் முழுமையாக ஒப்பிடப்பட வேண்டும். தசை காலத்தில் உறவு தொடர்பு மற்றும் ஒத்துழைப்பில் கூடுதல் கவனம் வேண்டும்.", en: "Sevvai Dosham is active. For marriage matching, both charts must be fully compared. During relevant Dasha periods, extra care in relationship communication and adjustment is needed." },
-    cancelled: { ta: "செவ்வாய் தோஷம் நிவர்த்தி காரணங்களால் கணிசமாக குறைக்கப்பட்டுள்ளது. திருமண பொருத்தத்தில் இதை 'தோஷம் இல்லை' என்று சொல்ல முடியாது, ஆனால் நிவர்த்தி இருப்பதால் தாக்கம் மென்மையாக இருக்கும். மீதமுள்ள தரவு (சுக்கிரன், நவாம்சம்) கிடைத்தால் முழு முடிவு தரலாம்.", en: "Sevvai Dosham is significantly reduced by cancellation factors. For marriage matching, this should not be called 'dosham free', but the protective factors mean the practical impact is mild. A full verdict requires Venus position and Navamsa." },
+    // DD-17: the stale "a full verdict requires Venus position and Navamsa"
+    // is gone — the engine reads both — and "the impact is mild" no longer
+    // overrides the residual the card shows beside it.
+    // "Present and reduced; a residual remains" is said by the chip and by
+    // "What remains" on the same card; this line keeps only the action.
+    cancelled: { ta: "திருமணப் பொருத்தத்தில் இதை 'தோஷம் இல்லை' என்று அல்ல, 'நிவர்த்தியுடன் கூடிய செவ்வாய் தோஷம்' என்று குறித்து, இரு ஜாதகங்களையும் முழுமையாக ஒப்பிடவும்.", en: "For marriage matching, record it as 'Sevvai dosham with nivarthi', never as 'dosham-free', and compare both charts in full." },
     candidate: { ta: "செவ்வாய் தோஷ சாத்தியம் உள்ளது. முழு ஜாதக சூழல் மற்றும் பொருத்தப் பார்வை இல்லாமல் இறுதி முடிவு தர வேண்டாம்.", en: "Sevvai Dosham is a candidate signal. Do not finalize a verdict without full chart comparison and marriage matching context." },
     absent:    { ta: "செவ்வாய் தோஷம் இல்லை. லக்னம், சந்திரன், சுக்கிரன் ஆகிய மூன்றிலிருந்தும் செவ்வாய் தோஷ வீட்டில் இல்லை.", en: "Sevvai Dosham is absent. Mars is not in a dosha house from Lagna, Moon, or Venus in this chart." },
   },
   RAHU_KETU_DOSHAM: {
-    active:    { ta: "ராகு/கேது திருமண சுட்டிகளை பாதிக்கும் வீடுகளில் உள்ளன. கூடுதல் சுட்டிகள் (7-ம் அதிபதி, சுக்கிரன் நிலை, நவாம்சம்) சரிபார்க்காமல் தீர்மானிக்க வேண்டாம். குரு ஆதரவு இருந்தால் தாக்கம் குறையும்.", en: "Rahu/Ketu is in positions that affect marriage significators. Do not finalize without checking 7th lord, Venus, and Navamsa. If Jupiter support is present, impact reduces considerably." },
-    cancelled: { ta: "ராகு/கேது தோஷம் நிவர்த்தி காரணங்களால் குறைக்கப்பட்டுள்ளது. தற்போதைய கிரக நிலைகள் ஆதரிக்கின்றன; திருமண விஷயங்களில் நடைமுறை தொடர்பும் புரிதலும் முக்கியம்.", en: "Rahu-Ketu dosham is reduced by protective factors. Current planetary positions support; practical communication and understanding matter most in marriage decisions." },
+    // DD-17: the engine has already read the 7th lord, Jupiter and (for
+    // context) the Navamsa, so "do not finalize without checking" them asked
+    // the reader to redo its work. Matching balances a similar axis (samyam).
+    active:    { ta: "ராகு-கேது அச்சு லக்னத்திலிருந்து திருமண வீடுகளில் உள்ளது; இந்த ஜாதகத்தின் பாதுகாப்பு காரணங்கள் அதை ஈடுசெய்யவில்லை. திருமணப் பொருத்தத்தில் துணையின் ஜாதகத்துடன் ஒப்பிடப்படும் — அங்கும் இதே போன்ற அச்சு இருந்தால் சமநிலை ஏற்படும்.", en: "The Rahu–Ketu axis falls on marriage houses from your Lagna, and this chart's protections do not offset it. In marriage matching it is weighed against the partner's chart — a similar axis there balances it." },
+    // "Current planetary positions support" was the line a practitioner
+    // read as "nothing to worry about". The axis stays; it is softened.
+    // The softening is said by the chip and "What remains"; "not as absent"
+    // keeps the practitioner's point that the axis stays.
+    cancelled: { ta: "அது அமர்ந்துள்ள வீடுகளின் போக்குகளைக் கவனியுங்கள்; திருமணப் பொருத்தத்தில் இதை 'தோஷம் இல்லை' என்று அல்ல, 'நிவர்த்தியுடன் கூடிய ராகு-கேது தோஷம்' என்று குறிக்கவும்.", en: "Watch the tendencies of the houses it occupies, and in marriage matching record it as 'Rahu–Ketu dosham with nivarthi', not as absent." },
     candidate: { ta: "ராகு/கேது சாத்திய சுட்டி மட்டும். நேரடி தோஷம் உறுதி செய்ய 7-ம் அதிபதி, சுக்கிரன், நவாம்சம் சரிபார்க்க வேண்டும்.", en: "Rahu-Ketu is a candidate signal only. Verify 7th lord, Venus, and Navamsa before confirming a direct dosham verdict." },
     absent:    { ta: "ராகு/கேது திருமண வீடுகளில் இல்லை. திருமண சுட்டிகளில் நேரடி தாக்கம் இல்லை.", en: "Rahu-Ketu is not in marriage houses. No direct impact on marriage significators in this chart." },
   },
   PITRU_DOSHAM: {
     active:    { ta: "பித்ரு தோஷம் செயல்பாட்டில் உள்ளது. குடும்ப பொறுப்புகள் அல்லது மூதாதையர் கடமைகள் அதிகமாக உணரப்படலாம். பெரியவர்களுக்கு மரியாதை மற்றும் குடும்ப ஒத்துழைப்பு முக்கியம்.", en: "Pitru Dosham is active. Family responsibilities or ancestral duties may feel heavier. Respect for elders and family cooperation are important." },
-    cancelled: { ta: "பித்ரு தோஷம் நிவர்த்தி காரணங்களால் குறைக்கப்பட்டுள்ளது. குடும்ப உறவுகளில் கவனம் செலுத்துங்கள்.", en: "Pitru Dosham is reduced by protective factors. Maintain attention to family relationships." },
+    cancelled: { ta: "குடும்ப உறவுகளிலும் முன்னோர் வழிபாட்டிலும் தொடர்ந்த கவனம் பயனுள்ளது.", en: "Steady attention to family relationships and ancestral observances is still worthwhile." },
     candidate: { ta: "பித்ரு தோஷ சாத்தியம் மட்டும். முழு ஜாதகச் சூழலில் உறுதி செய்யவும்.", en: "Pitru Dosham is a candidate signal only. Confirm in full chart context." },
     absent:    { ta: "பித்ரு தோஷம் இல்லை.", en: "Pitru Dosham is not present." },
   },
@@ -1025,19 +1423,24 @@ const DOSHAM_POWER_CONTEXT: Record<string, {
   },
   BADHAKA_DOSHAM: {
     active:    { ta: "பாதக தோஷம் செயல்பாட்டில் உள்ளது. தற்போது முக்கிய காரியங்களில் தடைகள்/தாமதங்கள் சாத்தியம் — முன்கூட்டிய திட்டமிடல், மாற்றுத் திட்டம், பொறுமை இந்த காலத்தில் மிகவும் உதவும்.", en: "Badhaka Dosham is active. Important matters may meet blocks or delays right now — early planning, a back-up plan, and patience help most in this phase." },
-    cancelled: { ta: "பாதக தோஷம் நிவர்த்தி காரணங்களால் (வலுவான பாதக அதிபதி) குறைக்கப்பட்டுள்ளது. தடைகள் வந்தாலும் விரைவில் கடக்கப்படும்.", en: "Badhaka Dosham is reduced by mitigation (a strong badhaka lord). Even when blocks appear, they tend to clear quickly." },
+    cancelled: { ta: "தடைகள் வரலாம், ஆனால் விரைவில் கடக்கப்படும்.", en: "Blocks can still appear, but they tend to clear quickly." },
     candidate: { ta: "பாதக சாத்திய சுட்டி மட்டும்; முழு ஜாதக உறுதிப்பாடு தேவை.", en: "Badhaka is a candidate signal only; confirm in full chart context." },
     absent:    { ta: "பாதக தோஷம் தற்போது செயல்பாட்டில் இல்லை.", en: "Badhaka Dosham is not currently active." },
   },
   KALATHRA_DOSHAM: {
     active:    { ta: "களத்திர (7-ம் வீடு) தோஷம் செயல்பாட்டில் உள்ளது. திருமண முடிவுகளில் முழு பொருத்தம் + நவாம்சம் பார்த்து, அவசரப்படாமல் முடிவெடுங்கள். துணையின் உடல்நலத்திலும் கவனம் நல்லது.", en: "Kalathra (7th-house) Dosham is active. For marriage decisions, do full compatibility + Navamsa matching and avoid rushing. Attention to the partner's health is also wise." },
-    cancelled: { ta: "களத்திர தோஷம் நிவர்த்தி காரணங்களால் (வலுவான/உச்ச 7-ம் அதிபதி) குறைக்கப்பட்டுள்ளது. நடைமுறை தொடர்பும் புரிதலும் முக்கியம்.", en: "Kalathra Dosham is reduced by mitigation (a strong/exalted 7th lord). Practical communication and understanding matter most." },
+    cancelled: { ta: "நடைமுறை உரையாடலும் முழுப் பொருத்தமும் இன்னும் முக்கியம்.", en: "Practical communication and full matching still matter." },
     candidate: { ta: "களத்திர சாத்திய சுட்டி மட்டும்; 7-ம் அதிபதி, சுக்கிரன், நவாம்சம் சரிபார்க்கவும்.", en: "Kalathra is a candidate signal only; verify the 7th lord, Venus, and Navamsa." },
     absent:    { ta: "களத்திர தோஷம் இல்லை. 7-ம் வீடு/அதிபதி பாதிக்கப்படவில்லை.", en: "Kalathra Dosham is absent. The 7th house/lord is not afflicted in this chart." },
   },
   PUTRA_SARPA_DOSHAM: {
-    active:    { ta: "புத்ர சர்ப்ப (5-ம் வீடு) தோஷம் செயல்பாட்டில் உள்ளது. குழந்தைப்பேறு/படைப்புத் திட்டங்களில் கூடுதல் கவனம் தேவைப்படலாம்; மருத்துவ ஆலோசனையை பரிகாரத்துடன் சேருங்கள்.", en: "Putra Sarpa (5th-house) Dosham is active. Progeny or creative ventures may need extra care; combine medical guidance with the remedy." },
-    cancelled: { ta: "புத்ர சர்ப்ப தோஷம் நிவர்த்தி காரணங்களால் (வலுவான 5-ம் அதிபதி/குரு) குறைக்கப்பட்டுள்ளது.", en: "Putra Sarpa Dosham is reduced by mitigation (a strong 5th lord/Jupiter)." },
+    // Medical guidance is said once, under "How to reduce impact"; what guards
+    // the house is said under "In your chart". This line keeps the reading.
+    active:    { ta: "காத்திருக்காமல், 5-ஆம் வீட்டு விஷயங்களில் முன்கூட்டியே தொடங்கி தொடர்ந்த கவனம் செலுத்துங்கள்.", en: "Start early and give 5th-house matters steady attention rather than waiting for them to resolve." },
+    // Was "reduced by a strong 5th lord or Jupiter in a kendra": both named
+    // whichever one applied, so a chart protected by Jupiter alone was told
+    // its 5th lord was strong.
+    cancelled: { ta: "இதை மறுப்பாக அல்ல, தாமதமாகப் படியுங்கள்: வீடு காக்கப்படுவதால், காலமும் தொடர்ந்த முயற்சியும் பலன் தரும்.", en: "Read it as delay, not denial: with the house guarded, time and steady effort tend to bring results." },
     candidate: { ta: "புத்ர சர்ப்ப சாத்திய சுட்டி மட்டும்; முழு ஜாதக உறுதிப்பாடு தேவை.", en: "Putra Sarpa is a candidate signal only; confirm in full chart context." },
     absent:    { ta: "புத்ர சர்ப்ப தோஷம் இல்லை.", en: "Putra Sarpa Dosham is not present." },
   },
@@ -1144,8 +1547,44 @@ export function getYogaPowerContext(name: string, strength: string, activationSt
   return `${base} ${activationLabel}.`;
 }
 
+/**
+ * Marana Karaka Sthana's "now" line names the planet whose dasha or bhukti it
+ * waits on. It fell through to "The impact varies with your current Dasha
+ * period", which never said whose dasha.
+ */
+function mksPowerContext(dosham: ChartDoshamInsight, lang: Lang): string | null {
+  const planets = mksPlanets(dosham.conditionsMet);
+  if (!dosham.isPresent || planets.length === 0) return null;
+  const names = planets.map((p) => planetLabel(p, lang));
+  const who = lang === "ta" ? names.join(" அல்லது ") : names.join(" or ");
+  // The steps themselves are under "How to reduce impact"; this line says only
+  // whether now is their period.
+  if (dosham.isCancelled) {
+    return lang === "ta"
+      ? "'உங்கள் ஜாதகத்தில்' பகுதியில் சொன்ன ஆட்சி/உச்சம் அல்லது குரு பார்வை இதைப் பெருமளவு ஈடுசெய்கிறது; வழக்கமான கவனம் போதும்."
+      : "The dignity or aspect noted under 'In your chart' largely offsets this; ordinary care is enough.";
+  }
+  if (dosham.dashaActivated) {
+    return lang === "ta"
+      ? `${who} தசை அல்லது புக்தி இப்போது நடக்கிறது — மேலே சொன்ன வழிமுறைகள் இந்தக் காலத்திற்கே.`
+      : `${who}'s dasha or bhukti is running now — this is the period the steps above are for.`;
+  }
+  return lang === "ta"
+    ? `${who} தசையோ புக்தியோ இப்போது நடக்கவில்லை; அதுவரை இது பின்னணியில் இருக்கும்.`
+    : `${who}'s dasha or bhukti is not running now, so this stays in the background until it does.`;
+}
+
 export function getDoshamPowerContext(dosham: ChartDoshamInsight, lang: Lang): string {
   const key = dosham.name.toUpperCase();
+  if (key === "MARANA_KARAKA_STHANA") {
+    const mks = mksPowerContext(dosham, lang);
+    if (mks) return mks;
+  }
+  // Neutralized (O-32): the chip and the why line already say it does not
+  // act; "X is not present" would repeat that and deny the placement.
+  if (!dosham.isPresent && (dosham.cancellationFactors?.length ?? 0) > 0) {
+    return lang === "ta" ? "இந்த அமைப்புக்குப் பரிகாரம் தேவையில்லை." : "No remedy is needed for this placement.";
+  }
   const entry = DOSHAM_POWER_CONTEXT[key];
   const label = dosham.label.toUpperCase();
 
@@ -1277,6 +1716,8 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
     false,
     false,
     lang,
+    // Present: the conditions are listed below. Absent: the factor list is.
+    { listsShown: yoga.isPresent || (yoga.cancellationFactors?.length ?? 0) > 0 },
   );
 
   const powerText = yoga.isPresent
@@ -1362,9 +1803,11 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
             <p className="cd-kicker" style={{ letterSpacing: "0.08em" }}>
               {lang === "ta" ? "உங்கள் ஜாதகத்தில் ஏன்" : "Why Your Chart Has This"}
             </p>
-            <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.55 }}>
-              {whyText}
-            </p>
+            {whyText && (
+              <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.55 }}>
+                {whyText}
+              </p>
+            )}
             {yoga.isPresent && yoga.conditionsMet.length > 0 && (
               <ul style={{ margin: "var(--space-2) 0 0", paddingLeft: "var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-0_75)" }}>
                 {yoga.conditionsMet.map((c, i) => (
@@ -1466,9 +1909,13 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
 // consistent ("some have scores, some don't" -> all do now).
 export function doshamSeverityScore(dosham: ChartDoshamInsight): number | null {
   if (!dosham.isPresent) return null;
-  let base = dosham.strength === "STRONG" ? 80 : dosham.strength === "PARTIAL" ? 55 : 35;
-  if (dosham.dashaActivated) base += 10;
-  if (dosham.isCancelled) base = Math.round(base * 0.35); // mitigated -> much lower
+  // DD-17: driven by the engine's residual. A mitigated dosham keeps a visible
+  // share of the meter — the old `× 0.35` collapsed every one of them to the
+  // same sliver, whatever it had been before its protections.
+  const residual = doshamResidual(dosham);
+  let base = residual === "STRONG" ? 80 : residual === "MODERATE" ? 55 : 35;
+  if (dosham.isCancelled) base = residual === "MODERATE" ? 40 : 22;
+  else if (dosham.dashaActivated) base += 10;
   return Math.max(0, Math.min(100, base));
 }
 
@@ -1491,15 +1938,16 @@ export function doshamSeverityBand(
   dosham: ChartDoshamInsight,
   lang: Lang,
 ): string | null {
-  const score = doshamSeverityScore(dosham);
-  if (score === null) return null;
-  if (score >= 70) return lang === "ta" ? "தீவிரம்: அதிகம்" : "High intensity";
-  if (score >= 40) return lang === "ta" ? "தீவிரம்: மிதமானது" : "Moderate intensity";
-  return lang === "ta" ? "தீவிரம்: குறைவு" : "Low intensity";
+  // DD-17: active doshams name their intensity; mitigated ones name their
+  // residual ("Residual: mild"). "Low intensity" on a mitigated dosham read as
+  // "neutralised" to a reviewing practitioner — the opposite of nivarthi.
+  return doshamSeverityChip(dosham, lang);
 }
 
 function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }) {
   const [open, setOpen] = useState(false);
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  useDoshamCardRequest(dosham.name, () => setOpen(true), cardRef);
   const isActiveAndPresent = dosham.isPresent && !dosham.isCancelled;
   const isCancelledAndPresent = dosham.isPresent && dosham.isCancelled;
   const color = isActiveAndPresent ? "var(--planet-saturn)" : isCancelledAndPresent ? "var(--chart-d9-active)" : "var(--color-faint)";
@@ -1514,20 +1962,25 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
     dosham.isCancelled,
     dosham.dashaActivated,
     lang,
+    { listsShown: true, kind: "dosham" },
   );
+  const listsInMeaning = doshamMeaningCoversMarkers(dosham);
 
   const powerText = getDoshamPowerContext(dosham, lang);
 
   // Separate trigger and protective bullets cleanly
   const annotationMarkers = new Set(["female_high_attention_house", "male_high_attention_house", "rahu_ketu_upachaya"]);
-  const triggerBullets = dosham.conditionsMet.filter((c) => !annotationMarkers.has(c));
+  const triggerBullets = listsInMeaning ? [] : dosham.conditionsMet.filter((c) => !annotationMarkers.has(c));
+  const protectiveBullets = listsInMeaning ? [] : dosham.cancellationFactors;
   // DD-05: gender markers are never voiced on a consumer card, even from an old payload.
   const attentionBullets = dosham.conditionsMet.filter((c) => annotationMarkers.has(c) && !c.endsWith("_high_attention_house"));
+  const showWhy = whyText !== "" || triggerBullets.length > 0 || protectiveBullets.length > 0;
 
   const cardBg = isActiveAndPresent ? "var(--color-low-bg)" : isCancelledAndPresent ? "var(--chart-d9-active-bg)" : "var(--color-surface-2)";
   const cardBorder = isActiveAndPresent ? "var(--color-mid-border)" : isCancelledAndPresent ? "var(--color-high-border)" : "var(--color-border)";
 
   return (
+    <div ref={cardRef} id={doshamAnchorId(dosham.name)} style={{ scrollMarginTop: "72px" }}>
     <Card style={{ display: "block", padding: 0, borderRadius: "var(--radius-md)", border: `1px solid ${cardBorder}`, overflow: "hidden", fontFamily: "var(--font-body)" }}>
       <button
         onClick={() => setOpen((v) => !v)}
@@ -1557,7 +2010,7 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
           </span>
           {severityBand !== null && (
             <span
-              title={lang === "ta" ? "தீவிரம் — ஜாதக பலம் + தசை செயல்பாடு ஆகியவற்றின் அடிப்படையில்" : "Severity — based on natal strength + current Dasha activation"}
+              title={lang === "ta" ? "இந்த ஜாதகத்தின் நிவர்த்திகளுக்குப் பிறகு மீதமுள்ள தாக்கம்" : "What remains after this chart's protections"}
               style={{ fontSize: "var(--text-2xs)", fontWeight: 700, padding: "var(--space-0_5) var(--space-2)", borderRadius: "var(--radius-pill)", background: `${color}14`, color, border: `1px solid ${color}40`, flexShrink: 0 }}
             >
               {severityBand}
@@ -1582,11 +2035,15 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
             </p>
           </div>
 
+          <DoshamReckoningBlock dosham={dosham} lang={lang} />
+
           <div>
-            <p className="cd-kicker" style={{ letterSpacing: "0.08em" }}>
-              {lang === "ta" ? "உங்கள் ஜாதகத்தில் ஏன்" : "Why Your Chart Has This"}
-            </p>
-            <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.55 }}>{whyText}</p>
+            {showWhy && (
+              <p className="cd-kicker" style={{ letterSpacing: "0.08em" }}>
+                {lang === "ta" ? "உங்கள் ஜாதகத்தில் ஏன்" : "Why Your Chart Has This"}
+              </p>
+            )}
+            {whyText && <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.55 }}>{whyText}</p>}
 
             {triggerBullets.length > 0 && (
               <div style={{ marginTop: "var(--space-2_5)" }}>
@@ -1601,13 +2058,13 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
               </div>
             )}
 
-            {dosham.cancellationFactors.length > 0 && (
+            {protectiveBullets.length > 0 && (
               <div style={{ marginTop: "var(--space-2_5)" }}>
                 <p className="cd-kicker" style={{ color: "var(--chart-d9-active)", letterSpacing: "0.08em" }}>
                   {lang === "ta" ? "பாதுகாப்பு காரணங்கள்" : "Protective Factors"}
                 </p>
                 <ul style={{ margin: 0, paddingLeft: "var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-0_75)" }}>
-                  {dosham.cancellationFactors.map((c, i) => (
+                  {protectiveBullets.map((c, i) => (
                     <li key={i} style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.45 }}>{markerLabel(c, lang)}</li>
                   ))}
                 </ul>
@@ -1631,7 +2088,7 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
               const key = dosham.name.toUpperCase();
               const outcomes = DOSHAM_OUTCOMES[key];
               const howTo = DOSHAM_HOW_TO[key];
-              const remedies = DOSHAM_REMEDIES[key];
+              const remedies = getDoshamRemedies(dosham, lang);
               return (
                 <>
                   {outcomes && dosham.isPresent && (
@@ -1660,7 +2117,7 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
                         {lang === "ta" ? "பரிகாரங்கள்" : "Remedies"}
                       </p>
                       <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text-strong)", lineHeight: 1.55 }}>
-                        {lang === "ta" ? remedies.ta : remedies.en}
+                        {remedies}
                       </p>
                     </Card>
                   )}
@@ -1686,6 +2143,7 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
         </div>
       )}
     </Card>
+    </div>
   );
 }
 

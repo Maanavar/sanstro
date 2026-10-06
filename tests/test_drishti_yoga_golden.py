@@ -185,6 +185,12 @@ CHARTS: dict[str, tuple[dict[str, int], int, int]] = {
 #: Parashara key separately and hides the supportive base when strict fires;
 #: Adhi now exposes its >=1 dynamic-benefic base and its clean raja-grade
 #: candidate separately. These are the only intended row changes below.
+#:
+#: RE-FROZEN 2026-10-03 for the v1.7 owner rulings. One cell moved: `nodal`
+#: fires NB-c alone, which is now நீச நிவர்த்தி (`NEECHA_NIVARTHI`, WEAK)
+#: rather than a one-condition Neecha Bhanga Raja Yoga (O-13: the raja-yoga
+#: name needs two conditions). `RAJA_YOGA` did not move on any chart under the
+#: extended moolatrikona test, the kendradhipati grade or the BPHS pair vetoes.
 GOLDEN_YOGAS: dict[str, tuple[tuple[str, bool, str], ...]] = {
     "clustered": (
         # 2026-10-02: the raja-grade candidate carries the one Adhi label, so
@@ -240,7 +246,8 @@ GOLDEN_YOGAS: dict[str, tuple[tuple[str, bool, str], ...]] = {
         ("KEMADRUMA_YOGA", False, "WEAK"),
         ("LAKSHMI_YOGA", False, "WEAK"),
         ("MALAVYA_YOGA", False, "WEAK"),
-        ("NEECHA_BHANGA_RAJA_YOGA", True, "WEAK"),
+        ("NEECHA_BHANGA_RAJA_YOGA", False, "WEAK"),
+        ("NEECHA_NIVARTHI", True, "WEAK"),
         ("PARIVARTANA_YOGA", True, "STRONG"),
         ("RAJA_YOGA", True, "STRONG"),
         ("RUCHAKA_YOGA", False, "WEAK"),

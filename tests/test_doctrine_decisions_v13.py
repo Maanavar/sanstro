@@ -100,10 +100,13 @@ def test_matrix_is_84_static_cells_equal_to_their_derivation() -> None:
     assert MATRIX_SIGNED_OFF is False  # O-9: built, not signed
 
 
-def test_lagna_lords_owning_a_kendra_are_lagna_lord_plus_kendra_neutral() -> None:
+def test_lagna_lords_owning_a_kendra_are_lagna_lord_plus_kendra_lord() -> None:
+    # v1.7: KENDRA_NEUTRAL renamed KENDRA_LORD; the lagna lord carries no
+    # kendradhipati modifier, because lagna lordship decides first.
     for lagna, planet in ((MITHUNAM, BUDHAN), (KANNI, BUDHAN), (DHANUSU, GURU), (MEENAM, GURU)):
         statuses = functional_status(lagna, planet)
-        assert {FunctionalStatus.LAGNA_LORD, FunctionalStatus.KENDRA_NEUTRAL} <= statuses
+        assert {FunctionalStatus.LAGNA_LORD, FunctionalStatus.KENDRA_LORD} <= statuses
+        assert FunctionalStatus.KENDRADHIPATI_BENEFIC not in statuses
         assert YOGAKARAKA not in statuses
 
 
@@ -429,15 +432,17 @@ def test_defaults_are_the_decision_files_defaults() -> None:
     assert d.o11_retrograde_debilitated_raja_yoga is False
     assert d.o12_nb_unlisted_conditions is False       # excluded
     assert d.o13_nb_verses_give_raja_yoga is True
+    assert d.o13_nb_raja_min_points == 2               # owner ruling 2026-10-03
     assert d.o15_raja_one_way_aspect is False          # mutual only
     assert d.o16_moon_secondary_activator is True      # DD-15 table
-    assert d.o17_bhagya_support_scope == "literal"
-    assert d.o18_aries_scorpio_sevvai == "full_cancellation"
+    assert d.o17_bhagya_support_scope == "literal"     # ruled 2026-10-03 (kept)
+    assert d.o18_aries_scorpio_sevvai == "strong_mitigation"  # ruled 2026-10-03
     assert d.o19_nb_moon_self_reference is True        # literal
     assert d.o20_adhi_raja_malefic_aspects is False    # occupants only
-    assert d.o21_nb_planet_as_own_lord is False        # DD-09 deleted NB-e
-    assert d.o22_gk_moon_as_support is True            # literal DD-01/DD-12
-    assert d.o23_six_eight_colord_mode == "moolatrikona"  # 2026-09-23 ruling
+    assert d.o21_nb_planet_as_own_lord is True         # ruled 2026-10-03: tagged
+    assert d.o22_gk_moon_as_support is True            # ruled 2026-10-03 (kept)
+    assert d.o23_six_eight_colord_mode == "moolatrikona_3_6_8_11"  # ruled 2026-10-03
+    assert d.o24_kendradhipati_two_kendras == "mixed"  # open, v1.7
     assert d.moon_72_degree_convention is False
     assert d.show_lakshmi_phaladeepika is False
 
@@ -613,16 +618,20 @@ def test_o17_can_label_dignified_but_incomplete_lakshmi_cases() -> None:
 def test_o18_switches_mesham_viruchigam_exception_posture() -> None:
     # Viruchigam lagna, Sevvai in the 2nd: the O-18 exception applies without
     # the separate own-sign mitigation that a Mesham-lagna fixture would add.
+    # Sukran (7th lord) sits with Sani in Mithunam, the 8th: since O-27 (DD-17)
+    # an unafflicted 7th lord in a kendra protects, and this fixture isolates
+    # O-18, so the 7th lord must not be strong.
     chart = {
-        SEVVAI: DHANUSU, CHANDRAN: SIMMAM, SUKRAN: SIMMAM,
+        SEVVAI: DHANUSU, CHANDRAN: SIMMAM, SUKRAN: MITHUNAM,
         GURU: RISHABAM, SURYAN: MITHUNAM, BUDHAN: MITHUNAM, SANI: MITHUNAM,
         RAHU: KANNI, KETU: MEENAM,
     }
-    cancelled = detect_sevvai_dosham(chart, VIRUCHIGAM)
-    mitigated = detect_sevvai_dosham(
+    # Owner ruling 2026-10-03: strong mitigation is now the default.
+    cancelled = detect_sevvai_dosham(
         chart, VIRUCHIGAM,
-        doctrine=DoctrineOptions(o18_aries_scorpio_sevvai="strong_mitigation"),
+        doctrine=DoctrineOptions(o18_aries_scorpio_sevvai="full_cancellation"),
     )
+    mitigated = detect_sevvai_dosham(chart, VIRUCHIGAM)
     assert "mars_lagna_lord_mitigation" in cancelled.cancellation_factors
     assert cancelled.is_cancelled is True
     assert mitigated.is_present is True
@@ -658,17 +667,21 @@ def test_dd03_each_mitigation_lowers_a_strong_axis_one_grade() -> None:
     assert result.strength == "WEAK" and result.is_cancelled is False
 
 
-def test_o21_budhan_is_not_its_own_cancelling_lord() -> None:
+def test_o21_budhan_self_reference_counts_but_is_tagged() -> None:
     """Budhan debilitated in Meenam, the 10th from Mithunam. Budhan rules Kanni,
     its own exaltation sign, so NB-b read literally is NB-e — deleted by DD-09.
-    Guru (lord of Meenam) sits in the 3rd from the Lagna and 2nd from Chandran."""
+    Guru (lord of Meenam) sits in the 3rd from the Lagna and 2nd from Chandran.
+    Owner ruling 2026-10-03: the literal reading counts, tagged; v1.6 skipped it."""
     planets = {BUDHAN: MEENAM, GURU: SIMMAM, CHANDRAN: KADAGAM}
-    default = evaluate_neecha_bhanga(BUDHAN, planet_rasi=planets, lagna_rasi=MITHUNAM)
-    assert default.cancelled is False
-    literal = evaluate_neecha_bhanga(BUDHAN, planet_rasi=planets, lagna_rasi=MITHUNAM,
-                                     options=DoctrineOptions(o21_nb_planet_as_own_lord=True))
+    literal = evaluate_neecha_bhanga(BUDHAN, planet_rasi=planets, lagna_rasi=MITHUNAM)
     assert "nb_b_exaltation_lord_in_kendra" in literal.markers
+    assert "nb_self_reference" in literal.markers
+    assert literal.self_reference_rules == {"NB-b", "NB-g"}
     assert literal.cancelling_grahas == ()  # nothing but Budhan itself
+    assert literal.independent_points == 0
+    skipped = evaluate_neecha_bhanga(BUDHAN, planet_rasi=planets, lagna_rasi=MITHUNAM,
+                                     options=DoctrineOptions(o21_nb_planet_as_own_lord=False))
+    assert skipped.cancelled is False
 
 
 def test_o22_moon_as_gaja_kesari_support_is_switchable() -> None:
@@ -687,7 +700,8 @@ def test_o22_moon_as_gaja_kesari_support_is_switchable() -> None:
 def test_o23_six_eight_co_lords_and_the_matrix_feed_raja_yoga() -> None:
     """Kadagam lagna: Guru owns the 6th and the 9th. The 2026-09-23 moolatrikona
     test (Dhanusu is the 6th) shuts the 9th lord out of every Raja Yoga; O-23's
-    alternative lets lordship decide and grades the pair MIXED."""
+    alternative lets lordship decide and grades the pair MIXED. Since v1.8 the
+    named Kadagam-Guru exception re-admits it by default, also graded MIXED."""
     chart = {GURU: MEENAM, CHANDRAN: MEENAM, SURYAN: RISHABAM, SEVVAI: RISHABAM,
              BUDHAN: RISHABAM, SUKRAN: RISHABAM, SANI: RISHABAM}
 
@@ -695,9 +709,12 @@ def test_o23_six_eight_co_lords_and_the_matrix_feed_raja_yoga() -> None:
         return [r for r in detect_raja_yoga(chart, KADAGAM, doctrine=options)
                 if set(r.key_grahas) == {GURU, CHANDRAN}]
 
-    assert pair(DEFAULT_DOCTRINE) == []
-    lordship = pair(DoctrineOptions(o23_six_eight_colord_mode="lordship_only"))
-    assert lordship and "raja_grade_mixed" in lordship[0].conditions_met
+    no_exception = DoctrineOptions(o23_lineage_exceptions=False)
+    assert pair(no_exception) == []
+    assert pair(DoctrineOptions(o23_six_eight_colord_mode="moolatrikona", o23_lineage_exceptions=False)) == []
+    for options in (DEFAULT_DOCTRINE, DoctrineOptions(o23_six_eight_colord_mode="lordship_only")):
+        found = pair(options)
+        assert found and "raja_grade_mixed" in found[0].conditions_met
 
 
 def test_dd08_one_adhi_card_when_the_raja_grade_forms() -> None:

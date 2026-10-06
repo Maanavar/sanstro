@@ -99,6 +99,7 @@ from app.services.chart_service import load_persisted_chart_response
 from app.services.feature_flags import current_doctrine_options
 from app.services.narrative_engine import PLANET_NAME
 from app.services.peyarchi_service import get_peyarchi_summary
+from app.services.reading_story import build_reading_story
 
 _NATAL_PLANETS = ("SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN", "RAHU", "KETU")
 _KENDRA_HOUSES = frozenset({1, 4, 7, 10})
@@ -573,7 +574,7 @@ def _planet_explanation(
     # combustion penalty, so the "Why" text names the reason the planet reads
     # strong. Mutually exclusive with combustion (see transits.is_cazimi).
     cazimi_ta = (
-        " இந்த கிரகம் சூரியனின் இதயத்தில் (கசிமி) அமைந்துள்ளது — எரிப்பு (அஸ்தமன) தோஷம் நீங்கி, மாறாக பலம் பெற்றதாகக் கணிக்கப்படுகிறது."
+        " இந்த கிரகம் சூரியனின் இதயத்தில் (கசிமி) அமைந்துள்ளது — எரிப்பு (அஸ்தங்க) தோஷம் நீங்கி, மாறாக பலம் பெற்றதாகக் கணிக்கப்படுகிறது."
         if getattr(planet, "is_cazimi", False)
         else ""
     )
@@ -834,7 +835,10 @@ def _navamsa_facet_value(planet: PlanetPosition) -> tuple[ChartExplanationText |
     if d9_rasi is None:
         return None, "NEUTRAL"
 
-    d9_name = RASI_NAMES.get(d9_rasi, str(d9_rasi))
+    # Named per language: the Tamil sentences used to carry the Latin
+    # transliteration ("நவாம்சத்தில் Simmam"), FTR-01.
+    d9_ta = rasi_ta(d9_rasi) or str(d9_rasi)
+    d9_en = rasi_en(d9_rasi) or str(d9_rasi)
     tier = d9_dignity_tier(planet.graha, d9_rasi)
 
     if planet.is_vargottama and tier < 0:
@@ -842,10 +846,10 @@ def _navamsa_facet_value(planet: PlanetPosition) -> tuple[ChartExplanationText |
         # 2026-10-01); the scorer nets +4 vargottama against the D9 penalty.
         return (
             _bi(
-                f"நவாம்சத்திலும் அதே {d9_name} ராசி — வர்கோத்தமம். ஆனால் இது இந்தக் கிரகத்தின் "
+                f"நவாம்சத்திலும் அதே {d9_ta} ராசி — வர்கோத்தமம். ஆனால் இது இந்தக் கிரகத்தின் "
                 "நீச ராசி; ராசியிலும் நவாம்சத்திலும் நீசம். வர்கோத்தமம் நிலையை உறுதியாக்கும், "
                 "நீசத்தை நீக்காது.",
-                f"Same sign ({d9_name}) in the Navamsa — vargottama. But that is this planet's "
+                f"Same sign ({d9_en}) in the Navamsa — vargottama. But that is this planet's "
                 "debilitation sign, so it is debilitated in both charts. Vargottama makes the "
                 "placement consistent; it does not lift the debility.",
             ),
@@ -854,9 +858,9 @@ def _navamsa_facet_value(planet: PlanetPosition) -> tuple[ChartExplanationText |
     if planet.is_vargottama:
         return (
             _bi(
-                f"நவாம்சத்திலும் அதே {d9_name} ராசி — வர்கோத்தமம். ராசியில் தெரியும் பலன் "
+                f"நவாம்சத்திலும் அதே {d9_ta} ராசி — வர்கோத்தமம். ராசியில் தெரியும் பலன் "
                 "நவாம்சத்திலும் உறுதிப்படுகிறது; இது நிலைத்தன்மையைக் குறிக்கும்.",
-                f"Same sign ({d9_name}) in the Navamsa — vargottama. What the Rasi chart "
+                f"Same sign ({d9_en}) in the Navamsa — vargottama. What the Rasi chart "
                 "promises is confirmed in the D9, which points to stability and follow-through.",
             ),
             "BOOST",
@@ -864,9 +868,9 @@ def _navamsa_facet_value(planet: PlanetPosition) -> tuple[ChartExplanationText |
     if tier > 0:
         return (
             _bi(
-                f"நவாம்சத்தில் {d9_name} — வலுவான நிலை. ராசியில் உள்ள வாக்குறுதி "
+                f"நவாம்சத்தில் {d9_ta} — வலுவான நிலை. ராசியில் உள்ள வாக்குறுதி "
                 "நவாம்சத்தில் ஆதரவு பெறுகிறது; பலன் முழுமையாக வெளிப்பட வாய்ப்பு உண்டு.",
-                f"In the Navamsa it occupies {d9_name}, a dignified position. The Rasi promise "
+                f"In the Navamsa it occupies {d9_en}, a dignified position. The Rasi promise "
                 "is supported in the D9, so its results have a better chance of arriving in full.",
             ),
             "BOOST",
@@ -874,11 +878,11 @@ def _navamsa_facet_value(planet: PlanetPosition) -> tuple[ChartExplanationText |
     if tier < 0:
         return (
             _bi(
-                f"நவாம்சத்தில் {d9_name} — நீச நிலை. ராசியில் வலுவாகத் தெரிந்தாலும் "
+                f"நவாம்சத்தில் {d9_ta} — நீச நிலை. ராசியில் வலுவாகத் தெரிந்தாலும் "
                 "நவாம்சம் அதை ஆதரிக்கவில்லை; பலன் தாமதமாகவோ குறைவாகவோ வரலாம். "
                 "வெளித்தோற்றத்தில் பலமாகத் தெரிந்தாலும், பலன் தரும்போது முழுமையாக "
                 "நிற்காத நிலை இது.",
-                f"In the Navamsa it falls in {d9_name}, a debilitated position. Even where the "
+                f"In the Navamsa it falls in {d9_en}, a debilitated position. Even where the "
                 "Rasi chart looks strong, the D9 does not back it — results can arrive late or "
                 "partially. This is the classical 'strong in name, weak in effect' case.",
             ),
@@ -886,8 +890,8 @@ def _navamsa_facet_value(planet: PlanetPosition) -> tuple[ChartExplanationText |
         )
     return (
         _bi(
-            f"நவாம்சத்தில் {d9_name} — நடுநிலை. ராசி நிலையை நவாம்சம் கூட்டவும் இல்லை, குறைக்கவும் இல்லை.",
-            f"In the Navamsa it occupies {d9_name}, a neutral placement — the D9 neither "
+            f"நவாம்சத்தில் {d9_ta} — நடுநிலை. ராசி நிலையை நவாம்சம் கூட்டவும் இல்லை, குறைக்கவும் இல்லை.",
+            f"In the Navamsa it occupies {d9_en}, a neutral placement — the D9 neither "
             "strengthens nor undercuts what the Rasi chart shows.",
         ),
         "NEUTRAL",
@@ -1276,8 +1280,8 @@ def _planet_facets(
             key="placement",
             label=_FACET_LABELS["placement"],
             value=_bi(
-                f"{planet.house_from_lagna}ஆம் வீடு, {planet.rasi_name} ராசி — {theme.ta}.",
-                f"House {planet.house_from_lagna} in {planet.rasi_name} — {theme.en}.",
+                f"{planet.house_from_lagna}ஆம் வீடு, {rasi_ta(planet.rasi)} ராசி — {theme.ta}.",
+                f"House {planet.house_from_lagna} in {rasi_en(planet.rasi)} — {theme.en}.",
             ),
         ),
         ChartExplanationFacet(
@@ -1383,7 +1387,6 @@ def _planet_facets(
                 *nakshatra_lord_note(
                     planet.graha,
                     planet.nakshatra,
-                    planet.nakshatra_name,
                     lord_house,
                 )
             ),
@@ -1851,12 +1854,12 @@ def _build_bhava_section(
                 theme=theme,
                 explanation=_bi(
                     (
-                        f"{house}-ஆம் வீடு ({RASI_NAMES[house_rasi]}) — {theme.ta}. "
+                        f"{house}-ஆம் வீடு ({rasi_ta(house_rasi)}) — {theme.ta}. "
                         f"இதன் அதிபதி {planet_ta(lord)}, {lord_house}-ஆம் வீட்டில் உள்ளார். "
                         f"{body_ta}{aspect_ta}"
                     ),
                     (
-                        f"House {house} ({RASI_NAMES[house_rasi]}) — {theme.en}. "
+                        f"House {house} ({rasi_en(house_rasi)}) — {theme.en}. "
                         f"Its lord is {planet_en(lord)}, placed in house {lord_house}. "
                         f"{body_en}{aspect_en}"
                     ),
@@ -2501,9 +2504,14 @@ def build_chart_explanation(
         current_mahadasha=timeline.current_mahadasha.lord,
         current_antardasha=timeline.current_antardasha.lord,
         current_pratyantardasha=timeline.current_pratyantardasha.lord,
+        # FTR-03: this used to describe the section to its developer ("connects
+        # Lagna, Moon sign, and the current dasha as the chart's working base").
+        # New Tamil, pending native review.
         explanation=_bi(
-            "இந்த பகுதி லக்னம், சந்திர ராசி, நடப்பு தசை ஆகியவற்றை ஒரே அடிப்படையாக இணைக்கிறது.",
-            "This section connects Lagna, Moon sign, and the current dasha as the chart's working base.",
+            "லக்னம், சந்திர ராசி, ஜென்ம நட்சத்திரம் — இவை மூன்றும் உங்கள் ஜாதகத்தின் அடித்தளம். "
+            "நடப்பு தசை, இப்போது இந்த ஜாதகத்தின் எந்தப் பகுதி செயல்படுகிறது என்பதைச் சொல்லும்.",
+            "Your Lagna, Moon sign and birth star are the three anchors of your chart. "
+            "The running dasa tells you which part of it is active now.",
         ),
         lagna_edge_note=_core_lagna_edge_note(chart, data),
         navamsa_lagna_edge_note=_core_lagna_edge_note(chart, data, navamsa=True),
@@ -2527,9 +2535,13 @@ def build_chart_explanation(
             yoga_dosham=ChartExplanationYogaDoshamSection(
                 yogas=data.yogas,
                 doshams=data.doshams,
+                # FTR-03: was "reused from the already computed chart rules" — an
+                # implementation note, not a reading. New Tamil, pending native review.
                 explanation=_bi(
-                    "யோகங்கள் மற்றும் தோஷங்கள் ஏற்கனவே கணிக்கப்பட்ட ஜாதக விதிகளிலிருந்து எடுத்தவை.",
-                    "Yogas and doshams are reused from the already computed chart rules.",
+                    "யோகங்கள் வாழ்க்கையின் ஒரு பகுதிக்கு ஆதரவு தரும் கிரக அமைப்புகள்; "
+                    "தோஷங்கள் கவனத்துடன் கையாள வேண்டிய நிலைகள்.",
+                    "Yogas are planet combinations that support an area of life; "
+                    "doshams are placements that ask to be handled with care.",
                 ),
             ),
             current_activation=_build_current_activation_section(
@@ -2557,4 +2569,7 @@ def build_chart_explanation(
             generated_at=datetime.now(tz=UTC),
         ),
     )
+    # FTR-21: the Story view's picks, from the finished payload, so web and
+    # mobile render one selection instead of each recomputing it.
+    response.data.story = build_reading_story(response.data)
     return response

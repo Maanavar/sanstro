@@ -551,7 +551,7 @@ Generated from `app/calculations/yoga_rules.py`, which is pinned to the emitted
 yoga codes by `tests/test_yoga_rules.py` — a new yoga cannot ship without a row
 here, and a row here cannot describe a yoga the engine does not emit.
 
-**41 rules over 39 emitted codes**, from 20 detector
+**42 rules over 40 emitted codes**, from 20 detector
 functions. Rules outnumber codes because `RAJA_YOGA` merges two independent
 formulations onto one card and one row records a deliberate non-detection; codes
 outnumber detectors because Pancha Mahapurusha emits five, the Chandra yogas
@@ -586,6 +586,7 @@ lagna-dependent but tabled statically (Dhana, Vipareetha) the listed set is a
 | `YOG-DN-01` | Dhana Yoga | `DHANA_YOGA` | `_yoga_detect.detect_dhana_yoga` | `[TRADITION]` `[PRODUCT]` | Jupiter, Venus, Mercury |
 | `YOG-DN-02` | Dhana Yoga (supportive) | `DHANA_SUPPORTIVE_YOGA` | `_yoga_detect.detect_dhana_yoga_supportive` | `[PRODUCT]` | Jupiter, Venus, Mercury |
 | `YOG-NBR-01` | Neecha Bhanga Raja Yoga | `NEECHA_BHANGA_RAJA_YOGA` | `_yoga_detect.detect_neecha_bhanga` | `[TRADITION]` | Per chart: The debilitated graha itself (DD-15). |
+| `YOG-NBR-02` | Neecha Bhanga (debility cancelled) | `NEECHA_NIVARTHI` | `_yoga_detect.detect_neecha_bhanga` | `[TRADITION]` `[PRODUCT]` | Per chart: The debilitated graha itself (DD-15). |
 | `YOG-NRV-01` | Retrograde debilitated-planet Raja Yoga | `RETROGRADE_DEBILITATED_RAJA_YOGA` | `_yoga_detect.detect_retrograde_debilitated_raja_yoga` | `[TRADITION]` `[PRODUCT]` `[LIMIT]` | Per chart: The debilitated retrograde graha itself. |
 | `YOG-PMP-01` | Ruchaka Yoga (Chevvai) | `RUCHAKA_YOGA` | `_yoga_detect.detect_pancha_mahapurusha` | `[TRADITION]` | Mars |
 | `YOG-PMP-02` | Bhadra Yoga (Budhan) | `BHADRA_YOGA` | `_yoga_detect.detect_pancha_mahapurusha` | `[TRADITION]` | Mercury |
@@ -605,7 +606,7 @@ lagna-dependent but tabled statically (Dhana, Vipareetha) the listed set is a
 | `YOG-CH-02` | Guru Chandala Yoga (Ketu variant) | `CHANDALA_KETU_YOGA` | `_yoga_detect.detect_chandala_yoga_ketu_variant` | `[VARIANT]` | Per chart: Guru and Ketu (DD-15). |
 | `YOG-AM-01` | Amala Yoga | `AMALA_YOGA` | `_yoga_detect.detect_amala_yoga` | `[TRADITION]` `[PRODUCT]` | Per chart: The benefics occupying the 10th — never the 10th lord. |
 | `YOG-AD-01` | Adhi pattern (base) | `ADHI_BASE` | `_yoga_detect.detect_adhi_base` | `[VARIANT]` `[PRODUCT]` | Per chart: The benefics in the 6th/7th/8th from Chandran. |
-| `YOG-AD-02` | Adhi Yoga (raja-grade candidate) | `ADHI_RAJA_GRADE` | `_yoga_detect.detect_adhi_raja_grade` | `[LIMIT]` `[PRODUCT]` | Per chart: The forming benefics in the 6th/7th/8th from Chandran. |
+| `YOG-AD-02` | Adhi Yoga (full strength not confirmed) | `ADHI_RAJA_GRADE` | `_yoga_detect.detect_adhi_raja_grade` | `[LIMIT]` `[PRODUCT]` | Per chart: The forming benefics in the 6th/7th/8th from Chandran. |
 | `YOG-DR-01` | Daridra Yoga | `DARIDRA_YOGA` | `_yoga_detect.detect_daridra_yoga` | `[TRADITION]` | Per chart: The 11th lord of this lagna. |
 | `YOG-DR-02` | Daridra Yoga (Vinaadi proxy) | `DARIDRA_PROXY_YOGA` | `_yoga_detect.detect_daridra_yoga_proxy` | `[PRODUCT]` | Per chart: The 11th lord of this lagna. |
 | `YOG-LK-01` | Lakshmi Yoga | `LAKSHMI_YOGA` | `_yoga_detect.detect_lakshmi_yoga` | `[TRADITION]` `[PRODUCT]` | Per chart: The 9th lord and the lagna lord (DD-15). |
@@ -657,11 +658,11 @@ lagna-dependent but tabled statically (Dhana, Vipareetha) the listed set is a
 | **Detector** | `_yoga_detect.detect_raja_yoga` |
 | **Markers** | `[VARIANT]` `[PRODUCT]` |
 | **Present when** | For every pair of an eligible trikona lord (of 1/5/9) and an eligible kendra lord (of 1/4/7/10) that are different grahas: the two share a rasi, **or** each casts a drishti on the other's rasi (a **mutual** aspect, DD-07). Parashari aspects including the special 4/8, 5/9 and 3/10 (`CORE-11`). A one-way special aspect (audit L-3) links only under open item O-15. Eligibility is read from the functional-status rule table (`functional_status.raja_participation`, DD-07). |
-| **Strength** | STRONG per firing pair, gated over that pair's two lords. Each instance also records a Tier C grade, `raja_grade_full` / `_qualified` / `_mixed`, from both lords' co-lordships. The chart card is the merge of every pair — best strength, union of conditions, activated if any pair is activated. |
-| **Cancellation** | — |
+| **Strength** | STRONG per firing pair, gated over that pair's two lords. Each instance also records a Tier C grade, `raja_grade_full` / `_qualified` / `_mixed` / `_mixed_kendradhipati`, from both lords' co-lordships. The chart card is the merge of every pair — best strength, union of conditions, activated if any pair is activated. |
+| **Cancellation** | A pair BPHS 34 names as giving no Raja Yoga by mere association for this lagna — Mesham Guru+Sani, Mithunam Guru+Sani, Simmam Guru+Sukran (`functional_status.SOURCE_VETOED_RAJA_PAIRS`, owner ruling 2026-10-03) — forms nothing and is recorded as `raja_pair_source_vetoed_<a>_<b>`. |
 | **Source** | Parashari trikona-kendra sambandha, BPHS raja yoga chapters. The association reading is one of several live formulations, not the only one. |
 | **Activation grahas** | Per chart: This instance's own trikona lord and kendra lord (the fixed list is only a fallback). |
-| **Note** | **This is the formulation choice the reviewer asked to see.** At least four are in live Tamil use: (a) association of a trikona and a kendra lord — implemented here; (b) mutual exchange between them — `YOG-RY-02`; (c) a single graha owning both a kendra and a trikona acting as yogakaraka on its own; (d) the strict Dharma-Karmadhipati reading, 9th lord with 10th lord only. Vinaadi implements (a) and (b). Because every lagna has one lord shared between the two sets, the association test is generous: it iterates all trikona × kendra pairs and one hit forms the yoga. **Ruling 2026-09-23:** (1) each instance activates on its own two lords, carried in `YogaResult.key_grahas`; the `key_planets` below is now only a fallback for a card with no instance. (2) A lord that also owns the 6th/8th qualifies only if its moolatrikona sign is the kendra/trikona it owns. This excludes Kadagam Guru (6+9) and Sani (7+8), Kanni Sani (5+6) and Kumbam Budhan (5+8) from every Raja Yoga; set against DD-07's trikona-dominates reading it is open item O-23 (default: this ruling). Precedence is lagna ownership first: the lagna lord always qualifies. **DD-07 (v1.3) changed the 12th:** a 12th co-lord is never downgraded for the 12th alone (O-4), which re-admits Rishabam Sevvai, Thulam Budhan and Viruchigam Sukran — the conflict with this ruling is open item O-14. (3) Rahu/Ketu sharing a sign with a forming lord are recorded as supporting (`supporting_grahas`), never forming, and their dashas do not activate the card. |
+| **Note** | **This is the formulation choice the reviewer asked to see.** At least four are in live Tamil use: (a) association of a trikona and a kendra lord — implemented here; (b) mutual exchange between them — `YOG-RY-02`; (c) a single graha owning both a kendra and a trikona acting as yogakaraka on its own; (d) the strict Dharma-Karmadhipati reading, 9th lord with 10th lord only. Vinaadi implements (a) and (b). Because every lagna has one lord shared between the two sets, the association test is generous: it iterates all trikona × kendra pairs and one hit forms the yoga. **Ruling 2026-09-23:** (1) each instance activates on its own two lords, carried in `YogaResult.key_grahas`; the `key_planets` below is now only a fallback for a card with no instance. (2) A lord that also owns the 6th/8th qualifies only if its moolatrikona sign is the kendra/trikona it owns. This excludes Kadagam Guru (6+9) and Sani (7+8), Kanni Sani (5+6) and Kumbam Budhan (5+8) from every Raja Yoga; set against DD-07's trikona-dominates reading it is open item O-23 (default: this ruling). Precedence is lagna ownership first: the lagna lord always qualifies. **DD-07 (v1.3) changed the 12th:** a 12th co-lord is never downgraded for the 12th alone (O-4), which re-admits Rishabam Sevvai, Thulam Budhan and Viruchigam Sukran — the conflict with this ruling is open item O-14. (3) Rahu/Ketu sharing a sign with a forming lord are recorded as supporting (`supporting_grahas`), never forming, and their dashas do not activate the card. **Owner ruling 2026-10-03 (v1.7):** the moolatrikona test now covers 3rd/11th co-lords too, excluding Mesham Sani (10+11), Simmam Sukran (3+10) and Kumbam Sevvai (3+10); a natural benefic owning two kendras (Guru for Mithunam/Kanni, Budhan for Dhanusu/Meenam) takes part at the `mixed_kendradhipati` grade (O-24); three BPHS pairs are source-vetoed. Kadagam Guru's exclusion is kept with a recorded dissent: many Tamil practitioners read Guru as a strong benefic for Kataka. |
 
 #### `YOG-RY-02` Raja Yoga — trikona/kendra lord exchange (ராஜயோகம் — பரிவர்தனம்)
 
@@ -740,14 +741,28 @@ lagna-dependent but tabled statically (Dhana, Vipareetha) the listed set is a
 | **Emitted as** | `NEECHA_BHANGA_RAJA_YOGA` |
 | **Detector** | `_yoga_detect.detect_neecha_bhanga` |
 | **Markers** | `[TRADITION]` |
-| **Present when** | A graha stands in its debilitation rasi **and** at least one rule of `neecha_bhanga.NEECHA_BHANGA_RULES` fires whose verse states a raja-yoga result (O-13). One rule per Phaladeepika verse (DD-09): NB-a debilitation-sign lord in a kendra from Lagna or Chandran (7.26/7.29); NB-b exaltation-sign lord in a kendra from Lagna or Chandran (7.26/7.29); NB-c the two lords in mutual kendras (7.27); NB-d the debilitated graha aspected by its debilitation-sign lord (7.28), NB-d+ the same outside 6/8/12 (7.28, second half); NB-g either lord in a kendra from Lagna (7.30, reference point O-10). **Any one rule cancels** — there is no count threshold. |
-| **Strength** | By distinct conditions, not verses (Tier C): one → WEAK (shown as 'Mild'), two → PARTIAL, three or more → STRONG. NB-g never adds a point NB-a/NB-b already counted; NB-d+ adds one. Ungated. |
-| **Cancellation** | Retrogression of the debilitated graha is recorded as a supporting note only (`debilitated_planet_retrograde_note`) and never forms the yoga by itself — the retrograde verse is open item O-11. Off by default: NB-f, Navamsa strength (O-7); NB-x1/NB-x2, two conditions the engine shipped without a verse in DD-09's table (O-12). Budhan rules its own exaltation sign, so for a debilitated Budhan NB-b, NB-c and NB-g would test Budhan's own position — the deleted NB-e; that self-reference is skipped (O-21). |
+| **Present when** | A graha stands in its debilitation rasi, rules of `neecha_bhanga.NEECHA_BHANGA_RULES` fire whose verse states a raja-yoga result (O-13), **and** they amount to at least two distinct conditions (`o13_nb_raja_min_points`, owner ruling 2026-10-03). One rule per Phaladeepika verse (DD-09): NB-a debilitation-sign lord in a kendra from Lagna or Chandran (7.26/7.29); NB-b exaltation-sign lord in a kendra from Lagna or Chandran (7.26/7.29); NB-c the two lords in mutual kendras (7.27); NB-d the debilitated graha aspected by its debilitation-sign lord (7.28), NB-d+ the same outside 6/8/12 (7.28, second half); NB-g either lord in a kendra from Lagna (7.30, reference point O-10). **Any one rule cancels the debility**; one condition alone is `YOG-NBR-02`, not this yoga. |
+| **Strength** | By distinct conditions, not verses (Tier C): two → PARTIAL, three or more → STRONG. NB-g never adds a point NB-a/NB-b already counted; NB-d+ adds one. A rule that fires only through Budhan's self-reference (O-21, tagged `nb_self_reference`) may add a rung but never makes it STRONG on its own. Ungated. |
+| **Cancellation** | Retrogression of the debilitated graha is recorded as a supporting note only (`debilitated_planet_retrograde_note`) and never forms the yoga by itself — the retrograde verse is open item O-11. Off by default: NB-f, Navamsa strength (O-7); NB-x1/NB-x2, two conditions the engine shipped without a verse in DD-09's table (O-12). Budhan rules its own exaltation sign, so for a debilitated Budhan NB-b, NB-c and NB-g test Budhan's own position — the deleted NB-e. Owner ruling 2026-10-03 (O-21): counted, tagged `nb_self_reference`, never STRONG on its own. |
 | **Source** | Phaladeepika 7.26–30, verse map checked against the Subrahmanya Sastri translation online (siva.sh, 2026-10-01); physical edition pending (§18). DOCTRINE_DECISIONS v1.3, DD-09. |
 | **Activation grahas** | Per chart: The debilitated graha itself (DD-15). |
-| **Note** | The rules are **not** in the yoga module: `neecha_bhanga` holds them and `chart_strength.neecha_bhanga_cancelled` wraps them, so this card, the +14 bhanga term in the strength synthesis and the yogakaraka card cannot disagree on one chart (audit C2). DD-09 removed the verse-less conditions the predicate used to carry and NB-e (the debilitated graha itself in a kendra), which no cited verse states. With any one condition the yoga fires on many charts, so the card must always show its strength. The old static key graha (`JUPITER`) is retired by DD-15: the debilitated graha activates. |
+| **Note** | The rules are **not** in the yoga module: `neecha_bhanga` holds them and `chart_strength.neecha_bhanga_cancelled` wraps them, so this card, the +14 bhanga term in the strength synthesis and the yogakaraka card cannot disagree on one chart (audit C2). DD-09 removed the verse-less conditions the predicate used to carry and NB-e (the debilitated graha itself in a kendra), which no cited verse states. With any one condition the yoga fired on 95% of charts carrying a debilitated graha (v1.6 frequency report), so the 2026-10-03 ruling moved the single-condition case to its own card. The old static key graha (`JUPITER`) is retired by DD-15: the debilitated graha activates. |
 
-#### `YOG-NRV-01` Retrograde debilitated-planet Raja Yoga (வக்ர நீச ராஜயோகம்)
+#### `YOG-NBR-02` Neecha Bhanga (debility cancelled) (நீசபங்கம்)
+
+|  |  |
+|---|---|
+| **Emitted as** | `NEECHA_NIVARTHI` |
+| **Detector** | `_yoga_detect.detect_neecha_bhanga` |
+| **Markers** | `[TRADITION]` `[PRODUCT]` |
+| **Present when** | A graha stands in its debilitation rasi and at least one rule of `neecha_bhanga.NEECHA_BHANGA_RULES` fires, but not enough for `YOG-NBR-01`: fewer than two distinct conditions, or no firing verse states a raja-yoga result (O-13). |
+| **Strength** | WEAK (shown as 'Mild'), flat. |
+| **Cancellation** | — |
+| **Source** | Phaladeepika 7.26–30 for the cancellation itself (DD-09). The two-condition line between this card and the raja yoga is a Vinaadi display rule (owner ruling 2026-10-03), not a textual threshold. |
+| **Activation grahas** | Per chart: The debilitated graha itself (DD-15). |
+| **Note** | The debility is cancelled — the +14 bhanga strength term, the yogakaraka card and bhava palan all see it, as before — but no raja-yoga name is claimed. DD-09 says there is no classical count threshold; the threshold here governs only which name the reader sees, and is recorded as a departure for that reason. |
+
+#### `YOG-NRV-01` Retrograde debilitated-planet Raja Yoga (வக்கிர நீச கிரக ராஜயோகம்)
 
 |  |  |
 |---|---|
@@ -1015,7 +1030,7 @@ lagna-dependent but tabled statically (Dhana, Vipareetha) the listed set is a
 | **Activation grahas** | Per chart: The benefics in the 6th/7th/8th from Chandran. |
 | **Note** | DD-08 separates broad geometry from any raja-grade claim. Geometry is Tier A; distribution is commentary; Raman's one-strong-planet sufficiency is recorded separately. Formers activate it; Chandran is secondary only under O-16. |
 
-#### `YOG-AD-02` Adhi Yoga (raja-grade candidate) (அதி யோகம் (ராஜ தரம், பரிசீலனையில்))
+#### `YOG-AD-02` Adhi Yoga (full strength not confirmed) (அதி யோகம் — முழுப் பலம் உறுதியாகவில்லை)
 
 |  |  |
 |---|---|

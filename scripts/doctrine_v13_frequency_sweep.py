@@ -84,11 +84,19 @@ def sweep(charts: int, seed: int) -> dict[str, object]:
         counts["adhi_raja_grade_present"] += bool(adhi_raja and adhi_raja.is_present)
 
         nb = yogas.get("NEECHA_BHANGA_RAJA_YOGA")
-        debilitated = bool(nb and "planet_debilitated" in nb.conditions_met)
+        # v1.7: a single-condition cancellation is its own card, NEECHA_NIVARTHI.
+        nivarthi = yogas.get("NEECHA_NIVARTHI")
+        debilitated = any(
+            card is not None and "planet_debilitated" in card.conditions_met for card in (nb, nivarthi)
+        )
         counts["any_graha_debilitated"] += debilitated
         if nb and nb.is_present:
             counts["nbry_present"] += 1
             counts[f"nbry_strength_{nb.strength}"] += 1
+        counts["neecha_nivarthi_present"] += bool(nivarthi and nivarthi.is_present)
+        counts["nb_self_reference"] += any(
+            card is not None and "nb_self_reference" in card.conditions_met for card in (nb, nivarthi)
+        )
 
         rk = doshams.get("RAHU_KETU_DOSHAM")
         if rk and rk.is_present:
@@ -109,6 +117,15 @@ def sweep(charts: int, seed: int) -> dict[str, object]:
             counts["sevvai_cancelled"] += sv.is_cancelled
         raja = yogas.get("RAJA_YOGA")
         counts["raja_present"] += bool(raja and raja.is_present)
+        if raja and raja.is_present:
+            # v1.7 three-way outcome, read from the merged card's grades.
+            grades = set(raja.conditions_met)
+            if grades & {"raja_grade_full", "raja_grade_qualified"}:
+                counts["raja_has_confirmed_instance"] += 1
+            else:
+                counts["raja_mixed_only"] += 1
+        if raja and any(f.startswith("raja_pair_source_vetoed_") for f in raja.cancellation_factors):
+            counts["raja_source_vetoed_pair_recorded"] += 1
 
     return {
         "charts": charts,

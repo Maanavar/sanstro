@@ -440,7 +440,12 @@ def test_sevvai_house_sign_nivarthi_2nd_house_mithunam():
 
 
 def test_sevvai_mars_dispositor_kendra_trikona():
-    """Spec §6.7: Mars in Thulaam(7), lord of Thulaam is Venus. Venus in kendra from Mars → dispositor nivarthi."""
+    """Spec §6.7: Mars in Thulaam(7), lord of Thulaam is Venus. Venus in kendra from Mars → dispositor nivarthi.
+
+    O-26 (DD-17, 2026-10-06): the rule has no printed source and is off by
+    default, so it is exercised here under its restoring option. The default
+    is pinned in tests/test_doctrine_decisions_dd17.py."""
+    from app.calculations.doctrine_options import DoctrineOptions
     # Lagna=Mesham(1), Mars=Thulaam(7). Sign lord of Thulaam=VENUS.
     # Put Venus in Mesham(1) → house_from(Thulaam=7, Mesham=1) = 7th → kendra.
     planets = {
@@ -454,7 +459,7 @@ def test_sevvai_mars_dispositor_kendra_trikona():
         "RAHU": 11,
         "KETU": 5,
     }
-    result = detect_sevvai_dosham(planets, lagna_rasi=1)
+    result = detect_sevvai_dosham(planets, lagna_rasi=1, doctrine=DoctrineOptions(o26_sevvai_dispositor_mitigation="from_mars"))
     assert "mars_dispositor_kendra_trikona" in result.cancellation_factors
 
 
@@ -780,18 +785,18 @@ def test_l3_one_way_special_aspect_links_only_under_o15():
     """DD-07 (v1.3) reads the link as conjunction, **mutual** aspect or exchange.
     Audit L-3's one-way special aspect no longer forms the yoga by default; it
     is open item O-15 and returns only with that switch on."""
-    # Lagna=1: Sun (5th/trikona lord) at rasi 5; Saturn (10th/kendra lord) at
-    # rasi 8. Saturn's 10th-house special aspect (count 10 from rasi 8) lands
-    # on rasi 5, but Sun (no special aspect, default 7th only) does not
-    # aspect back — the pre-fix trikona-lord-only check would have missed
-    # this pair entirely.
+    # Lagna=1: Sun (5th/trikona lord) at rasi 4; Mars (lagna lord, so a
+    # kendra lord) at rasi 1. Mars's 4th-house special aspect lands on rasi 4,
+    # but Sun (7th only) aspects rasi 10, not back. Until v1.7 this used Sani
+    # (10th lord) — the 2026-10-03 ruling excludes Mesham Sani (10+11) from
+    # Raja Yoga, so the one-way pair is now the lagna lord's.
     from app.calculations.doctrine_options import DoctrineOptions
 
-    planets = {"SUN": 5, "SATURN": 8, "MARS": 6, "MOON": 6, "VENUS": 6, "JUPITER": 6}
+    planets = {"SUN": 4, "MARS": 1, "SATURN": 6, "MOON": 6, "VENUS": 6, "JUPITER": 6}
     results = detect_raja_yoga(planets, lagna_rasi=1)
-    assert not any("SUN_SATURN_link" in r.conditions_met for r in results)
+    assert not any("SUN_MARS_link" in r.conditions_met for r in results)
     one_way = detect_raja_yoga(planets, lagna_rasi=1, doctrine=DoctrineOptions(o15_raja_one_way_aspect=True))
-    assert any(r.is_present and "SUN_SATURN_link" in r.conditions_met for r in one_way)
+    assert any(r.is_present and "SUN_MARS_link" in r.conditions_met for r in one_way)
 
 
 def test_l6_daridra_conditions_met_reflects_only_fired_triggers():
@@ -914,25 +919,29 @@ def test_d05_sasa_yoga_saturn_own_sign_kendra():
 
 @pytest.mark.no_db
 def test_d05_raja_yoga_ninth_tenth_lord_conjunction():
-    """9th lord (Jupiter) and 10th lord (Saturn) conjunct for Mesha lagna → Raja Yoga."""
-    # Mesha(1) lagna: 9th house = Dhanu(9) lord = JUPITER; 10th house = Makara(10) lord = SATURN
+    """9th lord (Mercury) and 10th lord (Moon) conjunct for Thulam lagna → Raja Yoga.
+
+    Until v1.7 this used Mesha's 9th/10th lords, Guru and Sani. BPHS 34 names
+    that pair as giving no auspicious result by mere association, and the
+    2026-10-03 ruling vetoes it (see test_doctrine_decisions_v17.py)."""
+    # Thulam(7): 9th house = Mithuna(3) lord = MERCURY; 10th = Kataka(4) lord = MOON
     planets = {
-        "SUN": 3, "MOON": 4, "MARS": 1, "MERCURY": 2,
-        "JUPITER": 5, "VENUS": 6, "SATURN": 5,  # Jupiter and Saturn conjunct in Simha(5)
+        "SUN": 2, "MOON": 5, "MARS": 1, "MERCURY": 5,  # Mercury and Moon conjunct in Simha(5)
+        "JUPITER": 12, "VENUS": 6, "SATURN": 10,
         "RAHU": 11, "KETU": 5,
     }
-    results = detect_raja_yoga(planets, lagna_rasi=1)
-    assert any(r.is_present and "JUPITER_SATURN_link" in r.conditions_met for r in results)
+    results = detect_raja_yoga(planets, lagna_rasi=7)
+    assert any(r.is_present and "MERCURY_MOON_link" in r.conditions_met for r in results)
 
 
 @pytest.mark.no_db
 def test_d05_raja_yoga_ninth_tenth_lord_mutual_seventh():
-    """9th lord (Jupiter) and 10th lord (Saturn) in mutual 7th → Raja Yoga via aspect."""
-    # Mesha(1): Jupiter=9th lord, Saturn=10th lord. Put them 7 apart: Jupiter=1, Saturn=7.
+    """9th lord (Mercury) and 10th lord (Moon) in mutual 7th → Raja Yoga via aspect."""
+    # Thulam(7): Mercury=9th lord, Moon=10th lord. Put them 7 apart: Mercury=1, Moon=7.
     planets = {
-        "SUN": 3, "MOON": 4, "MARS": 8, "MERCURY": 2,
-        "JUPITER": 1, "VENUS": 6, "SATURN": 7,
+        "SUN": 2, "MOON": 7, "MARS": 8, "MERCURY": 1,
+        "JUPITER": 12, "VENUS": 6, "SATURN": 10,
         "RAHU": 11, "KETU": 5,
     }
-    results = detect_raja_yoga(planets, lagna_rasi=1)
-    assert any(r.is_present for r in results)
+    results = detect_raja_yoga(planets, lagna_rasi=7)
+    assert any(r.is_present and "MERCURY_MOON_link" in r.conditions_met for r in results)

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, Pencil, Sparkles } from "lucide-react";
 
 import { apiFetchJson } from "@/lib/api";
@@ -59,7 +59,9 @@ import { RasiChart, NavamsaChart } from "./dashboard-charts";
 import { Card, Chip, Kicker } from "./ui";
 import { NakshatraBadge } from "./nakshatra-badge";
 import { AdvancedAstrologyGate } from "./advanced-astrology-gate";
-import { ChartExplanationPanel } from "./dashboard-chart-explanation";
+import { ChartExplanationPanel, type ReadingLinkTarget } from "./dashboard-chart-explanation";
+import { HIGHLIGHT_CAP, highlightLines } from "./chart-reading/reading-selectors";
+import { useReadingView } from "./chart-reading/use-reading-view";
 import { NovaYogaDoshamPanel } from "./dashboard-life-areas-yogas-doshams-nova";
 import { VargasPanel } from "./dashboard-vargas-panel";
 import { ShadbalaPanel } from "./dashboard-shadbala-panel";
@@ -92,6 +94,15 @@ import {
 } from "./dashboard-hybrid-parts";
 import { displayName as yogaDoshamDisplayName, yogaStanding } from "./dashboard-yoga-dosham-panel";
 import { DashboardAskVinaadi } from "./dashboard-ask-vinaadi";
+import {
+  FamilyReadingSwitcher,
+  SWITCHER_STICK_GAP,
+  readStickyChromeHeight,
+  readingLineFor,
+  sectionAtLine,
+  type SwitcherMember,
+  type SwitcherSection,
+} from "./family-reading-switcher";
 import { RASI_TRAITS } from "@/lib/rasi-traits";
 import { RASI_LORDS } from "@/lib/chart-utils";
 import { ZodiacBadge } from "./zodiac-badge";
@@ -109,6 +120,10 @@ import { ZodiacBadge } from "./zodiac-badge";
  *
  * All colour resolves through CSS tokens so the page renders in both themes.
  */
+
+/** The member-scoped sections (3-9), in page order: what the "Reading for"
+ *  bar's scrollspy walks and what a member switch anchors to. */
+const READING_SECTION_IDS = ["hy-overview", "hy-charts", "hy-planets", "hy-dashas", "hy-insights", "hy-forecast", "hy-explain"];
 
 const ELDER_AGE = 60;
 const MINOR_AGE = 18;
@@ -597,6 +612,20 @@ function HyHighlightCard({ icon, title, timeframe, accent, tintBg, tintBorder, c
   );
 }
 
+/** Whose chart a reading section shows, appended to its heading. Inside the
+ *  <h2> so a screen reader's heading list says it too; the separator is visual
+ *  only. Remounted (keyed by member) on a switch, which replays its highlight;
+ *  no highlight on first paint, when nothing has changed under the reader. */
+function SubjectName({ name, flash }: { name: string; flash: boolean }) {
+  return (
+    <span className={flash ? "hy-subject hy-subject--flash" : "hy-subject"}>
+      <span aria-hidden="true"> · </span>
+      <span className="cd-visually-hidden">, </span>
+      {name}
+    </span>
+  );
+}
+
 /* ── Props ──────────────────────────────────────────────────────────── */
 export type DashboardFamilyChartsHybridProps = {
   lang: Lang;
@@ -689,15 +718,42 @@ export function DashboardFamilyChartsHybrid({
   const [relationFilter, setRelationFilter] = useState<RelationFilter>("all");
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [remediesNonce, setRemediesNonce] = useState(0);
+  // §9's lens lives here, not in the panel, because the classical-detail
+  // panels below it follow the same toggle (FTR-08).
+  const [readingView, setReadingView] = useReadingView(mode);
 
   const astroText = (v: string) => (lang === "en" ? tamilizeAstroEnglish(v) : v);
 
   const harmonyRef = useRef<HTMLDivElement | null>(null);
+  // Sections 3-9 read the selected member's chart; this region holds them and
+  // the sticky "Reading for" bar that switches the member from inside them.
+  const readingRegionRef = useRef<HTMLDivElement | null>(null);
+  const switcherRef = useRef<HTMLDivElement | null>(null);
+  /** Set by a switch from the bar, consumed by the layout effect that puts the
+   *  reader back on the same section once the new member's reading renders. */
+  const pendingAnchorRef = useRef<{ sectionId: string; offset: number } | null>(null);
 
   function jumpTo(id: string) {
     const el = document.getElementById(id);
-    if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 72, behavior: "smooth" });
+    if (!el) return;
+    // Clear the top bar, and inside the reading region the stuck switcher too —
+    // a fixed 72px used to tuck the heading under the bar on narrow screens,
+    // where the top bar alone is ~92px.
+    const inReading = readingRegionRef.current?.contains(el) ?? false;
+    const offset = readStickyChromeHeight() + 16
+      + (inReading ? SWITCHER_STICK_GAP + (switcherRef.current?.offsetHeight ?? 0) : 0);
+    window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - offset, behavior: "smooth" });
   }
+
+  // The reading's "say it once" links (FTR-18): where §5-§8 already carry the
+  // fuller version, the chapter points there instead of repeating it.
+  const READING_LINK_SECTION: Record<ReadingLinkTarget, string> = {
+    planets: "hy-planets",
+    dasha: "hy-dashas",
+    remedies: "hy-insights",
+    forecast: "hy-forecast",
+    strengths: "hy-chart-highlights",
+  };
 
   useEffect(() => {
     if (remediesNonce > 0) harmonyRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -868,10 +924,68 @@ export function DashboardFamilyChartsHybrid({
     enabled: !!readingChartId,
   });
 
+  /** From a member card (section 2): "start reading this person". */
   function selectMember(id: string) {
     setSelectedMemberId(id);
     jumpTo("hy-overview");
   }
+
+  /** From the sticky bar: "same section, someone else". Records which section
+   *  the reader is in and how far into it, for the layout effect below. */
+  const switchMemberInPlace = useCallback((id: string) => {
+    const line = readingLineFor(switcherRef.current);
+    const anchor = sectionAtLine(READING_SECTION_IDS, line);
+    pendingAnchorRef.current = anchor
+      ? { sectionId: anchor.id, offset: anchor.getBoundingClientRect().top - line }
+      : null;
+    setSelectedMemberId(id);
+  }, []);
+
+  // Put the reader back where they were, before the new member's reading
+  // paints. Then hold that anchor for a moment: the dasha bundle is already
+  // loaded, but life areas, Shadbala and the other per-chart panels refetch for
+  // the new chart and change height as they land — above the anchor when the
+  // reader is in §9. Any input of the reader's own ends the hold at once.
+  useLayoutEffect(() => {
+    const pending = pendingAnchorRef.current;
+    if (!pending) return;
+    pendingAnchorRef.current = null;
+
+    const restore = () => {
+      const sameSection = document.getElementById(pending.sectionId);
+      // The section can be missing for this member (a chart that failed to
+      // load renders no dashas); their overview is the honest fallback.
+      const el = sameSection ?? document.getElementById("hy-overview");
+      if (!el) return;
+      const line = readingLineFor(switcherRef.current);
+      const rect = el.getBoundingClientRect();
+      // Partway into the section: keep that depth, but never past the end of
+      // this member's (possibly shorter) section. Between sections: keep the gap.
+      const topFromLine = !sameSection
+        ? 0
+        : pending.offset > 0
+          ? pending.offset
+          : -Math.min(-pending.offset, Math.max(rect.height - 160, 0));
+      const target = rect.top + window.scrollY - line - topFromLine;
+      if (Math.abs(target - window.scrollY) > 1) window.scrollTo({ top: target, behavior: "instant" });
+    };
+    restore();
+
+    const region = readingRegionRef.current;
+    if (!region) return;
+    const inputs = ["wheel", "touchstart", "keydown", "pointerdown"] as const;
+    const observer = new ResizeObserver(() => restore());
+    let timer = 0;
+    const release = () => {
+      observer.disconnect();
+      window.clearTimeout(timer);
+      for (const type of inputs) window.removeEventListener(type, release);
+    };
+    observer.observe(region);
+    timer = window.setTimeout(release, 2000);
+    for (const type of inputs) window.addEventListener(type, release, { passive: true });
+    return release;
+  }, [selectedMemberId]);
 
   /** Which editor an Edit control opens, or `undefined` for none.
    *
@@ -963,6 +1077,36 @@ export function DashboardFamilyChartsHybrid({
         dailyGuidance?.chandrashtamaRasi ?? undefined,
       )
     : "";
+
+  // "Reading for" bar. Every member, not the relation-filtered card list: the
+  // filter narrows the cards, not who can be read. A reader with no family
+  // vault yet still gets the bar, for its section index, with their own name.
+  const switcherMembers: SwitcherMember[] = memberMeta.length > 0
+    ? memberMeta.map(({ member, careReason, isSelf }) => ({
+        id: member.familyMemberId,
+        name: member.displayName,
+        isSelf,
+        score: member.individualScore,
+        careReason,
+      }))
+    : [{ id: "owner", name: readingName, isSelf: true, score: dailyGuidance?.score ?? 50, careReason: null }];
+  // Mirrors each section's own render condition below, so the index never
+  // offers a section this member's reading does not have.
+  const switcherSections: SwitcherSection[] = ([
+    [!!readingChartId, "hy-overview", lang === "ta" ? "மேலோட்டம்" : "Overview"],
+    [!!readingChart, "hy-charts", lang === "ta" ? "ஜாதகம் & வீடுகள்" : "Charts & houses"],
+    [!!readingChart, "hy-planets", lang === "ta" ? "கிரக நிலைகள்" : "Planet positions"],
+    [!!reading?.dasha, "hy-dashas", dt(DASHA_PANEL.title, lang)],
+    [!!(reading?.explanation || (readingSummary?.yogas && readingSummary.yogas.length > 0)), "hy-insights", lang === "ta" ? "யோகம், பலம் & பரிகாரம்" : "Yogas, strengths & remedies"],
+    [true, "hy-forecast", lang === "ta" ? "முன்னறிவிப்பு & முன்னோட்டம்" : "Predictions & forecast"],
+    [!!readingChart, "hy-explain", lang === "ta" ? "முழு ஜாதக விளக்கம்" : "Full chart reading"],
+  ] as [boolean, string, string][])
+    .filter(([shown]) => shown)
+    .map(([, id, label]) => ({ id, label }));
+  // Every reading section's heading carries whose chart it is: after a switch
+  // mid-page the content changes underneath the reader, and a dasha table
+  // shows no name of its own. Keyed so the name re-runs its highlight.
+  const subject = <SubjectName key={activeMember?.familyMemberId ?? "owner"} name={readingName} flash={selectedMemberId !== null} />;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-12)", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
@@ -1107,6 +1251,27 @@ export function DashboardFamilyChartsHybrid({
             </div>
           </HySection>
         )}
+
+        {/* ═══ READING REGION (3-9) ═══
+             Everything in here reads ONE chart — the selected member's. The
+             switcher is its first child and `position: sticky`, so it is held
+             under the top bar for exactly as long as this region is on screen
+             and scrolls away with its end, before the family-level §10. The
+             sections sit in their own column so the bar can take a tighter gap
+             than the page's section rhythm. */}
+        <div ref={readingRegionRef} className="hy-reading-region">
+        {readingChartId && (
+          <FamilyReadingSwitcher
+            lang={lang}
+            members={switcherMembers}
+            activeId={activeMember?.familyMemberId ?? switcherMembers[0]?.id ?? null}
+            onSwitch={switchMemberInPlace}
+            sections={switcherSections}
+            onJump={jumpTo}
+            barRef={switcherRef}
+          />
+        )}
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-12)" }}>
 
         {/* ═══ 3 · MEMBER OVERVIEW ═══
              Gated on `readingChartId`, not `activeMember`: `activeMember` is
@@ -1267,6 +1432,7 @@ export function DashboardFamilyChartsHybrid({
         {readingChart && (
           <HySection
             id="hy-charts"
+            subject={subject}
             title={lang === "ta" ? "ஜாதகம் & வீடுகள்" : "Charts & houses"}
             sub={lang === "ta" ? "D1, D9 & பாவ மேலோட்டம்" : "D1, D9 & bhava overview · Lahiri · whole-sign houses"}
           >
@@ -1365,10 +1531,10 @@ export function DashboardFamilyChartsHybrid({
               // the engine's positives/cautions as "Birth-time condition — …" lines,
               // but they already render as their own cards just above. Drop them
               // from these prose lists so they aren't said twice.
-              const notBirthCondition = (it: { en: string; ta: string }) =>
-                !it.en.startsWith("Birth-time condition —") && !it.ta.startsWith("பிறப்பு நேர நிலை —");
-              const positives = (summary?.positives ?? []).filter(notBirthCondition);
-              const cautions = (summary?.cautions ?? []).filter(notBirthCondition);
+              // One rule shared with the reading's Chapter 4 (FTR-18), which
+              // shows only what these cards do not: each line said once.
+              const positives = highlightLines(summary?.positives ?? []);
+              const cautions = highlightLines(summary?.cautions ?? []);
               const oppText = dailyGuidance?.reasons.dashaSupport
                 ? (lang === "ta" ? dailyGuidance.reasons.dashaSupport.ta : dailyGuidance.reasons.dashaSupport.en) : "";
               const guidanceText = dailyGuidance?.actionSuggestion
@@ -1376,7 +1542,7 @@ export function DashboardFamilyChartsHybrid({
               if (positives.length === 0 && cautions.length === 0 && !oppText && !guidanceText) return null;
               const proseList = (items: { en: string; ta: string }[], dot: string) => (
                 <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-                  {items.slice(0, 5).map((it, i) => (
+                  {items.slice(0, HIGHLIGHT_CAP).map((it, i) => (
                     <div key={i} style={{ display: "flex", gap: "var(--space-2)", fontFamily: "var(--font-body)", fontSize: "var(--text-sm)", lineHeight: 1.5, color: "var(--color-muted)" }}>
                       <span style={{ color: dot, flexShrink: 0, marginTop: "1px" }}>•</span>
                       <span>{lang === "ta" ? it.ta : astroText(it.en)}</span>
@@ -1385,7 +1551,9 @@ export function DashboardFamilyChartsHybrid({
                 </div>
               );
               return (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "var(--space-3)" }}>
+                // id: the Story view's "Chart strengths and watch-outs" link
+                // lands here (FTR-18 — these lines are said once, here).
+                <div id="hy-chart-highlights" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "var(--space-3)", scrollMarginTop: "72px" }}>
                   {positives.length > 0 && (
                     <HyHighlightCard icon="✓" title={lang === "ta" ? "இந்த ஜாதகத்தின் பலம்" : "Chart strengths"} timeframe={chartTag} accent="var(--color-high)" tintBg="var(--color-high-bg)" tintBorder="var(--color-high-border)">
                       {proseList(positives, "var(--color-high)")}
@@ -1426,6 +1594,7 @@ export function DashboardFamilyChartsHybrid({
           return (
             <HySection
               id="hy-planets"
+              subject={subject}
               title={lang === "ta" ? "கிரக நிலைகள்" : "Planet positions"}
               sub={lang === "ta" ? "ஒரு கோளத்தை அல்லது வரிசையைத் தட்டவும்" : "tap an orb or row for the full explanation"}
               meta={meta}
@@ -1446,6 +1615,7 @@ export function DashboardFamilyChartsHybrid({
         {reading?.dasha && (
           <HySection
             id="hy-dashas"
+            subject={subject}
             title={dt(DASHA_PANEL.title, lang)}
             sub={dt(DASHA_PANEL.subtitle, lang)}
             meta={
@@ -1472,6 +1642,7 @@ export function DashboardFamilyChartsHybrid({
         {(reading?.explanation || (readingSummary?.yogas && readingSummary.yogas.length > 0)) && (
           <HySection
             id="hy-insights"
+            subject={subject}
             title={lang === "ta" ? "யோகம், பலம் & பரிகாரம்" : "Yogas, strengths & remedies"}
             sub={lang === "ta" ? "இந்த ஜாதகத்தின் அடையாளம் — முழு விளக்கம் கீழே" : "this chart's signature — full explanation below"}
           >
@@ -1511,8 +1682,9 @@ export function DashboardFamilyChartsHybrid({
         {/* ═══ 8 · PREDICTIONS & FORECAST (year-ahead life areas + transits) ═══ */}
         <section id="hy-forecast" style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", scrollMarginTop: "72px" }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-3)", flexWrap: "wrap" }}>
-            <h2 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "clamp(1.5rem,2.4vw,1.75rem)", fontWeight: 600, color: "var(--color-text-strong)" }}>{lang === "ta" ? "முன்னறிவிப்பு & முன்னோட்டம்" : "Predictions & forecast"}</h2>
-            <div style={{ fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>{lang === "ta" ? `${readingName} — வரும் வருடத்தின் முக்கிய வாழ்க்கைத் துறைகள்` : `${readingName} — key life areas for the year ahead`}</div>
+            <h2 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "clamp(1.5rem,2.4vw,1.75rem)", fontWeight: 600, color: "var(--color-text-strong)" }}>{lang === "ta" ? "முன்னறிவிப்பு & முன்னோட்டம்" : "Predictions & forecast"}{subject}</h2>
+            {/* The name moved into the heading with every other reading section's. */}
+            <div style={{ fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>{lang === "ta" ? "வரும் வருடத்தின் முக்கிய வாழ்க்கைத் துறைகள்" : "key life areas for the year ahead"}</div>
           </div>
           <div className="hy-grid-forecast">
             {/* Left (1.9fr): the life-area outlook table + the detailed
@@ -1545,17 +1717,19 @@ export function DashboardFamilyChartsHybrid({
           </div>
         </section>
 
-        {/* ═══ 9 · FULL TECHNICAL READING (Level-3 deep reference) ═══
-             Phase 4 (docs/family-charts-humanization-audit.md): this is the
-             bottom of the Meaning->Why->Mechanics ladder — the complete jyotishi's
-             reading. Relabelled and collapsed by default (dropped `defaultOpen`)
-             so a newcomer is never met by a wall of Level-6 prose; anyone who
-             wants it is one tap away. */}
+        {/* ═══ 9 · FULL CHART READING ═══
+             Two lenses on one payload (docs/FULL_READING_STORY_MODE_PLAN_2026-10-04.md):
+             the Story view is the default — five chapters, a picture before each
+             sentence, a visible-word budget — and the Astrologer view is the
+             complete ledger that used to be the only option. Open on load now
+             that the default is short (Q8); it was collapsed (humanization
+             Phase 4) only because the old ten tabs were a wall. */}
         {readingChart && (
           <HySection
             id="hy-explain"
-            title={lang === "ta" ? "முழு ஜோதிட விளக்கம்" : "Full technical reading"}
-            sub={lang === "ta" ? "ஒரு ஜோதிடர் படிக்கும் முழு விவரம் — தலைப்பு வாரியாக" : "the complete jyotishi's reading — every topic, in detail"}
+            subject={subject}
+            title={lang === "ta" ? "முழு ஜாதக விளக்கம்" : "Full chart reading"}
+            sub={lang === "ta" ? "முதலில் எளிய விளக்கம் — ஒவ்வொரு விவரத்துக்கும் ஜோதிடர் பார்வை" : "story first — the Astrologer view has every detail"}
           >
             <ChartExplanationPanel
               lang={lang}
@@ -1568,6 +1742,11 @@ export function DashboardFamilyChartsHybrid({
               dasha={reading?.dasha ?? null}
               dashaAntar={reading?.dashaAntar ?? []}
               renderYogaDoshamPanel={({ lang: l, yogas, doshams }) => <NovaYogaDoshamPanel lang={l} yogas={yogas} doshams={doshams} />}
+              defaultOpen
+              mode={mode}
+              view={readingView}
+              onViewChange={setReadingView}
+              onOpenSection={(target) => jumpTo(READING_LINK_SECTION[target])}
             />
 
             {/* Two gates, not one. Vargas and Shadbala are standard Thirukanitham
@@ -1575,7 +1754,10 @@ export function DashboardFamilyChartsHybrid({
                 they are dense. The dasha panels below are comparison systems that
                 feed nothing. Sharing one toggle meant sharing one blurb, and the
                 blurb that fits the second slanders the first. */}
-            <AdvancedAstrologyGate lang={lang} mode={mode} kind="classical-detail">
+            {/* In the Astrologer view the reader has asked for the working, so
+                the classical-detail fold opens with it. The experimental-dasha
+                gate below keeps its own toggle — a different kind of claim. */}
+            <AdvancedAstrologyGate lang={lang} mode={readingView === "astrologer" ? "TRADITIONAL" : mode} kind="classical-detail">
               <VargasPanel
                 lang={lang}
                 vargas={readingChart.vargas}
@@ -1635,6 +1817,8 @@ export function DashboardFamilyChartsHybrid({
             )}
           </HySection>
         )}
+        </div>
+        </div>
 
         {/* ═══ 10 · FAMILY CONNECTIONS ═══ */}
         <section id="hy-connections" style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)", scrollMarginTop: "72px", paddingBottom: "var(--space-2)" }}>

@@ -30,15 +30,17 @@ from app.calculations.chart_strength import (
     SIGN_LORD,
     neecha_bhanga_cancelled,
 )
+from app.calculations.display_names import planet_ta
 from app.calculations.doctrine_options import DEFAULT_DOCTRINE, DoctrineOptions
 from app.calculations.functional_status import (
     FunctionalStatus,
     functional_status,
     raja_grade,
     raja_participation,
+    source_veto,
 )
 from app.calculations.lagna_lord_strength import lagna_lord_strength
-from app.calculations.neecha_bhanga import evaluate_neecha_bhanga, strength_for_points
+from app.calculations.neecha_bhanga import evaluate_neecha_bhanga
 
 _PANCHA_MAHAPURUSHA: dict[str, tuple[str, str]] = {
     "MARS":    ("RUCHAKA_YOGA",  "ருசக யோகம்"),
@@ -136,8 +138,16 @@ def detect_gaja_kesari(
         cancellation_factors=gate_notes if present else [],
         dasha_activated=_is_active(active, "JUPITER", "MOON"),
         key_grahas=("JUPITER", "MOON") if present else (),
-        description_ta="கஜகேசரி அமைப்பு — சந்திரனிலிருந்து குரு கேந்திரத்தில் உள்ளார்; இதன் பலம் குரு, சந்திரன் இருவரின் நிலையைப் பொறுத்தது.",
-        description_en="Gaja Kesari pattern — Jupiter in a Kendra from Moon, graded by Jupiter and Moon condition.",
+        # Owner-ruled wording, 2026-10-03 (v1.8): the base geometry is never
+        # called the yoga; கஜகேசரி யோகம் is reserved for the strict rule.
+        description_ta=(
+            "சந்திரனிலிருந்து குரு கேந்திர நிலையில் இருப்பதால், கஜகேசரி யோகத்திற்கான அடிப்படை அமைப்பு உள்ளது. "
+            "முழுமையான கஜகேசரி யோகம் என்று கூற கூடுதல் நிபந்தனைகளும் நிறைவேற வேண்டும்."
+        ),
+        description_en=(
+            "Jupiter in a kendra from the Moon gives the base Gaja Kesari pattern. Further conditions "
+            "must be met before it can be called the full Gaja Kesari Yoga."
+        ),
     )
 
 
@@ -211,6 +221,26 @@ def detect_gaja_kesari_parashara(
         key_grahas=("JUPITER", "MOON") if present else (),
         description_ta="கஜகேசரி யோகம் — குரு கேந்திரத்தில் இருந்து சுபகிரக ஆதரவு பெற்று, நீசம், அஸ்தங்கம், பகை ராசி இன்றி உள்ளது.",
         description_en="Gaja Kesari Yoga — Jupiter is in a Kendra from Lagna or Moon, supported by a benefic, and free of debility, combustion and an enemy sign.",
+    )
+
+
+def source_vetoed_raja_instance(planet_a: str, planet_b: str) -> YogaResult:
+    """An absent Raja Yoga instance for a BPHS-vetoed pair (v1.7). It carries
+    no key grahas, so it never activates or lends strength to a merged card."""
+    first, second = sorted((planet_a, planet_b))
+    return YogaResult(
+        name="RAJA_YOGA",
+        is_present=False,
+        strength="WEAK",
+        conditions_met=[],
+        cancellation_factors=[f"raja_pair_source_vetoed_{first.lower()}_{second.lower()}"],
+        dasha_activated=False,
+        # Owner-ruled wording, 2026-10-03 (v1.8): never "vetoed" in copy.
+        description_ta=(
+            f"{planet_ta(first)}–{planet_ta(second)} தொடர்பு அமைந்துள்ளது. இருப்பினும், ஏற்றுக்கொள்ளப்பட்ட "
+            "மூலநூல் விதிப்படி இந்த இணைவு ராஜயோகமாகக் கொள்ளப்படவில்லை."
+        ),
+        description_en="This link is present, but by the accepted classical rule this association is not counted as a Raja Yoga.",
     )
 
 
@@ -348,7 +378,13 @@ def detect_raja_yoga(
     The link here is a conjunction or a **mutual** aspect; the exchange form is
     added by the facade. A one-way special aspect (audit L-3) links only under
     O-15. Each instance records a Tier C grade, `raja_grade_full`/`_qualified`/
-    `_mixed`, read from both participants' lordships.
+    `_mixed`/`_mixed_kendradhipati`, read from both participants' lordships.
+
+    Three outcomes per linked pair (owner ruling 2026-10-03): CONFIRMED (full or
+    qualified grade), MIXED (a mixed grade), or SOURCE_VETOED — a pair BPHS 34
+    names as giving no Raja Yoga by mere association for this lagna. A vetoed
+    pair forms nothing; it is returned as an absent instance whose
+    cancellation factor names it, so the card can say why.
     """
     active = set(active_lords or ())
     kendra_lords, trikona_lords = raja_lord_sets(lagna_rasi, doctrine)
@@ -367,7 +403,9 @@ def detect_raja_yoga(
                 or (t_sees_k and k_sees_t)
                 or (doctrine.o15_raja_one_way_aspect and (t_sees_k or k_sees_t))
             )
-            if linked:
+            if linked and source_veto(lagna_rasi, trikona_lord, kendra_lord):
+                results.append(source_vetoed_raja_instance(trikona_lord, kendra_lord))
+            elif linked:
                 strength, gate_notes = gate_yoga_strength(
                     "STRONG", (trikona_lord, kendra_lord), planet_scores, combust_planets
                 )
@@ -482,17 +520,19 @@ def detect_neecha_bhanga(
     d9_lagna_rasi: int | None = None,
     doctrine: DoctrineOptions = DEFAULT_DOCTRINE,
 ) -> list[YogaResult]:
-    """Neecha Bhanga Raja Yoga — DOCTRINE_DECISIONS v1.3, DD-09.
+    """Neecha Bhanga Raja Yoga and நீச நிவர்த்தி — DD-09, O-13 (v1.7).
 
     One result per debilitated graha. The rules live in `neecha_bhanga`, one
     row per Phaladeepika verse; each one that fires is recorded by its own
     marker, so the card names the verse rather than a count. Any single rule
-    cancels the debility — there is no "any two" threshold. The card carries the
-    raja-yoga name only when a firing verse states a raja-yoga result (O-13).
+    cancels the debility (DD-09).
 
-    Strength grows with the number of distinct conditions (Tier C): one
-    condition reads "Mild", because with "any one" this fires on many charts and
-    must never read as a bare "You have Raja Yoga".
+    The raja-yoga *name* is a separate step (owner ruling 2026-10-03): it needs
+    a firing verse that states a raja-yoga result (O-13) **and** at least
+    ``o13_nb_raja_min_points`` distinct conditions (default two). A debility
+    cancelled by fewer is reported as `NEECHA_NIVARTHI` — நீச நிவர்த்தி, the
+    debility cancelled, with no raja-yoga claim. Strength is by distinct
+    conditions (Tier C); an O-21 self-reference never makes it STRONG alone.
     """
     active = set(active_lords or ())
     planets_rasi = _planets_as_rasi_map(planets)
@@ -512,27 +552,51 @@ def detect_neecha_bhanga(
             d9_lagna_rasi=d9_lagna_rasi,
             options=doctrine,
         )
-        present = evaluation.gives_raja_yoga(doctrine)
+        raja = (
+            evaluation.gives_raja_yoga(doctrine)
+            and evaluation.grade_points >= doctrine.o13_nb_raja_min_points
+        )
         conditions = ["planet_debilitated", *evaluation.markers]
         # Retrograde is a supporting note only — it never on its own flips a
         # debilitated planet to "present"; O-11 has a separate detector.
         if planet in retrograde_planets:
             conditions.append("debilitated_planet_retrograde_note")
 
+        if evaluation.cancelled and not raja:
+            results.append(
+                YogaResult(
+                    name="NEECHA_NIVARTHI",
+                    is_present=True,
+                    strength="WEAK",
+                    conditions_met=conditions,
+                    cancellation_factors=[],
+                    dasha_activated=_is_active(active, planet),
+                    key_grahas=(planet,),
+                    secondary_grahas=evaluation.cancelling_grahas,
+                    # Owner-ruled wording, 2026-10-03 (v1.8).
+                    description_ta=(
+                        f"{planet_ta(planet)} நீச நிலையில் இருந்தாலும், அதன் நீச நிலையைத் தணிக்கும் ஒரு நிவர்த்தி "
+                        "நிபந்தனை உள்ளது. இதை மட்டும் வைத்து நீசபங்க ராஜயோகம் என்று கூற முடியாது."
+                    ),
+                    description_en="Neecha Bhanga (debility cancelled) — one cancellation condition removes the debility; this alone is not a Raja Yoga.",
+                )
+            )
+            continue
+
         results.append(
             YogaResult(
                 name="NEECHA_BHANGA_RAJA_YOGA",
-                is_present=present,
-                strength=strength_for_points(evaluation.grade_points) if present else "WEAK",
+                is_present=raja,
+                strength=evaluation.strength if raja else "WEAK",
                 conditions_met=conditions,
                 cancellation_factors=[],
                 dasha_activated=_is_active(active, planet),
                 # DD-15: the debilitated graha is the primary activator; the
                 # grahas that produced the bhanga are secondary.
                 key_grahas=(planet,),
-                secondary_grahas=evaluation.cancelling_grahas if present else (),
-                description_ta="நீச கிரகத்திற்கு நிவர்த்தி நிபந்தனைகள் சேர்ந்தால் நீசபங்க ராஜயோகம்.",
-                description_en="Neecha Bhanga Raja Yoga is considered when a debilitated planet has cancellation conditions.",
+                secondary_grahas=evaluation.cancelling_grahas if raja else (),
+                description_ta="நீச கிரகத்திற்கு இரண்டு அல்லது அதற்கு மேற்பட்ட நிவர்த்தி நிபந்தனைகள் சேர்ந்தால் நீசபங்க ராஜயோகம்.",
+                description_en="Neecha Bhanga Raja Yoga is considered when a debilitated planet has two or more cancellation conditions.",
             )
         )
 
@@ -658,7 +722,12 @@ def detect_budha_aditya(
         conditions_met=conditions,
         cancellation_factors=[],
         dasha_activated=_is_active(active, "MERCURY", "SUN"),
-        description_ta="புத ஆதித்ய யோகம்" + (" (புதன் அஸ்தமனம் — உள்ளுணர்வு புத்தி)" if partial else ""),
+        # அஸ்தங்கம் for combustion on every yoga surface; அஸ்தமனம் is
+        # reserved for sunset (owner ruling 2026-10-03).
+        description_ta="புத ஆதித்ய யோகம்" + (
+            " (புதன் அஸ்தங்கம்: சூரியனுக்கு மிக அருகில் இருப்பதால் புதன் தனது இயல்பான பலத்தை முழுமையாக வெளிப்படுத்த முடியாத நிலையில் உள்ளது)"
+            if partial else ""
+        ),
         description_en=(
             "Budha Aditya Yoga — Sun and Mercury in same rasi, Mercury not combust."
             if present
@@ -1268,8 +1337,17 @@ def detect_adhi_raja_grade(
         dasha_activated=False,
         key_grahas=tuple(planet for planet, _house in context.benefic_hits) if present else (),
         secondary_grahas=("MOON",) if present and moon_secondary else (),
-        description_ta="அதி யோகம் (ராஜ தர நிலை, பரிசீலனையில்) — உருவாக்கும் சுபகிரகங்கள் அஸ்தங்கம் இன்றி, கடுமையான பாவக்கிரகப் பாதிப்பு இன்றி உள்ளன.",
-        description_en="Adhi Yoga — candidate raja-grade form with no combust forming benefic or serious malefic affliction.",
+        # Owner-ruled wording, 2026-10-03 (v1.8): no "candidate"/"grade" term.
+        description_ta=(
+            # "Its full strength", not a Raja Yoga claim: the engine tests the
+            # Adhi raja-grade form, which is Adhi Yoga at full strength.
+            "அதி யோகத்தின் அடிப்படை அமைப்பு உள்ளது. ஆனால் அதன் முழுப் பலத்திற்குத் தேவையான அனைத்து "
+            "நிபந்தனைகளும் நிறைவேறியதாக உறுதியாகவில்லை."
+        ),
+        description_en=(
+            "The base Adhi Yoga pattern is present, but not every condition for its full strength is "
+            "confirmed as met."
+        ),
     )
 
 
@@ -1524,7 +1602,14 @@ def detect_bhagya_support(
         cancellation_factors=gate_notes,
         dasha_activated=False,
         key_grahas=(ninth_lord,),
-        description_ta=("பாக்கிய ஆதரவு — 9ஆம் அதிபதி கேந்திரம்/திரிகோணத்தில் உள்ளது; லக்ஷ்மி யோகத்திற்கான ஆட்சி/உச்ச நிபந்தனை இல்லை." if not dignity else 'பாக்கிய ஆதரவு: 9ஆம் அதிபதி பலம் பெற்றுள்ளது; முழு லக்ஷ்மி யோகத்தின் மற்ற நிபந்தனைகள் நிறைவேறவில்லை.'),
+        # Lead sentence owner-ruled 2026-10-03 (v1.8); the second names what
+        # is missing without calling the case a lesser Lakshmi Yoga.
+        description_ta=(
+            "9-ஆம் வீடு அல்லது அதன் அதிபதி நல்ல ஆதரவைப் பெறுவதால், பாக்கியம், வாய்ப்புகள் மற்றும் "
+            "முன்னேற்றத்திற்கு சாதகமான அடிப்படை உள்ளது. "
+            + ("லக்ஷ்மி யோகத்திற்குத் தேவையான ஆட்சி அல்லது உச்சநிலை நிபந்தனை நிறைவேறவில்லை." if not dignity
+               else "முழு லக்ஷ்மி யோகத்தின் மற்ற நிபந்தனைகள் நிறைவேறவில்லை.")
+        ),
         description_en=("Fortune support — the 9th lord is in a kendra or trikona, without the dignity Lakshmi Yoga requires." if not dignity else 'Fortune support: the 9th lord has dignity, but another full Lakshmi Yoga condition is not met.'),
     )
 

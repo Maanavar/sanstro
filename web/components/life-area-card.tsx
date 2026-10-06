@@ -1,5 +1,7 @@
 "use client";
 
+import type { ReactNode } from "react";
+
 import { dt, LIFE_FOCUS } from "@/lib/dashboard-i18n";
 import { getScoreBand } from "@/lib/format";
 import { WarningGlyph } from "./icons";
@@ -19,6 +21,10 @@ interface LifeAreaCardProps {
   /** The reader's life focus (plan §3, Life areas tab). Labels the card and
    *  gives it the id the tab scrolls to, so pass it to one card at most. */
   isLifeFocus?: boolean;
+  /** Area-specific findings rendered at the foot of the card — the
+   *  RELATIONSHIPS (marriage) area's Sevvai and Rahu–Ketu verdicts
+   *  (plan 2026-10-06, item 6). */
+  footer?: ReactNode;
 }
 
 const FACTOR_LABELS: Record<string, { ta: string; en: string }> = {
@@ -103,7 +109,7 @@ function humaniseFactorKey(key: string, lang: Lang): string {
 }
 
 
-export function LifeAreaCard({ area, lang, ageRelevant, onOpenDetail, isLifeFocus = false }: LifeAreaCardProps) {
+export function LifeAreaCard({ area, lang, ageRelevant, onOpenDetail, isLifeFocus = false, footer }: LifeAreaCardProps) {
   const scoreBand = getScoreBand(area.score);
 
   const barColor =
@@ -283,6 +289,8 @@ export function LifeAreaCard({ area, lang, ageRelevant, onOpenDetail, isLifeFocu
           <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-text)", lineHeight: 1.45 }}>{tLang(area.remedy, lang)}</p>
         </div>
       )}
+
+      {footer}
 
       {onOpenDetail && (
         <button

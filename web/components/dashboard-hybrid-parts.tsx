@@ -1,9 +1,12 @@
 "use client";
 
 import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
-import { ArrowRight, Minus, TrendingDown, TrendingUp, ChevronUp, ChevronDown } from "lucide-react";
+import { ArrowRight, Brain, Briefcase, Coins, Heart, Minus, TrendingDown, TrendingUp, ChevronUp, ChevronDown } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 import { nakshatraLord } from "@vinaadi/shared/nakshatraLord";
+import { gocharaGrade } from "@vinaadi/shared/api/transits";
+import { strengthReassurance, strengthVerdict } from "@vinaadi/shared/reading";
 
 import { formatClockLabel, scoreColor } from "@/lib/format";
 import { t, tPlanetLord, tWeekday, tNakshatra, nakshatraNumberFromName } from "@/lib/i18n";
@@ -23,6 +26,7 @@ import type {
 } from "@/lib/types";
 
 import { displayName as yogaDoshamDisplayName, doshamStanding, yogaStanding } from "./dashboard-yoga-dosham-panel";
+import { DoshamVerdictLine } from "./dosham-verdict-line";
 import type { StandingTone } from "@vinaadi/shared/yogaDisplay";
 import { HOUSE_MEANING, OWN_SIGN_RASI } from "./dashboard-chart-explanation-data";
 import "./interaction-kinds.css";
@@ -52,7 +56,7 @@ import { Segmented } from "./ui/segmented";
 // Planet-identity orb gradients live as theme-independent artwork tokens in
 // dashboard-nova.css (audit A1 — keeps this file literal-free); each graha maps
 // to its --orb-* gradient + --orb-*-glow shadow colour.
-const ORB_GRADIENTS: Record<string, { orb: string; glow: string }> = {
+export const ORB_GRADIENTS: Record<string, { orb: string; glow: string }> = {
   SUN:     { orb: "var(--orb-sun)",     glow: "var(--orb-sun-glow)" },
   MOON:    { orb: "var(--orb-moon)",    glow: "var(--orb-moon-glow)" },
   MARS:    { orb: "var(--orb-mars)",    glow: "var(--orb-mars-glow)" },
@@ -63,7 +67,7 @@ const ORB_GRADIENTS: Record<string, { orb: string; glow: string }> = {
   RAHU:    { orb: "var(--orb-rahu)",    glow: "var(--orb-rahu-glow)" },
   KETU:    { orb: "var(--orb-ketu)",    glow: "var(--orb-ketu-glow)" },
 };
-const GRAHA_GLYPH: Record<string, string> = {
+export const GRAHA_GLYPH: Record<string, string> = {
   SUN: "☉", MOON: "☾", MARS: "♂", MERCURY: "☿", JUPITER: "♃",
   VENUS: "♀", SATURN: "♄", RAHU: "☊", KETU: "☋",
 };
@@ -78,6 +82,7 @@ export function HySection({
   id,
   scrollRef,
   title,
+  subject,
   sub,
   meta,
   children,
@@ -85,6 +90,8 @@ export function HySection({
   id: string;
   scrollRef?: React.Ref<HTMLElement>;
   title: React.ReactNode;
+  /** Whose chart the section reads, rendered inside the heading. */
+  subject?: React.ReactNode;
   sub?: React.ReactNode;
   meta?: React.ReactNode;
   children: React.ReactNode;
@@ -95,7 +102,7 @@ export function HySection({
       <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-3)", flexWrap: "wrap" }}>
         {/* audit B-1: every HySection-wrapped section gets a real <h2>, giving
             the Family & Charts long-scroll a proper document outline. */}
-        <h2 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "clamp(1.5rem,2.4vw,1.75rem)", fontWeight: 600, color: "var(--color-text-strong)" }}>{title}</h2>
+        <h2 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "clamp(1.5rem,2.4vw,1.75rem)", fontWeight: 600, color: "var(--color-text-strong)" }}>{title}{subject}</h2>
         {sub && <div style={{ fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>{sub}</div>}
         {meta && <><span style={{ flex: 1 }} />{meta}</>}
       </div>
@@ -152,40 +159,16 @@ export function HyLinkOutCard({
 
 /* ── Planet "orbs" + expandable positions table (replaces the flat table) ─ */
 type OrbPlanet = ChartCalculateResponseData["planets"][number];
-function strengthVerdict(score: number, lang: Lang): string {
-  if (score >= 70) return lang === "ta" ? "வலிமையானது" : "Strong";
-  if (score >= 50) return lang === "ta" ? "நிலையானது" : "Steady";
-  if (score >= 35) return lang === "ta" ? "மிதமானது" : "Moderate";
-  return lang === "ta" ? "மென்மையானது" : "Gentle";
-}
-
-// Phase-0 humanization (docs/family-charts-humanization-audit.md): a plain-
-// language reassurance line per strength band, so a bare "25/100" never leaves
-// the reader wondering "should I worry?". Reads the engine's strengthScore — it
-// invents nothing and recomputes no strength.
-function strengthReassurance(score: number, lang: Lang): string {
-  if (score >= 70)
-    return lang === "ta"
-      ? "உங்கள் ஜாதகத்தில் வலிமையான சக்திகளில் ஒன்று — இயல்பாகவே ஆதரவாக இருக்கும்."
-      : "One of the stronger forces in your chart — it tends to support you naturally.";
-  if (score >= 50)
-    return lang === "ta"
-      ? "நிலையான, சாதகமான இடத்தில் — பெரும்பாலும் நம்பகமானது."
-      : "Sits in a steady, workable place — dependable more often than not.";
-  if (score >= 35)
-    return lang === "ta"
-      ? "மிதமான தாக்கம் — சிறிது முயற்சியுடன் சிறப்பாக செயல்படும்."
-      : "A moderate influence — it works best with a little conscious effort.";
-  return lang === "ta"
-    ? "மென்மையானது, ஆதரவு தேவை. இது கெட்டதல்ல — அதன் விஷயங்கள் கூடுதல் கவனமும் பொறுமையும் கேட்கின்றன."
-    : "Gentle, and it needs support. That isn't bad — its matters simply ask for more care and patience.";
-}
+// strengthVerdict / strengthReassurance moved to packages/shared/src/reading.ts
+// (FTR-20) so mobile's reading uses the same band words; re-exported here
+// for the existing call sites.
+export { strengthReassurance, strengthVerdict };
 
 // Each graha's universal karaka domain — textbook significations, true for the
 // planet itself (not the person), so this is the honest Level-1 "what is this
 // planet about?" the humanization audit calls for. Made specific by the chart's
 // own house/strength in the same card.
-const GRAHA_DOMAIN: Record<string, { ta: string; en: string }> = {
+export const GRAHA_DOMAIN: Record<string, { ta: string; en: string }> = {
   SUN: { ta: "தன்மை & உயிர்சக்தி", en: "Self & vitality" },
   MOON: { ta: "மனம் & உணர்ச்சி", en: "Mind & emotion" },
   MARS: { ta: "ஆற்றல் & உந்துதல்", en: "Energy & drive" },
@@ -245,31 +228,31 @@ function HyPlanetVerdict({ lang, pl, expl }: {
 }
 
 /* ── Phase-2 life-domain lens (docs/family-charts-humanization-audit.md) —
-      "How this shows up in your life": the friend's ❤️/💼/💰/🧠 framing, but
+      "How this shows up in your life": the friend's heart/briefcase/coins/mind framing, but
       each bucket is chosen from THIS chart (the graha's karaka ∪ the houses it
       owns/occupies) and its tone comes from the engine's real strengthScore, so
       it reads differently for, say, a debilitated planet in the 6th. No Barnum,
       nothing recomputed. ─────────────────────────────────────────────────── */
 type LifeBucket = "relationships" | "career" | "money" | "mind";
 
-const BUCKET_META: Record<LifeBucket, { icon: string; label: { ta: string; en: string }; covers: { ta: string; en: string } }> = {
+const BUCKET_META: Record<LifeBucket, { icon: LucideIcon; label: { ta: string; en: string }; covers: { ta: string; en: string } }> = {
   relationships: {
-    icon: "❤️",
+    icon: Heart,
     label: { ta: "உறவுகள்", en: "Relationships" },
     covers: { ta: "உங்கள் நெருங்கிய உறவுகள், கூட்டாண்மை மற்றும் இல்வாழ்க்கை", en: "your close bonds, partnership and home life" },
   },
   career: {
-    icon: "💼",
+    icon: Briefcase,
     label: { ta: "தொழில்", en: "Career" },
     covers: { ta: "உங்கள் வேலை, திசை மற்றும் பொது அந்தஸ்து", en: "your work, direction and public standing" },
   },
   money: {
-    icon: "💰",
+    icon: Coins,
     label: { ta: "பணம்", en: "Money" },
     covers: { ta: "உங்கள் வருமானம், சேமிப்பு மற்றும் பாதுகாப்பு உணர்வு", en: "your income, savings and sense of security" },
   },
   mind: {
-    icon: "🧠",
+    icon: Brain,
     label: { ta: "மனம் & அமைதி", en: "Mind & peace" },
     covers: { ta: "உங்கள் மன அமைதி, கவனம் மற்றும் உணர்ச்சி சமநிலை", en: "your inner calm, focus and emotional balance" },
   },
@@ -341,7 +324,9 @@ function HyPlanetLifeAreas({ lang, expl }: { lang: Lang; expl: ChartExplanationP
           return (
             <Card key={b} style={{ borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-3)", display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
-                <span style={{ fontSize: "var(--text-base)" }} aria-hidden>{meta.icon}</span>
+                {/* FTR-04: lucide, not emoji — emoji render differently per OS and
+                    ignore the theme colour. */}
+                <meta.icon size={16} strokeWidth={2} aria-hidden style={{ color: "var(--color-mid)", flexShrink: 0 }} />
                 <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--color-text-strong)" }}>{lang === "ta" ? meta.label.ta : meta.label.en}</span>
               </div>
               <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "var(--text-sm)", lineHeight: 1.5, color: "var(--color-muted)" }}>{line}</p>
@@ -1599,11 +1584,12 @@ export const STANDING_TONE_COLOR: Record<StandingTone, { fg: string; bg: string;
   mid:     { fg: "var(--color-mid)",  bg: "var(--color-mid-bg)",  bd: "var(--color-mid-border)" },
   muted:   { fg: "var(--color-faint)", bg: "transparent",         bd: "var(--color-border)" },
 };
-type YdItem = { name: string; label: string; tone: StandingTone };
+type YdItem = { name: string; label: string; tone: StandingTone; dosham?: ChartExplanationYogaDoshamSection["doshams"][number] };
 
 export function buildYogaDoshaItems(section: ChartExplanationYogaDoshamSection, lang: Lang): YdItem[] {
   const yogaItems: YdItem[] = section.yogas.map((y) => ({ name: yogaDoshamDisplayName(y.name, lang), ...yogaStanding(y, lang) }));
-  const doshamItems: YdItem[] = section.doshams.map((d) => ({ name: yogaDoshamDisplayName(d.name, lang), ...doshamStanding(d, lang) }));
+  // The dosham rides along so the row can carry its L2 verdict line (plan 2026-10-06).
+  const doshamItems: YdItem[] = section.doshams.map((d) => ({ name: yogaDoshamDisplayName(d.name, lang), ...doshamStanding(d, lang), dosham: d }));
   // Present/relevant first (doshams needing attention, then live yogas), a few
   // "Inactive" for context — capped so the card stays a glance, not a table.
   const present = [...doshamItems, ...yogaItems].filter((i) => i.tone !== "muted");
@@ -1622,9 +1608,12 @@ export function HyYogaDoshaCard({ lang, yogaDosham, onViewAll }: {
         {items.map((it, i) => {
           const c = STANDING_TONE_COLOR[it.tone];
           return (
-            <div key={`${it.name}-${i}`} style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", padding: "var(--space-3) 0", borderBottom: i < items.length - 1 ? "1px solid var(--color-border)" : "none" }}>
-              <span style={{ flex: 1, fontSize: "var(--text-sm)", color: it.tone === "muted" ? "var(--color-faint)" : "var(--color-text)" }}>{it.name}</span>
-              <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)", color: c.fg, background: c.bg, border: `1px solid ${c.bd}`, whiteSpace: "nowrap" }}>{it.label}</span>
+            <div key={`${it.name}-${i}`} style={{ display: "flex", flexDirection: "column", gap: "var(--space-1_5)", padding: "var(--space-3) 0", borderBottom: i < items.length - 1 ? "1px solid var(--color-border)" : "none" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
+                <span style={{ flex: 1, fontSize: "var(--text-sm)", color: it.tone === "muted" ? "var(--color-faint)" : "var(--color-text)" }}>{it.name}</span>
+                <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)", color: c.fg, background: c.bg, border: `1px solid ${c.bd}`, whiteSpace: "nowrap" }}>{it.label}</span>
+              </div>
+              {it.dosham && <DoshamVerdictLine dosham={it.dosham} lang={lang} onNavigate={onViewAll} compact />}
             </div>
           );
         })}
@@ -1691,7 +1680,7 @@ export function deriveStrengthsWatchouts(planets: Pick<ChartExplanationPlanet, "
 /** Rahu and Ketu are always retrograde — the flag carries no signal for them. */
 const PERPETUALLY_RETROGRADE = new Set(["RAHU", "KETU"]);
 
-const DIGNITY_WORD: Record<string, BiText> = {
+export const DIGNITY_WORD: Record<string, BiText> = {
   EXALTED: { en: "exalted", ta: "உச்சம்" },
   MOOLATRIKONA: { en: "moolatrikona", ta: "மூலத்திரிகோணம்" },
   OWN_SIGN: { en: "own sign", ta: "சொந்த ராசி" },
@@ -2070,7 +2059,13 @@ export function HyLifeAreaForecast({ lang, areas, age, onOpenLifeAreas, compact 
    through classical Moon-gochara: the upachaya houses (3·6·10·11 from the
    Moon) run favourable, the 8th/12th ask for care, the rest hold steady. A
    retrograde or combust transit is nudged toward caution. Flagged for
-   astrologer review. */
+   astrologer review.
+
+   Guru and Sani are the exception: they read the ruled table (D2/D3,
+   2026-10-04; `gocharaGrade` in packages/shared), the one the reading's
+   "Running now" chapter and mobile use. Before, this card graded them by the
+   generic rule above, so one page called Sani in the 7th "Steady" here and
+   "Needs care" in §9. The words follow the ruling's vocabulary for every row. */
 const TRANSIT_ORDER = ["JUPITER", "SATURN", "RAHU", "KETU", "SUN"];
 const UPACHAYA_FROM_MOON = new Set([3, 6, 10, 11]);
 const DUSTHANA_FROM_MOON = new Set([8, 12]);
@@ -2088,16 +2083,19 @@ const HOUSE_THEME: Record<number, BiText> = {
   11: { en: "gains & networks", ta: "ஆதாயம் & தொடர்புகள்" },
   12: { en: "rest & release", ta: "ஓய்வு & விடுதலை" },
 };
-type GocharaTone = "SUPPORT" | "CAUTION" | "STEADY";
-function gocharaTone(houseFromMoon: number, flagged: boolean): GocharaTone {
+type GocharaTone = "SUPPORT" | "CAUTION" | "STEADY" | "MIXED";
+export function gocharaTone(graha: string, houseFromMoon: number, flagged: boolean): GocharaTone {
+  const grade = gocharaGrade(graha.toUpperCase(), houseFromMoon);
+  if (grade) return grade === "SUPPORTIVE" ? "SUPPORT" : grade === "NEEDS_CARE" ? "CAUTION" : "MIXED";
   if (DUSTHANA_FROM_MOON.has(houseFromMoon)) return "CAUTION";
   if (UPACHAYA_FROM_MOON.has(houseFromMoon)) return flagged ? "STEADY" : "SUPPORT";
   return flagged ? "CAUTION" : "STEADY";
 }
 const GOCHARA_BADGE: Record<GocharaTone, { label: BiText; fg: string; bg: string; bd: string }> = {
-  SUPPORT: { label: { en: "Favourable", ta: "சாதகம்" }, fg: "var(--color-high)", bg: "var(--color-high-bg)", bd: "var(--color-high-border)" },
-  CAUTION: { label: { en: "Caution",    ta: "கவனம்" },  fg: "var(--color-low)",  bg: "var(--color-low-bg)",  bd: "var(--color-low-border)" },
-  STEADY:  { label: { en: "Steady",     ta: "நிலையானது" }, fg: "var(--color-muted)", bg: "transparent",      bd: "var(--color-border)" },
+  SUPPORT: { label: { en: "Supportive", ta: "ஆதரவு" }, fg: "var(--color-high)", bg: "var(--color-high-bg)", bd: "var(--color-high-border)" },
+  CAUTION: { label: { en: "Needs care", ta: "கவனம் தேவை" }, fg: "var(--color-low)", bg: "var(--color-low-bg)", bd: "var(--color-low-border)" },
+  STEADY:  { label: { en: "Steady",     ta: "நிலையானது" }, fg: "var(--color-muted)", bg: "transparent", bd: "var(--color-border)" },
+  MIXED:   { label: { en: "Mixed",      ta: "கலந்த நிலை" }, fg: "var(--color-muted)", bg: "transparent", bd: "var(--color-border)" },
 };
 
 export function HyTransitOverview({ lang, transit, memberName, onOpenTransits }: {
@@ -2136,7 +2134,7 @@ export function HyTransitOverview({ lang, transit, memberName, onOpenTransits }:
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
           {rows.map((tr) => {
             const flagged = tr.isRetrograde || tr.isCombust;
-            const tone = gocharaTone(tr.houseFromMoon, flagged);
+            const tone = gocharaTone(tr.graha, tr.houseFromMoon, flagged);
             const badge = GOCHARA_BADGE[tone];
             const theme = HOUSE_THEME[tr.houseFromMoon];
             return (

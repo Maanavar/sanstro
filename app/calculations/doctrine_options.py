@@ -70,6 +70,12 @@ class DoctrineOptions:
     #: result (chapter 7 is the raja-yoga chapter). False would report the
     #: bhanga without the raja-yoga name.
     o13_nb_verses_give_raja_yoga: bool = True
+    #: O-13, owner ruling 2026-10-03: the raja-yoga *name* needs this many
+    #: distinct conditions (`NeechaBhangaEvaluation.grade_points`). Below it, a
+    #: cancelled debility is reported as நீச நிவர்த்தி (`NEECHA_NIVARTHI`).
+    #: Cancellation itself still needs only one condition (DD-09). 1 restores
+    #: the v1.6 behaviour.
+    o13_nb_raja_min_points: int = 2
     #: O-15 — Raja Yoga link by a one-way special aspect (audit L-3). DD-07 says
     #: "mutual aspect"; off until ruled.
     o15_raja_one_way_aspect: bool = False
@@ -80,8 +86,11 @@ class DoctrineOptions:
     #: O-17: keep the literal narrow fallback, or label all well-placed
     #: 9th-lord cases that fall short of full Lakshmi Yoga.
     o17_bhagya_support_scope: str = "literal"
-    #: O-18: retain the shipped full cancellation, or use strong mitigation.
-    o18_aries_scorpio_sevvai: str = "full_cancellation"
+    #: O-18: full cancellation (shipped until v1.6) or strong mitigation. Owner
+    #: ruling 2026-10-03: strong mitigation — a false "no dosham" is the
+    #: costlier error in a marriage reading. Vinaadi's deliberate divergence
+    #: from the popular Tamil list, which treats aatchi/ucham as nivarthi.
+    o18_aries_scorpio_sevvai: str = "strong_mitigation"
     #: O-19 — NB-a/NB-b/NB-g when the lord in question *is* the Moon (Sevvai
     #: debilitated in Kadagam; Guru, who exalts in Kadagam). "In a kendra from
     #: the Moon" then always holds, so a literal reading cancels every such
@@ -94,20 +103,75 @@ class DoctrineOptions:
     o20_adhi_raja_malefic_aspects: bool = False
     #: O-21 — Budhan is the lord of its own exaltation sign (Kanni). Read
     #: literally, NB-b / NB-c / NB-g then test the debilitated Budhan's own
-    #: position, which is NB-e — the rule DD-09 deleted. False (default, DD-09
-    #: governs) skips the self-reference; True keeps the literal reading.
-    o21_nb_planet_as_own_lord: bool = False
+    #: position, which is NB-e — the rule DD-09 deleted. Owner ruling
+    #: 2026-10-03: True — the literal reading counts, but every rule that fires
+    #: only through the self-reference is tagged `nb_self_reference` and those
+    #: rules alone can never lift the grade to STRONG. False skips them (v1.6).
+    o21_nb_planet_as_own_lord: bool = True
     #: O-22 — strict Gaja Kesari's "joined or aspected by a benefic": may the
     #: waxing Moon, one of the two forming grahas, be that benefic? True keeps
     #: DD-01/DD-12 literally; False requires a benefic other than the Moon.
+    #: Owner ruling 2026-10-03: True. The Moon counts only when it is benefic
+    #: (waxing, DD-12) and conjunct or opposite Guru — the detector's
+    #: same-rasi-or-aspect test already refuses a Moon in the 4th/10th.
     o22_gk_moon_as_support: bool = True
-    #: O-23 — a kendra/trikona lord that also owns the 6th or 8th. The
-    #: 2026-09-23 ruling's moolatrikona test ("moolatrikona", shipped) excludes
-    #: Kadagam Guru (6+9) and Sani (7+8), Kanni Sani (5+6) and Kumbam Budhan
-    #: (5+8) from every Raja Yoga. "lordship_only" lets the lordship decide
-    #: eligibility and leaves the 6th/8th to the MIXED grade, as O-4 does for
-    #: the 12th.
-    o23_six_eight_colord_mode: str = "moolatrikona"
+    #: O-23 — a kendra/trikona lord that also owns a dusthana or upachaya
+    #: house. Owner ruling 2026-10-03: "moolatrikona_3_6_8_11" — the 2026-09-23
+    #: moolatrikona test applied to 3rd/6th/8th/11th co-lords. Besides the four
+    #: 6th/8th cases (Kadagam Guru and Sani, Kanni Sani, Kumbam Budhan; Kadagam
+    #: Guru is re-admitted by `o23_lineage_exceptions`) it
+    #: excludes Mesham Sani (10+11), Simmam Sukran (3+10) and Kumbam Sevvai
+    #: (3+10). "moolatrikona" is the 6th/8th-only test (v1.6); "lordship_only"
+    #: lets the lordship decide and leaves the 6th/8th to the MIXED grade.
+    o23_six_eight_colord_mode: str = "moolatrikona_3_6_8_11"
+    #: O-23 lineage exceptions (owner ruling 2026-10-03, v1.8):
+    #: `functional_status.RAJA_LINEAGE_EXCEPTIONS` re-admits a named lord that
+    #: the moolatrikona test would exclude. Today one row, Kadagam Guru (6+9):
+    #: it takes part as the 9th lord and grades MIXED by its 6th. False keeps
+    #: the test with no exception (v1.7).
+    o23_lineage_exceptions: bool = True
+    #: O-24 — kendradhipati for a natural benefic owning two kendras (Guru for
+    #: Mithunam/Kanni, Budhan for Dhanusu/Meenam). Owner ruling 2026-10-03
+    #: (v1.8): "mixed". Kendradhipati is a grade modifier, not an eligibility
+    #: veto: the lord takes part and the pair grades MIXED_KENDRADHIPATI; pair
+    #: vetoes still apply. BPHS 34's Dhanus paragraph names Surya + Budhan as
+    #: yoga-giving, which "exclude" would contradict. Provisional Tier A until
+    #: the printed edition is checked (§18).
+    o24_kendradhipati_two_kendras: str = "mixed"
+    #: O-26 — Sevvai: "Mars's sign lord in a kendra/trikona *from Mars*" as a
+    #: mitigation. It came from an internal design note (docs/SEVVAIRAGU.MD
+    #: §6.7), not from a cited text, and on a real chart it alone decided
+    #: nivarthi versus a strong active dosham. Ruling 2026-10-06 (DD-17): "off"
+    #: until a printed source is produced. "from_mars" restores v2.0.
+    o26_sevvai_dispositor_mitigation: str = "off"
+    #: O-27 — Sevvai: what makes the 7th lord "strong" enough to protect.
+    #: Ruling 2026-10-06 (DD-17): "dignity_or_kendra_trikona" — own sign,
+    #: exaltation, or a kendra/trikona from the Lagna; not joined by Sevvai,
+    #: Sani, Rahu or Ketu; not combust. The same test the Rahu–Ketu axis already
+    #: applies to the 7th lord, so one chart has one answer to "is the 7th lord
+    #: strong". "kendra_functional_benefic" restores v2.0, which ignored dignity.
+    o27_sevvai_seventh_lord_strength: str = "dignity_or_kendra_trikona"
+    #: O-28 — Rahu–Ketu 2/8 axis: the node in the 2nd (kudumba sthana) is
+    #: weighed by the 2nd house's own support. "dignity": the 2nd lord in its
+    #: own or exaltation sign, unafflicted, not combust. "strong_or_benefic":
+    #: the 8th side's broader test (any kendra/trikona placement, or a benefic
+    #: on the house). "off" restores v2.0 (8th side only). See DD-17 for the
+    #: measured choice.
+    o28_rk_second_house_support: str = "dignity"
+    #: O-29 — Rahu–Ketu: one Guru aspect counted once. On the 2/8 axis a node
+    #: sits in the 8th, so Guru aspecting it fired both
+    #: `guru_joins_or_aspects_node` and the benefic-on-the-8th mitigation.
+    #: Ruling 2026-10-06 (DD-17): True — Guru's influence on a node's house is
+    #: its own mitigation, so the house-support tests read the other benefics.
+    #: False restores v2.0's double count.
+    o29_rk_guru_counted_once: bool = True
+    #: O-32 — Putra Sarpa, Thulam lagna, Sani in Kumbam (its own 5th). Sani is
+    #: the 5th lord, in its own sign, and yogakaraka (4th + 5th) for Thulam.
+    #: Owner ruling 2026-10-06: "neutralized" — the placement is recorded but
+    #: does not form the dosham; any independent affliction (a node in the 5th
+    #: or beside Guru) still does. Deliberately this one case, not "own sign
+    #: always cancels". "ordinary" counts it as any Sani in the 5th.
+    o32_putra_sarpa_thulam_sani: str = "neutralized"
     #: DD-12 legacy: Moon benefic only beyond 72° of elongation. Off by default.
     moon_72_degree_convention: bool = False
     #: DD-02 — show the Phaladeepika Lakshmi variant in the consumer UI. Off.
@@ -124,7 +188,12 @@ _STRING_CHOICES: dict[str, frozenset[str]] = {
     "o10_nbg_reference": frozenset({"lagna", "lagna_or_moon"}),
     "o17_bhagya_support_scope": frozenset({"literal", "all_incomplete_lakshmi"}),
     "o18_aries_scorpio_sevvai": frozenset({"full_cancellation", "strong_mitigation"}),
-    "o23_six_eight_colord_mode": frozenset({"moolatrikona", "lordship_only"}),
+    "o23_six_eight_colord_mode": frozenset({"moolatrikona_3_6_8_11", "moolatrikona", "lordship_only"}),
+    "o24_kendradhipati_two_kendras": frozenset({"mixed", "exclude"}),
+    "o26_sevvai_dispositor_mitigation": frozenset({"off", "from_mars"}),
+    "o27_sevvai_seventh_lord_strength": frozenset({"dignity_or_kendra_trikona", "kendra_functional_benefic"}),
+    "o28_rk_second_house_support": frozenset({"dignity", "strong_or_benefic", "off"}),
+    "o32_putra_sarpa_thulam_sani": frozenset({"neutralized", "ordinary"}),
 }
 
 
@@ -140,6 +209,8 @@ def validated(options: DoctrineOptions) -> DoctrineOptions:
             raise ValueError(f"{field_name}={value!r}; expected one of {sorted(choices)}")
     if not 0 <= options.o8_lagna_lord_threshold <= 100:
         raise ValueError(f"o8_lagna_lord_threshold={options.o8_lagna_lord_threshold} is outside 0-100")
+    if not 1 <= options.o13_nb_raja_min_points <= 3:
+        raise ValueError(f"o13_nb_raja_min_points={options.o13_nb_raja_min_points} is outside 1-3")
     for field_name in ("o2_rahu_favourable_rasis", "o2_ketu_favourable_rasis"):
         rasis = getattr(options, field_name)
         if any(not isinstance(rasi, int) or isinstance(rasi, bool) or not 1 <= rasi <= 12 for rasi in rasis):
@@ -194,8 +265,10 @@ OPEN_ITEMS: tuple[OpenItem, ...] = (
              "FLAGGED", "o11_retrograde_debilitated_raja_yoga", "_yoga_detect.detect_retrograde_debilitated_raja_yoga"),
     OpenItem("O-12", "Two shipped neecha-bhanga conditions are not in DD-09's table", "Excluded",
              "FLAGGED", "o12_nb_unlisted_conditions", "neecha_bhanga.evaluate_neecha_bhanga"),
-    OpenItem("O-13", "Does each Phaladeepika 7.26–30 verse state a raja-yoga result?", "Yes — card keeps its raja-yoga name",
-             "FLAGGED", "o13_nb_verses_give_raja_yoga", "neecha_bhanga.evaluate_neecha_bhanga"),
+    OpenItem("O-13", "Does each Phaladeepika 7.26–30 verse state a raja-yoga result?",
+             "Yes; owner ruling 2026-10-03: the raja-yoga name needs two or more distinct conditions, "
+             "one condition reads நீச நிவர்த்தி",
+             "FLAGGED", "o13_nb_verses_give_raja_yoga", "_yoga_detect.detect_neecha_bhanga"),
     OpenItem("O-14", "2026-09-23 moolatrikona ruling vs O-4 for three 12th co-lords", "O-4 (v1.3) governs",
              "FLAGGED", "o4_twelfth_colord_mode", "functional_status.raja_participation"),
     OpenItem("O-15", "Raja Yoga link: mutual aspect (DD-07) or one-way special aspect (audit L-3)?", "Mutual only",
@@ -204,7 +277,8 @@ OPEN_ITEMS: tuple[OpenItem, ...] = (
              "FLAGGED", "o16_moon_secondary_activator", "yoga_rules activation table"),
     OpenItem("O-17", "BHAGYA_SUPPORT leaves two cases unlabelled", "Literal DD-02 text; neither case labelled",
              "FLAGGED", "o17_bhagya_support_scope", "_yoga_detect.detect_bhagya_support"),
-    OpenItem("O-18", "Mesham/Viruchigam lagna Sevvai exemption still cancels outright", "Full cancellation (shipped behaviour)",
+    OpenItem("O-18", "Mesham/Viruchigam lagna Sevvai exemption still cancels outright",
+             "Owner ruling 2026-10-03: strong mitigation (deliberate divergence from the popular list)",
              "FLAGGED", "o18_aries_scorpio_sevvai", "_yoga_dosham.detect_sevvai_dosham"),
     OpenItem("O-19", "NB-a/NB-b 'kendra from the Moon' when the lord is the Moon itself (always true)",
              "Literal reading kept: every debilitated Sevvai, and Guru, is cancelled",
@@ -213,14 +287,36 @@ OPEN_ITEMS: tuple[OpenItem, ...] = (
              "No — occupants in the 6th/7th/8th from Moon only",
              "FLAGGED", "o20_adhi_raja_malefic_aspects", "_yoga_detect.detect_adhi_raja_grade"),
     OpenItem("O-21", "NB-b/NB-c/NB-g for Budhan, the lord of its own exaltation sign (re-creates NB-e)",
-             "Self-reference skipped (DD-09 deleted NB-e)",
+             "Owner ruling 2026-10-03: counted, tagged nb_self_reference, never STRONG on its own",
              "FLAGGED", "o21_nb_planet_as_own_lord", "neecha_bhanga.evaluate_neecha_bhanga"),
     OpenItem("O-22", "Strict Gaja Kesari: may the waxing Moon be the supporting benefic?",
-             "Yes — literal DD-01/DD-12",
+             "Owner ruling 2026-10-03: yes, when benefic and conjunct or opposite Guru (never from the 4th/10th)",
              "FLAGGED", "o22_gk_moon_as_support", "_yoga_detect.detect_gaja_kesari_parashara"),
-    OpenItem("O-23", "6th/8th co-lords in Raja Yoga: 2026-09-23 moolatrikona test vs DD-07 lordship",
-             "Moolatrikona test (2026-09-23 ruling, shipped)",
+    OpenItem("O-23", "Co-lords in Raja Yoga: moolatrikona test vs DD-07 lordship",
+             "Owner ruling 2026-10-03: moolatrikona test extended to 3rd/6th/8th/11th co-lords; "
+             "Kadagam Guru re-admitted as a named exception, graded MIXED (o23_lineage_exceptions)",
              "FLAGGED", "o23_six_eight_colord_mode", "functional_status.raja_participation"),
+    OpenItem("O-24", "Kendradhipati: a natural benefic owning two kendras in Raja Yoga — mixed or excluded?",
+             "Owner ruling 2026-10-03: mixed (MIXED_KENDRADHIPATI grade); a grade modifier, never an "
+             "eligibility veto; BPHS 34's Dhanus Surya-Budhan pair stays yoga-giving",
+             "FLAGGED", "o24_kendradhipati_two_kendras", "functional_status.raja_participation"),
+    OpenItem("O-26", "Sevvai: does Mars's sign lord in a kendra/trikona from Mars mitigate?",
+             "Ruling 2026-10-06 (DD-17): off — no printed source; it came from an internal design note",
+             "FLAGGED", "o26_sevvai_dispositor_mitigation", "_yoga_dosham.detect_sevvai_dosham"),
+    OpenItem("O-27", "Sevvai: does a dignified 7th lord protect, or only a 7th lord in a kendra?",
+             "Ruling 2026-10-06 (DD-17): own/exalted or kendra/trikona, unafflicted, not combust "
+             "(the Rahu–Ketu 7th-lord test)",
+             "FLAGGED", "o27_sevvai_seventh_lord_strength", "_yoga_dosham.detect_sevvai_dosham"),
+    OpenItem("O-28", "Rahu–Ketu 2/8: is the 2nd house's support read, as the 8th's is?",
+             "Ruling 2026-10-06 (DD-17): yes, by the 2nd lord's dignity (own/exalted, unafflicted, not combust)",
+             "FLAGGED", "o28_rk_second_house_support", "_yoga_dosham.detect_rahu_ketu_dosham"),
+    OpenItem("O-29", "Rahu–Ketu: may one Guru aspect count both as Guru-on-node and as benefic-on-house?",
+             "Ruling 2026-10-06 (DD-17): no — counted once",
+             "FLAGGED", "o29_rk_guru_counted_once", "_yoga_dosham.detect_rahu_ketu_dosham"),
+    OpenItem("O-32", "Putra Sarpa: does Sani in its own 5th (Kumbam, Thulam lagna) form the dosham?",
+             "Owner ruling 2026-10-06: neutralized — recorded, not formed, unless another affliction "
+             "touches the 5th, its lord or Guru; this case only, not a blanket own-sign rule",
+             "FLAGGED", "o32_putra_sarpa_thulam_sani", "_yoga_dosham.detect_putra_sarpa_dosham"),
 )
 
 OPEN_ITEM_BY_ID: dict[str, OpenItem] = {item.item_id: item for item in OPEN_ITEMS}

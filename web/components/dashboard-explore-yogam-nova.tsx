@@ -264,7 +264,8 @@ export function DashboardExploreYogamNova({
     { ta: yoga.effectTa, en: yoga.effectEn },
   );
   const activationState = yogaActivationState(yoga);
-  const whyText = buildWhyText(yoga.conditionsMet, yoga.cancellationFactors, yoga.isPresent, false, false, lang);
+  // Present: the conditions are listed below. Absent: the factor list is.
+  const whyText = buildWhyText(yoga.conditionsMet, yoga.cancellationFactors, yoga.isPresent, false, false, lang, { listsShown: yoga.isPresent || (yoga.cancellationFactors?.length ?? 0) > 0 });
   const powerText = operating ? getYogaPowerContext(yoga.name, yoga.strength, activationState, lang) : null;
 
   const ownStatusLabel = yogaStatusLabel(yoga, lang);
@@ -333,16 +334,11 @@ export function DashboardExploreYogamNova({
 
         {/* LEFT */}
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-          <Card>
-            <Kicker>{lang === "ta" ? "இது உண்மையில் என்ன பொருள்" : "What it actually means"}</Kicker>
-            <p style={{ margin: 0, fontFamily: "var(--font-nova-prose, var(--font-body))", fontSize: "var(--text-base)", lineHeight: 1.7, color: "var(--color-text)" }}>
-              {astroText(whatText)}
-            </p>
-          </Card>
-
+          {/* "What it actually means" repeated the hero's prose word for word
+              (both `whatText`); the hero keeps it. */}
           <Card>
             <Kicker>{lang === "ta" ? "ஏன் உங்கள் ஜாதகத்தில் உள்ளது" : "Why your chart has this"}</Kicker>
-            <p style={{ margin: 0, fontSize: "var(--text-base)", lineHeight: 1.6, color: "var(--color-text)" }}>{astroText(whyText)}</p>
+            {whyText && <p style={{ margin: 0, fontSize: "var(--text-base)", lineHeight: 1.6, color: "var(--color-text)" }}>{astroText(whyText)}</p>}
             {yoga.isPresent && yoga.conditionsMet.length > 0 && (
               <ul style={{ margin: 0, paddingLeft: "var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
                 {yoga.conditionsMet.map((c, i) => (

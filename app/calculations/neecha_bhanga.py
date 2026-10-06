@@ -111,6 +111,10 @@ class NeechaBhangaEvaluation:
     #: Grahas whose placement or aspect produced a firing rule — DD-15's
     #: secondary activators for this card.
     cancelling_grahas: tuple[str, ...]
+    #: O-21: rule IDs that fired *only* because the debilitated graha is its own
+    #: exaltation-sign lord (Budhan in Meenam). Tagged, and never enough on
+    #: their own for STRONG (owner ruling 2026-10-03).
+    self_reference_rules: frozenset[str] = frozenset()
 
     @property
     def cancelled(self) -> bool:
@@ -118,10 +122,20 @@ class NeechaBhangaEvaluation:
 
     @property
     def markers(self) -> list[str]:
-        return [rule.marker for rule in self.fired]
+        tag = ["nb_self_reference"] if self.self_reference_rules else []
+        return [rule.marker for rule in self.fired] + tag
 
     def gives_raja_yoga(self, options: DoctrineOptions = DEFAULT_DOCTRINE) -> bool:
         return options.o13_nb_verses_give_raja_yoga and any(rule.gives_raja_yoga for rule in self.fired)
+
+    @staticmethod
+    def _points(ids: set[str]) -> int:
+        points = len(ids & {"NB-a", "NB-b", "NB-c", "NB-d", "NB-f", "NB-x1", "NB-x2"})
+        if "NB-g" in ids and not ids & {"NB-a", "NB-b"}:
+            points += 1
+        if "NB-d+" in ids:
+            points += 1
+        return points
 
     @property
     def grade_points(self) -> int:
@@ -132,13 +146,21 @@ class NeechaBhangaEvaluation:
         adds one point for the stronger result. Counting verses would grade one
         placement twice.
         """
-        ids = {rule.rule_id for rule in self.fired}
-        points = len(ids & {"NB-a", "NB-b", "NB-c", "NB-d", "NB-f", "NB-x1", "NB-x2"})
-        if "NB-g" in ids and not ids & {"NB-a", "NB-b"}:
-            points += 1
-        if "NB-d+" in ids:
-            points += 1
-        return points
+        return self._points({rule.rule_id for rule in self.fired})
+
+    @property
+    def independent_points(self) -> int:
+        """`grade_points` without the O-21 self-reference rules."""
+        return self._points({rule.rule_id for rule in self.fired} - self.self_reference_rules)
+
+    @property
+    def strength(self) -> str:
+        """Tier C grade. A self-reference may add a rung, but STRONG needs three
+        points without it (O-21, ruled 2026-10-03)."""
+        grade = strength_for_points(self.grade_points)
+        if grade == "STRONG" and strength_for_points(self.independent_points) != "STRONG":
+            return "PARTIAL"
+        return grade
 
 
 def strength_for_points(points: int) -> str:
@@ -185,6 +207,7 @@ def evaluate_neecha_bhanga(
 
     fired: list[NeechaBhangaRule] = []
     cancelling: list[str] = []
+    self_reference: set[str] = set()
 
     def fire(rule: NeechaBhangaRule, *grahas: str) -> None:
         fired.append(rule)
@@ -192,7 +215,8 @@ def evaluate_neecha_bhanga(
 
     # O-21: Budhan rules Kanni, its own exaltation sign, so "the exaltation
     # lord" is the debilitated Budhan itself. Testing its own position is NB-e,
-    # which DD-09 deleted; skip it unless the literal reading is chosen.
+    # which DD-09 deleted. The literal reading (owner ruling 2026-10-03) counts
+    # it, but each rule that fires only through it is recorded as such.
     def lord_counts(lord: str) -> bool:
         return lord != planet or options.o21_nb_planet_as_own_lord
 
@@ -200,6 +224,8 @@ def evaluate_neecha_bhanga(
         fire(NB_A, deb_lord)
     if lord_counts(exalt_lord) and kendra_from_lagna_or_moon(exalt_lord_rasi, exalt_lord):
         fire(NB_B, exalt_lord)
+        if exalt_lord == planet:
+            self_reference.add(NB_B.rule_id)
     # Mutual kendras: each is in a kendra from the other. The relation is
     # symmetric (a kendra from A is always a kendra from B back), so one test.
     if (
@@ -208,6 +234,8 @@ def evaluate_neecha_bhanga(
         and kendra_from(deb_lord_rasi, exalt_lord_rasi)
     ):
         fire(NB_C, deb_lord, exalt_lord)
+        if exalt_lord == planet:
+            self_reference.add(NB_C.rule_id)
     aspected = (
         deb_lord != planet
         and deb_lord_rasi is not None
@@ -228,6 +256,8 @@ def evaluate_neecha_bhanga(
     ]
     if nbg_lords:
         fire(NB_G, *nbg_lords)
+        if nbg_lords == [planet]:
+            self_reference.add(NB_G.rule_id)
 
     if options.o7_nb_navamsa and d9_rasi_map is not None and planet in d9_rasi_map:
         d9_rasi = d9_rasi_map[planet]
@@ -249,4 +279,5 @@ def evaluate_neecha_bhanga(
         debilitated=True,
         fired=tuple(fired),
         cancelling_grahas=tuple(dict.fromkeys(cancelling)),
+        self_reference_rules=frozenset(self_reference),
     )

@@ -139,10 +139,11 @@ def test_no_dative_suffix_or_bindu_transliteration_regressions():
       Tamil it reads primarily as "semen". The term is "பரல்".
 
     Checked against the web component because that is where the string lives.
+    The panel was split into `chart-reading/` (FTR-05, 2026-10-04); the line
+    now sits in the Astrologer view, so the shell and that folder are read.
     """
-    panel = (
-        _ROOT_WEB / "dashboard-chart-explanation.tsx"
-    ).read_text(encoding="utf-8")
+    sources = [_ROOT_WEB / "dashboard-chart-explanation.tsx", *sorted((_ROOT_WEB / "chart-reading").glob("*.tsx"))]
+    panel = "\n".join(path.read_text(encoding="utf-8") for path in sources)
     # Only look at the rendered template literals, not the explanatory comment
     # that names the rejected forms on purpose.
     rendered = "\n".join(

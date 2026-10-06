@@ -1360,7 +1360,14 @@
   .cd-main-content {
     flex: 1;
     min-width: 0;
+    /* `clip`, not `hidden`: `overflow-x: hidden` forces overflow-y to `auto`,
+       which makes this column a scroll container that never scrolls (it has
+       no height cap) — and every `position: sticky` inside it then sticks to
+       that dead scroller instead of the page, i.e. never. `clip` crops the
+       same overflow without creating a scroll container. `hidden` stays as
+       the fallback for browsers without `clip` (pre-Safari 16). */
     overflow-x: hidden;
+    overflow-x: clip;
     min-height: calc(100vh - 54px);
   }
 }

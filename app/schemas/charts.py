@@ -151,6 +151,25 @@ class ChartYogaInsight(BaseModel):
     # activated, including by a secondary activator) or "NONE" (present, not a
     # dominant influence this period). Additive; replaces nothing.
     activation_tier: str = Field(default="NONE", alias="activationTier")
+    # O-25 (2026-10-05): the forming grahas' structural reach — a Vinaadi
+    # tie-break for the Top-3 yoga lists, not classical doctrine. One integer,
+    # lexicographic: houses ruled ×100, houses occupied ×10, +1 when the Lagna
+    # or its lord takes part (`_chart_build._structural_reach`). Additive.
+    structural_reach: int = Field(default=0, alias="structuralReach")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class DoshamReferenceHouse(BaseModel):
+    """One reference point a dosham was counted from (DD-17). Language-free:
+    surfaces render the rasi through their own localiser."""
+
+    reference: str  # LAGNA | MOON | VENUS | D9_LAGNA
+    reference_rasi: int = Field(alias="referenceRasi")
+    #: Mars's house, or the Rahu house then the Ketu house.
+    houses: list[int]
+    #: Whether that placement falls in the dosham's houses from this reference.
+    counts: bool
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -176,6 +195,17 @@ class ChartDoshamInsight(BaseModel):
     explanation_how_en: str = Field(default="", alias="explanationHowEn")
     variant_ta: str = Field(default="", alias="variantTa")
     variant_en: str = Field(default="", alias="variantEn")
+    # DD-17 (2026-10-06). Defaults keep an older cached payload valid.
+    #: Grade before any mitigation: STRONG | PARTIAL | WEAK, "" when not formed.
+    formation_strength: str = Field(default="", alias="formationStrength")
+    #: What remains: NONE | MILD | MODERATE | STRONG. Never NONE when present.
+    residual: str = "NONE"
+    #: Facts that shape the reading without moving the grade.
+    context_notes: list[str] = Field(default_factory=list, alias="contextNotes")
+    reference_houses: list[DoshamReferenceHouse] = Field(default_factory=list, alias="referenceHouses")
+    #: What this placement tends to bring in this chart (e.g. Ketu in the 2nd).
+    meaning_ta: str = Field(default="", alias="meaningTa")
+    meaning_en: str = Field(default="", alias="meaningEn")
 
     model_config = ConfigDict(populate_by_name=True)
 

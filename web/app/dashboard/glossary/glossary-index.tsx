@@ -78,6 +78,13 @@ const TERM_LABELS: Record<GlossaryKey, { en: string; ta: string }> = {
   ekadashi: { en: "Ekadashi", ta: "ஏகாதசி" },
   pradosham: { en: "Pradosham", ta: "பிரதோஷம்" },
   vratham: { en: "Vratham", ta: "விரதம்" },
+  // Chart-reading vocabulary (FTR-16). New Tamil, pending native review.
+  antaram: { en: "Antaram", ta: "அந்தரம்" },
+  kendra: { en: "Kendra", ta: "கேந்திரம்" },
+  trikona: { en: "Trikona", ta: "திரிகோணம்" },
+  dusthana: { en: "Dusthana", ta: "துஷ்டானம்" },
+  drishti: { en: "Drishti", ta: "பார்வை" },
+  paral: { en: "Paral", ta: "பரல்" },
 };
 
 // New Tamil, pending native review.

@@ -120,9 +120,19 @@ def test_section_dasha_contains_lord_names():
     _, heading_s, body_s, _ = _styles()
     elements = _section_dasha(dr, heading_s, body_s)
     combined = " ".join(str(e) for e in elements)
-    assert "JUPITER" in combined
-    assert "SATURN" in combined
-    assert "MERCURY" in combined
+    # Display names, not engine codes (display boundary, FTR-22 pass).
+    assert "Jupiter" in combined
+    assert "Saturn" in combined
+    assert "Mercury" in combined
+    assert "JUPITER" not in combined
+
+
+def test_section_dasha_names_lords_in_tamil():
+    dr = _make_dasha_response()
+    _, heading_s, body_s, _ = _styles("ta")
+    combined = " ".join(str(e) for e in _section_dasha(dr, heading_s, body_s, "ta"))
+    assert "குரு" in combined and "சனி" in combined
+    assert "JUPITER" not in combined and "Jupiter" not in combined
 
 
 # ---------------------------------------------------------------------------

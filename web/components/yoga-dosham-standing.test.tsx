@@ -89,8 +89,17 @@ describe("shared standing resolver", () => {
     expect(doshamPresenceLabel(DOSHAMS[1], "ta")).toBe("உண்டு");
   });
 
+  it("a mitigated dosham names its residual, never a bare 'Mitigated' (DD-17)", () => {
+    // An older payload with no `residual` falls back to mild — never to cleared.
+    expect(doshamStanding(DOSHAMS[0], "en")).toEqual({ label: "Mitigated · mild residual", tone: "good" });
+    expect(doshamStanding(DOSHAMS[0], "ta")).toEqual({ label: "நிவர்த்தி · லேசான மீதத் தாக்கம்", tone: "good" });
+    // A moderate residual is not painted with the all-clear tone.
+    expect(doshamStanding(dosham({ isCancelled: true, strength: "WEAK", residual: "MODERATE" }), "en"))
+      .toEqual({ label: "Mitigated · moderate residual", tone: "mid" });
+    expect(doshamStanding(dosham({ isPresent: false, strength: "WEAK" }), "en")).toEqual({ label: "Absent", tone: "muted" });
+  });
+
   it("maps natal strength to one scale for yogas and doshams alike", () => {
-    expect(doshamStanding(DOSHAMS[0], "en")).toEqual({ label: "Mitigated", tone: "good" });
     expect(doshamStanding(DOSHAMS[1], "en")).toEqual({ label: "Moderate", tone: "mid" });
     expect(doshamStanding(dosham({ strength: "STRONG" }), "en")).toEqual({ label: "Strong", tone: "caution" });
     expect(yogaStanding(YOGAS[0], "en")).toEqual({ label: "Strong", tone: "good" });
@@ -123,18 +132,28 @@ describe.each<Lang>(["en", "ta"])("Charts card and Life Areas agree (%s)", (lang
     }
   });
 
-  it("lists under the heading only what the running dasha lights", () => {
+  it("answers the marriage doshams in their own block, then lists only what the running dasha lights", () => {
     const { container } = renderSummary(lang);
+    const marriageHeading = lang === "ta" ? "திருமண தோஷங்கள் — உங்கள் ஜாதகத்தில்" : "Marriage doshams in your chart";
+    const runningHeading = lang === "ta" ? "தற்போதைய தசையில் செயல்படுபவை" : "Running in your current dasha";
     const quietHeading = lang === "ta" ? "ஜாதகத்தில் உண்டு; இந்தக் காலத்தில் முதன்மைத் தாக்கம் இல்லை" : "Present in birth chart — not a dominant influence in the current period";
+    expect(screen.getByText(marriageHeading)).toBeInTheDocument();
     expect(screen.getByText(quietHeading)).toBeInTheDocument();
-    const [runningPart, quietPart] = (container.textContent ?? "").split(quietHeading);
-    // Lit by the running dasha: Rahu-Ketu and Raja Yoga. Not lit: Marana
-    // Karaka, Gaja Kesari, and the mitigated Sevvai.
-    for (const lit of ["RAHU_KETU_DOSHAM", "RAJA_YOGA"]) {
-      expect(runningPart).toContain(displayName(lit, lang));
-      expect(quietPart).not.toContain(displayName(lit, lang));
+    const text = container.textContent ?? "";
+    const marriagePart = text.split(marriageHeading)[1].split(runningHeading)[0];
+    const [runningPart, quietPart] = text.split(runningHeading)[1].split(quietHeading);
+    // Sevvai and Rahu–Ketu are answered once, in their own block, whether or
+    // not the dasha lights them (plan 2026-10-06) — the mitigated Sevvai too.
+    for (const marriage of ["RAHU_KETU_DOSHAM", "SEVVAI_DOSHAM"]) {
+      expect(marriagePart).toContain(displayName(marriage, lang));
+      expect(runningPart).not.toContain(displayName(marriage, lang));
+      expect(quietPart).not.toContain(displayName(marriage, lang));
     }
-    for (const unlit of ["MARANA_KARAKA_STHANA", "GAJA_KESARI_YOGA", "SEVVAI_DOSHAM"]) {
+    // Everything else keeps the activation split: Raja Yoga is lit; Marana
+    // Karaka and Gaja Kesari are not.
+    expect(runningPart).toContain(displayName("RAJA_YOGA", lang));
+    expect(quietPart).not.toContain(displayName("RAJA_YOGA", lang));
+    for (const unlit of ["MARANA_KARAKA_STHANA", "GAJA_KESARI_YOGA"]) {
       expect(runningPart).not.toContain(displayName(unlit, lang));
       expect(quietPart).toContain(displayName(unlit, lang));
     }

@@ -316,6 +316,39 @@ class ChartExplanationPeyarchiSection(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class ChartExplanationStoryPlanet(BaseModel):
+    graha: str
+    # Facet keys (into this planet's `facets`) the Story view shows as its
+    # "why", at most two, in display order.
+    why_facet_keys: list[str] = Field(alias="whyFacetKeys")
+    active_now: bool = Field(alias="activeNow")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class ChartExplanationStoryCare(BaseModel):
+    name: str
+    kind: str  # DOSHAM | YOGA
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class ChartExplanationStory(BaseModel):
+    """The Story view's selections (FTR-21, app/services/reading_story.py).
+
+    Keys and engine names, not prose — surfaces localise them — except the
+    headline, a template over chart fields.
+    """
+
+    headline: ChartExplanationText | None = None
+    planets: list[ChartExplanationStoryPlanet] = Field(default_factory=list)
+    top_natal_yogas: list[str] = Field(default_factory=list, alias="topNatalYogas")
+    top_active_yogas: list[str] = Field(default_factory=list, alias="topActiveYogas")
+    care_patterns: list[ChartExplanationStoryCare] = Field(default_factory=list, alias="carePatterns")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class ChartExplanationData(BaseModel):
     chart_id: UUID = Field(alias="chartId")
     core_identity: ChartExplanationCoreIdentity = Field(alias="coreIdentity")
@@ -331,6 +364,8 @@ class ChartExplanationData(BaseModel):
     summary: ChartExplanationSummarySection
     peyarchi: ChartExplanationPeyarchiSection
     method_note: ChartExplanationText = Field(alias="methodNote")
+    # Additive (FTR-21): the Story view's picks, computed once for every surface.
+    story: ChartExplanationStory | None = None
 
     model_config = ConfigDict(populate_by_name=True)
 

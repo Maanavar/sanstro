@@ -54,6 +54,7 @@ _NON_SUFFIXED_CODES = frozenset({
     "GAJA_KESARI_PARASHARA",
     "ADHI_BASE",
     "ADHI_RAJA_GRADE",
+    "NEECHA_NIVARTHI",  # O-13, v1.7
 })
 
 

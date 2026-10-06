@@ -221,7 +221,7 @@ test("Family & Charts: the three secondary-dasha panels render their bodies", as
    * Waiting for skeletons to clear is NOT enough here, and the first run of this
    * spec proved it by reporting all three panels "not present".
    *
-   * The panels live inside `<HySection "Full technical reading">`, which is
+   * The panels live inside `<HySection "Full chart reading">`, which is
    * gated on `readingChart` — the loaded chart object, not the chart id. Until
    * that resolves the section renders nothing: no skeleton, no placeholder, no
    * heading. So `.skel === 0` was satisfied by a page that had simply not
@@ -229,8 +229,8 @@ test("Family & Charts: the three secondary-dasha panels render their bodies", as
    * panels rather than a race. Wait for the section itself.
    */
   await expect(
-    page.getByRole("heading", { name: /Full technical reading/i }),
-    "the Full technical reading section never rendered — readingChart did not load",
+    page.getByRole("heading", { name: /Full chart reading/i }),
+    "the Full chart reading section never rendered — readingChart did not load",
   ).toBeVisible({ timeout: 60_000 });
   await page.waitForTimeout(1000);
   await dismissBlockingDialogs();

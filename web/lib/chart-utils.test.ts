@@ -6,6 +6,7 @@ import {
   computeD9LagnaRasi,
   houseFrom,
   rasiDisplayName,
+  rasiNumber,
 } from "./chart-utils";
 import type { ChartCalculateResponseData } from "./types";
 
@@ -138,5 +139,28 @@ describe("chart utils", () => {
     const d9 = buildD9CellDetail(chart, 4);
     expect(d9.isLagna).toBe(true);
     expect(d9.occupants[0].graha).toBe("Lagna");
+  });
+});
+
+describe("rasiNumber", () => {
+  // Peyarchi events carry only a name, in whichever casing the endpoint uses;
+  // FTR-02 resolves the index here so the artwork and Tamil label can follow.
+  it("resolves every shape the backend sends to one index", () => {
+    expect(rasiNumber(11)).toBe(11);
+    expect(rasiNumber("Kumbam")).toBe(11);
+    expect(rasiNumber("KUMBAM")).toBe(11);
+    expect(rasiNumber("கும்பம்")).toBe(11);
+  });
+
+  it("returns null for anything it cannot place", () => {
+    expect(rasiNumber(0)).toBeNull();
+    expect(rasiNumber(13)).toBeNull();
+    expect(rasiNumber("")).toBeNull();
+    expect(rasiNumber("Ophiuchus")).toBeNull();
+    expect(rasiNumber(null)).toBeNull();
+  });
+
+  it("feeds rasiDisplayName, so a peyarchi code renders in Tamil", () => {
+    expect(rasiDisplayName("MAGARAM", "ta")).toBe("மகரம்");
   });
 });

@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Protocol
 from app.calculations.astro import house_from_reference
 from app.calculations.chart_strength import compute_natal_planet_score
 from app.calculations.display_names import YOGA_NAME_EN, YOGA_NAME_TA
+from app.calculations.gochara_grade import NAMED_SANI_PERIOD_HOUSES, gochara_grade
 
 if TYPE_CHECKING:
     from app.schemas.charts import PlanetPosition
@@ -444,21 +445,27 @@ def panchangam_reason(
 
 # ── Gochar / transit reasoning ─────────────────────────────────────────────────
 
-_TRANSIT_QUALITY: dict[str, dict[int, BiText]] = {
+# Built from the one gochara table (app/calculations/gochara_grade.py, rulings
+# D2/D3 2026-10-04), so this line can never disagree with the web/mobile grade.
+# Every house gets an entry: Sani has no neutral band under D2, and Guru's
+# 1/3/4/10 read "mixed" (Vinaadi's grade), not "neutral". The running Sani cycle
+# is appended separately from _SANI_CYCLE_WARN in gochar_reason — the named
+# period is its own axis, which is why these lines stay cycle-agnostic.
+# New Tamil, pending native review.
+_TRANSIT_GRADE_TEXT: dict[str, dict[str, BiText]] = {
     "JUPITER": {
-        **{h: _bi("குரு ஆதரவு நல்லது", "Jupiter transit is supportive") for h in (2, 5, 7, 9, 11)},
-        **{h: _bi("குரு கஷ்டமான இடத்தில்", "Jupiter transit is challenging") for h in (4, 8, 12)},
+        "SUPPORTIVE": _bi("குரு ஆதரவு நல்லது", "Jupiter transit is supportive"),
+        "MIXED": _bi("குரு கலந்த பலன் தரும் இடத்தில்", "Jupiter transit is mixed"),
+        "NEEDS_CARE": _bi("குரு கவனம் தேவைப்படும் இடத்தில்", "Jupiter transit needs care"),
     },
     "SATURN": {
-        **{h: _bi("சனி சாதகமான இடத்தில்", "Saturn transit is favourable") for h in (3, 6, 11)},
-        # Generic on purpose: houses 1/4/8/12 each map to a *different* Sani
-        # cycle (1=Janma, 4=Ardhashtama, 8=Ashtama), so naming a fixed pair
-        # here mislabelled the other houses (e.g. an Ardhashtama native saw
-        # "watch Janma Sani / Ashtama Sani"). The actual running cycle is
-        # appended authoritatively from _SANI_CYCLE_WARN in gochar_reason, so
-        # this line stays cycle-agnostic — symmetric with Jupiter's above.
-        **{h: _bi("சனி கஷ்டமான இடத்தில்", "Saturn transit is challenging") for h in (1, 4, 8, 12)},
+        "SUPPORTIVE": _bi("சனி சாதகமான இடத்தில்", "Saturn transit is favourable"),
+        "NEEDS_CARE": _bi("சனி கவனம் தேவைப்படும் இடத்தில்", "Saturn transit needs care"),
     },
+}
+_TRANSIT_QUALITY: dict[str, dict[int, BiText]] = {
+    planet: {house: grades[gochara_grade(planet, house)] for house in range(1, 13)}
+    for planet, grades in _TRANSIT_GRADE_TEXT.items()
 }
 
 _SANI_CYCLE_WARN: dict[str, BiText] = {
@@ -634,14 +641,22 @@ def gochar_spoken(
     # the 5th from a Moon sign does. The classification those numbers feed is
     # what the reader actually needs, so the classification is what gets said;
     # `gochar_reason`'s tile keeps the houses for the astrologer-facing view.
-    jup_ta = "ஆதரவாக" if jupiter_house in (2, 5, 7, 9, 11) else ("சற்று கடினமாக" if jupiter_house in (4, 8, 12) else "நடுநிலையாக")
-    jup_en = ("is lending support" if jupiter_house in (2, 5, 7, 9, 11)
-              else "is passing through a harder spot" if jupiter_house in (4, 8, 12)
-              else "is neither helping nor hindering")
-    sat_ta = "சாதகமாக" if saturn_house in (3, 6, 11) else ("அழுத்தமாக" if saturn_house in (1, 4, 8, 12) else "அமைதியாக")
-    sat_en = ("is sitting easy" if saturn_house in (3, 6, 11)
-              else "is pressing" if saturn_house in (1, 4, 8, 12)
-              else "is quiet")
+    # Grades from the one gochara table (rulings D2/D3). Sani was "quiet" in
+    # 2/5/7/9/10; D2 rules every house outside 3/6/11 needs care, so the named
+    # Sani-period houses (12/1/2/4/8) read "pressing" and the rest "asks for
+    # patience" — two degrees of care, no neutral. New Tamil, pending review.
+    jup_grade = gochara_grade("JUPITER", jupiter_house)
+    jup_ta = {"SUPPORTIVE": "ஆதரவாக", "NEEDS_CARE": "சற்று கடினமாக"}.get(jup_grade, "நடுநிலையாக")
+    jup_en = {
+        "SUPPORTIVE": "is lending support",
+        "NEEDS_CARE": "is passing through a harder spot",
+    }.get(jup_grade, "is neither helping nor hindering")
+    if gochara_grade("SATURN", saturn_house) == "SUPPORTIVE":
+        sat_ta, sat_en = "சாதகமாக", "is sitting easy"
+    elif saturn_house in NAMED_SANI_PERIOD_HOUSES:
+        sat_ta, sat_en = "அழுத்தமாக", "is pressing"
+    else:
+        sat_ta, sat_en = "பொறுமை கேட்கும்படியாக", "is asking for patience"
     if transit_score >= 65:
         tail_ta, tail_en = "மொத்தக் கோச்சார ஆதரவு நல்லது", "the wider currents run with you"
     elif transit_score >= 45:
@@ -791,7 +806,7 @@ def personal_caution_reason(
             notes_en.append(warn.en)
 
     if mercury_combust:
-        notes_ta.append("புதன் அஸ்தமனம் — தொடர்பு, ஒப்பந்தங்களில் கவனம்")
+        notes_ta.append("புதன் அஸ்தங்கம் — தொடர்பு, ஒப்பந்தங்களில் கவனம்")
         notes_en.append("Mercury combust — take care with communication and agreements")
 
     if abhijit_restricted:

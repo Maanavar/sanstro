@@ -86,7 +86,10 @@ describe("DashboardExploreYogamNova — personalised detail + Full yogam guide",
     );
 
     expect(screen.getByText(/Present in your chart · Strong/)).toBeInTheDocument();
-    expect(screen.getByText(/Triggered because: Jupiter is in a kendra from the Moon/)).toBeInTheDocument();
+    // The condition is listed once, as a bullet; the why sentence no longer
+    // restates the list printed under it (2026-10-06).
+    expect(screen.getAllByText(/Jupiter is in a kendra from the Moon/)).toHaveLength(1);
+    expect(screen.queryByText(/Triggered because/)).toBeNull();
 
     expect(screen.getByText("Full yogam guide")).toBeInTheDocument();
     expect(screen.getByText(/Gaja Kesari Yogam forms when Jupiter sits in a kendra/)).toBeInTheDocument();

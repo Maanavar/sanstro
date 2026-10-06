@@ -407,6 +407,7 @@ def test_feature_flags_round_trip(raw_client):
         "doctrine_o11_retrograde_debilitated_raja_yoga",
         "doctrine_o12_nb_unlisted_conditions",
         "doctrine_o13_nb_verses_give_raja_yoga",
+        "doctrine_o13_nb_raja_min_points",  # v1.7, owner ruling 2026-10-03
         "doctrine_o15_raja_one_way_aspect",
         "doctrine_o16_moon_secondary_activator",
         "doctrine_o17_bhagya_support_scope",
@@ -416,6 +417,13 @@ def test_feature_flags_round_trip(raw_client):
         "doctrine_o21_nb_planet_as_own_lord",
         "doctrine_o22_gk_moon_as_support",
         "doctrine_o23_six_eight_colord_mode",
+        "doctrine_o23_lineage_exceptions",  # v1.8
+        "doctrine_o24_kendradhipati_two_kendras",  # v1.7
+        "doctrine_o26_sevvai_dispositor_mitigation",  # DD-17, 2026-10-06
+        "doctrine_o27_sevvai_seventh_lord_strength",  # DD-17
+        "doctrine_o28_rk_second_house_support",  # DD-17
+        "doctrine_o29_rk_guru_counted_once",  # DD-17
+        "doctrine_o32_putra_sarpa_thulam_sani",  # owner ruling 2026-10-06
         "doctrine_moon_72_degree_convention",
         "doctrine_show_lakshmi_phaladeepika",
     } == names

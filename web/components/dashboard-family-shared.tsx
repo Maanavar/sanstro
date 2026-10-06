@@ -54,7 +54,7 @@ const SCORE_CHIP_META: Record<typeof SCORE_CHIP_KEYS[number], ScoreChipMeta> = {
   gocharSupport:         { max: 24,               labelEn: "Gochar transits",     labelTa: "கோச்சார ஆதரவு",        descEn: "Today's transiting planets interacting with your chart",   descTa: "இன்றைய கோச்சார கிரகங்கள் உங்கள் ஜாதகத்தை எவ்வாறு பாதிக்கின்றன" },
   dashaSupport:          { max: 19,               labelEn: "Dasa support",        labelTa: "தசை ஆதரவு",          descEn: "Current Mahadasha & Antardasha lord strength",             descTa: "நடப்பு மகாதசை மற்றும் அந்தர்தசை ஆதரவு" },
   panchangam:            { max: 14,               labelEn: "Panchangam",          labelTa: "பஞ்சாங்கம்",         descEn: "Tithi, Yoga & Karana quality today",                       descTa: "இன்றைய திதி, யோகம், கரணம் தரம்" },
-  personalCautions:      { max:  9,               labelEn: "Personal safety",     labelTa: "தனிப்பட்ட பாதுகாப்பு",  descEn: "Personal safety score — lower when Saturn cycle, Chandrashtama or combustion is active", descTa: "தனிப்பட்ட பாதுகாப்பு — சனி சுழற்சி, சந்திராஷ்டமம் அல்லது கிரக அஸ்தமனம் உள்ளபோது குறையும்" },
+  personalCautions:      { max:  9,               labelEn: "Personal safety",     labelTa: "தனிப்பட்ட பாதுகாப்பு",  descEn: "Personal safety score — lower when Saturn cycle, Chandrashtama or combustion is active", descTa: "தனிப்பட்ட பாதுகாப்பு — சனி சுழற்சி, சந்திராஷ்டமம் அல்லது கிரக அஸ்தங்கம் உள்ளபோது குறையும்" },
   remedialActionSupport: { max:  6,               labelEn: "Remedial support",    labelTa: "பரிகார ஆதரவு",       descEn: "Bonus when a personal hora window is available today",     descTa: "தனிப்பட்ட ஹோரா சாளரம் கிடைக்கும்போது கூடுதல் மதிப்பெண்" },
 };
 

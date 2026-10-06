@@ -238,6 +238,13 @@ YOGA_EFFECT["GAJA_KESARI_PARASHARA"] = YOGA_EFFECT["GAJA_KESARI_YOGA"]
 YOGA_EFFECT["ADHI_BASE"] = YOGA_EFFECT["ADHI_YOGA"]
 YOGA_EFFECT["ADHI_RAJA_GRADE"] = YOGA_EFFECT["ADHI_YOGA"]
 YOGA_EFFECT["RETROGRADE_DEBILITATED_RAJA_YOGA"] = YOGA_EFFECT["NEECHA_BHANGA_RAJA_YOGA"]
+# O-13 (v1.7): a single cancellation offsets the debility; it makes no
+# raja-yoga promise, so it does not borrow NEECHA_BHANGA_RAJA_YOGA's line.
+YOGA_EFFECT["NEECHA_NIVARTHI"] = (
+    "நீசத்தின் தாக்கம் குறைகிறது; அந்தக் கிரகம் சார்ந்த துறையில் தொடக்கத் தடைகள் நாளடைவில் சீராகலாம்.",
+    "Describes a weakness that is offset rather than removed — the area this planet rules may "
+    "start slowly but tends to steady over time.",
+)
 
 
 def yoga_effect(name: str) -> tuple[str, str]:

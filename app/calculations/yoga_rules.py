@@ -220,11 +220,17 @@ YOGA_RULES: tuple[YogaRule, ...] = (
         strength_rule=(
             "STRONG per firing pair, gated over that pair's two lords. Each "
             "instance also records a Tier C grade, `raja_grade_full` / "
-            "`_qualified` / `_mixed`, from both lords' co-lordships. The chart "
-            "card is the merge of every pair — best strength, union of conditions, "
-            "activated if any pair is activated."
+            "`_qualified` / `_mixed` / `_mixed_kendradhipati`, from both lords' "
+            "co-lordships. The chart card is the merge of every pair — best "
+            "strength, union of conditions, activated if any pair is activated."
         ),
-        cancellation="—",
+        cancellation=(
+            "A pair BPHS 34 names as giving no Raja Yoga by mere association for "
+            "this lagna — Mesham Guru+Sani, Mithunam Guru+Sani, Simmam Guru+Sukran "
+            "(`functional_status.SOURCE_VETOED_RAJA_PAIRS`, owner ruling "
+            "2026-10-03) — forms nothing and is recorded as "
+            "`raja_pair_source_vetoed_<a>_<b>`."
+        ),
         source=(
             "Parashari trikona-kendra sambandha, BPHS raja yoga chapters. The "
             "association reading is one of several live formulations, not the only one."
@@ -254,7 +260,15 @@ YOGA_RULES: tuple[YogaRule, ...] = (
             "re-admits Rishabam Sevvai, Thulam Budhan and Viruchigam Sukran — "
             "the conflict with this ruling is open item O-14. (3) Rahu/Ketu sharing a sign with a forming "
             "lord are recorded as supporting (`supporting_grahas`), never forming, "
-            "and their dashas do not activate the card."
+            "and their dashas do not activate the card. "
+            "**Owner ruling 2026-10-03 (v1.7):** the moolatrikona test now covers "
+            "3rd/11th co-lords too, excluding Mesham Sani (10+11), Simmam Sukran "
+            "(3+10) and Kumbam Sevvai (3+10); a natural benefic owning two "
+            "kendras (Guru for Mithunam/Kanni, Budhan for Dhanusu/Meenam) takes "
+            "part at the `mixed_kendradhipati` grade (O-24); three BPHS pairs "
+            "are source-vetoed. Kadagam Guru's exclusion is kept with a "
+            "recorded dissent: many Tamil practitioners read Guru as a strong "
+            "benefic for Kataka."
         ),
     ),
     YogaRule(
@@ -408,21 +422,26 @@ YOGA_RULES: tuple[YogaRule, ...] = (
         markers=("TRADITION",),
         detector="_yoga_detect.detect_neecha_bhanga",
         present_when=(
-            "A graha stands in its debilitation rasi **and** at least one rule of "
-            "`neecha_bhanga.NEECHA_BHANGA_RULES` fires whose verse states a "
-            "raja-yoga result (O-13). One rule per Phaladeepika verse (DD-09): "
+            "A graha stands in its debilitation rasi, rules of "
+            "`neecha_bhanga.NEECHA_BHANGA_RULES` fire whose verse states a "
+            "raja-yoga result (O-13), **and** they amount to at least two "
+            "distinct conditions (`o13_nb_raja_min_points`, owner ruling "
+            "2026-10-03). One rule per Phaladeepika verse (DD-09): "
             "NB-a debilitation-sign lord in a kendra from Lagna or Chandran "
             "(7.26/7.29); NB-b exaltation-sign lord in a kendra from Lagna or "
             "Chandran (7.26/7.29); NB-c the two lords in mutual kendras (7.27); "
             "NB-d the debilitated graha aspected by its debilitation-sign lord "
             "(7.28), NB-d+ the same outside 6/8/12 (7.28, second half); NB-g "
             "either lord in a kendra from Lagna (7.30, reference point O-10). "
-            "**Any one rule cancels** — there is no count threshold."
+            "**Any one rule cancels the debility**; one condition alone is "
+            "`YOG-NBR-02`, not this yoga."
         ),
         strength_rule=(
-            "By distinct conditions, not verses (Tier C): one → WEAK (shown as "
-            "'Mild'), two → PARTIAL, three or more → STRONG. NB-g never adds a "
-            "point NB-a/NB-b already counted; NB-d+ adds one. Ungated."
+            "By distinct conditions, not verses (Tier C): two → PARTIAL, three or "
+            "more → STRONG. NB-g never adds a point NB-a/NB-b already counted; "
+            "NB-d+ adds one. A rule that fires only through Budhan's "
+            "self-reference (O-21, tagged `nb_self_reference`) may add a rung but "
+            "never makes it STRONG on its own. Ungated."
         ),
         cancellation=(
             "Retrogression of the debilitated graha is recorded as a supporting "
@@ -431,8 +450,9 @@ YOGA_RULES: tuple[YogaRule, ...] = (
             "default: NB-f, Navamsa strength (O-7); NB-x1/NB-x2, two conditions "
             "the engine shipped without a verse in DD-09's table (O-12). Budhan "
             "rules its own exaltation sign, so for a debilitated Budhan NB-b, NB-c "
-            "and NB-g would test Budhan's own position — the deleted NB-e; that "
-            "self-reference is skipped (O-21)."
+            "and NB-g test Budhan's own position — the deleted NB-e. Owner ruling "
+            "2026-10-03 (O-21): counted, tagged `nb_self_reference`, never STRONG "
+            "on its own."
         ),
         source=(
             "Phaladeepika 7.26–30, verse map checked against the Subrahmanya "
@@ -450,9 +470,42 @@ YOGA_RULES: tuple[YogaRule, ...] = (
             "card cannot disagree on one chart (audit C2). DD-09 removed the "
             "verse-less conditions the predicate used to carry and NB-e (the "
             "debilitated graha itself in a kendra), which no cited verse states. "
-            "With any one condition the yoga fires on many charts, so the card "
-            "must always show its strength. The old static key graha "
-            "(`JUPITER`) is retired by DD-15: the debilitated graha activates."
+            "With any one condition the yoga fired on 95% of charts carrying a "
+            "debilitated graha (v1.6 frequency report), so the 2026-10-03 ruling "
+            "moved the single-condition case to its own card. The old static key "
+            "graha (`JUPITER`) is retired by DD-15: the debilitated graha activates."
+        ),
+    ),
+    YogaRule(
+        rule_id="YOG-NBR-02",
+        yoga_name="NEECHA_NIVARTHI",
+        name_en="Neecha Bhanga (debility cancelled)",
+        name_ta="நீசபங்கம்",  # owner-ruled wording 2026-10-03 (v1.8); was நீச நிவர்த்தி
+        markers=("TRADITION", "PRODUCT"),
+        detector="_yoga_detect.detect_neecha_bhanga",
+        present_when=(
+            "A graha stands in its debilitation rasi and at least one rule of "
+            "`neecha_bhanga.NEECHA_BHANGA_RULES` fires, but not enough for "
+            "`YOG-NBR-01`: fewer than two distinct conditions, or no firing verse "
+            "states a raja-yoga result (O-13)."
+        ),
+        strength_rule="WEAK (shown as 'Mild'), flat.",
+        cancellation="—",
+        source=(
+            "Phaladeepika 7.26–30 for the cancellation itself (DD-09). The "
+            "two-condition line between this card and the raja yoga is a Vinaadi "
+            "display rule (owner ruling 2026-10-03), not a textual threshold."
+        ),
+        key_planets=(),
+        per_chart_activation="The debilitated graha itself (DD-15).",
+        secondary_activation="The grahas whose placement or aspect produced the bhanga.",
+        secondary_basis=ActivationBasis.VINAADI_CONVENTION,
+        note=(
+            "The debility is cancelled — the +14 bhanga strength term, the "
+            "yogakaraka card and bhava palan all see it, as before — but no "
+            "raja-yoga name is claimed. DD-09 says there is no classical count "
+            "threshold; the threshold here governs only which name the reader "
+            "sees, and is recorded as a departure for that reason."
         ),
     ),
     # ── Pancha Mahapurusha — five rules, not one ─────────────────────────────
@@ -460,7 +513,7 @@ YOGA_RULES: tuple[YogaRule, ...] = (
         rule_id="YOG-NRV-01",
         yoga_name="RETROGRADE_DEBILITATED_RAJA_YOGA",
         name_en="Retrograde debilitated-planet Raja Yoga",
-        name_ta="வக்ர நீச ராஜயோகம்",
+        name_ta="வக்கிர நீச கிரக ராஜயோகம்",  # owner-ruled wording 2026-10-03 (v1.8)
         markers=("TRADITION", "PRODUCT", "LIMIT"),
         detector="_yoga_detect.detect_retrograde_debilitated_raja_yoga",
         present_when=(
@@ -950,8 +1003,10 @@ YOGA_RULES: tuple[YogaRule, ...] = (
     YogaRule(
         rule_id="YOG-AD-02",
         yoga_name="ADHI_RAJA_GRADE",
-        name_en="Adhi Yoga (raja-grade candidate)",
-        name_ta="அதி யோகம் (ராஜ தரம், பரிசீலனையில்)",
+        # Owner-ruled wording 2026-10-03 (v1.8): no "candidate"/"grade" engine
+        # term in either language.
+        name_en="Adhi Yoga (full strength not confirmed)",
+        name_ta="அதி யோகம் — முழுப் பலம் உறுதியாகவில்லை",
         markers=("LIMIT", "PRODUCT"),
         detector="_yoga_detect.detect_adhi_raja_grade",
         present_when=(

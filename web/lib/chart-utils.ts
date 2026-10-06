@@ -71,20 +71,33 @@ export function rasiDisplayName(rasi: number | string | null | undefined, lang: 
   if (typeof rasi === "number") return rasiLabel(rasi, lang);
   const raw = rasi?.trim() ?? "";
   if (!raw) return "";
-  const folded = raw.replaceAll("_", " ").toLowerCase();
+  const index = rasiNumber(raw);
+  if (index !== null) return rasiLabel(index, lang);
+  return raw.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+/**
+ * The 1-12 index for a rasi in any of the shapes the backend sends — number,
+ * Latin name, upper-case code, or Tamil script. Null when unrecognised.
+ *
+ * Peyarchi events carry only `fromRasi`/`toRasi` names; anything that needs the
+ * sign's artwork or its localised label resolves the index here rather than
+ * keying an asset table on a string.
+ */
+export function rasiNumber(rasi: number | string | null | undefined): number | null {
+  if (typeof rasi === "number") return rasi >= 1 && rasi <= 12 ? rasi : null;
+  const folded = (rasi ?? "").trim().replaceAll("_", " ").toLowerCase();
+  if (!folded) return null;
   const matches = (name: string) => name.toLowerCase() === folded;
   const index = Math.max(D1_RASI_NAMES.findIndex(matches), D1_RASI_NAMES_TA.findIndex(matches));
-  if (index > 0) return rasiLabel(index, lang);
-  return folded.replace(/\b\w/g, (letter) => letter.toUpperCase());
+  return index > 0 ? index : null;
 }
 
 // Classical, fixed rasi→ruling-planet mapping (never changes per-chart, so it's
 // safe to hardcode client-side — same tier of fact as GRAHA_ABBR/D1_RASI_NAMES
 // above). Keyed the same way DASHA_COLORS/tPlanetLord are (SUN/MOON/MARS/...).
-export const RASI_LORDS: Record<number, string> = {
-  1: "MARS", 2: "VENUS", 3: "MERCURY", 4: "MOON", 5: "SUN", 6: "MERCURY",
-  7: "VENUS", 8: "MARS", 9: "JUPITER", 10: "SATURN", 11: "SATURN", 12: "JUPITER",
-};
+// The table lives in packages/shared/src/reading.ts (FTR-20); one copy for web and mobile.
+export { SIGN_LORD as RASI_LORDS } from "@vinaadi/shared/reading";
 
 // ── Dignity (Nilai) doctrine ─────────────────────────────────────────────────
 //

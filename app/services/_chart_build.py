@@ -32,6 +32,7 @@ from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.ephemeris import calculate_lagna_degree, calculate_sidereal_planets
 from app.calculations.equal_bhava import compute_equal_bhava
 from app.calculations.functional_nature import get_functional_nature
+from app.calculations.functional_status import owned_houses
 from app.calculations.panchangam import NAKSHATRA_NAMES, calculate_daily_panchangam
 from app.calculations.transits import RASI_NAMES, is_cazimi, is_combust
 from app.calculations.yoga_activation import activation_tier, key_planets_for, yoga_activation_score
@@ -48,6 +49,7 @@ from app.schemas.charts import (
     ChartDoshamInsight,
     ChartNakshatraCaution,
     ChartYogaInsight,
+    DoshamReferenceHouse,
     LagnaPosition,
     PlanetPosition,
     PlanetScoreTerm,
@@ -414,6 +416,24 @@ def _former_groups(item) -> tuple[tuple[str, ...], ...]:
     return (formers,) if formers else ()
 
 
+def _structural_reach(item, planet_map: Mapping[str, int], lagna_rasi: int) -> int:
+    """O-25 (2026-10-05): how much of the chart the yoga's forming grahas reach.
+
+    A Vinaadi tie-break for the Top-3 lists, not classical doctrine — the
+    ruling says so, and says lordship first (the subjects the grahas carry),
+    occupation next (where results show), then whether the Lagna or its lord
+    takes part. Deliberately no kendra/trikona points: those would be one
+    generic weight applied across yoga families with different logic. Strength
+    is not read here — it is already the earlier key, and reading it again
+    would count it twice. Encoded lexicographically in one integer so every
+    client compares a number and never re-derives it.
+    """
+    grahas = [g for g in dict.fromkeys(g for group in _former_groups(item) for g in group) if g in planet_map]
+    ruled = set().union(*(owned_houses(lagna_rasi, g) for g in grahas)) if grahas else set()
+    occupied = {((planet_map[g] - lagna_rasi) % 12) + 1 for g in grahas}
+    return len(ruled) * 100 + len(occupied) * 10 + int(1 in ruled or 1 in occupied)
+
+
 def _yoga_timing(item, *, maha: str, antar: str, antaram) -> tuple[bool, YogaPeakWindow | None]:
     """The two 2026-09-23 timing refinements, for a yoga already activated.
 
@@ -544,6 +564,7 @@ def _build_yoga_dosham_insights(
             ),
             isCurrentlyActive=activated,
             activationTier=tier,
+            structuralReach=_structural_reach(item, planet_map, lagna_rasi),
             descriptionTa=item.description_ta,
             descriptionEn=item.description_en,
             # description_* states the mechanism (how the yoga forms); effect_*
@@ -577,6 +598,18 @@ def _build_yoga_dosham_insights(
             explanationHowEn=item.explanation_how_en,
             variantTa=item.variant_ta,
             variantEn=item.variant_en,
+            formationStrength=item.formation_strength,
+            residual=item.residual,
+            contextNotes=list(item.context_notes),
+            referenceHouses=[
+                DoshamReferenceHouse(
+                    reference=row.reference, referenceRasi=row.reference_rasi,
+                    houses=list(row.houses), counts=row.counts,
+                )
+                for row in item.reference_houses
+            ],
+            meaningTa=item.meaning_ta,
+            meaningEn=item.meaning_en,
         )
         for item in doshams
     ]

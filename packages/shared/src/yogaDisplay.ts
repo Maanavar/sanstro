@@ -10,6 +10,9 @@
  * docs/WEB_MOBILE_PARITY_AUDIT_2026-07-17.md §5).
  */
 
+import { doshamResidual, mitigatedStandingLabel } from "./doshamReckoning";
+import type { DoshamResidual } from "./types";
+
 export type YogaDisplayLang = "ta" | "en";
 
 // Tamil mode shows every yoga name in Tamil script (native-Tamil review,
@@ -29,7 +32,11 @@ export const YOGA_DISPLAY: Record<string, { ta: string; en: string }> = {
   DHANA_YOGA:       { ta: "தன யோகம்",        en: "Dhana Yoga" },
   DHANA_SUPPORTIVE_YOGA: { ta: "தன யோகம் (துணை)", en: "Dhana Yoga (supportive)" },
   NEECHA_BHANGA_RAJA_YOGA: { ta: "நீசபங்க ராஜயோகம்", en: "Neecha Bhanga Raja Yoga" },
-  RETROGRADE_DEBILITATED_RAJA_YOGA: { ta: "வக்ர நீச ராஜயோகம்", en: "Retrograde debilitated-planet Raja Yoga" },
+  // One cancellation condition: the debility is cancelled, no raja-yoga claim
+  // (owner ruling 2026-10-03; the raja-yoga name needs two or more). Tamil
+  // label owner-ruled in the second round (v1.8); was "நீச நிவர்த்தி".
+  NEECHA_NIVARTHI:  { ta: "நீசபங்கம்",      en: "Neecha Bhanga (debility cancelled)" },
+  RETROGRADE_DEBILITATED_RAJA_YOGA: { ta: "வக்கிர நீச கிரக ராஜயோகம்", en: "Retrograde debilitated-planet Raja Yoga" },
   KALASARPA:        { ta: "காலசர்ப்ப யோகம்",   en: "Kala Sarpa Yoga" },
   BUDHA_ADITYA_YOGA:   { ta: "புத ஆதித்ய யோகம்",   en: "Budha-Aditya Yoga" },
   VIPAREETHA_RAJA_YOGA:{ ta: "விபரீத ராஜயோகம்",    en: "Vipareetha Raja Yoga" },
@@ -42,9 +49,10 @@ export const YOGA_DISPLAY: Record<string, { ta: string; en: string }> = {
   AMALA_YOGA:          { ta: "அமல யோகம்",          en: "Amala Yoga" },
   ADHI_YOGA:           { ta: "அதி யோகம்",           en: "Adhi Yoga" },
   ADHI_BASE:           { ta: "அதி யோக அமைப்பு",     en: "Adhi pattern (base)" },
-  // "Candidate" in both languages: DD-08's raja grade is a Tier A *candidate*
-  // until the Saravali verse is located, and Tamil must not claim more.
-  ADHI_RAJA_GRADE:     { ta: "அதி யோகம் (ராஜ தரம், பரிசீலனையில்)", en: "Adhi Yoga (raja-grade candidate)" },
+  // DD-08's raja grade is a Tier A *candidate* until the Saravali verse is
+  // located, and neither language may claim more. Owner-ruled wording
+  // (2026-10-03, v1.8): no "candidate"/"grade" engine term reaches the reader.
+  ADHI_RAJA_GRADE:     { ta: "அதி யோகம் — முழுப் பலம் உறுதியாகவில்லை", en: "Adhi Yoga (full strength not confirmed)" },
   DARIDRA_YOGA:        { ta: "தரித்ர யோகம்",        en: "Daridra Yoga" },
   // NOT "(supportive)" — that wording was copy-pasted from DHANA_SUPPORTIVE_YOGA
   // above, where "supportive" means a supportive *variant of a wealth yoga*.
@@ -67,6 +75,17 @@ export const YOGA_DISPLAY: Record<string, { ta: string; en: string }> = {
   SASA_YOGA:           { ta: "சஸ யோகம்",           en: "Sasa Yoga" },
   SUNAPHA_YOGA:        { ta: "சுனபா யோகம்",         en: "Sunapha Yoga" },
   PAPA_KARTARI_YOGA:   { ta: "பாப கர்த்தரி யோகம்",   en: "Papa Kartari Yoga" },
+  // Registry rows that had no entry here, so web and mobile printed the raw
+  // code (found 2026-10-04: KARTARI_YOGA on a synthetic chart). Names are the
+  // registry's own `name_ta`/`name_en`; tests/test_yoga_display_parity.py now
+  // fails if a registered yoga has no display name.
+  SHUBHA_KARTARI_YOGA: { ta: "சுப கர்த்தரி யோகம்",    en: "Shubha Kartari Yoga" },
+  KARTARI_YOGA:        { ta: "கர்த்தரி அமைப்பு இல்லை", en: "Kartari — neither formation present" },
+  ANAPHA_YOGA:         { ta: "அநபா யோகம்",          en: "Anapha Yoga" },
+  DURUDHURA_YOGA:      { ta: "துருதுரா யோகம்",        en: "Durudhura Yoga" },
+  AYILYAM_CAUTION:     { ta: "ஆயில்ய தோஷம்",        en: "Ayilyam (Ashlesha) caution" },
+  KETTAI_CAUTION:      { ta: "கேட்டை தோஷம்",        en: "Kettai (Jyeshtha) caution" },
+  MOOLAM_CAUTION:      { ta: "மூல தோஷம்",           en: "Moolam (Moola) caution" },
   SEVVAI_DOSHAM:    { ta: "செவ்வாய் தோஷம்",      en: "Sevvai Dosham" },
   RAHU_KETU_DOSHAM: { ta: "ராகு-கேது தோஷம்",  en: "Rahu-Ketu Dosham" },
   PITRU_DOSHAM:     { ta: "பித்ரு தோஷம்",       en: "Pitru Dosham" },
@@ -210,21 +229,37 @@ export function natalStrengthWord(strength: string, lang: YogaDisplayLang): stri
  * presence word: it is reserved for dasha timing.
  */
 export function doshamPresenceLabel(
-  d: { isPresent: boolean; isCancelled: boolean },
+  d: { isPresent: boolean; isCancelled: boolean; cancellationFactors?: string[] | null },
   lang: YogaDisplayLang,
 ): string {
+  // Unformed with a recorded reason: the placement is there but neutralized
+  // (O-32, Putra Sarpa for Thulam lagna). "Absent" would deny the placement.
+  // Detectors send no cancellation factors on an unformed dosham otherwise.
+  if (!d.isPresent && (d.cancellationFactors?.length ?? 0) > 0) return lang === "ta" ? "செயல்படவில்லை" : "Neutralized";
   if (!d.isPresent) return lang === "ta" ? "இல்லை" : "Absent";
   if (d.isCancelled) return lang === "ta" ? "நிவர்த்தி" : "Mitigated";
   return lang === "ta" ? "உண்டு" : "Present";
 }
 
-/** Presence and strength in one word — for a surface with room for one chip. */
+/**
+ * Presence and strength in one chip — for a surface with room for one.
+ *
+ * A mitigated dosham reads "Mitigated · mild residual" (DD-17), never bare
+ * "Mitigated": nivarthi lowers a dosham, it does not erase it, and the bare
+ * word read as "dosham-free" to a reviewing practitioner. A moderate residual
+ * takes the mid tone rather than the all-clear green.
+ */
 export function doshamStanding(
-  d: { isPresent: boolean; isCancelled: boolean; strength: string },
+  d: { isPresent: boolean; isCancelled: boolean; strength: string; residual?: DoshamResidual },
   lang: YogaDisplayLang,
 ): Standing {
-  if (!d.isPresent || d.isCancelled) {
-    return { label: doshamPresenceLabel(d, lang), tone: d.isPresent ? "good" : "muted" };
+  if (!d.isPresent) return { label: doshamPresenceLabel(d, lang), tone: "muted" };
+  if (d.isCancelled) {
+    const strength = d.strength as "STRONG" | "PARTIAL" | "WEAK";
+    return {
+      label: mitigatedStandingLabel({ ...d, strength }, lang),
+      tone: doshamResidual({ ...d, strength }) === "MODERATE" ? "mid" : "good",
+    };
   }
   return { label: natalStrengthWord(d.strength, lang), tone: d.strength === "STRONG" ? "caution" : "mid" };
 }

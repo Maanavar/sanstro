@@ -29,6 +29,8 @@ import { LIFE_FOCUS_CARD_ID, LifeAreaCard } from "./life-area-card";
 import { Reveal } from "./dashboard-ui-nova";
 import { DrawerPanel } from "./drawer-panel";
 import { displayName as yogaDisplayName, doshamStanding, yogaStanding, isRunningInDasha } from "./dashboard-yoga-dosham-panel";
+import { DoshamVerdictLine } from "./dosham-verdict-line";
+import { VERDICT_DOSHAMS } from "@vinaadi/shared/doshamReckoning";
 import { NovaPredictionsPanel } from "./dashboard-life-areas-predictions-nova";
 import { DashboardPropensitiesPanelNova } from "./dashboard-propensities-panel-nova";
 import { HyLifeAreaForecast, STANDING_TONE_COLOR } from "./dashboard-hybrid-parts";
@@ -103,6 +105,36 @@ function tierOf(area: LifeAreaData): Tier {
 }
 
 /**
+ * Sevvai and Rahu–Ketu with their chip and L2 verdict line (plan 2026-10-06):
+ * on the Yogas & Doshams sub-tab and at the foot of the Marriage area's
+ * detail, where a reader looks for marriage.
+ */
+export function MarriageDoshamList({ doshams, lang, onGoToChart }: { doshams: ChartDoshamInsight[]; lang: Lang; onGoToChart?: () => void }) {
+  const present = doshams.filter((d) => d.isPresent && VERDICT_DOSHAMS.has(d.name));
+  if (present.length === 0) return null;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+      <h3 style={{ margin: 0, fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)" }}>
+        {lang === "ta" ? "திருமண தோஷங்கள் — உங்கள் ஜாதகத்தில்" : "Marriage doshams in your chart"}
+      </h3>
+      {present.map((d) => {
+        const standing = doshamStanding(d, lang);
+        const c = STANDING_TONE_COLOR[standing.tone];
+        return (
+          <div key={d.name} style={{ display: "flex", flexDirection: "column", gap: "var(--space-1_5)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap" }}>
+              <span style={{ fontSize: "var(--text-base)", fontWeight: 600, color: "var(--color-text-strong)" }}>{yogaDisplayName(d.name, lang)}</span>
+              <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: c.fg, background: c.bg, border: `1px solid ${c.bd}`, borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)" }}>{standing.label}</span>
+            </div>
+            <DoshamVerdictLine dosham={d} lang={lang} onNavigate={onGoToChart} />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
  * Activation-only yoga/dosham glance for the Life Areas tab. Per the IA audit
  * (2026-07-22, D1), the *full* yoga & dosham catalog — the deep "what/why/how"
  * accordion — has a single canonical home in the member-selectable chart view
@@ -131,7 +163,12 @@ export function YogaActivationSummary({
   // (2026-09-23). Each chip now carries the same standing word the Charts card
   // shows, from the same shared function, so the two tabs cannot disagree.
   const presentYogas = yogas.filter((y) => y.isPresent);
-  const presentDoshams = doshams.filter((d) => d.isPresent);
+  // Sevvai and Rahu–Ketu are answered in their own block whether or not the
+  // dasha lights them — "do I have it, and how serious?" is the question people
+  // open this tab with (plan 2026-10-06). They leave the lists below so each is
+  // said once.
+  const marriageDoshams = doshams.filter((d) => d.isPresent && VERDICT_DOSHAMS.has(d.name));
+  const presentDoshams = doshams.filter((d) => d.isPresent && !VERDICT_DOSHAMS.has(d.name));
   const running = [
     ...presentDoshams.filter((d) => isRunningInDasha(d)).map((d) => ({ key: `d-${d.name}`, name: d.name, standing: doshamStanding(d, lang) })),
     ...presentYogas.filter((y) => isRunningInDasha(y)).map((y, i) => ({ key: `y-${y.name}-${i}`, name: y.name, standing: yogaStanding(y, lang) })),
@@ -143,6 +180,11 @@ export function YogaActivationSummary({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", fontFamily: "var(--font-body)" }}>
+      {marriageDoshams.length > 0 && (
+        <Card>
+          <MarriageDoshamList doshams={marriageDoshams} lang={lang} onGoToChart={onGoToChart} />
+        </Card>
+      )}
       <Card>
         <h3 style={{ margin: "0 0 4px", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)" }}>
           {lang === "ta" ? "தற்போதைய தசையில் செயல்படுபவை" : "Running in your current dasha"}
@@ -527,7 +569,17 @@ export function DashboardLifeAreasTabNova({
                 onClose={() => setSelectedArea(null)}
                 onExitComplete={() => setRenderedArea(null)}
               >
-                <LifeAreaCard area={renderedArea} lang={lang} ageRelevant={renderedArea.ageRelevant !== false} />
+                <LifeAreaCard
+                  area={renderedArea}
+                  lang={lang}
+                  ageRelevant={renderedArea.ageRelevant !== false}
+                  // Where a reader looks for marriage: the two marriage doshams'
+                  // verdicts sit at the foot of the Marriage area's detail. Its
+                  // wire key is RELATIONSHIPS (life_areas_service).
+                  footer={renderedArea.area === "RELATIONSHIPS"
+                    ? <div style={{ marginTop: "var(--space-4)" }}><MarriageDoshamList doshams={doshams} lang={lang} onGoToChart={() => { setSelectedArea(null); onGoToChart(); }} /></div>
+                    : undefined}
+                />
               </DrawerPanel>
             )}
           </>

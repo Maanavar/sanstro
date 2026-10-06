@@ -50,6 +50,7 @@ from app.calculations._yoga_detect import (
     detect_vasumati_yoga,
     detect_vipareetha_raja,
     raja_lord_sets,
+    source_vetoed_raja_instance,
 )
 from app.calculations._yoga_dosham import (
     detect_badhaka_dosham,
@@ -96,7 +97,7 @@ from app.calculations.astro import house_from_reference
 from app.calculations.chart_strength import SIGN_LORD
 from app.calculations.doctrine_options import DEFAULT_DOCTRINE, DoctrineOptions, validated
 from app.calculations.functional_nature import get_functional_nature
-from app.calculations.functional_status import raja_grade
+from app.calculations.functional_status import raja_grade, source_veto
 
 
 def detect_yogas_and_doshams(
@@ -184,6 +185,9 @@ def detect_yogas_and_doshams(
         if pv.sub_type == "MAHA":
             if pv.planet_a in kendra_lords and pv.planet_b in trikona_lords or \
                pv.planet_b in kendra_lords and pv.planet_a in trikona_lords:
+                if source_veto(lagna_rasi, pv.planet_a, pv.planet_b):
+                    raja_list.append(source_vetoed_raja_instance(pv.planet_a, pv.planet_b))
+                    continue
                 grade = raja_grade(lagna_rasi, pv.planet_a, pv.planet_b)
                 raja_list.append(YogaResult(
                     name="RAJA_YOGA",
@@ -231,7 +235,7 @@ def detect_yogas_and_doshams(
         planets, lagna_rasi, active_lords=active_lords,
         planet_scores=planet_scores, combust_planets=combust_planets,
     ))
-    neecha_list = detect_neecha_bhanga(
+    neecha_all = detect_neecha_bhanga(
         planets, lagna_rasi,
         active_lords=active_lords,
         retrograde_planets=retrograde_planets,
@@ -239,6 +243,12 @@ def detect_yogas_and_doshams(
         d9_lagna_rasi=d9_lagna_rasi,
         doctrine=doctrine,
     )
+    # O-13 (v1.7): one cancellation condition is நீச நிவர்த்தி, its own card,
+    # shown only when it forms; the raja-yoga card needs two or more.
+    nivarthi_list = [r for r in neecha_all if r.name == "NEECHA_NIVARTHI"]
+    neecha_list = [r for r in neecha_all if r.name == "NEECHA_BHANGA_RAJA_YOGA"]
+    if nivarthi_list:
+        yogas.append(_merge_yoga_list(nivarthi_list, "NEECHA_NIVARTHI"))
     yogas.append(
         _merge_yoga_list(neecha_list, "NEECHA_BHANGA_RAJA_YOGA")
         if neecha_list
@@ -271,7 +281,7 @@ def detect_yogas_and_doshams(
                 conditions_met=[],
                 cancellation_factors=[],
                 dasha_activated=False,
-                description_ta="வக்ர நீச கிரக ராஜயோக விதி நிறைவேறவில்லை.",
+                description_ta="வக்கிர நீச கிரக ராஜயோக விதி நிறைவேறவில்லை.",
                 description_en="The retrograde debilitated-planet raja-yoga rule is not met.",
             )
         )
@@ -364,6 +374,7 @@ def detect_yogas_and_doshams(
         conditions_met=kalasarpa.conditions_met,
         cancellation_factors=[],
         missing_data=[],
+        residual="MODERATE" if kalasarpa.is_present else "NONE",
     )
     # When a named naga is identified, lead the "what" explanation with the
     # variant's meaning so the dosham card names the specific Kala Sarpa type.
@@ -389,6 +400,9 @@ def detect_yogas_and_doshams(
             lagna_rasi,
             active_lords=active_lords,
             combust_planets=combust_planets,
+            # DD-17: read for the Navamsa repetition note only, never the grade.
+            d9_rasi_map=d9_rasi_map,
+            d9_lagna_rasi=d9_lagna_rasi,
             moon_benefic=paksha_is_shukla,
             planet_scores=planet_scores,
             doctrine=doctrine,
@@ -408,6 +422,7 @@ def detect_yogas_and_doshams(
             planets_rasi,
             lagna_rasi,
             planet_scores=planet_scores,
+            doctrine=doctrine,
         ),
         detect_marana_karaka_sthana(
             planets,
@@ -441,6 +456,11 @@ def detect_yogas_and_doshams(
             explanation_why_en=kalasarpa_explanations[3],
             explanation_how_ta=kalasarpa_explanations[4],
             explanation_how_en=kalasarpa_explanations[5],
+            # No mitigation is modelled for Kala Sarpa, so what forms remains.
+            formation_strength="PARTIAL" if kalasarpa.is_present else "",
+            residual="MODERATE" if kalasarpa.is_present else "NONE",
+            meaning_ta=kalasarpa.meaning_ta,
+            meaning_en=kalasarpa.meaning_en,
         ),
     ]
 

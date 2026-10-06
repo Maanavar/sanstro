@@ -45,20 +45,8 @@ export {
 // in the tree with identical values, so neither name is being taken away.
 export { RASI_LORDS as SIGN_LORD } from "@/lib/chart-utils";
 
-export const HOUSE_MEANING: Record<number, BiCopy> = {
-  1: { ta: "உடல், தன்மை, வாழ்க்கை திசை", en: "self, body, life direction" },
-  2: { ta: "குடும்பம், பேச்சு, பண அடித்தளம்", en: "family, speech, money base" },
-  3: { ta: "முயற்சி, துணிவு, தொடர்பு", en: "effort, courage, communication" },
-  4: { ta: "வீடு, மன அமைதி, சொத்து", en: "home, inner peace, property" },
-  5: { ta: "கல்வி, புத்தி, குழந்தைகள்", en: "learning, intelligence, children" },
-  6: { ta: "சேவை, பழக்கங்கள், ஒழுங்கு", en: "service, habits, discipline" },
-  7: { ta: "உறவுகள், கூட்டாண்மை", en: "relationships, partnership" },
-  8: { ta: "ஆழமான மாற்றம், ஆராய்ச்சி, கவனம்", en: "deep change, research, careful renewal" },
-  9: { ta: "தர்மம், ஆசீர்வாதம், உயர்கல்வி", en: "dharma, grace, higher learning" },
-  10: { ta: "தொழில், பொறுப்பு, வெளிப்படை செயல்", en: "career, responsibility, public work" },
-  11: { ta: "லாபம், நண்பர்கள், வலையமைப்பு", en: "gains, friends, networks" },
-  12: { ta: "ஓய்வு, வெளிநாடு, ஆன்மீக விடுவிப்பு", en: "rest, foreign links, spiritual release" },
-};
+// Moved to packages/shared (FTR-20) so web and mobile word a house the same way.
+export { HOUSE_MEANING } from "@vinaadi/shared/reading";
 
 export const HOUSE_GROUP_COPY: Record<"kendra" | "trikona" | "dusthana" | "other", BiCopy> = {
   kendra: {
