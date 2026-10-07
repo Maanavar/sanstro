@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ArrowLeft,
   Check,
   CheckCheck,
   CircleAlert,
@@ -17,7 +16,7 @@ import {
   notificationRelativeTime as relativeTime,
 } from "@/lib/notification-display";
 import type { NotificationInboxItem, NotificationInboxResponse } from "@/lib/types";
-import { useSession } from "@/hooks/useSession";
+import { useLang } from "@/components/lang-toggle";
 import type { Lang } from "@/lib/i18n";
 
 /**
@@ -25,10 +24,9 @@ import type { Lang } from "@/lib/i18n";
  * "Open full inbox" link.
  *
  * Design notes:
- *  - Reached from the signed-in dashboard, so it carries a context bar (back to
- *    dashboard + notification settings) rather than the marketing nav's
- *    sign-up CTA. Arriving here used to leave you on a bare page with one text
- *    link back and no route to the preferences that produce these messages.
+ *  - This is an authenticated utility surface, so its layout supplies the same
+ *    dashboard header/footer as the workspace instead of a one-off context bar
+ *    or the public site's sign-up chrome.
  *  - The bell popover shows the default page of 30. "Full" has to mean more
  *    than the popover already showed, so this asks for the endpoint's maximum.
  *  - Bilingual: `useSession()` already resolves the account language, so a
@@ -41,7 +39,6 @@ const INBOX_LIMIT = 100;
 type Filter = "all" | "unread";
 
 const COPY = {
-  back: { en: "Back to dashboard", ta: "டாஷ்போர்டுக்குத் திரும்பு" },
   settings: { en: "Notification settings", ta: "அறிவிப்பு அமைப்புகள்" },
   title: { en: "Inbox", ta: "அறிவிப்பு பெட்டி" },
   lead: {
@@ -100,7 +97,7 @@ function bucketOf(iso: string, now: Date): Bucket {
 }
 
 export default function NotificationsPage() {
-  const { hydrated, lang } = useSession();
+  const [lang] = useLang();
   const [items, setItems] = useState<NotificationInboxItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -132,9 +129,8 @@ export default function NotificationsPage() {
   }, []);
 
   useEffect(() => {
-    if (!hydrated) return;
     void loadInbox();
-  }, [hydrated, loadInbox]);
+  }, [loadInbox]);
 
   async function handleMarkAllRead() {
     setMarkingAllRead(true);
@@ -207,20 +203,7 @@ export default function NotificationsPage() {
   const showEmpty = !loading && visible.length === 0;
 
   return (
-    <div className="clarity-shell cl-inbox-shell">
-      <div className="cl-inbox-bar">
-        <div className="cl-inbox-bar__inner">
-          <Link href="/dashboard" className="cl-inbox-navlink">
-            <ArrowLeft size={16} strokeWidth={1.9} aria-hidden="true" />
-            {say("back", lang)}
-          </Link>
-          <Link href="/dashboard/settings" className="cl-inbox-navlink cl-inbox-navlink--muted">
-            <SlidersHorizontal size={16} strokeWidth={1.9} aria-hidden="true" />
-            {say("settings", lang)}
-          </Link>
-        </div>
-      </div>
-
+    <div className="clarity-shell cl-inbox-shell cl-inbox-shell--embedded">
       <main className="cl-inbox-main">
         <header className="cl-inbox-head">
           <h1 className="cl-inbox-head__h1">{say("title", lang)}</h1>
@@ -313,7 +296,7 @@ export default function NotificationsPage() {
                   {say("showAll", lang)}
                 </button>
               ) : (
-                <Link href="/dashboard/settings" className="cl-inbox-btn">
+                <Link href="/dashboard/settings/notifications" className="cl-inbox-btn">
                   <SlidersHorizontal size={16} strokeWidth={1.9} aria-hidden="true" />
                   {say("settings", lang)}
                 </Link>

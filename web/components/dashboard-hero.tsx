@@ -88,7 +88,9 @@ const MORE_TAB_DEFS: TabDefinition[] = [
 
 interface DashboardHeroProps {
   lang: Lang;
-  activeTab: Tab;
+  activeTab: Tab | null;
+  /** Authenticated utility routes are part of the product but are not tabs. */
+  utilityTitle?: string;
   birthDisplayName: string;
   /** Tone travels with the message (DASH-08) — never inferred from wording. */
   status: StatusMessage | null;
@@ -198,6 +200,7 @@ export function DashboardHero(props: DashboardHeroProps) {
   const {
     lang,
     activeTab,
+    utilityTitle,
     birthDisplayName,
     status,
     chartSummary,
@@ -832,6 +835,11 @@ export function DashboardHero(props: DashboardHeroProps) {
         <div className="cd-subbar">
           <div className="cd-subbar__inner">
             <div className="cd-subbar__identity">
+              {utilityTitle && (
+                <span className="cd-subbar__name" title={utilityTitle}>
+                  {utilityTitle}
+                </span>
+              )}
               {birthDisplayName && (
                 <span className="cd-subbar__name" title={birthDisplayName}>
                   {birthDisplayName}
@@ -920,28 +928,32 @@ export function DashboardHero(props: DashboardHeroProps) {
                 )}
               </span>
 
-              <label htmlFor="dashboard-date" className="cd-visually-hidden">
-                {lang === "ta" ? "தேதி தேர்வு" : "Select date"}
-              </label>
-              <div className="cd-date-field">
-                <input
-                  id="dashboard-date"
-                  className="cd-date-input"
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => onDateChange(e.target.value)}
-                  onClick={(e) => {
-                    // The input is an invisible overlay, so a click anywhere on
-                    // the pill should open the picker directly.
-                    try { e.currentTarget.showPicker?.(); } catch { /* non-gesture call — ignore */ }
-                  }}
-                  aria-label={lang === "ta" ? "தேதி தேர்வு" : "Select date"}
-                />
-                <span className="cd-date-display" aria-hidden="true">
-                  {novaDateLabel}
-                  <span className="cd-date-display__caret">▾</span>
-                </span>
-              </div>
+              {!utilityTitle && (
+                <>
+                  <label htmlFor="dashboard-date" className="cd-visually-hidden">
+                    {lang === "ta" ? "தேதி தேர்வு" : "Select date"}
+                  </label>
+                  <div className="cd-date-field">
+                    <input
+                      id="dashboard-date"
+                      className="cd-date-input"
+                      type="date"
+                      value={selectedDate}
+                      onChange={(e) => onDateChange(e.target.value)}
+                      onClick={(e) => {
+                        // The input is an invisible overlay, so a click anywhere on
+                        // the pill should open the picker directly.
+                        try { e.currentTarget.showPicker?.(); } catch { /* non-gesture call — ignore */ }
+                      }}
+                      aria-label={lang === "ta" ? "தேதி தேர்வு" : "Select date"}
+                    />
+                    <span className="cd-date-display" aria-hidden="true">
+                      {novaDateLabel}
+                      <span className="cd-date-display__caret">▾</span>
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
           {/* DXA-07 — the day below is still the previous selection's while

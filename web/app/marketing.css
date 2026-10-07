@@ -5096,51 +5096,24 @@ details.cl-pub-faq-item > .cl-pub-faq-item__a {
   background: var(--cl-bg);
 }
 
-/* ── Context bar ───────────────────────────────────────────────
-   The only chrome this page has. Without it you arrive from the
-   dashboard with no way back and no sense of where you are. */
-.cl-inbox-bar {
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  background: var(--cl-bg-98, rgba(244, 238, 226, 0.98));
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--cl-border);
-}
-
-.cl-inbox-bar__inner {
-  width: min(900px, calc(100% - 40px));
-  margin: 0 auto;
-  min-height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.cl-inbox-navlink {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  padding: 0 10px;
-  margin-inline: -10px;
-  border-radius: 10px;
-  color: var(--cl-ink-2);
-  font-size: 0.85rem;
-  font-weight: 600;
-  text-decoration: none;
-  transition: color 150ms ease, background 150ms ease;
-}
-
-.cl-inbox-navlink:hover {
-  color: var(--cl-accent);
-  background: var(--cl-bg-2);
-}
-
-.cl-inbox-navlink--muted {
-  color: var(--cl-muted);
+.cl-inbox-shell--embedded {
+  --cl-bg: var(--color-bg);
+  --cl-bg-2: var(--color-surface-soft);
+  --cl-surface: var(--color-surface);
+  --cl-surface-2: var(--color-surface-2);
+  --cl-border: var(--color-border);
+  --cl-border-2: var(--color-border-strong);
+  --cl-ink: var(--color-text-strong);
+  --cl-ink-2: var(--color-text);
+  --cl-muted: var(--color-muted);
+  --cl-muted-2: var(--color-muted);
+  --cl-accent: var(--color-accent-strong);
+  --cl-sage: var(--color-positive);
+  --cl-caution: var(--color-low);
+  --cl-caution-soft: var(--color-low-bg);
+  --cl-font-display: var(--font-display);
+  min-height: auto;
+  background: transparent;
 }
 
 /* ── Page head ─────────────────────────────────────────────── */
