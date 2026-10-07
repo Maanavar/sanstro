@@ -5,8 +5,8 @@ import { withTamilTwin } from "@/lib/localized-metadata";
 import { TAMIL_CALENDAR_TA } from "@/lib/marketing-seo-ta";
 import { TamilCalendarContent, type EventSummary } from "./TamilCalendarContent";
 import { fetchCalendarCategories, type CalendarCategorySummary } from "./calendar-category-api";
+import { backendUrl } from "@/lib/backend-url";
 
-const BACKEND_URL = process.env.BACKEND_URL ?? "http://127.0.0.1:8000";
 const YEAR = 2026;
 
 interface EventsList {
@@ -17,7 +17,7 @@ interface EventsList {
 
 async function fetchEvents(): Promise<EventsList | null> {
   try {
-    const res = await fetch(`${BACKEND_URL}/api/v1/public/panchangam-events?year=${YEAR}`, {
+    const res = await fetch(`${backendUrl()}/api/v1/public/panchangam-events?year=${YEAR}`, {
       next: { revalidate: 3600 },
     });
     if (!res.ok) return null;

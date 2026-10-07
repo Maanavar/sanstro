@@ -151,7 +151,18 @@ services:
     environment:
       NODE_ENV: production
       # Server-to-server base URL the Next proxy uses to reach the API.
-      API_BASE_URL: ${API_BASE_URL:-http://api:8000}
+      #
+      # THE NAME MATTERS. This was `API_BASE_URL`, which nothing in web/ reads
+      # (that is the *mobile* app's variable). Every server-side reader goes
+      # through web/lib/backend-url.ts, which reads BACKEND_URL and falls back
+      # to http://127.0.0.1:8000 — loopback inside THIS container, where no
+      # FastAPI is listening. The stack came up, the homepage returned 200, and
+      # login, dashboard data and every server-rendered public page failed
+      # against a backend that was healthy the whole time (A01).
+      #
+      # web/lib/backend-url.test.ts asserts this key against what web actually
+      # reads; scripts/compose-proxy-smoke.ps1 proves the route end to end.
+      BACKEND_URL: ${BACKEND_URL:-http://api:8000}
       # Hops in front of *Next*. 0 without the `edge` profile, 1 with it, 2 for
       # an edge behind a CDN. Must equal the api service's
       # JOTHIDAM_TRUSTED_PROXY_COUNT, which now refuses to boot in production if

@@ -6,12 +6,11 @@ import { scoreColorPct } from "@/lib/format";
 import { madhyamaLabel, madhyamaGloss, hasMadhyama } from "@/lib/kuta-grade";
 import type { PoruthamShareViewData } from "@vinaadi/shared/api/porutham-shares";
 import type { KutaGrade } from "@vinaadi/shared";
-
-const BACKEND_URL = process.env.BACKEND_URL ?? "http://127.0.0.1:8000";
+import { backendUrl } from "@/lib/backend-url";
 
 async function fetchShare(token: string): Promise<PoruthamShareViewData | null> {
   try {
-    const res = await fetch(`${BACKEND_URL}/api/v1/porutham-shares/${encodeURIComponent(token)}`, { cache: "no-store" });
+    const res = await fetch(`${backendUrl()}/api/v1/porutham-shares/${encodeURIComponent(token)}`, { cache: "no-store" });
     if (!res.ok) return null;
     const json = (await res.json()) as { success?: boolean; data?: PoruthamShareViewData };
     return json.data ?? null;

@@ -16,8 +16,8 @@ import { PanchangamShareButton } from "@/components/public-share-card";
 import { PanchangamShareCard } from "@/components/panchangam-share-card";
 import { ThirukanithamBadge } from "@/components/thirukanitham-badge";
 import { PanchangamDatePicker } from "@/components/panchangam-date-picker";
+import { backendUrl } from "@/lib/backend-url";
 
-const BACKEND_URL = process.env.BACKEND_URL ?? "http://127.0.0.1:8000";
 const DEFAULT_LAT = "13.0827";
 const DEFAULT_LNG = "80.2707";
 const DEFAULT_TZ = "Asia/Kolkata";
@@ -26,7 +26,7 @@ const DEFAULT_CITY_TA = "சென்னை";
 
 async function fetchPanchangam(date: string): Promise<PanchangamDailyResponseData | null> {
   try {
-    const url = `${BACKEND_URL}/api/v1/public/panchangam?date=${date}&lat=${DEFAULT_LAT}&lng=${DEFAULT_LNG}&timezone=${encodeURIComponent(DEFAULT_TZ)}`;
+    const url = `${backendUrl()}/api/v1/public/panchangam?date=${date}&lat=${DEFAULT_LAT}&lng=${DEFAULT_LNG}&timezone=${encodeURIComponent(DEFAULT_TZ)}`;
     const res = await fetch(url, { next: { revalidate: 3600 } });
     if (!res.ok) return null;
     const json = await res.json() as { success?: boolean; data?: PanchangamDailyResponseData };

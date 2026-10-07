@@ -246,6 +246,41 @@ jobs:
           docker rm -f web
           exit 1
 
+  compose-proxy-smoke:
+    name: Compose stack (web -> api through the proxy)
+    runs-on: ubuntu-latest
+    # A01. `web-image` above proves the image builds and serves `/` — a page
+    # that needs no backend — which is exactly why a stack whose web container
+    # was handed the wrong environment variable name passed every gate while
+    # login, dashboard data and every server-rendered public page failed.
+    #
+    # This job builds api + web from the real compose file, brings up
+    # db + redis + api + web, and makes its claims THROUGH the Next proxy:
+    # /api/backend/health/ready, then a synthetic register -> login -> auth/me.
+    #
+    # Budget: web's install+build measured ~5 min on a runner, api is smaller,
+    # boot and probes are seconds. 40 leaves room for a cold cache without
+    # letting a hang run to the 6h default.
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      # pwsh, not bash: the script is the same file a developer runs on the
+      # Windows workspace, so there is one gate and not two that drift.
+      - name: Smoke the proxy route
+        shell: pwsh
+        run: ./scripts/compose-proxy-smoke.ps1
+      # NEGATIVE CONTROL, in the job itself. A gate that cannot fail proves
+      # nothing, and this one is cheap to invert because the images are already
+      # built. It points the web container at loopback — the address A01's
+      # fallback produced — and requires the readiness claim to FAIL.
+      - name: Negative control (broken BACKEND_URL must fail the smoke)
+        shell: pwsh
+        run: ./scripts/compose-proxy-smoke.ps1 -SkipBuild -BreakBackendUrl
+      - name: Compose logs on failure
+        if: failure()
+        run: docker ps -a
+
   design-tokens:
     name: Design token ratchet (no new color literals)
     runs-on: ubuntu-latest

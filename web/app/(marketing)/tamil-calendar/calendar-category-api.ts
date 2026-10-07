@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { withTamilTwin } from "@/lib/localized-metadata";
 import { CALENDAR_CATEGORY_TA } from "@/lib/marketing-seo-ta";
+import { backendUrl } from "@/lib/backend-url";
 
-const BACKEND_URL = process.env.BACKEND_URL ?? "http://127.0.0.1:8000";
 export const CALENDAR_CATEGORY_YEAR = 2026;
 
 export const CALENDAR_CATEGORY_SLUGS = [
@@ -88,7 +88,7 @@ export async function localizedCategoryMetadata(slug: CalendarCategorySlug): Pro
 
 export async function fetchCalendarCategory(slug: CalendarCategorySlug): Promise<CalendarCategoryDetail | null> {
   try {
-    const res = await fetch(`${BACKEND_URL}/api/v1/public/calendar-categories/${slug}?year=${CALENDAR_CATEGORY_YEAR}`, {
+    const res = await fetch(`${backendUrl()}/api/v1/public/calendar-categories/${slug}?year=${CALENDAR_CATEGORY_YEAR}`, {
       next: { revalidate: 3600 },
     });
     if (!res.ok) return null;
@@ -100,7 +100,7 @@ export async function fetchCalendarCategory(slug: CalendarCategorySlug): Promise
 
 export async function fetchCalendarCategories(): Promise<CalendarCategorySummary[]> {
   try {
-    const res = await fetch(`${BACKEND_URL}/api/v1/public/calendar-categories?year=${CALENDAR_CATEGORY_YEAR}`, {
+    const res = await fetch(`${backendUrl()}/api/v1/public/calendar-categories?year=${CALENDAR_CATEGORY_YEAR}`, {
       next: { revalidate: 3600 },
     });
     if (!res.ok) return [];

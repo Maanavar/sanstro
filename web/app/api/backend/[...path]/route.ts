@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const BACKEND_URL = process.env.BACKEND_URL ?? "http://127.0.0.1:8000";
+import { BackendUrlConfigError, requireBackendUrl } from "@/lib/backend-url";
 
 /**
  * How many reverse-proxy hops sit in FRONT OF THIS NEXT SERVER (a CDN, an
@@ -56,7 +56,26 @@ function trustedForwardedFor(request: NextRequest): string | null {
 
 async function proxyRequest(request: NextRequest, method: string, path: string[]) {
   const url = new URL(request.url);
-  const target = new URL(`${BACKEND_URL}/${path.join("/")}`);
+
+  // Resolved per request, not at module scope. This route is the one place that
+  // refuses the development default in production (A01 step 3) — and a throw at
+  // module scope in a route file would turn a misconfigured deployment into a
+  // failed `next build` instead, which is the trap step 4 warns about.
+  let backendUrl: string;
+  try {
+    backendUrl = requireBackendUrl();
+  } catch (error) {
+    if (!(error instanceof BackendUrlConfigError)) throw error;
+    console.error(`[backend-url] ${error.message}`);
+    // Distinct from the 502 below: nothing was attempted, because there is no
+    // address to attempt. An operator reading the log needs those apart.
+    return new NextResponse(JSON.stringify({ detail: "Backend URL is not configured" }), {
+      status: 500,
+      headers: { "content-type": "application/json" },
+    });
+  }
+
+  const target = new URL(`${backendUrl}/${path.join("/")}`);
   target.search = url.search;
 
   const headers = new Headers(request.headers);

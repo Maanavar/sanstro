@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { AdminConsole } from "@/components/admin-console";
+import { backendUrl } from "@/lib/backend-url";
 import "./admin.css";
 
 export const metadata: Metadata = {
@@ -23,16 +24,18 @@ export default async function AdminPage() {
 
   // Verify admin role by calling a protected admin endpoint on the backend.
   // The backend's get_admin_user dependency returns 403 for non-admin sessions.
-  const backendUrl = process.env.BACKEND_URL ?? "http://127.0.0.1:8000";
   let isAdmin = false;
   try {
-    const res = await fetch(`${backendUrl}/api/v1/admin/stats`, {
+    const res = await fetch(`${backendUrl()}/api/v1/admin/stats`, {
       headers: { Cookie: `vinaadi_token=${token}` },
       cache: "no-store",
     });
     isAdmin = res.ok;
-  } catch {
-    // Backend unreachable — deny access
+  } catch (error) {
+    // Backend unreachable, or BACKEND_URL misconfigured — deny access either
+    // way, but say which: an operator staring at an admin console that
+    // redirects to "/" cannot tell those two apart from the outside.
+    console.error("[admin] admin check failed", error);
   }
 
   if (!isAdmin) {
