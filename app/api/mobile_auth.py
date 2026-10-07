@@ -5,8 +5,11 @@ returned in the response body. Clients store tokens in expo-secure-store (Keycha
 Keystore), never AsyncStorage.
 
 Refresh token rotation: every /refresh call revokes the presented token and issues a
-fresh pair. Reuse of a revoked token is treated as a theft signal — all tokens for
-that user are immediately revoked.
+fresh pair. Reuse of a revoked token is treated as a theft signal — every refresh
+token for that user is revoked and `token_version` is advanced, so access tokens
+already issued die too. That revocation is committed before the 401 is raised,
+because `get_db` rolls back on the exception and used to discard it (A03).
+Regression cover: tests/test_refresh_replay_revocation.py.
 """
 from __future__ import annotations
 
@@ -237,11 +240,50 @@ def mobile_refresh(
     row = db.query(RefreshToken).filter(RefreshToken.token_hash == token_hash).first()
 
     if row is not None and row.revoked_at is not None:
-        # Revoked token reused → theft signal: burn all active tokens for this user
+        # Revoked token reused → theft signal: burn every active token for this
+        # user, and sign the account out of every device.
+        #
+        # THE COMMIT IS THE POINT (A03). This branch raises 401, `get_db` rolls
+        # back on any exception, and so the revocation this branch exists to
+        # perform was thrown away with the response. The endpoint answered
+        # "revoked", logged a theft signal, and left every successor token
+        # usable: the returned error and the durable security state disagreed,
+        # and no test could see it from inside the request's own session.
+        #
+        # Committing here is safe specifically because of what precedes it: the
+        # only database work in this handler before this point is the SELECT on
+        # line above, so there is nothing unrelated pending to be made permanent
+        # by this commit. That is why this is a plain `db.commit()` and not a
+        # separate unit of work — see A03 step 2. A call site with earlier
+        # pending writes would need the heavier structure; this one does not.
+        #
+        # OWNER RULING (2026-10-07): the incident also advances `token_version`,
+        # which invalidates access tokens already issued to this user instead of
+        # letting them live out their remaining TTL. Deliberate policy, not an
+        # incidental detail — a legitimate client replaying a stale token is
+        # signed out everywhere at once.
+        now = datetime.now(UTC)
         db.query(RefreshToken).filter(
             RefreshToken.user_id == row.user_id,
             RefreshToken.revoked_at.is_(None),
-        ).update({"revoked_at": datetime.now(UTC)})
+        ).update({"revoked_at": now}, synchronize_session=False)
+        compromised = db.get(User, row.user_id)
+        if compromised is not None:
+            compromised.token_version = int(getattr(compromised, "token_version", 0) or 0) + 1
+
+        try:
+            db.commit()
+        except Exception:
+            # Do not log a theft signal that was never persisted. The protective
+            # action did not happen, so this is an operational failure and has
+            # to read as one — a 401 here would record the incident as handled.
+            db.rollback()
+            _logger.exception("refresh_token_theft_revocation_failed user_id=%s", row.user_id)
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Could not complete the security action. Please retry.",
+            ) from None
+
         _logger.warning("refresh_token_theft_signal user_id=%s", row.user_id)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has been revoked.")
 
