@@ -6,7 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import {
   Heart, Clock, Star, FileText, Layers, Sparkles, MapPin, HelpCircle, Lock, BookOpen, Check,
-  TrendingUp, SlidersHorizontal, Award, Users, Shuffle, CalendarDays, UserCheck, ShoppingCart,
+  TrendingUp, Award, Users, Shuffle, CalendarDays, UserCheck, ShoppingCart,
 } from "lucide-react-native";
 import type { LucideIcon } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
@@ -152,11 +152,11 @@ const GROUPS: ToolGroup[] = [
         nameEn: "Varshaphala",   nameTa: "வர்ஷபல",
         descEn: "Annual chart & predictions",    descTa: "ஆண்டு ஜாதக முன்னறிவிப்பு",
       },
-      {
-        Icon: SlidersHorizontal, key: "rectification", route: "/rectification/index",
-        nameEn: "Rectification", nameTa: "பிறந்த நேர திருத்தம்",
-        descEn: "Fine-tune your birth time",     descTa: "பிறந்த நேரம் சரிப்படுத்துதல்",
-      },
+      // Rectification is deliberately not listed. Its ranking compares the
+      // candidate Lagna's rasi number with the event's house numbers and never
+      // reads the event date, so the same rasis win for everyone (capability
+      // reference §7.8). Web pulled it from Tools for the same reason; the
+      // screen stays reachable from a chart with no birth time on file.
       {
         Icon: Award, key: "wrapped", route: "/wrapped/index",
         nameEn: "Year Wrapped",  nameTa: "ஆண்டு சுருக்கம்",
@@ -175,6 +175,9 @@ const GROUPS: ToolGroup[] = [
     ],
   },
 ];
+
+// Counted, not typed: the header said "16" for a catalogue of 20.
+const TOOL_COUNT = GROUPS.reduce((n, group) => n + group.tools.length, 0);
 
 function chunkPairs(tools: ToolDef[]): [ToolDef, ToolDef | null][] {
   const pairs: [ToolDef, ToolDef | null][] = [];
@@ -252,14 +255,14 @@ export default function ToolsScreen() {
     <SafeAreaView style={styles.container}>
       <ScreenHeader
         title={t(strings.tools.title)}
-        subtitle="16 Jyotish tools, grouped by job"
-        subtitleTa="16 ஜோதிட கருவிகள்"
+        subtitle={`${TOOL_COUNT} Jyotish tools, grouped by job`}
+        subtitleTa={`${TOOL_COUNT} ஜோதிட கருவிகள்`}
         isTamil={isTamil}
         entering={FadeInDown.delay(entranceDelay.hero).springify().stiffness(spring.default.stiffness).damping(spring.default.damping)}
         badge={
           <View style={styles.toolCountPill}>
             <Sparkles size={15} color={C.goldOnLight} strokeWidth={1.5} />
-            <Text style={styles.toolCountText}>16</Text>
+            <Text style={styles.toolCountText}>{TOOL_COUNT}</Text>
           </View>
         }
       />

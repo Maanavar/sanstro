@@ -262,26 +262,32 @@ export default function JadhagamDetailScreen() {
               </View>
             </View>
 
-            <TouchableOpacity
-              style={styles.rectifyCard}
-              onPress={() => router.push(
-                `/rectification?chartId=${encodeURIComponent(id)}&birthProfileId=${encodeURIComponent(chart.birthProfile.birthProfileId)}` as Href
-              )}
-              activeOpacity={0.85}
-            >
-              <View style={styles.rectifyBadge}>
-                <Text style={styles.rectifyBadgeText}>BT</Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.rectifyTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
-                  {isTamil ? "Birth Time Rectification" : "Birth Time Rectification"}
-                </Text>
-                <Text style={[styles.rectifySub, isTamil ? TamilType.caption : EnType.caption]}>
-                  {chart.birthProfile.birthTimeLocal ? "Check this birth time against life events" : "Estimate a birth time from life events"}
-                </Text>
-              </View>
-              <Text style={styles.rectifyArrow}>{">"}</Text>
-            </TouchableOpacity>
+            {/* Only when no birth time is on file — the same single entry web
+                keeps ("Don't know your birth time? Find it"). Offering to
+                "check" a known time would overstate a ranking that is not yet
+                chart-specific (capability reference §7.8). */}
+            {!chart.birthProfile.birthTimeLocal && (
+              <TouchableOpacity
+                style={styles.rectifyCard}
+                onPress={() => router.push(
+                  `/rectification?chartId=${encodeURIComponent(id)}&birthProfileId=${encodeURIComponent(chart.birthProfile.birthProfileId)}` as Href
+                )}
+                activeOpacity={0.85}
+              >
+                <View style={styles.rectifyBadge}>
+                  <Text style={styles.rectifyBadgeText}>BT</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.rectifyTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
+                    {isTamil ? "Birth Time Rectification" : "Birth Time Rectification"}
+                  </Text>
+                  <Text style={[styles.rectifySub, isTamil ? TamilType.caption : EnType.caption]}>
+                    Estimate a birth time from life events
+                  </Text>
+                </View>
+                <Text style={styles.rectifyArrow}>{">"}</Text>
+              </TouchableOpacity>
+            )}
 
             {/* The Story reading (FTR-20) — same chapters and picks as the web. */}
             <TouchableOpacity

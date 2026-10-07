@@ -6,7 +6,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, type Href } from "expo-router";
-import { ChevronRight, Gift, Clock, CreditCard } from "lucide-react-native";
+import { ChevronRight, Gift, CreditCard } from "lucide-react-native";
 import { useQuery } from "@tanstack/react-query";
 import { useColors } from "@/hooks/useColors";
 import type { ColorTokens } from "@/theme/colors";
@@ -332,19 +332,9 @@ export default function MeScreen() {
                   </Text>
                   <ChevronRight size={18} color={C.textTertiary} strokeWidth={1.5} />
                 </TouchableOpacity>
-                <View style={styles.divider} />
-                <TouchableOpacity
-                  style={styles.menuRow}
-                  onPress={() => router.push(`/rectification?chartId=${encodeURIComponent(primaryChartId)}` as Href)}
-                >
-                  <View style={{ width: 28, alignItems: 'center' }}>
-                    <Clock size={20} color={C.gold} strokeWidth={1.5} />
-                  </View>
-                  <Text style={[styles.menuLabel, { fontFamily: T.body.fontFamily }]}>
-                    {isTamil ? "Birth Time Rectification" : "Birth Time Rectification"}
-                  </Text>
-                  <ChevronRight size={18} color={C.textTertiary} strokeWidth={1.5} />
-                </TouchableOpacity>
+                {/* No Rectification row: its ranking is not chart-specific yet
+                    (capability reference §7.8). It opens from a chart with no
+                    birth time on file. */}
                 <View style={styles.divider} />
                 <TouchableOpacity style={styles.menuRow} onPress={() => router.push("/dasha" as Href)}>
                   <Text style={styles.menuIcon}>🪐</Text>
