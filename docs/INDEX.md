@@ -1,11 +1,12 @@
 # docs/ Index — Vinaadi AI
 
-Quick map to the right document for each purpose. **Last regenerated: 2026-07-16.**
+Quick map to the right document for each purpose. **Last updated: 2026-10-06.**
 
 > Files under [archive/](archive/) are historical and **superseded** — kept for
 > reference only, do not treat as current. Everything else is live.
 
 ## Start Here
+- [VINAADI_PRODUCT_TECHNICAL_CAPABILITY_REFERENCE_2026-10-06.md](VINAADI_PRODUCT_TECHNICAL_CAPABILITY_REFERENCE_2026-10-06.md) — **Current whole-product source of truth.** Merged from two independent code audits of commit `8913117`, with every disagreement settled against the code. Desktop, native and public capability catalogue with live/hidden/partial status; per-domain chapters (chart, yogas, doshams, dasha, transits, daily, life areas, muhurta, porutham, numerology, Ask Vinaadi); tech stack, architecture, data model and data flows; platform and explainability matrices; route and endpoint-consumer inventory; dead/hidden register; risk register R-1…R-18 and prioritised recommendations
 - [VINAADI_DASHBOARD_SYSTEM_REFERENCE_2026-08-25.md](VINAADI_DASHBOARD_SYSTEM_REFERENCE_2026-08-25.md) — **What the signed-in product is and does.** Every dashboard screen explained (product layer first, then architecture), access/tier model, engine map, tech stack, testing, full route + API reference, and a findings appendix
 - [VINAADI_MARKETING_SITE_SYSTEM_REFERENCE_2026-08-25.md](VINAADI_MARKETING_SITE_SYSTEM_REFERENCE_2026-08-25.md) — **What the public site is and does.** All 121 marketing routes, the free tools and their rate limits, the acquisition/conversion model, SEO architecture, rendering strategy, and a findings appendix
 - [VINAADI_FUNCTION_CALCULATION_AND_SCORING_REFERENCE_2026-08-27.md](VINAADI_FUNCTION_CALCULATION_AND_SCORING_REFERENCE_2026-08-27.md) — **What the engine computes and how every score is derived.** The 14-layer pipeline, every calculating function and the measures it consumes, a register of all 36 user-visible scores with formula and marker, worked arithmetic for the daily score / prediction score / muhurta scale / porutham, the declared non-computations, 12 open questions and a reviewer sign-off sheet. Hand this to an external astrologer
