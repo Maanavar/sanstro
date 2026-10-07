@@ -872,6 +872,192 @@ Done when:
 - Missing authorization or flag checks are fixed.
 - Tests cover the inventory.
 
+## Architecture remediation A01–A16 — 2026-10-07
+
+Evidence: [Architecture audit](ARCHITECTURE_AUDIT_2026-10-07.md). Implementation
+guide, phase order and definition of done:
+[Findings and solutions](ARCHITECTURE_FINDINGS_AND_SOLUTIONS_2026-10-07.md) §6.
+
+Every finding below was re-verified against current source before any edit; all
+sixteen still described the code exactly as written, with no line-number drift
+worth recording.
+
+### Phase 1
+
+- [x] **A01 — production Compose misroutes API traffic.** `docker-compose.app.yml`
+  handed the web service `API_BASE_URL`; every reader in `web/` reads
+  `BACKEND_URL` and fell back to loopback *inside the web container*. Fixed by
+  naming the canonical variable in Compose and routing all seven readers through
+  `web/lib/backend-url.ts`, which validates format, accepts the old name as a
+  warned transitional alias, and refuses the development default in production
+  at request time (never at module scope, so `next build` is unaffected).
+  Gate: `web/lib/backend-url.test.ts` (15 cases). Baseline recorded: against the
+  unfixed tree it failed 5 of them, naming `API_BASE_URL` in the web service and
+  all seven direct readers.
+  **Blind spot:** static. It cannot resolve `api`, open a socket, or run the
+  proxy. `scripts/compose-proxy-smoke.ps1` + the `compose-proxy-smoke` CI job
+  cover that half — see A01-b, which is NOT yet green.
+- [x] **A01-b — end-to-end Compose smoke, and the api image that blocked it.**
+  Running the smoke surfaced a separate defect: **the api image did not build at
+  all, from any machine.** `Dockerfile` used `python:3.12-slim`,
+  `requirements.txt:85` pins `pyswisseph==2.10.3.2` for
+  `python_version < '3.14'`, and pyswisseph publishes **no cp312 wheel in any
+  release** — so pip fell back to the sdist and died on
+  `[Errno 2] No such file or directory: 'gcc'`. The Dockerfile's own comment
+  ("wheels exist for psycopg2-binary / pyswisseph / cryptography") was false for
+  that base image. Two things hid it: no CI job builds this file, and the
+  backend test job installs the same requirements successfully because
+  `ubuntu-latest` ships gcc.
+
+  **Owner decision 2026-10-07:** compile in a throwaway `wheels` stage and keep
+  the runtime slim — rather than adding gcc to the shipped image, or moving to
+  `python:3.14-slim` and the `swisseph-ffi` binding, which would put production
+  on a backend CI does not test (`docs/vinaadi-fix-spec.md` requires both
+  bindings to be verified).
+  **Verified:** image builds, 554MB, `import swisseph` → `2.10.03`, and `gcc` is
+  absent from the runtime image.
+
+  **Smoke executed, with its negative control:** `scripts/compose-proxy-smoke.ps1`
+  brings up db + redis + api + web from the real compose file under an isolated
+  project name and asserts six claims through the Next proxy — `/`,
+  `/api/backend/health/ready`, synthetic register → login → `auth/me` (Bearer,
+  so a Secure cookie over plain HTTP cannot confound it), and a bounded 502 on
+  backend outage. All six PASS. With `-BreakBackendUrl` (loopback, the address
+  A01's fallback produced) the proxy claims FAIL, as required.
+
+  **Blind spots:**
+  - The web image **cannot be built on this machine**: `pnpm install` exhausts
+    the Dockerfile's 3 × 480s retry budget, the condition `web/Dockerfile`
+    already documents. The smoke therefore ran against `vinaadi-web:local`, an
+    image built four weeks ago that **predates `web/lib/backend-url.ts`**. It
+    reads `process.env.BACKEND_URL` directly, so the run proves the *compose
+    configuration* half end to end — container DNS, the proxy, POST bodies and
+    the Authorization header — but **not** the new resolver, which is covered
+    only by the unit gate. CI builds both images and runs the same script.
+  - An earlier version of the script fired its probes while the api container
+    was still running Alembic, reporting 502 on a correct stack. Worse, the
+    negative control would then have "passed" because the backend had not
+    finished booting rather than because the URL was wrong — a gate that cannot
+    fail. It now waits for the api healthcheck before making any claim.
+  - It reads the compose file in the repo, not whatever `-f` overlay or
+    `env_file` an operator actually deploys with.
+- [x] **A03 — replay revocation rolled back.** The theft-signal branch revoked
+  the user's active refresh tokens and raised 401; `get_db` rolled the
+  transaction back on that exception, discarding the revocation. The endpoint
+  answered "revoked", logged a theft signal, and left every successor usable.
+  Fixed with a narrow `db.commit()` before the raise — safe here because the
+  only prior database work in the handler is one SELECT, so no unrelated pending
+  state can ride along. A failed commit now logs
+  `refresh_token_theft_revocation_failed` and returns 503 instead of recording a
+  theft signal that never persisted.
+  **Owner ruling 2026-10-07:** the incident also advances `token_version`, so
+  access tokens already issued die immediately. Policy, not an implementation
+  detail: a legitimate client replaying a stale token is signed out everywhere.
+  Gate: `tests/test_refresh_replay_revocation.py` (5 cases). Baseline recorded:
+  4 of 5 failed against the unfixed tree; the fifth (ordinary rotation must not
+  advance `token_version`) passed before and after, by design.
+  **Blind spot:** sequential. A bulk `UPDATE ... WHERE revoked_at IS NULL`
+  cannot revoke a row inserted after it runs, so a successor issued *during*
+  replay handling is outside these tests. Closing that needs issuance and
+  revocation to share a generation check (A03 step 7), which this change does
+  not attempt. The suite also says nothing about the mobile client's reaction to
+  the 401, or about whether the theft signal reaches an operator.
+- [x] **A02 / A07 / A08 — mobile identity, cache and refresh lifecycle.**
+  Done as one work package, because the three findings are one defect seen from
+  three places: no component owned "the session changed".
+
+  **A02.** `src/state/sessionTransition.ts` is now the single owner of a session
+  starting or ending, with `src/lib/sessionIdentity.ts` holding the account and
+  a *generation* — a number that makes work started before a transition
+  unpublishable after it. Order is the design: the generation advances first, so
+  everything in flight is obsolete before anything is torn down. Call sites
+  converted: `app/_layout.tsx` (bootstrap + terminal 401),
+  `app/(auth)/login.tsx`, `app/(tabs)/me.tsx` (sign-out).
+  Defence in depth: `src/lib/queryKeys.ts::accountKey()` namespaces the five
+  account-independent private keys (`family-vaults`, `notification-prefs`,
+  `notification-inbox`, `my-subscription`, `ask-vinaadi-status`) across seven
+  call sites.
+  **Baseline recorded:** driving the pre-A02 sign-out sequence (`logout()`,
+  `clearTokens()`, `clearUserPrefs()`) against the real cache served B
+  `{"items":[{"familyVaultId":"A-vault"}]}` with **0 requests issued**.
+
+  **A07.** `encryptedQueryPersister.ts` now uses the installed library's real
+  `Persister`/`PersistedClient` types instead of a hand-written `any`, which is
+  what let the wrong shape compile: the filter was checking `clientState.queries`
+  *on the envelope*, so it returned its input untouched. Policy is now an
+  allowlist (`src/lib/queryCachePolicy.ts`) — the denylist was unsafe by
+  default, matching none of a dozen private surfaces, and repairing only the
+  envelope bug would have *started* persisting them. Namespaced per account,
+  version-busted, and validated on restore (schema, envelope age, per-key age,
+  shape), re-filtering inbound so a cache written by an older build is still
+  policed.
+  **Owner ruling 2026-10-07:** persist the user's own chart summary, current
+  dasha, and a short-lived today snapshot. **Family-vault data is NOT persisted
+  in V1.** Everything unlisted is memory-only.
+  **Baseline recorded:** against the installed library's own `dehydrate` output
+  the pre-fix persister wrote `["profile","family-vaults"]` — and `profile` is
+  pattern #2 of its own denylist.
+
+  **A08.** `fetchWithAuth` is now one refresh and one replay, then terminal;
+  single-flight refresh preserved; refreshed credentials are not written if the
+  generation moved; a terminal 401 routes through A02's full teardown instead of
+  clearing tokens alone.
+  **Baseline recorded:** the pre-fix client against a persistently-401 resource
+  ends in `FATAL ERROR: Ineffective mark-compacts near heap limit — JavaScript
+  heap out of memory`. The audit's probe looked bounded only because the probe
+  failed its own fifth refresh on purpose.
+
+  **Gates:** `__tests__/encryptedQueryPersister.test.ts` (12),
+  `__tests__/sessionTransition.test.ts` (10), `__tests__/apiClientRefresh.test.ts`
+  (7), `__tests__/queryKeyScoping.test.ts` (4 — ratchet, verified to fail in both
+  directions when one call site is reverted). Full mobile suite 151/151, tsc and
+  lint clean.
+
+  **A gap these tests did not catch, found by reading the library:**
+  `PersistQueryClientProvider` restores exactly once, in a mount effect that runs
+  before bootstrap knows who is signed in — so with per-call identity resolution
+  the persisted cache would have been written forever and never read, and every
+  cold start would have had no offline data. The coordinator now restores
+  explicitly once the identity is live. Two tests cover it, confirmed to fail
+  with that call removed.
+
+  **Blind spots:**
+  - No component is rendered. The coordinator is proven correct when called;
+    that `me.tsx`'s button reaches it is ordinary source a reviewer must check.
+  - `fetch` is a mock resolving immediately, so A08 proves retry *structure*, not
+    behaviour on a slow or flapping link. **Request deadlines and cancellation
+    (A08 step 7) are NOT implemented and not claimed.**
+  - The query-key ratchet is a source match on literal keys; a key built at
+    runtime or via another helper is invisible to it.
+  - Error classification (A08 step 8) is not implemented: a failed refresh is
+    still treated as terminal, so a network outage during refresh signs the user
+    out. Pre-existing behaviour, deliberately unchanged here.
+  - A user id in a cache key is isolation metadata, never an access check; the
+    backend must still refuse A's data to B.
+  - Purchase-SDK identity is explicitly out of scope here and is A04.
+  - The mobile suite now reports 151/151 where the audit saw 117 passed + 1
+    five-second screen-test timeout. That test was not touched; its passing here
+    is not evidence the open-handle warning is resolved.
+- [ ] A04 / A05 — purchase identity and billing event consistency.
+  Owner decision 2026-10-07: block purchase/restore until the purchase SDK
+  confirms it is bound to the signed-in UUID; **no automatic transfer** of
+  existing purchases. Mismatched historical receipts are reconciled manually
+  against provider evidence.
+- [ ] A06 — limiter outage policy. Owner decision 2026-10-07: auth endpoints
+  (login, register, password reset, admin elevation) return a bounded **503**
+  when their authoritative limiter cannot be evaluated. Ordinary cache misses
+  keep degrading gracefully. Not 401, and 429 stays reserved for a real
+  exceeded limit.
+
+### Phase 2 and later — not started
+
+- [ ] A09 / A10 scheduler ownership and durable notification delivery.
+- [ ] A11 transaction ownership (needs real PostgreSQL failure injection).
+- [ ] A12 derived birth timestamp — **data-migration scope not yet decided.**
+- [ ] A13 module boundaries. [ ] A14 contract completeness.
+- [ ] A15 CI coverage (partially advanced by A01's new job).
+- [ ] A16 contradictory authoritative documentation.
+
 ## Agent Completion Checklist
 
 For every task completed from this file:
