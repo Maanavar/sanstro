@@ -413,17 +413,30 @@ def test_a_reader_who_has_lost_a_marriage_is_never_offered_remarriage_unasked(
         assert token not in body_ta, f"{marital_status} reader was told about '{token}': {body_ta}"
 
 
-# ── The third-party register: nobody who is not in the room ──────────────────
+# ── A family member's reading: the same reading, about them ──────────────────
 #
-# §3.1 of docs/AGE_GATED_READING_AUDIT_2026-08-05.md, and the source document's
-# hardest cross-gate prohibition. This was a live product-shape defect, not a
-# copy defect: the family vault is member-centric and this reading is its first
-# section per member, so a father opening his adult daughter's card was handed
-# her whole reading — grievance, soft spot and marriage timing — as "you".
+# §3.1 of docs/AGE_GATED_READING_AUDIT_2026-08-05.md found a father opening his
+# adult daughter's card and being handed her whole reading addressed to HIM as
+# "you". That produced a facts-only `other` register. OWNER RULING 2026-10-06:
+# a family member gets the same reading as the owner, written about them. The
+# tests below pin both halves — the depth the ruling asked for, and the person
+# §3.1 was right about: nothing in it may address the relative as "you".
+
+
+_SECOND_PERSON_EN = re.compile(r"\byou\b|\byour\b|\byourself\b|\byours\b")
 
 
 def _vault_member_reading(
-    client, vault_factory, member_factory, *, age: int, relationship: str, name: str
+    client,
+    vault_factory,
+    member_factory,
+    *,
+    age: int,
+    relationship: str,
+    name: str,
+    marital_status: str | None = None,
+    employment_type: str | None = None,
+    endpoint: str = "one-minute",
 ) -> dict:
     """A chart reached the way the family vault reaches it, not by profile id.
 
@@ -437,6 +450,10 @@ def _vault_member_reading(
 
     payload = member_factory(display_name=name, relationship_to_owner=relationship)
     payload["birthDateLocal"] = _birth_date_for_age(age)
+    if marital_status is not None:
+        payload["maritalStatus"] = marital_status
+    if employment_type is not None:
+        payload["employmentType"] = employment_type
     member = client.post(f"/api/v1/family-vaults/{vault_id}/members", json=payload)
     assert member.status_code == 200, member.text
     member_id = member.json()["data"]["familyMemberId"]
@@ -450,56 +467,151 @@ def _vault_member_reading(
         ).first()
     assert row is not None, "the member's chart was not created"
 
-    response = client.get(f"/api/v1/charts/{row[0]}/one-minute")
+    response = client.get(f"/api/v1/charts/{row[0]}/{endpoint}")
     assert response.status_code == 200, response.text
     return response.json()["data"]
 
 
-def test_an_adult_who_is_not_the_reader_is_never_read_in_achievement_terms(
+def test_an_adult_family_member_gets_the_full_reading_about_them(
     client, family_vault_payload_factory, family_member_payload_factory
 ):
-    """The failure §3.1 found, pinned.
+    """Owner ruling 2026-10-06: the same beats as the owner's own reading.
 
-    A 52-year-old opening his 26-year-old daughter's member card received her
-    signature opening, her private grievance quoted back as her own inner
-    question, her soft spot, and her marriage-timing beat — every one addressed
-    as "you". None of it may survive.
+    The facts-only reading this replaced stopped after the running period and
+    said so; the owner found it too thin to be worth opening. What must hold
+    now is the depth — strength, the dated past, the topic, the decade ahead
+    and the one thing — and the person: every beat is ABOUT the member, by
+    name, and none of it is addressed to the relative reading it.
     """
     data = _vault_member_reading(
         client,
         family_vault_payload_factory,
         family_member_payload_factory,
-        age=26,
-        relationship="child",
-        name="Divya Synthetic Daughter",
+        age=34,
+        relationship="sibling",
+        name="Divya Synthetic Sister",
+        marital_status="married",
     )
 
     assert data["addressedTo"] == "other"
-    assert data["focusTopic"] == "THIRD_PARTY"
+    assert data["focusTopic"] == "MARRIED_LIFE"
 
     ids = [beat["id"] for beat in data["beats"]]
-    for withheld in ("strength_and_cost", "last_ten_years", "your_age_question", "next_ten_years"):
-        assert withheld not in ids, f"{withheld} reached a third-party reading: {ids}"
+    for beat_id in (
+        "who_you_are", "what_this_rests_on", "strength_and_cost", "last_ten_years",
+        "right_now", "your_age_question", "next_ten_years", "one_thing",
+    ):
+        assert beat_id in ids, f"{beat_id} missing from a family member's reading: {ids}"
+    assert "third_party_close" not in ids
 
-    body = _body(data, "en").lower()
-    # Second person at all is the tell — the whole register is third person, so
-    # a single "you" means a beat leaked in from the reader's own path.
-    assert not re.search(r"\byou\b|\byour\b|\byourself\b", body), body
-    for token in _ADULT_TOKENS_EN:
-        assert token not in body, f"'{token}' reached a third-party reading: {body}"
-    assert "Divya" in _body(data, "en")
+    body = _body(data, "en")
+    # Second person anywhere is the §3.1 failure coming back: a beat that fell
+    # through to the self copy and is now talking TO the relative about
+    # themselves.
+    assert not _SECOND_PERSON_EN.search(body.lower()), body
+    assert "Divya" in body
+    assert "Divya" in _body(data, "ta")
+    # The Tamil second-person pronouns, for the same reason.
+    for pronoun in ("நீங்கள்", "உங்கள்", "உங்களுக்கு", "உங்களை"):
+        assert pronoun not in _body(data, "ta"), _body(data, "ta")
+
+    strength = next(b for b in data["beats"] if b["id"] == "strength_and_cost")
+    assert strength["text"]["en"].startswith("Divya's real strength is"), strength["text"]["en"]
+    one_thing = next(b for b in data["beats"] if b["id"] == "one_thing")
+    assert one_thing["text"]["en"].startswith("One thing for Divya:"), one_thing["text"]["en"]
 
 
-def test_no_question_about_an_absent_adult_is_put_to_somebody_else(
+@pytest.mark.parametrize(
+    ("age", "marital_status", "employment_type"),
+    [
+        (24, None, None),
+        (26, "single", None),
+        (29, None, "student"),
+        (41, "married", None),
+        (45, "widowed", None),
+        (66, "married", None),
+    ],
+)
+def test_a_family_members_reading_holds_the_adult_budget_and_its_rules(
+    client,
+    family_vault_payload_factory,
+    family_member_payload_factory,
+    age,
+    marital_status,
+    employment_type,
+):
+    """Every topic route, on the third-person register, against the rules the
+    self reading is held to: the word budget, no second person, no jargon in
+    the English body, no event claim, and a capital at every sentence start.
+
+    The member fixture carries no birth-time source, so this is also the
+    unconfirmed-lagna path — the one whose falsifiability form had to be
+    re-narrowed when this register gained strength material.
+    """
+    data = _vault_member_reading(
+        client,
+        family_vault_payload_factory,
+        family_member_payload_factory,
+        age=age,
+        relationship="spouse",
+        name="Ilango Synthetic Member",
+        marital_status=marital_status,
+        employment_type=employment_type,
+    )
+
+    assert data["addressedTo"] == "other"
+    budget_en, budget_ta = word_budget("other", lagna_reliable=False)
+    assert data["wordCount"]["en"] <= budget_en, _body(data, "en")
+    assert data["wordCount"]["ta"] <= budget_ta, _body(data, "ta")
+
+    body = _body(data, "en")
+    assert not _SECOND_PERSON_EN.search(body.lower()), body
+    for term in _EN_JARGON:
+        assert not re.search(rf"\b{re.escape(term)}\b", body.lower()), f"'{term}' in: {body}"
+    for pattern in _EVENT_CLAIM_PATTERNS:
+        assert not re.search(pattern, body.lower()), f"event claim '{pattern}' in: {body}"
+    for beat in data["beats"]:
+        for sentence in re.split(r"(?<=[.!?])\s+", beat["text"]["en"]):
+            if sentence.strip():
+                assert sentence.strip()[0].isupper(), beat["text"]["en"]
+    for claim in (" i ", "i will", "i have", "my practice", "in my experience"):
+        assert claim not in f" {body.lower()} ", f"first-person claim to practice: {body}"
+
+
+def test_a_family_members_unconfirmed_time_does_not_claim_the_rest_stands_on_the_star(
     client, family_vault_payload_factory, family_member_payload_factory
 ):
-    """The third instance of the same defect, and the least obvious one.
+    """The parent register may say "the rest is built on the star" because it
+    carries no strength material. A family member's reading now does — the
+    signature opening and the strength beat both key on `strength_score`, which
+    takes the lagna — so it must take the narrowed claim and the caveat, as the
+    self reading does."""
+    data = _vault_member_reading(
+        client,
+        family_vault_payload_factory,
+        family_member_payload_factory,
+        age=38,
+        relationship="spouse",
+        name="Nila Synthetic Spouse",
+        marital_status="married",
+    )
+    rests_on = next(b for b in data["beats"] if b["id"] == "what_this_rests_on")["text"]["en"]
 
-    The pending question PATCHes the birth profile. Raised on a family-vault
-    card it would ask a father to declare his adult daughter's marital status —
-    a status she has not disclosed, answered by somebody else, and propagated
-    from there to life_areas, marriage_service and daily guidance as though she
-    had said it herself.
+    assert "which the rest is built on" not in rests_on, rests_on
+    assert "Their star and every date here stand without it." in rests_on, rests_on
+    assert "hold those more lightly" in rests_on, rests_on
+
+
+def test_a_question_about_a_family_member_is_put_about_them(
+    client, family_vault_payload_factory, family_member_payload_factory
+):
+    """With no marital status on file the topic beat is withheld, as it is for
+    the owner, and the one question is asked — about the member, by name.
+
+    It used to be withheld outright, on the ground that it would have the
+    owner declare a relative's status. The family-member form already asks the
+    owner for exactly this field, so the reading asking it adds no new power;
+    without it an adult member with a blank status never gets their topic.
     """
     data = _vault_member_reading(
         client,
@@ -510,35 +622,11 @@ def test_no_question_about_an_absent_adult_is_put_to_somebody_else(
         name="Nila Synthetic Sibling",
     )
 
-    assert data["pendingQuestion"] is None, data["pendingQuestion"]
-
-
-def test_a_reading_that_stops_early_says_so_rather_than_just_stopping(
-    client, family_vault_payload_factory, family_member_payload_factory
-):
-    """A short reading with no explanation reads as a broken one.
-
-    Same rule as the withheld beat 5: an unexplained gap is a bug, and "this is
-    where a chart read at second hand ends, and the rest is theirs" is the
-    restraint it actually is. It must not claim to be a person, either — "bring
-    them here and I will talk to them" is a first-person claim to practice and
-    is v2 ship blocker #5.
-    """
-    data = _vault_member_reading(
-        client,
-        family_vault_payload_factory,
-        family_member_payload_factory,
-        age=41,
-        relationship="spouse",
-        name="Ilango Synthetic Spouse",
-    )
-
-    close = next(b for b in data["beats"] if b["id"] == "third_party_close")
-    assert "Ilango" in close["text"]["en"]
-    assert "Ilango" in close["text"]["ta"]
-    body = _body(data, "en").lower()
-    for claim in (" i ", "i will", "i have", "my practice", "in my experience"):
-        assert claim not in f" {body} ", f"first-person claim to practice: {body}"
+    question = data["pendingQuestion"]
+    assert question is not None
+    assert "which of these fits Nila now?" in question["prompt"]["en"], question["prompt"]["en"]
+    assert "Nila" in question["prompt"]["ta"]
+    assert not any(beat["id"] == "your_age_question" for beat in data["beats"])
 
 
 def test_the_owners_own_chart_is_still_read_to_them_in_the_second_person(
@@ -1903,8 +1991,64 @@ def test_every_keyed_table_covers_every_graha():
     """
     grahas = set(reading._VOICE)
     assert len(grahas) == 9, grahas
-    for name in ("_CHILD_VOICE", "_SIGNATURE_OPENING", "_GRIEVANCE"):
+    for name in (
+        "_CHILD_VOICE", "_SIGNATURE_OPENING", "_GRIEVANCE", "_VOICE_THEM", "_SIGNATURE_OPENING_THEM",
+    ):
         assert set(getattr(reading, name)) == grahas, f"{name} does not cover every graha"
+
+
+def _voice_strings(voice) -> list[tuple[str, str, str]]:
+    """(facet, ta, en) for every authored string on one `_Voice`."""
+    out = [("nature", voice.nature.ta, voice.nature.en)]
+    for facet in ("gift", "shadow", "mechanism", "life_lesson", "past_texture",
+                  "now_texture", "action", "asks"):
+        ta, en = getattr(voice, facet)
+        out.append((facet, ta, en))
+    for domain, (ta, en) in voice.domain_flex.items():
+        out.append((f"domain_flex[{domain}]", ta, en))
+    return out
+
+
+def test_the_third_person_voices_never_address_the_reader():
+    """`_VOICE_THEM` is read to a RELATIVE, so a second-person word anywhere in
+    it is the §3.1 failure: the reading talking to the person holding the phone
+    as though they were the one in the chart. Walked over the table directly so
+    the guarantee does not depend on which graha a synthetic chart lands on."""
+    for lord, voice in reading._VOICE_THEM.items():
+        for facet, ta, en in _voice_strings(voice):
+            assert not _SECOND_PERSON_EN.search(en.lower()), f"{lord}.{facet}: {en}"
+            for pronoun in ("நீங்கள்", "உங்கள்", "உங்களுக்கு", "உங்களை", "உங்களிடம்"):
+                assert pronoun not in ta, f"{lord}.{facet}: {ta}"
+            # An imperative in the action would be an instruction to the
+            # relative; the third-person action completes "One thing for X:".
+            if facet == "action":
+                assert not re.search(r"ுங்கள்", ta), f"{lord}.action is an imperative: {ta}"
+
+
+def test_the_third_person_voices_name_their_subject_where_they_open():
+    """`nature` opens the reading, so it must carry the name; nothing else may,
+    because every other facet is placed after a frame that has already named
+    them and a second name in one sentence reads as a template."""
+    for lord, voice in reading._VOICE_THEM.items():
+        assert "{name}" in voice.nature.en and "{name}" in voice.nature.ta, lord
+        assert voice.nature.faces is reading._VOICE[lord].nature.faces, (
+            f"{lord}: the twin must face the same way, or the two registers pick "
+            "different connectives for the same chart"
+        )
+        for facet, ta, en in _voice_strings(voice)[1:]:
+            assert "{name}" not in en and "{name}" not in ta, f"{lord}.{facet}"
+
+
+def test_the_third_person_signature_openings_only_move_the_verdict():
+    """Derived from `_SIGNATURE_OPENING` by replacing the last sentence, so the
+    first two sentences cannot drift from the reviewed self copy."""
+    for lord, line in reading._SIGNATURE_OPENING_THEM.items():
+        base = reading._SIGNATURE_OPENING[lord]
+        assert line.en.endswith("{name} is the second kind."), line.en
+        assert line.ta.endswith("{name} இரண்டாவது வகை."), line.ta
+        assert line.en.replace("{name} is the second kind.", "") == base.en.replace(
+            "You are the second kind.", ""
+        )
 
 
 def test_every_rasi_has_a_mind_and_a_face():
@@ -1986,8 +2130,9 @@ def test_every_beat_the_service_emits_declares_its_provenance(
     stale-baseline problem this repo has paid for before.
     """
     emitted: set[str] = set()
-    # Three registers cover every id: the guardian path (its own forward beat),
-    # the full adult path, and the third-party path (its two own beats).
+    # The guardian path (its own forward beat), the full adult path, and a
+    # family member's path — which since 2026-10-06 is the adult path in the
+    # third person and so must emit nothing the table does not declare.
     for kwargs in ({"age": 8}, {"age": 33, "marital_status": "married"}):
         emitted |= {beat["id"] for beat in _read(client, **kwargs)["beats"]}
     emitted |= {

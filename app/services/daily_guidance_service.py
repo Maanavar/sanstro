@@ -783,20 +783,20 @@ def build_daily_guidance_response(
     if _conf_signals >= 3:
         _band = Band.LIKELY
         _conf_reason = DailyGuidanceText(
-            ta="மூன்று சமிக்ஞைகளும் — சந்திரன், தசை, கோச்சாரம் — சீரமைக்கப்பட்டுள்ளன",
-            en="All three signals — Moon, dasha, transits — are aligned",
+            ta="மூன்றும் — சந்திரன், தசை, கோச்சாரம் — இன்று ஆதரவாக உள்ளன",
+            en="All three — Moon, dasha, transits — support today",
         )
     elif _conf_signals == 2:
         _band = Band.MIXED
         _conf_reason = DailyGuidanceText(
-            ta="இரண்டு சமிக்ஞைகள் சீரமைக்கப்பட்டுள்ளன",
-            en="Two of three signals are aligned",
+            ta="மூன்றில் இரண்டு — சந்திரன், தசை, கோச்சாரம் — இன்று ஆதரவாக உள்ளன",
+            en="Two of the three — Moon, dasha, transits — support today",
         )
     else:
         _band = Band.WEAK
         _conf_reason = DailyGuidanceText(
-            ta="சமிக்ஞைகள் கலந்த நிலையில் உள்ளன — குறிப்பு மட்டுமே",
-            en="Mixed signals — indicative only",
+            ta="சந்திரன், தசை, கோச்சாரம் ஒன்றுக்கொன்று மாறுபடுகின்றன — குறிப்பு மட்டுமே",
+            en="Moon, dasha and transits pull different ways — indicative only",
         )
     _confidence = band_to_legacy_confidence(_band)
     text, action, caution = _build_text(score, label, best_windows, caution_windows)

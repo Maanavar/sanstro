@@ -105,9 +105,21 @@ export function twoMinuteTitle(lang: Lang, displayName: string, addressedTo: str
     : `${given}, in two minutes`;
 }
 
-/** The long reading's title. Titled FOUR minutes, not five, since 2026-08-12. */
-export function fourMinuteTitle(lang: Lang): string {
-  return lang === "ta" ? "உங்கள் ஜாதகம் — நான்கு நிமிடங்களில்" : "Your chart in four minutes";
+/**
+ * The long reading's title. Titled FOUR minutes, not five, since 2026-08-12.
+ *
+ * Name-aware since 2026-10-06, by the same rule as `twoMinuteTitle`: the owner
+ * ruled that a family member's card gets the long reading too, and "Your chart
+ * in four minutes" over somebody else's reading is the exact mis-addressing the
+ * short title was fixed for.
+ */
+export function fourMinuteTitle(lang: Lang, displayName = "", addressedTo = "self"): string {
+  const readerIsSubject = addressedTo === "self" || addressedTo === "client_with_guardian";
+  const given = displayName.split(" ")[0] || displayName;
+  if (readerIsSubject || !given) {
+    return lang === "ta" ? "உங்கள் ஜாதகம் — நான்கு நிமிடங்களில்" : "Your chart in four minutes";
+  }
+  return lang === "ta" ? `${given} — நான்கு நிமிடங்களில்` : `${given}, in four minutes`;
 }
 
 export function BeatBlock({

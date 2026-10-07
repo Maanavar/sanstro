@@ -247,10 +247,12 @@ MAX_WORDS_TA = 240
 _WORD_BUDGET: dict[str, tuple[int, int]] = {
     "parent": (200, 155),
     "client_with_guardian": (250, 190),
-    # Four beats, all D or F. Anything approaching the adult number here means
-    # interpretation of an absent adult has crept back in — the budget is a
-    # second guard on §3.1, not only on length.
-    "other": (150, 115),
+    # The adult reading about a family member (owner ruling 2026-10-06). It was
+    # (150, 115) while the register was facts only, and that number was a second
+    # guard on §3.1. It now carries the self reading's beats in the third
+    # person, so it is held to the self numbers — a name costs the same word
+    # count as "you", and the falsifiability forms are the same length.
+    "other": (328, 238),
     # Measured, not chosen: the binding case is a 45-year-old widowed reader,
     # which takes the STEADYING frame and so cannot pay with the married frame's
     # deleted negation.
@@ -313,7 +315,7 @@ def word_budget(addressed_to: str, *, lagna_reliable: bool = True) -> tuple[int,
     half — so this stays a test-time assertion, exactly as the global pair
     always was.
     """
-    if addressed_to == "self" and not lagna_reliable:
+    if addressed_to in ("self", "other") and not lagna_reliable:
         return _WORD_BUDGET_SELF_UNCONFIRMED
     return _WORD_BUDGET[addressed_to]
 
@@ -1257,6 +1259,555 @@ _VOICE: dict[str, _Voice] = {
 }
 
 
+# ── The same nine voices, about somebody who is not the reader ───────────────
+#
+# OWNER RULING 2026-10-06: a family member's chart gets the same reading as the
+# owner's own — the same beats, both lengths — written ABOUT them. Until then
+# the `other` register was facts only, by the §3.1 rule that nobody who is not
+# in the room is read in character terms; the owner found that reading too thin
+# to be worth opening and overruled it. The rule's own reasoning is still worth
+# keeping in view: everything below is a description of someone who did not ask
+# for it, read by a relative, so it carries the same Rule-1 and Rule-2 discipline
+# as the self copy and nothing harsher than what the self copy says to the
+# person's own face.
+#
+# HAND-WRITTEN, NOT DERIVED. The first build of this module made a minor's
+# reading by running the adult facets through a second-person -> third-person
+# string rewrite and produced "they carry yourself as someone in charge". So
+# every entry here is its own sentence, written once in each language, with the
+# same field shapes and the same orientation tags as its `_VOICE` twin so every
+# builder can take either table.
+#
+# English is singular "they"; nothing on the profile tells us anyone's pronouns,
+# and a guess is worse than the neutral form. Tamil is the honorific அவர், with
+# தன்/தான் for the reflexive. `nature` carries `{name}` because it opens the
+# reading; every other facet is a clause that a frame places after the name.
+# `action` is a gerund / verbal noun ("putting their name…", "…செய்வது") that
+# completes "One thing for {name}:" — an imperative would be addressed to the
+# relative reading it, who is not the one in the period.
+#
+# PENDING NATIVE-TAMIL REVIEW, same marker as the rest of this module.
+_VOICE_THEM: dict[str, _Voice] = {
+    "SUN": _Voice(
+        nature=_Line(
+            "{name} பொறுப்பேற்கும் இயல்பு கொண்டவர்; அதை மற்றவர்கள் உடனே உணர்கிறார்கள் — ஆனால் "
+            "கருத்து வேறுபாட்டை வெளியே காட்டுவதை விட உள்ளுக்குள் அதிகம் உணர்கிறார்.",
+            "{name} comes across as someone in charge, and people read that quickly — though they "
+            "take disagreement more personally than they let on.",
+            Orientation.OUTWARD,
+        ),
+        gift=(
+            "கேட்காமலேயே மற்றவர்கள் அவரிடம் ஒப்படைக்கும் பொறுப்பு",
+            "the authority people hand them without being asked",
+        ),
+        shadow=(
+            "தவறு என்று வெளிப்பட நேரும் தருணம் — தான் நம்பாத நிலைப்பாட்டையும் தொடர்ந்து காப்பாற்றுகிறார்",
+            "being seen to be wrong; they defend a position past the point they believe it",
+        ),
+        mechanism=(
+            "ஏனெனில் அந்தப் பொறுப்பு அவரது உறுதியின் மீதுதான் வந்தது; அதனால் அவர் காட்டும் "
+            "எந்தச் சந்தேகமும் அந்தப் பொறுப்பு நழுவுவது போலப் படுகிறது",
+            "because that authority arrived on the strength of their certainty, so any doubt they "
+            "show feels like the authority itself slipping",
+        ),
+        domain_flex={
+            "WORK": (
+                "கூட்டத்தில் எடுத்த முடிவை, எல்லோரும் அதைக் கடந்து சென்ற பிறகும் பிடித்துக்கொள்வது — "
+                "பின்வாங்குவது தோல்வியாகத் தெரியும் என்பதால்",
+                "holding onto a decision in a meeting long after the room has moved past it, because "
+                "backing down there would look like losing",
+            ),
+            "RELATIONSHIPS": (
+                "தான்தான் தவறு செய்தவர் என்று தெரிந்த பிறகும், முதலில் மன்னிப்புக் கேட்க மறுப்பது",
+                "refusing to say sorry first, even once they know they were the one who was wrong",
+            ),
+        },
+        life_lesson=(
+            "தன்னை நிரூபிப்பதும் தானாக மாறுவதும் ஒன்றல்ல என்பதை வாழ்க்கை அவருக்குத் "
+            "திரும்பத் திரும்பச் சொல்கிறது.",
+            "Life keeps reminding them that proving themselves and becoming themselves are not "
+            "the same thing.",
+        ),
+        past_texture=(
+            "அது அவரை மற்றவர்கள் முன்னால் நிறுத்தியது — அவர் விரும்பினாலும் விரும்பாவிட்டாலும்",
+            "it put them in front of people, whether or not they wanted to be there",
+        ),
+        now_texture=(
+            "இது அவர் கவனிக்கப்படும் காலம்; பாதுகாப்பான பங்கை விட வெளிப்படையான பொறுப்பே அவருக்குப் பலன் தரும்",
+            "this is the stretch where they are seen; the visible role serves them better than the safe one",
+        ),
+        action=(
+            "தான் செய்யும் வேலைக்குத் தன் பெயர் இருக்கச் செய்வது — இந்தக் காலத்தில் உழைப்பை விட "
+            "அது தெரிவதுதான் பலன் தரும்",
+            "putting their name on their work — this period converts visibility, not effort alone",
+        ),
+        asks=(
+            "மற்றவர்கள் முன் நிலைத்திருக்கும் நம்பிக்கை, முடிவு உறுதி செய்யப்படுவதற்கு முன்பே",
+            "steady confidence in front of people, even before the outcome is certain",
+        ),
+    ),
+    "MOON": _Voice(
+        nature=_Line(
+            "யாரும் பேசுவதற்கு முன்பே {name} சூழலைப் புரிந்துகொள்கிறார்; அதனால் மற்றவர்கள் தங்கள் "
+            "கவலைகளை அவரிடம் கொண்டு வருகிறார்கள் — ஆனால் பிறரின் மனநிலை தேவைக்கும் அதிக நேரம் "
+            "அவருடன் தங்கிவிடுகிறது.",
+            "{name} reads a room before anyone speaks, and people bring them their troubles — though "
+            "other people's moods stay with them longer than they should.",
+            Orientation.INWARD,
+        ),
+        gift=(
+            "மற்றவர்களுக்கு என்ன தேவை என்பதை அவர்கள் சொல்வதற்கு முன்பே அறிதல்",
+            "reading what people need before they say it",
+        ),
+        shadow=(
+            "அழுத்தத்தில் நிலைத்திருத்தல் — அவரது மனநிலை சூழலின் மனநிலையைப் பின்தொடர்கிறது",
+            "steadiness under pressure; their mood follows the room's more than they would like",
+        ),
+        mechanism=(
+            "ஏனெனில் ஒரு சூழலை அவரால் படிக்க முடியும் அதே திறந்த தன்மைதான், அதன் மனநிலையை அவருக்குள் இறங்க விடுகிறது",
+            "because the same openness that lets them read a room is what lets its mood settle into them",
+        ),
+        domain_flex={
+            "WORK": (
+                "பதற்றமான கூட்டத்தின் மனநிலையை, அது முடிந்த நீண்ட நேரத்திற்குப் பிறகும் வீட்டிற்குக் கொண்டு செல்வது",
+                "carrying a tense meeting's mood home long after the meeting itself is over",
+            ),
+            "RELATIONSHIPS": (
+                "துணையின் மோசமான நாளை, யாரும் அதை முடிவு செய்யாமலேயே தன் சொந்த நாளாக ஏற்றுக்கொள்வது",
+                "taking on a partner's bad day as if it were their own, without either of them deciding that",
+            ),
+        },
+        life_lesson=(
+            "எல்லாவற்றையும் சுமக்காமலேயே அக்கறை காட்ட முடியும் என்பதை வாழ்க்கை அவருக்குத் "
+            "திரும்பத் திரும்பக் கற்பிக்கிறது.",
+            "Life keeps asking them to care without carrying all of it.",
+        ),
+        past_texture=(
+            "அது அடிக்கடி நகர்ந்தது — இடம், மனநிலை, மனிதர்கள் — அதற்குள் நிலையாக இருக்கும்படி அவரைக் கேட்டது",
+            "it moved often — homes, moods, people — and asked them to stay steady inside all of it",
+        ),
+        now_texture=(
+            "இந்தக் காலம் மனிதர்களையும் மனநிலையையும் சுற்றியே நகர்கிறது; தன் சொந்தத் தாளத்தை அவர் "
+            "காத்துக்கொண்டால் நன்றாக நடக்கும்",
+            "this stretch runs on people and mood; if they keep their own rhythm it goes well",
+        ),
+        action=(
+            "தூக்கத்தையும் தினசரி நேரங்களையும் சீராக வைத்துக்கொள்வது — இந்தக் காலத்தில் அவரது "
+            "நிலைத்தன்மையே எல்லாவற்றுக்கும் அடிப்படை",
+            "protecting their sleep and the rhythm of their days; this period runs on their steadiness",
+        ),
+        asks=(
+            "சூழல் அமைதியாகும் வரை காத்திராத ஒரு நிலைத்தன்மை",
+            "a steadiness that doesn't wait for the room to settle first",
+        ),
+    ),
+    "MARS": _Voice(
+        nature=_Line(
+            "{name} முதலில் செயல்படுபவர், விரைவாக முடிவெடுப்பவர் — அவரைச் சுற்றி வேலைகள் நடப்பதற்குக் "
+            "காரணமே அதுதான். ஆனால் கடைசித் தகவல் வருவதற்கு முன்பே முடிவெடுத்துவிடுகிறார்.",
+            "{name} moves first and decides fast, which is why things around them actually get done — "
+            "though they commit before the last fact is in.",
+            Orientation.OUTWARD,
+        ),
+        gift=(
+            "மற்றவர்கள் இன்னும் விவாதித்துக்கொண்டிருக்கும்போது செயல்படுதல்",
+            "acting while other people are still discussing",
+        ),
+        shadow=(
+            "பொறுமை — தானாகவே வந்திருக்கக்கூடிய முடிவை அவர் வலுக்கட்டாயமாக வரவழைக்கிறார்",
+            "patience; they force a decision that would have come to them on its own",
+        ),
+        mechanism=(
+            "ஏனெனில் மற்றவர்களுக்கு முன்பே அவரை நகர்த்தும் அதே உந்துதல்தான், ஒரு முடிவு தானாக வர அனுமதிக்காமல் தடுக்கிறது",
+            "because the same push that gets them moving before anyone else decides is what won't let "
+            "a decision arrive on its own",
+        ),
+        domain_flex={
+            "WORK": (
+                "எண்கள் முழுமையாக வருவதற்கு முன்பே ஒரு திட்டத்தை முடிவுக்குத் தள்ளுவது — காத்திருப்பது "
+                "இடத்தை இழப்பது போலத் தோன்றும்",
+                "pushing a project to a decision before the numbers are actually in, because waiting "
+                "feels like losing ground",
+            ),
+            "RELATIONSHIPS": (
+                "மறுபக்கத்தினர் தன் எண்ணத்தை முடிவு செய்வதற்கு முன்பே, உரையாடலை ஒரு முடிவுக்குக் கொண்டுவர வலியுறுத்துவது",
+                "forcing a conversation to a conclusion before the other person has finished working out "
+                "what they think",
+            ),
+        },
+        life_lesson=(
+            "ஒவ்வொரு போரும் தன் பலத்திற்குத் தகுதியானது அல்ல என்பதை வாழ்க்கை அவருக்குத் "
+            "திரும்பத் திரும்பக் கற்பிக்கிறது.",
+            "Life keeps teaching them that not every battle deserves their strength.",
+        ),
+        past_texture=(
+            "அது செயலுக்குப் பலன் தந்தது, தயக்கத்திற்குத் தண்டனை தந்தது — அவரைக் களைப்படையவும் வைத்தது",
+            "it rewarded action and punished hesitation, and it left them tired",
+        ),
+        now_texture=(
+            "இந்தக் காலம் முதலில் நகர்பவருக்குப் பலன் தரும்; ஆபத்து என்பது தவறான இலக்கில் சக்தியைச் செலவிடுவது",
+            "this stretch rewards moving first; the risk is spending the energy on the wrong target",
+        ),
+        action=(
+            "ஒன்றை மட்டும் தேர்ந்தெடுத்து முன்னெடுப்பது; மற்ற மூன்றையும் தள்ளுவதை நிறுத்துவது",
+            "picking one thing to push, and letting the other three go",
+        ),
+        asks=(
+            "நகர்வதற்கு முன்பே தேர்ந்தெடுக்கப்பட்ட ஒரு இலக்கு, நகர்ந்தபடி தேடும் ஒன்றல்ல",
+            "a target chosen before they move, not one found while they're already moving",
+        ),
+    ),
+    "MERCURY": _Voice(
+        nature=_Line(
+            "{name} வார்த்தைகளில் சிந்திப்பவர்; எந்தச் சூழலையும் பேச்சால் கடந்துவிடுவார் — ஆனால் "
+            "ஏற்கனவே சரியாக எடுத்த முடிவை மீண்டும் யோசித்து மாற்றிக்கொள்கிறார்.",
+            "{name} thinks in words and can talk their way through most rooms — though they often "
+            "reason themselves out of a decision they had already got right.",
+            Orientation.OUTWARD,
+        ),
+        gift=(
+            "சிக்கலான ஒன்றை எளிமையாக விளக்குதல்",
+            "explaining a complicated thing simply",
+        ),
+        shadow=(
+            "முடிவெடுத்தல் — இரு பக்கத்தையும் அவர் நன்றாக வாதிடுவதால் எதுவும் வெல்வதில்லை",
+            "deciding; they can argue both sides so well that neither one wins",
+        ),
+        mechanism=(
+            "ஏனெனில் ஒன்றை விளக்கும் அளவுக்குத் தெளிவாகப் புரிந்துகொள்வது, அதன் ஒவ்வொரு பக்கத்தையும் அதே தெளிவுடன் காண வைக்கிறது",
+            "because seeing a thing clearly enough to explain it means seeing every side of it just as clearly",
+        ),
+        domain_flex={
+            "WORK": (
+                "ஒரு முடிவைச் சுற்றிச் சுற்றிப் பேசி, கூட்டமே எந்த முடிவும் இல்லாமல் முடிந்துவிடுவது",
+                "talking a decision in circles until the meeting ends with no decision at all",
+            ),
+            "RELATIONSHIPS": (
+                "ஒரு கருத்து வேறுபாட்டில் துணையின் பக்கத்தை மிக நன்றாக வாதிட்டு, தன் சொந்தக் கருத்தையே மறந்துவிடுவது",
+                "arguing a partner's side of a disagreement so well that they lose track of their own",
+            ),
+        },
+        life_lesson=(
+            "எல்லாவற்றையும் இன்னும் நன்றாக விளக்குவதன் மூலம் தீர்த்துவிட முடியாது என்பதை "
+            "வாழ்க்கை அவருக்குத் திரும்பத் திரும்பக் காட்டுகிறது.",
+            "Life keeps showing them that not everything is settled by explaining it better.",
+        ),
+        past_texture=(
+            "அது பேச்சு, கற்றல், ஆவணங்கள் நிறைந்த காலம் — நுணுக்கங்களைச் சரியாகச் செய்ததில் வெற்றி வந்தது",
+            "it was a stretch of talking, learning and paperwork, where the wins came from getting the "
+            "details right",
+        ),
+        now_texture=(
+            "இந்தக் காலம் வார்த்தை, கற்றல், தெளிவான ஆவணங்களுக்குப் பலன் தரும் — உழைப்புக்கு மட்டும் அல்ல",
+            "this stretch pays for words, learning and clear paperwork more than for effort alone",
+        ),
+        action=(
+            "எதற்கும் ஒப்புக்கொள்வதற்கு முன் எழுதி வைப்பது — இந்தக் காலத்தில் சிறிய விவரங்கள்தான் முக்கியமாகின்றன",
+            "writing it down before agreeing to it; in this period the small details are what matter",
+        ),
+        asks=(
+            "இரு பக்கமும் வாதிட்ட பிறகும் மாறாமல் நிற்கும் ஒரு முடிவு",
+            "a decision that stays decided, even after they've argued both sides of it",
+        ),
+    ),
+    "JUPITER": _Voice(
+        nature=_Line(
+            "{name} மக்கள் தீர்ப்புக்காகத் தேடி வரும் ஒருவர்; அவர் தாராளமாகக் கொடுக்கிறார் — ஆனால் "
+            "ஒருவரால் தாங்கக்கூடியதை விட அதிகமாக வாக்குறுதி அளிக்கிறார்.",
+            # Named twice on purpose: with "people" in the sentence, a "they"
+            # here could be read as the people rather than as the person.
+            "People come to {name} for judgment, and it is given generously — though {name} "
+            "promises more than one person can reasonably carry.",
+            Orientation.OUTWARD,
+        ),
+        gift=(
+            "மற்றவர்கள் நம்பிச் செயல்படும் அளவுக்கான தீர்ப்பு",
+            "judgment people trust enough to act on",
+        ),
+        shadow=(
+            "மறுத்துச் சொல்வது — அதனால் அவரது சம்மதம் பல இடங்களில் மெலிந்துவிடுகிறது",
+            "saying no, so their yes gets spread thin",
+        ),
+        mechanism=(
+            "ஏனெனில் மற்றவர்கள் தேடி வரும் அதே தீர்ப்புதான், ஒவ்வொரு முறையும் பதில் சம்மதமாக "
+            "இருக்க வேண்டிய ஒரு காரணத்தையும் கண்டுபிடித்துவிடுகிறது",
+            "because the judgment people come to them for is the same judgment that keeps finding a "
+            "reason the answer should be yes",
+        ),
+        domain_flex={
+            "WORK": (
+                "ஏற்கனவே இருக்கும் திட்டங்களே பாதிக்கப்படும் நிலையிலும், இன்னும் ஒரு திட்டத்தை ஏற்றுக்கொள்வது",
+                "agreeing to take on one more project when the ones they already have are the ones "
+                "suffering",
+            ),
+            "RELATIONSHIPS": (
+                "தன்னைச் சுற்றி இருப்பவர்களின் தேவைகளுக்கெல்லாம் சம்மதித்து, தனக்கு மிக நெருக்கமானவருக்கு "
+                "எதுவும் மிச்சம் வைக்காதது",
+                "saying yes to what everyone around them needs, until there is nothing left over for the "
+                "person closest to them",
+            ),
+        },
+        life_lesson=(
+            "வரம்பின்றி அல்ல, விவேகத்துடன் கொடுக்கும்படி வாழ்க்கை அவரைத் திரும்பத் "
+            "திரும்பக் கேட்கிறது.",
+            "Life keeps asking them to give wisely rather than endlessly.",
+        ),
+        past_texture=(
+            "அது கதவுகளைத் திறந்தது, அவரது வட்டத்தை விரிவாக்கியது — அவர் உள்ளே நுழைந்த அளவுக்கு",
+            "it opened doors and widened their circle, to the extent that they walked through them",
+        ),
+        now_texture=(
+            "இந்தக் காலம் விரிவடைகிறது — கற்பித்தல், பிள்ளைகள், அவரை விட மூத்தவர்களின் உதவி கிடைக்கும்",
+            "this stretch widens things — teaching, children, and people senior to them tend to help",
+        ),
+        action=(
+            "யாருக்காவது ஒன்றைக் கற்றுக் கொடுப்பது — அது எடுக்கும் நேரத்தை விட அதிகமாகவே "
+            "திரும்பக் கிடைக்கும்",
+            "saying yes to teaching someone; here it returns more than it costs",
+        ),
+        asks=(
+            "மிச்சமிருக்கும் சம்மதம் அர்த்தமுள்ளதாக இருக்க, ஒரு தெளிவான மறுப்பு",
+            "one clear no, so the rest of their yes still means something",
+        ),
+    ),
+    "VENUS": _Voice(
+        nature=_Line(
+            "{name} சூழலையும் மனிதர்களையும் இதமாக வைத்திருப்பவர்; திறமை மட்டும் திறக்காத கதவுகளை அது "
+            "திறக்கும் — ஆனால் தெளிவைக் கொடுக்கும் அந்த ஒரு உரையாடலைத் தவிர்க்கிறார்.",
+            "{name} makes things pleasant and people comfortable, and that opens doors ability alone "
+            "would not — though they avoid the one conversation that would clear the air.",
+            Orientation.OUTWARD,
+        ),
+        gift=(
+            "மனிதர்களிடம் காட்டும் பொறுமையும், அது ஈட்டித் தரும் நல்லெண்ணமும்",
+            "patience with people, and the goodwill it earns",
+        ),
+        shadow=(
+            "நேரடி மோதல் — எதிர்த்துச் சொல்வதை விட உள்ளுக்குள் தாங்கிக்கொள்கிறார், அது சேர்ந்துகொண்டே வரும்",
+            "confrontation; they tend to absorb rather than object, and it accumulates",
+        ),
+        mechanism=(
+            "ஏனெனில் மற்றவர்களின் நல்லெண்ணத்தை ஈட்டித்தரும் அதே பொறுமைதான், அவர் சொல்ல வேண்டிய எதிர்ப்பையும் விழுங்கிவிடுகிறது",
+            "because the patience that earns people's goodwill is the same instinct that swallows the "
+            "objection they should have raised",
+        ),
+        domain_flex={
+            "WORK": (
+                "உண்மையில் உடன்படாத ஒரு முடிவுக்குக் கூட்டத்தில் தலையசைத்து, பிறகு அதை யாரிடமும் எடுத்துச் சொல்லாதது",
+                "agreeing with a decision in the room that they actually disagree with, and raising it "
+                "with no one afterwards",
+            ),
+            "RELATIONSHIPS": (
+                "ஒரு சிறிய வருத்தத்தைச் சொல்லாமல் விட்டுவிட்டு, அது அமைதியாகப் பலவாகச் சேர்ந்துவிடுவது",
+                "letting a small hurt go unsaid until it has quietly become several",
+            ),
+        },
+        life_lesson=(
+            "மௌனத்தால் வாங்கிய அமைதி நீடிப்பதில்லை என்பதை வாழ்க்கை அவருக்குத் திரும்பத் "
+            "திரும்ப நினைவூட்டுகிறது.",
+            "Life keeps reminding them that peace bought with silence does not hold.",
+        ),
+        past_texture=(
+            "அது பொறுமைக்கு வசதியைத் திருப்பித் தந்தது, அதை மிகைப்படுத்தாமல் அனுபவிக்கும்படி அவரைக் கேட்டது",
+            "it repaid patience with comfort, and asked them to enjoy it without over-spending it",
+        ),
+        now_texture=(
+            "இது தாராளமான காலம் — உறவுகள், வசதி, பணம் இப்போது எளிதாக நகர்கின்றன",
+            "this is a generous stretch — relationships, comfort and money move more easily now",
+        ),
+        action=(
+            "முக்கியமானதை நிதானமாகத் தொடங்குவது; தவிர்த்துவரும் அந்த உரையாடலை முடிப்பது",
+            "starting what matters gently, and finishing the conversation they have been avoiding",
+        ),
+        asks=(
+            "மென்மையாக்குவதை விட, நடத்த வேண்டிய அந்த ஒரு உரையாடல்",
+            "the conversation they'd rather smooth over than actually have",
+        ),
+    ),
+    "SATURN": _Voice(
+        nature=_Line(
+            "{name} தொடங்கியதை முடிப்பவர்; முதலில் இருப்பதை விட உறுதியாக இருப்பதையே விரும்புவார் — "
+            "ஆனால் ஒரு வழிமுறையை ஏற்ற பிறகு, அது பலன் தராத நிலையிலும் அதை விட்டு விலகுவது அவருக்குக் கடினம்.",
+            "{name} finishes what they start and would rather be sure than first — though once "
+            "committed to a way of working, they find it hard to let go.",
+            Orientation.INWARD,
+        ),
+        gift=(
+            "வேகமானவர்களைத் தோற்கடிக்கும் பிரச்சினைகளை விடத் தாக்குப்பிடித்தல்",
+            "outlasting problems that defeat faster people",
+        ),
+        shadow=(
+            "தொடங்குவது — வராத ஒரு உறுதிக்காக அவர் காத்திருக்கிறார்",
+            "starting; they wait for a certainty that does not arrive",
+        ),
+        mechanism=(
+            "ஏனெனில் உறுதியாகும் வரை நகராத அதே குணம்தான், மற்றவர்களை விட அவரைத் தாக்குப்பிடிக்க வைக்கிறது, "
+            "அது பயனற்றுப் போன பிறகும் அவரை நிறுத்தி வைக்கிறது",
+            "because the same refusal to move before they're sure is what lets them outlast everyone "
+            "else, and what keeps them standing still after it stops helping",
+        ),
+        domain_flex={
+            "WORK": (
+                "ஒரு திட்டமுன்மொழிவை முழுமையாகும் வரை தாமதப்படுத்துவது — கவனம் குறைவானவர் தன்னுடையதை முன்பே "
+                "சமர்ப்பித்துவிடுவார்",
+                "sitting on a proposal until it is airtight, while someone less careful ships theirs "
+                "first",
+            ),
+            "RELATIONSHIPS": (
+                "முக்கியமானதைச் சொல்ல சரியான தருணத்திற்காகக் காத்திருந்து, அந்தத் தருணமே அமைதியாகக் கடந்துவிடுவது",
+                "waiting for the right moment to say what matters, until the moment has quietly passed",
+            ),
+        },
+        life_lesson=(
+            "உறுதி வரும்வரை காத்திருப்பதன் விலை, உறுதியின்றித் தொடங்குவதை விட அதிகம் "
+            "என்பதை வாழ்க்கை அவருக்குக் கற்பிக்கிறது.",
+            "Life keeps teaching them that waiting for certainty costs more than starting "
+            "without it.",
+        ),
+        past_texture=(
+            "அது பலனை விடப் பொறுமையையே அதிகம் கேட்டது; அங்கே எதுவும் அவசரத்திற்கு இணங்கவில்லை",
+            "it asked for endurance more than it offered reward, and nothing in it yielded to haste",
+        ),
+        now_texture=(
+            "இந்தக் காலம் தாமதமாகத் தரும், ஆனால் தரும் — அவசரப்பட்டுச் செய்வதை விட இப்போது அவர் கட்டுவது நீடிக்கும்",
+            "this stretch pays late, but it does pay; what they build now outlasts what they rush",
+        ),
+        action=(
+            "ஒரு சிறிய உறுதிமொழியை தினமும் காப்பாற்றுவது — இந்தக் காலத்தில் தொடர்ந்து செய்யக்கூடிய "
+            "செயல்களுக்கே அதிக மதிப்பு கிடைக்கும்",
+            "keeping one small commitment every day; this period rewards what they sustain",
+        ),
+        asks=(
+            "தயாராக உணரும் முன்பே எடுக்கப்படும் ஒரு தொடக்கம்",
+            "a start made before they feel ready for it, not after",
+        ),
+    ),
+    "RAHU": _Voice(
+        nature=_Line(
+            "{name} தனக்குக் கொடுக்கப்பட்ட இடத்தை விட அதிகம் வேண்டும் என்பவர்; மற்றவர் காணாத வழிகளைக் "
+            "கண்டுபிடிப்பார் — ஆனால் சென்றடைந்ததை அனுபவிக்க நிற்பதே இல்லை.",
+            "{name} wants more than the room they were given and finds routes other people do not see — "
+            "though they rarely stop long enough to enjoy arriving.",
+            Orientation.OUTWARD,
+        ),
+        gift=(
+            "மற்றவர்கள் சுவரைக் காணும் இடத்தில் ஒரு வழியைக் காணுதல்",
+            "seeing an opening where other people see a wall",
+        ),
+        shadow=(
+            "முடிப்பது — நடப்பதை விட அடுத்தது எப்போதும் சுவாரஸ்யமாக இருக்கிறது",
+            "finishing; the next thing is always more interesting than the current one",
+        ),
+        mechanism=(
+            "ஏனெனில் மற்றவர்கள் காணாத வழியை அவருக்குக் காட்டும் அதே பசி, அவர் ஏற்கனவே இருக்கும் வழியை "
+            "முடிந்துவிட்டதாக உணர வைக்கிறது",
+            "because the same hunger that shows them the opening no one else sees is what makes the "
+            "one they're already in feel finished before it is",
+        ),
+        domain_flex={
+            "WORK": (
+                "தற்போதைய திட்டம் முழுமையாக முடிவதற்கு முன்பே அடுத்த திட்டத்தைத் தொடங்கிவிடுவது",
+                "starting the next project before the current one is actually closed out",
+            ),
+            "RELATIONSHIPS": (
+                "ஏற்கனவே இருக்கும் உறவில் முழுமையாக நிலைபெறுவதற்கு முன்பே, புதிதாக ஒன்றின் ஈர்ப்பை உணர்வது",
+                "feeling the pull of what's new before they have finished settling into what they "
+                "already have",
+            ),
+        },
+        life_lesson=(
+            "அடுத்ததாக அவர் தேடுவது உண்மையில் அவர் விரும்பியதுதானா என்று வாழ்க்கை "
+            "திரும்பத் திரும்பக் கேட்கிறது.",
+            "Life keeps asking whether the next thing is the one they actually wanted.",
+        ),
+        past_texture=(
+            "அது வழக்கத்திற்கு மாறான திருப்பங்கள் நிறைந்தது — அவர் சென்ற பாதை திட்டமிட்டது அல்ல",
+            "it was a stretch of unusual turns — the route they took was not the one they planned",
+        ),
+        now_texture=(
+            "இந்தக் காலம் வழக்கத்திற்கு மாறான வழிகளைத் தருகிறது; தோன்றியதால் அல்ல, தேர்ந்தெடுத்தே "
+            "அவற்றை எடுப்பது நல்லது",
+            "this stretch offers unconventional routes; they are worth taking deliberately, not "
+            "because they appeared",
+        ),
+        action=(
+            "எந்த வழி என்பதைத் தெரிந்தே தேர்ந்தெடுப்பது — கண்முன் வந்தது என்பதற்காக மட்டும் அல்ல",
+            "choosing the route deliberately, not taking one just because it appeared",
+        ),
+        asks=(
+            "சென்றடைய முடியும் அளவுக்கு நீண்ட நேரம் பிடித்திருக்கப்படும் ஒரு இலக்கு",
+            "one destination held onto long enough to actually arrive",
+        ),
+    ),
+    "KETU": _Voice(
+        nature=_Line(
+            "{name} எதையும் விரைவில் ஊடுருவிப் பார்ப்பவர்; எளிதில் வியப்படைவதில்லை — ஆனால் கேட்டே "
+            "தெரிந்துகொள்ளக்கூடிய ஒன்றிலிருந்தும் விலகிவிடுகிறார்.",
+            "{name} sees through things quickly and is not easily impressed — though they withdraw "
+            "from what they could simply have asked about.",
+            Orientation.INWARD,
+        ),
+        gift=(
+            "உண்மையில் முக்கியமானது எது என்பதை நேராக அடைதல்",
+            "cutting straight to what actually matters",
+        ),
+        shadow=(
+            "தங்கியிருப்பது — சூழலுக்குத் தேவை அதுவாக இருக்கும்போதும் விலகிவிடுகிறார்",
+            "staying — they withdraw at the times when staying is what the situation needs",
+        ),
+        mechanism=(
+            "ஏனெனில் முக்கியமற்றதைத் தாண்டிச் செல்லும் அதே உள்ளுணர்வுதான், ஒரு விஷயத்திற்கு அவர் இன்னும் "
+            "தேவைப்படும்போதே அவரை விலக்கிச் செல்கிறது",
+            "because the same instinct that cuts past what doesn't matter is what pulls them away "
+            "before a thing is finished needing them",
+        ),
+        domain_flex={
+            "WORK": (
+                "ஒரு திட்டத்திற்கு அவரது இருப்பு மிகவும் தேவைப்படும் தருணத்திலேயே, அமைதியாக விலகிவிடுவது",
+                "going quiet on a project right when it most needs them to stay in the room",
+            ),
+            "RELATIONSHIPS": (
+                "ஒரு உரையாடல் கடினமாக மாறும் தருணத்திலேயே, அதில் தொடர்வதற்குப் பதிலாகப் பின்வாங்குவது",
+                "pulling back from a conversation the moment it turns difficult, instead of staying in "
+                "it",
+            ),
+        },
+        life_lesson=(
+            "இன்னும் கவனத்திற்குத் தகுதியானதை விட்டு விலகக் கூடாது என்பதை வாழ்க்கை அவருக்குத் "
+            "திரும்பத் திரும்ப நினைவூட்டுகிறது.",
+            "Life keeps reminding them not to leave what still deserves their attention.",
+        ),
+        past_texture=(
+            "அது அமைதியாகப் பலவற்றை முடித்து வைத்தது; சேர்ப்பதை விட விட்டுவிடும்படி அவரைக் கேட்டது",
+            "it quietly closed things off, and asked them to let go more than to acquire",
+        ),
+        now_texture=(
+            "இந்தக் காலம் திறப்பதை விட முடிக்கிறது — அது இழப்பு அல்ல; தொடங்குவதை விட முடிப்பதே அவருக்கு நல்லது",
+            "this stretch closes more than it opens, which is not a loss; finishing things serves them "
+            "better than starting them",
+        ),
+        action=(
+            "நீண்ட நாட்களாக இழுத்துக்கொண்டிருக்கும் ஒன்றை முடிப்பது; புதிதாக ஒன்றைத் தொடங்காமல் இருப்பது",
+            "closing one long-open thing rather than starting a new one",
+        ),
+        asks=(
+            "தன் சொந்த ஆர்வமே அமைதியானதற்குப் பிறகும், அந்த இடத்தில் அவர் இருப்பது",
+            "staying present in something after their own interest in it has already gone quiet",
+        ),
+    ),
+}
+
+
+def _voice(lord: str, addressed_to: str) -> _Voice:
+    """The graha's narration facets in the register the reading is written in.
+
+    `other` is the only register that reads an adult in the third person; the
+    child (`parent`) register has its own vocabulary in `_CHILD_VOICE` and never
+    reaches the adult facets, and `client_with_guardian` is second person.
+    """
+    return _VOICE_THEM[lord] if addressed_to == "other" else _VOICE[lord]
+
+
 # ── The signature voice: how the reading opens, and the question it names ────
 #
 # Keyed on the chart's DOMINANT graha (app/reasoning/chart_signature.py), which
@@ -1353,6 +1904,31 @@ _SIGNATURE_OPENING: dict[str, _Line] = {
     ),
 }
 
+# The same openings for the `other` register. Only the verdict sentence moves —
+# "You are the second kind." becomes "{name} is the second kind." — because the
+# two sentences before it are about "some people" and already third person.
+# Derived rather than re-typed so the two tables cannot drift apart in their
+# first two sentences, and the derivation refuses any entry that does not end
+# on the exact verdict it replaces: a pronoun rewrite run over free prose is
+# what produced "they carry yourself", and this is deliberately not that.
+_SECOND_KIND: tuple[str, str] = ("நீங்கள் இரண்டாவது வகை.", "You are the second kind.")
+_SECOND_KIND_THEM: tuple[str, str] = ("{name} இரண்டாவது வகை.", "{name} is the second kind.")
+
+
+def _opening_about_them(line: _Line) -> _Line:
+    if not (line.ta.endswith(_SECOND_KIND[0]) and line.en.endswith(_SECOND_KIND[1])):
+        raise ValueError(f"signature opening does not end on the verdict sentence: {line.en}")
+    return _Line(
+        line.ta[: -len(_SECOND_KIND[0])] + _SECOND_KIND_THEM[0],
+        line.en[: -len(_SECOND_KIND[1])] + _SECOND_KIND_THEM[1],
+        line.faces,
+    )
+
+
+_SIGNATURE_OPENING_THEM: dict[str, _Line] = {
+    lord: _opening_about_them(line) for lord, line in _SIGNATURE_OPENING.items()
+}
+
 # ── The two nouns beat 1 printed and never used ──────────────────────────────
 #
 # Until 2026-08-07 the opening named three things — the janma nakshatra, the
@@ -1372,12 +1948,12 @@ _SIGNATURE_OPENING: dict[str, _Line] = {
 # entries cannot collide with a nine-graha table at all, and the rasi is the unit
 # a Tamil reader already knows themselves by.
 #
-# WHERE THEY DO NOT GO. The ``parent`` and ``other`` registers keep the bare fact
-# sentence. Both of those are deliberate silences and neither is a length
-# problem: a child's reading is a different artifact rather than the adult one
-# rephrased, and an adult who is not in the room gets the chart facts and no
-# character note at all (§3.1). A disposition clause is exactly the material
-# those two registers exist to withhold.
+# WHERE THEY DO NOT GO. The ``parent`` register keeps the bare fact sentence: a
+# child's reading is a different artifact rather than the adult one rephrased,
+# and a disposition clause is exactly the material it exists to withhold. The
+# adult ``other`` register (a family member, since 2026-10-06) reads them in the
+# four-minute reading's tension beat, from the third-person twins in
+# five_minute_reading_service.
 
 # Chandra is manah-karaka; the rasi it occupies is the classical colour of the
 # manas. So this table describes the MIND — never the life, never the outcome —
@@ -1557,17 +2133,30 @@ _FALSIFIABILITY: dict[tuple[str, bool], tuple[str, str]] = {
         "and time before reading on. Twenty minutes can move the rising sign.",
     ),
     # This one KEEPS the strong claim, and the asymmetry is the point rather
-    # than an oversight. `third_person` is the parent and third-party registers,
-    # and neither emits `strength_and_cost` or the signature opening — the child
-    # note is keyed on the nakshatra lord and the third-party reading carries no
-    # character material at all. So in these two registers the star and the dasa
-    # arithmetic really are the whole of what is left, and saying so is true.
+    # than an oversight. It is now the PARENT register's alone: the child note
+    # is keyed on the nakshatra lord and no strength material is emitted, so
+    # the star and the dasa arithmetic really are the whole of what is left.
+    # The adult `other` register stopped qualifying on 2026-10-06, when it
+    # began carrying the full reading — signature opening and strength beat
+    # included — and it takes the narrowed form below instead.
     ("third_person", False): (
         "{name}-இன் பிறந்த நேரம் உறுதிப்படுத்தப்படவில்லை; அதனால் இந்த வாசிப்பு லக்னத்தை "
         "விட்டுவிடுகிறது — இருபது நிமிடங்கள் அதை மாற்றிவிடும். அவரின் நட்சத்திரத்தை அது "
         "மாற்றுவதில்லை; மீதி அதன் மீதுதான் நிற்கிறது.",
         "{name}'s birth time is not confirmed, so this reading leaves the rising sign out — "
         "twenty minutes can move it. It does not move their star, which the rest is built on.",
+    ),
+    # The adult `other` register on an unconfirmed time. Same narrowing as the
+    # ("self", False) entry and for the same reason: this reading carries the
+    # signature opening and the strength beat, both keyed on `strength_score`,
+    # which takes the lagna — so "the rest is built on the star" would be false
+    # here. `_LAGNA_STRENGTH_CAVEAT` follows it, as it does on the self path.
+    ("third_person_adult", False): (
+        "{name}-இன் பிறந்த நேரம் உறுதிப்படுத்தப்படவில்லை; அதனால் இந்த வாசிப்பு லக்னத்தை "
+        "விட்டுவிடுகிறது — இருபது நிமிடங்கள் அதை மாற்றிவிடும். அவரது நட்சத்திரமும் இங்குள்ள "
+        "காலக் கணக்குகளும் அதைச் சாராமல் நிற்கின்றன.",
+        "{name}'s birth time is not confirmed, so this reading leaves the rising sign out — "
+        "twenty minutes can move it. Their star and every date here stand without it.",
     ),
 }
 
@@ -1655,6 +2244,13 @@ _PAST_INVITATION: tuple[str, str] = (
     "அது உங்களுக்கு எங்கே, எப்படித் தெரிந்தது?",
     "Where did that show up for you?",
 )
+# The `other` register's form. Still a question handed to the person reading —
+# they are the one who has watched this relative's decade — but phrased about
+# the relative, so the reading never switches person mid-beat.
+_PAST_INVITATION_THEM: tuple[str, str] = (
+    "அது {name}-இடம் எங்கே, எப்படித் தெரிந்தது?",
+    "Where did that show up for {name}?",
+)
 
 # ── Minor forms: an adult life surface named to somebody who has no such life ─
 #
@@ -1697,35 +2293,27 @@ def _now_texture(lord: str, addressed_to: str) -> tuple[str, str]:
     """``(ta, en)`` for what a stretch under ``lord`` offers, in this register."""
     if addressed_to == "client_with_guardian" and lord in _MINOR_NOW_TEXTURE:
         return _MINOR_NOW_TEXTURE[lord]
-    return _VOICE[lord].now_texture
+    return _voice(lord, addressed_to).now_texture
 
 # ── Reading a chart that belongs to somebody else ────────────────────────────
 #
-# §3.1 of docs/AGE_GATED_READING_AUDIT_2026-08-05.md, and the source document's
-# hardest cross-gate prohibition: NOBODY WHO IS NOT IN THE ROOM GETS READ IN
-# ACHIEVEMENT TERMS — not a spouse, not a child, not a business partner.
+# HISTORY, because the rule this replaces was deliberate. §3.1 of
+# docs/AGE_GATED_READING_AUDIT_2026-08-05.md found a 52-year-old father opening
+# his 26-year-old daughter's card and being handed her full adult reading
+# addressed to HIM as "you". The fix was a facts-only `other` register — star,
+# rasi, the running period — ending on "That is as far as a reading goes for
+# someone who is not the one reading it."
 #
-# The family vault is member-centric and this reading was placed as its first
-# section per member, so a 52-year-old father opening his 26-year-old daughter's
-# card was handed her full adult reading: the signature opening, her private
-# grievance quoted back as her own inner question, her soft spot, and her
-# marriage-timing beat — every one of them addressed as "you".
-#
-# The close is not an apology for a shorter reading. A reading that simply stops
-# reads as broken, and the honest sentence is available: the material we are
-# withholding is not missing, it is HERS, and a chart read at second hand has a
-# natural end. It doubles as the invite loop, which is not the reason it is here
-# but is not nothing either.
-#
-# It cannot say what the source document says — "bring them here and I will talk
-# to them" — because that is a first-person claim to practice, which is v2 ship
-# blocker #5 and does not port for the same reason "in fifty years" does not.
-_THIRD_PARTY_CLOSE: tuple[str, str] = (
-    "தன்னைப் பற்றி வாசிக்காத ஒருவரைப் பற்றி ஜாதகம் இவ்வளவுதான் சொல்லும். மீதி "
-    "{name}-க்குச் சொந்தமானது; அவர் கேட்கும்போது அது திறக்கும்.",
-    "That is as far as a reading goes for someone who is not the one reading it. The rest is "
-    "{name}'s own, and it opens when they ask for it.",
-)
+# OWNER RULING 2026-10-06 reversed the scope of that fix and kept its point.
+# Read on a family member's card, the facts-only reading was too thin to be
+# worth opening, and the length switch never appeared because the longer reading
+# 404'd. What was actually wrong in 2026-08 was the PERSON — the reading spoke to
+# the father as though he were the daughter — not that the daughter's chart was
+# read at all. So `other` now gets the full adult reading, written in the third
+# person from `_VOICE_THEM` and the `_THEM` frames, and the one question the
+# reading may ask is put about them ("which of these fits Divya now?") rather
+# than withheld: the family-member form already lets the owner record exactly
+# this field, so asking it here adds no new power, only a nearer place to use it.
 
 # Provenance for the copy that does not live on a _Voice — see _Voice.PROVENANCE
 # for the model, and tests/test_one_minute_reading.py for the enforcement. The
@@ -1790,12 +2378,19 @@ _TABLE_PROVENANCE: dict[str, tuple[Provenance, BaseRate]] = {
     # judgement back, and the class system stops meaning anything the moment a
     # refusal to claim is filed as a claim.
     "_PAST_INVITATION": (Provenance.FRAME, BaseRate.KEYED),
+    # The same move about a relative: still hands the judgement to the reader.
+    "_PAST_INVITATION_THEM": (Provenance.FRAME, BaseRate.KEYED),
     # Same class as the `now_texture` facet it substitutes for: a rule about
     # what a period under this lord offers, read onto the life surface the
     # subject actually has.
     "_MINOR_NOW_TEXTURE": (Provenance.RULE, BaseRate.KEYED),
-    # Claims nothing about anybody. States where the reading stops, and why.
-    "_THIRD_PARTY_CLOSE": (Provenance.FRAME, BaseRate.KEYED),
+    # The third-person openings are `_SIGNATURE_OPENING` with only the verdict
+    # sentence moved, so they carry its class unchanged. The two verdict
+    # sentences themselves are frames: they place the subject in the kind the
+    # preceding sentences already described and add no claim of their own.
+    "_SIGNATURE_OPENING_THEM": (Provenance.TENDENCY, BaseRate.KEYED),
+    "_SECOND_KIND": (Provenance.FRAME, BaseRate.KEYED),
+    "_SECOND_KIND_THEM": (Provenance.FRAME, BaseRate.KEYED),
     # Not a claim about the reader or the chart — a statement of what this
     # service will not do, and why. The only string here whose value is that it
     # is identical for everyone, which is exactly what a declared principle is.
@@ -1997,12 +2592,10 @@ TOPIC_STEADYING = "STEADYING"
 # Not a topic: the marker that we cannot pick one without a fact we do not hold.
 # Beat 5 is withheld, and the reading asks instead of guessing.
 TOPIC_UNKNOWN = "UNKNOWN"
-# Also not a topic: the marker that the subject is an adult who is not the
-# reader, so there is no question of theirs for us to raise with somebody else.
-# Distinct from TOPIC_UNKNOWN deliberately — UNKNOWN means "ask", and asking is
-# precisely what must not happen here. Emitted on the wire so a client can tell
-# a short reading from a broken one.
-TOPIC_THIRD_PARTY = "THIRD_PARTY"
+# TOPIC_THIRD_PARTY ("THIRD_PARTY") was retired 2026-10-06 with the facts-only
+# `other` register: an adult family member is now routed on their own profile
+# fields exactly as the owner is, so their reading speaks to their own age's
+# question. See "Reading a chart that belongs to somebody else" above.
 
 # The declined answer (app.schemas.birth_profiles._VALID_MARITAL_STATUSES). It
 # withholds beat 5 exactly as a blank does, and additionally stops the question:
@@ -2036,22 +2629,37 @@ _TOPIC_AREA: dict[str, str] = {
 _QUESTION_ANCHOR_BEAT = "next_ten_years"
 
 
-def _marital_status_pending_question(*, before_beat: str) -> OneMinutePendingQuestion:
+def _marital_status_pending_question(
+    *, before_beat: str, about: str | None = None
+) -> OneMinutePendingQuestion:
     """The one question a reading may ask, raised in exactly the case that
     withheld a beat. Factored out so ``build_five_minute_reading`` can reuse
     it verbatim (docs/FIVE_MINUTE_READING_SPEC_2026-08-11.md §2.5) rather than
     re-authoring the same four marital-status options a second time — see
-    ``build_one_minute_reading``'s own comment on why FOUR options, not two,
-    and why TOPIC_THIRD_PARTY never reaches here.
+    ``build_one_minute_reading``'s own comment on why FOUR options, not two.
 
     ``before_beat`` is the id of the beat this question renders above — it
     stands in the gap the withheld beat left, and each caller owns its own
     beat order, so the anchor is a parameter rather than a shared constant.
+
+    ``about`` is the given name when the chart is a family member's (the
+    `other` register): the question is then put ABOUT them to the owner, who
+    is the one who records that member's details. Omitted, it asks the reader
+    about themselves.
     """
-    return OneMinutePendingQuestion(
-        field="maritalStatus",
-        before_beat=before_beat,
-        prompt=OneMinuteText(
+    if about:
+        prompt = OneMinuteText(
+            ta=(
+                "இதற்குப் பதில் கிடைக்கும் வரை இந்த வாசிப்பின் ஒரு பகுதி நிறுத்தி "
+                f"வைக்கப்பட்டுள்ளது — இவற்றில் எது இப்போது {about}-க்குப் பொருந்தும்?"
+            ),
+            en=(
+                "One part of this reading is held back until this is answered — "
+                f"which of these fits {about} now?"
+            ),
+        )
+    else:
+        prompt = OneMinuteText(
             ta=(
                 "இதற்குப் பதில் கிடைக்கும் வரை இந்த வாசிப்பின் ஒரு பகுதி நிறுத்தி "
                 "வைக்கப்பட்டுள்ளது — இவற்றில் எது இப்போது உங்களுக்குப் பொருந்தும்?"
@@ -2060,7 +2668,11 @@ def _marital_status_pending_question(*, before_beat: str) -> OneMinutePendingQue
                 "One part of this reading is held back until this is answered — "
                 "which of these fits you now?"
             ),
-        ),
+        )
+    return OneMinutePendingQuestion(
+        field="maritalStatus",
+        before_beat=before_beat,
+        prompt=prompt,
         options=[
             OneMinuteQuestionOption(
                 value="married",
@@ -2304,12 +2916,9 @@ _BEAT_PROVENANCE: dict[str, frozenset[Provenance]] = {
     # That is why it is D-only, and the absence of R here is the design.
     "years_ahead": frozenset({Provenance.DERIVED}),
     "one_thing": frozenset({Provenance.RULE, Provenance.FRAME}),
-    # The third-party register. D-only and F-only respectively, and that is the
-    # whole safety property: the reading of an absent adult contains no
-    # interpretation of them at all, only chart facts and a statement of where
-    # it stops. Anything added here that is not D has to answer §3.1 first.
-    "period_now": frozenset({Provenance.DERIVED}),
-    "third_party_close": frozenset({Provenance.FRAME}),
+    # `period_now` and `third_party_close` were the facts-only `other`
+    # register's two beats and left with it on 2026-10-06; that register now
+    # emits the adult beats above, in the third person, with the same classes.
 }
 
 
@@ -2358,27 +2967,38 @@ def _beat_who_you_are(
     placement_ta = f"நீங்கள் {star_ta} நட்சத்திரத்தில் பிறந்தவர்."
     placement_en = f"You were born under {star}."
 
-    # `parent` and `other` keep all three placements, and the rule above is not
-    # being bent for them. Those two registers are DEFINED as chart facts with
-    # the interpretation withheld (§3.1) — the facts are what the reader asked
-    # for, so a noun with no clause after it is the deliverable rather than an
-    # unkept promise. The self reading is the opposite case: there the noun
-    # promises a reading of itself, which is why it now has to keep it.
+    # `parent` keeps all three placements, and the rule above is not being bent
+    # for it. A child's reading is DEFINED as chart facts plus a behavioural
+    # note a parent can check, so a noun with no clause after it is the
+    # deliverable rather than an unkept promise. The adult readings — self and,
+    # since 2026-10-06, `other` — are the opposite case: there the noun promises
+    # a reading of itself, which is why they name only the star they read from.
     lagna_ta = f", {lagna_rasi_ta_display} லக்னத்தில்" if lagna_reliable else ""
     lagna_en = f", {lagna_rasi_display} rising" if lagna_reliable else ""
 
     if addressed_to == "other":
-        # An adult who is not the reader gets the chart FACTS and no character
-        # note at all. There is a third-person nature vocabulary to be written
-        # (§4.2 item 1, deferred to the second review sitting in §4.3), and
-        # until it exists the only two candidates are both wrong: the adult
-        # facets are second person, and rewriting them in a string pass is the
-        # exact defect that produced "they carry yourself as someone in charge";
-        # the child facets describe a life this person is decades past. Saying
-        # less is the correct interim, and the close says so out loud.
+        # The adult reading, about them. Same three parts in the same order as
+        # the self branch below — keyed nature line, the star it came from, the
+        # signature opening — and the same connective logic, chosen from the
+        # `_VOICE` twins so the two registers can never pick different hinges
+        # for the same chart. Every sentence is from `_VOICE_THEM` /
+        # `_SIGNATURE_OPENING_THEM`, written in the third person; none of it is
+        # the self copy run through a pronoun rewrite.
         given = _first_name(display_name)
-        ta = f"{given} {star_ta} நட்சத்திரத்தில், {moon_rasi_ta_display} ராசியில்{lagna_ta} பிறந்தவர்."
-        en = f"{given} was born under {star}, Moon in {moon_rasi_display}{lagna_en}."
+        nature = _VOICE_THEM[nakshatra_lord].nature
+        opening = _SIGNATURE_OPENING_THEM[signature_lord]
+        hinge = _transition(_VOICE[nakshatra_lord].nature, _SIGNATURE_OPENING[signature_lord])
+        hinge_ta = f"{hinge[0]} " if hinge[0] else ""
+        hinge_en = f"{hinge[1]} " if hinge[1] else ""
+        opening_ta = opening.ta.format(name=given)
+        opening_en = opening.en.format(name=given)
+        if hinge_en:
+            opening_en = opening_en[:1].lower() + opening_en[1:]
+        ta = (
+            f"{nature.ta.format(name=given)} அவர் {star_ta} நட்சத்திரத்தில் பிறந்தவர். "
+            f"{hinge_ta}{opening_ta}"
+        )
+        en = f"{nature.en.format(name=given)} They were born under {star}. {hinge_en}{opening_en}"
     elif addressed_to == "parent":
         child = _CHILD_VOICE[nakshatra_lord]
         given = _first_name(display_name)
@@ -2462,7 +3082,7 @@ def _beat_who_you_are(
     basis_ta = f"{star_ta} நட்சத்திரம் (அதிபதி {planet_ta(nakshatra_lord)})"
     basis_en = f"{star} nakshatra, lord {planet_en(nakshatra_lord)}"
     # The signature is only named in `basis` when it was used in the text.
-    if addressed_to == "self":
+    if addressed_to in ("self", "other"):
         basis_ta += f"; ஜாதகத்தின் மைய கிரகம் {planet_ta(signature_lord)}"
         basis_en += f"; chart signature {planet_en(signature_lord)}"
     # The Moon's rasi has LEFT the basis, and by the rule that put it there. It
@@ -2512,12 +3132,19 @@ def _beat_what_this_rests_on(
     # second-person reading — the teen was told "You were born under Uthiram"
     # and then, in the very next line, "If that does not sound like Sweep".
     register = "third_person" if addressed_to in ("parent", "other") else "self"
-    ta, en = _FALSIFIABILITY[(register, lagna_reliable)]
+    key = (register, lagna_reliable)
+    if addressed_to == "other" and not lagna_reliable:
+        # The adult third-person reading carries strength material, so it takes
+        # the narrowed claim rather than the parent register's "the rest is
+        # built on the star" — see ("third_person_adult", False).
+        key = ("third_person_adult", False)
+    ta, en = _FALSIFIABILITY[key]
 
     # Keyed on `addressed_to`, NOT on `register` — see _LAGNA_STRENGTH_CAVEAT.
-    # Only the adult self reading contains strength-derived material, and the
-    # teenager shares the register without sharing the beats.
-    if addressed_to == "self" and not lagna_reliable:
+    # Only the adult readings (self, and `other` since 2026-10-06) contain
+    # strength-derived material, and the teenager shares the register without
+    # sharing the beats.
+    if addressed_to in ("self", "other") and not lagna_reliable:
         ta = f"{ta} {_LAGNA_STRENGTH_CAVEAT[0]}"
         en = f"{en} {_LAGNA_STRENGTH_CAVEAT[1]}"
 
@@ -2532,7 +3159,9 @@ def _beat_what_this_rests_on(
     )
 
 
-def _beat_strength_and_cost(*, strongest: str) -> OneMinuteBeat:
+def _beat_strength_and_cost(
+    *, strongest: str, addressed_to: str = "self", display_name: str = ""
+) -> OneMinuteBeat:
     """Gift → shadow → consequence, and ALL THREE COME FROM ONE GRAHA.
 
     Adult path only — a soft-spot sentence is a character verdict, and a child
@@ -2587,10 +3216,15 @@ def _beat_strength_and_cost(*, strongest: str) -> OneMinuteBeat:
     that function fresh (or recovering it from git history before §6.17), not
     un-commenting something already wired.
     """
-    voice = _VOICE[strongest]
+    voice = _voice(strongest, addressed_to)
 
-    ta = f"உங்கள் உண்மையான பலம் {voice.gift[0]}. விலை என்பது {voice.shadow[0]}."
-    en = f"Your real strength is {voice.gift[1]}. Where it costs you is {voice.shadow[1]}."
+    if addressed_to == "other":
+        given = _first_name(display_name)
+        ta = f"{given}-இன் உண்மையான பலம் {voice.gift[0]}. விலை என்பது {voice.shadow[0]}."
+        en = f"{given}'s real strength is {voice.gift[1]}. Where it costs them is {voice.shadow[1]}."
+    else:
+        ta = f"உங்கள் உண்மையான பலம் {voice.gift[0]}. விலை என்பது {voice.shadow[0]}."
+        en = f"Your real strength is {voice.gift[1]}. Where it costs you is {voice.shadow[1]}."
 
     return OneMinuteBeat(
         id="strength_and_cost",
@@ -2674,6 +3308,8 @@ def _beat_last_ten_years(
     as_of: date,
     birth_date: date,
     theme_table: dict[str, tuple[str, str]] | None = None,
+    addressed_to: str = "self",
+    display_name: str = "",
 ) -> tuple[OneMinuteBeat, tuple[int, str] | None, str]:
     """The proof beat, plus the year/LEVEL of the turn the next beat hinges on,
     plus the lord whose ``past_texture`` the beat actually named.
@@ -2731,7 +3367,7 @@ def _beat_last_ten_years(
         if theme_table is None:
             return ("", "")
         theme_ta, theme_en = theme_table[lord]
-        texture_ta, texture_en = _VOICE[lord].past_texture
+        texture_ta, texture_en = _voice(lord, addressed_to).past_texture
         prefix_ta = "" if theme_ta in texture_ta else f"{theme_ta}: "
         prefix_en = (
             ""
@@ -2739,6 +3375,16 @@ def _beat_last_ten_years(
             else f"{theme_en[0].upper()}{theme_en[1:]}: "
         )
         return (prefix_ta, prefix_en)
+
+    # The `other` register names the person where the self frames say "you",
+    # and hands the judgement on the decade to the relative reading it.
+    them = addressed_to == "other"
+    given = _first_name(display_name)
+    invitation = (
+        (_PAST_INVITATION_THEM[0].format(name=given), _PAST_INVITATION_THEM[1].format(name=given))
+        if them
+        else _PAST_INVITATION
+    )
 
     decade_ago = date(as_of.year - 10, as_of.month, min(as_of.day, 28))
     earliest = date(birth_date.year + 15, birth_date.month, min(birth_date.day, 28))
@@ -2770,16 +3416,18 @@ def _beat_last_ten_years(
             >= _DOMINANT_STRETCH_SHARE * (as_of - window_start).days
         )
         if previous is not None and previous.lord != latest.lord and held_enough:
-            voice = _VOICE[previous.lord]
+            voice = _voice(previous.lord, addressed_to)
             prefix_ta, prefix_en = _theme_prefix(previous.lord)
+            whom_ta = f"{given}-க்கு" if them else "உங்களுக்கு"
+            whom_en = f"{given} was" if them else "you were"
             ta = (
-                f"{span_start.year} முதல் {hinge_year} வரை உங்களுக்கு {planet_ta(previous.lord)} "
-                f"காலம் நடந்தது. {_cap(f'{prefix_ta}{voice.past_texture[0]}')}. {_PAST_INVITATION[0]}"
+                f"{span_start.year} முதல் {hinge_year} வரை {whom_ta} {planet_ta(previous.lord)} "
+                f"காலம் நடந்தது. {_cap(f'{prefix_ta}{voice.past_texture[0]}')}. {invitation[0]}"
             )
             en = (
-                f"From {span_start.year} to {hinge_year} you were under "
+                f"From {span_start.year} to {hinge_year} {whom_en} under "
                 f"{planet_en(previous.lord)}. {_cap(f'{prefix_en}{voice.past_texture[1]}')}. "
-                f"{_PAST_INVITATION[1]}"
+                f"{invitation[1]}"
             )
             return (
                 OneMinuteBeat(
@@ -2807,7 +3455,7 @@ def _beat_last_ten_years(
     maha = _period_covering(timeline.mahadashas, as_of) or timeline.current_mahadasha
     antars = _antardashas(maha)
     antar_handovers = _handovers_within(antars, window_start, as_of)
-    voice = _VOICE[maha.lord]
+    voice = _voice(maha.lord, addressed_to)
 
     if antar_handovers:
         recent = antar_handovers[-1]
@@ -2822,15 +3470,21 @@ def _beat_last_ten_years(
         # introduced and beat 4 opens on that year. Moving the invitation to the
         # end would put ten words between the hinge and its pick-up.
         prefix_ta, prefix_en = _theme_prefix(maha.lord)
+        inside_ta = (
+            f"{given} {planet_ta(maha.lord)} காலத்திற்குள்ளேயே இருக்கிறார்"
+            if them
+            else f"நீங்கள் {planet_ta(maha.lord)} காலத்திற்குள்ளேயே இருக்கிறீர்கள்"
+        )
+        inside_en = f"{given} has" if them else "you have"
         ta = (
-            f"{span_year} முதல் இதுவரை நீங்கள் {planet_ta(maha.lord)} காலத்திற்குள்ளேயே "
-            f"இருக்கிறீர்கள். {_cap(f'{prefix_ta}{voice.past_texture[0]}')}. {_PAST_INVITATION[0]} "
+            f"{span_year} முதல் இதுவரை {inside_ta}. "
+            f"{_cap(f'{prefix_ta}{voice.past_texture[0]}')}. {invitation[0]} "
             f"அதற்குள் {hinge_year}-ல் ஒரு திருப்பம் வந்தது."
         )
         en = (
-            f"From {span_year} until now you have been inside one long "
+            f"From {span_year} until now {inside_en} been inside one long "
             f"{planet_en(maha.lord)} stretch. {_cap(f'{prefix_en}{voice.past_texture[1]}')}. "
-            f"{_PAST_INVITATION[1]} Within it, {hinge_year} marked a turn."
+            f"{invitation[1]} Within it, {hinge_year} marked a turn."
         )
         return (
             OneMinuteBeat(
@@ -2852,13 +3506,15 @@ def _beat_last_ten_years(
         )
 
     prefix_ta, prefix_en = _theme_prefix(maha.lord)
+    whom_ta = f"{given}-க்கு " if them else ""
     ta = (
-        f"{window_start.year} முதல் இதுவரை {planet_ta(maha.lord)} காலமே தொடர்ந்திருக்கிறது. "
-        f"{_cap(f'{prefix_ta}{voice.past_texture[0]}')}. {_PAST_INVITATION[0]}"
+        f"{window_start.year} முதல் இதுவரை {whom_ta}{planet_ta(maha.lord)} காலமே தொடர்ந்திருக்கிறது. "
+        f"{_cap(f'{prefix_ta}{voice.past_texture[0]}')}. {invitation[0]}"
     )
     en = (
-        f"From {window_start.year} until now you have been under {planet_en(maha.lord)} "
-        f"throughout. {_cap(f'{prefix_en}{voice.past_texture[1]}')}. {_PAST_INVITATION[1]}"
+        f"From {window_start.year} until now {given + ' has' if them else 'you have'} been under "
+        f"{planet_en(maha.lord)} throughout. {_cap(f'{prefix_en}{voice.past_texture[1]}')}. "
+        f"{invitation[1]}"
     )
     return (
         OneMinuteBeat(
@@ -2880,8 +3536,12 @@ def _beat_right_now(
     hinge: tuple[int, str] | None,
     addressed_to: str,
     name_maha_end: bool = True,
+    display_name: str = "",
 ) -> OneMinuteBeat:
     """`name_maha_end=False` drops the end year from the no-hinge lead ONLY.
+
+    ``display_name`` is read only on the `other` register, whose leads name the
+    person where the self leads say "you".
 
     The default is the 2-minute reading's behaviour and both of its call sites
     take it. The five-minute module passes False when its own later beats state
@@ -2939,6 +3599,28 @@ def _beat_right_now(
         hinge_en = f"Since {hinge[0]} the tone inside it has shifted. "
         ta_lead = f"{planet_ta(maha.lord)} காலம் தொடர்கிறது."
         en_lead = f"You are still under {planet_en(maha.lord)}."
+
+    if addressed_to == "other":
+        # Same three leads, about them. Written out rather than substituted
+        # into the strings above, so each reads as its own sentence.
+        given = _first_name(display_name)
+        if hinge is None:
+            ta_lead = (
+                f"இப்போது {given}-க்கு {planet_ta(maha.lord)} காலம், {maha.end_date.year} வரை."
+                if name_maha_end
+                else f"இப்போது {given}-க்கு {planet_ta(maha.lord)} காலம்."
+            )
+            en_lead = (
+                f"{given} is in a {planet_en(maha.lord)} period now, "
+                f"and it runs to {maha.end_date.year}."
+                if name_maha_end
+                else f"{given} is in a {planet_en(maha.lord)} period now."
+            )
+        elif hinge[1] == "maha":
+            ta_lead = f"இப்போது {given}-க்கு {planet_ta(maha.lord)} காலம்."
+            en_lead = f"{given} is in a {planet_en(maha.lord)} period now."
+        else:
+            en_lead = f"{given} is still under {planet_en(maha.lord)}."
 
     ta = f"{hinge_ta}{ta_lead} {_cap(texture[0])}."
     en = f"{hinge_en}{en_lead} {_cap(texture[1])}."
@@ -3056,7 +3738,14 @@ def _beat_age_question(
     age: int,
     age_band: dict[str, str],
     timeline: VimshottariTimeline,
+    addressed_to: str = "self",
 ) -> OneMinuteBeat:
+    # The adult topic frames take the `other` register's wording when the chart
+    # is a family member's: the same question, asked of THEIR chart, with the
+    # name where the self frame says "you". The two child topics are already
+    # register-specific and ignore this.
+    them = addressed_to == "other"
+    given = _first_name(display_name)
     next_change = timeline.current_antardasha.end_date
     outlook_ta, outlook_en = _outlook(
         topic,
@@ -3094,6 +3783,16 @@ def _beat_age_question(
             f"At {age}, the chart's weight is on what you are learning and what steadies you — "
             f"those two decide what comes next. {outlook_en}"
         )
+    elif topic == TOPIC_EDUCATION and them:
+        ta = (
+            f"{given} படித்துக்கொண்டிருப்பதால், அவரது ஜாதகத்தில் இப்போது முக்கியமான பகுதி கற்றல்தான் — "
+            f"இந்தக் காலத்தில் அவர் முடிப்பதே அடுத்து எதை நோக்கிச் செல்ல முடியும் என்பதை "
+            f"நிர்ணயிக்கும். {outlook_ta}"
+        )
+        en = (
+            f"{given} is studying, so the part of the chart that matters most right now is learning: "
+            f"what they finish in this stretch sets what they can reach for next. {outlook_en}"
+        )
     elif topic == TOPIC_EDUCATION:
         ta = (
             "நீங்கள் படித்துக்கொண்டிருப்பதால், ஜாதகத்தில் இப்போது முக்கியமான பகுதி கற்றல்தான் — இந்தக் "
@@ -3102,6 +3801,15 @@ def _beat_age_question(
         en = (
             "You are studying, so the part of the chart that matters most right now is learning: what "
             f"you finish in this stretch sets what you can reach for next. {outlook_en}"
+        )
+    elif topic == TOPIC_MARRIAGE and them:
+        ta = (
+            f"{age} வயதில், {given}-இன் ஜாதகத்திடம் உண்மையில் கேட்கப்படும் கேள்வி திருமணம்தான் — "
+            f"நேரம் மட்டும் அல்ல, யாருடன் என்பதும் சேர்த்து. {outlook_ta}"
+        )
+        en = (
+            f"At {age}, marriage is the question {given}'s chart is actually being asked — not only "
+            f"when, but with whom. {outlook_en}"
         )
     elif topic == TOPIC_MARRIAGE:
         ta = (
@@ -3135,12 +3843,22 @@ def _beat_age_question(
         # for, every other topic branch here already names it, and it costs the
         # same number of words.
         ta = (
-            f"திருமணமானவர், {age} வயதில் இருப்பவர் என்பதால், ஜாதகத்தின் கவனம் இப்போது "
-            f"வீடு மற்றும் குடும்பத்தின் மீதே இருக்கிறது. {outlook_ta}"
+            f"{given + ' ' if them else ''}திருமணமானவர், {age} வயதில் இருப்பவர் என்பதால், "
+            f"ஜாதகத்தின் கவனம் இப்போது வீடு மற்றும் குடும்பத்தின் மீதே இருக்கிறது. {outlook_ta}"
+        )
+        whose_chart = f"{given}'s chart" if them else "the chart"
+        en = (
+            f"Married, and at {age} — so the weight of {whose_chart} sits on home "
+            f"and family. {outlook_en}"
+        )
+    elif topic == TOPIC_STEADYING and them:
+        ta = (
+            f"{age} வயதில், {given}-ஐ நிலைப்படுத்துவதன் மீதே ஜாதகத்தின் கவனம் இருக்கிறது — வீடு, "
+            f"உடல்நலம், அருகில் இருப்பவர்கள். {outlook_ta}"
         )
         en = (
-            f"Married, and at {age} — so the weight of the chart sits on home "
-            f"and family. {outlook_en}"
+            f"At {age}, the chart's weight sits on what steadies {given} — home, health, and the "
+            f"people closest to them. {outlook_en}"
         )
     elif topic == TOPIC_STEADYING:
         # Says what the chart IS being asked, and stops there. The tempting
@@ -3159,11 +3877,13 @@ def _beat_age_question(
     elif topic == TOPIC_CAREER:
         ta = (
             f"{age} வயதில், ஜாதகத்தின் கவனம் வேலை மற்றும் வருமானத்தின் மீது இருக்கிறது — இப்போது "
-            f"நீங்கள் உறுதிப்படுத்துவதே அடுத்த காலம் பெருக்கிக் கொடுப்பது. {outlook_ta}"
+            f"{given if them else 'நீங்கள்'} உறுதிப்படுத்துவதே அடுத்த காலம் பெருக்கிக் கொடுப்பது. "
+            f"{outlook_ta}"
         )
         en = (
-            f"At {age}, the chart's weight is on work and income: what you consolidate now is what "
-            f"the next stretch compounds. {outlook_en}"
+            f"At {age}, the chart's weight is on work and income: what "
+            f"{given + ' consolidates' if them else 'you consolidate'} now is what the next stretch "
+            f"compounds. {outlook_en}"
         )
     else:  # TOPIC_ELDER
         # The refusal is appended HERE rather than given its own beat, and it
@@ -3181,8 +3901,8 @@ def _beat_age_question(
         ta = " ".join(
             part
             for part in (
-                "இந்தக் காலத்தில் ஜாதகத்தின் கவனம் உடல்நலத்தின் மீதும், நீங்கள் "
-                "ஒப்படைப்பதன் மீதும் நகர்கிறது.",
+                "இந்தக் காலத்தில் ஜாதகத்தின் கவனம் உடல்நலத்தின் மீதும், "
+                f"{given if them else 'நீங்கள்'} ஒப்படைப்பதன் மீதும் நகர்கிறது.",
                 outlook_ta,
                 _LONGEVITY_REFUSAL[0],
             )
@@ -3191,7 +3911,8 @@ def _beat_age_question(
         en = " ".join(
             part
             for part in (
-                "In this stretch the chart's attention moves to health, and to what you hand on.",
+                "In this stretch the chart's attention moves to health, and to what "
+                f"{given + ' hands' if them else 'you hand'} on.",
                 outlook_en,
                 _LONGEVITY_REFUSAL[1],
             )
@@ -3256,8 +3977,9 @@ def forward_beat_names_mahadasha_handover(
 
 
 def _beat_next_ten_years(
-    *, timeline: VimshottariTimeline, as_of: date, addressed_to: str
+    *, timeline: VimshottariTimeline, as_of: date, addressed_to: str, display_name: str = ""
 ) -> OneMinuteBeat:
+    whom_ta = f"{_first_name(display_name)}-க்கு" if addressed_to == "other" else "உங்களுக்கு"
     horizon = _forward_horizon(as_of)
     window_days = (horizon - as_of).days
     upcoming = _handovers_within(timeline.mahadashas, as_of, horizon)
@@ -3296,7 +4018,7 @@ def _beat_next_ten_years(
             )
         else:
             ta = (
-                f"{_month_year(nxt.start_date, 'ta')} முதல் உங்களுக்கு {planet_ta(nxt.lord)} காலம் "
+                f"{_month_year(nxt.start_date, 'ta')} முதல் {whom_ta} {planet_ta(nxt.lord)} காலம் "
                 f"தொடங்குகிறது. {_cap(texture[0])}."
             )
             en = (
@@ -3394,60 +4116,17 @@ def _beat_years_ahead_for_a_child(
     )
 
 
-def _beat_period_for_someone_else(
-    *, timeline: VimshottariTimeline, display_name: str
+def _beat_one_thing(
+    *, timeline: VimshottariTimeline, addressed_to: str, display_name: str = ""
 ) -> OneMinuteBeat:
-    """Which period is running, and nothing about what it offers them.
-
-    §4.2 item 1 keeps the running period for a third-party reading, and the
-    dates are the whole of what it keeps. ``now_texture`` cannot come with them:
-    six of its nine variants are written in the second person ("what you build
-    now outlasts what you rush"), and the three that are not would still be a
-    claim about an absent adult's coming years, delivered to their relative.
-    Naming the period is a fact about the chart. Describing it is a reading of
-    the person, and this is not their reading.
-    """
-    maha = timeline.current_mahadasha
-    given = _first_name(display_name)
-    ta = (
-        f"{given} இப்போது {planet_ta(maha.lord)} காலத்தில் இருக்கிறார் — "
-        f"{maha.start_date.year} முதல் {maha.end_date.year} வரை."
-    )
-    en = (
-        f"{given} is in a {planet_en(maha.lord)} period, running from "
-        f"{maha.start_date.year} to {maha.end_date.year}."
-    )
-    return OneMinuteBeat(
-        id="period_now",
-        text=OneMinuteText(ta=ta, en=en),
-        basis=OneMinuteText(
-            ta=(
-                f"{planet_ta(maha.lord)} மகாதசை "
-                f"{maha.start_date.isoformat()} – {maha.end_date.isoformat()}"
-            ),
-            en=(
-                f"{planet_en(maha.lord)} mahadasha "
-                f"{maha.start_date.isoformat()} to {maha.end_date.isoformat()}"
-            ),
-        ),
-    )
-
-
-def _beat_third_party_close(*, display_name: str) -> OneMinuteBeat:
-    """Where a chart read at second hand stops, said out loud — see _THIRD_PARTY_CLOSE."""
-    given = _first_name(display_name)
-    return OneMinuteBeat(
-        id="third_party_close",
-        text=OneMinuteText(
-            ta=_THIRD_PARTY_CLOSE[0].format(name=given),
-            en=_THIRD_PARTY_CLOSE[1].format(name=given),
-        ),
-    )
-
-
-def _beat_one_thing(*, timeline: VimshottariTimeline, addressed_to: str) -> OneMinuteBeat:
     lord = timeline.current_mahadasha.lord
-    if addressed_to == "parent":
+    if addressed_to == "other":
+        # About them, not an instruction to the relative reading it: the
+        # `_VOICE_THEM` action is a gerund that completes "One thing for X:".
+        given = _first_name(display_name)
+        ta = f"{given}-க்கு ஒரு செயல்: {_VOICE_THEM[lord].action[0]}."
+        en = f"One thing for {given}: {_VOICE_THEM[lord].action[1]}."
+    elif addressed_to == "parent":
         # An instruction aimed at a child has no valid recipient — the parent is
         # the one who can act. Same rule age_phase_service.remedy_lead_in_for_stage
         # exists to enforce, and the action itself is written for them.
@@ -3650,19 +4329,14 @@ def build_chart_context(
     else:
         addressed_to = "self"
 
-    # _focus_topic answers "what is this reader's age asking about", and for an
-    # absent adult there is no reader to ask it of. Calling it anyway and simply
-    # not rendering the beat would still put the answer on the wire, where a
-    # client is free to render it — which is how a suppression becomes a leak.
-    topic = (
-        TOPIC_THIRD_PARTY
-        if addressed_to == "other"
-        else _focus_topic(
-            age=age,
-            marital_status=profile.marital_status,
-            employment_type=profile.employment_type,
-            addressed_to=addressed_to,
-        )
+    # An adult family member is routed on THEIR OWN profile fields, exactly as
+    # the owner is (owner ruling 2026-10-06) — the topic is a fact about the
+    # subject's age and status, not about who is reading.
+    topic = _focus_topic(
+        age=age,
+        marital_status=profile.marital_status,
+        employment_type=profile.employment_type,
+        addressed_to=addressed_to,
     )
     strongest, weakest = _strongest_and_weakest(chart_response.data.planets)
     nakshatra_lord = timeline.opening_lord  # the janma nakshatra's lord, by construction
@@ -3750,27 +4424,8 @@ def build_one_minute_reading(context: ChartContext) -> OneMinuteReadingResponse:
         addressed_to=addressed_to,
         birth_time_source=profile.birth_time_source,
     )
-    if addressed_to == "other":
-        # Four beats, every one of them D or F, and the omissions are the point.
-        # What goes, and why each one had to:
-        #   strength_and_cost — the soft spot is a character verdict on somebody
-        #     who did not ask for one, and the grievance quotes their private
-        #     complaint back to a relative as though they had said it aloud.
-        #   last_ten_years — the dated past is G4's trust mechanism and it is
-        #     earned from the person whose decade it was, not collected about
-        #     them by someone else.
-        #   your_age_question — this is where marriage timing lives.
-        #   next_ten_years / one_thing — "what they will achieve" and an
-        #     instruction with no valid recipient; §4.2 keeps one thing the
-        #     READER can do, and that needs the third-party vocabulary the
-        #     second review sitting is for.
-        beats: list[OneMinuteBeat] = [
-            opening,
-            rests_on,
-            _beat_period_for_someone_else(timeline=timeline, display_name=profile.display_name),
-            _beat_third_party_close(display_name=profile.display_name),
-        ]
-    elif addressed_to == "client_with_guardian":
+    beats: list[OneMinuteBeat]
+    if addressed_to == "client_with_guardian":
         # G2, §4.2 item 2. Six beats. The teen band used to receive the guardian
         # reading — copy written ABOUT them, in the third person, for somebody
         # else to read — which is the one thing the source document says the
@@ -3822,6 +4477,12 @@ def build_one_minute_reading(context: ChartContext) -> OneMinuteReadingResponse:
             _beat_one_thing(timeline=timeline, addressed_to=addressed_to),
         ]
     else:
+        # The adult reading — the owner's own (`self`) and, since the owner
+        # ruling of 2026-10-06, an adult family member's (`other`), which takes
+        # the same beats in the same order written about them. Every builder
+        # below picks its copy from `addressed_to`; `display_name` is the name
+        # the `other` frames use where the self frames say "you".
+        name = profile.display_name
         beats = [opening, rests_on]
         # STAGE_INFANT is unreachable here (every minor takes the branch above);
         # the guard stays so that widening the parent path later cannot silently
@@ -3838,7 +4499,11 @@ def build_one_minute_reading(context: ChartContext) -> OneMinuteReadingResponse:
             # `weakest` is deliberately unused here. It is still computed (it is
             # the other half of the ranking, and a future beat's basis line
             # would need it) but nothing in the reading speaks in its voice.
-            beats.append(_beat_strength_and_cost(strongest=strongest))
+            beats.append(
+                _beat_strength_and_cost(
+                    strongest=strongest, addressed_to=addressed_to, display_name=name
+                )
+            )
         # THE DATED PAST IS NOT EVERY GATE'S TRUST MECHANISM, and at G6 it is
         # not even a good one. §1.1(d): a 67-year-old knows his own decades
         # better than we do, and reciting them back is not impressive, it is
@@ -3854,11 +4519,17 @@ def build_one_minute_reading(context: ChartContext) -> OneMinuteReadingResponse:
             hinge = None
         else:
             past_beat, hinge, _ = _beat_last_ten_years(
-                timeline=timeline, as_of=today, birth_date=profile.birth_date_local
+                timeline=timeline,
+                as_of=today,
+                birth_date=profile.birth_date_local,
+                addressed_to=addressed_to,
+                display_name=name,
             )
             beats.append(past_beat)
         beats.append(
-            _beat_right_now(timeline=timeline, hinge=hinge, addressed_to=addressed_to)
+            _beat_right_now(
+                timeline=timeline, hinge=hinge, addressed_to=addressed_to, display_name=name
+            )
         )
         # Withheld, not defaulted. Every version of this beat is a statement
         # about the reader's marriage — that it is the open question, that it is
@@ -3868,16 +4539,21 @@ def build_one_minute_reading(context: ChartContext) -> OneMinuteReadingResponse:
             beats.append(
                 _beat_age_question(
                     topic=topic,
-                    display_name=profile.display_name,
+                    display_name=name,
                     age=age,
                     age_band=age_band,
                     timeline=timeline,
+                    addressed_to=addressed_to,
                 )
             )
         beats.append(
-            _beat_next_ten_years(timeline=timeline, as_of=today, addressed_to=addressed_to)
+            _beat_next_ten_years(
+                timeline=timeline, as_of=today, addressed_to=addressed_to, display_name=name
+            )
         )
-        beats.append(_beat_one_thing(timeline=timeline, addressed_to=addressed_to))
+        beats.append(
+            _beat_one_thing(timeline=timeline, addressed_to=addressed_to, display_name=name)
+        )
 
     # The one question the reading is allowed to ask, raised in exactly the case
     # that withheld a beat. It stands where that beat would have been, and it
@@ -3892,16 +4568,18 @@ def build_one_minute_reading(context: ChartContext) -> OneMinuteReadingResponse:
     # through the PATCH. Each option below is a real value of
     # birth_profiles._VALID_MARITAL_STATUSES and means what it says.
     #
-    # TOPIC_THIRD_PARTY never reaches here, and that is a third instance of the
-    # same defect rather than a consequence of the first two. The question
-    # PATCHes the birth profile, so on a family-vault card it would have asked a
-    # father to declare his adult daughter's marital status — a status she has
-    # not disclosed, written by somebody else, and then propagated to
-    # life_areas, marriage_service and daily guidance as though she had. Beat 5
-    # being absent here is not a gap waiting on an answer; it is the register.
+    # On a family member's chart the question is asked ABOUT them, of the owner
+    # who keeps their profile. Until 2026-10-06 it was never raised there, on
+    # the ground that it would have the owner declare a relative's marital
+    # status. The family-member form already asks the owner for exactly that
+    # field, so the reading asking it adds no new power — and without it an
+    # adult member with a blank status would never get their topic beat.
     pending: OneMinutePendingQuestion | None = None
     if topic == TOPIC_UNKNOWN and not (profile.marital_status or "").strip():
-        pending = _marital_status_pending_question(before_beat=_QUESTION_ANCHOR_BEAT)
+        pending = _marital_status_pending_question(
+            before_beat=_QUESTION_ANCHOR_BEAT,
+            about=_first_name(profile.display_name) if addressed_to == "other" else None,
+        )
 
     run_safety_pass(*[beat.text for beat in beats], source="one_minute_reading")
 
@@ -3957,7 +4635,6 @@ __all__ = [
     "TOPIC_MARRIED_LIFE",
     "TOPIC_STEADYING",
     "TOPIC_TEEN",
-    "TOPIC_THIRD_PARTY",
     "TOPIC_UNKNOWN",
     "ChartContext",
     "build_chart_context",

@@ -9,10 +9,10 @@ import type { FiveMinuteReadingData } from "@vinaadi/shared/api/fiveMinuteReadin
  *
  * Three behaviours, and each of them is a thing that goes wrong QUIETLY:
  *
- * - **No switch when the long reading 404s.** That endpoint answers 404 for any
- *   register but "self" and whenever its flag is off, i.e. on every family
- *   member's chart. A control offered there leads nowhere, and nothing on
- *   screen would say so.
+ * - **No switch when the long reading 404s.** That endpoint answers 404 when
+ *   its flag is off (and answered it for every family member's chart until the
+ *   owner ruling of 2026-10-06). A control offered there leads nowhere, and
+ *   nothing on screen would say so.
  * - **The choice persists**, per viewer, so a reader who prefers the long
  *   reading is not asked again every visit.
  * - **A stored "long" never strands a reader** on a chart that has no long
@@ -147,6 +147,44 @@ describe("DashboardChartReading length switch", () => {
 
     await screen.findByText("Your chart in two minutes");
     expect(screen.queryByRole("tab")).toBeNull();
+  });
+
+  it("titles a family member's reading with their name at both lengths", async () => {
+    // Owner ruling 2026-10-06: a family member's card gets both lengths, so
+    // "Your chart in four minutes" over somebody else's reading would be the
+    // mis-addressing the short title was already fixed for.
+    const member = { ...shortFixture(), displayName: "Nila Synthetic", addressedTo: "other" };
+    getOneMinuteReading.mockResolvedValue({ success: true, data: member });
+    getFiveMinuteReading.mockResolvedValue({ success: true, data: { ...longFixture(), ...member } });
+
+    render(<DashboardChartReading lang="en" chartId="chart-3" />);
+
+    await screen.findByText("Nila, in two minutes");
+    fireEvent.click(await screen.findByRole("tab", { name: "4 min" }));
+    await screen.findByText("Nila, in four minutes");
+    expect(screen.queryByText("Your chart in four minutes")).toBeNull();
+  });
+
+  it("refreshes both lengths when the pending question is answered", async () => {
+    // Both lengths withhold the same topic beat for the same missing field; an
+    // answer that refreshed only the short one would leave the switch flipping
+    // to a long reading that is still asking.
+    const asking: OneMinuteReadingData = {
+      ...shortFixture(),
+      pendingQuestion: {
+        field: "maritalStatus",
+        beforeBeat: "who_you_are",
+        prompt: { en: "Which of these fits you now?", ta: "இவற்றில் எது?" },
+        options: [{ value: "married", label: { en: "Married", ta: "திருமணமானவர்" } }],
+      },
+    };
+    getOneMinuteReading.mockResolvedValue({ success: true, data: asking });
+
+    render(<DashboardChartReading lang="en" chartId="chart-4" />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Married" }));
+    await waitFor(() => expect(getFiveMinuteReading).toHaveBeenCalledTimes(2));
+    expect(getOneMinuteReading).toHaveBeenCalledTimes(2);
   });
 
   it("labels the switch in Tamil without echoing the title's wording", async () => {

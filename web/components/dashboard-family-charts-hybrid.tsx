@@ -4,8 +4,9 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { ArrowRight, Pencil, Sparkles } from "lucide-react";
 
 import { apiFetchJson } from "@/lib/api";
-import { formatClockLabel, formatClockRange, formatDateLabelIn, scoreColor } from "@/lib/format";
+import { formatClockLabel, formatClockRange, formatDateLabelIn, scoreColor, scoreColorAlpha } from "@/lib/format";
 import { rasiDisplayName } from "@/lib/chart-utils";
+import { verdictPhrase } from "@/lib/verdict-lexicon";
 import { DASHA_PANEL, dt, SANI_CYCLE_CARD, SANI_CYCLE_LABELS } from "@/lib/dashboard-i18n";
 import { cycleDate, cycleText } from "@/lib/sani-cycle-card";
 import {
@@ -258,17 +259,21 @@ function HyRhythmCard({
 
       {brightMembers.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-          <Kicker color="var(--color-high)">{lang === "ta" ? "இன்று மிகவும் பிரகாசமானவர்" : "Brightest today"}</Kicker>
+          <Kicker color="var(--color-muted)">{lang === "ta" ? "இன்று மிகவும் பிரகாசமானவர்" : "Brightest today"}</Kicker>
           <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
-            {brightMembers.map((m) => (
-              <Card key={m.displayName} variant="high" style={{ flex: "1 1 100px", display: "flex", flexDirection: "row", alignItems: "center", gap: "var(--space-2)", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-3)" }}>
-                <span style={{ width: "24px", height: "24px", borderRadius: "var(--radius-pill)", background: "var(--color-mid)", color: "var(--color-on-accent)", display: "grid", placeItems: "center", fontSize: "var(--text-xs)", fontWeight: 700, flexShrink: 0 }}>
-                  {m.displayName.charAt(0).toUpperCase()}
-                </span>
-                <span style={{ fontSize: "var(--text-sm)", fontWeight: 600 }}>{m.displayName}</span>
-                <span style={{ marginLeft: "auto", fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--color-high)" }}>{m.score}</span>
-              </Card>
-            ))}
+            {brightMembers.map((m) => {
+              // Same band colour as the member card's ring below — one score, one colour.
+              const color = scoreColor(m.score);
+              return (
+                <Card key={m.displayName} style={{ flex: "1 1 100px", display: "flex", flexDirection: "row", alignItems: "center", gap: "var(--space-2)", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-3)", borderColor: scoreColorAlpha(color, 45) }}>
+                  <span style={{ width: "24px", height: "24px", borderRadius: "var(--radius-pill)", background: color, color: "var(--color-on-accent)", display: "grid", placeItems: "center", fontSize: "var(--text-xs)", fontWeight: 700, flexShrink: 0 }}>
+                    {m.displayName.charAt(0).toUpperCase()}
+                  </span>
+                  <span style={{ fontSize: "var(--text-sm)", fontWeight: 600 }}>{m.displayName}</span>
+                  <span style={{ marginLeft: "auto", fontSize: "var(--text-sm)", fontWeight: 700, color }}>{m.score}</span>
+                </Card>
+              );
+            })}
           </div>
         </div>
       )}
@@ -1320,9 +1325,10 @@ export function DashboardFamilyChartsHybrid({
                 two lengths used to render stacked, so a reader finished their
                 reading and immediately started the same reading again at twice
                 the length. The switch appears only when the four-minute
-                reading loaded — it 404s for any register but "self", and while
-                its flag is off. Renders nothing while `one_minute_reading` is
-                off. docs/ONE_MINUTE_READING_2026-08-04.md §7,
+                reading loaded — it 404s while its flag is off, and (until the
+                owner ruling of 2026-10-06) did for every family member, which
+                is why only the owner's card used to have it. Renders nothing
+                while `one_minute_reading` is off. docs/ONE_MINUTE_READING_2026-08-04.md §7,
                 docs/FIVE_MINUTE_READING_SPEC_2026-08-11.md. */}
             {readingChartId && <DashboardChartReading lang={lang} chartId={readingChartId} />}
 
@@ -1333,8 +1339,17 @@ export function DashboardFamilyChartsHybrid({
                   {dailyGuidance && <NovaScoreDial score={dailyGuidance.score} size={122} label={lang === "ta" ? "/ 100 · இன்று" : "/ 100 · TODAY"} />}
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-lg)", fontWeight: 600, lineHeight: 1.2, color: "var(--color-text-strong)" }}>
-                      {dailyGuidance ? (lang === "ta" ? dailyGuidance.confidenceReason.ta : dailyGuidance.confidenceReason.en) : (lang === "ta" ? "இன்றைய ஜாதக நிலை" : "Today's chart snapshot")}
+                      {(dailyGuidance && verdictPhrase("daily", dailyGuidance.label, lang)) ?? (lang === "ta" ? "இன்றைய ஜாதக நிலை" : "Today's chart snapshot")}
                     </div>
+                    {/* Why the dial reads what it does. This used to BE the
+                        headline ("Two of three signals are aligned"), which
+                        named no signals and no verdict — a reader asked
+                        "two of three what?" before reaching the answer. */}
+                    {dailyGuidance && (
+                      <div style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)", marginTop: "4px" }}>
+                        {lang === "ta" ? dailyGuidance.confidenceReason.ta : dailyGuidance.confidenceReason.en}
+                      </div>
+                    )}
                     {readingSummary && (
                       <div data-server-prose style={{ fontSize: "var(--text-base)", lineHeight: 1.55, color: "var(--color-muted)", marginTop: "9px" }}>
                         {lang === "ta" ? readingSummary.primaryLanguageText.ta : readingSummary.primaryLanguageText.en}

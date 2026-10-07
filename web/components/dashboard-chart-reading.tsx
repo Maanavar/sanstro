@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import type { Lang } from "@/lib/i18n";
 import { useFiveMinuteReading, useOneMinuteReading } from "@/hooks/useChartReading";
@@ -22,11 +22,12 @@ import { ViewSwap } from "./ui/view-swap";
  *
  * Three things here are less obvious than they look:
  *
- * 1. **The switch is conditional.** The four-minute endpoint 404s for any
- *    register but "self" and whenever its flag is off, so on a family member's
- *    chart there is no long reading at all. Offering a control that leads
- *    nowhere is worse than offering none, so the switch appears only once the
- *    long reading has actually loaded.
+ * 1. **The switch is conditional.** The four-minute endpoint 404s whenever
+ *    its flag is off. (It also 404'd for every family member's chart until the
+ *    owner ruling of 2026-10-06, which is why the switch used to appear on the
+ *    owner's card alone.) Offering a control that leads nowhere is worse than
+ *    offering none, so the switch appears only once the long reading has
+ *    actually loaded.
  * 2. **Both readings are fetched, and held.** That is what the hooks are for.
  *    The switch has to know whether the long reading exists before it can be
  *    drawn, and holding both means toggling never re-requests anything.
@@ -79,8 +80,24 @@ export function DashboardChartReading({
 }: DashboardChartReadingProps) {
   // Both readings are fetched here and handed down, so the two views stay
   // presentational and a toggle never re-requests anything.
-  const short = useOneMinuteReading(chartId);
+  const shortReading = useOneMinuteReading(chartId);
   const long = useFiveMinuteReading(chartId);
+  // The pending question is answered on the short view, and both lengths
+  // withhold the same topic beat until it is — so the answer refreshes both,
+  // or the switch would flip to a long reading that is still asking.
+  const reloadShort = shortReading.reload;
+  const reloadLong = long.reload;
+  const reloadBoth = useCallback(
+    async (options?: { keepOnError?: boolean }) => {
+      await Promise.all([reloadShort(options), reloadLong(options)]);
+    },
+    [reloadShort, reloadLong],
+  );
+  const { data: shortData, status: shortStatus, showSkeleton: shortSkeleton } = shortReading;
+  const short = useMemo(
+    () => ({ data: shortData, status: shortStatus, showSkeleton: shortSkeleton, reload: reloadBoth }),
+    [shortData, shortStatus, shortSkeleton, reloadBoth],
+  );
 
   // Read synchronously so a reader who chose "4 min" last visit does not watch
   // the short reading paint first and then swap under them.

@@ -24,16 +24,15 @@ import {
  * `hooks/useChartReading.ts`, so what is left here is only what is true of THIS
  * reading.
  *
- * What it still does NOT have is the pending-question machinery —
- * `five_minute_reading_service.build_five_minute_reading` always sends
- * `pendingQuestion: null` today (only "self" ships, and Beat 7's topic gating
- * is what will someday populate it), so that path is left out rather than
- * stubbed for a question that cannot yet be asked. Add it back in the same
- * change that makes the backend able to withhold a beat.
+ * What it still does NOT have is the pending-question machinery. The backend
+ * does send `pendingQuestion` when it withholds the topic beat, but the same
+ * question is asked by the two-minute reading on this same card, and
+ * `DashboardChartReading` makes an answer given there refetch both lengths —
+ * so this view leaves it to that one rather than offering the same form twice.
  *
- * Renders nothing when the endpoint 404s — flag off, or any register other than
- * "self" (which is everything but "self" right now, per the backend's own
- * module docstring).
+ * Renders nothing when the endpoint 404s — the flag is off. Every register
+ * ships since the owner ruling of 2026-10-06 (family members included), so the
+ * title is name-aware exactly as the two-minute one is.
  *
  * Family & Charts reaches this reading through `DashboardChartReading`'s length
  * switch, which fetches BOTH lengths itself and hands this one its `reading`.
@@ -78,7 +77,7 @@ export function DashboardFiveMinuteReading({
   return (
     <ReadingShell
       titleId={`fm-title-${chartId}`}
-      title={fourMinuteTitle(lang)}
+      title={fourMinuteTitle(lang, data.displayName, data.addressedTo)}
       meta={readingMeta(data.asOf, data.readingWindow?.to ?? "", lang)}
       headerExtra={headerExtra}
       basisToggle={

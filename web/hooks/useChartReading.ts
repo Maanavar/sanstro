@@ -18,8 +18,9 @@ import {
  *
  * The reason is the length switch, not tidiness. Family & Charts now renders
  * ONE reading with a 2 min / 4 min control, and the control can only be offered
- * once we know the four-minute reading exists — that endpoint 404s for any
- * register but "self" and whenever its flag is off. So the parent has to hold
+ * once we know the four-minute reading exists — that endpoint 404s whenever its
+ * flag is off (and, until 2026-10-06, for every family member's chart). So the
+ * parent has to hold
  * both requests, and it must hold them across the switch: if the data lived in
  * the two components, crossfading between them would unmount one and re-fetch
  * it on every toggle.
@@ -125,40 +126,65 @@ export function useOneMinuteReading(
   return { data, status, showSkeleton: useDelayedSkeleton(status), reload };
 }
 
+export type FiveMinuteReadingState = ReadingState<FiveMinuteReadingData> & {
+  /**
+   * Re-fetch after the pending question is answered on the two-minute view.
+   * Both lengths withhold the same topic beat for the same missing field, so
+   * an answer given on one has to refresh the other or the switch flips to a
+   * reading that is still asking.
+   */
+  reload: (options?: { keepOnError?: boolean }) => Promise<void>;
+};
+
 export function useFiveMinuteReading(
   chartId: string,
   { enabled = true }: { enabled?: boolean } = {},
-): ReadingState<FiveMinuteReadingData> {
+): FiveMinuteReadingState {
   const [data, setData] = useState<FiveMinuteReadingData | null>(null);
   const [status, setStatus] = useState<ReadingStatus>("loading");
+  const cancelledRef = useRef(false);
+
+  const fetchInto = useCallback(
+    (options?: { cancelled?: () => boolean; keepOnError?: boolean }) =>
+      getFiveMinuteReading(chartId)
+        .then((res) => {
+          if (options?.cancelled?.()) return;
+          if (res.data) {
+            setData(res.data);
+            setStatus("ready");
+          } else if (!options?.keepOnError) {
+            setData(null);
+            setStatus("absent");
+          }
+        })
+        .catch(() => {
+          if (options?.cancelled?.() || options?.keepOnError) return;
+          setData(null);
+          setStatus("absent");
+        }),
+    [chartId],
+  );
 
   useEffect(() => {
     if (!enabled) return;
     let cancelled = false;
+    cancelledRef.current = false;
     setData(null);
     setStatus("loading");
-    getFiveMinuteReading(chartId)
-      .then((res) => {
-        if (cancelled) return;
-        if (res.data) {
-          setData(res.data);
-          setStatus("ready");
-        } else {
-          setData(null);
-          setStatus("absent");
-        }
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setData(null);
-        setStatus("absent");
-      });
+    void fetchInto({ cancelled: () => cancelled });
     return () => {
       cancelled = true;
+      cancelledRef.current = true;
     };
-  }, [chartId, enabled]);
+  }, [fetchInto, enabled]);
 
-  return { data, status, showSkeleton: useDelayedSkeleton(status) };
+  const reload = useCallback(
+    (options?: { keepOnError?: boolean }) =>
+      fetchInto({ cancelled: () => cancelledRef.current, keepOnError: options?.keepOnError }),
+    [fetchInto],
+  );
+
+  return { data, status, showSkeleton: useDelayedSkeleton(status), reload };
 }
 
 /**
