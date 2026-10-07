@@ -166,6 +166,24 @@ describe("A08: the retry is bounded", () => {
     expect(calls.refresh).toBe(0);
     expect(mockEndSession).not.toHaveBeenCalled();
   });
+
+  it("a 503 from the auth limiter does not sign the user out", async () => {
+    // A06 step 4. When Redis is unavailable the backend now answers 503 on auth
+    // endpoints rather than allowing unlimited attempts. That is an
+    // infrastructure fault, not a rejected credential, so the client must not
+    // treat it as one — a sign-out here would turn a brief Redis outage into
+    // every signed-in user being logged out. The property held already; it was
+    // untested, which is a different thing.
+    const calls = installFetch({ resource: () => ({ status: 503 }) });
+
+    const response = await fetchWithAuth("/auth/mobile/login");
+
+    expect(response.status).toBe(503);
+    expect(calls.refresh).toBe(0);
+    expect(mockEndSession).not.toHaveBeenCalled();
+    expect(mockRouter.replace).not.toHaveBeenCalled();
+    expect(mockTokenStore.tokens).not.toBeNull();
+  });
 });
 
 describe("A08: concurrent 401s share one refresh", () => {

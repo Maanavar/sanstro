@@ -165,18 +165,7 @@ def mobile_login(
     client_ip = _get_client_ip(request)
 
     # Check throttles: per-IP and per-email
-    allowed, retry_after = _throttler.check(
-        AuthThrottleAction.LOGIN,
-        ip=client_ip,
-        account_identifier=payload.email,
-    )
-    if not allowed:
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Too many login attempts. Please try again later.",
-            headers={"Retry-After": str(retry_after)},
-        )
-
+    _throttler.enforce(AuthThrottleAction.LOGIN, ip=client_ip, account_identifier=payload.email)
     user = db.query(User).filter(User.email == payload.email).first()
     _invalid = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password.")
     if user is None or not user.hashed_password:
@@ -198,18 +187,7 @@ def mobile_register(
     client_ip = _get_client_ip(request)
 
     # Check throttles: per-IP and per-email
-    allowed, retry_after = _throttler.check(
-        AuthThrottleAction.REGISTER,
-        ip=client_ip,
-        account_identifier=payload.email,
-    )
-    if not allowed:
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Too many registration attempts. Please try again later.",
-            headers={"Retry-After": str(retry_after)},
-        )
-
+    _throttler.enforce(AuthThrottleAction.REGISTER, ip=client_ip, account_identifier=payload.email)
     existing = db.query(User).filter(User.email == payload.email).first()
     if existing is not None:
         _hash_password(payload.password)

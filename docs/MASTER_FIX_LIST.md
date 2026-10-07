@@ -1043,11 +1043,66 @@ worth recording.
   confirms it is bound to the signed-in UUID; **no automatic transfer** of
   existing purchases. Mismatched historical receipts are reconciled manually
   against provider evidence.
-- [ ] A06 — limiter outage policy. Owner decision 2026-10-07: auth endpoints
-  (login, register, password reset, admin elevation) return a bounded **503**
-  when their authoritative limiter cannot be evaluated. Ordinary cache misses
-  keep degrading gracefully. Not 401, and 429 stays reserved for a real
-  exceeded limit.
+- [x] **A06 — Redis outages no longer grant unlimited authentication attempts.**
+  `RedisRateLimitBackend.check` caught every Redis error and returned
+  `allowed=True`, and `AuthThrottler` used that same backend, so during an
+  outage a five-logins-per-minute throttle became unlimited. `allowed=True` was
+  carrying two incompatible meanings — "within budget" and "could not check" —
+  with no way for a caller to tell them apart.
+
+  `RateLimitResult` now reports `available`, and the policy for acting on it
+  lives with the protected operation. The global per-IP middleware
+  **deliberately still fails open** (an aggregate control; locking everyone out
+  over infrastructure is the worse trade) and is unchanged — one test pins that
+  an unavailable result still reads as `allowed` for exactly that reason.
+
+  **Owner decision 2026-10-07:** auth endpoints return a bounded **503** with
+  `Retry-After`. Not 401 — the credentials have not been proven invalid, and a
+  client reading 401 as "signed out" would log users out over a Redis fault.
+  Not 429 — reserved for a limit genuinely exceeded. The availability cost is
+  the point of the ruling, not an oversight. The rejected alternative was a
+  per-process fallback limiter, which keeps sign-in working while silently
+  multiplying the effective limit by the worker and replica count.
+
+  `AuthThrottler.check()` is replaced by `evaluate()` (reports) + `enforce()`
+  (applies the policy, raises). All **8** protected call sites across
+  `app/api/auth.py`, `mobile_auth.py` and `admin.py` were converted — each had
+  carried its own five-line `raise HTTPException(429, …)` block, which is how
+  one policy came to be stated eight times and changeable in seven of them
+  without the eighth. Net −80 lines in `app/api/`. Per-action messages moved
+  into a typed `_Budget` record; the heterogeneous dict it replaced inferred as
+  `object` and needed casts mypy could not check.
+
+  Operations: [`docs/runbooks/REDIS_OUTAGE.md`](runbooks/REDIS_OUTAGE.md),
+  including the trap that `ADMIN_ELEVATION` is itself throttled — so during an
+  outage an operator cannot elevate, and recovery must not route through the
+  admin console.
+
+  **Gate:** `tests/test_auth_throttle_outage.py` (17). **Baseline:** 15 of 16
+  failed against the unfixed tree; the one that passed is the middleware
+  behaviour being deliberately preserved. Existing `test_auth_throttle.py`
+  migrated to `evaluate()` and still green. mypy and ruff clean.
+
+  **Blind spots:**
+  - **A06 step 6 is NOT done.** `/health/ready` reports Redis as required, but
+    the supplied nginx config proxies everything to `web`, so readiness still
+    does not control traffic. What happens when every instance is unready is
+    undecided. This is unimplemented infrastructure work.
+  - **No metric is exported.** The degradation signal is a named log line
+    (`auth_throttle_limiter_unavailable`), not the `limiter_unavailable_total`
+    counter the audit's observability table calls for.
+  - The outage is injected by making the Redis client raise — the failure mode
+    the backend catches, not a partition, a timeout, or a half-open socket.
+  - Tested at the application boundary, **not through the real ingress**, which
+    is what the audit's acceptance criterion actually names.
+  - Startup asymmetry, recorded rather than fixed: `get_rate_limit_backend()` is
+    `lru_cache`d, so a process that *starts* with Redis unreachable falls back
+    to the in-memory limiter and stays there until restarted. Runtime recovery
+    needs no restart and is tested; restarting during an outage makes
+    enforcement weaker, not stronger.
+  - Mobile is tested not to sign out on a 503; the user-facing message is still
+    the generic client error rather than the server's detail. Not changed —
+    step 4 asks only that it not sign out.
 
 ### Phase 2 and later — not started
 

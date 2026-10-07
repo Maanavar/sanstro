@@ -90,18 +90,7 @@ def elevate_admin(
     cannot pick it up for free.
     """
     client_ip = _client_ip(request)
-    allowed, retry_after = _throttler.check(
-        AuthThrottleAction.ADMIN_ELEVATION,
-        ip=client_ip,
-        account_identifier=str(admin_user.user_id),
-    )
-    if not allowed:
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Too many elevation attempts. Please try again later.",
-            headers={"Retry-After": str(retry_after)},
-        )
-
+    _throttler.enforce(AuthThrottleAction.ADMIN_ELEVATION, ip=client_ip, account_identifier=str(admin_user.user_id))
     # An admin who signed up through OAuth has no password to re-enter, so there
     # is no second factor available and elevation must be refused rather than
     # waved through. Refusing is the fail-safe direction: the alternative is that
