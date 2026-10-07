@@ -24,6 +24,7 @@ import { getDailyStatus, askVinaadi } from "@/api/askVinaadi";
 import { useLifeFocus } from "@/hooks/useLifeFocus";
 import { askChipsForMode } from "@vinaadi/shared/lifeFocus";
 import { trackEvent } from "@/lib/analytics";
+import { accountKey } from "@/lib/queryKeys";
 
 // The chips follow the reader's life focus, the same three web shows
 // (LIFE_MODE_ASK_CHIPS in @vinaadi/shared; Life focus Phase 3). Until the
@@ -53,7 +54,7 @@ export default function AskVinaadiScreen() {
   const scrollRef = useRef<ScrollView>(null);
 
   const { data: statusData } = useQuery({
-    queryKey: ["ask-vinaadi-status"],
+    queryKey: accountKey("ask-vinaadi-status"),
     queryFn: getDailyStatus,
     staleTime: 1000 * 60,
     enabled: tier !== "guest",

@@ -30,6 +30,7 @@ import { getRelationshipSynastry } from "@/api/relationships";
 import { biText } from "@/lib/i18n";
 import type { FamilyMemberDayView } from "@/api/familyVault";
 import type { SynastryAspect, SynastryData } from "@/api/relationships";
+import { accountKey } from "@/lib/queryKeys";
 
 const RELATIONSHIP_TA: Record<string, string> = {
   father: "தந்தை", mother: "அம்மா", spouse: "மனைவி / கணவர்",
@@ -502,7 +503,7 @@ export default function FamilyVaultScreen() {
     isError: vaultsError,
     refetch: refetchVaults,
   } = useQuery({
-      queryKey: ["family-vaults"],
+      queryKey: accountKey("family-vaults"),
       queryFn: listFamilyVaults,
       staleTime: 1000 * 60 * 5,
     });

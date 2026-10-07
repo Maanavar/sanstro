@@ -16,12 +16,13 @@ import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "@/hooks/useSession";
 import { loadGuestPrefs, saveGuestPrefs } from "@/features/guest/guestStore";
 import { setAnalyticsConsent } from "@/lib/analytics";
-import { logout, getMySubscription } from "@/api/auth";
-import { clearTokens } from "@/lib/secureStore";
-import { clearUserPrefs, getPrimaryChartId } from "@/lib/userPrefs";
+import { getMySubscription } from "@/api/auth";
+import { endSession } from "@/state/sessionTransition";
+import { getPrimaryChartId } from "@/lib/userPrefs";
 import { FocusSettingsRow } from "@/components/LifeFocus";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { entranceDelay, spring, staggerInterval, duration } from "@/theme/motion";
+import { accountKey } from "@/lib/queryKeys";
 
 const MANAGE_SUB_URL =
   Platform.OS === "ios"
@@ -59,7 +60,7 @@ export default function MeScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const { data: subData } = useQuery({
-    queryKey: ["my-subscription"],
+    queryKey: accountKey("my-subscription"),
     queryFn: getMySubscription,
     enabled: tier === "premium",
     staleTime: 5 * 60 * 1000,
@@ -100,12 +101,13 @@ export default function MeScreen() {
   }
 
   async function handleSignOut() {
-    try {
-      await logout();
-    } catch {
-      await clearTokens();
-    }
-    await clearUserPrefs();
+    // One operation with a defined end state (A02). This was four separate
+    // actions — logout(), clearTokens() only on failure, clearUserPrefs(),
+    // clearSession() — and none of them touched the React Query cache or the
+    // persisted client, which are process-wide and mounted above the session
+    // provider. A signed out, B signed in, and B was served A's household from
+    // cache without a request being issued.
+    await endSession();
     clearSession();
     router.replace("/(tabs)/today");
   }

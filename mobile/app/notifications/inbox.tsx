@@ -14,6 +14,7 @@ import { getNotificationInbox } from "@/api/notifications";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { ErrorCard } from "@/components/ErrorCard";
 import type { NotificationInboxItem } from "@vinaadi/shared";
+import { accountKey } from "@/lib/queryKeys";
 
 const FILTERS = [
   { id: "all",        ta: "அனைத்தும்",  en: "All" },
@@ -57,7 +58,7 @@ export default function NotificationInboxScreen() {
   const [filter, setFilter] = useState<FilterId>("all");
 
   const { data, isLoading, isError, isFetching, refetch } = useQuery({
-    queryKey: ["notification-inbox"],
+    queryKey: accountKey("notification-inbox"),
     queryFn: getNotificationInbox,
     staleTime: 1000 * 60 * 5,
   });

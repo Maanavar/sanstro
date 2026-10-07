@@ -13,8 +13,9 @@ import { useI18n } from "@/hooks/useI18n";
 import { useOfflineStatus } from "@/hooks/useOfflineStatus";
 import { ToastProvider } from "@/context/ToastContext";
 import { ConfirmProvider } from "@/context/ConfirmContext";
-import { queryClient, asyncStoragePersister } from "@/lib/queryClient";
-import { getTokens, clearTokens } from "@/lib/secureStore";
+import { queryClient, sessionPersister, PERSIST_BUSTER } from "@/lib/queryClient";
+import { getTokens } from "@/lib/secureStore";
+import { beginAuthenticatedSession, endSession } from "@/state/sessionTransition";
 import { initAnalytics, setAnalyticsConsent, setUser } from "@/lib/analytics";
 import { loadGuestPrefs } from "@/features/guest/guestStore";
 import { ENV } from "@/lib/env";
@@ -91,6 +92,13 @@ function RootNavigation() {
 
         const me = await getMe();
 
+        // Establish the session identity BEFORE anything reads or writes this
+        // account's private cache (A02 step 7). Until this call the process has
+        // no user, so the persister has no namespace and queries cannot
+        // restore — which is the point: on a warm start with another account's
+        // bytes still on the device, nothing of theirs can be hydrated.
+        await beginAuthenticatedSession(me.userId);
+
         // Sync RevenueCat user identity and determine effective tier.
         // RC is the source of truth for subscription status. If RC confirms no
         // active "premium" entitlement but the backend tier still says "premium",
@@ -135,7 +143,11 @@ function RootNavigation() {
         const isUnauth =
           err instanceof Error && "status" in err && (err as { status: number }).status === 401;
         if (isUnauth) {
-          await clearTokens();
+          // Stored credentials resolved to nothing. This used to clear only the
+          // tokens, which left any persisted cache on the device and the
+          // in-memory cache intact for the next account to read (A02).
+          // revokeRemote: false — the server has already rejected them.
+          await endSession({ revokeRemote: false });
         }
         clearSession();
       } finally {
@@ -181,9 +193,18 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
+      {/*
+        Still mounted above SessionProvider, which is why the cache outlives
+        every session and why A02 needed a coordinator rather than a tidier
+        tree: the provider must not remount on a sign-in, or every account
+        switch would throw away a warm cache and refetch everything. The
+        persister resolves the account per call instead (see queryClient.ts),
+        and `buster` makes the library discard a cache written under an older
+        retention policy before it hydrates it.
+      */}
       <PersistQueryClientProvider
         client={queryClient}
-        persistOptions={{ persister: asyncStoragePersister }}
+        persistOptions={{ persister: sessionPersister, buster: PERSIST_BUSTER }}
       >
         <SessionProvider>
           <LanguageProvider>

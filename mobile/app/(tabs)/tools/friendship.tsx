@@ -20,6 +20,7 @@ import { listFamilyVaults, getFamilyVaultToday } from "@/api/familyVault";
 import { getPorutham } from "@/api/tools";
 import type { FamilyMemberDayView } from "@/api/familyVault";
 import { NAKSHATRA_LIST } from "@vinaadi/shared";
+import { accountKey } from "@/lib/queryKeys";
 
 function nakshatraNumberFromName(name: string): number | null {
   const lower = name.toLowerCase().replace(/\s+/g, "");
@@ -98,7 +99,7 @@ export default function FriendshipCompatibilityScreen() {
   const snapPoints = useMemo(() => ["55%", "92%"], []);
 
   const { data: vaultList, isLoading: vaultLoading } = useQuery({
-    queryKey: ["family-vaults"],
+    queryKey: accountKey("family-vaults"),
     queryFn: listFamilyVaults,
     enabled: tier !== "guest",
     staleTime: 1000 * 60 * 5,

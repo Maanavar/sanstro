@@ -13,6 +13,7 @@ import { ErrorCard } from "@/components/ErrorCard";
 import { useKalamReminderToggle } from "@/hooks/useKalamReminderToggle";
 import type { KalamReminderKind } from "@/lib/kalamReminders";
 import type { NotificationPreferenceData } from "@vinaadi/shared";
+import { accountKey } from "@/lib/queryKeys";
 
 export default function NotificationSettingsScreen() {
   const { lang } = useI18n();
@@ -20,7 +21,7 @@ export default function NotificationSettingsScreen() {
   const qc = useQueryClient();
 
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ["notification-prefs"],
+    queryKey: accountKey("notification-prefs"),
     queryFn: getNotificationPreferences,
     staleTime: 1000 * 60 * 5,
   });
@@ -43,7 +44,7 @@ export default function NotificationSettingsScreen() {
 
   const mutation = useMutation({
     mutationFn: updateNotificationPreferences,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["notification-prefs"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: accountKey("notification-prefs") }),
   });
 
   function save(patch: Partial<NotificationPreferenceData>) {
