@@ -1801,7 +1801,7 @@ export function DashboardCalendarTabNova({
 
       {view === "muhurta" && (
         chartId ? (
-          <>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
             {onSelectMember && (
               <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
                 <Pill active={selectedMemberId === null} onClick={() => onSelectMember(null)}>
@@ -1819,7 +1819,7 @@ export function DashboardCalendarTabNova({
               </div>
             )}
             <NovaPlanMuhurtaPanel lang={lang} chartId={chartId} focusActivities={muhurtaFocusActivities} DayDrawer={DayDetailDrawerNova} />
-          </>
+          </div>
         ) : (
           <p className="empty-state">
             {lang === "ta"
