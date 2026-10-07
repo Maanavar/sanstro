@@ -95,6 +95,9 @@ This has to be one coordinated change:
 1. Set `JOTHIDAM_OPEN_BETA=false` **and** `OPEN_BETA = false` in `launch.ts`. `tests/test_launch_parity.py` fails if only one is flipped.
 2. Ship a way to pay first: Razorpay (UPI + UPI Autopay) on web writing to the same `subscriptions` table the RevenueCat webhook uses, and/or the Play listing.
 3. Give the notice `/beta` promises before the switch. Existing data carries over, since `tier` was never rewritten.
+4. **Teach web to answer `PREMIUM_REQUIRED` before flipping the switch** (added 2026-10-06). The server now refuses Varshaphala, Synastry, Retrospective, the life-event log and rectification to a registered account once the beta is off (`app/core/entitlements.py`, 403 with code `PREMIUM_REQUIRED`). Web has no lock UI for any of them, so without this step those panels show a generic error instead of an upgrade path. Native's Insights cards already lock; its Tools → Varshaphala entry does not.
+5. **Decide the features the server cannot enforce yet** — listed with reasons in `UNENFORCEABLE_FEATURES` in the same module: Vargas (served inside `GET /charts/{id}`), remedies (tier table says premium; native shows them to everyone), `dasha_depth` and the rasi-palan window (defined per tier, read by nothing). Each is either a payload change or a ruling that the tier table is wrong.
+6. Run `tests/test_entitlements.py` — it is the beta-off matrix.
 
 ---
 

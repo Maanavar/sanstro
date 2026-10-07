@@ -7,9 +7,26 @@ Set JOTHIDAM_REVENUECAT_WEBHOOK_SECRET in the environment. If unset, the
 endpoint returns 503 (Phase A — not wired yet).
 
 Supported event types that update the subscription table:
-  INITIAL_PURCHASE, RENEWAL, PRODUCT_CHANGE  → upsert active subscription
-  CANCELLATION, EXPIRATION, BILLING_ISSUE    → mark subscription inactive
-  SUBSCRIBER_ALIAS                            → ignored
+  INITIAL_PURCHASE, RENEWAL, PRODUCT_CHANGE,
+  UNCANCELLATION                       → upsert active subscription, period end = expiration_at_ms
+  CANCELLATION, BILLING_ISSUE          → access runs to the period end; only the end is updated
+  EXPIRATION                           → mark subscription inactive now
+  anything else (SUBSCRIBER_ALIAS,
+  NON_RENEWING_PURCHASE, TRANSFER, …)  → ignored
+
+Why CANCELLATION does not deactivate: RevenueCat sends it when the user turns
+off auto-renew (and on refunds). Turning off auto-renew leaves the paid period
+running; ending premium on the event cut paying users off early. A refund
+carries an `expiration_at_ms` at the refund time, so writing the event's
+expiration handles both cases. BILLING_ISSUE is the same shape: the store's
+grace period keeps access until `expiration_at_ms`. `current_subscription_filter`
+(app/core/subscription.py) stops granting premium once that time passes, so a
+lost EXPIRATION webhook cannot leave a lapsed user on premium.
+
+`tier` is written as "premium" for every active event because every
+auto-renewing product in the catalogue is a premium plan; pay-per-use
+products are consumables, which RevenueCat reports as NON_RENEWING_PURCHASE
+and which never reach the subscription row.
 """
 from __future__ import annotations
 
@@ -31,7 +48,9 @@ router = APIRouter(prefix="/webhooks", tags=["webhooks"])
 _logger = logging.getLogger(__name__)
 
 _ACTIVE_EVENTS = {"INITIAL_PURCHASE", "RENEWAL", "PRODUCT_CHANGE", "UNCANCELLATION"}
-_INACTIVE_EVENTS = {"CANCELLATION", "EXPIRATION", "BILLING_ISSUE"}
+_ENDS_AT_PERIOD_END_EVENTS = {"CANCELLATION", "BILLING_ISSUE"}
+_INACTIVE_EVENTS = {"EXPIRATION"}
+_HANDLED_EVENTS = _ACTIVE_EVENTS | _ENDS_AT_PERIOD_END_EVENTS | _INACTIVE_EVENTS
 
 
 def _require_revenuecat_secret(authorization: str | None = Header(default=None)) -> None:
@@ -69,7 +88,7 @@ async def revenuecat_webhook(request: Request, db: Session = Depends(get_db)) ->
 
     _logger.info("revenuecat_event type=%s app_user_id=%s", event_type, app_user_id)
 
-    if event_type not in _ACTIVE_EVENTS | _INACTIVE_EVENTS:
+    if event_type not in _HANDLED_EVENTS:
         return {"status": "ignored"}
 
     if not app_user_id:
@@ -88,11 +107,16 @@ async def revenuecat_webhook(request: Request, db: Session = Depends(get_db)) ->
         return {"status": "ignored"}
 
     sub = db.query(Subscription).filter(Subscription.user_id == user_id).first()
+    expiry = (
+        datetime.fromtimestamp(expiration_at_ms / 1000, tz=UTC) if expiration_at_ms else None
+    )
 
-    if event_type in _ACTIVE_EVENTS:
-        expiry = (
-            datetime.fromtimestamp(expiration_at_ms / 1000, tz=UTC) if expiration_at_ms else None
-        )
+    if event_type in _ENDS_AT_PERIOD_END_EVENTS:
+        # Status stays as it is: access continues until `expiry`. With no
+        # expiry on the event there is nothing to record, and nothing changes.
+        if sub is not None and expiry is not None:
+            sub.current_period_end = expiry
+    elif event_type in _ACTIVE_EVENTS:
         if sub is None:
             sub = Subscription(
                 user_id=user_id,

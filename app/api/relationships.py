@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.constants.versions import CHART_CALCULATION_VERSION
 from app.core.auth import get_current_user
+from app.core.entitlements import require_feature
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.relationships import (
@@ -37,6 +38,10 @@ from app.services.synastry_service import (
 )
 
 router = APIRouter()
+
+# Synastry only — Porutham, compatibility intelligence and relationship alerts on
+# this router are not premium in the tier table and stay open.
+_synastry_gate = require_feature("synastry_enabled")
 
 
 class DirectBirthInput(BaseModel):
@@ -124,7 +129,12 @@ def relationship_alerts(
     )
 
 
-@router.get("/relationships/{member_id}/synastry", response_model=SynastryResponse, tags=["relationships"])
+@router.get(
+    "/relationships/{member_id}/synastry",
+    response_model=SynastryResponse,
+    tags=["relationships"],
+    dependencies=[Depends(_synastry_gate)],
+)
 def relationship_synastry(
     member_id: UUID,
     family_vault_id: UUID = Query(alias="familyVaultId"),
@@ -256,7 +266,12 @@ def relationship_compatibility_intelligence_direct(
     )
 
 
-@router.post("/relationships/compare-synastry", response_model=DirectSynastryResponse, tags=["relationships"])
+@router.post(
+    "/relationships/compare-synastry",
+    response_model=DirectSynastryResponse,
+    tags=["relationships"],
+    dependencies=[Depends(_synastry_gate)],
+)
 def compare_synastry(
     payload: DirectSynastryRequest,
     session: Session = Depends(get_db),

@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user
 from app.core.config import get_settings
+from app.core.subscription import current_subscription_filter
 from app.db.session import get_db
 from app.models.subscription import Subscription
 from app.models.user import User
@@ -51,10 +52,7 @@ def get_own_subscription(
 ) -> SubscriptionInfoResponse:
     sub = (
         session.query(Subscription)
-        .filter(
-            Subscription.user_id == current_user.user_id,
-            Subscription.status == "active",
-        )
+        .filter(*current_subscription_filter(current_user.user_id))
         .order_by(Subscription.created_at.desc())
         .first()
     )

@@ -15,6 +15,7 @@ from app.calculations.tajaka import calculate_tajaka_chart
 from app.core.age_gate import is_married_settled, is_minor, is_past_prime_marriage_age
 from app.core.auth import get_current_user
 from app.core.chart_access import assert_chart_owner as _assert_chart_owner
+from app.core.entitlements import require_feature
 from app.db.session import get_db
 from app.models import BirthProfile, Chart
 from app.models.chart_planet import ChartPlanet
@@ -538,7 +539,11 @@ def get_solar_return(
     }
 
 
-@router.get("/charts/{chart_id}/varshaphala", tags=["charts"])
+@router.get(
+    "/charts/{chart_id}/varshaphala",
+    tags=["charts"],
+    dependencies=[Depends(require_feature("varshaphala_enabled"))],
+)
 def get_varshaphala_endpoint(
     chart_id: UUID,
     year: int = Query(..., ge=1900, le=2100),
