@@ -1616,8 +1616,8 @@ then A14, A15, A13.
 
 The 20 Phase 3 commits were pushed on 2026-10-08 (owner: "you push it now").
 Runs 37751457301 (CI, pull_request), 37751457502 (Mobile CI, pull_request) and
-37751452397 (Mobile CI, push) on `17c1e6b`. Three reds, none from Phase 3's
-own changes; each fixed in its own commit:
+37751452397 (Mobile CI, push) on `17c1e6b`. Five reds; each fixed in its own
+commit. Only the varshaphala one touches a Phase 3 test:
 
 - [x] **Web — `lib/css-surface-boundary.test.ts` (red since 2026-10-07).**
   `bef9714` gave `/notifications` the dashboard chrome
@@ -1674,6 +1674,36 @@ own changes; each fixed in its own commit:
   prints on full runs; `--detectOpenHandles` on the screens project reported
   no open handle, so the leak's owner is unidentified. No `--forceExit` added.
   The reading screen logs act() warnings on its first test.
+- [x] **Backend tests — `test_response_model_is_lossless[varshaphala]`
+  (5996 passed, 1 failed).** The only difference: one `tajakaPlanets`
+  `degreeInRasi`, 11.2445 (HTTP) vs 11.2446 (direct call). The test compared
+  the HTTP body with a *second, separate computation*, so it measured the
+  calculation's reproducibility, not the model. **Cause not found.** Ruled
+  out locally: `calculate_sidereal_planets` is bit-identical for the same JD
+  after interleaved lagna/ayanamsa/Sun-Moon calls, on swisseph-ffi with the
+  data files and on Moshier (60 JDs × 3 shuffled rounds, 0 differences); no
+  code outside `ephemeris.py` touches Swiss global state and every call is
+  under `_SWISS_LOCK`; requests do not share a DB session and
+  `EncryptedFloat` round-trips exactly. Not ruled out: CI runs Python 3.12 +
+  **pyswisseph**, which this machine (Python 3.14 only) cannot run. Fix to the
+  *gate*: the route function runs once, and that value goes through FastAPI's
+  own `serialize_response` with the route's own response field and flags;
+  the HTTP body must match in shape (keys, value kinds). 18 passed. Control:
+  `note` removed from `ShadbalaData` → fails naming `note`.
+  **Blind spots:** the HTTP comparison is shape-only. **Open:** whether
+  varshaphala (or any route) is non-reproducible across calls on pyswisseph —
+  a 3.12 environment is needed to answer it. A user-visible effect, if real,
+  is a 4th-decimal flip of a displayed degree.
+- [x] **Compose stack — "backend outage is a bounded 502" got a 502 and
+  failed.** The proxy returns `{"detail":"Backend unreachable"}`; the claim
+  also requires "unreachable" in the body, and the body read as `""`.
+  `Invoke-Probe` read error bodies via `GetResponseStream()`, which exists on
+  Windows PowerShell 5.1's `WebResponse` but not on PowerShell 7's
+  `HttpResponseMessage` — and CI runs the script under `pwsh` on Linux, so
+  every error body was empty there. The A01-b local PASS was under 5.1. Fix:
+  `-SkipHttpErrorCheck` on 7+. Verified on 5.1 against a local 502 server
+  (status 502, body read, match True). **Not verified locally on 7** (not
+  installed) — the next CI run is the check.
 
 ## Agent Completion Checklist
 
