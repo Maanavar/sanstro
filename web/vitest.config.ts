@@ -54,11 +54,16 @@ export default defineConfig({
       include: ["lib/**", "hooks/**", "components/**"],
       exclude: ["**/*.test.ts", "**/*.test.tsx", "node_modules", ".next"],
       // Ratchet: bump thresholds after each batch of new component tests lands.
+      // Set from a measurement, not a guess (A15, 2026-10-08): the full suite
+      // (140 files, 1451 tests) measured statements/lines 54.7%, branches
+      // 76.5%, functions 56.3% — against thresholds of 20/15/20/20 that a
+      // two-thirds drop would still have passed. Each sits ~4-6 points under
+      // the measurement: room for ordinary churn, not for losing a test batch.
       thresholds: {
-        lines: 20,
-        functions: 20,
-        branches: 15,
-        statements: 20,
+        lines: 50,
+        functions: 50,
+        branches: 72,
+        statements: 50,
       },
     },
   },

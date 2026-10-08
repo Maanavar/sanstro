@@ -1649,7 +1649,17 @@ then A14, A15, A13.
     404, 2026-10-08). No check is required, so a red run blocks nothing — the
     "required check" half of step 4 has nothing to attach to. Turning it on
     is an owner action in GitHub settings.
-  - Web coverage thresholds (20% lines / 15% branches) are unchanged.
+  - ~~Web coverage thresholds (20% lines / 15% branches) are unchanged.~~
+    **Raised 2026-10-08 from a measurement:** the full web suite (140 files,
+    1451 tests, `vitest run --coverage`) measured statements/lines 54.7%,
+    branches 76.5%, functions 56.3%. Thresholds now 50/50/72/50 (lines,
+    functions, branches, statements) — ~4-6 points under, room for churn but
+    not for losing a test batch; the old 20/15 would have passed a two-thirds
+    drop. Control: `lines: 60` → "Coverage for lines (54.7%) does not meet
+    global threshold (60%)", exit 1. **Blind spot:** one local measurement;
+    the include set is `lib/hooks/components` only — `app/**` pages are
+    outside it. The e2e job's 30-minute timeout is still a guess: e2e has
+    never run (no base URL configured).
   - The gate proves the config says these things, not that a job passes.
   - The two most recent CI runs on origin (2026-10-06/07) failed on Web and
     Backend lint; both predate commits not yet pushed, and were not re-run.
