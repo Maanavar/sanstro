@@ -1880,6 +1880,46 @@ then A14, A15, A13.
   repo. **Not started:** the rest of the builder (dasha strength,
   briefing, palan assembly), `get_life_areas` (689), `assess_marriage_prediction`
   (648), `dashboard-workspace.tsx` (2,415).
+  **Dasha-strength stage extracted (2026-10-08, second unit pass).** Patch
+  targets re-checked first, by import and by string path: tests patch only
+  `build_daily_guidance_response`, `get_daily_guidance` and
+  `_enrich_action_with_goal_track` on this module, nothing inside the stage
+  (`test_service_priority_m11`'s `calculate_vimshottari_timeline` patch is on
+  `dasha_transition_service`). `dasha_component` in `_dg_scoring.py` takes
+  the chart's planets, the three running lords, lagna, natal Moon rasi, the
+  day's transit bodies, `natal_rasi_by_graha`, `is_daytime` and age, and
+  returns the score plus the natal-strength map the pratyantar narrative
+  reads. The vimshottari timeline stays in the builder (its lords and end date
+  are read later), and so does `resolve_daytime_birth_for_profile` (a
+  sunrise computation), passed in like the murthi grade. The three copies of
+  the "strength_score, else compute from placement" block are one inner
+  function; order of insertion into the strength map is unchanged
+  (maha, antar, pratyantar). The stage's `is_daytime` is `bool | None`, as
+  the resolver returns for an unknown birth time (mypy caught the first
+  annotation). Six imports the builder no longer used were removed after
+  checking nothing reaches them through this module. 808 → 726 lines. No
+  doctrine changed.
+  **Proof:** golden unchanged (17 passed; fixture file untouched). Exact
+  same-process comparison, HEAD's module from `git show` beside the new one,
+  raw JSON minus `generatedAt`: 7 synthetic profiles (the golden four plus
+  Coimbatore, Sydney, Trichy) × 14 dates (2026–2040) × {strength as built,
+  `strength_score` zeroed so the placement path runs} × {briefing flag off,
+  on}, plus 3 profiles with the birth time nulled on the snapshot
+  (`is_daytime=None`): **560 cases, 0 differ**; 21 maha/antar pairs seen, 12
+  with a lord that has no scored transit (Sun/Mercury/Venus), 5 maha = antar.
+  Controls: one profile's dates shifted → 40 differ; the stage's maha weight
+  0.45 → 0.44 → differences reported. New `TestDasha` in
+  `tests/test_dg_stages.py` (7 tests: generic score for an absent lord, own
+  strength kept without a transit, transit house from the natal Moon,
+  strength computed from placement when absent, pratyantar reported but not
+  scored, 10–95 clamp at both ends). Controls: weight 0.44 → 5 of 7 fail;
+  pratyantar not recorded → 1 fails. The 21 test files that touch daily
+  guidance: 434 passed. ruff and mypy (368 files) clean.
+  **Blind spots:** maha lords seen were 6 of 9 (no Mercury, Saturn or Ketu
+  maha in the matrix — the stage is lord-agnostic, but that is argued, not
+  observed); the
+  "lord absent from the chart" branch is unreachable from a real chart and is
+  covered only by the direct test.
   **Previously not started:** steps 1–6 — `build_daily_guidance_response` (883 lines),
   `get_life_areas` (689), `assess_marriage_prediction` (648) and
   `dashboard-workspace.tsx` (2,415 lines now, 2,574 at audit) need golden

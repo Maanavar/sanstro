@@ -19,7 +19,7 @@ from app.calculations.chart_strength import (
     _NATURAL_FRIENDS,
     compute_natal_planet_score,
 )
-from app.calculations.functional_nature import get_transit_modifier
+from app.calculations.functional_nature import get_dasha_modifier, get_transit_modifier
 from app.calculations.maturation import MATURATION_AGE
 from app.calculations.panchangam import (
     PanchangamLimbSpan,
@@ -696,6 +696,99 @@ def transit_component(
     elif saturn_house_from_lagna in {3, 6, 11}:
         lagna_modifier += 2.0
     return TransitComponent(score=max(0, min(100, score + lagna_modifier)), houses_from_moon=houses)
+
+
+@dataclass(frozen=True)
+class DashaComponent:
+    score: int
+    #: Natal strength of each running lord the chart carries — maha, antar,
+    #: pratyantar, in that order — which the pratyantar narrative reads.
+    planet_strength: dict[str, int]
+
+
+def dasha_component(
+    planets: Sequence[Any],
+    *,
+    maha_lord: str,
+    antar_lord: str,
+    pratyantar_lord: str,
+    natal_lagna: int,
+    natal_moon_rasi: int,
+    transit_bodies: Mapping[str, Any],
+    natal_rasi_by_graha: Mapping[str, int],
+    is_daytime: bool | None,
+    profile_age: int,
+) -> DashaComponent:
+    """The day's dasha score from the running maha and antar lords.
+
+    Each lord starts from its natal strength in this chart (BUG-06: the actual
+    placement, not a generic score), is adjusted by its transit house from the
+    natal Moon, then by the lagna's functional-nature and the age-phase
+    (Thirukanitham) modifiers, and the two are blended with their relationship.
+    ``is_daytime`` is the true sunrise/sunset at the birth place (engine audit
+    G3), which needs the ephemeris, so the caller resolves it and passes it in
+    (``None`` when the birth time is unknown).
+    """
+    natal_sun = next((p for p in planets if p.graha == "SUN"), None)
+    natal_moon = next((p for p in planets if p.graha == "MOON"), None)
+    sun_lon = float(natal_sun.absolute_longitude) if natal_sun else 0.0
+    moon_lon = float(natal_moon.absolute_longitude) if natal_moon else 0.0
+    paksha_is_shukla = ((moon_lon - sun_lon) % 360.0) < 180.0
+
+    def natal_strength(lord: str, natal) -> int:
+        score = int(getattr(natal, "strength_score", 0) or 0)
+        if score <= 0:
+            score = compute_natal_planet_score(
+                planet=lord,
+                natal_rasi=natal.rasi,
+                natal_longitude=float(natal.absolute_longitude),
+                natal_lagna_rasi=natal_lagna,
+                sun_longitude=sun_lon,
+                is_retrograde=natal.is_retrograde,
+                is_vargottama=bool(natal.is_vargottama),
+                d9_rasi=natal.d9_rasi,
+                is_daytime=is_daytime,
+                paksha_is_shukla=paksha_is_shukla,
+                planet_rasi_map=natal_rasi_by_graha,
+            )
+        return score
+
+    planet_strength: dict[str, int] = {}
+
+    def period_score(lord: str) -> int:
+        natal = next((p for p in planets if p.graha == lord), None)
+        if not natal:
+            return _planet_period_score(lord) if lord in PLANET_PERIOD_SCORE else 50
+        natal_score = natal_strength(lord, natal)
+        planet_strength[lord] = natal_score
+        transit = transit_bodies.get(lord)
+        if transit is None:
+            return natal_score
+        return _dasha_lord_strength_score(
+            lord,
+            natal_score,
+            house_from_reference(natal_moon_rasi, transit.rasi),
+            is_retrograde_transit=bool(transit.is_retrograde),
+        )
+
+    maha_score = period_score(maha_lord)
+    antar_score = period_score(antar_lord)
+    natal_praty = next((p for p in planets if p.graha == pratyantar_lord), None)
+    if natal_praty:
+        planet_strength[pratyantar_lord] = natal_strength(pratyantar_lord, natal_praty)
+
+    # Functional-nature modifier (lagna-based) + age-phase modifier (Thirukanitham).
+    maha_score = max(10, min(95, round(
+        maha_score * get_dasha_modifier(natal_lagna, maha_lord) * _age_dasha_modifier(profile_age, maha_lord)
+    )))
+    antar_score = max(10, min(95, round(
+        antar_score * get_dasha_modifier(natal_lagna, antar_lord) * _age_dasha_modifier(profile_age, antar_lord)
+    )))
+
+    # Relationship weight raised from 0.10 → 0.25: enemy lords cause meaningful score divergence
+    relationship_score = _graha_relationship_score(maha_lord, antar_lord)
+    score = max(0, min(100, round(maha_score * 0.45 + antar_score * 0.30 + relationship_score * 0.25)))
+    return DashaComponent(score=score, planet_strength=planet_strength)
 
 
 #: The Ezharai (Sade Sati) phases — graded by murthi rather than a flat penalty.

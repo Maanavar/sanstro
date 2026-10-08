@@ -13,10 +13,17 @@ from types import SimpleNamespace
 import pytest
 
 from app.calculations.ashtakavarga import compute_bhinnashtakavarga
+from app.calculations.chart_strength import compute_natal_planet_score
+from app.calculations.functional_nature import get_dasha_modifier
 from app.reasoning.verdict import Band, band_to_legacy_confidence
 from app.services._dg_scoring import (
+    PLANET_PERIOD_SCORE,
     SADE_SATI_TYPES,
+    _age_dasha_modifier,
+    _dasha_lord_strength_score,
+    _graha_relationship_score,
     composite_day_score,
+    dasha_component,
     personal_safety_component,
     transit_component,
 )
@@ -124,3 +131,80 @@ class TestTransit:
         assert result.houses_from_moon["JUPITER"] == 3
         assert result.houses_from_moon["SATURN"] == 10
         assert 0 <= result.score <= 100
+
+
+LAGNA = 1
+
+
+def _planet(graha: str, rasi: int, *, strength: int = 0, lon: float | None = None):
+    return SimpleNamespace(
+        graha=graha, rasi=rasi, absolute_longitude=(rasi - 1) * 30 + 10.0 if lon is None else lon,
+        strength_score=strength, is_retrograde=False, is_vargottama=False, d9_rasi=None,
+    )
+
+
+def _dasha(planets, *, maha, antar, praty=None, transits=None, age=40, is_daytime=True):
+    return dasha_component(
+        planets, maha_lord=maha, antar_lord=antar, pratyantar_lord=praty or antar,
+        natal_lagna=LAGNA, natal_moon_rasi=4, transit_bodies=transits or {},
+        natal_rasi_by_graha={p.graha: p.rasi for p in planets}, is_daytime=is_daytime, profile_age=age,
+    )
+
+
+def _blend(maha_raw: int, antar_raw: int, maha: str, antar: str, age: int = 40) -> int:
+    """The stage's last step, restated: modifiers, 10-95 clamp, 45/30/25 blend."""
+    def lord(raw: int, planet: str) -> int:
+        return max(10, min(95, round(raw * get_dasha_modifier(LAGNA, planet) * _age_dasha_modifier(age, planet))))
+    blended = lord(maha_raw, maha) * 0.45 + lord(antar_raw, antar) * 0.30 + _graha_relationship_score(maha, antar) * 0.25
+    return max(0, min(100, round(blended)))
+
+
+class TestDasha:
+    def test_a_lord_the_chart_does_not_carry_takes_the_generic_period_score(self) -> None:
+        result = _dasha([], maha="JUPITER", antar="SATURN")
+        assert result.score == _blend(PLANET_PERIOD_SCORE["JUPITER"], PLANET_PERIOD_SCORE["SATURN"], "JUPITER", "SATURN")
+        assert result.planet_strength == {}
+
+    def test_a_carried_lord_uses_its_own_strength_and_without_a_transit_keeps_it(self) -> None:
+        # Sun, Mercury and Venus are not among the day's scored transit bodies.
+        planets = [_planet("VENUS", 2, strength=81), _planet("MERCURY", 3, strength=33)]
+        result = _dasha(planets, maha="VENUS", antar="MERCURY")
+        assert result.score == _blend(81, 33, "VENUS", "MERCURY")
+        assert result.planet_strength == {"VENUS": 81, "MERCURY": 33}
+
+    def test_a_transiting_lord_is_read_from_its_house_from_the_natal_moon(self) -> None:
+        planets = [_planet("SATURN", 7, strength=60), _planet("JUPITER", 9, strength=70)]
+        transits = {
+            "SATURN": SimpleNamespace(rasi=6, is_retrograde=True),   # 3rd from a Kadagam Moon
+            "JUPITER": SimpleNamespace(rasi=4, is_retrograde=False),  # 1st
+        }
+        result = _dasha(planets, maha="SATURN", antar="JUPITER", transits=transits)
+        saturn = _dasha_lord_strength_score("SATURN", 60, 3, is_retrograde_transit=True)
+        jupiter = _dasha_lord_strength_score("JUPITER", 70, 1, is_retrograde_transit=False)
+        assert result.score == _blend(saturn, jupiter, "SATURN", "JUPITER")
+        # The narrative reads natal strength, not the transit-adjusted score.
+        assert result.planet_strength == {"SATURN": 60, "JUPITER": 70}
+
+    def test_a_missing_strength_is_computed_from_the_placement(self) -> None:
+        planets = [_planet("SUN", 5, lon=130.0), _planet("MOON", 8, lon=220.0), _planet("MARS", 10, lon=280.0)]
+        result = _dasha(planets, maha="MARS", antar="MARS", is_daytime=False)
+        expected = compute_natal_planet_score(
+            planet="MARS", natal_rasi=10, natal_longitude=280.0, natal_lagna_rasi=LAGNA,
+            sun_longitude=130.0, is_retrograde=False, is_vargottama=False, d9_rasi=None,
+            is_daytime=False, paksha_is_shukla=True, planet_rasi_map={"SUN": 5, "MOON": 8, "MARS": 10},
+        )
+        assert expected > 0
+        assert result.planet_strength == {"MARS": expected}
+
+    def test_the_pratyantar_lord_is_reported_but_does_not_move_the_score(self) -> None:
+        planets = [_planet("VENUS", 2, strength=81), _planet("MERCURY", 3, strength=33), _planet("SATURN", 7, strength=50)]
+        result = _dasha(planets, maha="VENUS", antar="MERCURY", praty="SATURN")
+        assert list(result.planet_strength) == ["VENUS", "MERCURY", "SATURN"]
+        assert result.score == _dasha(planets[:2], maha="VENUS", antar="MERCURY").score
+
+    @pytest.mark.parametrize(("strength", "expected"), [(1000, 89), (1, 26)])
+    def test_each_lord_is_clamped_to_10_95_before_the_blend(self, strength, expected) -> None:
+        # Jupiter-Jupiter: relationship 72. 95*0.45 + 95*0.30 + 18 = 89.25;
+        # 10*0.45 + 10*0.30 + 18 = 25.5 -> 26.
+        result = _dasha([_planet("JUPITER", 9, strength=strength)], maha="JUPITER", antar="JUPITER")
+        assert result.score == expected

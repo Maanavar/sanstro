@@ -24,10 +24,8 @@ from app.calculations.astro import (
     local_datetime_to_utc,
     utc_datetime_to_julian_day,
 )
-from app.calculations.chart_strength import compute_natal_planet_score
 from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.ephemeris import calculate_sidereal_planets
-from app.calculations.functional_nature import get_dasha_modifier
 from app.calculations.panchangam import (
     NAKSHATRA_NAMES,
     PanchangamSnapshot,
@@ -112,19 +110,16 @@ from app.services._dg_peyarchi import (
 # Sub-module imports — all symbols are re-exported here so existing consumers
 # that import directly from daily_guidance_service continue to work unchanged.
 from app.services._dg_scoring import (
-    PLANET_PERIOD_SCORE,
     SADE_SATI_TYPES,
     TRANSIT_BASE_SCORE,
-    _age_dasha_modifier,
     _collect_afflicted_planets,
-    _dasha_lord_strength_score,
     _graha_relationship_score,
-    _planet_period_score,
     _pratyantar_narrative,
     _rasi_lord,
     _score_label,
     chandrashtama_end,
     composite_day_score,
+    dasha_component,
     personal_safety_component,
     transit_component,
     weighted_moon_score,
@@ -535,111 +530,29 @@ def build_daily_guidance_response(
     antar_lord = timeline.current_antardasha.lord
     pratyantar_lord = timeline.current_pratyantardasha.lord
 
-    # Natal planet strength for dasha score (BUG-06): use actual chart placement, not generic scores
-    natal_sun_data = next((p for p in chart_snapshot.data.planets if p.graha == "SUN"), None)
-    natal_moon_data = next((p for p in chart_snapshot.data.planets if p.graha == "MOON"), None)
-    natal_maha_data = next((p for p in chart_snapshot.data.planets if p.graha == maha_lord), None)
-    natal_antar_data = next((p for p in chart_snapshot.data.planets if p.graha == antar_lord), None)
-    sun_lon = float(natal_sun_data.absolute_longitude) if natal_sun_data else 0.0
-    moon_lon = float(natal_moon_data.absolute_longitude) if natal_moon_data else 0.0
-    # True sunrise/sunset at the birth place (engine audit G3) — the same
-    # day/night the chart's own strength scores were computed with.
-    is_daytime = resolve_daytime_birth_for_profile(birth_profile)
-    paksha_is_shukla = ((moon_lon - sun_lon) % 360.0) < 180.0
     natal_rasi_by_graha = {p.graha: p.rasi for p in chart_snapshot.data.planets}
-
-    if natal_maha_data:
-        maha_natal_score = int(getattr(natal_maha_data, "strength_score", 0) or 0)
-        if maha_natal_score <= 0:
-            maha_natal_score = compute_natal_planet_score(
-                planet=maha_lord,
-                natal_rasi=natal_maha_data.rasi,
-                natal_longitude=float(natal_maha_data.absolute_longitude),
-                natal_lagna_rasi=natal_lagna,
-                sun_longitude=sun_lon,
-                is_retrograde=natal_maha_data.is_retrograde,
-                is_vargottama=bool(natal_maha_data.is_vargottama),
-                d9_rasi=natal_maha_data.d9_rasi,
-                is_daytime=is_daytime,
-                paksha_is_shukla=paksha_is_shukla,
-                planet_rasi_map=natal_rasi_by_graha,
-            )
-        maha_transit = _transit_bodies.get(maha_lord)
-        if maha_transit is not None:
-            maha_score = _dasha_lord_strength_score(
-                maha_lord,
-                maha_natal_score,
-                house_from_reference(natal_moon.rasi, maha_transit.rasi),
-                is_retrograde_transit=bool(maha_transit.is_retrograde),
-            )
-        else:
-            maha_score = maha_natal_score
-    else:
-        maha_score = _planet_period_score(maha_lord) if maha_lord in PLANET_PERIOD_SCORE else 50
-
-    if natal_antar_data:
-        antar_natal_score = int(getattr(natal_antar_data, "strength_score", 0) or 0)
-        if antar_natal_score <= 0:
-            antar_natal_score = compute_natal_planet_score(
-                planet=antar_lord,
-                natal_rasi=natal_antar_data.rasi,
-                natal_longitude=float(natal_antar_data.absolute_longitude),
-                natal_lagna_rasi=natal_lagna,
-                sun_longitude=sun_lon,
-                is_retrograde=natal_antar_data.is_retrograde,
-                is_vargottama=bool(natal_antar_data.is_vargottama),
-                d9_rasi=natal_antar_data.d9_rasi,
-                is_daytime=is_daytime,
-                paksha_is_shukla=paksha_is_shukla,
-                planet_rasi_map=natal_rasi_by_graha,
-            )
-        antar_transit = _transit_bodies.get(antar_lord)
-        if antar_transit is not None:
-            antar_score = _dasha_lord_strength_score(
-                antar_lord,
-                antar_natal_score,
-                house_from_reference(natal_moon.rasi, antar_transit.rasi),
-                is_retrograde_transit=bool(antar_transit.is_retrograde),
-            )
-        else:
-            antar_score = antar_natal_score
-    else:
-        antar_score = _planet_period_score(antar_lord) if antar_lord in PLANET_PERIOD_SCORE else 50
-
-    planet_strength_map: dict[str, int] = {}
-    if natal_maha_data:
-        planet_strength_map[maha_lord] = maha_natal_score
-    if natal_antar_data:
-        planet_strength_map[antar_lord] = antar_natal_score
-    natal_praty_data = next((p for p in chart_snapshot.data.planets if p.graha == pratyantar_lord), None)
-    if natal_praty_data:
-        praty_score = int(getattr(natal_praty_data, "strength_score", 0) or 0)
-        if praty_score <= 0:
-            praty_score = compute_natal_planet_score(
-                planet=pratyantar_lord,
-                natal_rasi=natal_praty_data.rasi,
-                natal_longitude=float(natal_praty_data.absolute_longitude),
-                natal_lagna_rasi=natal_lagna,
-                sun_longitude=sun_lon,
-                is_retrograde=natal_praty_data.is_retrograde,
-                is_vargottama=bool(natal_praty_data.is_vargottama),
-                d9_rasi=natal_praty_data.d9_rasi,
-                is_daytime=is_daytime,
-                paksha_is_shukla=paksha_is_shukla,
-                planet_rasi_map=natal_rasi_by_graha,
-            )
-        planet_strength_map[pratyantar_lord] = praty_score
-
     # Compute native's age for life-stage dasha modifier
     profile_age = (on_date - birth_profile.birth_date_local).days // 365
 
-    # Apply functional-nature modifier (lagna-based) + age-phase modifier (Thirukanitham)
-    maha_score  = max(10, min(95, round(maha_score  * get_dasha_modifier(natal_lagna, maha_lord)  * _age_dasha_modifier(profile_age, maha_lord))))
-    antar_score = max(10, min(95, round(antar_score * get_dasha_modifier(natal_lagna, antar_lord) * _age_dasha_modifier(profile_age, antar_lord))))
-
-    # Relationship weight raised from 0.10 → 0.25: enemy lords cause meaningful score divergence
-    relationship_score = _graha_relationship_score(maha_lord, antar_lord)
-    dasha_score = max(0, min(100, round(maha_score * 0.45 + antar_score * 0.30 + relationship_score * 0.25)))
+    # Natal strength of the running lords, their transits, the functional-nature
+    # and age-phase modifiers and the lords' relationship — a pure stage in
+    # _dg_scoring (A13). True sunrise/sunset at the birth place (engine audit
+    # G3) — the same day/night the chart's own strength scores were computed
+    # with — needs the ephemeris, so it is resolved here and passed in.
+    _dasha = dasha_component(
+        chart_snapshot.data.planets,
+        maha_lord=maha_lord,
+        antar_lord=antar_lord,
+        pratyantar_lord=pratyantar_lord,
+        natal_lagna=natal_lagna,
+        natal_moon_rasi=natal_moon.rasi,
+        transit_bodies=_transit_bodies,
+        natal_rasi_by_graha=natal_rasi_by_graha,
+        is_daytime=resolve_daytime_birth_for_profile(birth_profile),
+        profile_age=profile_age,
+    )
+    dasha_score = _dasha.score
+    planet_strength_map = _dasha.planet_strength
 
     # Duration-weighted across the solar day (doctrine R-1). The single largest
     # correction here is the karana term: karana averages 11.79 h, so keying
