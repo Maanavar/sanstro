@@ -38,7 +38,7 @@ All code shares a single repository with a **pnpm workspace** for unified depend
 | Database | **PostgreSQL** 16 | Persistent data storage (Docker) |
 | ORM | **SQLAlchemy** 2.0+ | Database models + migrations |
 | Migrations | **Alembic** 1.13+ | Version-controlled schema changes |
-| Auth | **python-jose** + **bcrypt** | JWT tokens, password hashing |
+| Auth | **PyJWT** (HMAC-only) + **bcrypt** | JWT tokens, password hashing |
 | Encryption | **cryptography** + **Fernet** | Birth data encryption at rest |
 | Scheduler | **APScheduler** 3.10+ | Cron jobs (dasha calculations, notifications) |
 | PDF/Reports | **ReportLab** 4.0+ | Dynamic PDF generation |

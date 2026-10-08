@@ -6,12 +6,7 @@ import time
 import uuid
 from ipaddress import ip_address
 
-try:
-    from jose import jwt as _jose_jwt
-    _JOSE_AVAILABLE = True
-except ImportError:  # pragma: no cover
-    _JOSE_AVAILABLE = False
-
+import jwt
 from fastapi import Request, Response, status
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -175,8 +170,6 @@ def _extract_user_id(request: Request) -> str | None:
     by the aggregate rate of their IP.
     Returns None when no valid Bearer token is present (unauthenticated).
     """
-    if not _JOSE_AVAILABLE:
-        return None
     auth = request.headers.get("authorization", "")
     if not auth.lower().startswith("bearer "):
         return None
@@ -186,7 +179,7 @@ def _extract_user_id(request: Request) -> str | None:
         settings = get_settings()
         if settings.jwt_secret is None:
             return None
-        payload = _jose_jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+        payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
         sub = payload.get("sub")
         return f"uid:{sub}" if sub else None
     except Exception:

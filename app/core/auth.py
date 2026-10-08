@@ -17,9 +17,9 @@ from hmac import compare_digest
 from typing import Annotated
 from uuid import UUID
 
+import jwt
 from fastapi import Cookie, Depends, Header, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -82,7 +82,7 @@ def decode_token(token: str) -> dict:
         raise RuntimeError("JWT secret is not configured.")
     try:
         return jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
-    except JWTError as exc:
+    except jwt.PyJWTError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token.",

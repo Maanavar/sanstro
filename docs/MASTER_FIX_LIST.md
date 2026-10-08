@@ -2120,6 +2120,43 @@ commit. Only the varshaphala one touches a Phase 3 test:
   imported `from jose import jwt`; `import jose` + `jose.jwt.decode` is not
   matched. **The real fix is leaving python-jose for PyJWT** (REFACTOR_PLAN
   1.2), which retires this ignore and the ecdsa one together — not done.
+  **Done 2026-10-08 (owner handed over the decision): python-jose → PyJWT,
+  and every pip-audit ignore is gone.** Surface re-verified first: jose was
+  used only in `app/core/auth.py` (encode/decode/`JWTError`), the rate
+  limiter's subject read in `app/middleware.py`, and `tests/test_auth.py`.
+  Now `import jwt` / `jwt.PyJWTError` there; the middleware's
+  optional-import guard is gone (PyJWT is a hard dependency). Lock: removed
+  `python-jose`, `ecdsa`, `rsa`, `pyasn1`, `six` (each needed only by jose or
+  ecdsa — `pip show`; `pip check` clean after uninstalling them and
+  refreshing the stale editable metadata); `pyproject` names `PyJWT>=2.15,<3.0`
+  (`cryptography` is its own direct dependency, so dropping jose's
+  `[cryptography]` extra loses nothing). **Found on the way:** redis 5.3
+  already depended on PyJWT and the lock never pinned it — this venv held
+  2.13.0, which has 14 advisories (PYSEC-2026-4140…4183, fixed by 2.15.0);
+  pinned `PyJWT==2.15.1` (latest). `pip-audit -r requirements.txt` with **no
+  ignores**: "No known vulnerabilities found". CI's four `--ignore-vuln`
+  lines and their premise paragraphs are removed.
+  **Gate:** `tests/test_jwt_library.py` (11). Two tokens minted by
+  python-jose 3.5.0 through `create_access_token`'s exact claim set (HS256
+  access, HS512 pwreset; synthetic secret/subject; exp 2099) must decode to
+  the same claims — the first request after the deploy is a token PyJWT
+  never issued. Expired, tampered, other-algorithm, `alg: none` and
+  wrong-secret tokens are refused with 401; a new token round-trips with
+  integer `iat`/`exp`. Ratchets: nothing in app/tests/scripts imports `jose`;
+  the lock pins PyJWT and none of the removed five. **Baseline (under jose):**
+  the 9 equivalence tests passed — the behaviour to keep — and both ratchets
+  failed. After: 11 passed on 2.13.0 and on 2.15.1. `test_jwt_hmac_only.py`
+  now scans PyJWT decode calls (still requires `algorithms=[...]` at both
+  sites). The 32 auth-related test files: 428 passed on 2.13.0, and with
+  the new file 439 passed on 2.15.1. ruff, mypy clean.
+  **Blind spots / notes:** PyJWT ≥ 2.10 emits `InsecureKeyLengthWarning` for an
+  HMAC key shorter than the hash (32 bytes for HS256); jose never warned. The
+  dev default secret is 64 chars; if production's `JOTHIDAM_JWT_SECRET` is
+  shorter, the log will say so once per process — rotating it logs everyone
+  out, so that is an owner decision, not done here. The decode scan misses
+  `from jwt import decode`. Dated reference docs (2026-08-25, 2026-10-06)
+  still say python-jose; `HOW_TO_USE_CODEBASE.md` and REFACTOR_PLAN 1.2 are
+  updated.
 - [x] **Mobile — Jest cold-start timeout (A15 step 7; it did reproduce).**
   The push-triggered run failed `birth-details`' first test at 5 s; the
   pull_request run of the same commit passed. Measured: local cold

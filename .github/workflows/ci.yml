@@ -91,9 +91,7 @@ jobs:
       - name: Mypy
         run: mypy app
       - name: Dependency audit (pip-audit)
-        # Fail on any known advisory except the ecdsa Minerva timing issue, which
-        # has no upstream fix and is off our signing path (HS256/HMAC only).
-        # See the ecdsa note in requirements.txt and REFACTOR_PLAN 1.2.
+        # Fail on any known advisory. Nothing is ignored.
         #
         # The five starlette entries (PYSEC-2026-161, -248, -249, -2280, -2281)
         # were dropped on 2026-09-02 by bumping starlette 1.0.0 → 1.3.1, which is
@@ -103,27 +101,13 @@ jobs:
         # outlive the reason it was suppressed, so if an entry below ever looks
         # permanent, re-check whether its premise still holds.
         #
-        # The two IDs below are ONE advisory, not two exposures: GHSA-wj6h-64fc-37mp,
-        # CVE-2024-23342 and PYSEC-2026-1325 are aliases of the same ecdsa finding,
-        # and each one alone suppresses it. Both are kept because which alias the
-        # advisory database reports under has changed before.
-        #
-        # python-jose CVE-2026-85394 (alias GHSA-3qf3-8w2g-rqmx; no fixed
-        # release; first reported here 2026-10-08) is ignored on this premise,
-        # verbatim: "the advisory needs an asymmetric public key used as the
-        # HMAC key AND a decode that does not restrict `algorithms`; this app
-        # signs HMAC-only over a symmetric secret (`jwt_algorithm` is typed
-        # HS256/HS384/HS512 and refused otherwise at boot) and every jose decode
-        # passes `algorithms=[...]`." tests/test_jwt_hmac_only.py fails if either
-        # half stops holding. Leaving python-jose for PyJWT (REFACTOR_PLAN 1.2)
-        # retires this ignore and the ecdsa one together.
+        # The ecdsa Minerva advisory (GHSA-wj6h-64fc-37mp / CVE-2024-23342) and
+        # python-jose CVE-2026-85394 (GHSA-3qf3-8w2g-rqmx) were ignored here
+        # until 2026-10-08, when python-jose and its ecdsa/rsa/pyasn1 tree were
+        # replaced by PyJWT (REFACTOR_PLAN 1.2; tests/test_jwt_library.py).
         run: |
           pip install pip-audit
-          pip-audit -r requirements.txt \
-            --ignore-vuln GHSA-wj6h-64fc-37mp \
-            --ignore-vuln CVE-2024-23342 \
-            --ignore-vuln CVE-2026-85394 \
-            --ignore-vuln GHSA-3qf3-8w2g-rqmx
+          pip-audit -r requirements.txt
 
   migrations:
     name: Alembic round-trip

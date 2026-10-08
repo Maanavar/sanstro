@@ -1,21 +1,16 @@
-"""Pins the premise under which CI ignores python-jose CVE-2026-85394.
+"""Pins the HMAC-only, algorithm-pinned JWT design.
 
-GHSA-3qf3-8w2g-rqmx / CVE-2026-85394 (python-jose <= 3.5.0, no fixed release):
-HMAC key initialisation accepts a DER-encoded *public* key, so an attacker who
-holds the service's public key can forge HS256 tokens when the decoder does not
-restrict ``algorithms``. It is an algorithm-confusion attack and needs both:
+Algorithm confusion — verifying a token with key material of the wrong kind
+because the token's own header chose the algorithm — needs both:
 
 1. an asymmetric key pair whose public half is used as the verification key, and
 2. a decode that does not pin the accepted algorithms.
 
 Neither holds here: tokens are HMAC-only over a symmetric secret, and every
-decode passes ``algorithms=[settings.jwt_algorithm]``. Until 2026-10-08 the
-first half was only a comment — ``jwt_algorithm`` was a free ``str`` read from
-``JOTHIDAM_JWT_ALGORITHM``. These tests make both halves fail loudly, so the
-ignore in ``.github/workflows/ci.yml`` cannot outlive its reason unnoticed.
-
-Removing the ignore for good means leaving python-jose (REFACTOR_PLAN 1.2:
-migrate to PyJWT), which also drops the ecdsa Minerva advisory.
+decode passes ``algorithms=[settings.jwt_algorithm]``. This premise is what CI
+ignored python-jose CVE-2026-85394 on until 2026-10-08; the app has since moved
+to PyJWT (REFACTOR_PLAN 1.2, ``tests/test_jwt_library.py``) and the ignore is
+gone, but the design is still the defence, so both halves keep failing loudly.
 """
 
 from __future__ import annotations
@@ -62,16 +57,16 @@ def test_non_hmac_algorithm_is_refused_at_boot(monkeypatch, alg):
         _settings()
 
 
-def _jose_decode_calls():
-    """Every ``<name>.decode(...)`` where ``<name>`` is bound to ``jose.jwt``."""
+def _jwt_decode_calls():
+    """Every ``<name>.decode(...)`` where ``<name>`` is the PyJWT module."""
     found = []
     for path in sorted((REPO / "app").rglob("*.py")):
         tree = ast.parse(path.read_text(encoding="utf-8"))
-        jose_names = set()
+        jwt_names = set()
         for node in ast.walk(tree):
-            if isinstance(node, ast.ImportFrom) and node.module == "jose":
-                jose_names |= {a.asname or a.name for a in node.names if a.name == "jwt"}
-        if not jose_names:
+            if isinstance(node, ast.Import):
+                jwt_names |= {a.asname or a.name for a in node.names if a.name == "jwt"}
+        if not jwt_names:
             continue
         for node in ast.walk(tree):
             if (
@@ -79,14 +74,14 @@ def _jose_decode_calls():
                 and isinstance(node.func, ast.Attribute)
                 and node.func.attr == "decode"
                 and isinstance(node.func.value, ast.Name)
-                and node.func.value.id in jose_names
+                and node.func.value.id in jwt_names
             ):
                 found.append((path.relative_to(REPO).as_posix(), node))
     return found
 
 
-def test_every_jose_decode_pins_its_algorithms():
-    calls = _jose_decode_calls()
+def test_every_jwt_decode_pins_its_algorithms():
+    calls = _jwt_decode_calls()
     # app/core/auth.py and app/middleware.py at the time of writing; a scan that
     # finds nothing would pass vacuously.
     assert {p for p, _ in calls} >= {"app/core/auth.py", "app/middleware.py"}
