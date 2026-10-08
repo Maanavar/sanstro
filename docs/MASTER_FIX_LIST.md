@@ -1920,6 +1920,27 @@ then A14, A15, A13.
   observed); the
   "lord absent from the chart" branch is unreachable from a real chart and is
   covered only by the direct test.
+  **Briefing and palan assembly extracted (2026-10-08, third unit pass).**
+  Two module-level functions in `daily_guidance_service.py` (not a new
+  module: both are response composition, not scoring, and keeping them here
+  leaves every name the builder resolves where it was): `_daily_briefing`
+  (the Track A synthesis, inputs explicit; the `daily_briefing_synth` flag
+  check stays in the builder) and `_personal_palan_response` (the
+  `build_personal_palan` result → `PersonalPalan` schema). The palan's
+  `build_personal_palan` call and both `run_safety_pass` calls stay in the
+  builder, in the same order. 726 → 632 lines (885 at the start of A13). mypy
+  caught two wrong first annotations (`moon_score` is `int`;
+  `personal_caution` is the narrative `BiText`), both fixed before commit.
+  **Proof:** golden 17 passed, unchanged; exact same-process comparison against
+  `a3afc72`: **560 cases, 0 differ**. Controls: dates shifted → 40 differ;
+  palan adapter mutated (`dashaAreas` emptied) → 560 differ, all in
+  `personalPalan`; briefing mutated (`ta`/`en` swapped) → exactly the 280
+  flag-on cases differ, all in `briefing`. (A first briefing mutation, the
+  synthesizer's `seed`, changed no visible output — the seed picks among
+  variants and those cases did not move; it is not a usable probe.)
+  **Blind spots:** no direct tests for the two adapters — they are field
+  mapping, covered by the golden and the comparison; nested
+  `_build_tithi_card` / `_build_activity_board` are still inside the builder.
   **Previously not started:** steps 1–6 — `build_daily_guidance_response` (883 lines),
   `get_life_areas` (689), `assess_marriage_prediction` (648) and
   `dashboard-workspace.tsx` (2,415 lines now, 2,574 at audit) need golden

@@ -141,6 +141,7 @@ from app.services.location_service import (
 from app.services.muhurtham_naal_service import BiLabel, couple_who, require_couple_birth_time
 from app.services.nakshatra_content import build_nakshatra_perspective
 from app.services.narrative_engine import (
+    BiText,
     build_score_reasons,
     dasha_spoken,
     gochar_spoken,
@@ -365,6 +366,157 @@ def _build_remedy_focus(chart_snapshot, maha_lord: str) -> RemedyFocus | None:
         why=_remedy_why(focus),
         actions=[_compose_temple_action(remedy), *_compose_seva_actions(remedy)],
         japa=remedy.japa_count,
+    )
+
+
+def _daily_briefing(
+    *,
+    on_date: date,
+    label: str,
+    moon_score: int,
+    dasha_score: int,
+    transit_score: float,
+    panchangam_score: int,
+    personal_safety_score: int,
+    current_nakshatra: int,
+    janma_nakshatra: int,
+    chandrashtama: bool,
+    maha_lord: str,
+    jupiter_house: int,
+    saturn_house: int,
+    saturn_cycle,
+    day_tithi: int,
+    day_yoga: int,
+    day_karana_name: str,
+    day_nakshatra: int,
+    personal_caution: BiText,
+    action: DailyGuidanceSuggestion,
+) -> DailyGuidanceText:
+    """Track A synthesis: fold the six vetted reason fragments + component
+    scores into one prioritized, flowing briefing. Reuses the already-computed
+    pieces (no recompute, no model); the builder calls it only behind the
+    `daily_briefing_synth` flag, leaving the six-row `reasons` output untouched.
+    """
+    sani_cycle_type = saturn_cycle.type if saturn_cycle.is_active else None
+    # RP-10: the briefing weaves the *spoken* panchangam/gochar leads (one
+    # flowing sentence each), not the chip-joined tile fragments — those
+    # stay on the six-row "Why this prediction?" output untouched.
+    synthesized = synthesize_daily_briefing(BriefingInputs(
+        label=label,
+        moon_score=moon_score,
+        dasha_score=dasha_score,
+        transit_score=round(transit_score),
+        panchangam_score=panchangam_score,
+        personal_score=personal_safety_score,
+        # RP-10 extended: the Moon slot takes the *spoken* lead too. The
+        # six-row `reasons.moon_transit` opens with rasi/nakshatra/house and
+        # only then interprets — and the synthesizer keeps lead clauses, so
+        # the briefing was printing three coordinates and dropping the read.
+        moon_transit=moon_spoken(
+            current_nakshatra=current_nakshatra,
+            janma_nakshatra=janma_nakshatra,
+            chandrashtama=chandrashtama,
+            moon_score=moon_score,
+        ),
+        dasha_support=dasha_spoken(maha_lord=maha_lord, dasha_score=dasha_score),
+        gochar=gochar_spoken(
+            jupiter_house=jupiter_house,
+            saturn_house=saturn_house,
+            sani_cycle_type=sani_cycle_type,
+            sani_cycle_active=saturn_cycle.is_active,
+            transit_score=round(transit_score),
+        ),
+        panchangam=panchangam_spoken(
+            tithi_number=day_tithi,
+            yoga_number=day_yoga,
+            karana_name=day_karana_name,
+            panchangam_score=panchangam_score,
+            nakshatra_number=day_nakshatra,
+        ),
+        personal_caution=personal_caution,
+        action=action,  # the goal/track-enriched action, not the raw one
+        chandrashtama=chandrashtama,
+        sani_cycle_active=saturn_cycle.is_active,
+        sani_background=sani_cycle_background(sani_cycle_type),
+        seed=f"{maha_lord}:{on_date.isoformat()}",
+    ))
+    return DailyGuidanceText(ta=synthesized.ta, en=synthesized.en)
+
+
+def _personal_palan_response(palan, best_window) -> PersonalPalan:
+    """Adapt `build_personal_palan`'s result onto the response schema.
+
+    ``best_window`` is the hero's featured window, carried through as is.
+    """
+    def _dgt(bi) -> DailyGuidanceText:
+        return DailyGuidanceText(ta=bi.ta, en=bi.en)
+
+    return PersonalPalan(
+        contentVersion=palan.content_version,
+        reviewStatus=palan.review_status,
+        overallPolarity=palan.overall_polarity,
+        overall=_dgt(palan.overall),
+        areas=[
+            PersonalPalanArea(
+                area=a.area,
+                polarity=a.polarity,
+                text=_dgt(a.text),
+                periodNote=_dgt(a.period_note) if a.period_note else None,
+            )
+            for a in palan.areas
+        ],
+        advice=_dgt(palan.advice),
+        worship=_dgt(palan.worship),
+        closing=_dgt(palan.closing),
+        strength=_dgt(palan.strength) if palan.strength else None,
+        watch=_dgt(palan.watch) if palan.watch else None,
+        opportunityArea=palan.opportunity_area,
+        cautionArea=palan.caution_area,
+        bestWindow=best_window,
+        basis=PersonalPalanBasis(
+            moonHouse=palan.moon_house,
+            tara=palan.tara,
+            taraName=_dgt(palan.tara_name),
+            isChandrashtama=palan.is_chandrashtama,
+            text=_dgt(palan.basis),
+        ),
+        period=(
+            PersonalPalanPeriod(
+                mahaLord=palan.period.maha_lord,
+                antarLord=palan.period.antar_lord,
+                saniCycle=palan.period.sani_cycle,
+                kandakaHouse=palan.period.kandaka_house,
+                guruHouse=palan.period.guru_house,
+                saturnHouse=palan.period.saturn_house,
+                rahuHouse=palan.period.rahu_house,
+                antarHouses=list(palan.period.antar_houses),
+                antarTransitHouse=palan.period.antar_transit_house,
+                antarTransitSupportive=palan.period.antar_transit_supportive,
+                text=_dgt(palan.period.text),
+            )
+            if palan.period
+            else None
+        ),
+        dashaAreas=list(palan.dasha_areas),
+        transcript=[
+            PersonalPalanSegment(kind=seg.kind, area=seg.area, text=_dgt(seg.text))
+            for seg in palan.transcript
+        ],
+        lucky=(
+            PersonalPalanLucky(
+                graha=palan.lucky.graha,
+                source=palan.lucky.source,
+                colour=_dgt(palan.lucky.colour),
+                number=palan.lucky.number,
+                direction=palan.lucky.direction,
+                directionName=_dgt(DIRECTION_NAME[palan.lucky.direction]) if palan.lucky.direction else None,
+                soolam=palan.lucky.soolam,
+                soolamName=_dgt(DIRECTION_NAME[palan.lucky.soolam]) if palan.lucky.soolam else None,
+                text=_dgt(palan.lucky.basis),
+            )
+            if palan.lucky
+            else None
+        ),
     )
 
 
@@ -820,57 +972,32 @@ def build_daily_guidance_response(
     )
     hora_lord = _current_hora_lord(panchangam, on_date, resolve_effective_daily_timezone(birth_profile))
 
-    # Track A synthesis: fold the six vetted reason fragments + component scores
-    # into one prioritized, flowing briefing. Reuses the already-computed pieces
-    # (no recompute, no model) and only surfaces behind the flag; `briefing`
-    # stays None otherwise, leaving the six-row `reasons` output untouched.
+    # The synthesized briefing only surfaces behind the flag; `briefing` stays
+    # None otherwise.
     briefing: DailyGuidanceText | None = None
     if get_flag("daily_briefing_synth"):
-        # RP-10: the briefing weaves the *spoken* panchangam/gochar leads (one
-        # flowing sentence each), not the chip-joined tile fragments — those
-        # stay on the six-row "Why this prediction?" output untouched.
-        synthesized = synthesize_daily_briefing(BriefingInputs(
+        briefing = _daily_briefing(
+            on_date=on_date,
             label=label,
             moon_score=moon_score,
             dasha_score=dasha_score,
-            transit_score=round(transit_score),
+            transit_score=transit_score,
             panchangam_score=panchangam_score,
-            personal_score=personal_safety_score,
-            # RP-10 extended: the Moon slot takes the *spoken* lead too. The
-            # six-row `reasons.moon_transit` opens with rasi/nakshatra/house and
-            # only then interprets — and the synthesizer keeps lead clauses, so
-            # the briefing was printing three coordinates and dropping the read.
-            moon_transit=moon_spoken(
-                current_nakshatra=current_nakshatra,
-                janma_nakshatra=janma_nakshatra,
-                chandrashtama=chandrashtama,
-                moon_score=moon_score,
-            ),
-            dasha_support=dasha_spoken(maha_lord=maha_lord, dasha_score=dasha_score),
-            gochar=gochar_spoken(
-                jupiter_house=jupiter_house,
-                saturn_house=saturn_house,
-                sani_cycle_type=saturn_cycle.type if saturn_cycle.is_active else None,
-                sani_cycle_active=saturn_cycle.is_active,
-                transit_score=round(transit_score),
-            ),
-            panchangam=panchangam_spoken(
-                tithi_number=day_tithi,
-                yoga_number=day_yoga,
-                karana_name=day_karana_name,
-                panchangam_score=panchangam_score,
-                nakshatra_number=day_nakshatra,
-            ),
-            personal_caution=reasons.personal_caution,
-            action=action_suggestion,  # the goal/track-enriched action, not the raw one
+            personal_safety_score=personal_safety_score,
+            current_nakshatra=current_nakshatra,
+            janma_nakshatra=janma_nakshatra,
             chandrashtama=chandrashtama,
-            sani_cycle_active=saturn_cycle.is_active,
-            sani_background=sani_cycle_background(
-                saturn_cycle.type if saturn_cycle.is_active else None
-            ),
-            seed=f"{maha_lord}:{on_date.isoformat()}",
-        ))
-        briefing = DailyGuidanceText(ta=synthesized.ta, en=synthesized.en)
+            maha_lord=maha_lord,
+            jupiter_house=jupiter_house,
+            saturn_house=saturn_house,
+            saturn_cycle=saturn_cycle,
+            day_tithi=day_tithi,
+            day_yoga=day_yoga,
+            day_karana_name=day_karana_name,
+            day_nakshatra=day_nakshatra,
+            personal_caution=reasons.personal_caution,
+            action=action_suggestion,
+        )
 
     remedy_focus = _build_remedy_focus(chart_snapshot, maha_lord)
 
@@ -905,76 +1032,7 @@ def build_daily_guidance_response(
         soolam=getattr(panchangam, "soolam_direction", None),
     )
 
-    def _dgt(bi) -> DailyGuidanceText:
-        return DailyGuidanceText(ta=bi.ta, en=bi.en)
-
-    personal_palan = PersonalPalan(
-        contentVersion=palan.content_version,
-        reviewStatus=palan.review_status,
-        overallPolarity=palan.overall_polarity,
-        overall=_dgt(palan.overall),
-        areas=[
-            PersonalPalanArea(
-                area=a.area,
-                polarity=a.polarity,
-                text=_dgt(a.text),
-                periodNote=_dgt(a.period_note) if a.period_note else None,
-            )
-            for a in palan.areas
-        ],
-        advice=_dgt(palan.advice),
-        worship=_dgt(palan.worship),
-        closing=_dgt(palan.closing),
-        strength=_dgt(palan.strength) if palan.strength else None,
-        watch=_dgt(palan.watch) if palan.watch else None,
-        opportunityArea=palan.opportunity_area,
-        cautionArea=palan.caution_area,
-        bestWindow=_featured_win,
-        basis=PersonalPalanBasis(
-            moonHouse=palan.moon_house,
-            tara=palan.tara,
-            taraName=_dgt(palan.tara_name),
-            isChandrashtama=palan.is_chandrashtama,
-            text=_dgt(palan.basis),
-        ),
-        period=(
-            PersonalPalanPeriod(
-                mahaLord=palan.period.maha_lord,
-                antarLord=palan.period.antar_lord,
-                saniCycle=palan.period.sani_cycle,
-                kandakaHouse=palan.period.kandaka_house,
-                guruHouse=palan.period.guru_house,
-                saturnHouse=palan.period.saturn_house,
-                rahuHouse=palan.period.rahu_house,
-                antarHouses=list(palan.period.antar_houses),
-                antarTransitHouse=palan.period.antar_transit_house,
-                antarTransitSupportive=palan.period.antar_transit_supportive,
-                text=_dgt(palan.period.text),
-            )
-            if palan.period
-            else None
-        ),
-        dashaAreas=list(palan.dasha_areas),
-        transcript=[
-            PersonalPalanSegment(kind=seg.kind, area=seg.area, text=_dgt(seg.text))
-            for seg in palan.transcript
-        ],
-        lucky=(
-            PersonalPalanLucky(
-                graha=palan.lucky.graha,
-                source=palan.lucky.source,
-                colour=_dgt(palan.lucky.colour),
-                number=palan.lucky.number,
-                direction=palan.lucky.direction,
-                directionName=_dgt(DIRECTION_NAME[palan.lucky.direction]) if palan.lucky.direction else None,
-                soolam=palan.lucky.soolam,
-                soolamName=_dgt(DIRECTION_NAME[palan.lucky.soolam]) if palan.lucky.soolam else None,
-                text=_dgt(palan.lucky.basis),
-            )
-            if palan.lucky
-            else None
-        ),
-    )
+    personal_palan = _personal_palan_response(palan, _featured_win)
 
     run_safety_pass(
         personal_palan.overall, personal_palan.advice, personal_palan.worship,
