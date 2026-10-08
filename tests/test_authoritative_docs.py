@@ -25,6 +25,8 @@ from pathlib import Path
 
 import pytest
 
+pytestmark = pytest.mark.no_db
+
 REPO = Path(__file__).resolve().parent.parent
 
 # The "Start Here" set: AGENTS.md names the first two as authoritative and

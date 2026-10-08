@@ -1449,16 +1449,33 @@ then A14, A15, A13.
   secondary adjustments", the §15 tables. No architecture-decision records
   were added (guide step 5).
 
-  **Found while verifying, NOT fixed (doctrine surface, needs a ruling):**
-  `transit_service.get_sani_cycle` still computes a Lagna-reckoned
-  `lagnaBasedCycle` (`transit_service.py:256`) by calling
-  `classify_kandaka_cycle(position_from_lagna)`, which emits `KANDAKA_SANI`.
-  `family_vault_service` tags members with that type (`:353`, `:439`) and the
-  web renders `KANDAKA_SANI` as "Kantaka Sani · from Janma Rasi"
-  (`web/lib/family-flags.ts:53`). So a member with Saturn 4/7/10 from the
-  **Lagna** can be shown Kandaka "from Janma Rasi" — the label A-1 requires to
-  be truthful. Fix options: drop the Lagna cross-check, or give it its own
-  type/label. Either changes a response shape across all four surfaces.
+  **Found while verifying — FIXED in a follow-up commit (owner gave Claude
+  ownership of next steps, 2026-10-08; applies the existing A-1 ruling, no
+  new doctrine):** `transit_service.build_sani_cycle_response` computed its
+  Lagna cross-check (`lagnaBasedCycle`) with `classify_kandaka_cycle`, which
+  stamps `KANDAKA_SANI` — rendered "Kantaka Sani · from Janma Rasi"
+  (`web/lib/family-flags.ts`) for a house counted from the **Lagna**. Worse,
+  `family_vault_service` took its *only* Kandaka from that cross-check (member
+  tags and the owner/member day cards), so family members were flagged by the
+  reckoning A-1 replaced and never by the one it chose.
+  Fix: the cross-check keeps its slot and limb wording but carries the
+  reference-free `KANTAKA_SANI` (plain "Kantaka Sani", under the card's
+  existing "Sani · from Lagna" heading); family tags and day-card types now
+  come from `_sani_cycle_tags` — the Moon cycle, then Kandaka from the Janma
+  Rasi over 4/7/10, layered as A-1 says. No response field, param or tag
+  vocabulary changed (both tags already existed and are localised on web;
+  mobile renders neither), so no client change was needed beyond a comment.
+  **Who sees a difference:** a member with Saturn 4/7/10 from the Lagna but
+  not the Moon loses the family Kandaka chip; one with Saturn 7/10 from the
+  Moon gains it (4th was already flagged as Ardhashtama).
+  **Gate:** `tests/test_kandaka_reference_a1.py` — scans 2000–2040 for the
+  synthetic member to find a Lagna-only and a Moon-only year, then checks the
+  real sani-cycle, daily-aggregate and today endpoints. Fix-removed controls:
+  both service files stashed → fails on the label (`'KANDAKA_SANI' !=
+  'KANDAKA_SANI'`); only the family file stashed → fails because a Moon-7/10
+  member carried only `['NORMAL_DAY']`. After: passes; 440 passed across the 28
+  related suites. **Blind spots:** the owner's own tile shares the helper but
+  is not exercised; the Tamil/English chip copy was not re-reviewed.
 - [~] **A14 — contract completeness. Steps 1–2 done (the nine schema gaps);
   steps 3–8 (generated transport contracts) not started.** The nine operations
   the field guard skipped now declare concrete `response_model`s that describe
@@ -1488,10 +1505,37 @@ then A14, A15, A13.
   names only, not value types or nullability; that is what generation (steps
   3–8) is for. Remedy `caution_ta/en` are nullable in the model but typed
   `string` in `RemedyItem` (tools.ts) — a nullability gap the guard cannot see.
-  **Not started (A14 steps 3–8):** a deterministic schema artifact, generator
-  choice after a toolchain check, a marked generated directory with CI
-  regeneration, incremental wrapper migration, runtime validation of
-  consequential inputs.
+  **A14 steps 3–6, first endpoint group (2026-10-08, second pass).**
+  Toolchain check: no OpenAPI→TS generator was installed (only `zod` in web),
+  and a new npm dependency means a `pnpm install` on the machine where
+  installs have stalled before — so `scripts/generate_api_types.py` is a small
+  dependency-free generator over `app.openapi()`. It raises on any schema
+  shape it does not support rather than guessing. It writes
+  `packages/shared/src/generated/api-types.ts` for the nine operations above.
+  `packages/shared/src/api/__contracts__/generated-fit.ts` asks `tsc` whether
+  each generated server `…Data` type is assignable to the hand-written type
+  its wrapper casts to — value types and nullability, which the field guard
+  cannot see. Its first run failed 6 of 9:
+  - **Real client drift, fixed in `packages/shared`:** `CharaDashaData.lagnaRasi`
+    was `string`, but the route has always sent a number (no consumer read it).
+    `RemedyItem.caution_ta/en` were `string`; the server sends `null` when the
+    gemstone policy has no caution (web already coalesced it; mobile does not
+    render it). Web and mobile `tsc` stay clean after both changes.
+  - **Server models looser than the payload, tightened:** `level` →
+    `Literal["maha","antar"]`, `paksha` → `Literal["SHUKLA","KRISHNA"]`, and
+    `charKarakas` → a fixed eight-key `CharaKarakas` model (the route always
+    passes all eight candidate grahas; the calculation refuses the Rahu-less
+    shape).
+  **Gates:** `tsc` on the fit file (runs in mobile CI's shared type-check) —
+  fix-removed control: restoring `caution_ta: string` fails it at the remedy
+  line. `tests/test_generated_api_types.py` regenerates in-process and fails if
+  the committed file is stale. The lossless test above re-runs against the
+  tightened models.
+  **Blind spots:** nine operations only; the fit is one-directional (a field
+  the wrapper declares but the server omits is still only the field guard's
+  check); generated types are not yet consumed by any wrapper — they verify,
+  they do not replace. **Not started:** wrapper migration onto generated types
+  (step 7) and runtime validation of consequential inputs (step 8).
 - [x] **A15 — CI coverage (config side; not yet observed on a runner).**
   Re-verified: mobile CI type-checked and linted only, its path filter was
   `mobile/**` + `packages/shared/**`, and mobile lint covered `app/` only.
@@ -1527,7 +1571,46 @@ then A14, A15, A13.
   - The gate proves the config says these things, not that a job passes.
   - The two most recent CI runs on origin (2026-10-06/07) failed on Web and
     Backend lint; both predate commits not yet pushed, and were not re-run.
-- [ ] A13 module boundaries.
+- [~] **A13 — module boundaries. Step 7 (dependency-direction gate) and two
+  of the three cited inversions done; the third and every large extraction
+  (steps 1–6) not started.**
+  The audit's three dependency findings, re-verified then handled:
+  - `app/models/*` (5 files) imported their column types from
+    `app.services.encryption` → the module moved, content unchanged
+    (`git mv`), to `app/db/encrypted_types.py`, the persistence layer. All
+    in-repo importers updated, including historical migration
+    `dd3e4f5a6b7c` (import path only) and `test_encryption_rotation.py`.
+  - `app/calculations/propensities.py` imported `AstroFactor`/`BiText` from
+    `app.services.life_area_prediction_models` → that module (four dataclasses
+    plus a helper depending only on `calculations`) moved to
+    `app/calculations/life_area_prediction_models.py`; 10 importers updated.
+  - `app/calculations/panchangam.py` cache SQL — **left, as an explicit
+    baseline entry.** `calculate_daily_panchangam(session=…)` is the public
+    entry for ~30 callers and tests reach its private cache helpers 33 times;
+    moving it is a facade move on a perf-budgeted path, its own package.
+  **Gate:** `tests/test_dependency_direction.py` — `ast`-parsed imports
+  (top-level, in-function and `TYPE_CHECKING` alike) against five rules:
+  calculations ↛ models/services/api/db/sqlalchemy/fastapi; models ↛
+  services/api; db ↛ services/api/models; core ↛ services/api; services ↛
+  api. Baseline is the four panchangam imports, self-cleaning (a stale entry
+  fails). Fix removed (moves stashed): failed naming exactly the six cited
+  imports (5 models + propensities). After: 3 passed. **Full backend suite
+  after the moves: 5994 passed, 7 skipped, 0 failed** (56 min, local).
+  **Blind spots:** `importlib`/`__import__` by name; coupling passed in at
+  runtime (a `Session` argument to a calculation is DB coupling the import
+  graph cannot see — panchangam would still be coupled after an import-only
+  fix); `core → models` is allowed by design (auth needs `User`); schemas →
+  services (numerology, dashboard bundle) is the API boundary depending on
+  application, which is the permitted direction, so it is not ruled.
+  **Not started:** steps 1–6 — `build_daily_guidance_response` (883 lines),
+  `get_life_areas` (689), `assess_marriage_prediction` (648) and
+  `dashboard-workspace.tsx` (2,415 lines now, 2,574 at audit) need golden
+  fixtures before any extraction.
+  **Found (pre-existing), fixed in a separate commit:** `mypy app` reported 4
+  errors at HEAD with CI's pinned mypy 2.3.1 — `narrative_engine.py` (Optional
+  `gochara_grade` result used as a key) and `_yoga_dosham.py` (invariant
+  `list[Literal]`) — so CI's backend-lint job could not pass. Annotation-level
+  fixes, no behaviour change; mypy now clean on 367 files.
 
 ## Agent Completion Checklist
 

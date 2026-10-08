@@ -117,8 +117,10 @@ export interface RemedyItem {
   is_gemstone_prescribed: boolean;
   reason_ta: string;
   reason_en: string;
-  caution_ta: string;
-  caution_en: string;
+  /** Null when the gemstone policy has no caution for this planet. Declared
+   *  non-null until A14's generated-type check (2026-10-08). */
+  caution_ta: string | null;
+  caution_en: string | null;
   fasting_caution_ta: string;
   fasting_caution_en: string;
   priority: number;

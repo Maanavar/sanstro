@@ -12,10 +12,16 @@ calculation layer's snake_case keys; every other shape is camelCase.
 from __future__ import annotations
 
 from datetime import date
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
 _ALIASED = ConfigDict(populate_by_name=True)
+
+#: These timelines are two levels deep: no route here emits pratyantar or below.
+SecondaryDashaLevel = Literal["maha", "antar"]
+#: From the Sun–Moon elongation; the services compute nothing else.
+Paksha = Literal["SHUKLA", "KRISHNA"]
 
 
 # --- Chara Dasha (Jaimini) ---------------------------------------------------
@@ -29,12 +35,30 @@ class CharaDashaPeriod(BaseModel):
     end_date: date
 
 
+class CharaKarakas(BaseModel):
+    """The eight Jaimini Chara Karakas (8-karaka scheme, Doctrine §4) → graha.
+
+    `compute_char_karakas` returns all eight whenever it is given all eight
+    candidate grahas, which the route always does; it refuses the Rahu-less
+    shape that would silently become the 7-karaka variant.
+    """
+
+    ATMAKARAKA: str
+    AMATYAKARAKA: str
+    BHRATRUKARAKA: str
+    MATRUKARAKA: str
+    PITRUKARAKA: str
+    PUTRAKARAKA: str
+    GNATIKARAKA: str
+    DAARAKARAKA: str
+
+
 class CharaDashaData(BaseModel):
     chart_id: str = Field(alias="chartId")
     lagna_rasi: int = Field(alias="lagnaRasi")
     current_period: CharaDashaPeriod | None = Field(alias="currentPeriod")
     periods: list[CharaDashaPeriod]
-    char_karakas: dict[str, str] = Field(alias="charKarakas")
+    char_karakas: CharaKarakas = Field(alias="charKarakas")
     atmakaraka: str | None
     karakamsa_rasi: int | None = Field(alias="karakamsaRasi")
     karakamsa_rasi_name: str | None = Field(alias="karakamsaRasiName")
@@ -51,7 +75,7 @@ class CharaDashaResponse(BaseModel):
 
 
 class YoginiDashaPeriod(BaseModel):
-    level: str
+    level: SecondaryDashaLevel
     yogini: str
     ruling_planet: str = Field(alias="rulingPlanet")
     years: int
@@ -93,7 +117,7 @@ class YoginiDashaResponse(BaseModel):
 
 
 class LordDashaPeriod(BaseModel):
-    level: str
+    level: SecondaryDashaLevel
     lord: str
     years: int
     start_date: date = Field(alias="startDate")
@@ -119,7 +143,7 @@ class AshtottariApplicabilityData(BaseModel):
     rule_ta: str = Field(alias="ruleTa")
     applicable: bool | None
     reason: str
-    paksha: str
+    paksha: Paksha
     is_day_birth: bool | None = Field(alias="isDayBirth")
     is_day_birth_approximate: bool = Field(alias="isDayBirthApproximate")
     paksha_supports: bool | None = Field(alias="pakshaSupports")
@@ -166,7 +190,7 @@ class ConditionalDashaApplicabilityResult(BaseModel):
 
 
 class ConditionalDashaApplicability(BaseModel):
-    paksha: str
+    paksha: Paksha
     is_day_birth: bool | None = Field(alias="isDayBirth")
     is_day_birth_approximate: bool = Field(alias="isDayBirthApproximate")
     results: list[ConditionalDashaApplicabilityResult]
@@ -192,7 +216,7 @@ class ConditionalDashasResponse(BaseModel):
 
 
 class KalachakraDashaPeriod(BaseModel):
-    level: str
+    level: SecondaryDashaLevel
     rasi: int
     rasi_code: str = Field(alias="rasiCode")
     rasi_name: str | None = Field(alias="rasiName")

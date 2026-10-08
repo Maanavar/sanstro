@@ -23,7 +23,9 @@ export interface CharaKarakaMap {
 
 export interface CharaDashaData {
   chartId: string;
-  lagnaRasi: string;
+  /** Rasi number 1-12. Declared `string` until A14's generated-type check
+   *  (2026-10-08) showed the route has always sent a number. */
+  lagnaRasi: number;
   currentPeriod: CharaPeriod | null;
   periods: CharaPeriod[];
   charKarakas: CharaKarakaMap | null;

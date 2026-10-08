@@ -3,10 +3,12 @@ import type { BiText } from "../types";
 
 /**
  * GET /ask-vinaadi/daily-status — app/services/ask_vinaadi_usage_service.py
- * `get_daily_status`. That route has no response_model, so
- * tests/test_api_wrapper_field_contract.py cannot check this type: it declared
- * `questionsUsedToday` (a field of the *answer*, never of the status) until
- * 2026-09-26, which left mobile's limit bar permanently hidden. Keep in step by hand.
+ * `get_daily_status`. Until A14 (2026-10-08) that route had no response_model,
+ * so tests/test_api_wrapper_field_contract.py could not check this type: it
+ * declared `questionsUsedToday` (a field of the *answer*, never of the status)
+ * until 2026-09-26, which left mobile's limit bar permanently hidden. The route
+ * now declares `AskVinaadiDailyStatus` (app/schemas/ask_vinaadi.py), and the
+ * field guard checks this interface against it.
  */
 export interface AskVinaadiDailyStatus {
   /** Questions spent — today for a daily allowance, this month for a monthly one. */
