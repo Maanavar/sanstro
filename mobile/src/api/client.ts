@@ -1,5 +1,6 @@
 import { router } from "expo-router";
 import { getTokens, setTokens } from "@/lib/secureStore";
+import { isTokenPair } from "@/lib/tokenPair";
 import { ENV } from "@/lib/env";
 import { currentGeneration, isCurrentGeneration } from "@/lib/sessionIdentity";
 import {
@@ -47,11 +48,14 @@ async function rotateTokens(generation: number): Promise<void> {
 
   if (!res.ok) throw new Error("refresh failed");
 
-  const json = (await res.json()) as {
-    accessToken: string;
-    refreshToken: string;
-    expiresIn: number;
-  };
+  // Checked, not cast (A14 step 8): this body goes straight into SecureStore,
+  // which writes the two keys separately. A 200 carrying only an access token
+  // would keep the old refresh token — already rotated, i.e. revoked — and the
+  // next refresh would present it, which the backend treats as token theft and
+  // answers by revoking every session (A03). Anything but two non-empty token
+  // strings is a failed refresh: nothing is written and the session ends.
+  const json: unknown = await res.json();
+  if (!isTokenPair(json)) throw new Error("refresh returned a malformed token pair");
 
   // A logout that landed while this was in flight must not be undone by it.
   // Writing these would hand the next (signed-out, or different) session a

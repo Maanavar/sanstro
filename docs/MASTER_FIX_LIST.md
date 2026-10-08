@@ -1576,6 +1576,48 @@ then A14, A15, A13.
   `dashboard-workspace.tsx:540` maps the snake_case rows into — not a copy.)
   **Blind spots:** nine operations only; the guard follows only the exact
   `export type X = Server.Y;` form.
+  **Next group tried and stopped — chart numerology GETs (2026-10-08).** The
+  six `/charts/{id}/numerology/*` GETs are the most coherent next group (one
+  wrapper, concrete schemas; the generator rendered all of them, +367 lines).
+  But a `tsc` probe of the 9 same-named types found 1 identical, 7 where the
+  *server* is looser than the client, and `LuckyDatesResponse` incompatible —
+  so the old one-directional fit would have failed on 8 of 9. Two classes,
+  neither an alias job; the generator change was reverted, nothing half-done
+  is committed:
+  1. **`X | null | undefined` vs `X | null`** (`reading.compound`, `who`,
+     `label`, `targetRasiEn`, …): the generator marks a defaulted Pydantic
+     field optional because OpenAPI's `required` omits fields with defaults —
+     yet FastAPI always serializes them. Same root as the envelope's
+     `success?`. Fix belongs in the generator (output-mode schemas, or
+     treating defaulted response fields as present), decided once for all
+     groups.
+  2. **`string` vs literal unions** (`epoch` → `PersonalYearEpoch`,
+     `functionalNature` → `FunctionalNature`, …): closing it means
+     `Literal[...]` on the Pydantic models, which changes server-side
+     validation — every producer must be checked first, or an unexpected
+     value becomes a 500 instead of a looser client type.
+  Do class 1 first: it is mechanical and shrinks class 2 to the real
+  value-set questions.
+  **A14 step 8 — runtime validation, first two targets (2026-10-08).** The
+  guide names categories, not endpoints ("unstable provider responses,
+  persisted payloads, consequential inputs"; §4.7 adds "parse and validate
+  provider output, test malformed/partial responses") — so the targets were
+  chosen, not given: the two places where an unchecked shape does the most
+  damage. Not every fetch is wrapped.
+  - **Mobile credentials.** `rotateTokens` cast the refresh JSON and wrote it
+    to SecureStore; login and register wrote server tokens the same way. The
+    two keys are written separately, so a 200 with one bad half stores the
+    good half beside a stale other half — for refresh, a refresh token the
+    server has just rotated (revoked), and presenting it later is what A03's
+    replay detection answers by revoking every session. Now `isTokenPair`
+    (`mobile/src/lib/tokenPair.ts`, pure) is checked in `rotateTokens` and in
+    the sink, `setTokens`, before either key is written; a malformed refresh
+    is a failed refresh (session ends cleanly), a malformed login an ordinary
+    sign-in error (both screens already catch). Baselines: refresh suite 4 of
+    4 new cases failed (`setTokens` called with the bad body); secureStore 3
+    of 3 failed (keys written). After: 18 passed; full mobile Jest 175/175;
+    tsc clean; lint still 14 warnings. **Blind spots:** mocked SecureStore and
+    fetch — no device keychain; `expiresIn` is not checked (nothing reads it).
 - [x] **A15 — CI coverage (config side; not yet observed on a runner).**
   Re-verified: mobile CI type-checked and linted only, its path filter was
   `mobile/**` + `packages/shared/**`, and mobile lint covered `app/` only.

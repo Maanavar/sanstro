@@ -73,6 +73,8 @@ const mockRouter = router as unknown as { replace: jest.Mock };
 function installFetch(options: {
   resource: (callIndex: number) => { status: number };
   refresh?: (callIndex: number) => { status: number };
+  /** Override the refresh response body (A14 step 8). */
+  refreshBody?: () => unknown;
 }) {
   const calls = { resource: 0, refresh: 0 };
   const fetchMock = jest.fn((url: string) => {
@@ -83,11 +85,13 @@ function installFetch(options: {
         ok: outcome.status >= 200 && outcome.status < 300,
         status: outcome.status,
         json: () =>
-          Promise.resolve({
-            accessToken: `access-${calls.refresh + 1}`,
-            refreshToken: `refresh-${calls.refresh + 1}`,
-            expiresIn: 1800,
-          }),
+          Promise.resolve(
+            options.refreshBody?.() ?? {
+              accessToken: `access-${calls.refresh + 1}`,
+              refreshToken: `refresh-${calls.refresh + 1}`,
+              expiresIn: 1800,
+            },
+          ),
       });
     }
     calls.resource += 1;
@@ -204,6 +208,36 @@ describe("A08: concurrent 401s share one refresh", () => {
     expect(responses.map((r) => r.status)).toEqual([200, 200, 200]);
     expect(calls.refresh).toBe(1);
     expect(calls.resource).toBe(6);
+  });
+});
+
+describe("A14 step 8: a malformed refresh body is never written to the keychain", () => {
+  // The refresh response is cast, not checked, and goes straight to
+  // SecureStore. On a device `setTokens` writes the two keys separately, so a
+  // 200 carrying only a new access token would store it and keep the OLD
+  // refresh token — which the server has just rotated, i.e. revoked. The next
+  // refresh would present that revoked token, and the backend's replay
+  // detection (A03) answers that by revoking every session the user has.
+  // A body that is not two non-empty token strings is a failed refresh.
+  it.each([
+    ["missing refresh token", { accessToken: "access-2", expiresIn: 1800 }],
+    ["empty access token", { accessToken: "", refreshToken: "refresh-2", expiresIn: 1800 }],
+    ["non-string token", { accessToken: 42, refreshToken: "refresh-2", expiresIn: 1800 }],
+    ["not an object", ["access-2", "refresh-2"]],
+  ])("%s: nothing is stored, nothing replayed, the session ends", async (_label, body) => {
+    const calls = installFetch({
+      resource: (n) => ({ status: n === 1 ? 401 : 200 }),
+      refreshBody: () => body,
+    });
+    const { setTokens } = jest.requireMock("@/lib/secureStore") as { setTokens: jest.Mock };
+    setTokens.mockClear();
+
+    const response = await fetchWithAuth("/charts");
+
+    expect(setTokens).not.toHaveBeenCalled();
+    expect(calls.resource).toBe(1);
+    expect(response.status).toBe(401);
+    expect(mockEndSession).toHaveBeenCalledTimes(1);
   });
 });
 
