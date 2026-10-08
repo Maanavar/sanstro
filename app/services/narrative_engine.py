@@ -463,8 +463,20 @@ _TRANSIT_GRADE_TEXT: dict[str, dict[str, BiText]] = {
         "NEEDS_CARE": _bi("சனி கவனம் தேவைப்படும் இடத்தில்", "Saturn transit needs care"),
     },
 }
+def _guru_sani_grade(planet: str, house: int) -> str:
+    """`gochara_grade` for Jupiter or Saturn, which it always grades.
+
+    Its `None` is reserved for planets it does not grade at all, so a `None`
+    here is a caller passing the wrong planet, not a house without a grade.
+    """
+    grade = gochara_grade(planet, house)
+    if grade is None:
+        raise ValueError(f"gochara_grade does not grade {planet}")
+    return grade
+
+
 _TRANSIT_QUALITY: dict[str, dict[int, BiText]] = {
-    planet: {house: grades[gochara_grade(planet, house)] for house in range(1, 13)}
+    planet: {house: grades[_guru_sani_grade(planet, house)] for house in range(1, 13)}
     for planet, grades in _TRANSIT_GRADE_TEXT.items()
 }
 
@@ -645,7 +657,7 @@ def gochar_spoken(
     # 2/5/7/9/10; D2 rules every house outside 3/6/11 needs care, so the named
     # Sani-period houses (12/1/2/4/8) read "pressing" and the rest "asks for
     # patience" — two degrees of care, no neutral. New Tamil, pending review.
-    jup_grade = gochara_grade("JUPITER", jupiter_house)
+    jup_grade = _guru_sani_grade("JUPITER", jupiter_house)
     jup_ta = {"SUPPORTIVE": "ஆதரவாக", "NEEDS_CARE": "சற்று கடினமாக"}.get(jup_grade, "நடுநிலையாக")
     jup_en = {
         "SUPPORTIVE": "is lending support",

@@ -1522,7 +1522,7 @@ def detect_putra_sarpa_dosham(
     # Guarded on presence: a chart missing both Jupiter and a node compared
     # None == None and formed the dosham. Where Jupiter is the 5th lord
     # (Simmam, Viruchigam lagna) a node beside it is already counted above.
-    beside_guru = [
+    beside_guru: list[str] = [
         p for p in ("RAHU", "KETU")
         if "JUPITER" in planets and p in planets and p not in beside_lord
         and planets[p] == planets["JUPITER"] and not (fifth_lord == "JUPITER" and p in in_house)
