@@ -1702,8 +1702,24 @@ commit. Only the varshaphala one touches a Phase 3 test:
   `HttpResponseMessage` — and CI runs the script under `pwsh` on Linux, so
   every error body was empty there. The A01-b local PASS was under 5.1. Fix:
   `-SkipHttpErrorCheck` on 7+. Verified on 5.1 against a local 502 server
-  (status 502, body read, match True). **Not verified locally on 7** (not
-  installed) — the next CI run is the check.
+  (status 502, body read, match True). **Verified on 7 in CI** (run
+  37759598560, re-run of the failed job): all six claims PASS under `pwsh`,
+  and the `-BreakBackendUrl` negative control still FAILs — now printing the
+  `{"detail":"Backend unreachable"}` body it used to read as empty.
+  **Separate flake seen on the first attempt of that run:** the smoke's web
+  image build died in `next/font` (`Cannot read properties of null (reading
+  '1')`, google `loader.js:122` — Google Fonts returned a font URL without a
+  file extension), while the run's own "Web Docker image" job built the same
+  layout fine. The web build depends on Google Fonts answering consistently
+  at build time; self-hosting the faces (`next/font/local`) would remove that
+  dependency. **Not done** — recorded here, not fixed.
+
+**CI after these fixes (`3f90de4`, 2026-10-08):** all green — pytest 6008
+passed / 7 skipped (14 min), web, backend lint (ruff, mypy, pip-audit),
+Alembic round-trip, design-token ratchet, web image, compose smoke (on
+re-run, see above), Mobile CI on both push and pull_request. Playwright e2e
+skipped (no external base URL configured), so its 30-minute timeout is still
+a guess.
 
 ## Agent Completion Checklist
 
