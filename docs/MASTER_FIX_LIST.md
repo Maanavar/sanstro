@@ -1459,7 +1459,39 @@ then A14, A15, A13.
   **Lagna** can be shown Kandaka "from Janma Rasi" — the label A-1 requires to
   be truthful. Fix options: drop the Lagna cross-check, or give it its own
   type/label. Either changes a response shape across all four surfaces.
-- [ ] A14 contract completeness.
+- [~] **A14 — contract completeness. Steps 1–2 done (the nine schema gaps);
+  steps 3–8 (generated transport contracts) not started.** The nine operations
+  the field guard skipped now declare concrete `response_model`s that describe
+  the payload each already sent: Chara, Yogini, Ashtottari, Kalachakra and
+  conditional dashas (`app/schemas/secondary_dashas.py`), Shadbala
+  (`app/schemas/shadbala.py`), remedy plan (`app/schemas/remedies.py`),
+  Varshaphala (its model already existed; the route returned `model_dump` and
+  never declared it), and Ask Vinaadi daily-status (`AskVinaadiDailyStatus`, a
+  bare object — no envelope, as deployed clients read it). No route, param,
+  verb or payload changed, so no web/mobile/shared edit was needed.
+  **Gate:** `tests/test_a14_response_contracts.py`, two tests per operation.
+  (1) A concrete 200 schema exists (and a concrete `data` for enveloped
+  routes) — baseline 9 of 9 failed: eight "no 200 JSON response schema", and
+  daily-status "not a concrete object" (`-> dict`). (2) The model is lossless:
+  the route function's raw return, encoded as FastAPI encodes a model-less
+  route, must equal the HTTP body — so a model that drops, adds or alters a
+  value fails, and so does the next builder change that adds a field and
+  forgets the model. Fix-removed control: deleting `note` from
+  `ShadbalaData` failed it, naming the missing key. After: 18 passed. The
+  field guard now runs all nine (288 passed / 9 skipped → 297 passed /
+  0 skipped); none of the nine TS interfaces had drifted.
+  Existing suites for the nine routes: 310 passed.
+  **Blind spots:** the lossless check sees only branches the synthetic chart
+  reaches — not a chart with no running Chara period, a monthly-quota user's
+  daily status, or an unknown birth time. It compares JSON values, so `5` →
+  `5.0` passes (identical to every JSON client). The field guard still checks
+  names only, not value types or nullability; that is what generation (steps
+  3–8) is for. Remedy `caution_ta/en` are nullable in the model but typed
+  `string` in `RemedyItem` (tools.ts) — a nullability gap the guard cannot see.
+  **Not started (A14 steps 3–8):** a deterministic schema artifact, generator
+  choice after a toolchain check, a marked generated directory with CI
+  regeneration, incremental wrapper migration, runtime validation of
+  consequential inputs.
 - [ ] A15 CI coverage (partially advanced by A01's new job).
 - [ ] A13 module boundaries.
 

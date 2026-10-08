@@ -36,6 +36,15 @@ from app.schemas.dasha import DashaTimelineResponse
 from app.schemas.dashboard_bundle import ChartDashboardBundleResponse
 from app.schemas.five_minute_reading import FiveMinuteReadingResponse
 from app.schemas.one_minute_reading import OneMinuteReadingResponse
+from app.schemas.secondary_dashas import (
+    AshtottariDashaResponse,
+    CharaDashaResponse,
+    ConditionalDashasResponse,
+    KalachakraDashaResponse,
+    YoginiDashaResponse,
+)
+from app.schemas.shadbala import ShadbalaResponse
+from app.schemas.varshaphala import VarshaphalaResponse
 from app.services.ashtottari_dasha_service import build_ashtottari_dasha_response
 from app.services.chart_explanation_service import build_chart_explanation
 from app.services.chart_service import (
@@ -356,7 +365,7 @@ def export_chart_pdf(
     )
 
 
-@router.get("/charts/{chart_id}/chara-dasha", tags=["charts"])
+@router.get("/charts/{chart_id}/chara-dasha", response_model=CharaDashaResponse, tags=["charts"])
 def get_chara_dasha(
     chart_id: UUID,
     session: Session = Depends(get_db),
@@ -400,7 +409,7 @@ def get_chara_dasha(
     }
 
 
-@router.get("/charts/{chart_id}/yogini-dasha", tags=["charts"])
+@router.get("/charts/{chart_id}/yogini-dasha", response_model=YoginiDashaResponse, tags=["charts"])
 def get_yogini_dasha(
     chart_id: UUID,
     as_of: date | None = Query(default=None, alias="asOf"),
@@ -419,7 +428,7 @@ def get_yogini_dasha(
     return {"success": True, "data": data}
 
 
-@router.get("/charts/{chart_id}/ashtottari-dasha", tags=["charts"])
+@router.get("/charts/{chart_id}/ashtottari-dasha", response_model=AshtottariDashaResponse, tags=["charts"])
 def get_ashtottari_dasha(
     chart_id: UUID,
     as_of: date | None = Query(default=None, alias="asOf"),
@@ -440,7 +449,7 @@ def get_ashtottari_dasha(
     return {"success": True, "data": data}
 
 
-@router.get("/charts/{chart_id}/kalachakra-dasha", tags=["charts"])
+@router.get("/charts/{chart_id}/kalachakra-dasha", response_model=KalachakraDashaResponse, tags=["charts"])
 def get_kalachakra_dasha(
     chart_id: UUID,
     as_of: date | None = Query(default=None, alias="asOf"),
@@ -462,7 +471,7 @@ def get_kalachakra_dasha(
     return {"success": True, "data": data}
 
 
-@router.get("/charts/{chart_id}/conditional-dashas", tags=["charts"])
+@router.get("/charts/{chart_id}/conditional-dashas", response_model=ConditionalDashasResponse, tags=["charts"])
 def get_conditional_dashas(
     chart_id: UUID,
     as_of: date | None = Query(default=None, alias="asOf"),
@@ -541,6 +550,7 @@ def get_solar_return(
 
 @router.get(
     "/charts/{chart_id}/varshaphala",
+    response_model=VarshaphalaResponse,
     tags=["charts"],
     dependencies=[Depends(require_feature("varshaphala_enabled"))],
 )
@@ -558,7 +568,7 @@ def get_varshaphala_endpoint(
     return response.model_dump(mode="json", by_alias=True)
 
 
-@router.get("/charts/{chart_id}/shadbala", tags=["charts"])
+@router.get("/charts/{chart_id}/shadbala", response_model=ShadbalaResponse, tags=["charts"])
 def get_shadbala(
     chart_id: UUID,
     session: Session = Depends(get_db),
