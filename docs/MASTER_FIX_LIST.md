@@ -2151,6 +2151,14 @@ CI's pyswisseph despite the platform difference it was normalised for), web
 with the new coverage thresholds, backend lint, Alembic, token ratchet, web
 image, compose smoke, Mobile CI on push and pull_request.
 
+**Local, after the 2026-10-08 continuation (`264f36c`, 8 commits ahead of
+origin, not pushed):** full backend suite 6091 passed / 7 skipped, coverage
+92.81% (58 min) — CI's 6053 plus exactly the 38 new tests (generator 6,
+dasha stage 7, life-areas golden 17, life-area stage 8); mobile Jest 175/175
+(the reading-screen worker warning still prints, as reported above); web
+vitest 140 files / 1451 with coverage thresholds met; web lint clean; mypy
+and ruff clean. Not yet observed on a CI runner.
+
 **CI after these fixes (`3f90de4`, 2026-10-08):** all green — pytest 6008
 passed / 7 skipped (14 min), web, backend lint (ruff, mypy, pip-audit),
 Alembic round-trip, design-token ratchet, web image, compose smoke (on
