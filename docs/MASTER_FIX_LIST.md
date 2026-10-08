@@ -1574,6 +1574,24 @@ then A14, A15, A13.
   two to the generated types is the obvious follow-up; not done here. (The
   camelCase `RemedyPlanItem` there is different: a web view model that
   `dashboard-workspace.tsx:540` maps the snake_case rows into — not a copy.)
+  **Fixed 2026-10-08 (fifth pass).** Re-verified: both direct fetches still
+  at the cited lines. The copies were wider than the entry said: the
+  nested `CharaDashaPeriod`, `TajakaPlanetPosition` and `TajakaAspect` are
+  copies too, re-exported by `web/lib/types.ts`, and the hand-written
+  `TajakaPlanetPosition` was **wrong**: `{planet, rasi, rasiName, house,
+  longitude}` where the route sends `{planet, rasi, degreeInRasi}`. Nothing
+  read those fields (web renders only the itthasala/isarafa pairs), so it was
+  latent. All seven are now `export type X = Server.Y` in `src/types/index.ts`;
+  `RemedyPlanItem` untouched. **Gate:** seven `Types.*` lines in
+  `generated-fit.ts`, mutual assignability with the generated type. Baseline
+  (lines added, copies unchanged): 3 of 7 failed — `CharaDashaData`
+  (`charKarakas | null`), `VarshaphalaData` (no `chartId`, wrong planet shape),
+  `TajakaPlanetPosition`; that run is also the fix-removed control. After:
+  shared, web and mobile `tsc` 0 errors; field guard 95 passed; mobile
+  `contracts.test.ts` 21 passed. **Blind spots:** compile-time only — the two
+  direct fetches still cast unvalidated JSON; other hand-written copies in
+  `src/types` that no wrapper aliases are not detected (this entry found
+  three by name, not by search).
   **Blind spots:** nine operations only; the guard follows only the exact
   `export type X = Server.Y;` form.
   **Next group tried and stopped — chart numerology GETs (2026-10-08).** The

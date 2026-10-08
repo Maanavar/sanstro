@@ -35,6 +35,11 @@ import type { PlanetShadbala, ShadbalaData } from "../shadbala";
 import type { RemedyDisclaimer, RemedyItem, RemedyPlanData } from "../tools";
 import type { VarshaphalaAreaOutlook, VarshaphalaData } from "../varshaphala";
 import type { YoginiDashaData, YoginiDashaPeriod } from "../yoginiDasha";
+// The same server shapes under their `src/types` names, which web's grandfathered
+// direct `apiFetchJson` calls cast to (family-charts hybrid's chara fetch, the
+// workspace's varshaphala fetch). They are aliases too; these lines keep a
+// re-hand-written copy from drifting where the wrapper lines cannot see it.
+import type * as Types from "../../types";
 
 type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
 type Assert<T extends true> = T;
@@ -62,4 +67,11 @@ export type GeneratedFit = [
   Assert<Same<Server.VarshaphalaAreaOutlook, VarshaphalaAreaOutlook>>,
   Assert<Same<Server.YoginiDashaData, YoginiDashaData>>,
   Assert<Same<Server.YoginiDashaPeriod, YoginiDashaPeriod>>,
+  Assert<Same<Server.CharaDashaData, Types.CharaDashaData>>,
+  Assert<Same<Server.CharaDashaPeriod, Types.CharaDashaPeriod>>,
+  Assert<Same<Server.CharaKarakas, Types.CharaKarakaMap>>,
+  Assert<Same<Server.VarshaphalaData, Types.VarshaphalaData>>,
+  Assert<Same<Server.VarshaphalaAreaOutlook, Types.VarshaphalaAreaOutlook>>,
+  Assert<Same<Server.TajakaPlanetPosition, Types.TajakaPlanetPosition>>,
+  Assert<Same<Server.TajakaAspect, Types.TajakaAspect>>,
 ];

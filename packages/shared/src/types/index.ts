@@ -1,3 +1,5 @@
+import type * as Server from "../generated/api-types";
+
 export interface ApiMeta {
   calculationVersion: string;
   generatedAt: string;
@@ -901,37 +903,13 @@ export interface DashaTimelineResponseData {
   timeline: DashaTimelineItem[];
 }
 
-export interface CharaDashaPeriod {
-  rasi: number;
-  rasi_name: string;
-  years: number;
-  start_date: string;
-  end_date: string;
-}
-
+// GET /charts/{id}/chara-dasha — aliases of the generated server types (A14), the
+// same ones `api/charaDasha.ts` exports. Web's direct fetch casts to these names.
 // Jaimini Chara Karakas (BPHS Ch. 32) — see app/calculations/jaimini_karakas.py
 // for the documented Rahu/tie-break conventions this project uses.
-export interface CharaKarakaMap {
-  ATMAKARAKA: string;
-  AMATYAKARAKA: string;
-  BHRATRUKARAKA: string;
-  MATRUKARAKA: string;
-  PITRUKARAKA: string;
-  PUTRAKARAKA: string;
-  GNATIKARAKA: string;
-  DAARAKARAKA: string;
-}
-
-export interface CharaDashaData {
-  chartId: string;
-  lagnaRasi: number;
-  currentPeriod: CharaDashaPeriod | null;
-  periods: CharaDashaPeriod[];
-  charKarakas: CharaKarakaMap | null;
-  atmakaraka: string | null;
-  karakamsaRasi: number | null;
-  karakamsaRasiName: string | null;
-}
+export type CharaDashaPeriod = Server.CharaDashaPeriod;
+export type CharaKarakaMap = Server.CharaKarakas;
+export type CharaDashaData = Server.CharaDashaData;
 
 export interface SolarReturnData {
   chartId: string;
@@ -1974,25 +1952,18 @@ export interface AnnualWrappedData {
   averageScore: number; topLifeArea: string | null;
 }
 
-export interface TajakaPlanetPosition { planet: string; rasi: number; rasiName: string; house: number; longitude: number }
-
-// Matches the backend TajakaAspect schema exactly: pair is a hyphen-joined
-// "PLANET1-PLANET2" string (see tajaka.py _detect_itthasala/_detect_isarafa),
-// kind is "ITTHASALA" or "ISARAFA". No orb value is computed (Doctrine §9 —
-// this is the "Simplified" same-rasi +-5deg approximation, not real Tajika).
-export interface TajakaAspect { pair: string; kind: string }
-
-export interface VarshaphalaAreaOutlook {
-  area: string; score: number; narrativeTa: string; narrativeEn: string; favourableMonths: number[];
-}
-
-export interface VarshaphalaData {
-  year: number; solarReturnDate: string; solarReturnLagnaRasi: number;
-  solarReturnLagnaName: string; munthaRasi: number; munthaRasiName: string;
-  munthaHouseFromSrLagna: number; yearLord: string; yearLordHouse: number;
-  tajakaPlanets: TajakaPlanetPosition[]; itthasalaPairs: TajakaAspect[];
-  isarafaPairs: TajakaAspect[]; areaOutlook: VarshaphalaAreaOutlook[];
-}
+// GET /charts/{id}/varshaphala — aliases of the generated server types (A14), the
+// same ones `api/varshaphala.ts` exports. Web's direct fetch casts to these names.
+// The hand-written TajakaPlanetPosition here had `rasiName`/`house`/`longitude`,
+// none of which the route sends (it sends `degreeInRasi`); nothing read them.
+// TajakaAspect: pair is a hyphen-joined "PLANET1-PLANET2" string (see tajaka.py
+// _detect_itthasala/_detect_isarafa), kind is "ITTHASALA" or "ISARAFA". No orb
+// value is computed (Doctrine §9 — the "Simplified" same-rasi +-5deg
+// approximation, not real Tajika).
+export type TajakaPlanetPosition = Server.TajakaPlanetPosition;
+export type TajakaAspect = Server.TajakaAspect;
+export type VarshaphalaAreaOutlook = Server.VarshaphalaAreaOutlook;
+export type VarshaphalaData = Server.VarshaphalaData;
 
 export interface RemedyPlanItem {
   planet: string; priority: number; reason: string; day: string;
