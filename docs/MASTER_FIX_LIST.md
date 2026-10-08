@@ -1492,7 +1492,41 @@ then A14, A15, A13.
   choice after a toolchain check, a marked generated directory with CI
   regeneration, incremental wrapper migration, runtime validation of
   consequential inputs.
-- [ ] A15 CI coverage (partially advanced by A01's new job).
+- [x] **A15 — CI coverage (config side; not yet observed on a runner).**
+  Re-verified: mobile CI type-checked and linted only, its path filter was
+  `mobile/**` + `packages/shared/**`, and mobile lint covered `app/` only.
+  Changes: mobile CI runs Jest (`pnpm -F mobile test --ci`); triggers on
+  `packages/**`, root `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`,
+  `.npmrc` and the workflow file; mobile lint covers `src/` with
+  `--max-warnings 14` (the measured baseline: 0 errors, 3 warnings in `app/`,
+  11 in `src/` — require-imports ×6, unused-vars ×2, exhaustive-deps ×2,
+  array-type ×1); every job in both workflows now has `timeout-minutes`, set at
+  about twice the durations measured on this branch's runs of 2026-10-02/07
+  (pytest 13–14 min → 30; web 2–3 → 20; e2e never ran → 30, labelled a guess).
+  The mobile job keeps its display name "Type-check + lint" so a check made
+  required under that name is not orphaned.
+  **Step 7 (cold screen-test timeout):** did not reproduce. 4 of 4 local runs
+  green, 167/167, 13–21 s, including `--maxWorkers=2`; slowest test 1.2 s
+  against Jest's 5 s default; no open-handle warning. So no `--forceExit` and
+  no raised timeout. Step 5's full-stack smoke already exists (A01's
+  `compose-proxy-smoke` with its negative control).
+  **Gate:** `tests/test_ci_workflow_coverage.py` reads the workflow files.
+  Fix removed (workflows + package.json stashed): 6 of 7 failed, naming the 8
+  unbounded jobs, the missing Jest step, the 5 ignored root files per event,
+  and the app-only lint script. After: 7 passed. Lint ratchet control: a
+  one-warning probe in `src/` passed the old script and failed the new one
+  ("too many warnings (maximum: 14)").
+  **Blind spots / not done:**
+  - **Nothing has run on GitHub.** The branch could not be pushed from this
+    session, so the Jest step and the new triggers are unobserved on a runner.
+  - **`main` has no branch protection** (`gh api …/branches/main/protection` →
+    404, 2026-10-08). No check is required, so a red run blocks nothing — the
+    "required check" half of step 4 has nothing to attach to. Turning it on
+    is an owner action in GitHub settings.
+  - Web coverage thresholds (20% lines / 15% branches) are unchanged.
+  - The gate proves the config says these things, not that a job passes.
+  - The two most recent CI runs on origin (2026-10-06/07) failed on Web and
+    Backend lint; both predate commits not yet pushed, and were not re-run.
 - [ ] A13 module boundaries.
 
 ## Agent Completion Checklist
