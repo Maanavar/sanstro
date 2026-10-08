@@ -1618,6 +1618,21 @@ then A14, A15, A13.
     of 3 failed (keys written). After: 18 passed; full mobile Jest 175/175;
     tsc clean; lint still 14 warnings. **Blind spots:** mocked SecureStore and
     fetch — no device keychain; `expiresIn` is not checked (nothing reads it).
+  - **AI provider output.** `_call_claude` returned `json.loads(raw)` as-is
+    and `answer_question` read it with `.get`, list concatenation and
+    `BiText(...)`, so a wrong-shaped body — a JSON list or number, a nested
+    object where answer text belongs, a string where the signal list belongs —
+    was an unhandled exception: an opaque 500 (the API layer's except clause
+    did refund the reserved chip). `_parse_provider_payload` now checks it:
+    not JSON or a bare JSON string → that text is the answer (the old
+    fallback); not an object, or `ta`/`en` present but not text → a 502
+    "unusable answer", chip refunded; `signals_used` not a list → no provider
+    signals, non-string entries dropped. Missing `ta`/`en` and unknown
+    confidence/verdict keep their existing defaults. Baseline: 6 of 6 new
+    tests failed with unhandled `AttributeError`s. After: Ask Vinaadi files 23
+    passed; ruff and mypy clean. **Blind spots:** mocked Anthropic client; a
+    model reply wrapped in a ```json fence still falls to the plain-text path
+    and shows the fence — unchanged, and not new.
 - [x] **A15 — CI coverage (config side; not yet observed on a runner).**
   Re-verified: mobile CI type-checked and linted only, its path filter was
   `mobile/**` + `packages/shared/**`, and mobile lint covered `app/` only.

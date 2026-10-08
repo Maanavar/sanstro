@@ -376,3 +376,83 @@ def test_ask_vinaadi_skips_calibration_log_for_unmapped_question(client):
             )
         ).scalars().all()
     assert rows == []
+
+
+# ── A14 step 8: the provider's body is checked, not trusted ──────────────────
+#
+# `_call_claude` returned `json.loads(raw)` as-is and `answer_question` read it
+# with `.get`, string concatenation and `BiText(...)`. A JSON body of the wrong
+# shape — a list, a number, a nested object where text was expected, a string
+# where a list was expected — surfaced as an unhandled exception: an opaque 500
+# (the reserved chip was refunded by the API layer's except clause). Missing
+# fields and unknown confidence/verdict values were already defaulted; those
+# rules are unchanged.
+
+
+def _ask_with_raw_provider_text(client, chart_id: str, raw: str):
+    mock_msg = MagicMock()
+    block = MagicMock()
+    block.type = "text"
+    block.text = raw
+    mock_msg.content = [block]
+    mock_anthropic_module = MagicMock()
+    mock_anthropic_module.Anthropic.return_value.messages.create.return_value = mock_msg
+    with patch("app.services.ask_vinaadi_service.get_settings") as mock_settings, \
+         patch.dict("sys.modules", {"anthropic": mock_anthropic_module}):
+        mock_settings.return_value.anthropic_api_key = "sk-test-key"
+        mock_settings.return_value.ask_vinaadi_daily_limit = 10
+        return client.post(
+            f"/api/v1/charts/{chart_id}/ask",
+            json={"question": "Is this a good week for career?", "lang": "en"},
+        )
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        json.dumps(["a list", "not an answer"]),
+        json.dumps(42),
+        json.dumps({"ta": {"text": "nested"}, "en": "ok", "signals_used": [], "confidence": "HIGH"}),
+        json.dumps({"ta": "சரி", "en": ["not", "text"], "signals_used": [], "confidence": "HIGH"}),
+    ],
+    ids=["list", "number", "ta-object", "en-list"],
+)
+def test_unusable_provider_body_is_a_bounded_502_and_refunds(client, raw):
+    from uuid import UUID
+
+    from app.services.ask_vinaadi_usage_service import get_daily_status
+    from tests.conftest import TEST_USER_ID, SessionLocal
+
+    _, chart_id = _create_test_chart(client)
+    resp = _ask_with_raw_provider_text(client, chart_id, raw)
+
+    assert resp.status_code == 502, resp.text
+    assert "unusable" in resp.json()["detail"].lower()
+    with SessionLocal() as session:
+        assert get_daily_status(session, UUID(TEST_USER_ID))["chipsUsed"] == 0
+
+
+def test_provider_signals_of_the_wrong_shape_are_dropped_not_fatal(client):
+    _, chart_id = _create_test_chart(client)
+    raw = json.dumps({
+        "ta": "இந்த வாரம் நல்லது.",
+        "en": "This week is supportive.",
+        "signals_used": "JUPITER_H11",  # a string, not a list
+        "confidence": "HIGH",
+    })
+    resp = _ask_with_raw_provider_text(client, chart_id, raw)
+
+    assert resp.status_code == 200, resp.text
+    signals = resp.json()["data"]["signalsUsed"]
+    # Concatenating a string onto the list used to raise; iterating it instead
+    # would have split it into characters. Neither may reach the client.
+    assert all(len(s) > 1 for s in signals)
+    assert "J" not in signals
+
+
+def test_provider_json_string_is_treated_as_plain_text(client):
+    _, chart_id = _create_test_chart(client)
+    resp = _ask_with_raw_provider_text(client, chart_id, json.dumps("A plain sentence."))
+
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["data"]["answer"]["en"] == "A plain sentence."

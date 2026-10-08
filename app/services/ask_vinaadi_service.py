@@ -438,16 +438,49 @@ def _call_claude(context: str, question: str) -> dict:
             detail="Vinaadi returned an empty response. Please try again.",
         )
 
+    return _parse_provider_payload(raw)
+
+
+def _parse_provider_payload(raw: str) -> dict:
+    """The provider's text as the dict ``answer_question`` reads — checked.
+
+    A14 step 8: this used to be ``json.loads(raw)`` returned as-is, so a JSON
+    body of the wrong shape (a list, a number, a nested object where answer
+    text belongs, a string where the signal list belongs) failed later as an
+    unhandled exception — an opaque 500. Now:
+
+    * not JSON, or a bare JSON string → that text is the answer in both
+      languages (the long-standing fallback);
+    * JSON that is not an object, or whose ``ta``/``en`` is present but not a
+      string → a bounded 502, and the API layer refunds the reserved chip;
+    * ``signals_used`` that is not a list → no provider signals; non-string
+      entries are dropped.
+
+    Missing ``ta``/``en`` and unknown ``confidence``/``verdict`` values keep
+    their existing defaults in ``answer_question``.
+    """
     try:
-        return json.loads(raw)
+        parsed = json.loads(raw)
     except json.JSONDecodeError:
-        # If Claude doesn't return valid JSON, wrap it
-        return {
-            "ta": raw,
-            "en": raw,
-            "signals_used": [],
-            "confidence": "MEDIUM",
-        }
+        parsed = raw
+    if isinstance(parsed, str):
+        return {"ta": parsed, "en": parsed, "signals_used": [], "confidence": "MEDIUM"}
+    if not isinstance(parsed, dict):
+        logger.error("Ask Vinaadi provider returned JSON %s, not an object", type(parsed).__name__)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Vinaadi returned an unusable answer. Please try again.",
+        )
+    for key in ("ta", "en"):
+        if key in parsed and not isinstance(parsed[key], str):
+            logger.error("Ask Vinaadi provider returned a non-text %r: %s", key, type(parsed[key]).__name__)
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="Vinaadi returned an unusable answer. Please try again.",
+            )
+    signals = parsed.get("signals_used")
+    parsed["signals_used"] = [s for s in signals if isinstance(s, str)] if isinstance(signals, list) else []
+    return parsed
 
 
 # ── Public entry point ────────────────────────────────────────────────────────
