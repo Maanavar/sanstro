@@ -5,8 +5,10 @@ No DB session, no HTTP exceptions except _birth_datetime_utc which validates inp
 """
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from fastapi import HTTPException, status
 
@@ -17,6 +19,7 @@ from app.calculations.chart_strength import (
     _NATURAL_FRIENDS,
     compute_natal_planet_score,
 )
+from app.calculations.functional_nature import get_transit_modifier
 from app.calculations.maturation import MATURATION_AGE
 from app.calculations.panchangam import (
     PanchangamLimbSpan,
@@ -24,7 +27,10 @@ from app.calculations.panchangam import (
     limb_weighted,
     own_chandrashtama_windows,
 )
+from app.calculations.transits import check_vedha
 from app.models import BirthProfile
+from app.reasoning.verdict import Band, band_to_legacy_confidence
+from app.schemas.daily_guidance import DailyGuidanceText
 from app.services.narrative_engine import PLANET_NAME
 
 SIGN_LORDS: dict[int, str] = {
@@ -619,3 +625,194 @@ def weighted_moon_score(
         rasi_spans, lambda span: span.number != chandrashtama_rasi,
     )
     return max(0, min(100, round(score))), share
+
+
+# ── Day-score stages (A13 step 3, 2026-10-08) ────────────────────────────────
+#
+# Lifted out of `build_daily_guidance_response` verbatim, so each is a pure
+# function of values the builder already holds and can be tested without a
+# chart, a panchangam or a database. The builder still calls them in the same
+# order and reads the same results; tests/test_daily_guidance_golden.py pins
+# its output across the extraction.
+
+#: Jupiter's house from the natal Moon → transit-score adjustment (primary
+#: refinement; never punitive in the 7th).
+_JUPITER_FROM_MOON_MODIFIER: dict[int, float] = {
+    1: 0.0,   # Neutral
+    2: 3.0,   # Good
+    3: -3.0,  # Unfavourable
+    4: -4.0,  # Unfavourable
+    5: 4.0,   # Very good
+    6: -2.0,  # Unfavourable
+    7: 3.0,   # Good (mixed) - never punitive
+    8: -6.0,  # Bad
+    9: 4.0,   # Very good
+    10: 1.0,  # Neutral leaning supportive
+    11: 4.0,  # Very good
+    12: -3.0, # Unfavourable
+}
+
+
+@dataclass(frozen=True)
+class TransitComponent:
+    score: float
+    #: House from the natal Moon for every transit body scored — also what the
+    #: personal palan reads.
+    houses_from_moon: dict[str, int]
+
+
+def transit_component(
+    transit_bodies: Mapping[str, Any],
+    *,
+    natal_moon_rasi: int,
+    natal_lagna: int,
+    bav,
+) -> TransitComponent:
+    """The day's transit score: Ashtakavarga-weighted gochara with Vedha, then
+    the Moon-based Jupiter and Lagna-based Saturn adjustments."""
+    # House from Moon for all transit bodies (needed for the Vedha check).
+    houses: dict[str, int] = {
+        g: house_from_reference(natal_moon_rasi, b.rasi)
+        for g, b in transit_bodies.items()
+    }
+
+    score = 50.0
+    for graha, body in transit_bodies.items():
+        house_from_moon = houses[graha]
+        base = _transit_with_av_score(graha, body.rasi, natal_moon_rasi, bav)
+        fn_mult = get_transit_modifier(natal_lagna, graha)  # Lagna-specific (BUG-10)
+        contribution = (base - 50) * PLANET_DAILY_WEIGHT[graha] * fn_mult
+        # Vedha Vichara: if blocking planet in Vedha house, transit benefit is cancelled (BUG-08)
+        if check_vedha(graha, house_from_moon, houses):
+            contribution *= 0.25
+        score += contribution
+    score = max(0, min(100, score))
+    # Moon-based Jupiter refinement (primary) + Lagna-based Saturn material modifier.
+    saturn_house_from_lagna = house_from_reference(natal_lagna, transit_bodies["SATURN"].rasi)
+    lagna_modifier = 0.0
+    lagna_modifier += _JUPITER_FROM_MOON_MODIFIER.get(houses["JUPITER"], 0.0)
+    if saturn_house_from_lagna in {1, 4, 7, 10}:
+        lagna_modifier -= 4.0
+    elif saturn_house_from_lagna in {3, 6, 11}:
+        lagna_modifier += 2.0
+    return TransitComponent(score=max(0, min(100, score + lagna_modifier)), houses_from_moon=houses)
+
+
+#: The Ezharai (Sade Sati) phases — graded by murthi rather than a flat penalty.
+SADE_SATI_TYPES = frozenset({"JANMA_SANI", "EZHARAI_SANI_PHASE_1", "EZHARAI_SANI_PHASE_2", "EZHARAI_SANI_PHASE_3"})
+#: Keyed by grade; an unknown (or absent) grade takes the middle penalty, 7.
+_SADE_SATI_MURTHI_PENALTY: dict[str | None, int] = {"GOLD": 4, "SILVER": 6, "COPPER": 8, "IRON": 10}
+
+
+def personal_safety_component(
+    *,
+    chandrashtama: bool,
+    saturn_cycle,
+    kantaka_sani,
+    sade_sati_murthi_grade: str | None,
+    abhijit_restricted: bool,
+    mercury_combust: bool,
+) -> int:
+    """The day's personal-safety score, 60 less each caution that applies.
+
+    ``sade_sati_murthi_grade`` is required only when ``saturn_cycle`` is an
+    active Sade Sati phase (``SADE_SATI_TYPES``): its grade comes from the
+    ingress-Moon method (Doctrine §3, WI-08), which needs the ephemeris, so the
+    caller computes it and passes the result in.
+    """
+    score = 60
+    if chandrashtama:
+        score -= 15
+    if saturn_cycle.is_active:
+        if saturn_cycle.type in SADE_SATI_TYPES:
+            # Sade Sati is a caution cycle, but never treated as flatly "bad".
+            score -= _SADE_SATI_MURTHI_PENALTY.get(sade_sati_murthi_grade, 7)
+        elif saturn_cycle.type == "ARDHASHTAMA_SANI":
+            score -= 9
+        elif saturn_cycle.type == "ASHTAMA_SANI":
+            score -= 12
+    # Kandaka from the Janma Rasi. Under doctrine A-1 the overlap with
+    # Ardhashtama (both are the 4th from the Moon) is the rule rather than a
+    # modelling accident, so a reader in that position is *named* both cycles —
+    # but the placement is still one placement and must be *scored* once. This
+    # guard, written to dodge an overlap that could not previously happen from
+    # two different reference points, is what keeps the penalty single now that
+    # it can.
+    if kantaka_sani.is_active and not saturn_cycle.is_active:
+        score -= 7
+    if abhijit_restricted:
+        score -= 5
+    if mercury_combust:
+        score -= 3
+    return max(0, min(100, score))
+
+
+@dataclass(frozen=True)
+class DayComposite:
+    """The weighted day score, its label and its confidence band."""
+
+    moon: int
+    transit: int
+    dasha: int
+    panchangam: int
+    personal: int
+    remedial: int
+    score: int
+    label: str
+    band: Band
+    confidence_reason: DailyGuidanceText
+    confidence: str
+
+
+def composite_day_score(
+    *,
+    moon_score: float,
+    transit_score: float,
+    dasha_score: float,
+    panchangam_score: float,
+    personal_safety_score: float,
+    remedial_support: int,
+    chandrashtama: bool,
+) -> DayComposite:
+    # Weights (0.28+0.24+0.19+0.14+0.09 = 0.94) plus flat remedial max 6 → total max = 100.
+    # Each component is rounded first; total is their sum — no double-rounding discrepancy.
+    moon_c = round(moon_score * 0.28)
+    transit_c = round(transit_score * 0.24)
+    dasha_c = round(dasha_score * 0.19)
+    panch_c = round(panchangam_score * 0.14)
+    personal_c = round(personal_safety_score * 0.09)
+    score = min(100, moon_c + transit_c + dasha_c + panch_c + personal_c + remedial_support)
+    label = _score_label(score)
+    # Chandrashtama is a prohibition period in Thirukanitham — no day in ashtama can be
+    # labelled positively even if dasha/transits are strong.
+    if chandrashtama and label in ("GOOD", "STRONG_SUPPORT"):
+        label = "BALANCED"
+
+    # P1-B: Confidence tier — count of components scoring ≥60, expressed as an
+    # ordinal Band (plan Phase 2, D2) with legacy HIGH/MED/LOW derived from it.
+    # 3 signals → LIKELY (not STRONG: daily alignment is timing-only evidence),
+    # 2 → MIXED, ≤1 → WEAK. band_to_legacy keeps the legacy tier byte-identical.
+    signals = sum(1 for s in (moon_score, dasha_score, transit_score) if s >= 60)
+    if signals >= 3:
+        band = Band.LIKELY
+        reason = DailyGuidanceText(
+            ta="மூன்றும் — சந்திரன், தசை, கோச்சாரம் — இன்று ஆதரவாக உள்ளன",
+            en="All three — Moon, dasha, transits — support today",
+        )
+    elif signals == 2:
+        band = Band.MIXED
+        reason = DailyGuidanceText(
+            ta="மூன்றில் இரண்டு — சந்திரன், தசை, கோச்சாரம் — இன்று ஆதரவாக உள்ளன",
+            en="Two of the three — Moon, dasha, transits — support today",
+        )
+    else:
+        band = Band.WEAK
+        reason = DailyGuidanceText(
+            ta="சந்திரன், தசை, கோச்சாரம் ஒன்றுக்கொன்று மாறுபடுகின்றன — குறிப்பு மட்டுமே",
+            en="Moon, dasha and transits pull different ways — indicative only",
+        )
+    return DayComposite(
+        moon=moon_c, transit=transit_c, dasha=dasha_c, panchangam=panch_c, personal=personal_c,
+        remedial=remedial_support, score=score, label=label, band=band,
+        confidence_reason=reason, confidence=band_to_legacy_confidence(band),
+    )

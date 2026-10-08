@@ -27,7 +27,7 @@ from app.calculations.astro import (
 from app.calculations.chart_strength import compute_natal_planet_score
 from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.ephemeris import calculate_sidereal_planets
-from app.calculations.functional_nature import get_dasha_modifier, get_transit_modifier
+from app.calculations.functional_nature import get_dasha_modifier
 from app.calculations.panchangam import (
     NAKSHATRA_NAMES,
     PanchangamSnapshot,
@@ -42,7 +42,6 @@ from app.calculations.remedies import (
     select_remedy_focus,
 )
 from app.calculations.transits import (
-    check_vedha,
     classify_ezharai_sani_murthi_ingress,
     classify_kandaka_cycle,
     classify_sani_cycle,
@@ -51,7 +50,6 @@ from app.calculations.transits import (
 )
 from app.constants.versions import API_RESPONSE_VERSION
 from app.models import BirthProfile, Chart, JournalEntry
-from app.reasoning.verdict import Band, band_to_legacy_confidence
 from app.schemas.charts import ChartCalculateResponse
 from app.schemas.daily_guidance import (
     ActivityTimingData,
@@ -114,8 +112,8 @@ from app.services._dg_peyarchi import (
 # Sub-module imports — all symbols are re-exported here so existing consumers
 # that import directly from daily_guidance_service continue to work unchanged.
 from app.services._dg_scoring import (
-    PLANET_DAILY_WEIGHT,
     PLANET_PERIOD_SCORE,
+    SADE_SATI_TYPES,
     TRANSIT_BASE_SCORE,
     _age_dasha_modifier,
     _collect_afflicted_planets,
@@ -125,8 +123,10 @@ from app.services._dg_scoring import (
     _pratyantar_narrative,
     _rasi_lord,
     _score_label,
-    _transit_with_av_score,
     chandrashtama_end,
+    composite_day_score,
+    personal_safety_component,
+    transit_component,
     weighted_moon_score,
     weighted_panchangam_score,
 )
@@ -522,47 +522,13 @@ def build_daily_guidance_response(
         "MOON":    moon,
     }
 
-    # Pre-compute house from Moon for all transit bodies (needed for Vedha check)
-    _all_transit_houses: dict[str, int] = {
-        g: house_from_reference(natal_moon.rasi, b.rasi)
-        for g, b in _transit_bodies.items()
-    }
-
-    transit_score = 50.0
-    for graha, body in _transit_bodies.items():
-        house_from_moon = _all_transit_houses[graha]
-        base = _transit_with_av_score(graha, body.rasi, natal_moon.rasi, _bav)
-        fn_mult     = get_transit_modifier(natal_lagna, graha)  # Lagna-specific (BUG-10)
-        contribution = (base - 50) * PLANET_DAILY_WEIGHT[graha] * fn_mult
-        # Vedha Vichara: if blocking planet in Vedha house, transit benefit is cancelled (BUG-08)
-        if check_vedha(graha, house_from_moon, _all_transit_houses):
-            contribution *= 0.25
-        transit_score += contribution
-    transit_score = max(0, min(100, transit_score))
-    # Moon-based Jupiter refinement (primary) + Lagna-based Saturn material modifier.
-    jupiter_house_from_moon = _all_transit_houses["JUPITER"]
-    saturn_house_from_lagna  = house_from_reference(natal_lagna, saturn.rasi)
-    lagna_modifier = 0.0
-    jupiter_moon_modifier = {
-        1: 0.0,   # Neutral
-        2: 3.0,   # Good
-        3: -3.0,  # Unfavourable
-        4: -4.0,  # Unfavourable
-        5: 4.0,   # Very good
-        6: -2.0,  # Unfavourable
-        7: 3.0,   # Good (mixed) - never punitive
-        8: -6.0,  # Bad
-        9: 4.0,   # Very good
-        10: 1.0,  # Neutral leaning supportive
-        11: 4.0,  # Very good
-        12: -3.0, # Unfavourable
-    }
-    lagna_modifier += jupiter_moon_modifier.get(jupiter_house_from_moon, 0.0)
-    if saturn_house_from_lagna in {1, 4, 7, 10}:
-        lagna_modifier -= 4.0
-    elif saturn_house_from_lagna in {3, 6, 11}:
-        lagna_modifier += 2.0
-    transit_score = max(0, min(100, transit_score + lagna_modifier))
+    # Gochara with Ashtakavarga and Vedha, then the Moon-Jupiter / Lagna-Saturn
+    # adjustments — a pure stage in _dg_scoring (A13).
+    _transit = transit_component(
+        _transit_bodies, natal_moon_rasi=natal_moon.rasi, natal_lagna=natal_lagna, bav=_bav,
+    )
+    transit_score = _transit.score
+    _all_transit_houses = _transit.houses_from_moon
 
     timeline = calculate_vimshottari_timeline(birth_jd, natal_moon.absolute_longitude, current_jd)
     maha_lord = timeline.current_mahadasha.lord
@@ -710,44 +676,30 @@ def build_daily_guidance_response(
     # (doctrine A-1, ruled 2026-08-19; supersedes the spec §6.3 Lagna reading).
     kantaka_sani = classify_kandaka_cycle(house_from_reference(natal_moon.rasi, saturn.rasi))
 
-    personal_safety_score = 60
-    if chandrashtama:
-        personal_safety_score -= 15
-    if saturn_cycle.is_active:
-        if saturn_cycle.type in {"JANMA_SANI", "EZHARAI_SANI_PHASE_1", "EZHARAI_SANI_PHASE_2", "EZHARAI_SANI_PHASE_3"}:
-            # Sade Sati is a caution cycle, but never treated as flatly "bad".
-            # Severity is graded by the ingress-Moon method (Doctrine §3,
-            # WI-08 — the default printed-panchangam convention): count the
-            # transiting Moon's rasi, at the instant Saturn entered its
-            # current rasi, from the natal Moon's rasi.
-            murthi_penalty = {"GOLD": 4, "SILVER": 6, "COPPER": 8, "IRON": 10}
-            ingress_jd = find_saturn_ingress_jd(saturn.rasi, transit_snapshot.jd_ut)
-            ingress_moon_rasi = calculate_sidereal_planets(ingress_jd).bodies["MOON"].rasi
-            murthi = classify_ezharai_sani_murthi_ingress(natal_moon.rasi, ingress_moon_rasi)
-            personal_safety_score -= murthi_penalty.get(murthi["grade"], 7)
-        elif saturn_cycle.type == "ARDHASHTAMA_SANI":
-            personal_safety_score -= 9
-        elif saturn_cycle.type == "ASHTAMA_SANI":
-            personal_safety_score -= 12
-    # Kandaka from the Janma Rasi. Under doctrine A-1 the overlap with
-    # Ardhashtama (both are the 4th from the Moon) is the rule rather than a
-    # modelling accident, so a reader in that position is *named* both cycles —
-    # but the placement is still one placement and must be *scored* once. This
-    # guard, written to dodge an overlap that could not previously happen from
-    # two different reference points, is what keeps the penalty single now that
-    # it can.
-    if kantaka_sani.is_active and not saturn_cycle.is_active:
-        personal_safety_score -= 7
-    if panchangam.abhijit_restricted:
-        personal_safety_score -= 5
-    if is_combust(
+    # Sade Sati severity is graded by the ingress-Moon method (Doctrine §3,
+    # WI-08 — the default printed-panchangam convention): count the transiting
+    # Moon's rasi, at the instant Saturn entered its current rasi, from the
+    # natal Moon's rasi. It needs the ephemeris, so it is computed here and
+    # only when the cycle calls for it; the scoring itself is a pure stage.
+    sade_sati_murthi_grade: str | None = None
+    if saturn_cycle.is_active and saturn_cycle.type in SADE_SATI_TYPES:
+        ingress_jd = find_saturn_ingress_jd(saturn.rasi, transit_snapshot.jd_ut)
+        ingress_moon_rasi = calculate_sidereal_planets(ingress_jd).bodies["MOON"].rasi
+        sade_sati_murthi_grade = classify_ezharai_sani_murthi_ingress(natal_moon.rasi, ingress_moon_rasi)["grade"]
+    mercury_combust = is_combust(
         "MERCURY",
         transit_snapshot.bodies["MERCURY"].absolute_longitude,
         sun.absolute_longitude,
         transit_snapshot.bodies["MERCURY"].is_retrograde,
-    ):
-        personal_safety_score -= 3
-    personal_safety_score = max(0, min(100, personal_safety_score))
+    )
+    personal_safety_score = personal_safety_component(
+        chandrashtama=chandrashtama,
+        saturn_cycle=saturn_cycle,
+        kantaka_sani=kantaka_sani,
+        sade_sati_murthi_grade=sade_sati_murthi_grade,
+        abhijit_restricted=panchangam.abhijit_restricted,
+        mercury_combust=mercury_combust,
+    )
 
     best_windows, best_window_conflicts = _best_hours(
         panchangam, maha_lord, lagna_rasi=natal_lagna, current_antar_lord=antar_lord
@@ -760,44 +712,22 @@ def build_daily_guidance_response(
     _has_personal_window = any("PERSONAL_HORA" in w.type for w in best_windows)
     remedial_support = 6 if _has_personal_window else (3 if best_windows else 0)
 
-    # Weights (0.28+0.24+0.19+0.14+0.09 = 0.94) plus flat remedial max 6 → total max = 100.
-    # Each component is rounded first; total is their sum — no double-rounding discrepancy.
-    _moon_c     = round(moon_score * 0.28)
-    _transit_c  = round(transit_score * 0.24)
-    _dasha_c    = round(dasha_score * 0.19)
-    _panch_c    = round(panchangam_score * 0.14)
-    _personal_c = round(personal_safety_score * 0.09)
-    score = min(100, _moon_c + _transit_c + _dasha_c + _panch_c + _personal_c + remedial_support)
-    label = _score_label(score)
-    # Chandrashtama is a prohibition period in Thirukanitham — no day in ashtama can be
-    # labelled positively even if dasha/transits are strong.
-    if chandrashtama and label in ("GOOD", "STRONG_SUPPORT"):
-        label = "BALANCED"
-
-    # P1-B: Confidence tier — count of components scoring ≥60, expressed as an
-    # ordinal Band (plan Phase 2, D2) with legacy HIGH/MED/LOW derived from it.
-    # 3 signals → LIKELY (not STRONG: daily alignment is timing-only evidence),
-    # 2 → MIXED, ≤1 → WEAK. band_to_legacy keeps the legacy tier byte-identical.
-    _conf_signals = sum(1 for s in (moon_score, dasha_score, transit_score) if s >= 60)
-    if _conf_signals >= 3:
-        _band = Band.LIKELY
-        _conf_reason = DailyGuidanceText(
-            ta="மூன்றும் — சந்திரன், தசை, கோச்சாரம் — இன்று ஆதரவாக உள்ளன",
-            en="All three — Moon, dasha, transits — support today",
-        )
-    elif _conf_signals == 2:
-        _band = Band.MIXED
-        _conf_reason = DailyGuidanceText(
-            ta="மூன்றில் இரண்டு — சந்திரன், தசை, கோச்சாரம் — இன்று ஆதரவாக உள்ளன",
-            en="Two of the three — Moon, dasha, transits — support today",
-        )
-    else:
-        _band = Band.WEAK
-        _conf_reason = DailyGuidanceText(
-            ta="சந்திரன், தசை, கோச்சாரம் ஒன்றுக்கொன்று மாறுபடுகின்றன — குறிப்பு மட்டுமே",
-            en="Moon, dasha and transits pull different ways — indicative only",
-        )
-    _confidence = band_to_legacy_confidence(_band)
+    # The weighted day score, its label (never positive under Chandrashtama) and
+    # the confidence band — a pure stage in _dg_scoring (A13).
+    _day = composite_day_score(
+        moon_score=moon_score,
+        transit_score=transit_score,
+        dasha_score=dasha_score,
+        panchangam_score=panchangam_score,
+        personal_safety_score=personal_safety_score,
+        remedial_support=remedial_support,
+        chandrashtama=chandrashtama,
+    )
+    _moon_c, _transit_c, _dasha_c, _panch_c, _personal_c = (
+        _day.moon, _day.transit, _day.dasha, _day.panchangam, _day.personal,
+    )
+    score, label = _day.score, _day.label
+    _band, _conf_reason, _confidence = _day.band, _day.confidence_reason, _day.confidence
     text, action, caution = _build_text(score, label, best_windows, caution_windows)
     nakshatra_perspective = build_nakshatra_perspective(janma_nakshatra, label)
     emotional_weather = compute_emotional_weather(
@@ -844,12 +774,7 @@ def build_daily_guidance_response(
 
     jupiter_house = house_from_reference(natal_moon.rasi, jupiter.rasi)
     saturn_house = house_from_reference(natal_moon.rasi, saturn.rasi)
-    mercury_combust = is_combust(
-        "MERCURY",
-        transit_snapshot.bodies["MERCURY"].absolute_longitude,
-        sun.absolute_longitude,
-        transit_snapshot.bodies["MERCURY"].is_retrograde,
-    )
+    # `mercury_combust` was computed above, for the personal-safety stage.
     afflicted_planets = _collect_afflicted_planets(chart_snapshot)
 
     reasons = build_score_reasons(

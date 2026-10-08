@@ -1756,7 +1756,40 @@ then A14, A15, A13.
   under another name, or reached through another object, passes it. The
   equivalence run covers the computation; the cache's own SQL was moved
   verbatim and is covered by the cache-path tests, not by that comparison.
-  **Not started:** steps 1–6 — `build_daily_guidance_response` (883 lines),
+  **Steps 1–6, first unit — `build_daily_guidance_response` (2026-10-08).**
+  Golden first, committed on its own (`tests/test_daily_guidance_golden.py`):
+  four synthetic profiles × four 2026 dates, built with no database
+  (`_chart_response_from_profile` + `session=None`). Normalised because CI's
+  pyswisseph and local swisseph-ffi have already disagreed at a rounding
+  edge: floats to 2 places, clock times and ISO datetimes masked, everything
+  else exact. Control: one score weight 0.28 → 0.27 fails 11 of 16.
+  Then three pure stages moved, verbatim, into `app/services/_dg_scoring.py`
+  (already the home of `weighted_moon_score`/`weighted_panchangam_score`):
+  `transit_component` (gochara + Ashtakavarga + Vedha + the Moon-Jupiter /
+  Lagna-Saturn adjustments; returns the score and the house-from-Moon map the
+  palan reads), `personal_safety_component` (the Sade Sati murthi grade needs
+  the ephemeris, so the builder computes it — only when the cycle calls for
+  it, as before — and passes it in), and `composite_day_score` (weights,
+  label with the Chandrashtama demotion, confidence band and reason). The
+  duplicate `is_combust` call is now one. The builder calls them in the same
+  order: 885 → 808 lines. No doctrine changed.
+  **Proof:** golden unchanged (17 passed); HEAD's builder loaded from git and
+  run beside the new one on the same 16 cases, compared exactly (raw JSON,
+  `generatedAt` removed): 0 differ — control (one profile's dates shifted):
+  4 differ. New `tests/test_dg_stages.py`: 20 direct tests of the stages'
+  rules with plain values (each caution's cost, murthi grading, Kandaka
+  scored once under A-1, component rounding, the Chandrashtama demotion, the
+  exact 100 maximum, the three confidence bands). The 18 test files touching
+  daily guidance: 357 passed. ruff and mypy clean. Six imports the builder no
+  longer used were removed after checking no module or test reaches them
+  through `daily_guidance_service` (by import or by patch string).
+  **Blind spots:** the golden masks clock times and covers only
+  `session=None` and `ta-en`; the exact comparison covers the same 16 cases.
+  The fixture is 594 KB (mostly Tamil copy), the largest test file in the
+  repo. **Not started:** the rest of the builder (dasha strength,
+  briefing, palan assembly), `get_life_areas` (689), `assess_marriage_prediction`
+  (648), `dashboard-workspace.tsx` (2,415).
+  **Previously not started:** steps 1–6 — `build_daily_guidance_response` (883 lines),
   `get_life_areas` (689), `assess_marriage_prediction` (648) and
   `dashboard-workspace.tsx` (2,415 lines now, 2,574 at audit) need golden
   fixtures before any extraction.
