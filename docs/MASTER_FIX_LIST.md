@@ -1281,7 +1281,46 @@ worth recording.
     delivery time rather than dispatch time) was not re-audited against the
     Sani-cycle tagging itself — only its new position in the pipeline.
 
-- [ ] A11 transaction ownership (needs real PostgreSQL failure injection).
+- [x] **A11 — transaction ownership and dashboard isolation.**
+  `app/services/dashboard_bundle_service.py`'s `safe_db()` helper now opens an
+  independent `SessionLocal.begin()` per optional, DB-backed section
+  (`dailyGuidance`, `dailyGuidanceRange`, `transit`, `sani`,
+  `peyarchiUpcoming`, `explanation`, `panchangam`, `panchangamTimings`,
+  `lifeAreas`, `weekAhead`) instead of sharing the request-scoped session —
+  per the guide's explicit warning (step 5), **not** via `begin_nested()`,
+  since `Session.begin_nested()` flushes unconditionally and `app/db/session.py`
+  disables autoflush on purpose. A `DBAPIError` with `connection_invalidated`
+  still aborts the whole request (a lost connection is a hard dependency, not
+  an isolatable section); every other DB exception is caught, recorded in
+  `errors[section]`, and returns `None` for that section only. Pure-calculation
+  sections (`summary`, `dasha`, `nakshatraCard`) keep the cheap in-process
+  `safe()` path — no DB session, nothing to isolate.
+
+  **Gate:** `tests/test_dashboard_bundle_api.py::test_dashboard_bundle_recovers_after_real_postgres_statement_failure`
+  — a real `SELECT * FROM a11_table_that_must_not_exist` (genuine
+  `ProgrammingError`, not a mocked exception) injected into one section, then
+  asserts the immediately-following section **and** a later one both still
+  return data. **Verified to fail with the fix removed:** reverting `safe_db`
+  to run on the shared session reproduces exactly the finding's predicted
+  failure mode — `psycopg2.errors.InFailedSqlTransaction: current transaction
+  is aborted` cascades into `lifeAreas` and `weekAhead`, which have nothing to
+  do with the section that actually broke.
+
+  **Blind spots:**
+  - Each optional section now opens and closes its own connection-pool
+    checkout; sequential within one request (dict-literal field order), so no
+    extra concurrent pool pressure, but more round-trip checkouts per request
+    than before. Not benchmarked.
+  - `_chart_persist.py` and other write paths with their own internal commits
+    (A03's durable security operation, A05's webhook inbox) were deliberately
+    left alone per step 8's explicit exception — this item only touched the
+    read-mostly dashboard composition, not every service that still decides
+    its own commit timing.
+  - No test forces a genuinely **unavailable** connection (vs. a statement
+    error) through this path to confirm the whole-request failure branch;
+    `connection_invalidated` is exercised by inspection of the SQLAlchemy
+    `DBAPIError` contract, not by a fault-injected dropped socket.
+
 - [ ] A12 derived birth timestamp — **data-migration scope not yet decided.**
 
 ### Phase 3 and later — not started
