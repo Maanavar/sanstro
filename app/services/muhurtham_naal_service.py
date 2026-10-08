@@ -47,7 +47,6 @@ from app.calculations.panchangam import (
     NAKSHATRA_NAMES,
     NALLA_NERAM_SUMMARY_TABLE,
     WEEKDAY_NAMES,
-    calculate_daily_panchangam_range,
     own_chandrashtama_windows,
 )
 from app.calculations.tamil_calendar import TAMIL_MONTHS
@@ -60,6 +59,7 @@ from app.data.muhurtham_naals import (
 )
 from app.models import BirthProfile, Chart
 from app.services.location_service import EffectiveDailyLocation, resolve_effective_daily_location
+from app.services.panchangam_cache import calculate_daily_panchangam_range
 
 logger = logging.getLogger(__name__)
 

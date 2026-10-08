@@ -1663,9 +1663,9 @@ then A14, A15, A13.
   - The gate proves the config says these things, not that a job passes.
   - The two most recent CI runs on origin (2026-10-06/07) failed on Web and
     Backend lint; both predate commits not yet pushed, and were not re-run.
-- [~] **A13 — module boundaries. Step 7 (dependency-direction gate) and two
-  of the three cited inversions done; the third and every large extraction
-  (steps 1–6) not started.**
+- [~] **A13 — module boundaries. Step 7 (dependency-direction gate) and all
+  three cited inversions done (the panchangam cache on 2026-10-08, below);
+  every large extraction (steps 1–6) not started.**
   The audit's three dependency findings, re-verified then handled:
   - `app/models/*` (5 files) imported their column types from
     `app.services.encryption` → the module moved, content unchanged
@@ -1676,10 +1676,9 @@ then A14, A15, A13.
     `app.services.life_area_prediction_models` → that module (four dataclasses
     plus a helper depending only on `calculations`) moved to
     `app/calculations/life_area_prediction_models.py`; 10 importers updated.
-  - `app/calculations/panchangam.py` cache SQL — **left, as an explicit
-    baseline entry.** `calculate_daily_panchangam(session=…)` is the public
-    entry for ~30 callers and tests reach its private cache helpers 33 times;
-    moving it is a facade move on a perf-budgeted path, its own package.
+  - `app/calculations/panchangam.py` cache SQL — left as an explicit
+    baseline entry in the first pass; **moved 2026-10-08**, see the entry
+    after the gate below.
   **Gate:** `tests/test_dependency_direction.py` — `ast`-parsed imports
   (top-level, in-function and `TYPE_CHECKING` alike) against five rules:
   calculations ↛ models/services/api/db/sqlalchemy/fastapi; models ↛
@@ -1694,6 +1693,54 @@ then A14, A15, A13.
   fix); `core → models` is allowed by design (auth needs `User`); schemas →
   services (numerology, dashboard bundle) is the API boundary depending on
   application, which is the permitted direction, so it is not ruled.
+  **Panchangam cache moved out of the calculation (2026-10-08).**
+  Re-verified first: the cache was `_load_cached_snapshot`,
+  `_load_cached_snapshots_in_range`, `purge_expired_panchangam_cache`,
+  `_store_cached_snapshot` and three session-taking entry points
+  (`calculate_daily_panchangam`, `…_range`, `with_daylight_lagna_schedule`),
+  with 13 app modules, 1 script and 17 test files importing them. **The
+  handoff's "tests reach private cache helpers 33 times in test_panchangam.py"
+  was wrong:** those 33 are `calculate_daily_panchangam(` calls with no
+  session (pure computation); no test referenced a cache helper. Every
+  panchangam monkeypatch targets either a consumer-module name
+  (`pdf_export_service`/`daily_push_cron`/`muhurtham_naal_service`
+  `.calculate_daily_panchangam[_range]`) or a compute dependency inside
+  `app.calculations.panchangam` (`calculate_rise_transit_jd`,
+  `calculate_sidereal_planets`) — both keep intercepting if consumers keep
+  the same imported name and the computation stays put.
+  Now: `app/calculations/panchangam.py` is pure — `compute_daily_panchangam`,
+  `compute_daily_panchangam_range`, `attach_daylight_lagna_schedule`,
+  snapshot (de)serialization and `PANCHANGAM_CACHE_DATA_VERSION` (it versions
+  the serialized shape, so it stays with the serializer). The cache helpers,
+  `PANCHANGAM_CACHE_TTL_HOURS` and the three entry points — same names, same
+  signatures, same queries, log lines and fallbacks — are in
+  `app/services/panchangam_cache.py`. Consumers changed only the import path
+  (script-driven, then `ruff --fix --select I`). `_date_range` became public
+  `date_range` (no other user). AGENT_INSTRUCTIONS' cache line names the new
+  module.
+  **Gate:** all four BASELINE entries deleted (the list is now empty), and a
+  new check refuses any `session`/`db` parameter in `app/calculations` — the
+  runtime coupling the import graph could not see. Baseline before the move:
+  2 failed, naming the 4 imports and 7 session-taking functions. After: 4
+  passed. **Cache-path control:** with the service's two cache reads forced
+  to miss, `test_daily_panchangam_endpoint_reuses_cached_row` and
+  `test_monthly_panchangam_uses_cached_dominant_values` both fail, the
+  traceback running service → `compute_daily_panchangam` → the patched
+  `calculate_rise_transit_jd` — so the patches intercept through the move.
+  Targeted suites (every file importing or patching panchangam, perf budget
+  included): 375 passed, 6 skipped. ruff, mypy (368 files) clean.
+  **Full backend suite after the move: 6009 passed, 7 skipped, 0 failed**
+  (64 min, local, 2026-10-08).
+  **Before/after equivalence:** HEAD's `panchangam.py` loaded from git as a
+  separate module, then old `calculate_daily_panchangam(session=None)` vs new
+  `compute_daily_panchangam`, serialized snapshot compared key by key — 4
+  synthetic places (Chennai, Madurai, London, Sydney) × 13 dates through
+  2026, the sparse-`only` range path and the lagna-schedule path: 56
+  snapshots, 0 differ. Control: shifting one date by a day → 4 differ.
+  **Blind spots:** the session check knows two parameter names; a session
+  under another name, or reached through another object, passes it. The
+  equivalence run covers the computation; the cache's own SQL was moved
+  verbatim and is covered by the cache-path tests, not by that comparison.
   **Not started:** steps 1–6 — `build_daily_guidance_response` (883 lines),
   `get_life_areas` (689), `assess_marriage_prediction` (648) and
   `dashboard-workspace.tsx` (2,415 lines now, 2,574 at audit) need golden

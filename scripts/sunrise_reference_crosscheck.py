@@ -144,7 +144,7 @@ CASES: tuple[tuple[str, date, float, float, str], ...] = (
 
 def main() -> None:
     # Imported here so the NOAA maths above stays importable without the app.
-    from app.calculations.panchangam import calculate_daily_panchangam
+    from app.services.panchangam_cache import calculate_daily_panchangam
 
     print(f"{'case':24s} {'NOAA rise':>9s} {'swe rise':>9s} {'d(s)':>5s}   {'NOAA rahu':>9s} {'swe rahu':>9s} {'d(s)':>5s}")
     worst_rise = worst_rahu = 0.0

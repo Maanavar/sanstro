@@ -29,7 +29,6 @@ from app.calculations.display_names import sani_cycle_en, sani_cycle_ta
 from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.panchangam import (
     PanchangamLimbSpan,
-    calculate_daily_panchangam,
     limb_fraction,
 )
 from app.calculations.transits import CycleAssessment, classify_sani_cycle
@@ -56,6 +55,7 @@ from app.services.chart_service import load_persisted_chart_response
 from app.services.feature_flags import get_flag
 from app.services.location_service import local_noon_as_utc_for_profile, resolve_effective_daily_location
 from app.services.narrative_engine import render_causal_chain, signature_framing
+from app.services.panchangam_cache import calculate_daily_panchangam
 from app.services.prediction_log_service import log_prediction, scenario_to_area
 from app.services.safety_filter import run_safety_pass
 

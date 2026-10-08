@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date
 from uuid import uuid4
 
-from app.calculations.panchangam import calculate_daily_panchangam_range
+from app.services.panchangam_cache import calculate_daily_panchangam_range
 
 
 def _create_chart(client) -> str:

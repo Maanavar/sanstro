@@ -54,7 +54,6 @@ from app.calculations.astro import (
 )
 from app.calculations.panchangam import (
     best_gowri_slot,
-    calculate_daily_panchangam,
     gowri_good_label,
     gowri_good_purpose,
 )
@@ -76,6 +75,7 @@ from app.services.location_service import resolve_effective_daily_location
 from app.services.nakshatra_content import build_nakshatra_perspective
 from app.services.notification_dispatch_service import dispatch_notification
 from app.services.notification_service import build_morning_notification
+from app.services.panchangam_cache import calculate_daily_panchangam
 from app.services.pirantha_naal_service import next_janma_nakshatra_date
 
 logger = logging.getLogger(__name__)

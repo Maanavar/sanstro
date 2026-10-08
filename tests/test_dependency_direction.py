@@ -16,9 +16,14 @@ not count.
 self-cleaning: an entry that no longer occurs fails the test until it is
 deleted, so the list can only shrink.
 
-What this cannot see: `importlib`/`__import__` by name, dependencies passed in
-at runtime (a session handed to a calculation is still DB coupling — see the
-panchangam entry), and anything outside `app/`.
+A session handed to a calculation is DB coupling the import graph cannot see
+(an unannotated `session` parameter imports nothing), so a second check
+refuses any `session`/`db` parameter in `app/calculations`. The panchangam
+read-through cache was the one case; it moved to
+`app/services/panchangam_cache.py` on 2026-10-08.
+
+What this cannot see: `importlib`/`__import__` by name, a session passed under
+another parameter name or inside another object, and anything outside `app/`.
 """
 from __future__ import annotations
 
@@ -43,16 +48,10 @@ RULES: dict[str, tuple[str, ...]] = {
 
 # (module file, imported module) -> why it is still allowed. Remove an entry
 # when its violation is fixed; the stale check below insists on it.
-BASELINE: dict[tuple[str, str], str] = {
-    # The read-through cache lives inside the calculation, and
-    # `calculate_daily_panchangam(session=...)` is the public entry point for
-    # ~30 callers. Moving it is a facade move on a perf-budgeted hot path, kept
-    # out of the first A13 pass on purpose.
-    ("app/calculations/panchangam.py", "sqlalchemy"): "panchangam cache (A13 follow-up)",
-    ("app/calculations/panchangam.py", "sqlalchemy.dialects.postgresql"): "panchangam cache (A13 follow-up)",
-    ("app/calculations/panchangam.py", "sqlalchemy.orm"): "panchangam cache (A13 follow-up)",
-    ("app/calculations/panchangam.py", "app.models.panchangam_cache"): "panchangam cache (A13 follow-up)",
-}
+BASELINE: dict[tuple[str, str], str] = {}
+
+# Parameter names that carry a database session into a function.
+_SESSION_PARAMS = frozenset({"session", "db"})
 
 
 def _forbidden(module: str, prefixes: tuple[str, ...]) -> bool:
@@ -98,6 +97,24 @@ def test_no_new_upward_imports() -> None:
         "Upward imports (a lower layer importing a higher one):\n  "
         + "\n  ".join(f"{rel} imports {module}" for rel, module in new)
         + "\nMove the shared type or function down instead; see the module docstring."
+    )
+
+
+def test_calculations_take_no_session() -> None:
+    """Pure calculations get their inputs as values, never a session to fetch them."""
+    found: list[str] = []
+    for path in sorted((APP / "calculations").rglob("*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            a = node.args
+            for arg in [*a.posonlyargs, *a.args, *a.kwonlyargs]:
+                if arg.arg in _SESSION_PARAMS:
+                    found.append(f"{path.relative_to(REPO).as_posix()}:{node.lineno} {node.name}({arg.arg})")
+    assert not found, (
+        "Calculations taking a database session:\n  " + "\n  ".join(found)
+        + "\nLoad the inputs in a service and pass values down."
     )
 
 

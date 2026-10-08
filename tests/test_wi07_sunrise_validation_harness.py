@@ -78,13 +78,13 @@ from app.calculations.ephemeris import SunriseConvention, calculate_rise_transit
 from app.calculations.panchangam import (
     _nakshatra_number_at_jd,
     _tithi_number_at_jd,
-    calculate_daily_panchangam,
 )
 from app.calculations.tamil_calendar import (
     _sun_rasi_index_at_jd,
     find_sankranti_jd,
     month_start_date_for_sankranti,
 )
+from app.services.panchangam_cache import calculate_daily_panchangam
 
 
 @dataclass(frozen=True)

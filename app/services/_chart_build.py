@@ -33,7 +33,7 @@ from app.calculations.ephemeris import calculate_lagna_degree, calculate_siderea
 from app.calculations.equal_bhava import compute_equal_bhava
 from app.calculations.functional_nature import get_functional_nature
 from app.calculations.functional_status import owned_houses
-from app.calculations.panchangam import NAKSHATRA_NAMES, calculate_daily_panchangam
+from app.calculations.panchangam import NAKSHATRA_NAMES
 from app.calculations.transits import RASI_NAMES, is_cazimi, is_combust
 from app.calculations.yoga_activation import activation_tier, key_planets_for, yoga_activation_score
 from app.calculations.yoga_effects import yoga_effect
@@ -70,6 +70,7 @@ from app.services._chart_planets import (
     resolve_daytime_birth_for_profile,
 )
 from app.services.feature_flags import current_doctrine_options, get_flag
+from app.services.panchangam_cache import calculate_daily_panchangam
 
 # The chart engine's version now lives in app/constants/versions.py, with its
 # per-revision notes, because `app.schemas.charts` needs it too and cannot import

@@ -56,8 +56,8 @@ from datetime import date
 import pytest
 
 from app.calculations.festivals import get_festivals_for_date
-from app.calculations.panchangam import calculate_daily_panchangam
 from app.calculations.tamil_calendar import tamil_solar_date
+from app.services.panchangam_cache import calculate_daily_panchangam
 
 pytestmark = pytest.mark.no_db
 

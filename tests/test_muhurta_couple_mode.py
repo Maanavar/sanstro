@@ -34,9 +34,9 @@ from app.calculations.muhurta_engine import (
     marriage_jupiter_gochara_factor,
     score_day,
 )
-from app.calculations.panchangam import calculate_daily_panchangam
 from app.data.marriage_muhurta_rules import MARRIAGE_JUPITER_ADVERSE_HOUSES_FROM_MOON
 from app.services.muhurta_service import _apply_tara_display_cap
+from app.services.panchangam_cache import calculate_daily_panchangam
 
 pytestmark = pytest.mark.no_db
 

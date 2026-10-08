@@ -6,9 +6,9 @@ from datetime import date, timedelta
 import pytest
 
 from app.calculations.muhurta_engine import Subject, score_day
-from app.calculations.panchangam import calculate_daily_panchangam
 from app.calculations.tara_bala import tara_number
 from app.services.muhurta_service import _apply_tara_display_cap
+from app.services.panchangam_cache import calculate_daily_panchangam
 
 pytestmark = pytest.mark.no_db
 

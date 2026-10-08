@@ -9,8 +9,9 @@ from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 
 from app.calculations.astro import round_to_nearest_minute
-from app.calculations.panchangam import calculate_daily_panchangam, limb_fraction
+from app.calculations.panchangam import limb_fraction
 from app.services.narrative_engine import NAKSHATRA_NAME
+from app.services.panchangam_cache import calculate_daily_panchangam
 
 
 @dataclass

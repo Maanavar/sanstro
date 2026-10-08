@@ -73,7 +73,7 @@ Tamil-first bilingual astrology daily companion. Users enter their birth details
 - Never add `ensure_ascii=True` to JSON serialisation — Tamil bytes must pass through as UTF-8.
 - All JSON responses must include `Content-Type: application/json; charset=utf-8` (handled by `SecurityHeadersMiddleware` in `app/middleware.py`).
 - Version strings live in `app/constants/versions.py`: `CHART_CALCULATION_VERSION` (the natal-chart engine) and `API_RESPONSE_VERSION` (non-chart responses). Bumping either **recomputes nothing** — it records provenance. Recomputing stored charts is a deliberate migration.
-- Panchangam results are cached in the `panchangam_cache` table. After a kalam/tithi calculation fix, bump `PANCHANGAM_CACHE_DATA_VERSION` in `app/calculations/panchangam.py` so stale rows stop matching. Never run `DELETE` against `vinaadi_dev` by hand.
+- Panchangam results are cached in the `panchangam_cache` table by `app/services/panchangam_cache.py` (the read-through cache and the session-taking `calculate_daily_panchangam`; the calculation itself, `compute_daily_panchangam`, takes no session). After a kalam/tithi calculation fix, bump `PANCHANGAM_CACHE_DATA_VERSION` in `app/calculations/panchangam.py` so stale rows stop matching. Never run `DELETE` against `vinaadi_dev` by hand.
 - Run the full test suite before marking any task done; it must be green.
 
 ---

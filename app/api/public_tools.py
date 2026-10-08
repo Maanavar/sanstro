@@ -986,8 +986,9 @@ def public_muhurta(
     Bala, Chandra Bala, dasha and hora windows.
     """
     from app.calculations.muhurta_engine import Verdict, score_day
-    from app.calculations.panchangam import best_gowri_slot, calculate_daily_panchangam_range
+    from app.calculations.panchangam import best_gowri_slot
     from app.services.muhurta_service import normalize_activity
+    from app.services.panchangam_cache import calculate_daily_panchangam_range
 
     # Same alias resolution as the signed-in picker, so a client key like
     # `baby_naming` means the same activity on both routes.

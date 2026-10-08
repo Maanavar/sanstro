@@ -26,13 +26,13 @@ from app.calculations.panchangam import (
     _nethiram_value,
     _special_tithi_durations_for_civil_day,
     best_gowri_slot,
-    calculate_daily_panchangam,
     chandrashtamam_janma_nakshatra_windows_for_day,
     dominant_special_tithi_for_civil_day,
     gowri_category_rank,
     own_chandrashtama_windows,
 )
 from app.schemas.panchangam import PanchangamMonthlyQuery
+from app.services.panchangam_cache import calculate_daily_panchangam
 from app.services.panchangam_service import build_monthly_panchangam
 
 pytestmark = pytest.mark.no_db

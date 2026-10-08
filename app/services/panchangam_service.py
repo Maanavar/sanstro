@@ -14,8 +14,6 @@ from app.calculations.festivals import get_festivals_for_date
 from app.calculations.panchangam import (
     _compute_subha_muhurtham_broad,
     _compute_subha_muhurtham_strict,
-    calculate_daily_panchangam,
-    calculate_daily_panchangam_range,
 )
 from app.calculations.tamil_calendar import (
     TAMIL_MONTHS,
@@ -62,6 +60,7 @@ from app.schemas.panchangam import (
     TamilMonthsResponse,
 )
 from app.services.location_service import EffectiveDailyLocation, resolve_effective_daily_location
+from app.services.panchangam_cache import calculate_daily_panchangam, calculate_daily_panchangam_range
 from app.services.panchangam_events_service import is_karinaal
 
 PANCHANGAM_CALCULATION_VERSION = "thirukanitham-2026-v5"

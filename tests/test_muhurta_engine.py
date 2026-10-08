@@ -29,9 +29,9 @@ from app.calculations.muhurta_engine import (
     resolve_rule_source,
     score_day,
 )
-from app.calculations.panchangam import calculate_daily_panchangam
 from app.data import marriage_muhurta_rules as marriage
 from app.data.muhurta_activity_registry import ACTIVITY_RULES
+from app.services.panchangam_cache import calculate_daily_panchangam
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 

@@ -47,7 +47,6 @@ from app.calculations.ephemeris import (
 from app.calculations.panchangam import (
     KULIGAI_NIGHT_SLOT,
     KULIGAI_SLOT,
-    calculate_daily_panchangam,
 )
 from app.services._chart_planets import (
     DAY,
@@ -63,6 +62,7 @@ from app.services._chart_planets import (
     maandhi_span,
     resolve_daytime_birth,
 )
+from app.services.panchangam_cache import calculate_daily_panchangam
 
 #: Nazhigai in one eighth-part of a span: 30 / 8. Gulika's grid.
 EIGHTH_PART_NAZHIGAI = MAANDHI_REFERENCE_NAZHIGAI / 8

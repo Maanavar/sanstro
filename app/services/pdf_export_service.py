@@ -52,7 +52,6 @@ from app.calculations.display_names import (
 )
 from app.calculations.panchangam import (
     best_gowri_slot,
-    calculate_daily_panchangam,
     gowri_good_label,
     gowri_good_purpose,
 )
@@ -72,6 +71,7 @@ from app.services._dg_scoring import (
 from app.services.chart_service import load_persisted_chart_response
 from app.services.dasha_service import get_chart_dasha
 from app.services.location_service import resolve_effective_daily_location
+from app.services.panchangam_cache import calculate_daily_panchangam
 
 if TYPE_CHECKING:
     from app.schemas.relationships import CompatibilityIntelligenceData, DirectPoruthamData

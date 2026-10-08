@@ -31,8 +31,6 @@ from app.calculations.functional_nature import get_dasha_modifier, get_transit_m
 from app.calculations.panchangam import (
     NAKSHATRA_NAMES,
     PanchangamSnapshot,
-    calculate_daily_panchangam,
-    calculate_daily_panchangam_range,
     dominant_from_spans,
     dominant_span_name,
     limb_fraction,
@@ -156,6 +154,7 @@ from app.services.narrative_engine import (
     sani_cycle_background,
     tithi_content_card,
 )
+from app.services.panchangam_cache import calculate_daily_panchangam, calculate_daily_panchangam_range
 from app.services.personal_palan import CONTENT_VERSION as PALAN_CONTENT_VERSION
 from app.services.personal_palan import DIRECTION_NAME, PeriodInputs, build_personal_palan
 from app.services.safety_filter import run_safety_pass

@@ -62,10 +62,8 @@ from app.calculations.muhurta_engine import (
 from app.calculations.panchangam import (
     PanchangamSnapshot,
     best_gowri_slot,
-    calculate_daily_panchangam_range,
     gowri_category_rank,
     gowri_good_label,
-    with_daylight_lagna_schedule,
 )
 from app.calculations.tamil_calendar import TAMIL_MONTHS, format_tamil_date, tamil_solar_date
 from app.calculations.tara_bala import tara_number
@@ -89,6 +87,7 @@ from app.schemas.muhurta import (
 from app.services.chart_service import load_persisted_chart_response
 from app.services.location_service import resolve_effective_daily_location
 from app.services.narrative_engine import PLANET_NAME
+from app.services.panchangam_cache import calculate_daily_panchangam_range, with_daylight_lagna_schedule
 
 logger = logging.getLogger(__name__)
 

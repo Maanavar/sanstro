@@ -16,7 +16,7 @@ from app.calculations.family_harmony_remedies import (
     MemberPlanet,
     synthesize_family_harmony_remedies,
 )
-from app.calculations.panchangam import PanchangamSnapshot, calculate_daily_panchangam
+from app.calculations.panchangam import PanchangamSnapshot
 from app.calculations.remedies import remedy_disclaimer
 from app.calculations.transits import classify_kandaka_cycle
 from app.core.subscription import limits_for_user
@@ -79,6 +79,7 @@ from app.services.chart_service import (
 )
 from app.services.daily_guidance_service import build_daily_guidance_response
 from app.services.location_service import local_midnight_as_jd_for_profile, resolve_effective_daily_location
+from app.services.panchangam_cache import calculate_daily_panchangam
 from app.services.transit_service import build_sani_cycle_response, build_transit_snapshot
 
 MAJOR_SANI_TAGS = {"JANMA_SANI", "ARDHASHTAMA_SANI", "ASHTAMA_SANI", "KANTAKA_SANI", "KANDAKA_SANI"}

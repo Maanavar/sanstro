@@ -101,7 +101,7 @@ def test_serialized_panchangam_clocks_are_rounded_not_truncated() -> None:
     calling ``strftime`` directly and bypassing any policy at all.
     """
     from app.calculations.astro import format_clock_hhmm as fmt
-    from app.calculations.panchangam import calculate_daily_panchangam
+    from app.services.panchangam_cache import calculate_daily_panchangam
 
     snapshot = calculate_daily_panchangam(date(2026, 9, 29), 11.1085, 77.3411, "Asia/Kolkata")
 

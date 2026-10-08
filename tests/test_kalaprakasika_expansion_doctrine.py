@@ -15,7 +15,6 @@ from datetime import date, timedelta
 import pytest
 
 from app.calculations.muhurta_engine import Subject, Verdict, resolve_rule_source, score_day
-from app.calculations.panchangam import calculate_daily_panchangam
 from app.constants.astrology import NAKSHATRA_NAMES
 from app.data import kalaprakasika_adornment_rules as adornment
 from app.data import kalaprakasika_harvest_rules as harvest
@@ -23,6 +22,7 @@ from app.data import kalaprakasika_learning_rules as learning
 from app.data import kalaprakasika_lifecycle_rules as lifecycle
 from app.data.muhurta_activity_registry import ACTIVITY_RULES
 from app.services.muhurta_service import MUHURTA_ACTIVITIES
+from app.services.panchangam_cache import calculate_daily_panchangam
 
 pytestmark = pytest.mark.no_db
 
