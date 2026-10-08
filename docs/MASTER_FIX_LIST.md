@@ -1961,6 +1961,41 @@ then A14, A15, A13.
   never runs), default flags only, and the real owner check and persistence
   are stubbed. The fixture is 1.39 MB — the largest test file, over twice the
   daily golden.
+  **First `get_life_areas` stage — per-area scoring (2026-10-08).** Patch
+  targets re-checked: `test_life_areas_service.py` patches `svc._score_area`,
+  which the moved code still looks up as a module global, so it keeps
+  intercepting; `test_daily_snapshot_sections` patches `get_life_areas` on its
+  own module. `_score_life_area` (module-level, beside `get_life_areas`)
+  takes the area plus 18 explicit chart/transit/request inputs and returns an
+  `_AreaScore`: `_score_area`, the karaka chain blended 65/35, the promise-gate
+  reading (classified from the score **before** the blend — now pinned by a
+  test), the area remedy, the maha/antar area scores, the karaka's transit
+  house and driver line, and the three-signal confidence tier. Moved verbatim
+  by script (inputs renamed, nothing reordered); the chain dict is handed back
+  as the same object because the loop prepends BAV-derived factors to it.
+  Narration, phase gating, the married framing, maraka guard, prediction log
+  and projections stay in the loop. 689 → 620 lines.
+  **Proof:** life-areas golden 17 passed, unchanged. Exact same-process
+  comparison, HEAD's module from `git show` beside the new one under the
+  golden's stubs, raw JSON minus `generatedAt` plus every `log_prediction`
+  call: 8 synthetic profiles (golden four + Coimbatore 1979, Sydney 2001,
+  Trichy 1956, Chennai 2016 — a child) × {as built, married, retired,
+  student} × 9 dates × flags {defaults, all off}: **576 cases, 0 differ**.
+  Controls: one profile's dates shifted → 64 differ; the confidence threshold
+  60 → 61 inside the stage → 220 differ. New
+  `tests/test_life_area_score_stage.py` (8 tests, fakes for `_score_area` and
+  the chain): the 65/35 blend, the reading from the pre-blend score, no gate →
+  no reading, BLOCKED ignores timing, HIGH/MEDIUM/LOW, a karaka with no
+  transit reads house 1 at 50, a signal of exactly 60 counts. Controls:
+  reading from the blended score → that test fails (`MIXED` vs
+  `PROMISED_AND_TIMED`); 64/36 blend → 2 fail; threshold 61 → the boundary
+  test fails (it was added after the first threshold run passed all seven —
+  the fixtures sat far from 60). The 18 test files touching life areas: 277
+  passed. mypy (368 files) and ruff clean.
+  **Blind spots:** no active goals or life events in either the golden or the
+  comparison; `get_life_areas` is still 620 lines — the narration half of the
+  loop (≈250 lines of bundle edits) is the next stage and is not started.
+  `assess_marriage_prediction` and `dashboard-workspace.tsx`: not started.
   **Previously not started:** steps 1–6 — `build_daily_guidance_response` (883 lines),
   `get_life_areas` (689), `assess_marriage_prediction` (648) and
   `dashboard-workspace.tsx` (2,415 lines now, 2,574 at audit) need golden

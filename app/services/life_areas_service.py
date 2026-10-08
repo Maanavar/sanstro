@@ -1785,6 +1785,166 @@ def _karaka_chain_score(
     }
 
 
+@dataclass
+class _AreaScore:
+    """One life area's scored verdict, before any narration."""
+
+    score: int
+    breakdown: dict[str, int]
+    #: Gate-vs-timing reading (plan Phase 3, D4); None off the gate path.
+    reading: str | None
+    #: `_karaka_chain_score`'s result. The caller prepends BAV-derived factors
+    #: to its two factor lists, so it is handed over as the same dict.
+    chain: dict
+    structured_remedy: dict | None
+    primary_karaka: str
+    maha_score: int
+    antar_score: int
+    karaka_house_from_moon: int
+    driver_reason: LifeAreaText
+    confidence: str
+    confidence_reason: LifeAreaText
+
+
+def _score_life_area(
+    area: str,
+    *,
+    natal_moon_rasi: int,
+    transit_bodies,
+    maha_lord: str,
+    antar_lord: str,
+    sani_cycle,
+    kandaka_cycle,
+    chandrashtama_share: float,
+    natal_lagna_rasi: int,
+    natal_planet_scores: dict[str, int],
+    natal_planet_rasis: dict[str, int],
+    vargas,
+    bav,
+    sav,
+    native_age: int,
+    sade_sati_severity: str | None,
+    sade_sati_mitigation_count: int,
+    transit_planet_rasis: dict[str, int],
+    functional_nature_map,
+) -> _AreaScore:
+    """Score one area: the prediction score, the karaka chain blended 65/35,
+    the promise-gate reading, the remedy, and the three-signal confidence
+    tier. Pure — every chart-, transit- and request-level input is passed in;
+    `get_life_areas` narrates, gates and logs the result (A13)."""
+    score, score_breakdown, gate_grade = _score_area(
+        area,
+        natal_moon_rasi,
+        transit_bodies,
+        maha_lord,
+        antar_lord,
+        sani_cycle.type if sani_cycle.is_active else None,
+        sani_cycle.is_active,
+        kandaka_cycle.is_active,
+        chandrashtama_share,
+        lagna_rasi=natal_lagna_rasi,
+        natal_planet_scores=natal_planet_scores,
+        natal_planet_rasis=natal_planet_rasis,
+        vargas=vargas,
+        bav=bav,
+        sav=sav,
+        native_age=native_age,
+        sade_sati_severity=sade_sati_severity,
+        sade_sati_mitigation_count=sade_sati_mitigation_count,
+    )
+    chain_key = _AREA_TO_CHAIN_KEY.get(area, area)
+    chain_result = _karaka_chain_score(
+        area_key=chain_key,
+        lagna_rasi=natal_lagna_rasi,
+        moon_rasi=natal_moon_rasi,
+        planet_scores=natal_planet_scores,
+        planet_rasis=natal_planet_rasis,
+        current_mahadasha_lord=maha_lord,
+        current_antardasha_lord=antar_lord,
+        transit_planet_rasis=transit_planet_rasis,
+        native_age=native_age,
+        sarvashtakavarga=sav,
+        age_band=_AREA_AGE_BAND.get(area),
+    )
+    # D4 (plan Phase 3): classify gate-vs-timing disagreement from the
+    # prediction score's own pieces — on the gate path `score` is still
+    # the timing vote here (L2–L6 rescaled; BLOCKED/SILENT skipped it),
+    # and gate_grade is the promise-gate outcome.
+    area_reading: str | None = None
+    if gate_grade is not None:
+        _grade = GateGrade(gate_grade)
+        _timing_band = (
+            timing_band_from_score(score)
+            if _grade in (GateGrade.PASS, GateGrade.WEAK)
+            else None
+        )
+        area_reading = classify(_grade, _timing_band).value
+
+    score = max(0, min(100, round(score * 0.65 + chain_result["score"] * 0.35)))
+
+    karakas = _AREA_KARAKA[area]
+    primary_karaka = karakas[0]
+    weak_planets = sorted(karakas, key=lambda p: natal_planet_scores.get(p, 50))
+    structured_remedy = get_area_remedy(
+        area=area,
+        weak_planets=weak_planets,
+        lagna_rasi=natal_lagna_rasi,
+        functional_nature_map=functional_nature_map,
+        score=score,
+    )
+    karaka_label = _PLANET_LABEL[primary_karaka]
+    maha_score = _DASHA_AREA_SCORE[area].get(maha_lord, 52)
+    antar_score = _DASHA_AREA_SCORE[area].get(antar_lord, 52)
+    dasha_score = round(maha_score * 0.70 + antar_score * 0.30)
+
+    if primary_karaka in transit_bodies:
+        karaka_house_from_moon = house_from_reference(natal_moon_rasi, transit_bodies[primary_karaka].rasi)
+        karaka_transit_score = _HOUSE_SCORE_TABLE.get(primary_karaka, {}).get(karaka_house_from_moon, 50)
+        driver_reason = _t(
+            f"{karaka_label.ta} {karaka_house_from_moon}ஆம் இடத்தில் உள்ளது.",
+            f"{karaka_label.en} is in house {karaka_house_from_moon}.",
+        )
+    else:
+        karaka_house_from_moon = 1
+        karaka_transit_score = 50
+        driver_reason = _t(f"{karaka_label.ta} நிலை", f"{karaka_label.en} position")
+
+    # P1-B: confidence tier from 3 independent signals
+    _conf_signals = sum(1 for s in (score, dasha_score, karaka_transit_score) if s >= 60)
+    if _conf_signals >= 3:
+        _area_confidence = "HIGH"
+        _area_conf_reason = _t(
+            "மூன்று சமிக்ஞைகளும் சீரமைக்கப்பட்டுள்ளன",
+            "All three signals are aligned",
+        )
+    elif _conf_signals == 2:
+        _area_confidence = "MEDIUM"
+        _area_conf_reason = _t(
+            "இரண்டு சமிக்ஞைகள் சீரமைக்கப்பட்டுள்ளன",
+            "Two of three signals are aligned",
+        )
+    else:
+        _area_confidence = "LOW"
+        _area_conf_reason = _t(
+            "சமிக்ஞைகள் கலந்த நிலையில் உள்ளன — குறிப்பு மட்டுமே",
+            "Mixed signals — indicative only",
+        )
+    return _AreaScore(
+        score=score,
+        breakdown=score_breakdown,
+        reading=area_reading,
+        chain=chain_result,
+        structured_remedy=structured_remedy,
+        primary_karaka=primary_karaka,
+        maha_score=maha_score,
+        antar_score=antar_score,
+        karaka_house_from_moon=karaka_house_from_moon,
+        driver_reason=driver_reason,
+        confidence=_area_confidence,
+        confidence_reason=_area_conf_reason,
+    )
+
+
 def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_user_id: UUID) -> LifeAreasResponse:
     _assert_chart_owner(session, chart_id, owner_user_id)
     chart_snapshot = load_persisted_chart_response(session, chart_id)
@@ -2001,17 +2161,16 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
     ):
         effective_label = area_label_override.get(area, _AREA_LABELS[area])
 
-        score, score_breakdown, gate_grade = _score_area(
+        _scored = _score_life_area(
             area,
-            natal_moon.rasi,
-            transit.bodies,
-            maha_lord,
-            antar_lord,
-            sani_cycle.type if sani_cycle.is_active else None,
-            sani_cycle.is_active,
-            kandaka_cycle.is_active,
-            chandrashtama_share,
-            lagna_rasi=natal_lagna_rasi,
+            natal_moon_rasi=natal_moon.rasi,
+            transit_bodies=transit.bodies,
+            maha_lord=maha_lord,
+            antar_lord=antar_lord,
+            sani_cycle=sani_cycle,
+            kandaka_cycle=kandaka_cycle,
+            chandrashtama_share=chandrashtama_share,
+            natal_lagna_rasi=natal_lagna_rasi,
             natal_planet_scores=natal_planet_scores,
             natal_planet_rasis=natal_planet_rasis,
             vargas=getattr(chart_snapshot.data, "vargas", {}),
@@ -2020,84 +2179,16 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
             native_age=current_age,
             sade_sati_severity=sade_sati_severity,
             sade_sati_mitigation_count=sade_sati_mitigation_count,
-        )
-        chain_key = _AREA_TO_CHAIN_KEY.get(area, area)
-        chain_result = _karaka_chain_score(
-            area_key=chain_key,
-            lagna_rasi=natal_lagna_rasi,
-            moon_rasi=natal_moon.rasi,
-            planet_scores=natal_planet_scores,
-            planet_rasis=natal_planet_rasis,
-            current_mahadasha_lord=maha_lord,
-            current_antardasha_lord=antar_lord,
             transit_planet_rasis=transit_planet_rasis,
-            native_age=current_age,
-            sarvashtakavarga=sarvashtakavarga,
-            age_band=_AREA_AGE_BAND.get(area),
-        )
-        # D4 (plan Phase 3): classify gate-vs-timing disagreement from the
-        # prediction score's own pieces — on the gate path `score` is still
-        # the timing vote here (L2–L6 rescaled; BLOCKED/SILENT skipped it),
-        # and gate_grade is the promise-gate outcome.
-        area_reading: str | None = None
-        if gate_grade is not None:
-            _grade = GateGrade(gate_grade)
-            _timing_band = (
-                timing_band_from_score(score)
-                if _grade in (GateGrade.PASS, GateGrade.WEAK)
-                else None
-            )
-            area_reading = classify(_grade, _timing_band).value
-
-        score = max(0, min(100, round(score * 0.65 + chain_result["score"] * 0.35)))
-
-        karakas = _AREA_KARAKA[area]
-        primary_karaka = karakas[0]
-        weak_planets = sorted(karakas, key=lambda p: natal_planet_scores.get(p, 50))
-        structured_remedy = get_area_remedy(
-            area=area,
-            weak_planets=weak_planets,
-            lagna_rasi=natal_lagna_rasi,
             functional_nature_map=functional_nature_map,
-            score=score,
         )
-        karaka_label = _PLANET_LABEL[primary_karaka]
-        maha_score = _DASHA_AREA_SCORE[area].get(maha_lord, 52)
-        antar_score = _DASHA_AREA_SCORE[area].get(antar_lord, 52)
-        dasha_score = round(maha_score * 0.70 + antar_score * 0.30)
-
-        if primary_karaka in transit.bodies:
-            karaka_house_from_moon = house_from_reference(natal_moon.rasi, transit.bodies[primary_karaka].rasi)
-            karaka_transit_score = _HOUSE_SCORE_TABLE.get(primary_karaka, {}).get(karaka_house_from_moon, 50)
-            driver_reason = _t(
-                f"{karaka_label.ta} {karaka_house_from_moon}ஆம் இடத்தில் உள்ளது.",
-                f"{karaka_label.en} is in house {karaka_house_from_moon}.",
-            )
-        else:
-            karaka_house_from_moon = 1
-            karaka_transit_score = 50
-            driver_reason = _t(f"{karaka_label.ta} நிலை", f"{karaka_label.en} position")
-
-        # P1-B: confidence tier from 3 independent signals
-        _conf_signals = sum(1 for s in (score, dasha_score, karaka_transit_score) if s >= 60)
-        if _conf_signals >= 3:
-            _area_confidence = "HIGH"
-            _area_conf_reason = _t(
-                "மூன்று சமிக்ஞைகளும் சீரமைக்கப்பட்டுள்ளன",
-                "All three signals are aligned",
-            )
-        elif _conf_signals == 2:
-            _area_confidence = "MEDIUM"
-            _area_conf_reason = _t(
-                "இரண்டு சமிக்ஞைகள் சீரமைக்கப்பட்டுள்ளன",
-                "Two of three signals are aligned",
-            )
-        else:
-            _area_confidence = "LOW"
-            _area_conf_reason = _t(
-                "சமிக்ஞைகள் கலந்த நிலையில் உள்ளன — குறிப்பு மட்டுமே",
-                "Mixed signals — indicative only",
-            )
+        score, score_breakdown, area_reading = _scored.score, _scored.breakdown, _scored.reading
+        chain_result = _scored.chain
+        structured_remedy = _scored.structured_remedy
+        primary_karaka = _scored.primary_karaka
+        maha_score, antar_score = _scored.maha_score, _scored.antar_score
+        karaka_house_from_moon, driver_reason = _scored.karaka_house_from_moon, _scored.driver_reason
+        _area_confidence, _area_conf_reason = _scored.confidence, _scored.confidence_reason
 
         saturn_house = saturn_house_from_moon
         bundle = _narrative(
