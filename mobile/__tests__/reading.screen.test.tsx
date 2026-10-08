@@ -45,7 +45,10 @@ const CODE = /\b[A-Z]{3,}_[A-Z_]+\b|\b(SUN|MOON|MARS|MERCURY|JUPITER|VENUS|SATUR
 function renderScreen(lang: "en" | "ta") {
   mockI18n.mockReturnValue({ lang } as ReturnType<typeof useI18n>);
   mockGet.mockResolvedValue({ success: true, data: explanation } as Awaited<ReturnType<typeof getChartExplanation>>);
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  // gcTime: Infinity — with the default, React Query schedules a 5-minute
+  // cache-collection timer per query after unmount, which held this Jest
+  // worker open ("A worker process has failed to exit gracefully").
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
   return render(
     <QueryClientProvider client={client}>
       <ChartReadingScreen />

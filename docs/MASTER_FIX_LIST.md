@@ -2082,6 +2082,11 @@ commit. Only the varshaphala one touches a Phase 3 test:
   defaults, or keep the clients and `clear()` them in `afterEach`. No product
   code is involved. Not explained: why `--detectOpenHandles` did not report
   the timer.
+  **Fixed 2026-10-08 (owner handed over the decision):** `gcTime: Infinity` in
+  that test's `QueryClient`. Full mobile Jest 175/175 in 2 of 2 runs with no
+  worker warning (every earlier full run printed it); lint clean. **Blind
+  spot:** a future screen test that builds its own client can reintroduce it;
+  nothing enforces the setting.
 - [x] **Backend tests — `test_response_model_is_lossless[varshaphala]`
   (5996 passed, 1 failed).** The only difference: one `tajakaPlanets`
   `degreeInRasi`, 11.2445 (HTTP) vs 11.2446 (direct call). The test compared
