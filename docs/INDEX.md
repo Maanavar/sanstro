@@ -85,6 +85,7 @@ Quick map to the right document for each purpose. **Last updated: 2026-10-06.**
 - [MASTER_FIX_LIST.md](MASTER_FIX_LIST.md) — Cumulative fix/issue tracking list
 - [API_FRONTEND_WIRING_AUDIT_2026-07.md](API_FRONTEND_WIRING_AUDIT_2026-07.md) — Endpoint-by-endpoint audit of what's wired to a real frontend vs. dead/unreachable
 - [CRON_WORKER.md](CRON_WORKER.md) — Cron/scheduler worker design and operation
+- [NOTIFICATION_DELIVERY.md](NOTIFICATION_DELIVERY.md) — Durable notification outbox guarantees, expiry, retries, and operations runbook
 
 ## Dashboard & Web UX
 - [DASHBOARD_UI_REVAMP_PLAN.md](DASHBOARD_UI_REVAMP_PLAN.md) — Dashboard UI revamp plan (largest design doc)

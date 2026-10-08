@@ -139,8 +139,10 @@ def _build_lifespan():
 
         log = logging.getLogger(__name__)
 
-        # In a scaled deploy a dedicated `app.worker` process owns scheduling and
-        # the API only serves requests. Default true keeps single-box behaviour.
+        # The dedicated `app.worker` process owns scheduling by default; the API
+        # only serves requests. A single-process dev box may opt in explicitly
+        # with JOTHIDAM_RUN_SCHEDULER_IN_WEB=true (refused in production/staging
+        # by app/core/config.py's validator).
         if not get_settings().run_scheduler_in_web:
             log.info("run_scheduler_in_web is false; cron runs in the dedicated worker process.")
             yield

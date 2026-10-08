@@ -139,10 +139,12 @@ class Settings(BaseSettings):
     # rate limiter, so a Redis that accepts connections and then stops answering
     # would hang requests rather than fall back. Seconds.
     redis_socket_timeout_seconds: float = Field(default=2.0)
-    # When true (single-box default), the API process also runs the APScheduler
-    # cron jobs (behind the advisory leader lock). Set false in a scaled deploy
-    # where a dedicated `app.worker` process owns scheduling. See REFACTOR_PLAN 3.3.
-    run_scheduler_in_web: bool = True
+    # Scheduling is worker-owned by default. Development may explicitly opt in
+    # to the in-web scheduler for a single-process box; production/staging API
+    # processes are forbidden from doing so by the validator below.
+    run_scheduler_in_web: bool = False
+    scheduler_heartbeat_interval_seconds: float = Field(default=15.0, ge=1.0, le=300.0)
+    scheduler_heartbeat_max_age_seconds: float = Field(default=60.0, ge=5.0, le=900.0)
     # Number of trusted reverse-proxy hops in front of the app. When > 0 the rate
     # limiter resolves the real client IP from the right-most-but-N entry of
     # X-Forwarded-For instead of the immediate peer. Leave 0 when there is no proxy.
@@ -312,6 +314,18 @@ class Settings(BaseSettings):
         # holding the secrets that do. Requiring them of every process is what
         # made per-service secret grants impossible before.
         serves_http = role == _ROLE_API
+
+        if serves_http and app_env in real_user_envs and self.run_scheduler_in_web:
+            raise _config_error(
+                "Production API processes cannot own scheduled work; run the "
+                "dedicated worker and set JOTHIDAM_RUN_SCHEDULER_IN_WEB=false."
+            )
+
+        if self.scheduler_heartbeat_max_age_seconds <= self.scheduler_heartbeat_interval_seconds:
+            raise _config_error(
+                "JOTHIDAM_SCHEDULER_HEARTBEAT_MAX_AGE_SECONDS must be greater than "
+                "JOTHIDAM_SCHEDULER_HEARTBEAT_INTERVAL_SECONDS."
+            )
 
         # Before the early return below, so a developer running the edge locally
         # is told rather than silently mis-attributing every anonymous request.

@@ -116,7 +116,7 @@ def test_run_daily_push_cron_no_prefs(monkeypatch):
     monkeypatch.setattr("app.services.daily_push_cron.SessionLocal", fake_session_local)
 
     summary = run_daily_push_cron(run_at_utc=datetime(2026, 5, 26, 6, 0, tzinfo=UTC))
-    assert summary["dispatched"] == 0
+    assert summary["enqueued"] == 0
     assert summary["errors"] == 0
 
 

@@ -376,9 +376,9 @@ def test_every_destructive_job_is_flagged(admin_client):
     from app.scheduler import SCHEDULED_JOBS
 
     flagged = {job.id for job in SCHEDULED_JOBS if job.destructive}
-    assert "journal_purge" in flagged, (
-        "journal_purge permanently deletes journal entries and must be flagged "
-        "destructive, or an admin session alone can trigger it."
+    assert {"journal_purge", "daily_push_cron", "notification_outbox"} <= flagged, (
+        "deletion and outward-notification jobs must require elevation when "
+        "manually triggered by an admin"
     )
 
 

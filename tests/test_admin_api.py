@@ -285,6 +285,7 @@ def test_jobs_list_and_manual_trigger(raw_client, monkeypatch):
         "daily_peyarchi_refresh",
         "daily_relationship_alert_refresh",
         "daily_push_cron",
+        "notification_outbox",
         "panchangam_prewarm",
     }.issubset(job_ids)
 

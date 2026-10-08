@@ -1186,11 +1186,106 @@ worth recording.
     the generic client error rather than the server's detail. Not changed —
     step 4 asks only that it not sign out.
 
-### Phase 2 and later — not started
+### Phase 2
 
-- [ ] A09 / A10 scheduler ownership and durable notification delivery.
+- [x] **A09 / A10 — scheduler ownership and durable notification delivery.**
+  Done as one package per the guide's own instruction to address them together
+  "enough to prevent duplicate ownership from becoming duplicate delivery."
+
+  **Owner decision 2026-10-08 (A09): DEDICATED WORKER ONLY.** `worker` in
+  `docker-compose.app.yml` is no longer behind `profiles: ["scaled"]` — it is
+  the sole production scheduler, always started. `app/core/config.py` refuses
+  to boot a production/staging API with `run_scheduler_in_web=true`; the
+  default flipped from `true` to `false`. `app/core/leader_lock.py` gained
+  `SchedulerLease.check()`, which re-verifies the advisory lock by pinned
+  `pg_backend_pid()` rather than trusting SQLAlchemy not to have silently
+  reconnected the held connection. `app/worker.py` calls `check()` every
+  `JOTHIDAM_SCHEDULER_HEARTBEAT_INTERVAL_SECONDS` and raises (terminating the
+  process for supervised restart) the moment it fails, recording a durable
+  heartbeat (`scheduler_heartbeats`, new table) on every successful cycle.
+  `app/worker_health.py` is the container healthcheck, reading that heartbeat's
+  freshness rather than merely the process existing.
+
+  **Owner decision 2026-10-08 (A10): PER-NOTIFICATION EXPIRY, DROP SILENTLY
+  PAST IT.** `notification_dispatch_service.py` was rewritten around a
+  transactional outbox: `dispatch_notification()` now only persists intent
+  (`notifications`, gained `logical_key` unique + `expires_at`) and per-channel
+  work (`notification_deliveries`, new table) — it never calls a provider.
+  `process_notification_outbox()` (scheduled every minute) atomically claims
+  due work with `FOR UPDATE SKIP LOCKED` in bounded batches, commits the claim
+  before any provider call, and only then performs the push/email I/O in a
+  second transaction. Claims carry a 5-minute expiry and a fencing token so a
+  crashed worker's claim is recoverable without a resurrected worker
+  overwriting a newer owner's result. Push and email advance independently;
+  transient failures get bounded exponential backoff with jitter, capped at 5
+  attempts before `exhausted`. Expired work is marked `expired` and never sent
+  — the in-app inbox still shows it (`_due_status_filter` in
+  `app/api/notifications.py` now includes `expired`/`failed`, not just
+  `sent`). `app/services/birth_profile_service.py`'s D+1 onboarding nudge now
+  goes through `dispatch_notification()` too, closing a pre-existing
+  check-then-insert race (a duplicate send was possible between the SELECT and
+  the INSERT); the new unique `logical_key` makes that an
+  `on_conflict_do_nothing` instead.
+
+  Migration `tt3d4e5f6a7b`, additive, reversible, **round-trip verified**
+  (`DROP SCHEMA public CASCADE` → upgrade head → downgrade -1 → upgrade head
+  on `vinaadi_test`, confirmed both new tables exist after the second
+  upgrade). Existing `notifications` rows keep NULL `logical_key`/`expires_at`
+  and get no delivery rows — replaying historical queued/failed rows was
+  explicitly rejected as turning an infra rollout into a user-visible resend.
+
+  **Gates:** `tests/test_notification_outbox.py` (7: committed-intent
+  delivery, expiry before send, future-dated inbox-only expiry, partial
+  channel success with independent retry, two-worker claim exclusivity,
+  claim-expiry fencing, provider-accepted-but-commit-failed at-least-once),
+  `tests/test_scheduler_worker_resilience.py` (4: real `pg_terminate_backend`
+  leadership loss, healthy-leadership confirmation + mutual exclusion,
+  heartbeat freshness/aging, compose ownership shape),
+  `tests/test_architecture_a09_a10_baseline.py` (3: production API refuses
+  scheduler ownership, worker fails rather than idles without leadership,
+  provider never called before intent commit).
+
+  **Every gate verified to fail with its fix removed, not just assumed:**
+  - Dropping `.with_for_update(skip_locked=True)` from the outbox claim query:
+    `test_two_workers_cannot_claim_the_same_delivery` **did not catch this** in
+    its first form — the two claims ran sequentially (first commits, then
+    second starts), so the `WHERE status NOT IN ('claimed', ...)` clause alone
+    passed the assertion with no row lock involved at all, proving nothing
+    about concurrent workers. Rewritten to keep worker-a's transaction open
+    (uncommitted) while worker-b claims, so only `SKIP LOCKED` can keep
+    worker-b off the row. Confirmed: fails (both workers claim the same
+    delivery) with the fix removed, passes with it restored.
+  - Stubbing `SchedulerLease.check()` to `return self.is_leader` (no real
+    `pg_locks` query): `test_lease_detects_terminated_postgresql_session`
+    correctly fails. The classid/objid split of the 64-bit advisory-lock key
+    was also verified by hand against real PostgreSQL (not just inferred from
+    the killed-connection path, which never exercises the comparison).
+  - Sharing one request session across dashboard-bundle sections again (A11,
+    see below) was verified the same way.
+
+  **Blind spots:**
+  - FCM/SMTP expose no idempotency key the outbox can hand back on retry; if a
+    provider accepts a request and the worker dies before the outcome commits,
+    a retry can still send a real duplicate. Documented in
+    `docs/NOTIFICATION_DELIVERY.md`, not solved — the guide says this is a
+    residual limit of any outbox over these providers, not a defect here.
+  - No replicated-worker scenario was run (single worker is the entire
+    production topology per the owner decision); A09 step 4's bounded-backoff
+    follower retry is therefore not implemented, correctly, since there are no
+    followers to retry.
+  - `test_two_workers_cannot_claim_the_same_delivery` proves row-level mutual
+    exclusion for the claim query specifically. It says nothing about the
+    `_complete_claim` write path's own `with_for_update()` (line ~489),
+    which was not independently fault-injected.
+  - The smart-silence suppression check (pre-existing logic, relocated to
+    delivery time rather than dispatch time) was not re-audited against the
+    Sani-cycle tagging itself — only its new position in the pipeline.
+
 - [ ] A11 transaction ownership (needs real PostgreSQL failure injection).
 - [ ] A12 derived birth timestamp — **data-migration scope not yet decided.**
+
+### Phase 3 and later — not started
+
 - [ ] A13 module boundaries. [ ] A14 contract completeness.
 - [ ] A15 CI coverage (partially advanced by A01's new job).
 - [ ] A16 contradictory authoritative documentation.

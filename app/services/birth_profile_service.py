@@ -17,7 +17,6 @@ from app.core.tier_limits import TIER_LIMITS
 from app.models import BirthProfile, FamilyMember
 from app.models.chart import Chart
 from app.models.daily_score import DailyScore
-from app.models.notification import Notification
 from app.schemas.birth_profiles import (
     BirthProfileCreate,
     BirthProfileCreateResult,
@@ -32,6 +31,7 @@ from app.services.chart_service import (
     create_birth_profile_record,
 )
 from app.services.location_service import resolve_effective_daily_location_or_none
+from app.services.notification_dispatch_service import dispatch_notification
 
 _BIRTH_RECALC_FIELDS = {
     "birth_date_local",
@@ -224,40 +224,26 @@ def _raise_duplicate_birth_profile() -> None:
 
 def _schedule_post_chart_d1_nudge(session: Session, *, owner_user_id: UUID, chart_id: UUID) -> None:
     """Queue the gentle D+1 onboarding nudge after a user's first chart reveal."""
-    existing = session.execute(
-        select(Notification.notification_id).where(
-            Notification.user_id == owner_user_id,
-            Notification.chart_id == chart_id,
-            Notification.type == "JADHAGAM_D1_NUDGE",
-            Notification.status.in_(["queued", "sent"]),
-        )
-    ).scalar_one_or_none()
-    if existing is not None:
-        return
-
     title_ta = "உங்கள் தசை காலம் தயாராக உள்ளது"
     title_en = "Your first dasha period is ready"
     body_ta = "உங்கள் ஜாதகத்தில் இப்போது இயங்கும் தசை, புக்தி மற்றும் அடுத்த கால சாளரத்தைப் பாருங்கள்."
     body_en = "Explore your current maha dasha, antar dasha, and the next timing window in your chart."
 
-    session.add(
-        Notification(
-            user_id=owner_user_id,
-            chart_id=chart_id,
-            type="JADHAGAM_D1_NUDGE",
-            priority=45,
-            title=f"{title_ta} / {title_en}",
-            body=f"{body_ta}\n{body_en}",
-            language="ta-en",
-            send_at=datetime.now(UTC) + timedelta(days=1),
-            status="queued",
-            payload={
-                "title": {"ta": title_ta, "en": title_en},
-                "body": {"ta": body_ta, "en": body_en},
-                "deepLink": "/dasha",
-                "source": "onboarding_d1_nudge",
-            },
-        )
+    due_at = datetime.now(UTC) + timedelta(days=1)
+    dispatch_notification(
+        session=session,
+        user_id=owner_user_id,
+        notification_type="JADHAGAM_D1_NUDGE",
+        title_ta=title_ta,
+        title_en=title_en,
+        body_ta=body_ta,
+        body_en=body_en,
+        chart_id=chart_id,
+        priority=45,
+        logical_key=f"onboarding:{owner_user_id}:JADHAGAM_D1_NUDGE:{chart_id}",
+        send_at=due_at,
+        expires_at=due_at + timedelta(days=1),
+        payload_extra={"deepLink": "/dasha", "source": "onboarding_d1_nudge"},
     )
 
 

@@ -11,30 +11,28 @@ pirantha_naal_alert the function:
 
   1. Loads their primary birth profile + chart.
   2. Computes the panchangam-based daily score for today (local date).
-  3. Builds and dispatches the Morning Nalla Neram notification (MORNING_NALLA_NERAM).
+  3. Builds and enqueues the Morning Nalla Neram notification (MORNING_NALLA_NERAM).
   4. Checks for dasha transitions within 90 days (DASHA_TRANSITION).
   5. Checks for today's Pirantha Naal (PIRANTHA_NAAL).
 
-All delivery is opt-in and goes through dispatch_notification, which handles
-FCM/email routing, smart-silence suppression, and audit logging.
+All external delivery is opt-in. ``dispatch_notification`` commits an intent
+and per-channel work; the separate notification-outbox job performs provider
+I/O only after that transaction commits.
 
 Deployment model
 ----------------
-Single-box (default)
-    ``JOTHIDAM_RUN_SCHEDULER_IN_WEB=true`` (the default).  APScheduler runs
-    inside the FastAPI lifespan.  A PostgreSQL advisory lock (SchedulerLease)
-    ensures only one worker fires the cron when uvicorn spawns multiple workers.
-    On SQLite the lock is a no-op (always granted).
-
-Dedicated worker (scaled deploy)
-    Set ``JOTHIDAM_RUN_SCHEDULER_IN_WEB=false`` on API processes, then start
-    one scheduler process per deployment::
+Production/staging
+    The dedicated worker is the sole scheduler; API processes refuse to boot
+    if in-web scheduling is enabled. Start the supervised worker::
 
         python -m app.worker
 
-    The worker acquires the same advisory lock; replicated worker containers
-    elect a leader automatically.  A crashed leader releases the lock when its
-    DB connection drops and a replica takes over on next startup.
+    It acquires a PostgreSQL advisory lock, records a durable heartbeat, and
+    exits if leadership is unavailable or lost so supervision can restart it.
+
+Single-process development
+    A developer may explicitly opt in with
+    ``JOTHIDAM_RUN_SCHEDULER_IN_WEB=true``. This is not a production mode.
 
 Designed to be callable as a plain function (no async) so APScheduler can
 invoke it as a standard job.
@@ -76,7 +74,7 @@ from app.services.dasha_transition_service import get_dasha_transition_alerts
 from app.services.life_focus_service import focus_push_line
 from app.services.location_service import resolve_effective_daily_location
 from app.services.nakshatra_content import build_nakshatra_perspective
-from app.services.notification_dispatch_service import dispatch_notification, dispatch_queued_notification
+from app.services.notification_dispatch_service import dispatch_notification
 from app.services.notification_service import build_morning_notification
 from app.services.pirantha_naal_service import next_janma_nakshatra_date
 
@@ -100,6 +98,13 @@ def _score_label(score: int) -> str:
     if score >= 35:
         return "CAUTION"
     return "RESTORATIVE"
+
+
+def _local_day_expiry(local_date: date, timezone_name: str) -> datetime:
+    """UTC instant at which a local civil-day notification becomes stale."""
+    local_tz = resolve_timezone(timezone_name)
+    next_day = local_date.fromordinal(local_date.toordinal() + 1)
+    return datetime.combine(next_day, time(0, 0), tzinfo=local_tz).astimezone(UTC)
 
 
 def _clock_hm(value: datetime | time | None) -> str:
@@ -346,6 +351,8 @@ def _dispatch_for_user(
                 user_email=user.email,
                 chart_id=chart.chart_id,
                 priority=60,
+                logical_key=f"daily:{user.user_id}:MORNING_NALLA_NERAM:{run_date.isoformat()}",
+                expires_at=_local_day_expiry(run_date, tz_name),
             )
             results["MORNING_NALLA_NERAM"] = result
             session.commit()
@@ -394,6 +401,11 @@ def _dispatch_for_user(
                         user_email=user.email,
                         chart_id=chart.chart_id,
                         priority=80 if alert.urgency == "TODAY" else 60,
+                        logical_key=(
+                            f"daily:{user.user_id}:DASHA_TRANSITION:{alert.type}:"
+                            f"{alert.transition_date.isoformat()}:{run_date.isoformat()}"
+                        ),
+                        expires_at=_local_day_expiry(run_date, tz_name),
                     )
                     results[f"DASHA_TRANSITION_{alert.type}_{alert.urgency}"] = result
                 session.commit()
@@ -429,6 +441,8 @@ def _dispatch_for_user(
                         user_email=user.email,
                         chart_id=chart.chart_id,
                         priority=70,
+                        logical_key=f"daily:{user.user_id}:PIRANTHA_NAAL:{run_date.isoformat()}",
+                        expires_at=_local_day_expiry(run_date, tz_name),
                     )
                     results["PIRANTHA_NAAL"] = result
                     session.commit()
@@ -439,15 +453,6 @@ def _dispatch_for_user(
     return results
 
 
-
-
-def _payload_text(notification: Notification, field: str, lang: str) -> str | None:
-    value = (notification.payload or {}).get(field)
-    if isinstance(value, dict):
-        text_value = value.get(lang)
-        if isinstance(text_value, str) and text_value.strip():
-            return text_value
-    return None
 
 
 def _load_users_by_id(session: Session, user_ids: set[UUID]) -> dict[UUID, User]:
@@ -466,54 +471,6 @@ def _load_users_by_id(session: Session, user_ids: set[UUID]) -> dict[UUID, User]
         users.update({user.user_id: user for user in rows})
     return users
 
-
-def _process_due_queued_notifications(session: Session, now_utc: datetime) -> dict[str, int]:
-    """Deliver due one-time onboarding notification rows."""
-    due_rows = session.execute(
-        select(Notification)
-        .where(
-            Notification.type == "JADHAGAM_D1_NUDGE",
-            Notification.status == "queued",
-            Notification.send_at <= now_utc,
-        )
-        .order_by(Notification.send_at.asc())
-        .limit(200)
-    ).scalars().all()
-
-    users_by_id = _load_users_by_id(session, {row.user_id for row in due_rows})
-
-    dispatched = skipped = errors = 0
-    for notification in due_rows:
-        user = users_by_id.get(notification.user_id)
-        if user is None:
-            notification.status = "failed"
-            notification.suppression_reason = "user_not_found"
-            skipped += 1
-            session.commit()
-            continue
-
-        try:
-            result = dispatch_queued_notification(
-                session,
-                notification,
-                user_email=user.email,
-                title_ta=_payload_text(notification, "title", "ta"),
-                title_en=_payload_text(notification, "title", "en"),
-                body_ta=_payload_text(notification, "body", "ta"),
-                body_en=_payload_text(notification, "body", "en"),
-            )
-            if result == "failed":
-                errors += 1
-            else:
-                dispatched += 1
-            session.commit()
-        except Exception as exc:
-            logger.error("queued_notification_error notification=%s exc=%s", notification.notification_id, exc)
-            session.rollback()
-            errors += 1
-
-    return {"dispatched": dispatched, "skipped": skipped, "errors": errors}
-
 # ---------------------------------------------------------------------------
 # Cron entry point
 # ---------------------------------------------------------------------------
@@ -522,18 +479,14 @@ def run_daily_push_cron(run_at_utc: datetime | None = None) -> dict[str, int]:
     """
     Main cron entry point.  Called by APScheduler at 06:00 UTC daily.
 
-    Returns a summary dict: {dispatched: N, skipped: N, errors: N}.
+    Returns a summary dict: {enqueued: N, skipped: N, errors: N}. External
+    delivery is owned by the separately scheduled notification outbox worker.
     """
     now_utc = run_at_utc or datetime.now(tz=UTC)
     run_date = now_utc.date()
-    dispatched = skipped = errors = 0
+    enqueued = skipped = errors = 0
 
     with SessionLocal() as session:
-        queued_results = _process_due_queued_notifications(session, now_utc)
-        dispatched += queued_results['dispatched']
-        skipped += queued_results['skipped']
-        errors += queued_results['errors']
-
         # Fetch all users with at least one alert opt-in. The notification_channel
         # is intentionally NOT filtered here: the in-app inbox is decoupled from
         # push/email delivery (dispatch_notification persists an in-app row even
@@ -563,12 +516,18 @@ def run_daily_push_cron(run_at_utc: datetime | None = None) -> dict[str, int]:
 
             try:
                 results = _dispatch_for_user(session, user, pref, run_date, now_utc)
-                dispatched += len(results)
+                enqueued += sum(result == "queued" for result in results.values())
                 if not results:
                     skipped += 1
             except Exception as exc:
                 logger.error("push_cron_user_error user=%s exc=%s", pref.owner_user_id, exc)
                 errors += 1
 
-    logger.info("daily_push_cron run_date=%s dispatched=%d skipped=%d errors=%d", run_date, dispatched, skipped, errors)
-    return {"dispatched": dispatched, "skipped": skipped, "errors": errors}
+    logger.info(
+        "daily_push_cron run_date=%s enqueued=%d skipped=%d errors=%d",
+        run_date,
+        enqueued,
+        skipped,
+        errors,
+    )
+    return {"enqueued": enqueued, "skipped": skipped, "errors": errors}
