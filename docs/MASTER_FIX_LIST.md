@@ -1689,6 +1689,30 @@ then A14, A15, A13.
   each `get_args(Literal)` to its enum's values (the guard against a new
   member becoming a 500), the two open value sets resolved first, then
   alias the 9 types and extend `generated-fit.ts`.
+  **The two value sets, traced 2026-10-08 (owner handed over the decision) —
+  one was a live web crash.** `Relaxation.NONE`: never emitted — `applied`
+  only ever receives named rungs, and a sweep of all 108 paadhams × 4 modes
+  over the real corpus saw sibling/rasi/any-akshara/single-script, never
+  `none`; no code references it. `MatchConfidence.NO_MATCH`: the corpus sweep
+  never produces it (every corpus name opens some paadham), but a **parent's
+  own shortlist name** is scored by `evaluate_against_target`, which returns
+  it whenever the opening letter opens no paadham — probed: "Zara", "Xavier",
+  "Quinn", "Fiona" → `no_match` / `no_paadham`. The client union lacked it,
+  and both baby-name surfaces (dashboard tool, public `/tools/baby-name-finder`)
+  render `pick(CONFIDENCE_CHIP[c.confidence])` → `pick(undefined)` →
+  `TypeError`. Web already had copy for the *relation* `no_paadham`, not the
+  *confidence*. **Fixed:** `"no_match"` added to the shared union (doc
+  comment says when it is sent) and to `CONFIDENCE_LABEL`/`CHIP`/`TONE`
+  (neutral tone; Tamil reuses the existing "not one of the 108 paadham
+  letters" wording — **unreviewed by a native reader**). **Gate:**
+  `web/lib/baby-name-copy.test.ts` renders chip/label/tone in both languages
+  for every value the server enum can send. Baseline (copy unchanged): 1 of 5
+  failed, `TypeError: Cannot read properties of undefined (reading 'en')`
+  for `no_match`. After: 5 passed; shared, web, mobile `tsc` 0 errors; web
+  lint clean. **Blind spots:** the test's list of server values is
+  hand-copied until the Literal/fit step below ties it to the server; the
+  crash was found by reading code and probing the engine, not reproduced in
+  a browser.
   **A14 step 8 — runtime validation, first two targets (2026-10-08).** The
   guide names categories, not endpoints ("unstable provider responses,
   persisted payloads, consequential inputs"; §4.7 adds "parse and validate

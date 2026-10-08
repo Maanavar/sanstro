@@ -1128,9 +1128,11 @@ export type AksharaRelation =
  * script matched and is unambiguous for this row. `"ambiguous"` — matched,
  * but the matching script is lossy for this specific row (see the backend's
  * `numerology_naming` module for why neither script alone is trustworthy on
- * every row).
+ * every row). `"no_match"` — the opening letter opens no paadham at all; the
+ * server sends it for a parent's own shortlist name ("Zara", "Xavier"), with
+ * `relation: "no_paadham"`.
  */
-export type MatchConfidence = "confirmed" | "tamil_only" | "latin_only" | "ambiguous";
+export type MatchConfidence = "confirmed" | "tamil_only" | "latin_only" | "ambiguous" | "no_match";
 
 /** One alternative spelling offered against a flagged baby-name candidate. */
 export interface BetterSpelling {
