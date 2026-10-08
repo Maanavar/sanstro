@@ -1598,6 +1598,44 @@ then A14, A15, A13.
      value becomes a 500 instead of a looser client type.
   Do class 1 first: it is mechanical and shrinks class 2 to the real
   value-set questions.
+  **Class 1 fixed — generator precision (2026-10-08, fourth pass).**
+  Re-verified the premise first: FastAPI 0.136.1 builds response schemas in
+  Pydantic 2.13 serialization mode, whose `field_is_required` leaves a
+  defaulted field out of `required` unless `json_schema_serialization_defaults_required`
+  is set (it is not, anywhere). Nothing in `app/` drops fields on the way out:
+  no route sets `response_model_exclude*`/`include`, and no model uses
+  `exclude_if`, `exclude=True`, or a model/field serializer. So every
+  property of a serialization schema is written on every response.
+  The generator now takes each listed route's `response_model` and builds its
+  schema with Pydantic's public `models_json_schema(..., "serialization")`
+  and a `GenerateJsonSchema` subclass that marks model/dataclass fields
+  present (TypedDict `NotRequired` keys keep Pydantic's answer, because they
+  can really be absent). It **refuses** a route with any field-dropping
+  `response_model_*` option rather than emitting a false "present". A probe
+  over the nine operations plus the six numerology GETs showed identical
+  component names, root refs and property sets to `app.openapi()`; only
+  `required` grew (the full numerology list, e.g. `BabyNameCandidateOut` +17
+  fields, `who`, `label`, `compound`). For the nine committed operations the
+  regenerated file changed one line: `VarshaphalaResponse.success?` →
+  `success`.
+  **Gate:** `tests/test_generated_api_types.py` gained a probe app whose
+  defaulted fields (`None`, `default_factory=list`, `True`, nested model,
+  TypedDict) are fetched over HTTP; every key the body carries must be
+  non-optional in the rendered TS, and the TypedDict's absent `NotRequired`
+  key must stay `?`. Baseline (throwaway test, current generator over
+  `probe_app.openapi()`): failed, 6 of 6 sent keys generated optional
+  (`inner listDefault loose note nullableDefault plainDefault`). Plus 5
+  parametrised refusals, one per dropping option. Fix-removed control
+  (override and refusal disabled): 7 of 8 failed — staleness, the probe, and
+  all 5 refusals. After: 8 passed; field guard 87 passed;
+  `test_a14_response_contracts.py` passed; shared, web and mobile `tsc`
+  0 errors.
+  **Blind spots:** a handler returning a `Response`/`JSONResponse` directly
+  bypasses the model, so the generated "present" would be unchecked for it
+  (none of the listed routes do); Pydantic's `exclude_if` is honoured but not
+  exercised (nothing uses it); the generated file no longer reads
+  `app.openapi()`, so a FastAPI-only schema transform (none today) would not
+  reach it.
   **A14 step 8 — runtime validation, first two targets (2026-10-08).** The
   guide names categories, not endpoints ("unstable provider responses,
   persisted payloads, consequential inputs"; §4.7 adds "parse and validate
