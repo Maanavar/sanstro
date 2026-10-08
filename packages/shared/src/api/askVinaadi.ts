@@ -1,3 +1,4 @@
+import type * as Server from "../generated/api-types";
 import { getApiClient } from "./client";
 import type { BiText } from "../types";
 
@@ -7,22 +8,17 @@ import type { BiText } from "../types";
  * so tests/test_api_wrapper_field_contract.py could not check this type: it
  * declared `questionsUsedToday` (a field of the *answer*, never of the status)
  * until 2026-09-26, which left mobile's limit bar permanently hidden. The route
- * now declares `AskVinaadiDailyStatus` (app/schemas/ask_vinaadi.py), and the
- * field guard checks this interface against it.
+ * now declares `AskVinaadiDailyStatus` (app/schemas/ask_vinaadi.py), and this
+ * type IS that model, generated (A14 step 7).
+ *
+ * - `chipsUsed`: questions spent — today for a daily allowance, this month for
+ *   a monthly one. `chipsRemaining` is never null (both branches clamp at 0).
+ * - `isPremium`: the subscription fact. `openBeta`: a spent allowance is a
+ *   fair-use cap to wait out, not a paywall.
+ * - `dailyLimit` is null for a monthly (premium) allowance; `monthlyLimit` is
+ *   null for a daily one.
  */
-export interface AskVinaadiDailyStatus {
-  /** Questions spent — today for a daily allowance, this month for a monthly one. */
-  chipsUsed: number;
-  chipsRemaining: number | null;
-  /** The subscription fact. */
-  isPremium: boolean;
-  /** Open beta: a spent allowance is a fair-use cap to wait out, not a paywall. */
-  openBeta: boolean;
-  /** Null for a monthly (premium) allowance. */
-  dailyLimit: number | null;
-  /** Null for a daily allowance. */
-  monthlyLimit: number | null;
-}
+export type AskVinaadiDailyStatus = Server.AskVinaadiDailyStatus;
 
 export type AskVinaadiVerdictKind = "GO" | "WAIT" | "CAUTION" | "MIXED";
 

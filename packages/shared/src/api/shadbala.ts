@@ -1,35 +1,16 @@
+import type * as Server from "../generated/api-types";
 import { getApiClient } from "./client";
 
 /**
  * Full classical six-component Shadbala (Rupas). Advanced/experimental,
  * additive to the 0-100 product strength score. Backend: GET
  * /charts/{id}/shadbala (app/services/shadbala_service.py).
+ *
+ * Types are the server's own (A14 step 7): generated from the route's
+ * response model, so a backend change reaches every consumer through tsc.
  */
-export interface PlanetShadbala {
-  graha: string;
-  sthana: number;
-  dig: number;
-  kala: number;
-  chesta: number;
-  naisargika: number;
-  drik: number;
-  totalVirupa: number;
-  rupas: number;
-  requiredRupas: number;
-  strengthRatio: number;
-  isStrong: boolean;
-  sthanaComponents: Record<string, number>;
-  kalaComponents: Record<string, number>;
-}
-
-export interface ShadbalaData {
-  chartId: string;
-  experimental: boolean;
-  note: string;
-  birthTimeKnown: boolean;
-  planets: PlanetShadbala[];
-  strongestFirst: string[];
-}
+export type PlanetShadbala = Server.ShadbalaPlanet;
+export type ShadbalaData = Server.ShadbalaData;
 
 export const shadbalaKeys = {
   chart: (chartId: string) => ["shadbala", chartId] as const,

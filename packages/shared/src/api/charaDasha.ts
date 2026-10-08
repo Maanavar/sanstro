@@ -1,38 +1,17 @@
+import type * as Server from "../generated/api-types";
 import { getApiClient } from "./client";
 
-export interface CharaPeriod {
-  rasi: number;
-  rasi_name: string;
-  years: number;
-  start_date: string;
-  end_date: string;
-}
-
+/*
+ * Types are the server's own (A14 step 7), generated from the response model.
+ * The hand-written CharaDashaData had `charKarakas: … | null`; the route always
+ * sends all eight karakas (the calculation refuses the Rahu-less shape), and
+ * declared `lagnaRasi: string` until 2026-10-08 although it is a rasi number.
+ */
+export type CharaPeriod = Server.CharaDashaPeriod;
 // Jaimini Chara Karakas (BPHS Ch. 32) — see app/calculations/jaimini_karakas.py
 // for the documented Rahu/tie-break conventions this project uses.
-export interface CharaKarakaMap {
-  ATMAKARAKA: string;
-  AMATYAKARAKA: string;
-  BHRATRUKARAKA: string;
-  MATRUKARAKA: string;
-  PITRUKARAKA: string;
-  PUTRAKARAKA: string;
-  GNATIKARAKA: string;
-  DAARAKARAKA: string;
-}
-
-export interface CharaDashaData {
-  chartId: string;
-  /** Rasi number 1-12. Declared `string` until A14's generated-type check
-   *  (2026-10-08) showed the route has always sent a number. */
-  lagnaRasi: number;
-  currentPeriod: CharaPeriod | null;
-  periods: CharaPeriod[];
-  charKarakas: CharaKarakaMap | null;
-  atmakaraka: string | null;
-  karakamsaRasi: number | null;
-  karakamsaRasiName: string | null;
-}
+export type CharaKarakaMap = Server.CharaKarakas;
+export type CharaDashaData = Server.CharaDashaData;
 
 export const charaDashaKeys = {
   timeline: (chartId: string) => ["chara-dasha", chartId] as const,

@@ -1,26 +1,13 @@
+import type * as Server from "../generated/api-types";
 import { getApiClient } from "./client";
 
-export interface VarshaphalaAreaOutlook {
-  area: string;
-  score: number;
-  narrativeTa: string;
-  narrativeEn: string;
-  favourableMonths: number[];
-}
-
-export interface VarshaphalaData {
-  chartId: string;
-  year: number;
-  solarReturnDate: string;
-  solarReturnLagnaRasi: number;
-  solarReturnLagnaName: string;
-  munthaRasi: number;
-  munthaRasiName: string;
-  munthaHouseFromSrLagna: number;
-  yearLord: string;
-  yearLordHouse: number;
-  areaOutlook: VarshaphalaAreaOutlook[];
-}
+/**
+ * Types are the server's own (A14 step 7), generated from the response model.
+ * The hand-written version omitted `tajakaPlanets`, `itthasalaPairs` and
+ * `isarafaPairs`, which the route has always sent.
+ */
+export type VarshaphalaAreaOutlook = Server.VarshaphalaAreaOutlook;
+export type VarshaphalaData = Server.VarshaphalaData;
 
 export function getVarshaphala(
   chartId: string,

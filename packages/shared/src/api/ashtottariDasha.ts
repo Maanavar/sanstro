@@ -1,3 +1,4 @@
+import type * as Server from "../generated/api-types";
 import { getApiClient } from "./client";
 
 /**
@@ -6,14 +7,12 @@ import { getApiClient } from "./client";
  * Ardra-adi (B.V. Raman / Jataka Parijata) nakshatra-lord convention this
  * project uses. Backend: GET /charts/{id}/ashtottari-dasha
  * (app/services/ashtottari_dasha_service.py).
+ *
+ * Types are the server's own (A14 step 7), generated from the response model.
+ * `applicability` was optional in the hand-written type; the route always
+ * sends it.
  */
-export interface AshtottariDashaPeriod {
-  level: "maha" | "antar";
-  lord: string;
-  years: number;
-  startDate: string;
-  endDate: string;
-}
+export type AshtottariDashaPeriod = Server.LordDashaPeriod;
 
 /**
  * Informational classical-applicability verdict — never hides the timeline.
@@ -21,32 +20,8 @@ export interface AshtottariDashaPeriod {
  * lagna lord, Rahu not in lagna); `pakshaSupports` is the disputed secondary
  * day/night+paksha condition, surfaced separately. `null` = indeterminate.
  */
-export interface AshtottariDashaApplicability {
-  ruleEn: string;
-  ruleTa: string;
-  applicable: boolean | null;
-  reason: string;
-  paksha: "SHUKLA" | "KRISHNA";
-  isDayBirth: boolean | null;
-  isDayBirthApproximate: boolean;
-  pakshaSupports: boolean | null;
-  pakshaReason: string;
-}
-
-export interface AshtottariDashaData {
-  chartId: string;
-  openingLord: {
-    lord: string;
-    balanceYearsAtBirth: number;
-  };
-  current: {
-    mahadasha: AshtottariDashaPeriod;
-    antardasha: AshtottariDashaPeriod;
-  };
-  mahadashas: AshtottariDashaPeriod[];
-  antardashas: AshtottariDashaPeriod[];
-  applicability?: AshtottariDashaApplicability;
-}
+export type AshtottariDashaApplicability = Server.AshtottariApplicabilityData;
+export type AshtottariDashaData = Server.AshtottariDashaData;
 
 export const ashtottariDashaKeys = {
   timeline: (chartId: string, asOf?: string) =>

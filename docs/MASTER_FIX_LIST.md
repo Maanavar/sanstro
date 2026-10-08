@@ -1536,6 +1536,46 @@ then A14, A15, A13.
   check); generated types are not yet consumed by any wrapper — they verify,
   they do not replace. **Not started:** wrapper migration onto generated types
   (step 7) and runtime validation of consequential inputs (step 8).
+  **A14 step 7, first group (2026-10-08, third pass): the nine wrappers now
+  export aliases of the generated types.** A `tsc` probe compared all 20
+  exported hand-written types with their generated twins: 14 identical, 6
+  where the server type was narrower — Varshaphala (the client omitted
+  `tajakaPlanets`/`itthasalaPairs`/`isarafaPairs`), Chara (`charKarakas`
+  `| null`, never sent null), Ashtottari (`applicability?`, always sent),
+  daily-status (`chipsRemaining | null`; both service branches clamp at 0, so
+  the server model is right), remedy plan and item. All 20 became
+  `export type X = Server.Y`, exported names unchanged; shared, web and
+  mobile `tsc` 0 errors — no consumer or fixture relied on the looser shapes.
+  Type aliases are erased at runtime, so no JS changed.
+  `generated-fit.ts` was one-directional (server assignable to client), which
+  aliasing makes trivially true; it now requires mutual assignability for all
+  20 pairs, so a re-hand-written type that drifts fails. Fix-removed control:
+  HEAD's hand-written `charaDasha.ts` restored → fails at the `CharaDashaData`
+  line (the old check passed it).
+  **The field guard silently lost seven of the nine.**
+  `tests/test_api_wrapper_field_contract.py` parsed only `export interface`,
+  so an aliased cast dropped out (84 → 77 casts, 3611 → 3472 fields) under
+  floors (65 / 2400) that did not notice — and Chara and Varshaphala fell back
+  to stale same-named interfaces in `src/types/index.ts`, which the wrappers
+  no longer use. It now parses the generated file under a `Server.` prefix
+  (nested references qualified) and resolves `export type X = Server.Y`
+  aliases: 346 interfaces, 84 casts, 3701 fields. Floors raised to 330 / 82 /
+  3600, and `test_aliased_wrapper_types_stay_in_the_guard` names any aliased
+  cast that leaves. Control (alias resolution disabled): 4 failed, naming the
+  seven missing casts; the Varshaphala cast, resolved to the stale
+  `src/types` duplicate, also failed against the route.
+  **Found, not fixed:** `src/types/index.ts` holds a parallel, hand-written
+  copy of two of these server shapes — `CharaDashaData` (+ `CharaKarakaMap`,
+  still `| null`) and `VarshaphalaData` (+ `VarshaphalaAreaOutlook`; no
+  `chartId`) — and they are live: web's grandfathered direct `apiFetchJson`
+  calls cast to them (`dashboard-family-charts-hybrid.tsx:909`,
+  `dashboard-workspace.tsx:588`). Neither the aliases nor the field guard
+  (which reads only shared-wrapper casts) covers that path. Aliasing those
+  two to the generated types is the obvious follow-up; not done here. (The
+  camelCase `RemedyPlanItem` there is different: a web view model that
+  `dashboard-workspace.tsx:540` maps the snake_case rows into — not a copy.)
+  **Blind spots:** nine operations only; the guard follows only the exact
+  `export type X = Server.Y;` form.
 - [x] **A15 — CI coverage (config side; not yet observed on a runner).**
   Re-verified: mobile CI type-checked and linted only, its path filter was
   `mobile/**` + `packages/shared/**`, and mobile lint covered `app/` only.

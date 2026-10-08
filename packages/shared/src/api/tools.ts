@@ -1,3 +1,4 @@
+import type * as Server from "../generated/api-types";
 import { getApiClient } from "./client";
 import { getChartFull } from "./charts";
 import type {
@@ -82,58 +83,14 @@ export function getYogam(
 }
 
 // ─── Pariharam (remedies) ─────────────────────────────────────────────────────
-// GET /charts/{id}/remedy-plan (app/api/remedies.py). The route returns a plain
-// dict, so the rows keep the calculation layer's snake_case keys.
+// GET /charts/{id}/remedy-plan (app/api/remedies.py). The rows keep the
+// calculation layer's snake_case keys. Types are the server's own (A14 step 7),
+// generated from the route's response model (app/schemas/remedies.py);
+// `caution_ta/en` are null when the gemstone policy has no caution.
 
-export interface RemedyDisclaimer {
-  fasting_caution_ta: string;
-  fasting_caution_en: string;
-  guarantee_note_ta: string;
-  guarantee_note_en: string;
-}
-
-export interface RemedyItem {
-  planet: string;
-  day: string;
-  temple_ta: string;
-  temple_en: string;
-  mantra_seed: string;
-  mantra_full_ta: string;
-  japa_count: number;
-  daanam_items_ta: string;
-  daanam_items_en: string;
-  gemstone_ta: string | null;
-  gemstone_en: string | null;
-  metal: string;
-  finger: string;
-  fasting_rule_ta: string;
-  fasting_rule_en: string;
-  behavioural_ta: string;
-  behavioural_en: string;
-  seva_ta: string;
-  seva_en: string;
-  functional_nature: string;
-  severity: string;
-  is_gemstone_prescribed: boolean;
-  reason_ta: string;
-  reason_en: string;
-  /** Null when the gemstone policy has no caution for this planet. Declared
-   *  non-null until A14's generated-type check (2026-10-08). */
-  caution_ta: string | null;
-  caution_en: string | null;
-  fasting_caution_ta: string;
-  fasting_caution_en: string;
-  priority: number;
-}
-
-export interface RemedyPlanData {
-  chartId: string;
-  currentMahaLord: string;
-  weakestPlanets: string[];
-  activeDoshamPlanet: string | null;
-  items: RemedyItem[];
-  disclaimer: RemedyDisclaimer;
-}
+export type RemedyDisclaimer = Server.RemedyDisclaimer;
+export type RemedyItem = Server.RemedyPlanItem;
+export type RemedyPlanData = Server.RemedyPlanData;
 
 export function getPariharam(
   chartId: string,

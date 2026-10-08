@@ -1,45 +1,65 @@
 /**
- * A14 — does what the server sends fit what the wrapper claims?
+ * A14 — the wrapper types ARE the server's types.
  *
- * Each line asks `tsc` whether the type GENERATED from the backend's OpenAPI
- * schema (`../../generated/api-types.ts`, the server's claim) is assignable to
- * the hand-written type the wrapper casts to (what web and mobile code reads).
- * If the server can send `null` where the wrapper promises `string`, or a
- * number where it promises a string, this file stops compiling — and the shared
- * package's `tsc --noEmit` runs in mobile CI.
+ * Since A14 step 7 (2026-10-08) each wrapper below exports an alias of the type
+ * GENERATED from the backend's OpenAPI schema (`../../generated/api-types.ts`),
+ * so web and mobile read exactly what the response model declares, and a
+ * backend change reaches them through `tsc`. This file pins that: each line
+ * requires the exported wrapper type and the generated one to be mutually
+ * assignable. Re-introduce a hand-written interface that drifts from the server
+ * — a field typed `string` that the server sends as a number, a `| null` the
+ * server never sends, a field the server does not have — and this stops
+ * compiling. The shared package's `tsc --noEmit` runs in mobile CI.
  *
- * `tests/test_api_wrapper_field_contract.py` only checks that field *names*
- * exist; this checks value types and nullability, in one direction: a field
- * the wrapper declares but the server never sends is still the field guard's
- * job, and an extra server field the wrapper ignores is allowed.
+ * Before step 7 this asked only whether the server's type was assignable to the
+ * hand-written one (one direction); that check found the `lagnaRasi` and
+ * `caution_ta/en` drift.
  *
- * Compared at the `data` level: the envelope's `success` has a model default,
- * which OpenAPI renders optional although FastAPI always sends it.
+ * `tests/test_api_wrapper_field_contract.py` still checks field names for every
+ * wrapper, including the ones not generated yet.
  *
  * Nothing imports this file; it exists to be type-checked.
  */
 import type * as Server from "../../generated/api-types";
-import type { AshtottariDashaData } from "../ashtottariDasha";
+import type { AshtottariDashaApplicability, AshtottariDashaData, AshtottariDashaPeriod } from "../ashtottariDasha";
 import type { AskVinaadiDailyStatus } from "../askVinaadi";
-import type { CharaDashaData } from "../charaDasha";
-import type { ConditionalDashasData } from "../conditionalDashas";
-import type { KalachakraDashaData } from "../kalachakraDasha";
-import type { ShadbalaData } from "../shadbala";
-import type { RemedyPlanData } from "../tools";
-import type { VarshaphalaData } from "../varshaphala";
-import type { YoginiDashaData } from "../yoginiDasha";
+import type { CharaDashaData, CharaKarakaMap, CharaPeriod } from "../charaDasha";
+import type {
+  ConditionalDashaApplicabilityResult,
+  ConditionalDashaPeriod,
+  ConditionalDashaSystem,
+  ConditionalDashasData,
+} from "../conditionalDashas";
+import type { KalachakraDashaData, KalachakraDashaPeriod } from "../kalachakraDasha";
+import type { PlanetShadbala, ShadbalaData } from "../shadbala";
+import type { RemedyDisclaimer, RemedyItem, RemedyPlanData } from "../tools";
+import type { VarshaphalaAreaOutlook, VarshaphalaData } from "../varshaphala";
+import type { YoginiDashaData, YoginiDashaPeriod } from "../yoginiDasha";
 
-type Fits<ServerSends, ClientReads> = [ServerSends] extends [ClientReads] ? true : false;
+type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
 type Assert<T extends true> = T;
 
 export type GeneratedFit = [
-  Assert<Fits<Server.AshtottariDashaData, AshtottariDashaData>>,
-  Assert<Fits<Server.AskVinaadiDailyStatus, AskVinaadiDailyStatus>>,
-  Assert<Fits<Server.CharaDashaData, CharaDashaData>>,
-  Assert<Fits<Server.ConditionalDashasData, ConditionalDashasData>>,
-  Assert<Fits<Server.KalachakraDashaData, KalachakraDashaData>>,
-  Assert<Fits<Server.RemedyPlanData, RemedyPlanData>>,
-  Assert<Fits<Server.ShadbalaData, ShadbalaData>>,
-  Assert<Fits<Server.VarshaphalaData, VarshaphalaData>>,
-  Assert<Fits<Server.YoginiDashaData, YoginiDashaData>>,
+  Assert<Same<Server.AshtottariDashaData, AshtottariDashaData>>,
+  Assert<Same<Server.LordDashaPeriod, AshtottariDashaPeriod>>,
+  Assert<Same<Server.AshtottariApplicabilityData, AshtottariDashaApplicability>>,
+  Assert<Same<Server.AskVinaadiDailyStatus, AskVinaadiDailyStatus>>,
+  Assert<Same<Server.CharaDashaData, CharaDashaData>>,
+  Assert<Same<Server.CharaDashaPeriod, CharaPeriod>>,
+  Assert<Same<Server.CharaKarakas, CharaKarakaMap>>,
+  Assert<Same<Server.ConditionalDashasData, ConditionalDashasData>>,
+  Assert<Same<Server.ConditionalDashaTimelineData, ConditionalDashaSystem>>,
+  Assert<Same<Server.LordDashaPeriod, ConditionalDashaPeriod>>,
+  Assert<Same<Server.ConditionalDashaApplicabilityResult, ConditionalDashaApplicabilityResult>>,
+  Assert<Same<Server.KalachakraDashaData, KalachakraDashaData>>,
+  Assert<Same<Server.KalachakraDashaPeriod, KalachakraDashaPeriod>>,
+  Assert<Same<Server.RemedyPlanData, RemedyPlanData>>,
+  Assert<Same<Server.RemedyPlanItem, RemedyItem>>,
+  Assert<Same<Server.RemedyDisclaimer, RemedyDisclaimer>>,
+  Assert<Same<Server.ShadbalaData, ShadbalaData>>,
+  Assert<Same<Server.ShadbalaPlanet, PlanetShadbala>>,
+  Assert<Same<Server.VarshaphalaData, VarshaphalaData>>,
+  Assert<Same<Server.VarshaphalaAreaOutlook, VarshaphalaAreaOutlook>>,
+  Assert<Same<Server.YoginiDashaData, YoginiDashaData>>,
+  Assert<Same<Server.YoginiDashaPeriod, YoginiDashaPeriod>>,
 ];
