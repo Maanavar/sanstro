@@ -54,6 +54,13 @@ OPERATIONS: tuple[tuple[str, str], ...] = (
     ("GetShadbala", "/api/v1/charts/{chart_id}/shadbala"),
     ("GetVarshaphala", "/api/v1/charts/{chart_id}/varshaphala"),
     ("GetYoginiDasha", "/api/v1/charts/{chart_id}/yogini-dasha"),
+    # Chart numerology GETs (flat responses, no envelope).
+    ("GetBabyNames", "/api/v1/charts/{chart_id}/numerology/baby-names"),
+    ("GetFavourableNumbers", "/api/v1/charts/{chart_id}/numerology/favourable-numbers"),
+    ("GetLuckyDates", "/api/v1/charts/{chart_id}/numerology/lucky-dates"),
+    ("GetMarriageDates", "/api/v1/charts/{chart_id}/numerology/marriage-dates"),
+    ("GetNameSessions", "/api/v1/charts/{chart_id}/numerology/name-sessions"),
+    ("GetPersonalCycle", "/api/v1/charts/{chart_id}/numerology/personal-cycle"),
 )
 
 HEADER = """\

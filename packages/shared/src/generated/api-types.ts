@@ -2,6 +2,19 @@
 // Do not edit by hand: change the Pydantic response model, then regenerate.
 // tests/test_generated_api_types.py fails when this file is stale.
 
+export interface AlignmentBasisOut {
+  ownedHouses: number[];
+  nodeBasis: NodeBasisOut | null;
+  baseScore: number;
+  strengthDelta: number;
+  strengthRule: "amplifies" | "inverted" | "damped" | "none";
+}
+
+export interface AlmanacMuhurtham {
+  status: "ON_LIST" | "NOT_ON_LIST" | "NO_SHEET";
+  pirai: "VALARPIRAI" | "THEIPIRAI" | null;
+}
+
 export interface AshtottariApplicabilityData {
   ruleEn: string;
   ruleTa: string;
@@ -35,6 +48,72 @@ export interface AskVinaadiDailyStatus {
   openBeta: boolean;
   dailyLimit: number | null;
   monthlyLimit: number | null;
+}
+
+export interface BabyNameCandidateOut {
+  tamilForm: string;
+  latinSpelling: string;
+  meaningEn: string | null;
+  meaningTa: string | null;
+  gender: "m" | "f" | "n" | null;
+  confidence: "confirmed" | "tamil_only" | "latin_only" | "ambiguous" | "no_match";
+  relation: "on_paadham" | "same_natchathiram" | "same_rasi" | "other_paadham" | "no_paadham";
+  nakshatraId: number | null;
+  pada: number | null;
+  nakshatraTa: string | null;
+  nakshatraEn: string | null;
+  aksharaTa: string | null;
+  reading: NumberReadingOut;
+  alignment: NumberAlignmentOut | null;
+  warnings: string[];
+  fullNameSpelling: string | null;
+  fullNameReading: NumberReadingOut | null;
+  fullNameAlignment: NumberAlignmentOut | null;
+  betterSpellings: BetterSpellingOut[];
+  source: "corpus" | "user" | "both";
+  overallRank: number;
+  adviseAgainst: boolean;
+}
+
+export interface BabyNamesResponse {
+  targetNakshatraId: number;
+  targetNakshatraTa: string;
+  targetNakshatraEn: string;
+  targetNakshatraSanskrit: string;
+  targetPada: number;
+  targetAksharaTa: string;
+  targetAksharaEn: string;
+  targetRasi: number;
+  targetRasiEn: string | null;
+  targetRasiTa: string | null;
+  mode: "pada_first" | "pada_weighted" | "rasi_wide" | "open";
+  candidates: BabyNameCandidateOut[];
+  relaxationsApplied: ("allow_tamil_collapse" | "allow_single_script" | "allow_ambiguous" | "sibling_padas" | "rasi_padas" | "any_akshara" | "drop_gender")[];
+  usable: boolean;
+  emptyReason: string | null;
+  emptyReasonCode: "pool_empty" | "collapse_gated" | "no_candidate_fits" | null;
+  totalMatches: number;
+  canonVerified: boolean;
+  lagnaRasi: number | null;
+  lagnaRasiEn: string | null;
+  lagnaRasiTa: string | null;
+  readingsAvailable: boolean;
+  calculationVersion: string;
+  traditionEn: string;
+  traditionTa: string;
+}
+
+export interface BetterSpellingOut {
+  spelling: string;
+  reading: NumberReadingOut;
+  alignment: NumberAlignmentOut;
+  improvement: number;
+  operations: string[];
+}
+
+export interface BiText {
+  ta: string;
+  en: string;
 }
 
 export interface CharaDashaData {
@@ -110,6 +189,28 @@ export interface ConditionalDashasResponse {
   data: ConditionalDashasData;
 }
 
+export interface DateNumerologyOut {
+  date: string;
+  reading: NumberReadingOut;
+  personalDay: NumberReadingOut | null;
+  favourabilityRank: number | null;
+  adjustment: number;
+  clampedByAstrology: boolean;
+  noteEn: string | null;
+  noteTa: string | null;
+}
+
+export interface FavourableNumbersResponse {
+  lagnaRasi: number;
+  numbers: NumberAlignmentOut[];
+  favourableNumbers: number[];
+  verdictScale: VerdictBandOut[];
+  readingsAvailable: boolean;
+  calculationVersion: string;
+  traditionEn: string;
+  traditionTa: string;
+}
+
 export interface KalachakraCurrent {
   mahadasha: KalachakraDashaPeriod;
   antardasha: KalachakraDashaPeriod;
@@ -149,6 +250,11 @@ export interface KalachakraOpening {
   balanceYearsAtBirth: number;
 }
 
+export interface LetterValueOut {
+  char: string;
+  value: number;
+}
+
 export interface LordDashaCurrent {
   mahadasha: LordDashaPeriod;
   antardasha: LordDashaPeriod;
@@ -165,6 +271,239 @@ export interface LordDashaPeriod {
   years: number;
   startDate: string;
   endDate: string;
+}
+
+export interface LuckyDateOut {
+  slot: MuhurtaSlot;
+  numerology: DateNumerologyOut;
+  adjustedScore: number;
+}
+
+export interface LuckyDatesResponse {
+  activity: string;
+  timezone: string;
+  epoch: "birthday" | "january" | "chithirai";
+  favourableNumbers: number[];
+  dates: LuckyDateOut[];
+  readingsAvailable: boolean;
+  calculationVersion: string;
+  traditionEn: string;
+  traditionTa: string;
+}
+
+export interface MarriageDatesResponse {
+  year: number;
+  epoch: "birthday" | "january" | "chithirai";
+  favourableNumbers: number[];
+  partnerChartId: string | null;
+  partnerFavourableNumbers: number[] | null;
+  context: MuhurthamNaalMatchContext;
+  matches: NumerologyNaalMatchOut[];
+  readingsAvailable: boolean;
+  calculationVersion: string;
+  traditionEn: string;
+  traditionTa: string;
+}
+
+export interface MuhurtaCitation {
+  tradition: string | null;
+  chapter: string | null;
+  page: string | null;
+  passage: string | null;
+  edition: string | null;
+}
+
+export interface MuhurtaFactor {
+  factor: string;
+  verdict: "VETO" | "PENALTY" | "NEUTRAL" | "BONUS" | "UNSOURCED";
+  contribution: number;
+  reason: BiText;
+  sourced: boolean;
+  ruleId: string | null;
+  citation: MuhurtaCitation | null;
+  conflict: string | null;
+}
+
+export interface MuhurtaSlot {
+  date: string;
+  tamilDate: BiText | null;
+  timeStart: string;
+  timeEnd: string;
+  score: number;
+  recommended: boolean;
+  band: "BEST" | "GOOD" | "USABLE" | "NOT_RECOMMENDED";
+  panchangamSupport: BiText;
+  dashaSupport: BiText | null;
+  horaSupport: BiText | null;
+  cautions: BiText[];
+  traditionalMonthNotices: TraditionalMonthNotice[];
+  factors: MuhurtaFactor[];
+  almanacMuhurtham: AlmanacMuhurtham | null;
+}
+
+export interface MuhurthamNaalItem {
+  date: string;
+  weekday: BiText;
+  pirai: BiText;
+  tamilMonth: BiText;
+  tamilDay: number;
+  nakshatra: BiText;
+  tithiNumber: number;
+  paksha: string;
+  nallaNeram: NallaNeramWindow[];
+}
+
+export interface MuhurthamNaalLocation {
+  latitude: number;
+  longitude: number;
+  timezone: string;
+  source: "current" | "birth";
+}
+
+export interface MuhurthamNaalMatchContext {
+  janmaNakshatra: BiText;
+  janmaRasiNumber: number;
+  chandrashtamaRasiNumber: number;
+  recommendedCount: number;
+  totalCount: number;
+  source: string;
+  dailyLocation: MuhurthamNaalLocation | null;
+  subjectWho: BiText | null;
+  partner: MuhurthamNaalPartnerContext | null;
+}
+
+export interface MuhurthamNaalMatchItem {
+  naal: MuhurthamNaalItem;
+  taraNumber: number;
+  taraName: BiText;
+  taraQuality: "GOOD" | "NEUTRAL" | "AVOID";
+  isChandrashtama: boolean;
+  isRecommended: boolean;
+  matchScore: number;
+  reasons: BiText[];
+  readings: MuhurthamNaalReading[];
+}
+
+export interface MuhurthamNaalPartnerContext {
+  who: BiText;
+  janmaNakshatra: BiText;
+  janmaRasiNumber: number;
+  chandrashtamaRasiNumber: number;
+}
+
+export interface MuhurthamNaalReading {
+  who: BiText | null;
+  taraNumber: number;
+  taraName: BiText;
+  taraQuality: "GOOD" | "NEUTRAL" | "AVOID";
+  isChandrashtama: boolean;
+  governs: boolean;
+}
+
+export interface NallaNeramWindow {
+  start: string;
+  end: string;
+  period: string;
+}
+
+export interface NameSessionsResponse {
+  sessions: SavedNameSessionOut[];
+  remainingSlots: number;
+  readingsAvailable: boolean;
+  calculationVersion: string;
+  traditionEn: string;
+  traditionTa: string;
+}
+
+export interface NodeBasisOut {
+  kind: "occupied_house" | "dispositor" | "no_position";
+  occupiedHouse: number | null;
+  dispositor: string | null;
+  dispositorTa: string | null;
+  dispositorEn: string | null;
+  dispositorHouses: number[];
+}
+
+export interface NumberAlignmentOut {
+  number: number;
+  graha: string;
+  grahaTa: string;
+  grahaEn: string;
+  functionalNature: "YOGAKARAKA" | "LAGNA_LORD" | "TRIKONA" | "KENDRA" | "MARAKA" | "DUSTHANA" | "UPACHAYA" | "NEUTRAL";
+  natalStrength: number | null;
+  score: number;
+  verdict: "strongly_aligned" | "aligned" | "neutral" | "misaligned" | "strongly_misaligned";
+  basis: AlignmentBasisOut;
+  reasonEn: string | null;
+  reasonTa: string | null;
+}
+
+export interface NumberReadingOut {
+  total: number;
+  compound: number | null;
+  root: number;
+  reductionChain: number[];
+  graha: string;
+  grahaTa: string;
+  grahaEn: string;
+  ignoredCharacters: string[];
+  compoundBeyondSeries: number | null;
+  letterValues: LetterValueOut[];
+  compoundTitle: string | null;
+  compoundTone: "favourable" | "mixed" | "cautionary" | null;
+  compoundEchoes: number | null;
+  compoundSource: string | null;
+  compoundReadingEn: string | null;
+  compoundReadingTa: string | null;
+}
+
+export interface NumberReadingWithMeaning {
+  reading: NumberReadingOut;
+  meaning: PersonalYearMeaningOut | null;
+}
+
+export interface NumerologyDateReadingOut {
+  who: BiText | null;
+  numerology: DateNumerologyOut;
+  governs: boolean;
+}
+
+export interface NumerologyNaalMatchOut {
+  match: MuhurthamNaalMatchItem;
+  numerology: DateNumerologyOut;
+  adjustedScore: number;
+  readings: NumerologyDateReadingOut[];
+}
+
+export interface PersonalCycleResponse {
+  onDate: string;
+  year: PersonalYearOut;
+  month: NumberReadingWithMeaning;
+  day: NumberReadingWithMeaning;
+  readingsAvailable: boolean;
+  traditionEn: string;
+  traditionTa: string;
+}
+
+export interface PersonalYearMeaningOut {
+  number: number;
+  themeEn: string | null;
+  themeTa: string | null;
+  actionEn: string | null;
+  actionTa: string | null;
+  watchEn: string | null;
+  watchTa: string | null;
+  monthHintEn: string | null;
+  monthHintTa: string | null;
+}
+
+export interface PersonalYearOut {
+  reading: NumberReadingOut;
+  epoch: "birthday" | "january" | "chithirai";
+  governingYear: number;
+  cycleStart: string;
+  cycleEnd: string;
+  meaning: PersonalYearMeaningOut | null;
 }
 
 export interface RemedyDisclaimer {
@@ -224,6 +563,17 @@ export interface RemedyPlanResponse {
   data: RemedyPlanData;
 }
 
+export interface SavedNameSessionOut {
+  nameSessionId: string;
+  name: string;
+  label: string | null;
+  maxEdits: number;
+  reading: NumberReadingOut;
+  alignment: NumberAlignmentOut;
+  savedAt: string;
+  recalculatedSinceSaved: boolean;
+}
+
 export interface ShadbalaData {
   chartId: string;
   experimental: boolean;
@@ -266,6 +616,11 @@ export interface TajakaPlanetPosition {
   degreeInRasi: number;
 }
 
+export interface TraditionalMonthNotice {
+  month: BiText;
+  message: BiText;
+}
+
 export interface VarshaphalaAreaOutlook {
   area: string;
   score: number;
@@ -295,6 +650,12 @@ export interface VarshaphalaResponse {
   success: boolean;
   data: VarshaphalaData;
   meta: Record<string, string>;
+}
+
+export interface VerdictBandOut {
+  verdict: "strongly_aligned" | "aligned" | "neutral" | "misaligned" | "strongly_misaligned";
+  minScore: number;
+  maxScore: number;
 }
 
 export interface YoginiCurrent {
@@ -339,3 +700,9 @@ export type GetRemedyPlanResponse = RemedyPlanResponse;
 export type GetShadbalaResponse = ShadbalaResponse;
 export type GetVarshaphalaResponse = VarshaphalaResponse;
 export type GetYoginiDashaResponse = YoginiDashaResponse;
+export type GetBabyNamesResponse = BabyNamesResponse;
+export type GetFavourableNumbersResponse = FavourableNumbersResponse;
+export type GetLuckyDatesResponse = LuckyDatesResponse;
+export type GetMarriageDatesResponse = MarriageDatesResponse;
+export type GetNameSessionsResponse = NameSessionsResponse;
+export type GetPersonalCycleResponse = PersonalCycleResponse;

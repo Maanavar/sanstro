@@ -60,8 +60,15 @@ function slot(date: string, tamil: string | null, score = 70): MuhurtaSlot {
     timeStart: "06:00",
     timeEnd: "07:30",
     score,
+    recommended: true,
+    band: "GOOD",
     panchangamSupport: { en: "", ta: "" },
+    dashaSupport: null,
+    horaSupport: null,
     cautions: [],
+    traditionalMonthNotices: [],
+    factors: [],
+    almanacMuhurtham: null,
   };
 }
 
@@ -271,7 +278,7 @@ describe("AlmanacMuhurthamBadge", () => {
   });
 
   it("says an unlisted day is unlisted, quietly and without a pill", () => {
-    const { container } = render(<AlmanacMuhurthamBadge slot={withAlmanac({ status: "NOT_ON_LIST" })} lang="en" />);
+    const { container } = render(<AlmanacMuhurthamBadge slot={withAlmanac({ status: "NOT_ON_LIST", pirai: null })} lang="en" />);
 
     expect(screen.getByText("Not on the almanac muhurtham list")).toBeInTheDocument();
     // A 30-row list of well-scored dates must not read as a wall of faults: the
@@ -282,7 +289,7 @@ describe("AlmanacMuhurthamBadge", () => {
   it("does not report an unpublished year as a rejection", () => {
     // The state that made three states necessary. Telling a family their date
     // failed a list nobody has published is worse than saying nothing.
-    render(<AlmanacMuhurthamBadge slot={withAlmanac({ status: "NO_SHEET" })} lang="en" />);
+    render(<AlmanacMuhurthamBadge slot={withAlmanac({ status: "NO_SHEET", pirai: null })} lang="en" />);
 
     const line = screen.getByText(/No almanac muhurtham list sourced/);
     expect(line).toBeInTheDocument();

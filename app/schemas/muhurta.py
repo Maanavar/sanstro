@@ -48,7 +48,7 @@ class MuhurtaFactor(BaseModel):
     """
 
     factor: str = Field(description="ALMANAC_TITHI | NAKSHATRA | TARA_BALA | CHANDRA_BALA | ...")
-    verdict: str = Field(description="VETO | PENALTY | NEUTRAL | BONUS | UNSOURCED")
+    verdict: Literal["VETO", "PENALTY", "NEUTRAL", "BONUS", "UNSOURCED"]
     contribution: float = Field(description="Points this factor added to or removed from the day")
     reason: BiText
     # True only for primary-text-confirmed doctrine. False for engine

@@ -5,6 +5,10 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+#: `muhurtham_naal_service.TARA_QUALITY`'s values; pinned to that table by
+#: tests/test_numerology_wire_literals.py.
+TaraQuality = Literal["GOOD", "NEUTRAL", "AVOID"]
+
 
 class BiText(BaseModel):
     ta: str
@@ -47,7 +51,7 @@ class MuhurthamNaalReading(BaseModel):
     who: BiText | None = None
     tara_number: int = Field(serialization_alias="taraNumber")
     tara_name: BiText = Field(serialization_alias="taraName")
-    tara_quality: str = Field(serialization_alias="taraQuality")  # GOOD|NEUTRAL|AVOID
+    tara_quality: TaraQuality = Field(serialization_alias="taraQuality")
     is_chandrashtama: bool = Field(serialization_alias="isChandrashtama")
     governs: bool
 
@@ -59,7 +63,7 @@ class MuhurthamNaalMatchItem(BaseModel):
     # The governing reading's tara — the one that set `matchScore`.
     tara_number: int = Field(serialization_alias="taraNumber")
     tara_name: BiText = Field(serialization_alias="taraName")
-    tara_quality: str = Field(serialization_alias="taraQuality")  # GOOD|NEUTRAL|AVOID
+    tara_quality: TaraQuality = Field(serialization_alias="taraQuality")
     # Chandrashtama for either chart.
     is_chandrashtama: bool = Field(serialization_alias="isChandrashtama")
     is_recommended: bool = Field(serialization_alias="isRecommended")

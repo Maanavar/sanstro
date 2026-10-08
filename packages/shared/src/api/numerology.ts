@@ -542,7 +542,7 @@ export interface MuhurthamNaalMatch {
   matchScore: number;
   reasons: BiText[];
   /** One per chart, in request order. */
-  readings?: MuhurthamNaalReading[];
+  readings: MuhurthamNaalReading[];
 }
 
 export interface MuhurthamNaalContext {
@@ -552,9 +552,11 @@ export interface MuhurthamNaalContext {
   recommendedCount: number;
   totalCount: number;
   source: string;
-  /** Couple mode only. */
-  subjectWho?: BiText | null;
-  partner?: {
+  /** Panchangam location the dates were ranked at (the server always sends it). */
+  dailyLocation: { latitude: number; longitude: number; timezone: string; source: "current" | "birth" } | null;
+  /** Couple mode only; null otherwise. */
+  subjectWho: BiText | null;
+  partner: {
     who: BiText;
     janmaNakshatra: BiText;
     janmaRasiNumber: number;
@@ -576,16 +578,16 @@ export interface NumerologyNaalMatch {
   numerology: DateNumerology;
   adjustedScore: number;
   /** One per chart, in request order. */
-  readings?: NumerologyDateReading[];
+  readings: NumerologyDateReading[];
 }
 
 export interface MarriageDatesResponse {
   year: number;
   epoch: PersonalYearEpoch;
   favourableNumbers: number[];
-  /** Couple mode only. */
-  partnerChartId?: string | null;
-  partnerFavourableNumbers?: number[] | null;
+  /** Couple mode only; null otherwise. */
+  partnerChartId: string | null;
+  partnerFavourableNumbers: number[] | null;
   context: MuhurthamNaalContext;
   /** Best-first, but recommended dates always sort ahead of the rest. */
   matches: NumerologyNaalMatch[];

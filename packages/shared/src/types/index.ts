@@ -153,11 +153,11 @@ export interface AskVinaadiResponseData {
  * screen claims that a named page of a named edition says this.
  */
 export interface MuhurtaCitation {
-  tradition?: string | null;
-  chapter?: string | null;
-  page?: string | null;
-  passage?: string | null;
-  edition?: string | null;
+  tradition: string | null;
+  chapter: string | null;
+  page: string | null;
+  passage: string | null;
+  edition: string | null;
 }
 
 /**
@@ -178,11 +178,11 @@ export interface MuhurtaFactor {
   contribution: number;
   reason: BiText;
   /** True only for primary-text-confirmed doctrine — never for the generic almanac layer. */
-  sourced?: boolean;
-  ruleId?: string | null;
-  citation?: MuhurtaCitation | null;
+  sourced: boolean;
+  ruleId: string | null;
+  citation: MuhurtaCitation | null;
   /** Two sourced rules matched and the text does not settle which wins. */
-  conflict?: string | null;
+  conflict: string | null;
 }
 
 /** A non-scoring family-custom note for the Tamil solar month of the slot. */
@@ -205,35 +205,35 @@ export interface TraditionalMonthNotice {
  */
 export interface AlmanacMuhurtham {
   status: "ON_LIST" | "NOT_ON_LIST" | "NO_SHEET";
-  /** The almanac's own paksha for the day. Present only when `ON_LIST`. */
-  pirai?: "VALARPIRAI" | "THEIPIRAI" | null;
+  /** The almanac's own paksha for the day. Null unless `ON_LIST`. */
+  pirai: "VALARPIRAI" | "THEIPIRAI" | null;
 }
 
 export interface MuhurtaSlot {
   date: string;
-  tamilDate?: BiText | null;
+  tamilDate: BiText | null;
   timeStart: string;
   timeEnd: string;
   score: number;
   /** False only for an explicit selected-date assessment that found a veto. */
-  recommended?: boolean;
-  band?: "BEST" | "GOOD" | "USABLE" | "NOT_RECOMMENDED";
+  recommended: boolean;
+  band: "BEST" | "GOOD" | "USABLE" | "NOT_RECOMMENDED";
   panchangamSupport: BiText;
-  dashaSupport?: BiText | null;
-  horaSupport?: BiText | null;
+  dashaSupport: BiText | null;
+  horaSupport: BiText | null;
   cautions: BiText[];
   /** Informational only; never changes the score or recommendation. */
-  traditionalMonthNotices?: TraditionalMonthNotice[];
+  traditionalMonthNotices: TraditionalMonthNotice[];
   /**
    * Every factor the engine weighed, in evaluation order. `cautions` is a lossy
    * projection of this (the PENALTY reasons only), kept for surfaces that
    * already render it — new UI should read `factors`, which also carries
    * verdicts, citations and rule conflicts.
    */
-  factors?: MuhurtaFactor[];
-  /** MARRIAGE only. Absent on every other activity: the sourced sheets are
+  factors: MuhurtaFactor[];
+  /** MARRIAGE only. Null on every other activity: the sourced sheets are
    *  wedding sheets, so there is no verdict to render for an exam day. */
-  almanacMuhurtham?: AlmanacMuhurtham | null;
+  almanacMuhurtham: AlmanacMuhurtham | null;
 }
 
 export interface MuhurtaActivityLocation {

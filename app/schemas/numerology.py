@@ -106,6 +106,28 @@ from app.services.numerology_service import readings_available
 TRADITION_NOTE_EN = "Chaldean numerology, as practised in Tamil Nadu."
 TRADITION_NOTE_TA = "கல்தேய எண் கணிதம் — தமிழ்நாட்டு வழக்கப்படி."
 
+# Wire vocabularies (A14). Each is the value set of the engine enum that
+# produces the field, so the published schema says what a client can receive.
+# A Literal also validates — an unexpected value is a 500 — so
+# tests/test_numerology_wire_literals.py pins every one to its source.
+CompoundToneValue = Literal["favourable", "mixed", "cautionary"]
+NodeBasisKindValue = Literal["occupied_house", "dispositor", "no_position"]
+StrengthRuleValue = Literal["amplifies", "inverted", "damped", "none"]
+FunctionalNatureValue = Literal[
+    "YOGAKARAKA", "LAGNA_LORD", "TRIKONA", "KENDRA", "MARAKA", "DUSTHANA", "UPACHAYA", "NEUTRAL"
+]
+AlignmentVerdictValue = Literal["strongly_aligned", "aligned", "neutral", "misaligned", "strongly_misaligned"]
+PersonalYearEpochValue = Literal["birthday", "january", "chithirai"]
+NamingModeValue = Literal["pada_first", "pada_weighted", "rasi_wide", "open"]
+MatchConfidenceValue = Literal["confirmed", "tamil_only", "latin_only", "ambiguous", "no_match"]
+AksharaRelationValue = Literal["on_paadham", "same_natchathiram", "same_rasi", "other_paadham", "no_paadham"]
+RelaxationValue = Literal[
+    "allow_tamil_collapse", "allow_single_script", "allow_ambiguous",
+    "sibling_padas", "rasi_padas", "any_akshara", "drop_gender",
+]
+EmptyReasonValue = Literal["pool_empty", "collapse_gated", "no_candidate_fits"]
+NameGenderValue = Literal["m", "f", "n"]
+
 
 def reviewed_prose(text: str | None) -> str | None:
     """Pass interpretive copy through only once it has cleared review.
@@ -178,7 +200,7 @@ class NumberReadingOut(BaseModel):
     #: client rendering ``compoundTitle`` **must** render this beside it — some
     #: of his titles are alarming alone, and shipping the dread without the
     #: framing is standing ruling 3 breached by omission.
-    compound_tone: str | None = Field(alias="compoundTone", default=None)
+    compound_tone: CompoundToneValue | None = Field(alias="compoundTone", default=None)
     #: The earlier compound this one repeats, in Cheiro's own structure.
     compound_echoes: int | None = Field(alias="compoundEchoes", default=None)
     compound_source: str | None = Field(alias="compoundSource", default=None)
@@ -332,7 +354,7 @@ class NodeBasisOut(BaseModel):
     everything, otherwise the node borrows its sign lord's functional nature.
     """
 
-    kind: str
+    kind: NodeBasisKindValue
     #: House the node occupies, from lagna. Null when the chart had no position.
     occupied_house: int | None = Field(alias="occupiedHouse", default=None)
     dispositor: str | None = None
@@ -367,7 +389,7 @@ class AlignmentBasisOut(BaseModel):
     #: rendered rather than swallowed: a strong malefic scores *lower*, and a
     #: screen showing strength beside a fallen score with no rule named has
     #: shown the reader what looks like a bug.
-    strength_rule: str = Field(alias="strengthRule")
+    strength_rule: StrengthRuleValue = Field(alias="strengthRule")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -403,7 +425,7 @@ class VerdictBandOut(BaseModel):
     the same reasoning that keeps the Chaldean letter table off the client.
     """
 
-    verdict: str
+    verdict: AlignmentVerdictValue
     min_score: int = Field(alias="minScore")
     max_score: int = Field(alias="maxScore")
 
@@ -431,11 +453,11 @@ class NumberAlignmentOut(BaseModel):
     graha: str
     graha_ta: str = Field(alias="grahaTa")
     graha_en: str = Field(alias="grahaEn")
-    functional_nature: str = Field(alias="functionalNature")
+    functional_nature: FunctionalNatureValue = Field(alias="functionalNature")
     #: 0-100 natal strength of the graha, when the chart carried one.
     natal_strength: float | None = Field(alias="natalStrength", default=None)
     score: int
-    verdict: str
+    verdict: AlignmentVerdictValue
     #: How the score was arrived at, so a surface can explain the verdict rather
     #: than assert it. Never null — every alignment has a derivation.
     basis: AlignmentBasisOut
@@ -633,7 +655,7 @@ class PersonalYearOut(BaseModel):
     """
 
     reading: NumberReadingOut
-    epoch: str
+    epoch: PersonalYearEpochValue
     #: The calendar year summed into the number — the previous one for dates
     #: before the rollover under the birthday and chithirai epochs.
     governing_year: int = Field(alias="governingYear")
@@ -784,7 +806,7 @@ class LuckyDatesResponse(BaseModel):
 
     activity: str
     timezone: str
-    epoch: str
+    epoch: PersonalYearEpochValue
     favourable_numbers: list[int] = Field(alias="favourableNumbers")
     dates: list[LuckyDateOut]
     readings_available: bool = Field(alias="readingsAvailable", default_factory=readings_available)
@@ -1282,7 +1304,7 @@ class MarriageDatesResponse(BaseModel):
     """
 
     year: int
-    epoch: str
+    epoch: PersonalYearEpochValue
     favourable_numbers: list[int] = Field(alias="favourableNumbers")
     #: Couple mode only: the partner's saved chart and its own ranking.
     partner_chart_id: str | None = Field(alias="partnerChartId", default=None)
@@ -1392,15 +1414,15 @@ class BabyNameCandidateOut(BaseModel):
     latin_spelling: str = Field(alias="latinSpelling")
     meaning_en: str | None = Field(alias="meaningEn", default=None)
     meaning_ta: str | None = Field(alias="meaningTa", default=None)
-    gender: str | None = None
+    gender: NameGenderValue | None = None
     #: "confirmed" | "tamil_only" | "latin_only" | "ambiguous"
-    confidence: str
+    confidence: MatchConfidenceValue
     #: Where this name's opening letter stands relative to the BIRTH paadham:
     #: "on_paadham" | "same_natchathiram" | "same_rasi" | "other_paadham" |
     #: "no_paadham". Every widened result must render this — without it a name
     #: the parent asked to also see is indistinguishable from one the
     #: tradition chose, which is the whole point of offering the wider scopes.
-    relation: str
+    relation: AksharaRelationValue
     #: The paadham this name's letter DOES open — null only when it opens
     #: none of the 108. The star names are carried so a client can say
     #: "ஆ opens Kaarthigai paadham 1" without a lookup table of its own.
@@ -1562,9 +1584,9 @@ class BabyNamesResponse(BaseModel):
     #: "pada_first" | "pada_weighted" | "rasi_wide" | "open". Clients explain
     #: the CHOSEN rule from this, which is not the same question as
     #: `relaxationsApplied` (what the search had to do to find anything).
-    mode: str = "pada_first"
+    mode: NamingModeValue = "pada_first"
     candidates: list[BabyNameCandidateOut]
-    relaxations_applied: list[str] = Field(alias="relaxationsApplied", default_factory=list)
+    relaxations_applied: list[RelaxationValue] = Field(alias="relaxationsApplied", default_factory=list)
     usable: bool
     #: Developer sentence with counts and aksharas interpolated in. NOT UI copy
     #: and not translatable — clients render `emptyReasonCode` instead. This
@@ -1572,7 +1594,7 @@ class BabyNamesResponse(BaseModel):
     #: rule") until 2026-07-31.
     empty_reason: str | None = Field(alias="emptyReason", default=None)
     #: "pool_empty" | "collapse_gated" | "no_candidate_fits"
-    empty_reason_code: str | None = Field(alias="emptyReasonCode", default=None)
+    empty_reason_code: EmptyReasonValue | None = Field(alias="emptyReasonCode", default=None)
     #: Size of the full ranked pool (corpus matches + any shortlist entries)
     #: before `limit` trimmed the corpus side — always >= len(candidates).
     #: Lets a client say "your name ranks #47 of 132" even though only the

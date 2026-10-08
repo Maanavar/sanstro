@@ -40,6 +40,12 @@ import type { YoginiDashaData, YoginiDashaPeriod } from "../yoginiDasha";
 // workspace's varshaphala fetch). They are aliases too; these lines keep a
 // re-hand-written copy from drifting where the wrapper lines cannot see it.
 import type * as Types from "../../types";
+// The chart numerology GETs. Unlike the groups above these stay hand-written —
+// numerology.ts carries the doctrine notes on each field (D3, D6, the review
+// gate), which an alias would discard — so mutual assignability is what keeps
+// them honest. The muhurta slot inside lucky/marriage dates is the shared
+// `src/types` MuhurtaSlot, pinned here for the same reason.
+import type * as Numerology from "../numerology";
 
 type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
 type Assert<T extends true> = T;
@@ -74,4 +80,18 @@ export type GeneratedFit = [
   Assert<Same<Server.VarshaphalaAreaOutlook, Types.VarshaphalaAreaOutlook>>,
   Assert<Same<Server.TajakaPlanetPosition, Types.TajakaPlanetPosition>>,
   Assert<Same<Server.TajakaAspect, Types.TajakaAspect>>,
+  Assert<Same<Server.BabyNamesResponse, Numerology.BabyNamesResponse>>,
+  Assert<Same<Server.BabyNameCandidateOut, Numerology.BabyNameCandidate>>,
+  Assert<Same<Server.FavourableNumbersResponse, Numerology.FavourableNumbersResponse>>,
+  Assert<Same<Server.LuckyDatesResponse, Numerology.LuckyDatesResponse>>,
+  Assert<Same<Server.MarriageDatesResponse, Numerology.MarriageDatesResponse>>,
+  Assert<Same<Server.MuhurthamNaalReading, Numerology.MuhurthamNaalReading>>,
+  Assert<Same<Server.NallaNeramWindow, Numerology.NallaNeramWindow>>,
+  Assert<Same<Server.NameSessionsResponse, Numerology.NameSessionsResponse>>,
+  Assert<Same<Server.NumberReadingWithMeaning, Numerology.NumberReadingWithMeaning>>,
+  Assert<Same<Server.PersonalCycleResponse, Numerology.PersonalCycleResponse>>,
+  Assert<Same<Server.NumberReadingOut, Numerology.NumberReading>>,
+  Assert<Same<Server.NumberAlignmentOut, Numerology.NumberAlignment>>,
+  Assert<Same<Server.MuhurtaSlot, Types.MuhurtaSlot>>,
+  Assert<Same<Server.MuhurtaFactor, Types.MuhurtaFactor>>,
 ];

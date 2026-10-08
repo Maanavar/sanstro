@@ -1713,6 +1713,48 @@ then A14, A15, A13.
   hand-copied until the Literal/fit step below ties it to the server; the
   crash was found by reading code and probing the engine, not reproduced in
   a browser.
+  **Numerology group closed (2026-10-08).** Every producer of the 17 fields
+  re-traced before any `Literal`: all are engine-enum `.value`s or values
+  already stored as those strings (`ChartBabyNames` holds `.value`s), except
+  `taraQuality` (`TARA_QUALITY`, three values) and candidate `gender` (corpus:
+  f 115 / m 91 / n 9; user names carry none); the three hand-written
+  `MuhurtaFactor(verdict="BONUS"|"NEUTRAL"|"PENALTY")` in `muhurta_service`
+  are inside the set (and mypy now checks them); no route takes these models
+  as input; nothing rebuilds them from stored JSON (name sessions store the
+  name and re-score). `Relaxation.NONE` deleted from the enum (dead).
+  Changes: `Literal` vocabularies in `app/schemas/numerology.py` (12 aliases,
+  15 fields), `TaraQuality` in `muhurtham_naal.py` (2 fields), the five-state
+  verdict on `MuhurtaFactor`. The six GETs are in the generator. The client
+  numerology types stay hand-written (their field notes carry doctrine —
+  D3, D6, the review gate — that an alias would drop); instead
+  `generated-fit.ts` requires mutual assignability for the nine response
+  types plus `NumberReading`, `NumberAlignment`, `BabyNameCandidate` and the
+  shared `MuhurtaSlot`/`MuhurtaFactor`. Getting there tightened the client to
+  what the server always sends: 21 `?:` removed (`MuhurtaSlot` ×8 — e.g.
+  `almanacMuhurtham`, whose comment said "absent" for non-weddings; it is
+  `null` — `MuhurtaFactor` ×4, `MuhurtaCitation` ×5, `pirai`, marriage-dates
+  `partnerChartId`/`partnerFavourableNumbers`/`subjectWho`/`partner`/`readings`),
+  and **`MuhurthamNaalContext.dailyLocation` added — the server sent it and the
+  client type did not have it.** Two web test fixtures that built shapes the
+  server never sends now carry the fields. No runtime code changed on any
+  client.
+  **Gates:** `tests/test_numerology_wire_literals.py` (18) pins each Literal to
+  its producing enum / the Tara table / the corpus genders. Baseline: 18 of 18
+  failed (all `str`). Control (`"no_match"` dropped from the server Literal):
+  the pin test fails 1, and after regeneration the fit fails on
+  `BabyNamesResponse` and `BabyNameCandidate` — the two gates chain, so the
+  web copy test's hand-written value list is now tied to the engine.
+  **Found while gating:** the type-level deep diff used in the inventory cannot
+  see a field the server sends and the client lacks (an object with extra
+  fields is assignable); `Same<>` caught `dailyLocation` that the probe had
+  passed. After: backend pin 18 passed; generator + field guard + A14
+  contracts and every numerology/muhurta test file (63 files): 1831 passed;
+  shared/web/mobile `tsc` 0; web vitest 141 files / 1456; mobile Jest 175;
+  web lint, ruff, mypy clean.
+  **Blind spots:** a future producer that builds one of these models from a
+  string not taken from the pinned source; the fit is compile-time — nothing
+  validates the bytes a client receives; other muhurta/numerology routes (the
+  POSTs) are still outside the generator.
   **A14 step 8 — runtime validation, first two targets (2026-10-08).** The
   guide names categories, not endpoints ("unstable provider responses,
   persisted payloads, consequential inputs"; §4.7 adds "parse and validate
@@ -2179,6 +2221,10 @@ session-parameter gate 1; skips unchanged, so the golden ran and passed on
 CI's pyswisseph despite the platform difference it was normalised for), web
 with the new coverage thresholds, backend lint, Alembic, token ratchet, web
 image, compose smoke, Mobile CI on push and pull_request.
+
+**CI on `297778f` (pushed by the owner, 2026-10-08):** all green — pytest 6091
+passed / 7 skipped (same as local; both goldens pass on pyswisseph), web 1451,
+Mobile CI on push and pull_request.
 
 **Local, after the 2026-10-08 continuation (`264f36c`, 8 commits ahead of
 origin, not pushed):** full backend suite 6091 passed / 7 skipped, coverage

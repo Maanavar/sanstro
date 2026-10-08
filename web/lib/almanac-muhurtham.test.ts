@@ -21,8 +21,8 @@ describe("almanacMuhurthamLabel", () => {
   });
 
   it("keeps both negative states quiet, and keeps them apart", () => {
-    const unlisted = almanacMuhurthamLabel({ status: "NOT_ON_LIST" }, "en");
-    const noSheet = almanacMuhurthamLabel({ status: "NO_SHEET" }, "en");
+    const unlisted = almanacMuhurthamLabel({ status: "NOT_ON_LIST", pirai: null }, "en");
+    const noSheet = almanacMuhurthamLabel({ status: "NO_SHEET", pirai: null }, "en");
 
     // Quiet: a list of well-scored dates must not read as a wall of faults.
     expect(unlisted?.tone).toBe("quiet");
