@@ -1941,6 +1941,26 @@ then A14, A15, A13.
   **Blind spots:** no direct tests for the two adapters — they are field
   mapping, covered by the golden and the comparison; nested
   `_build_tithi_card` / `_build_activity_board` are still inside the builder.
+  **Second unit, golden first — `get_life_areas` (2026-10-08).**
+  `tests/test_life_areas_golden.py`, committed before any extraction: the
+  daily golden's four synthetic profiles × four 2026 dates and its
+  normalisation (imported, not copied). `get_life_areas` touches the database
+  in five places; each is replaced at the service module's own names — owner
+  check passes, `load_persisted_chart_response` returns the synthetic chart, no
+  active goals, a session whose life-events query is empty, and
+  `log_prediction` records its calls, which are **part of the golden** (which
+  areas get logged as HIGH-confidence claims is behaviour). Flags are pinned to
+  their shipped defaults so an override elsewhere cannot move it. Reach,
+  asserted by `test_golden_matrix_reaches_the_branches_that_matter`: 192 areas
+  with all three confidences (LOW 139 / MEDIUM 44 / HIGH 9), 4 with
+  Chandrashtama applied, 4 readings, 9 logged claims across 5 of 16 cases.
+  Control: the chain blend 0.65/0.35 → 0.64/0.36 fails 16 of 16. After: 17
+  passed. **Blind spots:** as the daily golden (masked clock times, float
+  drift < 0.005), plus: no active goals, no life events (so
+  `chartValidationStatus` is always null and `validate_chart_against_events`
+  never runs), default flags only, and the real owner check and persistence
+  are stubbed. The fixture is 1.39 MB — the largest test file, over twice the
+  daily golden.
   **Previously not started:** steps 1–6 — `build_daily_guidance_response` (883 lines),
   `get_life_areas` (689), `assess_marriage_prediction` (648) and
   `dashboard-workspace.tsx` (2,415 lines now, 2,574 at audit) need golden
