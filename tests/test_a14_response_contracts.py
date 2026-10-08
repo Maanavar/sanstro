@@ -13,23 +13,38 @@ Two tests per operation:
 2. **The schema is lossless for a real payload.** Declaring a
    `response_model` makes FastAPI validate and re-serialise the return value,
    which silently drops an undeclared key, adds a defaulted one, or coerces a
-   value. So the route function is also called directly and its raw return,
-   encoded exactly as FastAPI encodes a model-less route, must equal what the
-   HTTP response carries. This also catches the next builder change that adds
-   a field and forgets the model.
+   value. So the route function is called directly, ONCE, and that one raw
+   return — encoded exactly as FastAPI encodes a model-less route — must equal
+   the same value passed through the route's own response field by FastAPI's
+   own `serialize_response`, with the route's own include/exclude/alias flags.
+   The real HTTP response must also have the same shape (keys and value kinds).
+   This also catches the next builder change that adds a field and forgets the
+   model.
+
+   Until 2026-10-08 the HTTP body itself was compared with a second, separate
+   computation. That compared two runs of the calculation, not the model: on
+   the GitHub runner (Python 3.12, pyswisseph) varshaphala's `degreeInRasi`
+   came back 11.2445 from one call and 11.2446 from the other — a sub-1e-4
+   difference at a 4-place rounding edge. Not reproduced locally on either
+   swisseph-ffi backend (data files or Moshier); cause unknown, recorded in
+   docs/MASTER_FIX_LIST.md.
 
 What this cannot see: payload branches the synthetic chart does not reach
 (a chart with no current Chara period, a monthly-quota user's daily status, an
 unknown birth time). It compares JSON values, so an int that becomes a float
-(`5` vs `5.0`) passes — the same number to every JSON client.
+(`5` vs `5.0`) passes — the same number to every JSON client. The HTTP check is
+shape-only, so it does not see a value the HTTP path alone would change.
 """
 from __future__ import annotations
 
+import asyncio
 from datetime import date
+from typing import Any
 from uuid import UUID
 
 import pytest
 from fastapi.encoders import jsonable_encoder
+from fastapi.routing import APIRoute, serialize_response
 
 from app.api import ask_vinaadi as ask_vinaadi_api
 from app.api import charts as charts_api
@@ -101,23 +116,61 @@ def test_operation_declares_a_concrete_response_schema(name: str) -> None:
         assert data.get("properties"), f"{path}: `data` is not a concrete object: {data}"
 
 
+def _route(path: str) -> APIRoute:
+    matches = [r for r in app.routes if isinstance(r, APIRoute) and r.path == path and "GET" in r.methods]
+    assert len(matches) == 1, f"{path}: expected one GET route, found {len(matches)}"
+    return matches[0]
+
+
+def _through_model(route: APIRoute, raw: Any) -> Any:
+    """What FastAPI does to `raw` on its way out of `route`, and nothing else."""
+    return asyncio.run(
+        serialize_response(
+            field=route.response_field,
+            response_content=raw,
+            include=route.response_model_include,
+            exclude=route.response_model_exclude,
+            by_alias=route.response_model_by_alias,
+            exclude_unset=route.response_model_exclude_unset,
+            exclude_defaults=route.response_model_exclude_defaults,
+            exclude_none=route.response_model_exclude_none,
+            is_coroutine=False,
+        )
+    )
+
+
+def _shape(value: Any) -> Any:
+    """Keys and value kinds, without the values — int and float are one kind."""
+    if isinstance(value, dict):
+        return {k: _shape(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_shape(v) for v in value]
+    if isinstance(value, bool) or value is None:
+        return type(value).__name__
+    if isinstance(value, (int, float)):
+        return "number"
+    return type(value).__name__
+
+
 @pytest.mark.parametrize("name", sorted(OPERATIONS))
 def test_response_model_is_lossless(name: str, client, birth_profile_payload_factory) -> None:
     created = client.post("/api/v1/birth-profiles", json=birth_profile_payload_factory()).json()
     chart_id = UUID(created["data"]["chartId"])
     path, params, _enveloped = OPERATIONS[name]
+    route = _route(path)
+    assert route.response_field is not None, f"{path}: no response model"
 
     response = client.get(path.format(chart_id=chart_id), params=params)
     assert response.status_code == 200, response.text
 
     user = User(user_id=UUID(TEST_USER_ID), email=TEST_USER_EMAIL)
     with SessionLocal() as session:
-        raw = jsonable_encoder(_raw(name, session, user, chart_id))
-    served = response.json()
-
-    # The one value that differs between two calls by construction: the clock.
-    for body in (served, raw):
-        if isinstance(body.get("meta"), dict):
-            body["meta"].pop("generatedAt", None)
+        raw_value = _raw(name, session, user, chart_id)
+    raw = jsonable_encoder(raw_value)
+    served = _through_model(route, raw_value)
 
     assert served == raw
+
+    # The HTTP path carries the same structure. Values are not compared here:
+    # that would be a second run of the calculation (see the module docstring).
+    assert _shape(response.json()) == _shape(served)
