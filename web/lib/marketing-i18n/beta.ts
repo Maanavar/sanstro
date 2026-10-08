@@ -44,8 +44,8 @@ export const BETA = {
   ),
   page_data_h:  s("Your data & privacy", "உங்கள் தரவும் தனியுரிமையும்"),
   page_data_b:  s(
-    "Your birth details are used only to generate your readings, and are encrypted at rest. You can request deletion of your account and data at any time — see our Privacy Policy.",
-    "உங்கள் பிறப்பு விவரங்கள் உங்கள் வாசிப்புகளை உருவாக்க மட்டுமே பயன்படுத்தப்படுகின்றன, மேலும் சேமிப்பில் குறியாக்கம் செய்யப்படுகின்றன. எந்த நேரத்திலும் உங்கள் கணக்கையும் தரவையும் நீக்கக் கோரலாம் — தனியுரிமைக் கொள்கையைப் பார்க்கவும்."
+    "Your birth details are used only to generate your readings. You can request deletion of your account and data at any time — see our Privacy Policy.",
+    "உங்கள் பிறப்பு விவரங்கள் உங்கள் வாசிப்புகளை உருவாக்க மட்டுமே பயன்படுத்தப்படுகின்றன. எந்த நேரத்திலும் உங்கள் கணக்கையும் தரவையும் நீக்கக் கோரலாம் — தனியுரிமைக் கொள்கையைப் பார்க்கவும்."
   ),
   page_coming_h: s("What's coming next", "அடுத்து வரப்போவது"),
   page_coming_1: s("Accounts, saved history & profiles", "கணக்குகள், சேமித்த வரலாறு & சுயவிவரங்கள்"),

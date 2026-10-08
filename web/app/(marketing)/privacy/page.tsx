@@ -127,15 +127,15 @@ export default async function PrivacyPage() {
             <h2>{ta ? "தரவு சேமிப்பும் பாதுகாப்பும்" : "Data storage and security"}</h2>
             {ta ? (
               <p>
-                உங்கள் தரவு பாதுகாப்பான சேவையகங்களில் சேமிக்கப்படுகிறது. உங்கள் பிறப்பு விவரங்கள் <strong>சேமிப்பில் குறியாக்கம்</strong> செய்யப்பட்டு, HTTPS
-                வழியாக அனுப்பப்படுகின்றன; அவற்றை அணுகும் உரிமை உங்கள் பலன்களை உருவாக்கும் அமைப்புகளுக்கு மட்டுமே. பிறப்புச் சுயவிவரங்களும் பலன் வரலாறும்
+                உங்கள் தரவு பாதுகாப்பான சேவையகங்களில் சேமிக்கப்பட்டு, HTTPS வழியாக அனுப்பப்படுகிறது. உங்கள் பிறப்பு விவரங்களை
+                உங்கள் பலன்களை உருவாக்கும் அமைப்புகள் மட்டுமே அணுக முடியும். பிறப்புச் சுயவிவரங்களும் பலன் வரலாறும்
                 உங்கள் கணக்கு இருக்கும் வரை வைத்திருக்கப்படும்.
               </p>
             ) : (
               <p>
-                Your data is stored on secured servers. Your birth details are
-                <strong> encrypted at rest</strong>, transmitted over HTTPS, and access
-                to them is restricted to the systems that generate your readings.
+                Your data is stored on secured servers and transmitted over HTTPS.
+                Access to your birth details is restricted to the systems that
+                generate your readings.
                 Birth profiles and reading history are retained for the life of your
                 account.
               </p>

@@ -28,8 +28,8 @@ export const PRIVACY_POLICY: {
     {
       heading: { en: "Data Security", ta: "தரவு பாதுகாப்பு" },
       body: {
-        en: "We take reasonable measures to protect your personal information from unauthorised access, use, or disclosure. Your data is encrypted in transit and at rest. Access to your data is restricted to authorised personnel only.",
-        ta: "அங்கீகரிக்கப்படாத அணுகல், பயன்பாடு அல்லது வெளிப்படுத்தலில் இருந்து உங்கள் தனிப்பட்ட தகவல்களை பாதுகாக்க நாங்கள் நியாயமான நடவடிக்கைகளை எடுக்கிறோம். உங்கள் தரவு பரிமாற்றத்திலும் சேமிப்பிலும் குறியாக்கம் செய்யப்பட்டுள்ளது.",
+        en: "We take reasonable measures to protect your personal information from unauthorised access, use, or disclosure. Your data is transmitted over HTTPS. Access to your data is restricted to authorised personnel only.",
+        ta: "அங்கீகரிக்கப்படாத அணுகல், பயன்பாடு அல்லது வெளிப்படுத்தலில் இருந்து உங்கள் தனிப்பட்ட தகவல்களை பாதுகாக்க நாங்கள் நியாயமான நடவடிக்கைகளை எடுக்கிறோம். உங்கள் தரவு HTTPS வழியாக அனுப்பப்படுகிறது. உங்கள் தரவை அங்கீகரிக்கப்பட்ட நபர்கள் மட்டுமே அணுக முடியும்.",
       },
     },
     {

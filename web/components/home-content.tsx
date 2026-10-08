@@ -282,8 +282,8 @@ export function HomeContent() {
               },
               {
                 claim: lang === "en"
-                  ? "Your birth details are encrypted and yours to delete anytime."
-                  : "உங்கள் பிறப்பு விவரங்கள் மறையாக்கம் — எப்போது வேண்டுமானாலும் நீக்கலாம்.",
+                  ? "Your birth details are never sold, and yours to delete anytime."
+                  : "உங்கள் பிறப்பு விவரங்கள் ஒருபோதும் விற்கப்படாது — எப்போது வேண்டுமானாலும் நீக்கலாம்.",
                 tag: lang === "en" ? "Your data, your control" : "உங்கள் தரவு, உங்கள் கட்டுப்பாடு",
                 href: "/privacy",
               },

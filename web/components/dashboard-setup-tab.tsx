@@ -663,8 +663,8 @@ export function DashboardSetupTab({
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={"var(--color-high)"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0, marginTop: "1px" }}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
             <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.5 }}>
               {lang === "ta"
-                ? "இவர்களின் விவரங்கள் மறையாக்கம் செய்யப்பட்டு பாதுகாப்பாக சேமிக்கப்படுகின்றன — யாருக்கும் விற்கப்படுவதில்லை. எப்போது வேண்டுமானாலும் அமைப்புகளில் நீக்கலாம் அல்லது திருத்தலாம்."
-                : "Their details are encrypted and kept private — never sold or shared. You can delete or correct any member anytime from Settings."}
+                ? "இவர்களின் விவரங்கள் தனிப்பட்டவையாகவே வைக்கப்படுகின்றன — யாருக்கும் விற்கப்படுவதில்லை. எப்போது வேண்டுமானாலும் அமைப்புகளில் நீக்கலாம் அல்லது திருத்தலாம்."
+                : "Their details are kept private — never sold or shared. You can delete or correct any member anytime from Settings."}
             </p>
           </div>
 
