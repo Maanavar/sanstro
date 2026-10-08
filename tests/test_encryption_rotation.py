@@ -15,8 +15,8 @@ import sqlalchemy as sa
 from cryptography.fernet import Fernet, InvalidToken, MultiFernet
 
 from app.core import encryption as core_encryption
+from app.db.encrypted_types import EncryptedString
 from app.db.session import SessionLocal
-from app.services.encryption import EncryptedString
 
 OLD_KEY = Fernet.generate_key().decode()
 NEW_KEY = Fernet.generate_key().decode()
@@ -263,7 +263,7 @@ def test_rotation_script_covers_every_encrypted_column():
 
     from sqlalchemy.types import TypeDecorator
 
-    from app.services import encryption as encrypted_types_module
+    from app.db import encrypted_types as encrypted_types_module
 
     encrypted_types = tuple(
         name

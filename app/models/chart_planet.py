@@ -6,7 +6,7 @@ from sqlalchemy import Boolean, CheckConstraint, ForeignKey, Index, Integer, Str
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
-from app.services.encryption import EncryptedFloat, EncryptedJSON
+from app.db.encrypted_types import EncryptedFloat, EncryptedJSON
 
 
 class ChartPlanet(TimestampMixin, Base):

@@ -14,10 +14,10 @@ from dataclasses import dataclass, replace
 from datetime import date
 
 from app.calculations import propensities as P
+from app.calculations.life_area_prediction_models import BiText
 from app.calculations.propensities import PlanetView, PropensityChartInput, Signals, _Reader
 from app.core.age_gate import is_married_settled
 from app.reasoning.verdict import Band
-from app.services.life_area_prediction_models import BiText
 from app.services.propensity_models import (
     DISCLAIMER_CAREER_FORESIGHT,
     DISCLAIMER_FERTILITY,

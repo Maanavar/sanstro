@@ -7,7 +7,7 @@ from sqlalchemy import DateTime, ForeignKey, Index, Integer, LargeBinary, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
-from app.services.encryption import EncryptedDate, EncryptedDateTime, EncryptedFloat, EncryptedString, EncryptedTime
+from app.db.encrypted_types import EncryptedDate, EncryptedDateTime, EncryptedFloat, EncryptedString, EncryptedTime
 
 
 class BirthProfile(TimestampMixin, Base):

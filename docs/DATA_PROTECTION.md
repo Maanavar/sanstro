@@ -75,11 +75,12 @@ claim the implementation does not support.
 ## 2. Key rotation
 
 One key path, in `app/core/encryption.py`. There used to be two — that module
-and `app/services/encryption.py` each built their own `Fernet` from the same
-setting. Harmless while both read one single-key setting; the moment one gained
-rotation and the other did not, half the codebase would write data the other
-half could not read. `app/services/encryption.py` now imports from core and
-holds no key logic.
+and the column-types module (then `app/services/encryption.py`) each built their
+own `Fernet` from the same setting. Harmless while both read one single-key
+setting; the moment one gained rotation and the other did not, half the
+codebase would write data the other half could not read. The column types —
+now `app/db/encrypted_types.py` (moved out of `services` by A13, 2026-10-08) —
+import from core and hold no key logic.
 
 ### Configuration
 

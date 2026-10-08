@@ -55,7 +55,7 @@ def run_safety_pass(*texts: Any, source: str) -> None:
     """Serve-time D6 tone check over every bilingual field a surface is
     about to return. Accepts any object exposing ``.ta``/``.en`` (BiText
     from app.reasoning.verdict, app.services.narrative_engine, or
-    app.services.life_area_prediction_models — they share the shape by
+    app.calculations.life_area_prediction_models — they share the shape by
     duck typing, same convention as render_causal_chain) or ``None``
     (skipped, so callers can pass optional fields directly).
 

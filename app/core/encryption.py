@@ -1,9 +1,9 @@
 """Key material for field-level encryption at rest.
 
-This module owns the keys. `app.services.encryption` owns the SQLAlchemy column
+This module owns the keys. `app.db.encrypted_types` owns the SQLAlchemy column
 types that use them; it imports from here, and there is exactly one place a key
-is read from configuration. There used to be two — this module and
-`app.services.encryption` each built their own `Fernet` from
+is read from configuration. There used to be two — this module and the column
+types module (then `app.services.encryption`) each built their own `Fernet` from
 `settings.encryption_key` — which was survivable only because both read the same
 single-key setting. Adding rotation to one and not the other would have produced
 data that one half of the codebase could read and the other could not.

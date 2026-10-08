@@ -7,7 +7,7 @@ from sqlalchemy import Boolean, ForeignKey, Index, Numeric, String, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
-from app.services.encryption import EncryptedDate
+from app.db.encrypted_types import EncryptedDate
 
 
 class FamilyMember(TimestampMixin, Base):

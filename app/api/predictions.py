@@ -11,6 +11,7 @@ from app.calculations.ashtakavarga import compute_bhinnashtakavarga, compute_sar
 from app.calculations.astro import house_from_reference, resolve_timezone, utc_datetime_to_julian_day
 from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.ephemeris import calculate_sidereal_planets
+from app.calculations.life_area_prediction_models import LifeAreaPrediction
 from app.core.age_gate import is_married_settled, is_minor_age, is_past_prime_marriage_age
 from app.core.auth import get_current_user
 from app.db.session import get_db
@@ -23,7 +24,6 @@ from app.services.chart_service import load_persisted_chart_response
 from app.services.context_service import get_context_row
 from app.services.feature_flags import get_flag
 from app.services.health_service import HealthAssessmentInput, assess_health_prediction
-from app.services.life_area_prediction_models import LifeAreaPrediction
 from app.services.location_service import resolve_effective_daily_timezone
 from app.services.marriage_service import MarriageAssessmentInput, assess_marriage_prediction
 from app.services.prediction_log_service import log_prediction

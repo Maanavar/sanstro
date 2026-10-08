@@ -22,7 +22,7 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    from app.services.encryption import encrypt  # key must be set in env
+    from app.db.encrypted_types import encrypt  # key must be set in env
 
     # 1. Add nullable shadow columns to hold ciphertext
     op.add_column("birth_profiles", sa.Column("birth_date_enc", sa.LargeBinary(), nullable=True))
@@ -75,7 +75,7 @@ def upgrade() -> None:
 def downgrade() -> None:
     # Decrypt ciphertext back to plain typed columns.
     # Requires JOTHIDAM_ENCRYPTION_KEY to be set.
-    from app.services.encryption import decrypt
+    from app.db.encrypted_types import decrypt
 
     op.add_column("birth_profiles", sa.Column("birth_date_plain",      sa.Date(),          nullable=True))
     op.add_column("birth_profiles", sa.Column("birth_time_plain",      sa.Time(),          nullable=True))

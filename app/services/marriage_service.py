@@ -9,6 +9,13 @@ from app.calculations.bhava_afflictions import assess_bhava_afflictions
 from app.calculations.chart_strength import DEBILITATION_RASI, EXALTATION_RASI, OWN_SIGN_RASI
 from app.calculations.dasha_activation import assess_dasha_activation
 from app.calculations.display_names import planet_en, planet_ta
+from app.calculations.life_area_prediction_models import (
+    AstroFactor,
+    BiText,
+    ChartSignature,
+    LifeAreaPrediction,
+    house_lord_for_lagna,
+)
 from app.calculations.transits import get_jupiter_aspects
 from app.core.age_gate import MARRIAGE_UPPER_AGE, SEVVAI_DOSHAM_SOFTENING_AGE, is_married_settled, is_seeking_marriage
 from app.reasoning.chart_signature import detect_signature
@@ -16,13 +23,6 @@ from app.reasoning.promise_gate import GateGrade, GateResult, assess_promise
 from app.reasoning.timing_vote import combine_gate_and_timing
 from app.reasoning.verdict import band_to_legacy_confidence
 from app.services.feature_flags import get_flag
-from app.services.life_area_prediction_models import (
-    AstroFactor,
-    BiText,
-    ChartSignature,
-    LifeAreaPrediction,
-    house_lord_for_lagna,
-)
 from app.services.narrative_engine import render_causal_chain, signature_framing
 from app.services.safety_filter import check_text, run_safety_pass
 

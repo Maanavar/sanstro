@@ -7,7 +7,7 @@ from sqlalchemy import JSON, CheckConstraint, DateTime, ForeignKey, Index, Integ
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
-from app.services.encryption import EncryptedFloat
+from app.db.encrypted_types import EncryptedFloat
 
 
 class Chart(TimestampMixin, Base):

@@ -9,6 +9,10 @@ half-applied.
 Fernet is AES-128-CBC with an HMAC-SHA256, so ciphertext is authenticated —
 tampering raises `InvalidToken` on read rather than yielding a plausible wrong
 value.
+
+Lives in `app.db` because it is persistence infrastructure: the ORM models
+import it. It was `app.services.encryption` until A13 (2026-10-08), which made
+every model depend on the services layer that is supposed to depend on them.
 """
 from __future__ import annotations
 
