@@ -18,6 +18,7 @@ from app.calculations.family_harmony_remedies import (
 )
 from app.calculations.panchangam import PanchangamSnapshot, calculate_daily_panchangam
 from app.calculations.remedies import remedy_disclaimer
+from app.calculations.transits import classify_kandaka_cycle
 from app.core.subscription import limits_for_user
 from app.core.tier_limits import TIER_LIMITS
 from app.models import BirthProfile, Chart, FamilyDailyScore, FamilyMember, FamilyVault, User
@@ -82,6 +83,31 @@ from app.services.transit_service import build_sani_cycle_response, build_transi
 
 MAJOR_SANI_TAGS = {"JANMA_SANI", "ARDHASHTAMA_SANI", "ASHTAMA_SANI", "KANTAKA_SANI", "KANDAKA_SANI"}
 SUPPORTIVE_HORA_TAGS = {"JUPITER_HORA", "VENUS_HORA", "MERCURY_HORA"}
+
+
+def _sani_cycle_tags(sani_cycle: SaniCycleResponse) -> list[str]:
+    """A member's named Saturn cycles, as doctrine A-1 reckons them.
+
+    The Moon cycle (Janma / Ezharai / Ardhashtama / Ashtama), then Kandaka from
+    the Janma Rasi over 4/7/10 — layered, so Saturn 4th from the Moon carries
+    both Ardhashtama and Kandaka. The response's `lagnaBasedCycle` is a Lagna
+    cross-check for display; it used to be this function's only Kandaka, which
+    flagged members by the reference A-1 replaced and never by the one it chose.
+    """
+    data = sani_cycle.data
+    tags: list[str] = []
+    if data.moon_based_cycle.is_active and data.moon_based_cycle.type:
+        tags.append(data.moon_based_cycle.type)
+    kandaka = classify_kandaka_cycle(data.position_from_moon)
+    if kandaka.is_active and kandaka.type:
+        tags.append(kandaka.type)
+    return tags
+
+
+def _primary_sani_type(sani_cycle: SaniCycleResponse) -> str | None:
+    """The one cycle a day card names: the Moon cycle first, else Kandaka."""
+    tags = _sani_cycle_tags(sani_cycle)
+    return tags[0] if tags else None
 
 
 @dataclass(frozen=True, slots=True)
@@ -347,11 +373,7 @@ def _member_active_tags(snapshot: _MemberSnapshot) -> list[str]:
     if snapshot.gochar.data.is_chandrashtama:
         tags.append("CHANDRASHTAMA")
 
-    if snapshot.sani_cycle.data.moon_based_cycle.is_active and snapshot.sani_cycle.data.moon_based_cycle.type:
-        tags.append(snapshot.sani_cycle.data.moon_based_cycle.type)
-
-    if snapshot.sani_cycle.data.lagna_based_cycle.is_active and snapshot.sani_cycle.data.lagna_based_cycle.type:
-        tags.append(snapshot.sani_cycle.data.lagna_based_cycle.type)
+    tags.extend(_sani_cycle_tags(snapshot.sani_cycle))
 
     return tags
 
@@ -434,10 +456,7 @@ def _owner_aggregate_member(
         tags.append("AVOID_NEW_START_DAY")
     if gochar.data.is_chandrashtama:
         tags.append("CHANDRASHTAMA")
-    if sani_cycle.data.moon_based_cycle.is_active and sani_cycle.data.moon_based_cycle.type:
-        tags.append(sani_cycle.data.moon_based_cycle.type)
-    if sani_cycle.data.lagna_based_cycle.is_active and sani_cycle.data.lagna_based_cycle.type:
-        tags.append(sani_cycle.data.lagna_based_cycle.type)
+    tags.extend(_sani_cycle_tags(sani_cycle))
     return FamilyAggregateMember(
         familyMemberId=birth_profile.birth_profile_id,
         displayName=birth_profile.display_name,
@@ -510,12 +529,8 @@ def _owner_day_view(
 
     label = daily_guidance.data.label
     highlight = _SCORE_HIGHLIGHT.get(label, _SCORE_HIGHLIGHT["BALANCED"])
-    sani_active = sani_cycle.data.moon_based_cycle.is_active or sani_cycle.data.lagna_based_cycle.is_active
-    sani_type = (
-        sani_cycle.data.moon_based_cycle.type
-        if sani_cycle.data.moon_based_cycle.is_active
-        else (sani_cycle.data.lagna_based_cycle.type if sani_cycle.data.lagna_based_cycle.is_active else None)
-    )
+    sani_type = _primary_sani_type(sani_cycle)
+    sani_active = sani_type is not None
     nalla_neram_start = daily_guidance.data.best_windows[0].start if daily_guidance.data.best_windows else "N/A"
 
     return FamilyMemberDayView(
@@ -1778,12 +1793,8 @@ def get_family_vault_today(
         score = guidance.data.score
         label = guidance.data.label
         highlight = _SCORE_HIGHLIGHT.get(label, _SCORE_HIGHLIGHT["BALANCED"])
-        sani_active = sani.data.moon_based_cycle.is_active or sani.data.lagna_based_cycle.is_active
-        sani_type = (
-            sani.data.moon_based_cycle.type
-            if sani.data.moon_based_cycle.is_active
-            else (sani.data.lagna_based_cycle.type if sani.data.lagna_based_cycle.is_active else None)
-        )
+        sani_type = _primary_sani_type(sani)
+        sani_active = sani_type is not None
 
         nalla_neram_start = "N/A"
         if guidance.data.best_windows:

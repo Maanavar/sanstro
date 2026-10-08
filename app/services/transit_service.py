@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from datetime import UTC, date, datetime
 from uuid import UUID
 from zoneinfo import ZoneInfo
@@ -253,7 +253,14 @@ def build_sani_cycle_response(chart_snapshot, on_date: date, *, saturn_snapshot=
     position_from_moon = house_from_reference(natal_moon.rasi, saturn.rasi)
     position_from_lagna = house_from_reference(natal_lagna_rasi, saturn.rasi)
     moon_cycle = classify_sani_cycle(position_from_moon)
+    # The Lagna cross-check (role "cross_check") is the reckoning doctrine A-1
+    # replaced, kept so a reader of that lineage can see it. It must not wear
+    # A-1's tag: `KANDAKA_SANI` renders "Kantaka Sani · from Janma Rasi", which
+    # is false for a house counted from the Lagna. `KANTAKA_SANI` is the
+    # reference-free name, and the card supplies the "from Lagna" heading.
     lagna_cycle = classify_kandaka_cycle(position_from_lagna)
+    if lagna_cycle.is_active:
+        lagna_cycle = replace(lagna_cycle, type="KANTAKA_SANI")
 
     if moon_cycle.is_active or lagna_cycle.is_active:
         try:
