@@ -1612,6 +1612,69 @@ then A14, A15, A13.
   `list[Literal]`) — so CI's backend-lint job could not pass. Annotation-level
   fixes, no behaviour change; mypy now clean on 367 files.
 
+#### First CI on a runner after the Phase 3 push (2026-10-08)
+
+The 20 Phase 3 commits were pushed on 2026-10-08 (owner: "you push it now").
+Runs 37751457301 (CI, pull_request), 37751457502 (Mobile CI, pull_request) and
+37751452397 (Mobile CI, push) on `17c1e6b`. Three reds, none from Phase 3's
+own changes; each fixed in its own commit:
+
+- [x] **Web — `lib/css-surface-boundary.test.ts` (red since 2026-10-07).**
+  `bef9714` gave `/notifications` the dashboard chrome
+  (`DashboardAuxiliaryShell`) and its layout imports the three dashboard
+  stylesheets. The gate knew three load contexts and treated everything in
+  `app/(marketing)/` as marketing-only, so it reported 125 dashboard classes
+  as unreachable — classes that route does load. A false positive, not a
+  styling defect. Fix: `css-inventory.mjs --emit-boundary` splits marketing
+  routes by the extra route-level CSS their own nested layouts import and
+  emits each as a `nested` context; the test checks each against exactly
+  marketing + those sheets, requires the inbox context to exist with >100
+  classes (no vacuous pass), and the loader test now scans every `layout.*`
+  under `app/` and names the inbox layout as a deliberate second loader of
+  `dashboard-globals.css` (it scanned three files and so could not see it).
+  **Controls:** inbox layout without `dashboard-nova.css` → the nested check
+  and the loads assertion fail; a plain marketing page importing the
+  dashboard shell → the plain-marketing check fails with the same 125. Web
+  vitest 140 files / 1451 passed; web lint clean.
+  **Blind spots:** nested-layout CSS is detected only for static
+  `import "x.css"` in a `layout.*` file inside `app/(marketing)/`; a sheet
+  imported by a page or a component is not a load context. Whether
+  marketing.css and the dashboard sheets cascade cleanly together on
+  `/notifications` is untested — that route loads both.
+- [x] **Backend lint — pip-audit: python-jose 3.5.0, CVE-2026-85394
+  (GHSA-3qf3-8w2g-rqmx), no fixed release.** HMAC key setup accepts a
+  DER-encoded public key, so a holder of the service's public key can forge
+  HS256 tokens when decode does not restrict `algorithms`. Both preconditions
+  are absent: one symmetric secret, and both jose decode sites
+  (`app/core/auth.py`, `app/middleware.py`) pass `algorithms=[...]`. But the
+  first was only a comment — `jwt_algorithm` was a free `str` from
+  `JOTHIDAM_JWT_ALGORITHM`. Fix: `jwt_algorithm` is typed
+  `Literal["HS256","HS384","HS512"]` (boot refuses anything else; nothing in
+  the repo, `.env`, compose or workflows sets it), and the advisory is ignored
+  in `ci.yml` under both IDs with its premise written verbatim.
+  **Gate:** `tests/test_jwt_hmac_only.py` (no_db). Baseline before the config
+  change: 6 failed (RS256, ES256, PS256, EdDSA, none, hs256 all accepted), 5
+  passed. After: 11 passed; with test_config + CI-coverage, 42 passed.
+  pip-audit with the ignore exits 0; mypy and ruff clean.
+  **Blind spots:** the AST scan sees only `<name>.decode` where `<name>` is
+  imported `from jose import jwt`; `import jose` + `jose.jwt.decode` is not
+  matched. **The real fix is leaving python-jose for PyJWT** (REFACTOR_PLAN
+  1.2), which retires this ignore and the ecdsa one together — not done.
+- [x] **Mobile — Jest cold-start timeout (A15 step 7; it did reproduce).**
+  The push-triggered run failed `birth-details`' first test at 5 s; the
+  pull_request run of the same commit passed. Measured: local cold
+  (`--no-cache`, as CI always is) — first test per screen file 11.5–18.4 s
+  (2 of 4 files failed), later tests 0.15–4.7 s; local warm in-band — reading's
+  first test still over 5 s. The cost is React Native's lazily-required modules
+  on first render, not the screen. Fix: `jest.setTimeout(30_000)` in
+  `jest.setup.screens.js`, so it applies to the screens project only (~1.6x
+  the worst measured). After, cold: 167/167, first tests 9.3–11.6 s.
+  **Control:** the cold run before the change is the baseline (2 failed).
+  **Not fixed:** "A worker process has failed to exit gracefully" still
+  prints on full runs; `--detectOpenHandles` on the screens project reported
+  no open handle, so the leak's owner is unidentified. No `--forceExit` added.
+  The reading screen logs act() warnings on its first test.
+
 ## Agent Completion Checklist
 
 For every task completed from this file:
