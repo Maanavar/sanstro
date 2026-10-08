@@ -1321,7 +1321,27 @@ worth recording.
     `connection_invalidated` is exercised by inspection of the SQLAlchemy
     `DBAPIError` contract, not by a fault-injected dropped socket.
 
-- [ ] A12 derived birth timestamp — **data-migration scope not yet decided.**
+- [x] **A12 — birth-data consumer inventory (assessment only, as ruled).**
+  **Owner decision 2026-10-08: INVESTIGATE CONSUMERS FIRST, DECIDE AFTER.** No
+  model, column, migration, row, or key was touched — `vinaadi_dev` has real
+  birth-profile rows and stayed out of scope entirely.
+  [`docs/A12_BIRTH_DATA_CONSUMER_INVENTORY_2026-10-08.md`](A12_BIRTH_DATA_CONSUMER_INVENTORY_2026-10-08.md)
+  found zero database-side filter/order/join/uniqueness consumers of
+  `birth_profiles.birth_datetime_utc` in current source — every read is
+  application-side. It also names what an isolated migration on that one
+  column would miss: `charts.julian_day` is a plaintext, reversible encoding
+  of the same instant; `family_members.date_of_birth_local` is a plaintext
+  duplicate with a real SQL equality consumer
+  (`family_vault_service.py:222`); mobile's A07 cache persists full
+  `chart-full` responses (exact UTC instant, Julian day, natal positions) for
+  up to 30 days; Jadhagam PDF exports print birth date/time/place outside any
+  database control. Line citations spot-checked against current source and
+  confirmed accurate. Four options laid out (derive post-decrypt, encrypt the
+  column too, protect the full natal-input/derivative set, or retain plaintext
+  with a narrower documented claim) with the recommendation that an isolated
+  `birth_datetime_utc` migration not be approved as "birth-data
+  confidentiality" without first ruling on `julian_day` and the family DOB
+  duplicate. **No implementation decision was made; none was asked for.**
 
 ### Phase 3 and later — not started
 

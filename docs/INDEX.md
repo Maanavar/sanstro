@@ -86,6 +86,7 @@ Quick map to the right document for each purpose. **Last updated: 2026-10-06.**
 - [API_FRONTEND_WIRING_AUDIT_2026-07.md](API_FRONTEND_WIRING_AUDIT_2026-07.md) — Endpoint-by-endpoint audit of what's wired to a real frontend vs. dead/unreachable
 - [CRON_WORKER.md](CRON_WORKER.md) — Cron/scheduler worker design and operation
 - [NOTIFICATION_DELIVERY.md](NOTIFICATION_DELIVERY.md) — Durable notification outbox guarantees, expiry, retries, and operations runbook
+- [A12_BIRTH_DATA_CONSUMER_INVENTORY_2026-10-08.md](A12_BIRTH_DATA_CONSUMER_INVENTORY_2026-10-08.md) — A12 assessment-only inventory of birth-time consumers, equivalent confidentiality leaks, and schema options; no migration decision
 
 ## Dashboard & Web UX
 - [DASHBOARD_UI_REVAMP_PLAN.md](DASHBOARD_UI_REVAMP_PLAN.md) — Dashboard UI revamp plan (largest design doc)
