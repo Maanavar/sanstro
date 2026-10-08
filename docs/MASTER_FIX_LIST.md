@@ -1038,11 +1038,93 @@ worth recording.
   - The mobile suite now reports 151/151 where the audit saw 117 passed + 1
     five-second screen-test timeout. That test was not touched; its passing here
     is not evidence the open-handle warning is resolved.
-- [ ] A04 / A05 — purchase identity and billing event consistency.
-  Owner decision 2026-10-07: block purchase/restore until the purchase SDK
-  confirms it is bound to the signed-in UUID; **no automatic transfer** of
-  existing purchases. Mismatched historical receipts are reconciled manually
+- [x] **A04 / A05 — purchase identity and billing event consistency.**
+
+  **Owner decision 2026-10-07:** block purchase and restore until the purchase
+  SDK confirms it is bound to the signed-in UUID; **no automatic transfer** of
+  existing purchases. Mismatched historical receipts are reconciled by hand
   against provider evidence.
+
+  **The provider contract was read, not remembered.** RevenueCat's webhook
+  field reference confirms `id` (unique, **reused on retries**),
+  `event_timestamp_ms` (also reused), `app_user_id` /
+  `original_app_user_id` / `aliases`, `product_id`, `transaction_id` /
+  `original_transaction_id`, `expiration_at_ms`, `store`. The installed SDK
+  (`react-native-purchases` 8.12.0) was checked the same way: `logIn`,
+  `logOut`, `isAnonymous`, `getAppUserID` all exist, and `logOut()` on an
+  already-anonymous user is an error rather than a no-op — which is why the
+  adapter asks first, as the guide instructed.
+
+  **A05 (backend).** New `webhook_events` inbox with a unique
+  `(provider, event_id)`; the constraint is the idempotency guarantee, because
+  a prior SELECT would let two concurrent deliveries both pass. Account
+  resolution now walks `app_user_id` → `original_app_user_id` → `aliases`, so a
+  purchase made under an anonymous id still reaches the right account. An
+  unresolvable event is recorded as `unresolved` instead of being dropped.
+  Ordering guard: `subscriptions.provider_event_timestamp` holds the last
+  applied event's time, and an older event is recorded `stale` and changes
+  nothing. `provider_subscription_id` now holds `original_transaction_id` (what
+  its name always claimed) and the SKU moved to the new `provider_product_id`.
+  Migration `ss2c3d4e5f6a`, additive, reversible, **round-trip verified**
+  (upgrade → downgrade → upgrade on `vinaadi_test`).
+  **No backfill was needed, and that was checked rather than assumed:**
+  `subscriptions` held 0 rows and 0 duplicate `user_id`s, so there was nothing
+  to deduplicate and no stored value being redefined. The guide's caution about
+  a uniqueness migration presumes rows exist.
+
+  **A04 (mobile).** `src/lib/purchaseIdentity.ts` is an adapter with explicit
+  states (`unavailable` | `signed-out` | `syncing` | `ready` | `failed`), so an
+  absent SDK in Expo Go is distinguishable from a real billing error — the old
+  code swallowed both into one silent `catch`. Generation-guarded, so a slow
+  bind for A cannot publish readiness after a switch to B, and single-flighted,
+  so the coordinator and bootstrap share one `logIn`. Wired into A02's
+  coordinator on both edges. `app/premium.tsx` now calls `assertPurchaseReady`
+  before `purchasePackage` and `restorePurchases`, and takes the tier from the
+  **server** (`getMySubscription`, the existing shared wrapper) instead of
+  writing a local `setSession(user, "premium")` on the store's reply — with a
+  bounded pending message when the webhook has not landed yet.
+  The mount-only `purchases.logIn(me.userId)` in `app/_layout.tsx` is gone.
+
+  **Gates:** `tests/test_webhook_inbox.py` (15), `mobile/__tests__/purchaseIdentity.test.ts`
+  (15, including a source ratchet that the screen actually consults the gate —
+  verified to fail when one `assertPurchaseReady` is removed).
+  **Baseline:** the pre-fix handler was driven directly — renewal → `active`,
+  then an hour-older expiration → **`inactive`**, with
+  `provider_subscription_id == 'premium_monthly'`, a SKU in a column named
+  subscription id. Both defects reproduced before any edit.
+  **Existing suites:** 43 pass across `test_revenuecat_webhook`,
+  `test_subscription`, `test_tier_parity`, `test_webhook_inbox`. Contract guards
+  unchanged at **288 passed / 9 skipped** — the audit's own figures. mypy, ruff
+  and mobile tsc/lint clean.
+
+  **A regression I caused and caught:** requiring `id` and returning 400 broke
+  8 existing webhook tests, whose fixtures omit it because the old handler never
+  read the field. A 400 would also make RevenueCat drop such an event
+  permanently (they retry 5xx, not 4xx). Replaced with a deterministic
+  content-derived key, so a redelivery still dedupes and no event is lost —
+  which left all 8 fixtures untouched and still asserting what they asserted.
+
+  **Blind spots:**
+  - **No store transaction, sandbox account or receipt was involved.** The SDK
+    is a stub. Whether a correctly-identified purchase is *attributed* as
+    intended is a RevenueCat dashboard question, and **the project's
+    alias/transfer settings were never inspected** — which is also why no
+    transfer behaviour is implemented.
+  - **No reconciliation against provider state (A05 step 7).** Entitlement is
+    still derived from the event stream alone, so a permanently lost event is
+    not recovered by anything here.
+  - Concurrent delivery of two initial events is not raced in a test; the
+    index on `(provider, provider_subscription_id)` is deliberately **not
+    unique**, because a store can reissue an `original_transaction_id` across
+    sandbox and production and rejecting real events at the database layer
+    would be worse than the duplicate.
+  - The purchase-gate ratchet is a source match: it proves the call precedes
+    the transaction in the file, not that it covers every reachable path. No
+    screen test renders the real premium component.
+  - `mobile/__tests__/birth-details.screen.test.tsx` ("bundled place search
+    B-006") still flakes under full-suite load at ~15s and passes 5/5 in
+    isolation. That is the test the audit already recorded timing out; it was
+    not touched and is **not** fixed.
 - [x] **A06 — Redis outages no longer grant unlimited authentication attempts.**
   `RedisRateLimitBackend.check` caught every Redis error and returned
   `allowed=True`, and `AuthThrottler` used that same backend, so during an

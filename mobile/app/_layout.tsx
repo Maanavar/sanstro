@@ -16,6 +16,8 @@ import { ConfirmProvider } from "@/context/ConfirmContext";
 import { queryClient, sessionPersister, PERSIST_BUSTER } from "@/lib/queryClient";
 import { getTokens } from "@/lib/secureStore";
 import { beginAuthenticatedSession, endSession } from "@/state/sessionTransition";
+import { syncPurchaseIdentity } from "@/lib/purchaseIdentity";
+import { currentGeneration } from "@/lib/sessionIdentity";
 import { initAnalytics, setAnalyticsConsent, setUser } from "@/lib/analytics";
 import { loadGuestPrefs } from "@/features/guest/guestStore";
 import { ENV } from "@/lib/env";
@@ -99,15 +101,26 @@ function RootNavigation() {
         // bytes still on the device, nothing of theirs can be hydrated.
         await beginAuthenticatedSession(me.userId);
 
-        // Sync RevenueCat user identity and determine effective tier.
-        // RC is the source of truth for subscription status. If RC confirms no
-        // active "premium" entitlement but the backend tier still says "premium",
-        // treat the user as "registered" — the subscription likely expired and
-        // the backend webhook hasn't fired yet.
+        // Determine the effective tier. RC is the source of truth for
+        // subscription status: if RC confirms no active "premium" entitlement
+        // but the backend tier still says "premium", treat the user as
+        // "registered" — the subscription likely expired and the backend
+        // webhook hasn't fired yet.
+        //
+        // The bind itself is NOT done here any more. It used to be
+        // `purchases.logIn(me.userId)` on this line, inside a mount-only
+        // effect, which is the whole of A04: interactive login never bound the
+        // SDK and sign-out never unbound it. `beginAuthenticatedSession` above
+        // owns it now, via src/lib/purchaseIdentity.ts.
+        //
+        // Awaited rather than assumed: the coordinator fires the bind without
+        // waiting, and `getCustomerInfo()` below is only meaningful once it has
+        // landed. The call is coalesced, so this joins the coordinator's bind
+        // instead of starting a second one.
         const purchases = Purchases;
         if (rcKey && purchases) {
           try {
-            await purchases.logIn(me.userId);
+            await syncPurchaseIdentity(me.userId, currentGeneration());
             const ci = await purchases.getCustomerInfo();
             const hasPremium = !!ci.entitlements.active["premium"];
             const effectiveTier = hasPremium

@@ -2,6 +2,7 @@ import { persistQueryClientRestore } from "@tanstack/react-query-persist-client"
 
 import { logout as revokeRemoteSession } from "@/api/auth";
 import { setUser } from "@/lib/analytics";
+import { clearPurchaseIdentity, syncPurchaseIdentity } from "@/lib/purchaseIdentity";
 import { PERSIST_BUSTER, queryClient, sessionPersister } from "@/lib/queryClient";
 import { clearTokens } from "@/lib/secureStore";
 import {
@@ -105,6 +106,12 @@ export async function endSession(options: EndSessionOptions = {}): Promise<void>
   } catch {
     // Device storage unavailable.
   }
+
+  // Billing identity, through its adapter (A04). Sign-out used to leave the
+  // purchase SDK bound to the departing account, so the next account's premium
+  // screen could transact under the previous account's identity.
+  await clearPurchaseIdentity();
+
   setUser(null);
 
   completeSignedOut(generation);
@@ -169,4 +176,12 @@ export async function beginAuthenticatedSession(userId: string): Promise<void> {
   }
 
   setUser(userId);
+
+  // Bind the purchase SDK to this account (A04). Deliberately not awaited: a
+  // slow or unreachable billing provider must not hold up sign-in. It is
+  // generation-guarded, so a bind for this session cannot publish readiness
+  // after a later one, and `assertPurchaseReady` is what refuses a purchase
+  // while this is still in flight — the gate belongs at the transaction, not
+  // at the login.
+  void syncPurchaseIdentity(userId, generation);
 }

@@ -38,6 +38,7 @@ from app.models.user_notification_preference import UserNotificationPreference
 from app.models.user_preference import UserPreference
 from app.models.user_streak import UserStreak
 from app.models.varga_position import VargaPosition
+from app.models.webhook_event import WebhookEvent
 
 __all__ = [
     "AskVinaadiUsage",
@@ -78,4 +79,5 @@ __all__ = [
     "UserLifeEvent",
     "UserStreak",
     "VargaPosition",
+    "WebhookEvent",
 ]
