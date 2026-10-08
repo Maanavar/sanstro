@@ -220,6 +220,13 @@ function Invoke-Probe {
             $splat.Body = $Body
             $splat.ContentType = "application/json"
         }
+        # PowerShell 7 (CI runs this under pwsh on Linux) throws on 4xx/5xx with
+        # an HttpResponseMessage that has no GetResponseStream(), so the catch
+        # below read every error body as "" and the outage claim failed on a
+        # correct 502. Ask 7+ to hand error responses back like any other.
+        if ($PSVersionTable.PSVersion.Major -ge 7) {
+            $splat.SkipHttpErrorCheck = $true
+        }
         $response = Invoke-WebRequest @splat
         return @{ Status = [int]$response.StatusCode; Body = $response.Content }
     } catch {
