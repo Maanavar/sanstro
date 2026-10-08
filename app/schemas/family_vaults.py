@@ -103,18 +103,18 @@ class FamilyMemberUpdate(BaseModel):
     # a reader is most likely to be fixing.
     birth_date_local: date | None = Field(default=None, alias="birthDateLocal")
     birth_time_local: time | None = Field(default=None, alias="birthTimeLocal")
-    birth_place: str | None = Field(default=None, alias="birthPlace", min_length=1)
+    birth_place: str | None = Field(default=None, alias="birthPlace", min_length=1, max_length=255)
     birth_latitude: float | None = Field(default=None, alias="birthLatitude", ge=-90.0, le=90.0)
     birth_longitude: float | None = Field(default=None, alias="birthLongitude", ge=-180.0, le=180.0)
-    birth_timezone: str | None = Field(default=None, alias="birthTimezone", min_length=1)
+    birth_timezone: str | None = Field(default=None, alias="birthTimezone", min_length=1, max_length=64)
     # No min_length: "" is the only way a reader can say "they moved back — use
     # the birth place again". `None` already means "not sent" in a PATCH, so it
     # cannot also mean "clear", and without a sentinel a current location was a
     # one-way door (settable, changeable, never removable).
-    current_place: str | None = Field(default=None, alias="currentPlace")
+    current_place: str | None = Field(default=None, alias="currentPlace", max_length=255)
     current_latitude: float | None = Field(default=None, alias="currentLatitude", ge=-90.0, le=90.0)
     current_longitude: float | None = Field(default=None, alias="currentLongitude", ge=-180.0, le=180.0)
-    current_timezone: str | None = Field(default=None, alias="currentTimezone", min_length=1)
+    current_timezone: str | None = Field(default=None, alias="currentTimezone", min_length=1, max_length=64)
     marital_status: str | None = Field(
         default=None,
         alias="maritalStatus",

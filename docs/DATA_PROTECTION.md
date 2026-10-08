@@ -14,6 +14,32 @@
 | `birth_profiles.birth_latitude` / `birth_longitude` | `EncryptedFloat` | original |
 | `birth_profiles.encrypted_birth_payload` | `LargeBinary`, encrypted by hand | original |
 | `journal_entries.note_text` | `EncryptedString` | **P2-1** |
+| `birth_profiles.birth_datetime_utc` | `EncryptedDateTime` | **A12 C** |
+| `birth_profiles.birth_place` / `birth_timezone` | `EncryptedString` | **A12 C** |
+| `birth_profiles.current_place` / `current_timezone` | `EncryptedString` | **A12 C** |
+| `birth_profiles.current_latitude` / `current_longitude` | `EncryptedFloat` | **A12 C** |
+| `charts.julian_day` / `lagna_longitude` | `EncryptedFloat` | **A12 C** |
+| `chart_planets.absolute_longitude` / `degree_in_rasi` / `speed_deg_per_day` | `EncryptedFloat` | **A12 C** |
+| `chart_planets.raw_payload` | `EncryptedJSON` | **A12 C** |
+| `family_members.date_of_birth_local` | `EncryptedDate` | **A12 C** |
+
+**A12 Option C (2026-10-08, migration `uu4e5f6a7b8c`).** Before it, a dump gave
+the exact birth instant away through `birth_datetime_utc` and `julian_day`, and
+almost as precisely through the stored longitudes. The duplicate-profile and
+duplicate-member checks now narrow in SQL by owner/vault and name only, and
+compare every birth field decrypted in Python.
+
+**What a dump still shows, by ruling.** `rasi`, `nakshatra`, `pada`, `d9_rasi`,
+`lagna_rasi`, `moon_rasi`, `janma_nakshatra`, `janma_pada` stay plaintext — they
+are SQL-filtered and coarse. Coarse is not harmless: the set of planet signs
+fixes the birth year and month, the Moon's pada narrows it to one or two days,
+and the lagna sign to a ~2-hour window. So the birth *date* is still inferable
+from a dump, and public copy must not say "birth details are encrypted at rest"
+(`web/lib/encryption-claim-copy.test.ts`). `current_location_updated_at` stays
+plaintext (a timestamp, not a place). `dasha_periods` and `varga_positions`
+still have plaintext JD/payload columns but no writer and no rows;
+`tests/test_birth_data_at_rest.py` fails if the chart path starts writing them.
+`daily_scores` / `family_daily_scores` narratives are out of scope.
 
 `note_text` is free text a user wrote about their own life and was the last
 plaintext column of its kind. Encryption is Fernet — AES-128-CBC with an
@@ -207,6 +233,21 @@ unreadable without the key, which is the whole point of §1. Two things follow:
 Recommended, once a purge window is chosen: retain daily dumps for the same
 number of days as `JOTHIDAM_JOURNAL_PURGE_AFTER_DAYS`, and no longer.
 
+### Backups that predate an encryption migration hold plaintext
+
+The "ciphertext, not plaintext" statement above is only true of columns that were
+encrypted when the dump was taken. Every dump taken before `uu4e5f6a7b8c` holds
+the 14 A12 C columns in plaintext — exact birth instant, place, timezone, current
+location, longitudes, family DOB.
+
+Policy (owner-delegated decision, 2026-10-08): **forward-only.** Old dumps are not
+rewritten or re-encrypted; they age out under backup retention, and the key rule
+in §2 (old key retention ≥ backup retention) applies unchanged to the new
+ciphertext. Because backup expiry is not automated, "age out" is a manual step:
+pre-migration dumps in `backups/` and `db_backups/` must be deleted by hand once
+outside retention — and deleting them needs the owner's per-file approval. Until
+then they are the most sensitive files on the host.
+
 ---
 
 ## 4. Personal data that deliberately still reaches other systems
@@ -265,10 +306,10 @@ review.
 
 ## 5. Still open
 
-- **The privacy policy has not been updated.** §1's qualification — dump
-  protection, not host-compromise protection — must reach it before it claims
-  anything about encryption. Deliberately not edited here: it is a legal
-  document, not a code change.
+- **The privacy policy makes no encryption claim (A12a, 2026-10-08).** It used
+  to say birth details were "encrypted at rest", which was false. Restoring any
+  encryption wording needs §1's qualification — dump protection only — and the
+  coarse-key residual above; the copy guard stays until then.
 - **No purge window is configured**, so no journal entry is ever hard-deleted
   today. The mechanism exists and is tested; the number is a decision.
 - **Backup expiry is unautomated.** See §3.

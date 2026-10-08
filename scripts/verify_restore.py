@@ -61,7 +61,7 @@ import os
 import subprocess
 import sys
 from collections.abc import Callable
-from datetime import date, time
+from datetime import date, datetime, time
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -172,6 +172,27 @@ def _check_longitude(raw: bytes) -> str:
     return "a longitude in range"
 
 
+def _check_datetime(raw: bytes) -> str:
+    value = datetime.fromisoformat(raw.decode())
+    if value.tzinfo is None:
+        raise ValueError("timestamp has no timezone")
+    return f"an aware timestamp in {value.year}"
+
+
+def _check_degrees(raw: bytes) -> str:
+    value = float(raw.decode())
+    if not 0.0 <= value < 360.0:
+        raise ValueError(f"longitude out of [0, 360): {value}")
+    return "a sidereal longitude in range"
+
+
+def _check_number(raw: bytes) -> str:
+    value = float(raw.decode())
+    if value != value:  # NaN
+        raise ValueError("decrypted to NaN")
+    return "a finite number"
+
+
 def _check_json(raw: bytes) -> str:
     payload = json.loads(raw.decode("utf-8"))
     if not isinstance(payload, dict):
@@ -201,8 +222,27 @@ CHECKS: tuple[tuple[str, str, tuple[tuple[str, ShapeCheck], ...]], ...] = (
             ("birth_latitude", _check_latitude),
             ("birth_longitude", _check_longitude),
             ("encrypted_birth_payload", _check_json),
+            ("birth_datetime_utc", _check_datetime),
+            ("birth_place", _check_text),
+            ("birth_timezone", _check_text),
+            ("current_place", _check_text),
+            ("current_latitude", _check_latitude),
+            ("current_longitude", _check_longitude),
+            ("current_timezone", _check_text),
         ),
     ),
+    ("charts", "chart_id", (("julian_day", _check_number), ("lagna_longitude", _check_degrees))),
+    (
+        "chart_planets",
+        "chart_planet_id",
+        (
+            ("absolute_longitude", _check_degrees),
+            ("degree_in_rasi", _check_number),
+            ("speed_deg_per_day", _check_number),
+            ("raw_payload", _check_json),
+        ),
+    ),
+    ("family_members", "family_member_id", (("date_of_birth_local", _check_date),)),
     ("journal_entries", "journal_id", (("note_text", _check_text),)),
 )
 

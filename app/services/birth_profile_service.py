@@ -182,15 +182,12 @@ def _find_duplicate_birth_profile(
     birth_timezone: str,
     exclude_birth_profile_id: UUID | None = None,
 ) -> BirthProfile | None:
-    # birth_date_local/birth_time_local/birth_latitude/birth_longitude are stored
-    # Fernet-encrypted, which is non-deterministic — equal plaintexts produce different
-    # ciphertext, so they can't be filtered in SQL. Narrow by the plaintext-comparable
-    # fields first, then compare the decrypted values in Python.
+    # Every birth field is Fernet-encrypted, which is non-deterministic — equal
+    # plaintexts produce different ciphertext — so only owner and name can narrow
+    # in SQL; the birth fields are compared decrypted, in Python.
     conditions = [
         BirthProfile.owner_user_id == owner_user_id,
         BirthProfile.deleted_at.is_(None),
-        BirthProfile.birth_place == birth_place,
-        BirthProfile.birth_timezone == birth_timezone,
         func.lower(func.trim(BirthProfile.display_name)) == display_name.strip().lower(),
     ]
     if exclude_birth_profile_id is not None:
@@ -206,6 +203,8 @@ def _find_duplicate_birth_profile(
         if (
             candidate.birth_date_local == birth_date_local
             and candidate.birth_time_local == birth_time_local
+            and candidate.birth_place == birth_place
+            and candidate.birth_timezone == birth_timezone
             and float(candidate.birth_latitude) == birth_latitude
             and float(candidate.birth_longitude) == birth_longitude
         ):

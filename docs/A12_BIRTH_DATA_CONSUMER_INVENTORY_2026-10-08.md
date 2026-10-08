@@ -140,3 +140,60 @@ If the goal is exact-instant confidentiality, the minimum coherent scope is
 `birth_datetime_utc` **plus `charts.julian_day`**, with an explicit ruling on
 `family_members.date_of_birth_local` and chart derivatives. Option A or B alone
 improves column hygiene but does not satisfy that goal.
+
+## Corrections found while ruling (2026-10-08)
+
+1. **"UTC + Julian day" is not a coherent minimum.** Plaintext
+   `charts.lagna_longitude` and `chart_planets.absolute_longitude` reconstruct
+   the instant almost as well: the Moon moves ~13°/day (fixes the date), the
+   lagna ~1° per 4 minutes (fixes the time to minutes). Protecting the two
+   instant columns while leaving positions readable is theatre. The coherent
+   choices were C-with-derivatives or D.
+2. **Derivative encryption costs no SQL.** Every `ChartPlanet` query filters on
+   `chart_id` and `graha` only (`app/api/charts.py:287,369,504`,
+   `daily_push_cron.py:372`, `tajaka_service.py:60`, `shadbala_service.py:69`).
+3. **The family DOB duplicate check needs no blind index.**
+   `_find_duplicate_family_member` (`family_vault_service.py:206`) is scoped to
+   one `family_vault_id` and already compares decrypted values in Python; the
+   `date_of_birth_local`, `birth_place` and `birth_timezone` SQL predicates are
+   narrowing only and can be dropped.
+4. **The public claim was false.** "Birth details are encrypted at rest" (and
+   in `legal.ts`, "Your data is encrypted in transit and at rest") was printed
+   on six surfaces, English and Tamil.
+
+## Owner ruling (2026-10-08)
+
+| Question | Ruling |
+|---|---|
+| Goal | **Narrow the public copy now, then implement Option C**; restore stronger wording only once C ships on real rows. |
+| Natal derivatives | **Encrypt them**: `charts.julian_day`, `charts.lagna_longitude`, `chart_planets.absolute_longitude` (and D9 positions), `dasha_periods.start_jd/end_jd`, alongside `birth_datetime_utc`. Rasi/nakshatra keys stay plaintext (coarse, not instant-precise). |
+| Family DOB duplicate | **Encrypt `family_members.date_of_birth_local`; compare in Python.** No blind index. |
+| Mobile cache / PDF exports | **Out of scope; document.** User-held data on the user's device or in the user's export; the "at rest" claim covers our servers. |
+
+Copy narrowing is done (see `docs/MASTER_FIX_LIST.md`, A12). Guard:
+`web/lib/encryption-claim-copy.test.ts` fails on any encryption claim in web
+`app/`, `components/`, `lib/` or `packages/shared/src/data/`; delete it
+deliberately when C ships.
+
+**Delegated rulings (owner gave Claude the decision, 2026-10-08):**
+- **Birth place and timezone: encrypted in C.** Dropping the duplicate-check
+  predicates removed their only SQL consumers.
+- **Current location: encrypted in C** — place, latitude, longitude, timezone.
+  No SQL consumer; precise current coordinates are the more immediately
+  sensitive fact. `current_location_updated_at` stays plaintext.
+- **Backups and keys: forward-only.** Pre-migration dumps keep plaintext and age
+  out under retention (manual deletion, owner-approved per file); the existing
+  rule "old key retention ≥ backup retention" covers the new ciphertext. See
+  `docs/DATA_PROTECTION.md` §3.
+
+**Implemented** as migration `uu4e5f6a7b8c` — see `docs/MASTER_FIX_LIST.md`
+A12b. Found during implementation and added to scope: `chart_planets.degree_in_rasi`
+(with `rasi` it *is* the longitude), `speed_deg_per_day`, and `raw_payload`
+(the full planet object, longitudes included). `dasha_periods` and
+`varga_positions` have no writer and no rows and were left out; a test fails if
+the chart path starts writing them.
+
+**Residual that keeps the public copy narrow:** the plaintext rasi/nakshatra/pada
+keys fix the birth year and month, narrow the day to one or two candidates, and
+the time to a ~2-hour lagna window. Exact instant: protected. Birth date: still
+inferable from a dump.

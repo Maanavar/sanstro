@@ -82,14 +82,14 @@ def test_duplicate_birth_profile_create_is_rejected(client):
     assert "matching birth profile already exists" in duplicate.json()["detail"].lower()
 
     with SessionLocal() as session:
+        # birth_place is ciphertext (A12 C), so it is compared after decryption.
         rows = session.execute(
             select(BirthProfile).where(
                 BirthProfile.deleted_at.is_(None),
                 BirthProfile.display_name == "Arjun Kumar",
-                BirthProfile.birth_place == "Chennai, Tamil Nadu, India",
             )
         ).scalars().all()
-        assert len(rows) == 1
+        assert [row.birth_place for row in rows] == ["Chennai, Tamil Nadu, India"]
 
 
 def test_birth_profile_without_time_can_be_saved_without_chart(client):

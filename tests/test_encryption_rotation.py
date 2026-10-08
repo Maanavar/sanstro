@@ -261,7 +261,16 @@ def test_rotation_script_covers_every_encrypted_column():
 
     listed = {(table, column) for table, _pk, columns in ENCRYPTED_COLUMNS for column in columns}
 
-    encrypted_types = ("EncryptedDate", "EncryptedTime", "EncryptedFloat", "EncryptedString")
+    from sqlalchemy.types import TypeDecorator
+
+    from app.services import encryption as encrypted_types_module
+
+    encrypted_types = tuple(
+        name
+        for name in encrypted_types_module.__all__
+        if isinstance(getattr(encrypted_types_module, name), type)
+        and issubclass(getattr(encrypted_types_module, name), TypeDecorator)
+    )
     actual = set(_HAND_ENCRYPTED)
     for table in Base.metadata.tables.values():
         for column in table.columns:

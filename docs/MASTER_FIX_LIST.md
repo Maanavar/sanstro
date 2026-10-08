@@ -1343,6 +1343,62 @@ worth recording.
   confidentiality" without first ruling on `julian_day` and the family DOB
   duplicate. **No implementation decision was made; none was asked for.**
 
+  **Owner ruling 2026-10-08:** narrow public copy now, then Option C including
+  natal derivatives (`julian_day`, lagna/planet longitudes, dasha JDs) and the
+  family DOB duplicate (Python comparison, no blind index); mobile cache and
+  PDFs out of scope. Full table and two still-open questions (birth place /
+  timezone, backup-key policy) in the A12 memo's "Owner ruling" section.
+
+- [x] **A12a — public "encrypted at rest" claim narrowed.** Six surfaces, EN+TA:
+  privacy page, beta page, family page, home trust strip, family-setup note,
+  `packages/shared/src/data/legal.ts` (which claimed *all* data encrypted at
+  rest). Wording now says only what is true (HTTPS, restricted access, never
+  sold, deletable). **Gate:** `web/lib/encryption-claim-copy.test.ts` —
+  baseline before the copy change: failed naming all 6 files with both the
+  English and Tamil claim on each. **Blind spots:** source-text scan only;
+  backend-served or runtime-assembled copy, mobile `app/`/`src/` screens (none
+  found by hand on 2026-10-08) and the generated
+  `docs/dashboard-i18n-catalog.json` are outside it. **Tamil:** six strings
+  (four reworded, two deletions) reviewed via a user-supplied review on
+  2026-10-08; its changes applied — privacy access sentence simplified, home
+  "ஒருபோதும் விற்கப்படாது" for "never sold", family-setup "kept private" as
+  "தனிப்பட்டவையாகவே வைக்கப்படுகின்றன" (was "stored safely"), and `legal.ts`
+  gained the missing authorised-access sentence. Still open: family-setup Tamil
+  says "not sold to anyone" where English says "never sold or shared".
+
+- [x] **A12b — Option C: encrypt the natal-input and derivative set.** Migration
+  `uu4e5f6a7b8c`: 14 columns to Fernet — `birth_profiles` UTC instant, birth
+  place/timezone, current place/lat/lon/timezone; `charts.julian_day`,
+  `lagna_longitude`; `chart_planets.absolute_longitude`, `degree_in_rasi`,
+  `speed_deg_per_day`, `raw_payload`; `family_members.date_of_birth_local`. New
+  `EncryptedDateTime` (refuses naive values) and `EncryptedJSON` types. Both
+  duplicate checks now compare place/timezone/DOB decrypted in Python. Input
+  schemas gained `max_length` 255/64 (12 fields) — the DB no longer caps them.
+  Rotation script and restore drill list every new column.
+  **Gate:** `tests/test_birth_data_at_rest.py`. Baseline on unfixed code:
+  14 of 14 columns not `bytea`, and 11 of 11 synthetic birth facts (place,
+  current place/tz, birth tz, UTC date, current lon, JD, lagna, Moon longitude
+  and degree, family DOB) readable in `row_to_json` dumps.
+  **Migration round trip on `vinaadi_test`:** seeded plaintext at `tt3d4e5f6a7b`
+  (incl. NULLs and a Tamil JSON payload) → upgrade (all 14 `bytea`, ORM reads
+  every value back) → downgrade (snapshot identical, byte for byte) → upgrade.
+  The first round trip failed on the Tamil row — re-serialising JSON `\u`-escaped
+  it — fixed by encrypting `raw_payload::text` verbatim.
+  **Blind spots:** the dormant-table assertion (dasha/varga) has never been seen
+  to fail, since no writer exists to add; coarse rasi/nakshatra keys still
+  reveal the birth date (by ruling — copy stays narrowed); pre-migration
+  backups hold plaintext (forward-only policy, `DATA_PROTECTION.md` §3).
+  **Applied to `vinaadi_dev` 2026-10-08** (`ss2c3d4e5f6a` → `tt3d4e5f6a7b` →
+  `uu4e5f6a7b8c`) after `backups/backup_pre_uu4e5f6a7b8c_20261008_1106.sql`;
+  every row read back through the ORM (4 profiles, 5 charts, 46 planets,
+  2 family DOBs). That backup is itself a plaintext copy — see
+  `DATA_PROTECTION.md` §3.
+  **Full backend suite** (first end-to-end run since Phase 1): 5943 passed,
+  16 skipped, 1 failed — `test_duplicate_birth_profile_create_is_rejected`
+  filtered on `BirthProfile.birth_place` in SQL to count rows; the 409 itself
+  passed. Fixed to compare after decryption; no other test filters on an
+  encrypted column (grep).
+
 ### Phase 3 and later — not started
 
 - [ ] A13 module boundaries. [ ] A14 contract completeness.

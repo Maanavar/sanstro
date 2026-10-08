@@ -3,11 +3,11 @@ from __future__ import annotations
 from datetime import date, datetime, time
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, ForeignKey, Index, Integer, LargeBinary, Numeric, String, text
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, LargeBinary, String, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
-from app.services.encryption import EncryptedDate, EncryptedFloat, EncryptedTime
+from app.services.encryption import EncryptedDate, EncryptedDateTime, EncryptedFloat, EncryptedString, EncryptedTime
 
 
 class BirthProfile(TimestampMixin, Base):
@@ -25,15 +25,15 @@ class BirthProfile(TimestampMixin, Base):
     display_name: Mapped[str] = mapped_column(String(255), nullable=False)
     birth_date_local: Mapped[date] = mapped_column(EncryptedDate, nullable=False)
     birth_time_local: Mapped[time | None] = mapped_column(EncryptedTime, nullable=True)
-    birth_datetime_utc: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    birth_place: Mapped[str] = mapped_column(String(255), nullable=False)
+    birth_datetime_utc: Mapped[datetime | None] = mapped_column(EncryptedDateTime, nullable=True)
+    birth_place: Mapped[str] = mapped_column(EncryptedString, nullable=False)
     birth_latitude: Mapped[float] = mapped_column(EncryptedFloat, nullable=False)
     birth_longitude: Mapped[float] = mapped_column(EncryptedFloat, nullable=False)
-    birth_timezone: Mapped[str] = mapped_column(String(64), nullable=False)
-    current_place: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    current_latitude: Mapped[float | None] = mapped_column(Numeric(9, 6), nullable=True)
-    current_longitude: Mapped[float | None] = mapped_column(Numeric(9, 6), nullable=True)
-    current_timezone: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    birth_timezone: Mapped[str] = mapped_column(EncryptedString, nullable=False)
+    current_place: Mapped[str | None] = mapped_column(EncryptedString, nullable=True)
+    current_latitude: Mapped[float | None] = mapped_column(EncryptedFloat, nullable=True)
+    current_longitude: Mapped[float | None] = mapped_column(EncryptedFloat, nullable=True)
+    current_timezone: Mapped[str | None] = mapped_column(EncryptedString, nullable=True)
     current_location_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     birth_time_source: Mapped[str] = mapped_column(
         String(32), nullable=False, default="unknown", server_default=text("'unknown'")

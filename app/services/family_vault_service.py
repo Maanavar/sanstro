@@ -204,10 +204,9 @@ def _latest_chart(session: Session, birth_profile: BirthProfile) -> Chart:
 
 
 def _find_duplicate_family_member(session: Session, family_vault_id: UUID, payload: FamilyMemberCreate) -> FamilyMember | None:
-    # BirthProfile.birth_date_local/birth_time_local/birth_latitude/birth_longitude are
-    # stored Fernet-encrypted, which is non-deterministic — equal plaintexts produce
-    # different ciphertext, so they can't be filtered in SQL. Narrow by the
-    # plaintext-comparable fields first, then compare the decrypted values in Python.
+    # Every birth field (and the member's DOB copy) is Fernet-encrypted, which is
+    # non-deterministic, so SQL narrows by vault, name and relationship only; the
+    # birth fields are compared decrypted, in Python.
     normalized_name = payload.display_name.strip().lower()
     candidates = session.execute(
         select(FamilyMember, BirthProfile)
@@ -219,9 +218,6 @@ def _find_duplicate_family_member(session: Session, family_vault_id: UUID, paylo
             func.lower(func.trim(FamilyMember.display_name)) == normalized_name,
             func.lower(func.trim(BirthProfile.display_name)) == normalized_name,
             FamilyMember.relationship_to_owner == payload.relationship_to_owner,
-            FamilyMember.date_of_birth_local == payload.birth_date_local,
-            BirthProfile.birth_place == payload.birth_place,
-            BirthProfile.birth_timezone == payload.birth_timezone,
         )
         .order_by(FamilyMember.created_at.desc())
     ).all()
@@ -230,6 +226,8 @@ def _find_duplicate_family_member(session: Session, family_vault_id: UUID, paylo
         if (
             profile.birth_date_local == payload.birth_date_local
             and profile.birth_time_local == payload.birth_time_local
+            and profile.birth_place == payload.birth_place
+            and profile.birth_timezone == payload.birth_timezone
             and float(profile.birth_latitude) == payload.birth_latitude
             and float(profile.birth_longitude) == payload.birth_longitude
         ):
