@@ -2013,6 +2013,20 @@ commit. Only the varshaphala one touches a Phase 3 test:
   prints on full runs; `--detectOpenHandles` on the screens project reported
   no open handle, so the leak's owner is unidentified. No `--forceExit` added.
   The reading screen logs act() warnings on its first test.
+  **Owner identified 2026-10-08 (investigated, not fixed — owner asked for a
+  report first).** By project: utils (147) and react (16) never print it;
+  screens (12) does. Every pair of the four screen files run with
+  `--maxWorkers=2` (a single file runs in-band and cannot show it): the three
+  pairs containing `reading.screen.test.tsx` warn, the three without it do
+  not. That file is the only screen test that builds a `QueryClient`, one per
+  render, with the default `gcTime` and no `clear()`; after RNTL unmounts, React
+  Query schedules a 5-minute cache-collection `setTimeout` per query, which
+  holds the worker open. **Confirmed by control, file restored after:** the
+  same pair with `gcTime: Infinity` → 0 of 2 runs warn; unchanged → 2 of 2 warn.
+  **Proposed fix (one test file):** `gcTime: Infinity` in that client's
+  defaults, or keep the clients and `clear()` them in `afterEach`. No product
+  code is involved. Not explained: why `--detectOpenHandles` did not report
+  the timer.
 - [x] **Backend tests — `test_response_model_is_lossless[varshaphala]`
   (5996 passed, 1 failed).** The only difference: one `tajakaPlanets`
   `degreeInRasi`, 11.2445 (HTTP) vs 11.2446 (direct call). The test compared
@@ -2033,6 +2047,26 @@ commit. Only the varshaphala one touches a Phase 3 test:
   varshaphala (or any route) is non-reproducible across calls on pyswisseph —
   a 3.12 environment is needed to answer it. A user-visible effect, if real,
   is a 4th-decimal flip of a displayed degree.
+  **Investigated 2026-10-08 — the calculation is reproducible on CI's
+  runtime; not fixed, nothing to fix there.** `python:3.12-slim` (3.12.14)
+  with `requirements.txt` (pyswisseph 2.10.03 built from source — the slim
+  image needs `gcc g++`; it has no wheel) and the repo's `ephe/` files. A
+  script ran `calculate_tajaka_chart` for 40 synthetic natal-Sun/year inputs,
+  then 3 more times each in shuffled order with 0–3 unrelated
+  `calculate_sidereal_planets`/lagna calls interleaved: **240 repeats over two
+  processes, 0 exact differences** in any planet longitude or the solar-return
+  JD; the two processes' first passes are bit-identical (360 values). Against
+  local swisseph-ffi on 3.14: 1 of 360 values differs, by 7.1e-15 (an ulp),
+  0 at the route's 4-place rounding. The path has no cache: the solar return
+  is a 70-step bisection over `sun_longitude_at_jd`. So the 11.2445/11.2446
+  flip needed an input ~1e-5° apart, not a library difference. The only input
+  that can differ between that test's two calls is the natal Sun read from
+  `ChartPlanet` (`EncryptedFloat` round-trips exactly; sessions use the
+  default `expire_on_commit=True`). Not tested: the DB-backed path on 3.12
+  (the test DB's guard requires localhost:5433 from the host). The test no
+  longer compares two computations, so it cannot recur as a test failure;
+  whether a user can see two degrees for one chart is still open, and if so
+  the cause is upstream of the calculation.
 - [x] **Compose stack — "backend outage is a bounded 502" got a 502 and
   failed.** The proxy returns `{"detail":"Backend unreachable"}`; the claim
   also requires "unreachable" in the body, and the body read as `""`.
