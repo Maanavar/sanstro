@@ -106,13 +106,24 @@ jobs:
         # The two IDs below are ONE advisory, not two exposures: GHSA-wj6h-64fc-37mp,
         # CVE-2024-23342 and PYSEC-2026-1325 are aliases of the same ecdsa finding,
         # and each one alone suppresses it. Both are kept because which alias the
-        # advisory database reports under has changed before. With starlette
-        # cleared, this is the only vulnerability pip-audit still reports here.
+        # advisory database reports under has changed before.
+        #
+        # python-jose CVE-2026-85394 (alias GHSA-3qf3-8w2g-rqmx; no fixed
+        # release; first reported here 2026-10-08) is ignored on this premise,
+        # verbatim: "the advisory needs an asymmetric public key used as the
+        # HMAC key AND a decode that does not restrict `algorithms`; this app
+        # signs HMAC-only over a symmetric secret (`jwt_algorithm` is typed
+        # HS256/HS384/HS512 and refused otherwise at boot) and every jose decode
+        # passes `algorithms=[...]`." tests/test_jwt_hmac_only.py fails if either
+        # half stops holding. Leaving python-jose for PyJWT (REFACTOR_PLAN 1.2)
+        # retires this ignore and the ecdsa one together.
         run: |
           pip install pip-audit
           pip-audit -r requirements.txt \
             --ignore-vuln GHSA-wj6h-64fc-37mp \
-            --ignore-vuln CVE-2024-23342
+            --ignore-vuln CVE-2024-23342 \
+            --ignore-vuln CVE-2026-85394 \
+            --ignore-vuln GHSA-3qf3-8w2g-rqmx
 
   migrations:
     name: Alembic round-trip

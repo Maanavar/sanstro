@@ -3,6 +3,7 @@ import os
 import secrets
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -160,7 +161,11 @@ class Settings(BaseSettings):
 
     # Auth
     jwt_secret: str | None = Field(default=None)
-    jwt_algorithm: str = "HS256"
+    # HMAC only, enforced: an asymmetric algorithm would put a public key on the
+    # verify path, which is the precondition of python-jose CVE-2026-85394 (the
+    # advisory CI's pip-audit step ignores on this premise —
+    # tests/test_jwt_hmac_only.py).
+    jwt_algorithm: Literal["HS256", "HS384", "HS512"] = "HS256"
     jwt_expire_minutes: int = 60 * 24  # 1 day
     admin_api_key: str | None = Field(default=None)
     # Comma-separated list of emails granted admin access via their session, so the
