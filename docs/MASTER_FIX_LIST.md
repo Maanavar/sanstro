@@ -1399,11 +1399,69 @@ worth recording.
   passed. Fixed to compare after decryption; no other test filters on an
   encrypted column (grep).
 
-### Phase 3 and later — not started
+### Phase 3 — started 2026-10-08 (owner: "proceed with phase 3")
 
-- [ ] A13 module boundaries. [ ] A14 contract completeness.
+Order per the guide's §6: A16 first (documents other work is read against),
+then A14, A15, A13.
+
+- [x] **A16 — contradictory authoritative documentation.** The three cited
+  contradictions in `docs/AGENT_INSTRUCTIONS.md` were still present and are
+  fixed: repo root was `C:\Users\senth\OneDrive\…` (now `D:\sanstro`, matching
+  CLAUDE.md and AGENTS.md); "No Shadbala" (it is computed —
+  `app/calculations/shadbala.py` — but the daily score does not read it);
+  "Kandaka Sani from Lagna Rasi" (doctrine A-1, 2026-08-19: Janma Rasi over
+  4/7/10, labelled, overlapping Ardhashtama by design, one penalty). The §8
+  feature recipe — new state in `dashboard-workspace.tsx` ending in
+  `.catch(() => {})` — is replaced by shared wrapper → `useApiQuery` →
+  `AsyncSection` with every state rendered. Also corrected, each checked
+  against source: the calculation-version rule (a bump recomputes nothing —
+  `app/constants/versions.py`); panchangam cache invalidation (bump
+  `PANCHANGAM_CACHE_DATA_VERSION`, never `DELETE` by hand); the backend-URL
+  default (A01's resolver; production refuses the loopback); config env names
+  (all `JOTHIDAM_`); Ashtakavarga (the daily score reads BAV); UI primitives
+  (Nova kit in `web/components/ui/`); i18n catalogs; `docs/FRONTEND.md` →
+  `docs/archive/`; the test-run command now points at the test-DB variables.
+  Copied inventories that had drifted — the 22-row router table, four TS
+  response shapes, the model field table (dasha "start_date", long since JD),
+  the dashboard prop list — are replaced with pointers to the code that owns
+  them. §7 and §14 status sections are kept, labelled *historical,
+  superseded*; §14's "90-min fixed slots" kalam line is struck through as
+  contradicting §2. A "Which document wins" hierarchy now heads the file:
+  CLAUDE.md for workspace, ratified doctrine + later dated rulings for
+  astrology, MASTER_FIX_LIST for status. CLAUDE.md and AGENTS.md said the UX
+  harness walks English top-level tabs only and never ran in Tamil; it has
+  `overlays` and `ta` phases now, and both say what is still outside it.
+  `docs/INDEX.md` misdescribed AGENTS.md and ranked the v1 specs above later
+  rulings.
+
+  **Gate:** `tests/test_authoritative_docs.py` over the six "Start Here" docs —
+  relative links resolve, backticked repo paths exist, every "Repo root"
+  statement agrees. **Baseline / fix-removed run** (doc edits stashed, test
+  kept): 3 failed — CLAUDE.md's `scripts/ux-audit-core.mjs` (really under
+  `web/`), AGENT_INSTRUCTIONS' `docs/FRONTEND.md`, and three conflicting repo
+  roots. After: 13 passed.
+  **Blind spots:** the gate proves paths exist, not that the sentence around
+  them is true — every doctrine/behaviour correction above was checked by hand
+  against source, and that is the only check on them. Paths inside fenced code
+  blocks and paths without a known top-level prefix are not checked. Only the
+  six docs are covered; the ~200 other Markdown files in `docs/` were not reviewed.
+  Unverified and left as written: §1/§2 "Jupiter/Saturn from Lagna are
+  secondary adjustments", the §15 tables. No architecture-decision records
+  were added (guide step 5).
+
+  **Found while verifying, NOT fixed (doctrine surface, needs a ruling):**
+  `transit_service.get_sani_cycle` still computes a Lagna-reckoned
+  `lagnaBasedCycle` (`transit_service.py:256`) by calling
+  `classify_kandaka_cycle(position_from_lagna)`, which emits `KANDAKA_SANI`.
+  `family_vault_service` tags members with that type (`:353`, `:439`) and the
+  web renders `KANDAKA_SANI` as "Kantaka Sani · from Janma Rasi"
+  (`web/lib/family-flags.ts:53`). So a member with Saturn 4/7/10 from the
+  **Lagna** can be shown Kandaka "from Janma Rasi" — the label A-1 requires to
+  be truthful. Fix options: drop the Lagna cross-check, or give it its own
+  type/label. Either changes a response shape across all four surfaces.
+- [ ] A14 contract completeness.
 - [ ] A15 CI coverage (partially advanced by A01's new job).
-- [ ] A16 contradictory authoritative documentation.
+- [ ] A13 module boundaries.
 
 ## Agent Completion Checklist
 

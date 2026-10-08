@@ -142,8 +142,10 @@ tooltip months later, two files from a twin that localised it correctly.
 - `title=` and `aria-label=` count as rendering. They carry the same leak and
   **no** browser text probe can see them — `innerText` does not include
   attributes.
-- Tamil-mode checks are not optional for this class: the harness pins the audit
-  account to `lang: "en"`, so an English-only pass proves nothing about it.
+- Tamil-mode checks are not optional for this class: every harness phase except
+  `ta` runs the audit account in English, so an English-only pass proves nothing
+  about it. The `ta` phase reads visible text only — it cannot see `title=` or
+  `aria-label=` either.
 
 ## A gate proves its own check, not the item
 
@@ -153,9 +155,11 @@ Before recording a PASS, state what the check cannot see, and look there by hand
 **Why:** three separate items here have now been recorded green by a gate that
 could not fail — DXA-05's pending hero stands at the loaded height, so DXA-07's
 "hero ≥ 90%" passed with and without the fix; DXA-08's regex could not see the
-casing that was actually wrong; and `scripts/ux-audit-core.mjs` only walks
-top-level tab panes in English, so overlays, sub-tools, reports and every Tamil
-surface are outside it by construction.
+casing that was actually wrong; and `web/scripts/ux-audit-core.mjs` once walked
+only top-level tab panes in English. It has since gained an `overlays` phase
+(five named overlays) and a `ta` phase (top-level tabs in Tamil, desktop and
+phone), but sub-tools, reports, overlays in Tamil and every attribute are still
+outside it by construction.
 
 **How to apply:** run each new gate once with the fix **removed** and confirm it
 fails (see [Suspect your own inputs](#debugging-discipline--suspect-your-own-inputs-before-the-environment)).

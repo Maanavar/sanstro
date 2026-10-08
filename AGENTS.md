@@ -32,7 +32,7 @@ docs below before making changes.
 
 **Display and proof** (both cost us a shipped-green defect — see CLAUDE.md)
 - **Never render a name the server chose.** The backend sends a language-free key *and* a pre-rendered English name (`rasi` vs `rasiName`/`rasiCode`, `lord` vs the bare string). Render the key through its localiser (`rasiDisplayName`, `tPlanetLord`, `tNakshatra`, …). A field ending in `Name` or `Code` is the wrong field; `title=` and `aria-label=` count as rendering.
-- **A gate proves its own check, not the item.** Run every new gate once with your fix *removed* and confirm it fails, then write down what it cannot see. The UX harness walks top-level tab panes only and has never run in Tamil.
+- **A gate proves its own check, not the item.** Run every new gate once with your fix *removed* and confirm it fails, then write down what it cannot see. The UX harness (`web/scripts/ux-audit-core.mjs`) walks top-level tab panes and five named overlays; its `ta` phase covers top-level tabs in Tamil. Sub-tools, reports, Tamil overlays and attributes are outside it.
 
 ---
 

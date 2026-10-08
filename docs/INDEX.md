@@ -13,11 +13,16 @@ Quick map to the right document for each purpose. **Last updated: 2026-10-06.**
 - [VINAADI_PAGE_NEEDED_REGISTER_2026-08-27.md](VINAADI_PAGE_NEEDED_REGISTER_2026-08-27.md) — **The five executing rules that have no citation** (`PN-1`…`PN-5`: naisargika node rows, Baladi multipliers, Sevvai gender weighting, Sade Sati month bands, Jeevan/Nethiram cutoffs). Code site, provenance grade and scoring reach for each, plus what closes a row — **including why "Vakya or Thirukanitham" is a mandatory field and not clerical**. Read before citing any almanac rule
 - [../README.md](../README.md) — Project setup: prerequisites, Docker, backend, web, mobile, quick reference
 - [../CLAUDE.md](../CLAUDE.md) — Workspace rules: path conventions, PowerShell/shell rules, DB safety, encoding
-- [AGENT_INSTRUCTIONS.md](AGENT_INSTRUCTIONS.md) — **Canonical agent reference**: stack map, mandatory astrology/coding rules, Tamil + cultural rules, tone rules, UI/UX rules, anti-patterns
-- [../AGENTS.md](../AGENTS.md) — Agent work guide scoped to mobile-app gap closure (bugs → features → polish)
+- [AGENT_INSTRUCTIONS.md](AGENT_INSTRUCTIONS.md) — **Canonical agent reference**: stack map, mandatory astrology/coding rules, Tamil + cultural rules, tone rules, UI/UX rules, anti-patterns. A summary: CLAUDE.md wins on workspace rules and the ratified doctrine decisions win on astrology (its "Which document wins" section)
+- [../AGENTS.md](../AGENTS.md) — Entry point for any AI agent: the non-negotiables in one page, pointing at the authoritative docs
 - [HOW_TO_USE_CODEBASE.md](HOW_TO_USE_CODEBASE.md) — Codebase orientation: repo layout, service map, key patterns
 
 ## Canonical Specifications (source of truth — do not modify lightly)
+
+The v1 specs below were the original design. Where a later ratified doctrine
+decision or dated owner ruling differs, the later ruling wins; the OpenAPI YAML
+and SQL DDL are design references, not generated from the running app.
+
 - [Jothidam_AI_Product_Specification_v7_FULL_Master_Build_Thirukanitham_2026.md](Jothidam_AI_Product_Specification_v7_FULL_Master_Build_Thirukanitham_2026.md) — **Master product spec**: full feature list, business logic, user flows
 - [Jothidam_AI_Formula_Engine_Specification_v1_Thirukanitham_2026.md](Jothidam_AI_Formula_Engine_Specification_v1_Thirukanitham_2026.md) — **Calculation formulas**: ayanamsa, dasha, divisional charts, dosha rules — source of truth for astrology math
 - [Jothidam_AI_Technical_API_Database_Spec_v1_Thirukanitham_2026.md](Jothidam_AI_Technical_API_Database_Spec_v1_Thirukanitham_2026.md) — API endpoints, request/response schemas, PostgreSQL schema
