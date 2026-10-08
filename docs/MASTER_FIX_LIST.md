@@ -1636,6 +1636,41 @@ then A14, A15, A13.
   exercised (nothing uses it); the generated file no longer reads
   `app.openapi()`, so a FastAPI-only schema transform (none today) would not
   reach it.
+  **Numerology group, class 2 — inventoried and STOPPED (2026-10-08,
+  owner's "stop and report if this grows large").** With class 1 fixed the
+  six GETs were added to `OPERATIONS` and a type-level deep diff run over the
+  9 same-named pairs: `NallaNeramWindow` is identical; the other 8 fail
+  server → client **only** on `str` vs a client literal union; the 3
+  client → server failures are client `?:`/`undefined` (alias would remove
+  them). Generator change reverted again; nothing committed but this entry.
+  The 17 `str` fields, by producer:
+  - **Enum `.value`, value set equal to the client union** (verified by
+    importing each enum): `NumberReadingOut.compoundTone` (`CompoundTone`),
+    `NodeBasisOut.kind`, `AlignmentBasisOut.strengthRule`,
+    `NumberAlignmentOut.functionalNature`/`.verdict`, `VerdictBandOut.verdict`,
+    `PersonalYearOut`/`LuckyDatesResponse`/`MarriageDatesResponse.epoch`,
+    `BabyNamesResponse.mode`, `BabyNameCandidateOut.relation`
+    (`AksharaRelation`), `BabyNamesResponse.emptyReasonCode`,
+    `MuhurtaFactor.verdict` (`muhurta_engine.Verdict`).
+  - **Enum with a value the client union lacks — a real value-set question:**
+    `BabyNameCandidateOut.confidence` (`MatchConfidence.NO_MATCH = "no_match"`,
+    assigned at `numerology_naming.py:311/564/658`) and
+    `BabyNamesResponse.relaxationsApplied` (`Relaxation.NONE = "none"`).
+    Either the value is filtered before the response (then the Literal can
+    omit it) or the client union is incomplete (then the client is wrong).
+    Not yet traced.
+  - **Not an enum:** `MuhurthamNaalReading`/`MuhurthamNaalMatchItem.taraQuality`
+    (`TARA_QUALITY[tara]` table, `muhurtham_naal_service.py:460`) and
+    `BabyNameCandidateOut.gender` (naming data rows).
+  Saved name sessions are safe for a Literal: they store only the name and
+  are re-scored through the same converters (`numerology_name_session_service`).
+  **Why stopped:** `app/schemas/muhurta.py` and `muhurtham_naal.py` also
+  serve the muhurta and muhurtham-naal routes, so tightening them changes
+  validation outside this group; and two value sets above are unresolved.
+  **Proposed next step:** a `Literal` per field with a no_db test pinning
+  each `get_args(Literal)` to its enum's values (the guard against a new
+  member becoming a 500), the two open value sets resolved first, then
+  alias the 9 types and extend `generated-fit.ts`.
   **A14 step 8 — runtime validation, first two targets (2026-10-08).** The
   guide names categories, not endpoints ("unstable provider responses,
   persisted payloads, consequential inputs"; §4.7 adds "parse and validate
