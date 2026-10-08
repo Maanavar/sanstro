@@ -55,14 +55,21 @@ def _compute_chart_signature(payload: MarriageAssessmentInput) -> ChartSignature
     ValueError."""
     if not bool(get_flag("reasoning_chart_signature")):
         return None
-    active = list(payload.active_dasha_lords)
-    maha_lord = active[0] if active else None
+    # The dasha signal belongs to the running maha lord, which the caller
+    # knows from the timeline. It used to be `list(active_dasha_lords)[0]` —
+    # an arbitrary member of a set whose order changes with the per-process
+    # hash seed, so one chart's framing differed between web workers. Without
+    # the lords there is no dasha signal (unless maha and antar are the same
+    # graha, which the set alone does tell us) rather than a guessed one.
+    maha_lord, antar_lord = payload.maha_lord, payload.antar_lord
+    if maha_lord is None and len(payload.active_dasha_lords) == 1:
+        maha_lord = antar_lord = next(iter(payload.active_dasha_lords))
     try:
         signature = detect_signature(
             planet_longitudes=payload.planet_longitudes or {},
             planet_rasis=payload.planets_rasi,
             current_maha_lord=maha_lord,
-            current_antar_lord=active[-1] if len(active) > 1 else maha_lord,
+            current_antar_lord=antar_lord,
         )
     except ValueError:
         logger.exception("chart signature detection failed for a marriage prediction")
@@ -91,6 +98,12 @@ class MarriageAssessmentInput:
     # P0-4) — optional; when absent, the signature detector falls back to
     # aspect/dasha/strength signals alone (see detect_signature()).
     planet_longitudes: dict[str, float] | None = None
+    # The running maha and antar lords, in that order — `active_dasha_lords`
+    # is the same two as an unordered set, which cannot say which is which.
+    maha_lord: str | None = None
+    antar_lord: str | None = None
+
+
 _PARENTAL_RELATIONSHIPS: frozenset[str] = frozenset({"parent", "grandparent"})
 
 

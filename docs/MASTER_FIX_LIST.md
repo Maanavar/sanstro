@@ -2062,6 +2062,42 @@ then A14, A15, A13.
   comparison; `get_life_areas` is still 620 lines — the narration half of the
   loop (≈250 lines of bundle edits) is the next stage and is not started.
   `assess_marriage_prediction` and `dashboard-workspace.tsx`: not started.
+  **Third unit, golden first — `assess_marriage_prediction` (2026-10-08) —
+  and a live defect it exposed.** The function is already pure (a
+  `MarriageAssessmentInput`), so `tests/test_marriage_prediction_golden.py`
+  builds that input from a synthetic chart exactly as
+  `app/api/predictions.py` does from a persisted one; 6 profiles (the golden
+  four + a child and an elder for the age gates) × 4 dates × {as built,
+  married, parent, promise gate off}: 96 cases + a matrix test (both gates
+  named, ≥2 confidences, ≥3 bands, ≥8 distinct predictions). **The first
+  write and the first test run disagreed on 12 cases** — all `chart_signature`.
+  Cause: `_compute_chart_signature` took `list(payload.active_dasha_lords)[0]`
+  as the maha lord; the field is a `set`, string hashing is seeded per
+  process, so one chart was framed "revolves around the Moon" in one web
+  worker and "around Jupiter" in another (`PYTHONHASHSEED=0` vs 1–2:
+  reproduced). Fix: `MarriageAssessmentInput` gains `maha_lord`/`antar_lord`
+  (optional, ordered); the route passes the timeline's; the signature reads
+  them, and without them uses no dasha signal unless maha = antar (the set
+  can say that much) — never a guess. Same family, latent: the propensities
+  endpoint set `maha_lord=sorted(lords)[0]` (alphabetical — a Saturn maha
+  with a Jupiter antar recorded as Jupiter); nothing reads those two fields
+  today; now from the timeline. Health/career/wealth use the set only for
+  membership or `sorted()` lists — order-free, unchanged. **Who sees a
+  difference:** a marriage reading whose dominant graha depended on the dasha
+  points now always credits the real maha lord.
+  **Gates:** `tests/test_marriage_signature_determinism.py` — the prediction
+  computed in 4 subprocesses under hash seeds 0–3 must agree. Baseline: 2
+  distinct outputs (`…MOON…` vs `…JUPITER…` for Madurai). After: 4 passed
+  (plus: the signature credits the given maha lord either way round; no lords
+  → no dasha signal). Golden: 97 passed under each of seeds 0–3. Golden
+  control: the STRONG-dasha bonus 10 → 9 fails **only 1 of 97** — the
+  prediction exposes no raw score, so an internal change shows only where it
+  crosses a confidence/verdict boundary. **Any extraction from this unit
+  needs the exact old-vs-new comparison, not the golden alone.** The 76 test
+  files touching marriage, predictions or propensities: 2116 passed, 1
+  skipped. ruff, mypy clean. **Blind spots:** the golden does not cover the route's wrapping
+  (`age_gated`, `alternative_framing`, the prediction log) or a caller that
+  builds the input without lords; no extraction from this unit yet.
   **Previously not started:** steps 1–6 — `build_daily_guidance_response` (883 lines),
   `get_life_areas` (689), `assess_marriage_prediction` (648) and
   `dashboard-workspace.tsx` (2,415 lines now, 2,574 at audit) need golden
