@@ -1901,6 +1901,15 @@ commit. Only the varshaphala one touches a Phase 3 test:
   at build time; self-hosting the faces (`next/font/local`) would remove that
   dependency. **Not done** — recorded here, not fixed.
 
+**CI on `f939b77` (2026-10-08, after the cache move, A14 steps 7–8, A15
+coverage and the first guidance extraction):** all green on the first
+attempt — pytest 6053 passed / 7 skipped (+45 = exactly the new tests: daily-
+guidance golden 17, stage tests 20, Ask Vinaadi provider 6, aliased-guard 1,
+session-parameter gate 1; skips unchanged, so the golden ran and passed on
+CI's pyswisseph despite the platform difference it was normalised for), web
+with the new coverage thresholds, backend lint, Alembic, token ratchet, web
+image, compose smoke, Mobile CI on push and pull_request.
+
 **CI after these fixes (`3f90de4`, 2026-10-08):** all green — pytest 6008
 passed / 7 skipped (14 min), web, backend lint (ruff, mypy, pip-audit),
 Alembic round-trip, design-token ratchet, web image, compose smoke (on
