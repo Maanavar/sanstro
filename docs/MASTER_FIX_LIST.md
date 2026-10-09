@@ -2062,6 +2062,50 @@ then A14, A15, A13.
   comparison; `get_life_areas` is still 620 lines — the narration half of the
   loop (≈250 lines of bundle edits) is the next stage and is not started.
   `assess_marriage_prediction` and `dashboard-workspace.tsx`: not started.
+  **Second `get_life_areas` stage — narration and forward projection
+  (2026-10-09).** Re-checked patch targets first: nothing in `tests/`
+  monkeypatches `_narrative`, `_build_area_reason`, `_maraka_safety_check`,
+  `_find_next_improvement_date`, `_projected_area_score`,
+  `_married_relationship_text` or `interpret_score` on this module, so moving
+  their call sites is safe. `_narrate_life_area` (module-level, beside
+  `_score_life_area`) takes one area's `_AreaScore` plus the request-level
+  context (23 named inputs) and returns an `_AreaNarration`: the final
+  bundle, reading, confidence, driver reason, label, goal-focus flag, phase-
+  skip flag, causal chain, remedy kind, score band, the six/twelve-month
+  projected scores, and a `should_log` bool — the D5 HIGH-confidence /
+  not-maraka-suppressed check, computed but not acted on, because the
+  `log_prediction` DB write has to stay with the session in the loop. Moved
+  verbatim (inputs renamed to flat values — `current_age`→`native_age`,
+  `natal_moon.rasi`→`natal_moon_rasi`, `_daily_location`→`location`, etc. —
+  nothing reordered). One pre-existing side effect is preserved exactly: the
+  function still mutates `scored.chain` in place (prepends the BAV-derived
+  factor codes) rather than copying it, since the loop's `chain_result` is
+  the same dict object. `get_life_areas` itself: 620 → 376 lines.
+  **Proof:** life-areas golden 17 passed, unchanged. Exact same-process
+  comparison (HEAD's module via `git show`, under the golden's stubs, raw
+  JSON minus `generatedAt`): 7 profiles (the golden four + Coimbatore,
+  Trichy, a 2016 child) × {as-built, married, retired, student} × 11 dates
+  (including 2031 and leap-day 2040) × flags {defaults, all off}: **336
+  cases, 0 differ**. Controls: one profile's dates shifted → 40 differ; the
+  ≥70 action-line threshold 70 → 71 inside the new function → golden fails
+  3 of 17. The 9 test files touching `life_areas_service` (bav_derived,
+  bav_disclosure_boundary, bhava_palan, daily_snapshot_sections,
+  engine_depth_g1_g4, life_area_score_stage, life_areas_golden,
+  life_areas_service, life_focus_phase1): 187 passed. ruff clean.
+  **mypy could not be run locally — recorded, not swept under.** Every
+  invocation failed at import time with `ImportError: DLL load failed while
+  importing base64: An Application Control policy has blocked this file`
+  (`mypy.ipc` → `librt.base64...pyd`, mypy 2.3.1's mypyc-compiled runtime).
+  Confirmed via `Microsoft-Windows-CodeIntegrity/Operational` events 3077/
+  3089/3118/3033: Smart App Control blocking the DLL as not meeting the
+  Enterprise signing level — the same class of block as
+  [[feedback_sac_blocks_unreputable_dll_transiently]] (there: `swe.dll`,
+  resolved on retry), but here **12 retries over ~15 minutes did not
+  resolve it**, so this is recorded rather than retried indefinitely. The
+  module was confirmed to import cleanly and the new function/dataclass
+  signatures to introspect as expected (`python -c "import ...; inspect.signature(...)"`).
+  CI runs mypy on Linux, unaffected by this; **needs mypy confirmation on
+  CI or a later local retry before this is treated as done.**
   **Third unit, golden first — `assess_marriage_prediction` (2026-10-08) —
   and a live defect it exposed.** The function is already pure (a
   `MarriageAssessmentInput`), so `tests/test_marriage_prediction_golden.py`

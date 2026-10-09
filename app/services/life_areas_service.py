@@ -1945,6 +1945,390 @@ def _score_life_area(
     )
 
 
+@dataclass
+class _AreaNarration:
+    """One area's narrative, reading, confidence and six/twelve-month
+    projection — what `_score_life_area`'s `_AreaScore` becomes once phase,
+    marriage, goal-focus, maraka and contradiction framing are applied.
+
+    Pure, with one exception shared with the un-extracted loop it replaces:
+    it mutates `scored.chain` in place (prepends the BAV-derived supporting/
+    blocking factors) rather than copying it, so the caller's `_AreaScore`
+    sees the same change.
+    """
+
+    score: int
+    score_6mo: int
+    score_12mo: int
+    label: LifeAreaText
+    bundle: _NarrativeBundle
+    reading: str | None
+    confidence: str
+    confidence_reason: LifeAreaText
+    driver_reason: LifeAreaText
+    is_goal_focus: bool
+    phase_skipped: bool
+    causal_chain: LifeAreaText | None
+    remedy_kind: str | None
+    score_band: str | None
+    score_band_text: LifeAreaText | None
+    #: HIGH confidence and not maraka-suppressed (D5 accountability) — the
+    #: caller owns the session, so it makes the `log_prediction` call itself.
+    should_log: bool
+
+
+def _narrate_life_area(
+    area: str,
+    scored: _AreaScore,
+    *,
+    effective_label: LifeAreaText,
+    maha_lord: str,
+    antar_lord: str,
+    sani_cycle,
+    chandrashtama: bool,
+    jupiter_house: int,
+    saturn_house_from_moon: int,
+    ezharai_murthi: dict[str, str] | None,
+    native_age: int,
+    marital_status: str | None,
+    signature_on: bool,
+    goal_focus_areas: set[str],
+    phase: str,
+    student_under_18: bool,
+    married: bool,
+    bav_derived,
+    contradiction_on: bool,
+    on_date: date,
+    birth_jd: float,
+    natal_moon_rasi: int,
+    natal_moon_longitude: float,
+    natal_lagna_rasi: int,
+    natal_planet_scores: dict[str, int],
+    natal_planet_rasis: dict[str, int],
+    vargas,
+    bav,
+    sav,
+    location: EffectiveDailyLocation,
+    node_rasi_map: dict[str, int] | None,
+    forecast_ctx_6mo,
+    forecast_ctx_12mo,
+    age_6mo: int,
+    age_12mo: int,
+) -> _AreaNarration:
+    """Turn one area's `_AreaScore` into the final narrative, reading,
+    confidence and forward projection: phase skip, married-relationship
+    framing, goal-focus and ≥70 action lines, the maraka safety override, the
+    D4 contradiction framing, the Phase 5 causal chain, and the six/twelve-
+    month projected scores and remedy kind. `get_life_areas` narrates, gates
+    and logs the result (A13)."""
+    score = scored.score
+    area_reading = scored.reading
+    confidence, confidence_reason = scored.confidence, scored.confidence_reason
+    driver_reason = scored.driver_reason
+    chain_result = scored.chain
+
+    bundle = _narrative(
+        area, score, maha_lord,
+        sani_cycle.is_active, sani_cycle.type if sani_cycle.is_active else None,
+        chandrashtama, jupiter_house, saturn_house_from_moon,
+        murthi=ezharai_murthi,
+        house_4_locus=get_house_locus(4, native_age, marital_status),
+    )
+    detailed_reason = _build_area_reason(
+        area_key=area,
+        score=score,
+        karaka_planet=scored.primary_karaka,
+        karaka_house_from_moon=scored.karaka_house_from_moon,
+        maha_lord=maha_lord,
+        antar_lord=antar_lord,
+        maha_relevant=scored.maha_score >= 60,
+        antar_relevant=scored.antar_score >= 60,
+        sani_phase=sani_cycle.type if sani_cycle.is_active else None,
+    )
+    # Phase 5: for LOW confidence with signature_on, the causal chain
+    # below (driver_reason -> detailed_reason -> conclusion) already
+    # speaks detailed_reason as a step. Don't also bake it into the
+    # narrative paragraph, or the card repeats the same sentence twice —
+    # once plain, once inside the "because ... therefore ..." block.
+    if not (signature_on and confidence == "LOW"):
+        bundle = _NarrativeBundle(
+            narrative=_t(f"{detailed_reason.ta} {bundle.narrative.ta}", f"{detailed_reason.en} {bundle.narrative.en}"),
+            outlook=bundle.outlook,
+            remedy=bundle.remedy,
+            caution=bundle.caution,
+        )
+    is_goal_focus = area in goal_focus_areas
+    if is_goal_focus:
+        bundle = _NarrativeBundle(
+            narrative=_t(
+                f"{bundle.narrative.ta} (உங்கள் இலக்கு கவனம்)",
+                f"{bundle.narrative.en} (This is highlighted based on your active goal.)",
+            ),
+            outlook=bundle.outlook,
+            remedy=bundle.remedy,
+            caution=bundle.caution,
+        )
+    if score >= 70:
+        action = _AREA_ACTION_GUIDANCE.get(area)
+        if action:
+            bundle = _NarrativeBundle(
+                narrative=bundle.narrative,
+                outlook=_t(f"{bundle.outlook.ta} {action['ta']}", f"{bundle.outlook.en} {action['en']}"),
+                remedy=bundle.remedy,
+                caution=bundle.caution,
+            )
+
+    relevant_areas = _PHASE_RELEVANT_AREAS.get(phase, _PHASE_RELEVANT_AREAS["MID"])
+    if area == "CAREER" and student_under_18:
+        relevant_areas = set(relevant_areas)
+        relevant_areas.discard("CAREER")
+    # Spouse harmony is lifelong: a married native keeps the Relationships
+    # area (rendered as "Married life harmony" below) at every phase — the
+    # ELDER phase set drops Relationships for the unmarried (no marriage
+    # prospects), which would otherwise hide a married elder couple's
+    # harmony reading. No-op for YOUNG_ADULT/MID where it is already in-set.
+    if area == "RELATIONSHIPS" and married:
+        relevant_areas = set(relevant_areas) | {"RELATIONSHIPS"}
+    phase_skipped = area not in relevant_areas
+
+    # BAV-derived indications (5th from Guru etc.). Keyed on `area`, NEVER on
+    # `chain_key` — EDUCATION borrows the CHILDREN chain, and keying on the
+    # chain would put progeny indications on a child's education card.
+    #
+    # Both existing age gates must pass: the life-phase gate (which catches
+    # the infant and the elder) and the area's own band (which catches the
+    # 55-year-old, whose MID phase still lists CHILDREN but whose age is past
+    # the band). Neither is re-derived here.
+    # Prepended, not appended: surfaces slice the factor lists to three, and
+    # these are the only factors that speak about the area's actual subject
+    # (progeny, siblings, the maternal and paternal lines) rather than
+    # repeating the generic strength signals every area carries.
+    _disclosed = disclosable_indications(
+        bav_derived,
+        area,
+        age_relevant=(
+            not phase_skipped
+            and chain_result["karaka_status"] != "NOT_APPLICABLE_FOR_AGE"
+        ),
+    )
+    chain_result["supporting_factors"][:0] = [
+        factor_code(i) for i in _disclosed if i.band != BAND_THIN
+    ]
+    chain_result["blocking_factors"][:0] = [
+        factor_code(i) for i in _disclosed if i.band == BAND_THIN
+    ]
+
+    if phase_skipped:
+        skip_text = _phase_skip_text(phase)
+        if phase in {"INFANT", "CHILD"}:
+            score = 0
+        # A phase-skipped area makes no claim — no reading either.
+        area_reading = None
+        confidence = "LOW"
+        confidence_reason = skip_text
+        driver_reason = skip_text
+        bundle = _NarrativeBundle(
+            narrative=skip_text,
+            outlook=skip_text,
+            remedy=skip_text,
+            caution=None,
+        )
+
+    # For married users, render relationship guidance as harmony-focused content.
+    label = effective_label
+    if married and area == "RELATIONSHIPS" and area in relevant_areas:
+        label = _t("தாம்பத்ய ஒற்றுமை", "Married life harmony")
+        # Harmony framing is not a new-event promise — married profiles
+        # are never promise-gated (PR-1 marriage decision), so a
+        # promise/timing reading would be a category error here.
+        area_reading = None
+        married_narrative, married_outlook, married_caution = _married_relationship_text(score)
+        bundle = _NarrativeBundle(
+            narrative=married_narrative,
+            outlook=married_outlook,
+            remedy=bundle.remedy,
+            caution=married_caution,
+        )
+
+    next_improvement: date | None = None
+    if score < 50 or bundle.caution is not None or (
+        # PROMISED_NOT_NOW must answer "then when?" (plan Phase 3) —
+        # compute the window date even when the blended score sits ≥ 50.
+        contradiction_on and area_reading == Reading.PROMISED_NOT_NOW.value
+    ):
+        next_improvement = _find_next_improvement_date(
+            area=area,
+            current_score=score,
+            on_date=on_date,
+            birth_jd=birth_jd,
+            natal_moon_rasi=natal_moon_rasi,
+            natal_lagna_rasi=natal_lagna_rasi,
+            moon_longitude=natal_moon_longitude,
+            natal_planet_scores=natal_planet_scores,
+            natal_planet_rasis=natal_planet_rasis,
+            vargas=vargas,
+            bav=bav,
+            sav=sav,
+            native_age=native_age,
+            location=location,
+        )
+    if score < 50 or bundle.caution is not None:
+        bundle = _NarrativeBundle(
+            narrative=bundle.narrative,
+            outlook=_with_improvement_hint(bundle.outlook, next_improvement),
+            remedy=bundle.remedy,
+            # `next_improvement` is None when the six-month scan found no
+        # improving day. `_duration_caution` names the date as the end of a
+        # challenging period, so with no date there is nothing true to say
+        # and the area's own caution stands. It used to be handed
+        # `on_date + 90` in that case — a date the scan had rejected either
+        # side of — which made the sentence assert exactly what the engine
+        # had disproved.
+        caution=(
+            _duration_caution(area, next_improvement)
+            if score < 50 and next_improvement is not None
+            else bundle.caution
+        ),
+        )
+
+    maraka_guard = _maraka_safety_check(
+        area=area,
+        maha_lord=maha_lord,
+        antar_lord=antar_lord,
+        lagna_rasi=natal_lagna_rasi,
+        native_age=native_age,
+        node_rasi_map=node_rasi_map,
+    )
+    if maraka_guard is not None:
+        bundle = _NarrativeBundle(
+            narrative=bundle.narrative,
+            outlook=bundle.outlook,
+            remedy=bundle.remedy,
+            caution=_t(maraka_guard["override_caution_ta"], maraka_guard["override_caution_en"]),
+        )
+        if maraka_guard.get("suppress_score_display"):
+            score = 0
+            # We chose not to show the claim — no reading to speak either.
+            area_reading = None
+
+    # D4 (plan Phase 3): speak the discriminating readings as a framing
+    # sentence. PROMISED_NOT_NOW carries the concrete next-window date;
+    # ACTIVE_BUT_UNPROMISED is completed in a post-pass below, once every
+    # area's score is known (it names where the chart points instead).
+    if contradiction_on and area_reading in (
+        Reading.PROMISED_NOT_NOW.value,
+        Reading.NOT_PROMISED.value,
+        Reading.PARTIALLY_PROMISED.value,
+    ):
+        _voice = (
+            promised_not_now_voice(next_improvement)
+            if area_reading == Reading.PROMISED_NOT_NOW.value
+            else reading_phrase(area_reading)
+        )
+        bundle = _NarrativeBundle(
+            narrative=_t(
+                f"{_voice.ta} {bundle.narrative.ta}",
+                f"{_voice.en} {bundle.narrative.en}",
+            ),
+            outlook=bundle.outlook,
+            remedy=bundle.remedy,
+            caution=bundle.caution,
+        )
+
+    # D5 accountability (plan Phase 4): only HIGH confidence (all three
+    # signals aligned) is a material claim worth holding ourselves to —
+    # logging all twelve areas every serve would drown the calibration
+    # report in non-claims. The window matches the 30-day outlook. A
+    # maraka-suppressed score means we chose not to show the claim, so
+    # it isn't logged either.
+    should_log = confidence == "HIGH" and not (
+        maraka_guard is not None and maraka_guard.get("suppress_score_display")
+    )
+
+    # Phase 5 root-cause chain: for LOW confidence only, replace the flat
+    # factor list with an ordered "because ... therefore ..." reading
+    # built from evidence already computed above (karaka transit, dasha,
+    # sani cycle, and net effect) instead of averaging it away silently.
+    causal_chain_text: LifeAreaText | None = None
+    _married_harmony = married and area == "RELATIONSHIPS" and area in relevant_areas
+    if signature_on and confidence == "LOW" and not phase_skipped and not _married_harmony:
+        chain = render_causal_chain(
+            steps=[driver_reason, detailed_reason],
+            conclusion=confidence_reason,
+        )
+        causal_chain_text = _t(chain.ta, chain.en)
+
+    # Forward horizons. A maraka-suppressed score is a claim we chose NOT to
+    # make, and a phase-skipped area makes no claim at all — projecting a
+    # number forward for either would fabricate one, so we mirror `score`.
+    _suppressed = maraka_guard is not None and maraka_guard.get("suppress_score_display")
+    if _suppressed or phase_skipped:
+        score_6mo = score
+        score_12mo = score
+    else:
+        score_6mo = _projected_area_score(
+            area, forecast_ctx_6mo,
+            natal_moon_rasi=natal_moon_rasi,
+            natal_lagna_rasi=natal_lagna_rasi,
+            natal_planet_scores=natal_planet_scores,
+            natal_planet_rasis=natal_planet_rasis,
+            vargas=vargas,
+            bav=bav,
+            sav=sav,
+            native_age=age_6mo,
+        )
+        score_12mo = _projected_area_score(
+            area, forecast_ctx_12mo,
+            natal_moon_rasi=natal_moon_rasi,
+            natal_lagna_rasi=natal_lagna_rasi,
+            natal_planet_scores=natal_planet_scores,
+            natal_planet_rasis=natal_planet_rasis,
+            vargas=vargas,
+            bav=bav,
+            sav=sav,
+            native_age=age_12mo,
+        )
+
+    # Owner rulings 2026-10-01, surfaced on the card. Both read the score
+    # the card shows; a phase-skipped or maraka-suppressed area claims no
+    # score, so it gets neither a band nor a remedy kind.
+    remedy_kind: str | None = None
+    score_band: str | None = None
+    score_band_text: LifeAreaText | None = None
+    if not (_suppressed or phase_skipped):
+        score_band, _band_ta, _band_en = interpret_score(score)
+        score_band_text = _t(_band_ta, _band_en)
+        remedy_kind = str(scored.structured_remedy.get("kind")) if scored.structured_remedy else None
+        if remedy_kind == "MAINTAIN":
+            # A parikaram is for a difficulty, not a blessing: a well-supported
+            # area gets the light practice, never a temple routine.
+            bundle = _NarrativeBundle(
+                narrative=bundle.narrative,
+                outlook=bundle.outlook,
+                remedy=_t(MAINTAIN_PRACTICE_TA, MAINTAIN_PRACTICE_EN),
+                caution=bundle.caution,
+            )
+
+    return _AreaNarration(
+        score=score,
+        score_6mo=score_6mo,
+        score_12mo=score_12mo,
+        label=label,
+        bundle=bundle,
+        reading=area_reading,
+        confidence=confidence,
+        confidence_reason=confidence_reason,
+        driver_reason=driver_reason,
+        is_goal_focus=is_goal_focus,
+        phase_skipped=phase_skipped,
+        causal_chain=causal_chain_text,
+        remedy_kind=remedy_kind,
+        score_band=score_band,
+        score_band_text=score_band_text,
+        should_log=should_log,
+    )
+
+
 def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_user_id: UUID) -> LifeAreasResponse:
     _assert_chart_owner(session, chart_id, owner_user_id)
     chart_snapshot = load_persisted_chart_response(session, chart_id)
@@ -2182,239 +2566,59 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
             transit_planet_rasis=transit_planet_rasis,
             functional_nature_map=functional_nature_map,
         )
-        score, score_breakdown, area_reading = _scored.score, _scored.breakdown, _scored.reading
+        # The rest — narrative, reading, confidence, forward projection — is
+        # `_narrate_life_area`'s job; only the fields `LifeAreaData` reads
+        # straight through from `_AreaScore` are unpacked here.
+        score_breakdown = _scored.breakdown
         chain_result = _scored.chain
         structured_remedy = _scored.structured_remedy
         primary_karaka = _scored.primary_karaka
-        maha_score, antar_score = _scored.maha_score, _scored.antar_score
-        karaka_house_from_moon, driver_reason = _scored.karaka_house_from_moon, _scored.driver_reason
-        _area_confidence, _area_conf_reason = _scored.confidence, _scored.confidence_reason
 
-        saturn_house = saturn_house_from_moon
-        bundle = _narrative(
-            area, score, maha_lord,
-            sani_cycle.is_active, sani_cycle.type if sani_cycle.is_active else None,
-            chandrashtama, jupiter_house, saturn_house,
-            murthi=ezharai_murthi,
-            house_4_locus=get_house_locus(4, current_age, getattr(birth_profile, "marital_status", None)),
-        )
-        detailed_reason = _build_area_reason(
-            area_key=area,
-            score=score,
-            karaka_planet=primary_karaka,
-            karaka_house_from_moon=karaka_house_from_moon,
-            maha_lord=maha_lord,
-            antar_lord=antar_lord,
-            maha_relevant=maha_score >= 60,
-            antar_relevant=antar_score >= 60,
-            sani_phase=sani_cycle.type if sani_cycle.is_active else None,
-        )
-        # Phase 5: for LOW confidence with signature_on, the causal chain
-        # below (driver_reason -> detailed_reason -> conclusion) already
-        # speaks detailed_reason as a step. Don't also bake it into the
-        # narrative paragraph, or the card repeats the same sentence twice —
-        # once plain, once inside the "because ... therefore ..." block.
-        if not (signature_on and _area_confidence == "LOW"):
-            bundle = _NarrativeBundle(
-                narrative=_t(f"{detailed_reason.ta} {bundle.narrative.ta}", f"{detailed_reason.en} {bundle.narrative.en}"),
-                outlook=bundle.outlook,
-                remedy=bundle.remedy,
-                caution=bundle.caution,
-            )
-        is_goal_focus = area in goal_focus_areas
-        if is_goal_focus:
-            bundle = _NarrativeBundle(
-                narrative=_t(
-                    f"{bundle.narrative.ta} (உங்கள் இலக்கு கவனம்)",
-                    f"{bundle.narrative.en} (This is highlighted based on your active goal.)",
-                ),
-                outlook=bundle.outlook,
-                remedy=bundle.remedy,
-                caution=bundle.caution,
-            )
-        if score >= 70:
-            action = _AREA_ACTION_GUIDANCE.get(area)
-            if action:
-                bundle = _NarrativeBundle(
-                    narrative=bundle.narrative,
-                    outlook=_t(f"{bundle.outlook.ta} {action['ta']}", f"{bundle.outlook.en} {action['en']}"),
-                    remedy=bundle.remedy,
-                    caution=bundle.caution,
-                )
-
-        relevant_areas = _PHASE_RELEVANT_AREAS.get(phase, _PHASE_RELEVANT_AREAS["MID"])
-        if area == "CAREER" and student_under_18:
-            relevant_areas = set(relevant_areas)
-            relevant_areas.discard("CAREER")
-        # Spouse harmony is lifelong: a married native keeps the Relationships
-        # area (rendered as "Married life harmony" below) at every phase — the
-        # ELDER phase set drops Relationships for the unmarried (no marriage
-        # prospects), which would otherwise hide a married elder couple's
-        # harmony reading. No-op for YOUNG_ADULT/MID where it is already in-set.
-        if area == "RELATIONSHIPS" and married:
-            relevant_areas = set(relevant_areas) | {"RELATIONSHIPS"}
-        phase_skipped = area not in relevant_areas
-
-        # BAV-derived indications (5th from Guru etc.). Keyed on `area`, NEVER on
-        # `chain_key` — EDUCATION borrows the CHILDREN chain, and keying on the
-        # chain would put progeny indications on a child's education card.
-        #
-        # Both existing age gates must pass: the life-phase gate (which catches
-        # the infant and the elder) and the area's own band (which catches the
-        # 55-year-old, whose MID phase still lists CHILDREN but whose age is past
-        # the band). Neither is re-derived here.
-        # Prepended, not appended: surfaces slice the factor lists to three, and
-        # these are the only factors that speak about the area's actual subject
-        # (progeny, siblings, the maternal and paternal lines) rather than
-        # repeating the generic strength signals every area carries.
-        _disclosed = disclosable_indications(
-            bav_derived,
+        narrated = _narrate_life_area(
             area,
-            age_relevant=(
-                not phase_skipped
-                and chain_result["karaka_status"] != "NOT_APPLICABLE_FOR_AGE"
-            ),
-        )
-        chain_result["supporting_factors"][:0] = [
-            factor_code(i) for i in _disclosed if i.band != BAND_THIN
-        ]
-        chain_result["blocking_factors"][:0] = [
-            factor_code(i) for i in _disclosed if i.band == BAND_THIN
-        ]
-
-        if phase_skipped:
-            skip_text = _phase_skip_text(phase)
-            if phase in {"INFANT", "CHILD"}:
-                score = 0
-            # A phase-skipped area makes no claim — no reading either.
-            area_reading = None
-            _area_confidence = "LOW"
-            _area_conf_reason = skip_text
-            driver_reason = skip_text
-            bundle = _NarrativeBundle(
-                narrative=skip_text,
-                outlook=skip_text,
-                remedy=skip_text,
-                caution=None,
-            )
-
-        # For married users, render relationship guidance as harmony-focused content.
-        label = effective_label
-        if married and area == "RELATIONSHIPS" and area in relevant_areas:
-            label = _t("தாம்பத்ய ஒற்றுமை", "Married life harmony")
-            # Harmony framing is not a new-event promise — married profiles
-            # are never promise-gated (PR-1 marriage decision), so a
-            # promise/timing reading would be a category error here.
-            area_reading = None
-            married_narrative, married_outlook, married_caution = _married_relationship_text(score)
-            bundle = _NarrativeBundle(
-                narrative=married_narrative,
-                outlook=married_outlook,
-                remedy=bundle.remedy,
-                caution=married_caution,
-            )
-
-        next_improvement: date | None = None
-        if score < 50 or bundle.caution is not None or (
-            # PROMISED_NOT_NOW must answer "then when?" (plan Phase 3) —
-            # compute the window date even when the blended score sits ≥ 50.
-            contradiction_on and area_reading == Reading.PROMISED_NOT_NOW.value
-        ):
-            next_improvement = _find_next_improvement_date(
-                area=area,
-                current_score=score,
-                on_date=on_date,
-                birth_jd=birth_jd,
-                natal_moon_rasi=natal_moon.rasi,
-                natal_lagna_rasi=natal_lagna_rasi,
-                moon_longitude=natal_moon.absolute_longitude,
-                natal_planet_scores=natal_planet_scores,
-                natal_planet_rasis=natal_planet_rasis,
-                vargas=getattr(chart_snapshot.data, "vargas", {}),
-                bav=bav_table,
-                sav=sarvashtakavarga,
-                native_age=current_age,
-                location=_daily_location,
-            )
-        if score < 50 or bundle.caution is not None:
-            bundle = _NarrativeBundle(
-                narrative=bundle.narrative,
-                outlook=_with_improvement_hint(bundle.outlook, next_improvement),
-                remedy=bundle.remedy,
-                # `next_improvement` is None when the six-month scan found no
-            # improving day. `_duration_caution` names the date as the end of a
-            # challenging period, so with no date there is nothing true to say
-            # and the area's own caution stands. It used to be handed
-            # `on_date + 90` in that case — a date the scan had rejected either
-            # side of — which made the sentence assert exactly what the engine
-            # had disproved.
-            caution=(
-                _duration_caution(area, next_improvement)
-                if score < 50 and next_improvement is not None
-                else bundle.caution
-            ),
-            )
-
-        maraka_guard = _maraka_safety_check(
-            area=area,
+            _scored,
+            effective_label=effective_label,
             maha_lord=maha_lord,
             antar_lord=antar_lord,
-            lagna_rasi=natal_lagna_rasi,
+            sani_cycle=sani_cycle,
+            chandrashtama=chandrashtama,
+            jupiter_house=jupiter_house,
+            saturn_house_from_moon=saturn_house_from_moon,
+            ezharai_murthi=ezharai_murthi,
             native_age=current_age,
+            marital_status=getattr(birth_profile, "marital_status", None),
+            signature_on=signature_on,
+            goal_focus_areas=goal_focus_areas,
+            phase=phase,
+            student_under_18=student_under_18,
+            married=married,
+            bav_derived=bav_derived,
+            contradiction_on=contradiction_on,
+            on_date=on_date,
+            birth_jd=birth_jd,
+            natal_moon_rasi=natal_moon.rasi,
+            natal_moon_longitude=natal_moon.absolute_longitude,
+            natal_lagna_rasi=natal_lagna_rasi,
+            natal_planet_scores=natal_planet_scores,
+            natal_planet_rasis=natal_planet_rasis,
+            vargas=getattr(chart_snapshot.data, "vargas", {}),
+            bav=bav_table,
+            sav=sarvashtakavarga,
+            location=_daily_location,
             node_rasi_map=_node_rasi_map,
+            forecast_ctx_6mo=forecast_ctx_6mo,
+            forecast_ctx_12mo=forecast_ctx_12mo,
+            age_6mo=age_6mo,
+            age_12mo=age_12mo,
         )
-        if maraka_guard is not None:
-            bundle = _NarrativeBundle(
-                narrative=bundle.narrative,
-                outlook=bundle.outlook,
-                remedy=bundle.remedy,
-                caution=_t(maraka_guard["override_caution_ta"], maraka_guard["override_caution_en"]),
-            )
-            if maraka_guard.get("suppress_score_display"):
-                score = 0
-                # We chose not to show the claim — no reading to speak either.
-                area_reading = None
-
-        # D4 (plan Phase 3): speak the discriminating readings as a framing
-        # sentence. PROMISED_NOT_NOW carries the concrete next-window date;
-        # ACTIVE_BUT_UNPROMISED is completed in a post-pass below, once every
-        # area's score is known (it names where the chart points instead).
-        if contradiction_on and area_reading in (
-            Reading.PROMISED_NOT_NOW.value,
-            Reading.NOT_PROMISED.value,
-            Reading.PARTIALLY_PROMISED.value,
-        ):
-            _voice = (
-                promised_not_now_voice(next_improvement)
-                if area_reading == Reading.PROMISED_NOT_NOW.value
-                else reading_phrase(area_reading)
-            )
-            bundle = _NarrativeBundle(
-                narrative=_t(
-                    f"{_voice.ta} {bundle.narrative.ta}",
-                    f"{_voice.en} {bundle.narrative.en}",
-                ),
-                outlook=bundle.outlook,
-                remedy=bundle.remedy,
-                caution=bundle.caution,
-            )
-
-        # D5 accountability (plan Phase 4): only HIGH confidence (all three
-        # signals aligned) is a material claim worth holding ourselves to —
-        # logging all twelve areas every serve would drown the calibration
-        # report in non-claims. The window matches the 30-day outlook. A
-        # maraka-suppressed score means we chose not to show the claim, so
-        # it isn't logged either.
-        if _area_confidence == "HIGH" and not (
-            maraka_guard is not None and maraka_guard.get("suppress_score_display")
-        ):
+        if narrated.should_log:
             log_prediction(
                 session,
                 chart_id=chart_id,
                 source="life_areas",
                 life_area=area,
-                band=legacy_confidence_to_band(_area_confidence).value,
-                reading=area_reading,
+                band=legacy_confidence_to_band(narrated.confidence).value,
+                reading=narrated.reading,
                 calc_version=chart_snapshot.meta.calculation_version,
                 window_start=on_date,
                 window_end=on_date + timedelta(days=30),
@@ -2422,75 +2626,11 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
                 active_antar=antar_lord,
             )
 
-        # Phase 5 root-cause chain: for LOW confidence only, replace the flat
-        # factor list with an ordered "because ... therefore ..." reading
-        # built from evidence already computed above (karaka transit, dasha,
-        # sani cycle, and net effect) instead of averaging it away silently.
-        causal_chain_text: LifeAreaText | None = None
-        _married_harmony = married and area == "RELATIONSHIPS" and area in relevant_areas
-        if signature_on and _area_confidence == "LOW" and not phase_skipped and not _married_harmony:
-            chain = render_causal_chain(
-                steps=[driver_reason, detailed_reason],
-                conclusion=_area_conf_reason,
-            )
-            causal_chain_text = _t(chain.ta, chain.en)
-
-        # Forward horizons. A maraka-suppressed score is a claim we chose NOT to
-        # make, and a phase-skipped area makes no claim at all — projecting a
-        # number forward for either would fabricate one, so we mirror `score`.
-        _suppressed = maraka_guard is not None and maraka_guard.get("suppress_score_display")
-        if _suppressed or phase_skipped:
-            score_6mo = score
-            score_12mo = score
-        else:
-            score_6mo = _projected_area_score(
-                area, forecast_ctx_6mo,
-                natal_moon_rasi=natal_moon.rasi,
-                natal_lagna_rasi=natal_lagna_rasi,
-                natal_planet_scores=natal_planet_scores,
-                natal_planet_rasis=natal_planet_rasis,
-                vargas=getattr(chart_snapshot.data, "vargas", {}),
-                bav=bav_table,
-                sav=sarvashtakavarga,
-                native_age=age_6mo,
-            )
-            score_12mo = _projected_area_score(
-                area, forecast_ctx_12mo,
-                natal_moon_rasi=natal_moon.rasi,
-                natal_lagna_rasi=natal_lagna_rasi,
-                natal_planet_scores=natal_planet_scores,
-                natal_planet_rasis=natal_planet_rasis,
-                vargas=getattr(chart_snapshot.data, "vargas", {}),
-                bav=bav_table,
-                sav=sarvashtakavarga,
-                native_age=age_12mo,
-            )
-
-        # Owner rulings 2026-10-01, surfaced on the card. Both read the score
-        # the card shows; a phase-skipped or maraka-suppressed area claims no
-        # score, so it gets neither a band nor a remedy kind.
-        remedy_kind: str | None = None
-        score_band: str | None = None
-        score_band_text: LifeAreaText | None = None
-        if not (_suppressed or phase_skipped):
-            score_band, _band_ta, _band_en = interpret_score(score)
-            score_band_text = _t(_band_ta, _band_en)
-            remedy_kind = str(structured_remedy.get("kind")) if structured_remedy else None
-            if remedy_kind == "MAINTAIN":
-                # A parikaram is for a difficulty, not a blessing: a well-supported
-                # area gets the light practice, never a temple routine.
-                bundle = _NarrativeBundle(
-                    narrative=bundle.narrative,
-                    outlook=bundle.outlook,
-                    remedy=_t(MAINTAIN_PRACTICE_TA, MAINTAIN_PRACTICE_EN),
-                    caution=bundle.caution,
-                )
-
         areas.append(LifeAreaData(
             area=area,
-            label=label,
-            score=score,
-            trend=_trend(score, score_6mo),
+            label=narrated.label,
+            score=narrated.score,
+            trend=_trend(narrated.score, narrated.score_6mo),
             # The flag is the NAMED DAY — what a Tamil reader calls
             # Chandrashtamam, and what the Today hero badges, so the two tabs
             # agree. The points are the graded CONDITION and are a different
@@ -2503,30 +2643,30 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
                 round(_CHANDRASHTAMA_PENALTY * chandrashtama_share)
                 if area in _CHANDRASHTAMA_AREAS else 0
             ),
-            score6mo=score_6mo,
-            score12mo=score_12mo,
-            ageRelevant=not phase_skipped,
-            confidence=_area_confidence,
-            confidenceReason=_area_conf_reason,
-            causalChain=causal_chain_text,
+            score6mo=narrated.score_6mo,
+            score12mo=narrated.score_12mo,
+            ageRelevant=not narrated.phase_skipped,
+            confidence=narrated.confidence,
+            confidenceReason=narrated.confidence_reason,
+            causalChain=narrated.causal_chain,
             primaryHouseStrength=chain_result["primary_house_strength"],
             karakaStatus=chain_result["karaka_status"],
             dashaActivation=chain_result["dasha_activation"],
             transitSupport=chain_result["transit_support"],
             supportingFactors=chain_result["supporting_factors"],
             blockingFactors=chain_result["blocking_factors"],
-            driver=LifeAreaDriver(planet=primary_karaka, reason=driver_reason),
-            narrative=bundle.narrative,
-            remedy=bundle.remedy,
-            next30DayOutlook=bundle.outlook,
-            caution=bundle.caution,
-            isGoalFocus=is_goal_focus,
-            reading=area_reading if contradiction_on else None,
+            driver=LifeAreaDriver(planet=primary_karaka, reason=narrated.driver_reason),
+            narrative=narrated.bundle.narrative,
+            remedy=narrated.bundle.remedy,
+            next30DayOutlook=narrated.bundle.outlook,
+            caution=narrated.bundle.caution,
+            isGoalFocus=narrated.is_goal_focus,
+            reading=narrated.reading if contradiction_on else None,
             scoreBreakdown=score_breakdown,
             structuredRemedy=structured_remedy,
-            remedyKind=remedy_kind,
-            scoreBand=score_band,
-            scoreBandText=score_band_text,
+            remedyKind=narrated.remedy_kind,
+            scoreBand=narrated.score_band,
+            scoreBandText=narrated.score_band_text,
         ))
 
     # D4 post-pass: ACTIVE_BUT_UNPROMISED names where the chart points the
