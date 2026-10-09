@@ -122,6 +122,21 @@ def _dignity_label(planet: str, rasi: int | None, *, combust: bool = False) -> s
     return "NEUTRAL"
 
 
+def _missing_data_gate() -> GateResult:
+    """SILENT: the karaka or a lord the reading needs has no placement (D3)."""
+    return assess_promise(
+        bhava_lord_house=1, bhava_lord_afflicted=False,
+        karaka_dignity_d1="NEUTRAL", karaka_dignity_varga="NEUTRAL",
+        karaka_available=False,
+    )
+
+
+def _missing_scored_placements(payload: MarriageAssessmentInput) -> list[str]:
+    """Grahas the scoring stage reads by name that ``planets_rasi`` lacks."""
+    needed = ("VENUS", house_lord_for_lagna(payload.lagna_rasi, 7), house_lord_for_lagna(payload.lagna_rasi, 2))
+    return sorted({graha for graha in needed if graha not in payload.planets_rasi})
+
+
 def _marriage_promise_gate(payload: MarriageAssessmentInput) -> GateResult:
     """D1 promise gate for marriage timing (plan §Phase 1 step 4).
 
@@ -133,11 +148,7 @@ def _marriage_promise_gate(payload: MarriageAssessmentInput) -> GateResult:
     seventh_lord_rasi = payload.planets_rasi.get(seventh_lord)
     venus_rasi = payload.planets_rasi.get("VENUS")
     if seventh_lord_rasi is None or venus_rasi is None:
-        return assess_promise(
-            bhava_lord_house=1, bhava_lord_afflicted=False,
-            karaka_dignity_d1="NEUTRAL", karaka_dignity_varga="NEUTRAL",
-            karaka_available=False,
-        )
+        return _missing_data_gate()
     seventh_lord_house = house_from_reference(payload.lagna_rasi, seventh_lord_rasi)
     # Beyond debilitation/combustion, two or more natural malefics on the
     # 7th lord (conjunction or classical drishti) count as fatal affliction
@@ -928,6 +939,16 @@ def assess_marriage_prediction(
         gate = _marriage_promise_gate(payload)
         if not gate.proceeds_to_timing:
             return _gated_marriage_prediction(payload, gate)
+
+    # The scoring stage reads Venus and the 7th and 2nd lords by name. Without
+    # one of them this used to raise KeyError whenever the promise gate had not
+    # already answered SILENT — gate off, a married profile, or a missing 2nd
+    # lord. Missing data reads SILENT here too, never a guessed score (D3). A
+    # persisted chart carries all nine grahas, so only a hand-built input gets here.
+    missing = _missing_scored_placements(payload)
+    if missing:
+        logger.warning("marriage reading has no placement for %s; answering SILENT", ", ".join(missing))
+        return _gated_marriage_prediction(payload, _missing_data_gate())
 
     scored = _score_marriage_prediction(
         payload,

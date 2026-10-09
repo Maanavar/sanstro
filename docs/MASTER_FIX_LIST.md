@@ -2250,6 +2250,31 @@ then A14, A15, A13.
   prediction log), persistence and `logger` calls are outside a pure-function
   comparison; the Tamil copy is compared byte-for-byte and unchanged, not
   read. Full backend suite: pending, recorded below when it finishes.
+  **Missing-placement `KeyError` — fixed (2026-10-09, owner asked).** The
+  30 raising cases above. The scoring stage reads Venus and the 7th and 2nd
+  lords by name; the promise gate answers SILENT for a missing Venus or 7th
+  lord, but only when it runs. So a missing one raised `KeyError` with the
+  gate off or for a married profile (the gate never runs for one), and a
+  missing **2nd** lord raised even with the gate on (the gate does not look
+  at it — the comparator's synthetic inputs never removed it, so this third
+  path was found by reading, not by the matrix). Now
+  `assess_marriage_prediction` checks `_missing_scored_placements` after the
+  gate and answers with the same SILENT redirect (`_missing_data_gate`, which
+  the gate's own missing-data branch now shares), logging which graha was
+  missing. Gate-on reads with Venus or the 7th lord missing are unchanged;
+  the gate still answers them first. **Who sees a difference:** nobody today
+  — a persisted chart carries all nine grahas; a hand-built or partial input
+  now gets SILENT, not a 500.
+  **Gate:** `tests/test_marriage_missing_placement.py` — Venus, Saturn and
+  the Sun (Kadagam lagna: 7th and 2nd lords) each removed × gate off / gate
+  on / married must read SILENT; complete placements must not. With the
+  guard disabled: 7 of 9 fail (gate-on Venus and Saturn pass either way, as
+  the gate catches them). Comparator HEAD → tree: **30 differ, exactly the
+  30 that raised** (raises 30 → 0, SILENT 579 → 609, every other count
+  unchanged). mypy clean on 368 files; ruff clean.
+  **Blind spot:** the full backend suite below started at `2489434`, before
+  this fix; the fix is covered by its own test, the marriage files and the
+  comparator, not by that run.
   **Fourth unit, golden first — `dashboard-workspace.tsx` (2026-10-09).**
   *An earlier attempt by another agent (Codex), reviewed and superseded:*
   `44f69a2`/`c9130ad` added a two-case "composition golden" that recorded 4
