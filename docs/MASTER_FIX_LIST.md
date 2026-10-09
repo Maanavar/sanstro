@@ -2153,7 +2153,37 @@ then A14, A15, A13.
   files touching marriage, predictions or propensities: 2116 passed, 1
   skipped. ruff, mypy clean. **Blind spots:** the golden does not cover the route's wrapping
   (`age_gated`, `alternative_framing`, the prediction log) or a caller that
-  builds the input without lords; no extraction from this unit yet.
+  builds the input without lords.
+  **First `assess_marriage_prediction` stage — scoring (2026-10-09).** The
+  pre-move function was 648 lines. A test search found import callers only;
+  no test patched a call on `app.services.marriage_service`, so the move
+  breaks no interception point. `_score_marriage_prediction` takes the typed
+  payload plus the resolved promise gate and married-harmony mode, and returns
+  a named `_MarriageScore`: the clamped internal score, factors, supports,
+  challenges, and dasha/transit support. The 7th/2nd/4th/5th-house, Venus,
+  D9, affliction, dasha, transit, age, Sevvai and Rahu-Ketu rules moved
+  together; applicability gates, narration, bands, signature and safety stay
+  in the public function. `assess_marriage_prediction`: **648 → 225 lines**.
+  **Proof:** golden + determinism + direct stage tests: 107 passed. The
+  same-process comparator loads `git show HEAD:app/services/marriage_service.py`
+  under a registered alias and compares sorted full-result JSON over 6
+  synthetic profiles × 15 dates spanning 2026–2040 × {as built, married,
+  parent, promise gate off, maha/antar absent}: **450 cases, 0 differ**.
+  Reach: verdict paths age gate 36, relationship gate 90, upper-age gate 88,
+  married HIGH 58 / MEDIUM 1, timing HIGH 144 / MEDIUM 33; confidences HIGH
+  202 / MEDIUM 34 / LOW 214; bands STRONG 62 / LIKELY 56 / absent 332.
+  Controls: shifting one profile's dates by 31 days → 75 differ; changing the
+  extracted STRONG-dasha weight 10 → 9 → 5 differ, and the direct weight test
+  failed (1 failed / 5 passed). After restoration, 6 direct tests pass.
+  Container Python 3.12 with CI's pinned mypy 2.3.1 and ruff 0.15.17: mypy
+  clean on 368 files; ruff clean on `app tests`.
+  **Blind spots:** the matrix never reaches promise BLOCKED/SILENT or a LOW
+  scored verdict (LOW counts above are applicability gates), and an internal
+  score change remains invisible unless it changes a returned field — the
+  10 → 9 control changed only 5 of 450. The route wrapping, persistence and
+  prediction log remain outside this pure-function comparison. The full 76
+  related files and full backend suite are deferred until the marriage unit's
+  remaining narration extraction is complete.
   **Fourth unit, golden first — `dashboard-workspace.tsx` (2026-10-09).**
   *An earlier attempt by another agent (Codex), reviewed and superseded:*
   `44f69a2`/`c9130ad` added a two-case "composition golden" that recorded 4

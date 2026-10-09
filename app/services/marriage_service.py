@@ -228,118 +228,30 @@ def _gated_marriage_prediction(payload: MarriageAssessmentInput, gate: GateResul
     ))
 
 
-def assess_marriage_prediction(
-    payload: MarriageAssessmentInput, *, use_reasoning_gate: bool | None = None
-) -> LifeAreaPrediction:
-    # Parent/grandparent profiles: marriage timing is not applicable — redirect to
-    # family harmony and companionship guidance instead.
-    if payload.relationship_to_owner in _PARENTAL_RELATIONSHIPS:
-        return LifeAreaPrediction(
-            life_area="marriage",
-            main_prediction_ta=(
-                "பெற்றோர் / பாட்டன்/பாட்டி பிரோஃபைல்களுக்கு திருமண நேர ஆலோசனை பொருந்தாது. "
-                "குடும்ப ஒற்றுமை, ஆரோக்கியம் மற்றும் ஆன்மிக வழிகாட்டல் பற்றி விநாடி உதவ தயார்."
-            ),
-            main_prediction_en=(
-                "Marriage timing guidance is not applicable for parent/grandparent profiles. "
-                "Vinaadi is here to guide on family harmony, health, and spiritual well-being."
-            ),
-            astrological_factors=[
-                AstroFactor(
-                    key="relationship_gate",
-                    status="INFO",
-                    detail=BiText(
-                        ta=f"உறவு வகை '{payload.relationship_to_owner}': திருமண நேர கணிப்பு இந்த சூழலில் பொருந்தாது.",
-                        en=f"Relationship type '{payload.relationship_to_owner}': marriage timing prediction is not applicable in this context.",
-                    ),
-                )
-            ],
-            dasha_support="PARTIAL",
-            transit_support="PARTIAL",
-            timing_window_start=payload.as_of,
-            timing_window_end=date(payload.as_of.year, 12, 31),
-            confidence="LOW",
-            challenges=[],
-            supports=[BiText(
-                "குடும்ப நலன், ஆரோக்கியம் மற்றும் துணைவர் ஒற்றுமை பற்றி கேட்கலாம்.",
-                "Ask about family well-being, health, and companionship harmony instead.",
-            )],
-        )
+@dataclass(frozen=True, slots=True)
+class _MarriageScore:
+    """Marriage factors and numeric score before narration and bands."""
 
-    if payload.age < 18:
-        return LifeAreaPrediction(
-            life_area="marriage",
-            main_prediction_ta="திருமண நேர ஆலோசனை வயது காரணமாக ஒத்திவைக்கப்படுகிறது; இப்போது குழந்தை வளர்ச்சி மற்றும் குடும்ப பராமரிப்பே முக்கியம்.",
-            main_prediction_en="Marriage timing/advice is age-gated; current phase is child development and family care.",
-            astrological_factors=[
-                AstroFactor(
-                    key="age_phase_gate",
-                    status="INFO",
-                    detail=BiText(
-                        ta=f"வயது {payload.age}: இந்த கட்டத்தில் திருமண வழிகாட்டல் பொருந்தாது.",
-                        en=f"Age {payload.age}: marriage guidance is not applicable in this phase.",
-                    ),
-                )
-            ],
-            dasha_support="PARTIAL",
-            transit_support="PARTIAL",
-            timing_window_start=payload.as_of,
-            timing_window_end=date(payload.as_of.year, 12, 31),
-            confidence="LOW",
-            challenges=[BiText("இப்போதைய வாழ்க்கை முடிவுகளுக்கு இந்த பகுதியை பயன்படுத்த வேண்டாம்.", "Do not use this section for current-life decisions.")],
-            supports=[BiText("ஆரோக்கியம், பாசம், பாதுகாப்பான வளர்ச்சி வழக்கங்கள் ஆகியவற்றில் கவனம் செலுத்தவும்.", "Focus on health, bonding, and safe growth routines.")],
-        )
+    score: int
+    factors: list[AstroFactor]
+    supports: list[BiText]
+    challenges: list[BiText]
+    dasha_support: str
+    transit_support: str
 
-    # Soft gate — past prime marriage age (50+, Tamil/Indian cultural context).
-    if payload.age >= MARRIAGE_UPPER_AGE:
-        return LifeAreaPrediction(
-            life_area="marriage",
-            main_prediction_ta=(
-                "இந்த வாழ்க்கை கட்டத்தில் ஜோதிட வழிகாட்டல் திருமண நேர கணிப்பிலிருந்து "
-                "துணைவன்/துணைவி ஒற்றுமை, குடும்ப பாலம் மற்றும் ஆன்மிக தொடர்புக்கு மாறுகிறது. "
-                "உறவு தரம் மற்றும் குடும்ப நலன் பற்றிய கேள்விகளுக்கு விநாடி உதவ தயார்."
-            ),
-            main_prediction_en=(
-                "At this life stage, astrological guidance naturally shifts from marriage timing "
-                "to companionship quality, family bonds, and spiritual partnership. "
-                "Vinaadi is happy to guide you on relationship quality and family well-being."
-            ),
-            astrological_factors=[
-                AstroFactor(
-                    key="life_stage_gate",
-                    status="INFO",
-                    detail=BiText(
-                        ta=f"வயது {payload.age}: திருமண நேர கணிப்பு இந்த கட்டத்திற்கு பொருந்தாது.",
-                        en=f"Age {payload.age}: marriage timing predictions are not applicable at this life stage.",
-                    ),
-                )
-            ],
-            dasha_support="PARTIAL",
-            transit_support="PARTIAL",
-            timing_window_start=payload.as_of,
-            timing_window_end=date(payload.as_of.year, 12, 31),
-            confidence="LOW",
-            challenges=[],
-            supports=[BiText(
-                "துணைவன்/துணைவி ஒற்றுமை மற்றும் குடும்ப நலன் பற்றி கேட்கலாம்.",
-                "Ask about companionship harmony and family well-being instead.",
-            )],
-        )
 
-    married_harmony_mode = is_married_settled(payload.marital_status)
+def _score_marriage_prediction(
+    payload: MarriageAssessmentInput,
+    *,
+    gate: GateResult | None,
+    married_harmony_mode: bool,
+) -> _MarriageScore:
+    """Build the marriage score and its named evidence lists.
 
-    # ── D1 astrological promise gate (reasoning_gate flag, plan Phase 1) ──
-    # Runs after the applicability gates above, before the score=50 block.
-    # Marriage-*timing* promise applies only when marriage is being sought;
-    # married profiles are read for harmony, not for a new-event promise.
-    if use_reasoning_gate is None:
-        use_reasoning_gate = bool(get_flag("reasoning_gate"))
-    gate: GateResult | None = None
-    if use_reasoning_gate and not married_harmony_mode:
-        gate = _marriage_promise_gate(payload)
-        if not gate.proceeds_to_timing:
-            return _gated_marriage_prediction(payload, gate)
-
+    Pure: all request-level state is carried by ``payload`` and the resolved
+    promise/harmony modes are explicit. Narration, bands, chart signature and
+    safety checks remain with ``assess_marriage_prediction``.
+    """
     seventh_house_rasi = ((payload.lagna_rasi + 7 - 2) % 12) + 1
     seventh_lord = house_lord_for_lagna(payload.lagna_rasi, 7)
     second_lord = house_lord_for_lagna(payload.lagna_rasi, 2)
@@ -774,6 +686,138 @@ def assess_marriage_prediction(
     elif rahu_ketu_label == "RAHU_KETU_DOSHAM_WITH_NIVARTHI":
         supports.append(BiText("ராகு-கேது நிவர்த்தி காரணங்கள் ஆதரவு தருகின்றன.", "Rahu-Ketu mitigation factors are supportive."))
     score = max(0, min(100, score))
+    return _MarriageScore(
+        score=score,
+        factors=factors,
+        supports=supports,
+        challenges=challenges,
+        dasha_support=dasha_support,
+        transit_support=transit_support,
+    )
+
+def assess_marriage_prediction(
+    payload: MarriageAssessmentInput, *, use_reasoning_gate: bool | None = None
+) -> LifeAreaPrediction:
+    # Parent/grandparent profiles: marriage timing is not applicable — redirect to
+    # family harmony and companionship guidance instead.
+    if payload.relationship_to_owner in _PARENTAL_RELATIONSHIPS:
+        return LifeAreaPrediction(
+            life_area="marriage",
+            main_prediction_ta=(
+                "பெற்றோர் / பாட்டன்/பாட்டி பிரோஃபைல்களுக்கு திருமண நேர ஆலோசனை பொருந்தாது. "
+                "குடும்ப ஒற்றுமை, ஆரோக்கியம் மற்றும் ஆன்மிக வழிகாட்டல் பற்றி விநாடி உதவ தயார்."
+            ),
+            main_prediction_en=(
+                "Marriage timing guidance is not applicable for parent/grandparent profiles. "
+                "Vinaadi is here to guide on family harmony, health, and spiritual well-being."
+            ),
+            astrological_factors=[
+                AstroFactor(
+                    key="relationship_gate",
+                    status="INFO",
+                    detail=BiText(
+                        ta=f"உறவு வகை '{payload.relationship_to_owner}': திருமண நேர கணிப்பு இந்த சூழலில் பொருந்தாது.",
+                        en=f"Relationship type '{payload.relationship_to_owner}': marriage timing prediction is not applicable in this context.",
+                    ),
+                )
+            ],
+            dasha_support="PARTIAL",
+            transit_support="PARTIAL",
+            timing_window_start=payload.as_of,
+            timing_window_end=date(payload.as_of.year, 12, 31),
+            confidence="LOW",
+            challenges=[],
+            supports=[BiText(
+                "குடும்ப நலன், ஆரோக்கியம் மற்றும் துணைவர் ஒற்றுமை பற்றி கேட்கலாம்.",
+                "Ask about family well-being, health, and companionship harmony instead.",
+            )],
+        )
+
+    if payload.age < 18:
+        return LifeAreaPrediction(
+            life_area="marriage",
+            main_prediction_ta="திருமண நேர ஆலோசனை வயது காரணமாக ஒத்திவைக்கப்படுகிறது; இப்போது குழந்தை வளர்ச்சி மற்றும் குடும்ப பராமரிப்பே முக்கியம்.",
+            main_prediction_en="Marriage timing/advice is age-gated; current phase is child development and family care.",
+            astrological_factors=[
+                AstroFactor(
+                    key="age_phase_gate",
+                    status="INFO",
+                    detail=BiText(
+                        ta=f"வயது {payload.age}: இந்த கட்டத்தில் திருமண வழிகாட்டல் பொருந்தாது.",
+                        en=f"Age {payload.age}: marriage guidance is not applicable in this phase.",
+                    ),
+                )
+            ],
+            dasha_support="PARTIAL",
+            transit_support="PARTIAL",
+            timing_window_start=payload.as_of,
+            timing_window_end=date(payload.as_of.year, 12, 31),
+            confidence="LOW",
+            challenges=[BiText("இப்போதைய வாழ்க்கை முடிவுகளுக்கு இந்த பகுதியை பயன்படுத்த வேண்டாம்.", "Do not use this section for current-life decisions.")],
+            supports=[BiText("ஆரோக்கியம், பாசம், பாதுகாப்பான வளர்ச்சி வழக்கங்கள் ஆகியவற்றில் கவனம் செலுத்தவும்.", "Focus on health, bonding, and safe growth routines.")],
+        )
+
+    # Soft gate — past prime marriage age (50+, Tamil/Indian cultural context).
+    if payload.age >= MARRIAGE_UPPER_AGE:
+        return LifeAreaPrediction(
+            life_area="marriage",
+            main_prediction_ta=(
+                "இந்த வாழ்க்கை கட்டத்தில் ஜோதிட வழிகாட்டல் திருமண நேர கணிப்பிலிருந்து "
+                "துணைவன்/துணைவி ஒற்றுமை, குடும்ப பாலம் மற்றும் ஆன்மிக தொடர்புக்கு மாறுகிறது. "
+                "உறவு தரம் மற்றும் குடும்ப நலன் பற்றிய கேள்விகளுக்கு விநாடி உதவ தயார்."
+            ),
+            main_prediction_en=(
+                "At this life stage, astrological guidance naturally shifts from marriage timing "
+                "to companionship quality, family bonds, and spiritual partnership. "
+                "Vinaadi is happy to guide you on relationship quality and family well-being."
+            ),
+            astrological_factors=[
+                AstroFactor(
+                    key="life_stage_gate",
+                    status="INFO",
+                    detail=BiText(
+                        ta=f"வயது {payload.age}: திருமண நேர கணிப்பு இந்த கட்டத்திற்கு பொருந்தாது.",
+                        en=f"Age {payload.age}: marriage timing predictions are not applicable at this life stage.",
+                    ),
+                )
+            ],
+            dasha_support="PARTIAL",
+            transit_support="PARTIAL",
+            timing_window_start=payload.as_of,
+            timing_window_end=date(payload.as_of.year, 12, 31),
+            confidence="LOW",
+            challenges=[],
+            supports=[BiText(
+                "துணைவன்/துணைவி ஒற்றுமை மற்றும் குடும்ப நலன் பற்றி கேட்கலாம்.",
+                "Ask about companionship harmony and family well-being instead.",
+            )],
+        )
+
+    married_harmony_mode = is_married_settled(payload.marital_status)
+
+    # ── D1 astrological promise gate (reasoning_gate flag, plan Phase 1) ──
+    # Runs after the applicability gates above, before the score=50 block.
+    # Marriage-*timing* promise applies only when marriage is being sought;
+    # married profiles are read for harmony, not for a new-event promise.
+    if use_reasoning_gate is None:
+        use_reasoning_gate = bool(get_flag("reasoning_gate"))
+    gate: GateResult | None = None
+    if use_reasoning_gate and not married_harmony_mode:
+        gate = _marriage_promise_gate(payload)
+        if not gate.proceeds_to_timing:
+            return _gated_marriage_prediction(payload, gate)
+
+    scored = _score_marriage_prediction(
+        payload,
+        gate=gate,
+        married_harmony_mode=married_harmony_mode,
+    )
+    score = scored.score
+    factors = scored.factors
+    supports = scored.supports
+    challenges = scored.challenges
+    dasha_support = scored.dasha_support
+    transit_support = scored.transit_support
     top_supports = [b.ta for b in supports[:2]] if supports else []
     top_challenges = [b.ta for b in challenges[:2]] if challenges else []
     top_supports_en = [b.en for b in supports[:2]] if supports else []
