@@ -2217,6 +2217,39 @@ then A14, A15, A13.
   and new raise identically. A persisted chart always carries all nine
   grahas, so no reader reaches it today; recorded, not fixed, in a
   structural unit.
+  **Second `assess_marriage_prediction` stage — narration (2026-10-09).**
+  `_narrate_marriage_prediction` takes the `_MarriageScore`, the resolved
+  gate, the band, the married-harmony mode and the two flag values, and
+  returns a named `_MarriageNarration`: both main-prediction strings,
+  confidence, band and causal chain. The married and timing copy at the 70/50
+  boundaries, the band → legacy confidence swap, the WEAK-promise cap and the
+  LOW-only causal chain moved together. `combine_gate_and_timing` and the
+  flag reads stay in the public function in their original order, and
+  `reasoning_bands` is still read only when there is a gate. Test search:
+  import callers only; no test patches a name on this module.
+  `assess_marriage_prediction` **225 → 142 lines** (648 before the unit);
+  `_score_marriage_prediction` 455, `_narrate_marriage_prediction` 109;
+  module 922 → 961.
+  **Proof:** comparator HEAD → tree and `065318a~1` → tree: 7,800 cases each,
+  **0 differ**, same reach as above. Controls, each reverted: timing HIGH
+  boundary 70 → 71, 34 differ and 2 direct tests fail; WEAK cap removed, 351
+  differ, 1 fails; band flag ignored, 72 differ, 1 fails; married MEDIUM
+  boundary 50 → 51, 6 differ — **and all 9 of the first draft's direct tests
+  passed**: the married branch's boundaries had no direct test. Added (the
+  married 70/50 boundaries; with the band flag off the band is recorded and
+  the score's confidence kept; no gate, no band) and re-ran that control: 1
+  fails. 14 direct narration tests, 6 scoring. The 87 test files touching
+  marriage, predictions or propensities (the earlier 76 plus files added
+  since): **2,476 passed, 1 skipped**. CI-identical container: mypy clean on
+  368 files; ruff clean on `app tests` and the comparator.
+  **Blind spots:** both sides run in one process, so a set-order dependency
+  would be identical on both and invisible here — that is
+  `test_marriage_signature_determinism.py`'s job (seeds 0–3); the synthetic
+  inputs are random, not drawn from real charts, so their branch mix is not
+  production's; route wrapping (`age_gated`, `alternative_framing`, the
+  prediction log), persistence and `logger` calls are outside a pure-function
+  comparison; the Tamil copy is compared byte-for-byte and unchanged, not
+  read. Full backend suite: pending, recorded below when it finishes.
   **Fourth unit, golden first — `dashboard-workspace.tsx` (2026-10-09).**
   *An earlier attempt by another agent (Codex), reviewed and superseded:*
   `44f69a2`/`c9130ad` added a two-case "composition golden" that recorded 4

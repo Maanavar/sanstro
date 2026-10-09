@@ -21,7 +21,7 @@ from app.core.age_gate import MARRIAGE_UPPER_AGE, SEVVAI_DOSHAM_SOFTENING_AGE, i
 from app.reasoning.chart_signature import detect_signature
 from app.reasoning.promise_gate import GateGrade, GateResult, assess_promise
 from app.reasoning.timing_vote import combine_gate_and_timing
-from app.reasoning.verdict import band_to_legacy_confidence
+from app.reasoning.verdict import Band, band_to_legacy_confidence
 from app.services.feature_flags import get_flag
 from app.services.narrative_engine import render_causal_chain, signature_framing
 from app.services.safety_filter import check_text, run_safety_pass
@@ -695,6 +695,128 @@ def _score_marriage_prediction(
         transit_support=transit_support,
     )
 
+
+@dataclass(frozen=True, slots=True)
+class _MarriageNarration:
+    """Narrative and verdict fields derived from a marriage score."""
+
+    main_prediction_ta: str
+    main_prediction_en: str
+    confidence: str
+    band: str | None
+    causal_chain: BiText | None
+
+
+def _narrate_marriage_prediction(
+    scored: _MarriageScore,
+    *,
+    gate: GateResult | None,
+    band_enum: Band | None,
+    married_harmony_mode: bool,
+    reasoning_bands: bool,
+    reasoning_chart_signature: bool,
+) -> _MarriageNarration:
+    """Turn a scored marriage reading into copy, confidence and band.
+
+    Pure: feature-flag values and the resolved gate/mode are explicit; chart
+    signature calculation, safety checks and response assembly stay outside.
+    """
+    score = scored.score
+    supports = scored.supports
+    challenges = scored.challenges
+    top_supports = [b.ta for b in supports[:2]] if supports else []
+    top_challenges = [b.ta for b in challenges[:2]] if challenges else []
+    top_supports_en = [b.en for b in supports[:2]] if supports else []
+    top_challenges_en = [b.en for b in challenges[:2]] if challenges else []
+
+    if married_harmony_mode:
+        if score >= 70:
+            confidence = "HIGH"
+            support_phrase = " மற்றும் ".join(top_supports) if top_supports else "பொதுவாக வலுவான அமைப்பு"
+            main = (
+                f"உங்கள் திருமண பந்தம் இந்த கட்டத்தில் வலுவாக உள்ளது. {support_phrase}. "
+                "தசை மற்றும் கோச்சாரம் உறவு ஒற்றுமைக்கு சாதகமான சூழலை உருவாக்குகின்றன.",
+                f"Your marital bond appears strong in this phase. {'; '.join(top_supports_en) if top_supports_en else 'Overall indicators are favourable'}. "
+                "Dasha and transit support a harmonious period in your relationship.",
+            )
+        elif score >= 50:
+            confidence = "MEDIUM"
+            challenge_phrase = " மற்றும் ".join(top_challenges) if top_challenges else "கொஞ்சம் கவனம் தேவை"
+            main = (
+                f"உறவு ஒற்றுமைக்கு கொஞ்சம் கவனம் மற்றும் புரிதல் தேவை. {challenge_phrase}. "
+                "பொறுமையும் திறந்த உரையாடலும் நல்ல பலன் தரும்.",
+                f"Your relationship calls for mindful attention. {'; '.join(top_challenges_en) if top_challenges_en else 'Some areas need care'}. "
+                "Patience and open communication will strengthen the bond.",
+            )
+        else:
+            confidence = "LOW"
+            challenge_phrase = " மற்றும் ".join(top_challenges) if top_challenges else "சில சவால்கள் உள்ளன"
+            main = (
+                f"இந்த கட்டத்தில் திருமண உறவில் பொறுமையும் மரியாதையும் முக்கியம். {challenge_phrase}. "
+                "இணை நலனில் கவனம் செலுத்துவது சிறந்த பாதை.",
+                f"Patience and mutual respect are key in your marital relationship now. {'; '.join(top_challenges_en) if top_challenges_en else 'Some challenges need attention'}. "
+                "Focusing on your partner's well-being is the better path.",
+            )
+    elif score >= 70:
+        confidence = "HIGH"
+        support_phrase = "குறிப்பாக " + " மற்றும் ".join(top_supports) if top_supports else "பொதுவாக நல்ல அமைப்பு உள்ளது"
+        main = (
+            f"திருமண விஷயங்களில் ஆதரவான நேரம் தெரிகிறது. {support_phrase}. "
+            "தசை மற்றும் கோச்சாரம் இணைந்து இந்த சாதகமான கட்டத்தை உருவாக்குகின்றன.",
+            f"The current phase appears supportive for marriage matters. {'; '.join(top_supports_en) if top_supports_en else 'General indicators are favourable'}. "
+            "Dasha and transit together create this favourable window.",
+        )
+    elif score >= 50:
+        confidence = "MEDIUM"
+        support_phrase = " மற்றும் ".join(top_supports) if top_supports else ""
+        challenge_phrase = "ஆனால் " + " மற்றும் ".join(top_challenges) if top_challenges else "சில கவலைகள் உள்ளன"
+        main = (
+            f"திருமண சிக்னல்கள் கலந்த நிலையில் உள்ளன. {support_phrase + ' ' if support_phrase else ''}{challenge_phrase}. "
+            "திட்டமிட்ட அணுகுமுறை மற்றும் பொறுமை நல்ல பலன் தரும்.",
+            f"Marriage indicators are mixed. {'; '.join(top_supports_en) if top_supports_en else ''} {'but ' + '; '.join(top_challenges_en) if top_challenges_en else ''}. "
+            "A planned approach with patience will yield better results.",
+        )
+    else:
+        confidence = "LOW"
+        challenge_phrase = "முக்கியமாக " + " மற்றும் ".join(top_challenges) if top_challenges else "தற்போதைய நிலை கடினமாக உள்ளது"
+        main = (
+            f"திருமண முடிவுகளில் அவசரம் தவிர்க்கவும். {challenge_phrase}. "
+            "இந்த கட்டத்தில் நிலைமையை நிலைநிறுத்துவதே சிறந்த பாதை.",
+            f"Avoid haste in marriage decisions. {'; '.join(top_challenges_en) if top_challenges_en else 'Conditions need stabilising'}. "
+            "Consolidating your situation is the better path right now.",
+        )
+
+    band: str | None = None
+    if gate is not None and band_enum is not None:
+        band = band_enum.value
+        if reasoning_bands:
+            # Phase 2 (D2): one confidence vocabulary — legacy tier derives
+            # from the band instead of a parallel score-band table.
+            confidence = band_to_legacy_confidence(band_enum)
+        # WEAK gate caps the final confidence at MEDIUM (band ≤ LIKELY, D1) —
+        # stricter than the plain band→legacy map, kept from PR-1.
+        if gate.grade is GateGrade.WEAK and confidence == "HIGH":
+            confidence = "MEDIUM"
+
+    # Phase 5 (D6, P0-4): LOW-confidence causal chain from the challenges
+    # already identified above, mirroring life_areas_service's rule (chain
+    # only for LOW confidence, never for a genuinely strong reading).
+    causal_chain: BiText | None = None
+    if reasoning_chart_signature and confidence == "LOW" and challenges:
+        chain = render_causal_chain(
+            steps=challenges[:2],
+            conclusion=BiText(ta=main[0], en=main[1]),
+        )
+        causal_chain = BiText(ta=chain.ta, en=chain.en)
+    return _MarriageNarration(
+        main_prediction_ta=main[0],
+        main_prediction_en=main[1],
+        confidence=confidence,
+        band=band,
+        causal_chain=causal_chain,
+    )
+
+
 def assess_marriage_prediction(
     payload: MarriageAssessmentInput, *, use_reasoning_gate: bool | None = None
 ) -> LifeAreaPrediction:
@@ -812,111 +934,28 @@ def assess_marriage_prediction(
         gate=gate,
         married_harmony_mode=married_harmony_mode,
     )
-    score = scored.score
-    factors = scored.factors
-    supports = scored.supports
-    challenges = scored.challenges
-    dasha_support = scored.dasha_support
-    transit_support = scored.transit_support
-    top_supports = [b.ta for b in supports[:2]] if supports else []
-    top_challenges = [b.ta for b in challenges[:2]] if challenges else []
-    top_supports_en = [b.en for b in supports[:2]] if supports else []
-    top_challenges_en = [b.en for b in challenges[:2]] if challenges else []
-
-    if married_harmony_mode:
-        if score >= 70:
-            confidence = "HIGH"
-            support_phrase = " மற்றும் ".join(top_supports) if top_supports else "பொதுவாக வலுவான அமைப்பு"
-            main = (
-                f"உங்கள் திருமண பந்தம் இந்த கட்டத்தில் வலுவாக உள்ளது. {support_phrase}. "
-                "தசை மற்றும் கோச்சாரம் உறவு ஒற்றுமைக்கு சாதகமான சூழலை உருவாக்குகின்றன.",
-                f"Your marital bond appears strong in this phase. {'; '.join(top_supports_en) if top_supports_en else 'Overall indicators are favourable'}. "
-                "Dasha and transit support a harmonious period in your relationship.",
-            )
-        elif score >= 50:
-            confidence = "MEDIUM"
-            challenge_phrase = " மற்றும் ".join(top_challenges) if top_challenges else "கொஞ்சம் கவனம் தேவை"
-            main = (
-                f"உறவு ஒற்றுமைக்கு கொஞ்சம் கவனம் மற்றும் புரிதல் தேவை. {challenge_phrase}. "
-                "பொறுமையும் திறந்த உரையாடலும் நல்ல பலன் தரும்.",
-                f"Your relationship calls for mindful attention. {'; '.join(top_challenges_en) if top_challenges_en else 'Some areas need care'}. "
-                "Patience and open communication will strengthen the bond.",
-            )
-        else:
-            confidence = "LOW"
-            challenge_phrase = " மற்றும் ".join(top_challenges) if top_challenges else "சில சவால்கள் உள்ளன"
-            main = (
-                f"இந்த கட்டத்தில் திருமண உறவில் பொறுமையும் மரியாதையும் முக்கியம். {challenge_phrase}. "
-                "இணை நலனில் கவனம் செலுத்துவது சிறந்த பாதை.",
-                f"Patience and mutual respect are key in your marital relationship now. {'; '.join(top_challenges_en) if top_challenges_en else 'Some challenges need attention'}. "
-                "Focusing on your partner's well-being is the better path.",
-            )
-    elif score >= 70:
-        confidence = "HIGH"
-        support_phrase = "குறிப்பாக " + " மற்றும் ".join(top_supports) if top_supports else "பொதுவாக நல்ல அமைப்பு உள்ளது"
-        main = (
-            f"திருமண விஷயங்களில் ஆதரவான நேரம் தெரிகிறது. {support_phrase}. "
-            "தசை மற்றும் கோச்சாரம் இணைந்து இந்த சாதகமான கட்டத்தை உருவாக்குகின்றன.",
-            f"The current phase appears supportive for marriage matters. {'; '.join(top_supports_en) if top_supports_en else 'General indicators are favourable'}. "
-            "Dasha and transit together create this favourable window.",
-        )
-    elif score >= 50:
-        confidence = "MEDIUM"
-        support_phrase = " மற்றும் ".join(top_supports) if top_supports else ""
-        challenge_phrase = "ஆனால் " + " மற்றும் ".join(top_challenges) if top_challenges else "சில கவலைகள் உள்ளன"
-        main = (
-            f"திருமண சிக்னல்கள் கலந்த நிலையில் உள்ளன. {support_phrase + ' ' if support_phrase else ''}{challenge_phrase}. "
-            "திட்டமிட்ட அணுகுமுறை மற்றும் பொறுமை நல்ல பலன் தரும்.",
-            f"Marriage indicators are mixed. {'; '.join(top_supports_en) if top_supports_en else ''} {'but ' + '; '.join(top_challenges_en) if top_challenges_en else ''}. "
-            "A planned approach with patience will yield better results.",
-        )
-    else:
-        confidence = "LOW"
-        challenge_phrase = "முக்கியமாக " + " மற்றும் ".join(top_challenges) if top_challenges else "தற்போதைய நிலை கடினமாக உள்ளது"
-        main = (
-            f"திருமண முடிவுகளில் அவசரம் தவிர்க்கவும். {challenge_phrase}. "
-            "இந்த கட்டத்தில் நிலைமையை நிலைநிறுத்துவதே சிறந்த பாதை.",
-            f"Avoid haste in marriage decisions. {'; '.join(top_challenges_en) if top_challenges_en else 'Conditions need stabilising'}. "
-            "Consolidating your situation is the better path right now.",
-        )
-
-    band: str | None = None
-    if gate is not None:
-        band_enum = combine_gate_and_timing(gate, score)
-        band = band_enum.value
-        if get_flag("reasoning_bands"):
-            # Phase 2 (D2): one confidence vocabulary — legacy tier derives
-            # from the band instead of a parallel score-band table.
-            confidence = band_to_legacy_confidence(band_enum)
-        # WEAK gate caps the final confidence at MEDIUM (band ≤ LIKELY, D1) —
-        # stricter than the plain band→legacy map, kept from PR-1.
-        if gate.grade is GateGrade.WEAK and confidence == "HIGH":
-            confidence = "MEDIUM"
-
-    # Phase 5 (D6, P0-4): LOW-confidence causal chain from the challenges
-    # already identified above, mirroring life_areas_service's rule (chain
-    # only for LOW confidence, never for a genuinely strong reading).
-    causal_chain: BiText | None = None
-    if bool(get_flag("reasoning_chart_signature")) and confidence == "LOW" and challenges:
-        chain = render_causal_chain(
-            steps=challenges[:2],
-            conclusion=BiText(ta=main[0], en=main[1]),
-        )
-        causal_chain = BiText(ta=chain.ta, en=chain.en)
+    narration = _narrate_marriage_prediction(
+        scored,
+        gate=gate,
+        band_enum=combine_gate_and_timing(gate, scored.score) if gate is not None else None,
+        married_harmony_mode=married_harmony_mode,
+        reasoning_bands=bool(get_flag("reasoning_bands")) if gate is not None else False,
+        reasoning_chart_signature=bool(get_flag("reasoning_chart_signature")),
+    )
 
     return _safety_checked(LifeAreaPrediction(
         life_area="marriage",
-        main_prediction_ta=main[0],
-        main_prediction_en=main[1],
-        astrological_factors=factors,
-        dasha_support=dasha_support,
-        transit_support=transit_support,
+        main_prediction_ta=narration.main_prediction_ta,
+        main_prediction_en=narration.main_prediction_en,
+        astrological_factors=scored.factors,
+        dasha_support=scored.dasha_support,
+        transit_support=scored.transit_support,
         timing_window_start=payload.as_of,
         timing_window_end=date(payload.as_of.year, 12, 31),
-        confidence=confidence,
-        challenges=challenges,
-        supports=supports,
-        band=band,
+        confidence=narration.confidence,
+        challenges=scored.challenges,
+        supports=scored.supports,
+        band=narration.band,
         chart_signature=_compute_chart_signature(payload),
-        causal_chain=causal_chain,
+        causal_chain=narration.causal_chain,
     ))
