@@ -494,8 +494,7 @@ export function DashboardWorkspace() {
   const [deletingVaultId, setDeletingVaultId] = useState("");
   const [deletingMemberId, setDeletingMemberId] = useState("");
 
-  // View-selector IDs for member cross-tab views
-  const [personalViewId, setPersonalViewId] = useState<string | null>(null);
+  // Member view selector for Life Areas. Today and Explore always read the reader's own chart.
   const [lifeAreasViewId, setLifeAreasViewId] = useState<string | null>(null);
   // Timing is explicitly scoped: a family member selected for a muhurta does
   // not silently replace the chart currently being read in Life Areas.
@@ -923,29 +922,16 @@ export function DashboardWorkspace() {
 
   const selectedVault = family.vaults.find((v) => v.familyVaultId === family.selectedVaultId) ?? null;
 
-  const personalMemberChart = memberChartFor(family.memberCharts, personalViewId);
   const lifeAreasMemberChart = memberChartFor(family.memberCharts, lifeAreasViewId);
 
-  const todayFocus = appliedFocus(lifeModeStatus, isOwnChart(family.familyMembers, personalViewId));
   const lifeAreasFocus = appliedFocus(lifeModeStatus, isOwnChart(family.familyMembers, lifeAreasViewId));
-  // Phase 3. Goals is always the reader's own chart; the muhurta view follows
-  // its member picker; the month grid's chip is always read on the own chart.
+  // Phase 3. Today and Goals are always the reader's own chart; the muhurta view
+  // follows its member picker; the month grid's chip is always read on the own chart.
   const ownFocus = appliedFocus(lifeModeStatus, true);
   const muhurtaFocus = appliedFocus(lifeModeStatus, isOwnChart(family.familyMembers, muhurtaMemberId));
   const monthFocus = personal.chartId && ownFocus.activities.length > 0
     ? { chartId: personal.chartId, activities: ownFocus.activities, label: lifeModeLabel(activeLifeMode, lang) }
     : null;
-
-  const personalChart = personalMemberChart?.chart ?? personal.chart;
-  const personalChartExplanation = personalMemberChart ? personalMemberChart.explanation : personal.chartExplanation;
-  const personalChartSummary = personalMemberChart?.summary ?? personal.chartSummary;
-  const personalDailyGuidance = personalMemberChart?.dailyGuidance ?? personal.dailyGuidance;
-  const personalDasha = personalMemberChart?.dasha ?? personal.dasha;
-  const personalDashaMaha = personalMemberChart?.dashaMaha ?? personal.dashaMaha;
-  const personalDashaAntar = personalMemberChart?.dashaAntar ?? personal.dashaAntar;
-  const personalTransit = personalMemberChart?.transit ?? personal.transit;
-  const personalSani = personalMemberChart?.sani ?? personal.sani;
-  const personalPeyarchiUpcoming = personalMemberChart?.peyarchiUpcoming ?? personal.peyarchiUpcoming;
 
   const familyAggregateForToday = reconcileOwnerScore(
     family.familyAggregate, personal.chart?.birthProfile.birthProfileId, personal.dailyGuidance?.score,
@@ -1666,15 +1652,14 @@ export function DashboardWorkspace() {
               deviceTimeZone={deviceTimeZone}
               onLocationResolved={onLocationResolved}
               onDismissLocationCheck={dismissLocationCheck}
-              lifeFocus={todayFocus}
+              lifeFocus={ownFocus}
               birthDisplayName={birthForm.displayName}
               selectedDate={selectedDate}
               todayDate={personal.todayDate}
-              personalMemberChart={personalMemberChart}
-              personalChartSummary={personalChartSummary}
-              personalDailyGuidance={personalDailyGuidance}
-              personalSani={personalSani}
-              peyarchiUpcoming={personalPeyarchiUpcoming}
+              personalChartSummary={personal.chartSummary}
+              personalDailyGuidance={personal.dailyGuidance}
+              personalSani={personal.sani}
+              peyarchiUpcoming={personal.peyarchiUpcoming}
               panchangam={personal.panchangam}
               panchangamTimings={personal.panchangamTimings}
               weekAhead={personal.weekAhead}
@@ -1684,8 +1669,8 @@ export function DashboardWorkspace() {
               familyPending={family.familyPending}
               remedyMemberCharts={family.memberCharts}
               lifeAreas={personal.lifeAreas}
-              dasha={personalDasha}
-              dashaAntar={personalDashaAntar}
+              dasha={personal.dasha}
+              dashaAntar={personal.dashaAntar}
               dailyGuidanceRange={personal.dailyGuidanceRange}
               panchangamTimezone={personal.panchangamTimezone}
               bundleSectionErrors={personal.bundleSectionErrors}
@@ -1908,10 +1893,10 @@ export function DashboardWorkspace() {
           <TabPane visible={isPaneRendered("explore")} active={activeTab === "explore"}>
             <DashboardExploreTabNova
               lang={lang}
-              personalChartSummary={personalChartSummary}
-              personalChart={personalChart}
-              personalDailyGuidance={personalDailyGuidance}
-              nakshatraCard={personalMemberChart?.nakshatraCard ?? personal.nakshatraCard}
+              personalChartSummary={personal.chartSummary}
+              personalChart={personal.chart}
+              personalDailyGuidance={personal.dailyGuidance}
+              nakshatraCard={personal.nakshatraCard}
               pending={personal.personalPending}
               memberCharts={family.memberCharts}
               onNavigate={goToExploreDestination}
@@ -1932,9 +1917,9 @@ export function DashboardWorkspace() {
               onNavigate={navigateSettings}
               onLangChange={setLang}
               userDisplayName={birthForm.displayName}
-              moonRasi={personalChartSummary?.moonRasi ?? ""}
-              janmaNakshatra={personalChartSummary?.janmaNakshatra ?? ""}
-              lagnaRasi={personalChartSummary?.lagnaRasi ?? ""}
+              moonRasi={personal.chartSummary?.moonRasi ?? ""}
+              janmaNakshatra={personal.chartSummary?.janmaNakshatra ?? ""}
+              lagnaRasi={personal.chartSummary?.lagnaRasi ?? ""}
               vaultName={selectedVault?.name ?? ""}
               ownerUserId={ownerUserId}
               selectedDate={selectedDate}

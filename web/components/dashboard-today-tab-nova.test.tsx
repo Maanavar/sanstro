@@ -90,7 +90,6 @@ async function renderTab(overrides: Partial<TabProps> = {}) {
       birthDisplayName="Test Reader"
       selectedDate="2026-08-23"
       todayDate="2026-08-23"
-      personalMemberChart={null}
       personalChartSummary={null}
       personalDailyGuidance={guidanceFixture()}
       personalSani={null}

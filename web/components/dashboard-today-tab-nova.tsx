@@ -128,7 +128,6 @@ export type DashboardTodayTabNovaProps = {
   birthDisplayName: string;
   selectedDate: string;
   todayDate: string;
-  personalMemberChart: Pick<MemberChart, "memberId" | "displayName"> | null;
   personalChartSummary: ChartSummaryData | null;
   personalDailyGuidance: DailyGuidanceData | null;
   personalSani: SaniCycleData | null;
@@ -516,7 +515,6 @@ export function DashboardTodayTabNova({
   birthDisplayName,
   selectedDate,
   todayDate,
-  personalMemberChart,
   personalChartSummary,
   personalDailyGuidance,
   personalSani,
@@ -555,8 +553,8 @@ export function DashboardTodayTabNova({
 }: DashboardTodayTabNovaProps) {
   const { days: streakDays, best: streakBest, forgiven: streakForgiven } = useStreak();
   const { enabled: eveningPreviewOn, setEnabled: setEveningPreviewOn } = useEveningPreview();
-  const displayName = personalMemberChart?.displayName ?? birthDisplayName;
-  const primaryRemedyMemberId = personalMemberChart?.memberId ?? (personalChartSummary?.chartId ? `chart:${personalChartSummary.chartId}` : "personal");
+  const displayName = birthDisplayName;
+  const primaryRemedyMemberId = personalChartSummary?.chartId ? `chart:${personalChartSummary.chartId}` : "personal";
   const remedyMembers = [
     {
       memberId: primaryRemedyMemberId,
