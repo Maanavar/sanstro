@@ -1721,6 +1721,420 @@
   ]
  },
  {
+  "step": "before /auth/me: /dashboard/settings/notifications",
+  "url": "/dashboard/settings/notifications",
+  "history": "1/1",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "settingsSession"
+  ],
+  "activeTab": "settings",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "ask": {
+    "open": false
+   },
+   "settingsSession": {
+    "section": "notifications"
+   }
+  },
+  "effects": []
+ },
+ {
+  "step": "after /auth/me: /dashboard/settings/notifications",
+  "url": "/dashboard/settings/notifications",
+  "history": "1/1",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "settingsSession"
+  ],
+  "activeTab": "settings",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "ask": {
+    "open": false
+   },
+   "settingsSession": {
+    "section": "notifications"
+   }
+  },
+  "effects": [
+   [
+    "api",
+    "GET",
+    "/api/v1/settings/ui",
+    null
+   ],
+   [
+    "journal.loadJournalSettings"
+   ],
+   [
+    "getLifeMode"
+   ],
+   [
+    "journal.loadJournalEntries",
+    "chart-owner"
+   ],
+   [
+    "journal.loadContextData",
+    "chart-owner"
+   ],
+   [
+    "personal.refreshPersonalBundle",
+    "bp-owner-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.refreshFamilyBundle",
+    "vault-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.loadRelationshipAlerts",
+    "vault-synthetic"
+   ],
+   [
+    "personal.setJadhagamReport",
+    null
+   ],
+   [
+    "personal.setLifeAreas",
+    null
+   ],
+   [
+    "family.loadVaults",
+    "user-synthetic"
+   ]
+  ]
+ },
+ {
+  "step": "before /auth/me: /dashboard/tools/numerology",
+  "url": "/dashboard/tools/numerology",
+  "history": "1/1",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "tools",
+   "viewSwap"
+  ],
+  "activeTab": "tools",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "tools": {
+    "activeTool": "numerology"
+   },
+   "ask": {
+    "open": false
+   },
+   "viewSwap": {
+    "viewKey": "numerology"
+   }
+  },
+  "effects": []
+ },
+ {
+  "step": "after /auth/me: /dashboard/tools/numerology",
+  "url": "/dashboard/tools/numerology",
+  "history": "1/1",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "tools",
+   "viewSwap"
+  ],
+  "activeTab": "tools",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "tools": {
+    "activeTool": "numerology"
+   },
+   "ask": {
+    "open": false
+   },
+   "viewSwap": {
+    "viewKey": "numerology"
+   }
+  },
+  "effects": [
+   [
+    "api",
+    "GET",
+    "/api/v1/settings/ui",
+    null
+   ],
+   [
+    "journal.loadJournalSettings"
+   ],
+   [
+    "getLifeMode"
+   ],
+   [
+    "journal.loadJournalEntries",
+    "chart-owner"
+   ],
+   [
+    "journal.loadContextData",
+    "chart-owner"
+   ],
+   [
+    "personal.refreshPersonalBundle",
+    "bp-owner-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.refreshFamilyBundle",
+    "vault-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.loadRelationshipAlerts",
+    "vault-synthetic"
+   ],
+   [
+    "personal.setJadhagamReport",
+    null
+   ],
+   [
+    "personal.setLifeAreas",
+    null
+   ],
+   [
+    "family.loadVaults",
+    "user-synthetic"
+   ]
+  ]
+ },
+ {
+  "step": "before /auth/me: /dashboard/calendar",
+  "url": "/dashboard/calendar",
+  "history": "1/1",
+  "shown": [
+   "ambient",
+   "ask",
+   "calendar",
+   "footerMorning",
+   "hero"
+  ],
+  "activeTab": "calendar",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "calendar": {
+    "focusView": null,
+    "chartId": "chart-owner",
+    "selectedMemberId": null
+   },
+   "ask": {
+    "open": false
+   }
+  },
+  "effects": []
+ },
+ {
+  "step": "after /auth/me: /dashboard/calendar",
+  "url": "/dashboard/calendar",
+  "history": "1/1",
+  "shown": [
+   "ambient",
+   "ask",
+   "calendar",
+   "footerMorning",
+   "hero"
+  ],
+  "activeTab": "calendar",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "calendar": {
+    "focusView": null,
+    "chartId": "chart-owner",
+    "selectedMemberId": null
+   },
+   "ask": {
+    "open": false
+   }
+  },
+  "effects": [
+   [
+    "api",
+    "GET",
+    "/api/v1/settings/ui",
+    null
+   ],
+   [
+    "journal.loadJournalSettings"
+   ],
+   [
+    "getLifeMode"
+   ],
+   [
+    "journal.loadJournalEntries",
+    "chart-owner"
+   ],
+   [
+    "journal.loadContextData",
+    "chart-owner"
+   ],
+   [
+    "personal.refreshPersonalBundle",
+    "bp-owner-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.refreshFamilyBundle",
+    "vault-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.loadRelationshipAlerts",
+    "vault-synthetic"
+   ],
+   [
+    "personal.setJadhagamReport",
+    null
+   ],
+   [
+    "personal.setLifeAreas",
+    null
+   ],
+   [
+    "family.loadVaults",
+    "user-synthetic"
+   ]
+  ]
+ },
+ {
+  "step": "before /auth/me: /dashboard?tab=journal",
+  "url": "/dashboard?tab=journal",
+  "history": "1/1",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "today"
+  ],
+  "activeTab": "personal",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "ask": {
+    "open": false
+   }
+  },
+  "effects": []
+ },
+ {
+  "step": "after /auth/me: /dashboard?tab=journal",
+  "url": "/dashboard",
+  "history": "1/1",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "today"
+  ],
+  "activeTab": "personal",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "ask": {
+    "open": false
+   }
+  },
+  "effects": [
+   [
+    "api",
+    "GET",
+    "/api/v1/settings/ui",
+    null
+   ],
+   [
+    "journal.loadJournalSettings"
+   ],
+   [
+    "getLifeMode"
+   ],
+   [
+    "journal.loadJournalEntries",
+    "chart-owner"
+   ],
+   [
+    "journal.loadContextData",
+    "chart-owner"
+   ],
+   [
+    "personal.refreshPersonalBundle",
+    "bp-owner-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.refreshFamilyBundle",
+    "vault-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.loadRelationshipAlerts",
+    "vault-synthetic"
+   ],
+   [
+    "personal.setJadhagamReport",
+    null
+   ],
+   [
+    "personal.setLifeAreas",
+    null
+   ],
+   [
+    "window.scrollTo",
+    {
+     "behavior": "auto",
+     "top": 0
+    }
+   ],
+   [
+    "router.replace",
+    "/dashboard/journal",
+    {
+     "scroll": false
+    }
+   ],
+   [
+    "family.loadVaults",
+    "user-synthetic"
+   ],
+   [
+    "window.scrollTo",
+    {
+     "behavior": "auto",
+     "top": 0
+    }
+   ],
+   [
+    "router.replace",
+    "/dashboard",
+    {
+     "scroll": false
+    }
+   ]
+  ]
+ },
+ {
   "step": "cold calendar",
   "url": "/dashboard/calendar",
   "history": "1/1",

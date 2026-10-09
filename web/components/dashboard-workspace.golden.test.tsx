@@ -772,6 +772,18 @@ describe("dashboard workspace behaviour golden", { timeout: 120_000 }, () => {
       h.props.clear();
     }
 
+    // First paint comes before /auth/me answers: the path alone must place the reader.
+    for (const path of ["/dashboard/settings/notifications", "/dashboard/tools/numerology", "/dashboard/calendar", "/dashboard?tab=journal"]) {
+      const waiting = returningReader();
+      waiting.session = { ...waiting.session, hydrated: false };
+      start(waiting, path);
+      await compact(`before /auth/me: ${path}`);
+      rerender((w) => { w.session = { ...w.session, hydrated: true }; });
+      await compact(`after /auth/me: ${path}`);
+      cleanup();
+      h.props.clear();
+    }
+
     start(returningReader(), "/dashboard/calendar");
     await compact("cold calendar");
     await call("hero", "onTabChange", "journal");
