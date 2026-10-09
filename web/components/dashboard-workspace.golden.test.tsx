@@ -987,6 +987,19 @@ describe("dashboard workspace behaviour golden", { timeout: 120_000 }, () => {
     await call("family", "onEditMember", aggregateRow("member-unloaded", "bp-x", "Not Loaded", 40));
     await compact("member with no loaded chart: nothing opens");
 
+    // The vault row owns the relationship; a chart that says otherwise must not win.
+    rerender((w) => {
+      w.family = {
+        ...w.family,
+        memberCharts: [...(w.family.memberCharts as unknown[]), memberChart("member-elder", "Devi Synthetic", "self", 55)],
+        familyMembers: [...(w.family.familyMembers as unknown[]), { familyMemberId: "member-elder", relationshipToOwner: "parent" }],
+      };
+    });
+    await call("family", "onEditMember", aggregateRow("member-elder", "bp-member-elder", "Devi Synthetic", 55));
+    await full("edit a member whose chart disagrees with the vault row");
+    expect(propOf("editMember", "editMember")).toMatchObject({ relationshipToOwner: "parent", memberWeight: "1.15" });
+    await call("editMember", "onClose");
+
     await call("family", "onDeleteMember", "member-child", "Chitra Synthetic");
     await full("remove member: confirm");
     await call("confirm", "onClose");

@@ -2004,13 +2004,13 @@
   ]
  },
  {
-  "step": "remove member: confirm",
+  "step": "edit a member whose chart disagrees with the vault row",
   "url": "/dashboard/family",
   "history": 1,
   "shown": [
    "ambient",
    "ask",
-   "confirm",
+   "editMember",
    "family",
    "footerMorning",
    "hero"
@@ -2090,15 +2090,31 @@
     "onOpenChange": "ƒ",
     "open": false
    },
-   "confirm": {
+   "editMember": {
+    "busySaving": false,
+    "editMember": {
+     "birthDateLocal": "1992-03-03",
+     "birthLatitude": "11.5",
+     "birthLongitude": "78.25",
+     "birthPlace": "Synthetic Nagar",
+     "birthProfileId": "bp-member-elder",
+     "birthTimeLocal": "06:30",
+     "birthTimezone": "Asia/Kolkata",
+     "currentLatitude": "",
+     "currentLongitude": "",
+     "currentPlace": "",
+     "currentTimezone": "",
+     "displayName": "Devi Synthetic",
+     "familyVaultId": "vault-synthetic",
+     "memberId": "member-elder",
+     "memberWeight": "1.15",
+     "relationshipToOwner": "parent",
+     "scope": "member"
+    },
     "lang": "en",
+    "onChange": "ƒ",
     "onClose": "ƒ",
-    "state": {
-     "body": "Remove this member from your family?",
-     "confirmLabel": "Remove",
-     "onConfirm": "ƒ",
-     "title": "Remove — Chitra Synthetic"
-    }
+    "onSave": "ƒ"
    },
    "family": {
     "alertsLoading": false,
@@ -2160,6 +2176,10 @@
      {
       "familyMemberId": "member-selfrow",
       "relationshipToOwner": "self"
+     },
+     {
+      "familyMemberId": "member-elder",
+      "relationshipToOwner": "parent"
      }
     ],
     "focusSection": null,
@@ -2391,6 +2411,82 @@
       },
       "weekAhead": {
        "tag": "week-member-selfrow"
+      }
+     },
+     {
+      "chart": {
+       "birthProfile": {
+        "birthDateLocal": "1992-03-03",
+        "birthLatitude": 11.5,
+        "birthLongitude": 78.25,
+        "birthPlace": "Synthetic Nagar",
+        "birthProfileId": "bp-member-elder",
+        "birthTimeConfidenceMinutes": 5,
+        "birthTimeLocal": "06:30",
+        "birthTimezone": "Asia/Kolkata",
+        "children": "1",
+        "currentLatitude": null,
+        "currentLongitude": null,
+        "currentPlace": null,
+        "currentTimezone": null,
+        "displayName": "Devi Synthetic",
+        "employmentType": "salaried",
+        "maritalStatus": "married",
+        "relationshipToOwner": "self"
+       },
+       "chartId": "chart-member-elder",
+       "doshams": [
+        {
+         "code": "DOSHAM-chart-member-elder"
+        }
+       ],
+       "yogas": [
+        {
+         "code": "YOGA-chart-member-elder"
+        }
+       ]
+      },
+      "dailyGuidance": {
+       "score": 55
+      },
+      "dasha": {
+       "tag": "dasha-member-elder"
+      },
+      "dashaAntar": [
+       {
+        "tag": "antar-member-elder"
+       }
+      ],
+      "dashaMaha": {
+       "tag": "maha-member-elder"
+      },
+      "displayName": "Devi Synthetic",
+      "explanation": {
+       "tag": "explanation-member-elder"
+      },
+      "memberId": "member-elder",
+      "nakshatraCard": {
+       "tag": "nak-member-elder"
+      },
+      "peyarchiUpcoming": [
+       {
+        "tag": "peyarchi-member-elder"
+       }
+      ],
+      "sani": {
+       "tag": "sani-member-elder"
+      },
+      "summary": {
+       "chartId": "chart-member-elder",
+       "janmaNakshatra": "PUSHYA",
+       "lagnaRasi": 9,
+       "moonRasi": 4
+      },
+      "transit": {
+       "tag": "transit-member-elder"
+      },
+      "weekAhead": {
+       "tag": "week-member-elder"
       }
      }
     ],
@@ -2608,14 +2704,25 @@
   "effects": [
    [
     "→",
-    "family.onDeleteMember",
-    "member-child",
-    "Chitra Synthetic"
+    "family.onEditMember",
+    {
+     "activeCycleTags": [],
+     "bestWindows": [],
+     "birthProfileId": "bp-member-elder",
+     "birthTimeConfidenceMinutes": 5,
+     "cautionWindows": [],
+     "chartId": "chart-member-elder",
+     "displayName": "Devi Synthetic",
+     "familyMemberId": "member-elder",
+     "individualScore": 55,
+     "label": "steady",
+     "memberWeight": 1.15
+    }
    ]
   ]
  },
  {
-  "step": "member removed",
+  "step": "remove member: confirm",
   "url": "/dashboard/family",
   "history": 1,
   "shown": [
@@ -2771,6 +2878,10 @@
      {
       "familyMemberId": "member-selfrow",
       "relationshipToOwner": "self"
+     },
+     {
+      "familyMemberId": "member-elder",
+      "relationshipToOwner": "parent"
      }
     ],
     "focusSection": null,
@@ -3002,6 +3113,777 @@
       },
       "weekAhead": {
        "tag": "week-member-selfrow"
+      }
+     },
+     {
+      "chart": {
+       "birthProfile": {
+        "birthDateLocal": "1992-03-03",
+        "birthLatitude": 11.5,
+        "birthLongitude": 78.25,
+        "birthPlace": "Synthetic Nagar",
+        "birthProfileId": "bp-member-elder",
+        "birthTimeConfidenceMinutes": 5,
+        "birthTimeLocal": "06:30",
+        "birthTimezone": "Asia/Kolkata",
+        "children": "1",
+        "currentLatitude": null,
+        "currentLongitude": null,
+        "currentPlace": null,
+        "currentTimezone": null,
+        "displayName": "Devi Synthetic",
+        "employmentType": "salaried",
+        "maritalStatus": "married",
+        "relationshipToOwner": "self"
+       },
+       "chartId": "chart-member-elder",
+       "doshams": [
+        {
+         "code": "DOSHAM-chart-member-elder"
+        }
+       ],
+       "yogas": [
+        {
+         "code": "YOGA-chart-member-elder"
+        }
+       ]
+      },
+      "dailyGuidance": {
+       "score": 55
+      },
+      "dasha": {
+       "tag": "dasha-member-elder"
+      },
+      "dashaAntar": [
+       {
+        "tag": "antar-member-elder"
+       }
+      ],
+      "dashaMaha": {
+       "tag": "maha-member-elder"
+      },
+      "displayName": "Devi Synthetic",
+      "explanation": {
+       "tag": "explanation-member-elder"
+      },
+      "memberId": "member-elder",
+      "nakshatraCard": {
+       "tag": "nak-member-elder"
+      },
+      "peyarchiUpcoming": [
+       {
+        "tag": "peyarchi-member-elder"
+       }
+      ],
+      "sani": {
+       "tag": "sani-member-elder"
+      },
+      "summary": {
+       "chartId": "chart-member-elder",
+       "janmaNakshatra": "PUSHYA",
+       "lagnaRasi": 9,
+       "moonRasi": 4
+      },
+      "transit": {
+       "tag": "transit-member-elder"
+      },
+      "weekAhead": {
+       "tag": "week-member-elder"
+      }
+     }
+    ],
+    "mode": "BALANCED",
+    "onClosePrasna": "ƒ",
+    "onDeleteMember": "ƒ",
+    "onDeleteVault": "ƒ",
+    "onEditMember": "ƒ",
+    "onEditSelf": "ƒ",
+    "onFocusConsumed": "ƒ",
+    "onGoToForecast": "ƒ",
+    "onGoToJournal": "ƒ",
+    "onGoToLifeAreas": "ƒ",
+    "onGoToRemedies": "ƒ",
+    "onGoToTools": "ƒ",
+    "onOpenPrasna": "ƒ",
+    "onOpenSetup": "ƒ",
+    "onRefreshFamily": "ƒ",
+    "onSelectVault": "ƒ",
+    "ownerChart": {
+     "birthProfile": {
+      "birthDateLocal": "1990-01-15",
+      "birthLatitude": 11.5,
+      "birthLongitude": 78.25,
+      "birthPlace": "Synthetic Nagar",
+      "birthProfileId": "bp-owner-synthetic",
+      "birthTimeConfidenceMinutes": 5,
+      "birthTimeLocal": "06:30",
+      "birthTimezone": "Asia/Kolkata",
+      "children": "1",
+      "currentLatitude": null,
+      "currentLongitude": null,
+      "currentPlace": null,
+      "currentTimezone": null,
+      "displayName": "Akila Synthetic",
+      "employmentType": "salaried",
+      "maritalStatus": "single",
+      "relationshipToOwner": "self"
+     },
+     "chartId": "chart-owner",
+     "doshams": [
+      {
+       "code": "DOSHAM-chart-owner"
+      }
+     ],
+     "yogas": [
+      {
+       "code": "YOGA-chart-owner"
+      }
+     ]
+    },
+    "ownerChartId": "chart-owner",
+    "ownerMemberChart": {
+     "chart": {
+      "birthProfile": {
+       "birthDateLocal": "1990-01-15",
+       "birthLatitude": 11.5,
+       "birthLongitude": 78.25,
+       "birthPlace": "Synthetic Nagar",
+       "birthProfileId": "bp-owner-synthetic",
+       "birthTimeConfidenceMinutes": 5,
+       "birthTimeLocal": "06:30",
+       "birthTimezone": "Asia/Kolkata",
+       "children": "1",
+       "currentLatitude": null,
+       "currentLongitude": null,
+       "currentPlace": null,
+       "currentTimezone": null,
+       "displayName": "Akila Synthetic",
+       "employmentType": "salaried",
+       "maritalStatus": "single",
+       "relationshipToOwner": "self"
+      },
+      "chartId": "chart-owner",
+      "doshams": [
+       {
+        "code": "DOSHAM-chart-owner"
+       }
+      ],
+      "yogas": [
+       {
+        "code": "YOGA-chart-owner"
+       }
+      ]
+     },
+     "dailyGuidance": {
+      "score": 74
+     },
+     "dasha": {
+      "tag": "dasha-owner"
+     },
+     "dashaAntar": [
+      {
+       "tag": "antar-owner"
+      }
+     ],
+     "dashaMaha": {
+      "tag": "maha-owner"
+     },
+     "displayName": "Akila Synthetic",
+     "explanation": {
+      "tag": "explanation-owner"
+     },
+     "memberId": "bp-owner-synthetic",
+     "nakshatraCard": {
+      "tag": "nak-owner"
+     },
+     "peyarchiUpcoming": [
+      {
+       "tag": "peyarchi-owner"
+      }
+     ],
+     "sani": {
+      "tag": "sani-owner"
+     },
+     "summary": {
+      "chartId": "chart-owner",
+      "janmaNakshatra": "ASHWINI",
+      "lagnaRasi": 6,
+      "moonRasi": 1
+     },
+     "transit": {
+      "tag": "transit-owner"
+     },
+     "weekAhead": {
+      "tag": "week-owner"
+     }
+    },
+    "panchangam": {
+     "sunrise": "06:01",
+     "tithi": {
+      "number": 15,
+      "paksha": "SHUKLA"
+     }
+    },
+    "relationshipAlerts": [
+     {
+      "tag": "alert"
+     }
+    ],
+    "selectedDate": "2026-10-12",
+    "selectedVaultId": "vault-synthetic",
+    "showPrasna": false,
+    "vaults": [
+     {
+      "familyVaultId": "vault-synthetic",
+      "memberCount": 2,
+      "name": "Synthetic household",
+      "ownerUserId": "user-synthetic"
+     }
+    ]
+   },
+   "footerMorning": {
+    "lang": "en",
+    "onOpenSettings": "ƒ"
+   },
+   "hero": {
+    "activeTab": "family",
+    "alertCount": 1,
+    "alertItems": [
+     {
+      "body": "Synthetic message",
+      "title": "Synthetic alert",
+      "type": "transit"
+     }
+    ],
+    "askReady": true,
+    "birthDisplayName": "Akila Synthetic",
+    "birthTimeConfidenceMinutes": 5,
+    "birthTimeLocal": "06:30",
+    "chartSummary": {
+     "chartId": "chart-owner",
+     "janmaNakshatra": "ASHWINI",
+     "lagnaRasi": 6,
+     "moonRasi": 1
+    },
+    "dayLoading": false,
+    "inboxItems": [
+     {
+      "tag": "inbox-item"
+     }
+    ],
+    "inboxUnreadCount": 1,
+    "lang": "en",
+    "onAskVinaadi": "ƒ",
+    "onDateChange": "ƒ",
+    "onGoToSettings": "ƒ",
+    "onInboxOpen": "ƒ",
+    "onLangToggle": "ƒ",
+    "onMarkAllRead": "ƒ",
+    "onMarkOneRead": "ƒ",
+    "onOpenNotificationSettings": "ƒ",
+    "onSignOut": "ƒ",
+    "onTabChange": "ƒ",
+    "onUserMenuClose": "ƒ",
+    "onUserMenuToggle": "ƒ",
+    "panchangamPlace": "Synthetic Nagar",
+    "panchangamSunrise": "06:01",
+    "selectedDate": "2026-10-12",
+    "selectedVault": {
+     "familyVaultId": "vault-synthetic",
+     "memberCount": 2,
+     "name": "Synthetic household",
+     "ownerUserId": "user-synthetic"
+    },
+    "selectedVaultId": "vault-synthetic",
+    "showUserMenu": false,
+    "status": {
+     "text": "Bala Synthetic updated.",
+     "tone": "success"
+    },
+    "userEmail": "synthetic@example.test"
+   }
+  },
+  "effects": [
+   [
+    "→",
+    "editMember.onClose"
+   ],
+   [
+    "→",
+    "family.onDeleteMember",
+    "member-child",
+    "Chitra Synthetic"
+   ]
+  ]
+ },
+ {
+  "step": "member removed",
+  "url": "/dashboard/family",
+  "history": 1,
+  "shown": [
+   "ambient",
+   "ask",
+   "confirm",
+   "family",
+   "footerMorning",
+   "hero"
+  ],
+  "dom": {
+   "htmlLang": "en",
+   "dataLang": "en",
+   "activeTab": "family",
+   "onboarding": null,
+   "exploreBack": null,
+   "printTag": "Thirukanitham Jothidam",
+   "feedbackLabel": "Feedback",
+   "footer": {
+    "legal": "Astrology is a traditional belief system, not a scientific fact. For medical, legal, or financial decisions, consult a qualified professional.",
+    "navLabel": "Footer navigation",
+    "links": [
+     [
+      "Understand",
+      "BUTTON:Today:",
+      "BUTTON:Calendar:",
+      "BUTTON:Life Areas:",
+      "A:Glossary:/dashboard/glossary"
+     ],
+     [
+      "Personal",
+      "BUTTON:Family & Charts:",
+      "BUTTON:Journal:",
+      "BUTTON:Settings:"
+     ]
+    ]
+   }
+  },
+  "hooks": {
+   "useFamilyData": {
+    "onStatus": "ƒ",
+    "ownerUserId": "user-synthetic",
+    "selectedDate": "2026-10-12"
+   },
+   "useJournalData": {
+    "lang": "en",
+    "onError": "ƒ",
+    "onStatus": "ƒ"
+   },
+   "useNotificationInbox": {
+    "lang": "en",
+    "onError": "ƒ"
+   },
+   "usePersonalData": {
+    "onStatus": "ƒ",
+    "predictionsEnabled": false,
+    "selectedDate": "2026-10-12"
+   },
+   "usePlanData": {
+    "chartId": "chart-owner",
+    "onError": "ƒ",
+    "onGoalAdded": "ƒ",
+    "onGoalRemoved": "ƒ"
+   },
+   "useSession": {
+    "onSetupRedirect": "ƒ"
+   }
+  },
+  "props": {
+   "ambient": {
+    "moon": {
+     "cyclePosition": 0.5,
+     "fraction": 1,
+     "waxing": true
+    }
+   },
+   "ask": {
+    "activeLifeMode": "CAREER",
+    "chartId": "chart-owner",
+    "goalTrack": null,
+    "hideLauncher": true,
+    "lang": "en",
+    "onOpenChange": "ƒ",
+    "open": false
+   },
+   "confirm": {
+    "lang": "en",
+    "onClose": "ƒ",
+    "state": {
+     "body": "Remove this member from your family?",
+     "confirmLabel": "Remove",
+     "onConfirm": "ƒ",
+     "title": "Remove — Chitra Synthetic"
+    }
+   },
+   "family": {
+    "alertsLoading": false,
+    "busy": {
+     "deletingMemberId": "",
+     "deletingVaultId": "",
+     "family": false,
+     "memberCharts": false,
+     "vaults": false
+    },
+    "familyAggregate": {
+     "dateLocal": "2026-10-09",
+     "familyScore": 63,
+     "familyVaultId": "vault-synthetic",
+     "members": [
+      {
+       "activeCycleTags": [],
+       "bestWindows": [],
+       "birthProfileId": "bp-owner-synthetic",
+       "birthTimeConfidenceMinutes": 5,
+       "cautionWindows": [],
+       "chartId": "chart-bp-owner-synthetic",
+       "displayName": "Akila Synthetic",
+       "familyMemberId": "bp-owner-synthetic",
+       "individualScore": 74,
+       "label": "steady",
+       "memberWeight": 1.15
+      },
+      {
+       "activeCycleTags": [],
+       "bestWindows": [],
+       "birthProfileId": "bp-member-spouse",
+       "birthTimeConfidenceMinutes": 5,
+       "cautionWindows": [],
+       "chartId": "chart-member-spouse",
+       "displayName": "Bala Synthetic",
+       "familyMemberId": "member-spouse",
+       "individualScore": 61,
+       "label": "steady",
+       "memberWeight": 1.15
+      }
+     ]
+    },
+    "familyComposite": {
+     "tag": "composite"
+    },
+    "familyDetail": {
+     "tag": "detail"
+    },
+    "familyMembers": [
+     {
+      "familyMemberId": "member-spouse",
+      "relationshipToOwner": "spouse"
+     },
+     {
+      "familyMemberId": "member-child",
+      "relationshipToOwner": "child"
+     },
+     {
+      "familyMemberId": "member-selfrow",
+      "relationshipToOwner": "self"
+     },
+     {
+      "familyMemberId": "member-elder",
+      "relationshipToOwner": "parent"
+     }
+    ],
+    "focusSection": null,
+    "lang": "en",
+    "memberCharts": [
+     {
+      "chart": {
+       "birthProfile": {
+        "birthDateLocal": "1992-03-03",
+        "birthLatitude": 11.5,
+        "birthLongitude": 78.25,
+        "birthPlace": "Synthetic Nagar",
+        "birthProfileId": "bp-member-spouse",
+        "birthTimeConfidenceMinutes": 5,
+        "birthTimeLocal": "06:30",
+        "birthTimezone": "Asia/Kolkata",
+        "children": "1",
+        "currentLatitude": null,
+        "currentLongitude": null,
+        "currentPlace": null,
+        "currentTimezone": null,
+        "displayName": "Bala Synthetic",
+        "employmentType": "salaried",
+        "maritalStatus": "married",
+        "relationshipToOwner": "spouse"
+       },
+       "chartId": "chart-member-spouse",
+       "doshams": [
+        {
+         "code": "DOSHAM-chart-member-spouse"
+        }
+       ],
+       "yogas": [
+        {
+         "code": "YOGA-chart-member-spouse"
+        }
+       ]
+      },
+      "dailyGuidance": {
+       "score": 61
+      },
+      "dasha": {
+       "tag": "dasha-member-spouse"
+      },
+      "dashaAntar": [
+       {
+        "tag": "antar-member-spouse"
+       }
+      ],
+      "dashaMaha": {
+       "tag": "maha-member-spouse"
+      },
+      "displayName": "Bala Synthetic",
+      "explanation": {
+       "tag": "explanation-member-spouse"
+      },
+      "memberId": "member-spouse",
+      "nakshatraCard": {
+       "tag": "nak-member-spouse"
+      },
+      "peyarchiUpcoming": [
+       {
+        "tag": "peyarchi-member-spouse"
+       }
+      ],
+      "sani": {
+       "tag": "sani-member-spouse"
+      },
+      "summary": {
+       "chartId": "chart-member-spouse",
+       "janmaNakshatra": "PUSHYA",
+       "lagnaRasi": 9,
+       "moonRasi": 4
+      },
+      "transit": {
+       "tag": "transit-member-spouse"
+      },
+      "weekAhead": {
+       "tag": "week-member-spouse"
+      }
+     },
+     {
+      "chart": {
+       "birthProfile": {
+        "birthDateLocal": "1992-03-03",
+        "birthLatitude": 11.5,
+        "birthLongitude": 78.25,
+        "birthPlace": "Synthetic Nagar",
+        "birthProfileId": "bp-member-child",
+        "birthTimeConfidenceMinutes": 5,
+        "birthTimeLocal": "06:30",
+        "birthTimezone": "Asia/Kolkata",
+        "children": "1",
+        "currentLatitude": null,
+        "currentLongitude": null,
+        "currentPlace": null,
+        "currentTimezone": null,
+        "displayName": "Chitra Synthetic",
+        "employmentType": "salaried",
+        "maritalStatus": "married",
+        "relationshipToOwner": "child"
+       },
+       "chartId": "chart-member-child",
+       "doshams": [
+        {
+         "code": "DOSHAM-chart-member-child"
+        }
+       ],
+       "yogas": [
+        {
+         "code": "YOGA-chart-member-child"
+        }
+       ]
+      },
+      "dailyGuidance": {
+       "score": 58
+      },
+      "dasha": {
+       "tag": "dasha-member-child"
+      },
+      "dashaAntar": [
+       {
+        "tag": "antar-member-child"
+       }
+      ],
+      "dashaMaha": {
+       "tag": "maha-member-child"
+      },
+      "displayName": "Chitra Synthetic",
+      "explanation": {
+       "tag": "explanation-member-child"
+      },
+      "memberId": "member-child",
+      "nakshatraCard": {
+       "tag": "nak-member-child"
+      },
+      "peyarchiUpcoming": [
+       {
+        "tag": "peyarchi-member-child"
+       }
+      ],
+      "sani": {
+       "tag": "sani-member-child"
+      },
+      "summary": {
+       "chartId": "chart-member-child",
+       "janmaNakshatra": "PUSHYA",
+       "lagnaRasi": 9,
+       "moonRasi": 4
+      },
+      "transit": {
+       "tag": "transit-member-child"
+      },
+      "weekAhead": {
+       "tag": "week-member-child"
+      }
+     },
+     {
+      "chart": {
+       "birthProfile": {
+        "birthDateLocal": "1992-03-03",
+        "birthLatitude": 11.5,
+        "birthLongitude": 78.25,
+        "birthPlace": "Synthetic Nagar",
+        "birthProfileId": "bp-member-selfrow",
+        "birthTimeConfidenceMinutes": 5,
+        "birthTimeLocal": "06:30",
+        "birthTimezone": "Asia/Kolkata",
+        "children": "1",
+        "currentLatitude": null,
+        "currentLongitude": null,
+        "currentPlace": null,
+        "currentTimezone": null,
+        "displayName": "Akila Duplicate",
+        "employmentType": "salaried",
+        "maritalStatus": "married",
+        "relationshipToOwner": "self"
+       },
+       "chartId": "chart-member-selfrow",
+       "doshams": [
+        {
+         "code": "DOSHAM-chart-member-selfrow"
+        }
+       ],
+       "yogas": [
+        {
+         "code": "YOGA-chart-member-selfrow"
+        }
+       ]
+      },
+      "dailyGuidance": {
+       "score": 70
+      },
+      "dasha": {
+       "tag": "dasha-member-selfrow"
+      },
+      "dashaAntar": [
+       {
+        "tag": "antar-member-selfrow"
+       }
+      ],
+      "dashaMaha": {
+       "tag": "maha-member-selfrow"
+      },
+      "displayName": "Akila Duplicate",
+      "explanation": {
+       "tag": "explanation-member-selfrow"
+      },
+      "memberId": "member-selfrow",
+      "nakshatraCard": {
+       "tag": "nak-member-selfrow"
+      },
+      "peyarchiUpcoming": [
+       {
+        "tag": "peyarchi-member-selfrow"
+       }
+      ],
+      "sani": {
+       "tag": "sani-member-selfrow"
+      },
+      "summary": {
+       "chartId": "chart-member-selfrow",
+       "janmaNakshatra": "PUSHYA",
+       "lagnaRasi": 9,
+       "moonRasi": 4
+      },
+      "transit": {
+       "tag": "transit-member-selfrow"
+      },
+      "weekAhead": {
+       "tag": "week-member-selfrow"
+      }
+     },
+     {
+      "chart": {
+       "birthProfile": {
+        "birthDateLocal": "1992-03-03",
+        "birthLatitude": 11.5,
+        "birthLongitude": 78.25,
+        "birthPlace": "Synthetic Nagar",
+        "birthProfileId": "bp-member-elder",
+        "birthTimeConfidenceMinutes": 5,
+        "birthTimeLocal": "06:30",
+        "birthTimezone": "Asia/Kolkata",
+        "children": "1",
+        "currentLatitude": null,
+        "currentLongitude": null,
+        "currentPlace": null,
+        "currentTimezone": null,
+        "displayName": "Devi Synthetic",
+        "employmentType": "salaried",
+        "maritalStatus": "married",
+        "relationshipToOwner": "self"
+       },
+       "chartId": "chart-member-elder",
+       "doshams": [
+        {
+         "code": "DOSHAM-chart-member-elder"
+        }
+       ],
+       "yogas": [
+        {
+         "code": "YOGA-chart-member-elder"
+        }
+       ]
+      },
+      "dailyGuidance": {
+       "score": 55
+      },
+      "dasha": {
+       "tag": "dasha-member-elder"
+      },
+      "dashaAntar": [
+       {
+        "tag": "antar-member-elder"
+       }
+      ],
+      "dashaMaha": {
+       "tag": "maha-member-elder"
+      },
+      "displayName": "Devi Synthetic",
+      "explanation": {
+       "tag": "explanation-member-elder"
+      },
+      "memberId": "member-elder",
+      "nakshatraCard": {
+       "tag": "nak-member-elder"
+      },
+      "peyarchiUpcoming": [
+       {
+        "tag": "peyarchi-member-elder"
+       }
+      ],
+      "sani": {
+       "tag": "sani-member-elder"
+      },
+      "summary": {
+       "chartId": "chart-member-elder",
+       "janmaNakshatra": "PUSHYA",
+       "lagnaRasi": 9,
+       "moonRasi": 4
+      },
+      "transit": {
+       "tag": "transit-member-elder"
+      },
+      "weekAhead": {
+       "tag": "week-member-elder"
       }
      }
     ],
@@ -3410,6 +4292,10 @@
      {
       "familyMemberId": "member-selfrow",
       "relationshipToOwner": "self"
+     },
+     {
+      "familyMemberId": "member-elder",
+      "relationshipToOwner": "parent"
      }
     ],
     "focusSection": null,
@@ -3641,6 +4527,82 @@
       },
       "weekAhead": {
        "tag": "week-member-selfrow"
+      }
+     },
+     {
+      "chart": {
+       "birthProfile": {
+        "birthDateLocal": "1992-03-03",
+        "birthLatitude": 11.5,
+        "birthLongitude": 78.25,
+        "birthPlace": "Synthetic Nagar",
+        "birthProfileId": "bp-member-elder",
+        "birthTimeConfidenceMinutes": 5,
+        "birthTimeLocal": "06:30",
+        "birthTimezone": "Asia/Kolkata",
+        "children": "1",
+        "currentLatitude": null,
+        "currentLongitude": null,
+        "currentPlace": null,
+        "currentTimezone": null,
+        "displayName": "Devi Synthetic",
+        "employmentType": "salaried",
+        "maritalStatus": "married",
+        "relationshipToOwner": "self"
+       },
+       "chartId": "chart-member-elder",
+       "doshams": [
+        {
+         "code": "DOSHAM-chart-member-elder"
+        }
+       ],
+       "yogas": [
+        {
+         "code": "YOGA-chart-member-elder"
+        }
+       ]
+      },
+      "dailyGuidance": {
+       "score": 55
+      },
+      "dasha": {
+       "tag": "dasha-member-elder"
+      },
+      "dashaAntar": [
+       {
+        "tag": "antar-member-elder"
+       }
+      ],
+      "dashaMaha": {
+       "tag": "maha-member-elder"
+      },
+      "displayName": "Devi Synthetic",
+      "explanation": {
+       "tag": "explanation-member-elder"
+      },
+      "memberId": "member-elder",
+      "nakshatraCard": {
+       "tag": "nak-member-elder"
+      },
+      "peyarchiUpcoming": [
+       {
+        "tag": "peyarchi-member-elder"
+       }
+      ],
+      "sani": {
+       "tag": "sani-member-elder"
+      },
+      "summary": {
+       "chartId": "chart-member-elder",
+       "janmaNakshatra": "PUSHYA",
+       "lagnaRasi": 9,
+       "moonRasi": 4
+      },
+      "transit": {
+       "tag": "transit-member-elder"
+      },
+      "weekAhead": {
+       "tag": "week-member-elder"
       }
      }
     ],
@@ -4100,6 +5062,10 @@
      {
       "familyMemberId": "member-selfrow",
       "relationshipToOwner": "self"
+     },
+     {
+      "familyMemberId": "member-elder",
+      "relationshipToOwner": "parent"
      }
     ],
     "focusSection": null,
@@ -4331,6 +5297,82 @@
       },
       "weekAhead": {
        "tag": "week-member-selfrow"
+      }
+     },
+     {
+      "chart": {
+       "birthProfile": {
+        "birthDateLocal": "1992-03-03",
+        "birthLatitude": 11.5,
+        "birthLongitude": 78.25,
+        "birthPlace": "Synthetic Nagar",
+        "birthProfileId": "bp-member-elder",
+        "birthTimeConfidenceMinutes": 5,
+        "birthTimeLocal": "06:30",
+        "birthTimezone": "Asia/Kolkata",
+        "children": "1",
+        "currentLatitude": null,
+        "currentLongitude": null,
+        "currentPlace": null,
+        "currentTimezone": null,
+        "displayName": "Devi Synthetic",
+        "employmentType": "salaried",
+        "maritalStatus": "married",
+        "relationshipToOwner": "self"
+       },
+       "chartId": "chart-member-elder",
+       "doshams": [
+        {
+         "code": "DOSHAM-chart-member-elder"
+        }
+       ],
+       "yogas": [
+        {
+         "code": "YOGA-chart-member-elder"
+        }
+       ]
+      },
+      "dailyGuidance": {
+       "score": 55
+      },
+      "dasha": {
+       "tag": "dasha-member-elder"
+      },
+      "dashaAntar": [
+       {
+        "tag": "antar-member-elder"
+       }
+      ],
+      "dashaMaha": {
+       "tag": "maha-member-elder"
+      },
+      "displayName": "Devi Synthetic",
+      "explanation": {
+       "tag": "explanation-member-elder"
+      },
+      "memberId": "member-elder",
+      "nakshatraCard": {
+       "tag": "nak-member-elder"
+      },
+      "peyarchiUpcoming": [
+       {
+        "tag": "peyarchi-member-elder"
+       }
+      ],
+      "sani": {
+       "tag": "sani-member-elder"
+      },
+      "summary": {
+       "chartId": "chart-member-elder",
+       "janmaNakshatra": "PUSHYA",
+       "lagnaRasi": 9,
+       "moonRasi": 4
+      },
+      "transit": {
+       "tag": "transit-member-elder"
+      },
+      "weekAhead": {
+       "tag": "week-member-elder"
       }
      }
     ],
@@ -4808,6 +5850,10 @@
      {
       "familyMemberId": "member-selfrow",
       "relationshipToOwner": "self"
+     },
+     {
+      "familyMemberId": "member-elder",
+      "relationshipToOwner": "parent"
      }
     ],
     "focusSection": null,
@@ -5039,6 +6085,82 @@
       },
       "weekAhead": {
        "tag": "week-member-selfrow"
+      }
+     },
+     {
+      "chart": {
+       "birthProfile": {
+        "birthDateLocal": "1992-03-03",
+        "birthLatitude": 11.5,
+        "birthLongitude": 78.25,
+        "birthPlace": "Synthetic Nagar",
+        "birthProfileId": "bp-member-elder",
+        "birthTimeConfidenceMinutes": 5,
+        "birthTimeLocal": "06:30",
+        "birthTimezone": "Asia/Kolkata",
+        "children": "1",
+        "currentLatitude": null,
+        "currentLongitude": null,
+        "currentPlace": null,
+        "currentTimezone": null,
+        "displayName": "Devi Synthetic",
+        "employmentType": "salaried",
+        "maritalStatus": "married",
+        "relationshipToOwner": "self"
+       },
+       "chartId": "chart-member-elder",
+       "doshams": [
+        {
+         "code": "DOSHAM-chart-member-elder"
+        }
+       ],
+       "yogas": [
+        {
+         "code": "YOGA-chart-member-elder"
+        }
+       ]
+      },
+      "dailyGuidance": {
+       "score": 55
+      },
+      "dasha": {
+       "tag": "dasha-member-elder"
+      },
+      "dashaAntar": [
+       {
+        "tag": "antar-member-elder"
+       }
+      ],
+      "dashaMaha": {
+       "tag": "maha-member-elder"
+      },
+      "displayName": "Devi Synthetic",
+      "explanation": {
+       "tag": "explanation-member-elder"
+      },
+      "memberId": "member-elder",
+      "nakshatraCard": {
+       "tag": "nak-member-elder"
+      },
+      "peyarchiUpcoming": [
+       {
+        "tag": "peyarchi-member-elder"
+       }
+      ],
+      "sani": {
+       "tag": "sani-member-elder"
+      },
+      "summary": {
+       "chartId": "chart-member-elder",
+       "janmaNakshatra": "PUSHYA",
+       "lagnaRasi": 9,
+       "moonRasi": 4
+      },
+      "transit": {
+       "tag": "transit-member-elder"
+      },
+      "weekAhead": {
+       "tag": "week-member-elder"
       }
      }
     ],
@@ -5479,6 +6601,10 @@
      {
       "familyMemberId": "member-selfrow",
       "relationshipToOwner": "self"
+     },
+     {
+      "familyMemberId": "member-elder",
+      "relationshipToOwner": "parent"
      }
     ],
     "focusSection": null,
@@ -5710,6 +6836,82 @@
       },
       "weekAhead": {
        "tag": "week-member-selfrow"
+      }
+     },
+     {
+      "chart": {
+       "birthProfile": {
+        "birthDateLocal": "1992-03-03",
+        "birthLatitude": 11.5,
+        "birthLongitude": 78.25,
+        "birthPlace": "Synthetic Nagar",
+        "birthProfileId": "bp-member-elder",
+        "birthTimeConfidenceMinutes": 5,
+        "birthTimeLocal": "06:30",
+        "birthTimezone": "Asia/Kolkata",
+        "children": "1",
+        "currentLatitude": null,
+        "currentLongitude": null,
+        "currentPlace": null,
+        "currentTimezone": null,
+        "displayName": "Devi Synthetic",
+        "employmentType": "salaried",
+        "maritalStatus": "married",
+        "relationshipToOwner": "self"
+       },
+       "chartId": "chart-member-elder",
+       "doshams": [
+        {
+         "code": "DOSHAM-chart-member-elder"
+        }
+       ],
+       "yogas": [
+        {
+         "code": "YOGA-chart-member-elder"
+        }
+       ]
+      },
+      "dailyGuidance": {
+       "score": 55
+      },
+      "dasha": {
+       "tag": "dasha-member-elder"
+      },
+      "dashaAntar": [
+       {
+        "tag": "antar-member-elder"
+       }
+      ],
+      "dashaMaha": {
+       "tag": "maha-member-elder"
+      },
+      "displayName": "Devi Synthetic",
+      "explanation": {
+       "tag": "explanation-member-elder"
+      },
+      "memberId": "member-elder",
+      "nakshatraCard": {
+       "tag": "nak-member-elder"
+      },
+      "peyarchiUpcoming": [
+       {
+        "tag": "peyarchi-member-elder"
+       }
+      ],
+      "sani": {
+       "tag": "sani-member-elder"
+      },
+      "summary": {
+       "chartId": "chart-member-elder",
+       "janmaNakshatra": "PUSHYA",
+       "lagnaRasi": 9,
+       "moonRasi": 4
+      },
+      "transit": {
+       "tag": "transit-member-elder"
+      },
+      "weekAhead": {
+       "tag": "week-member-elder"
       }
      }
     ],
@@ -6287,6 +7489,10 @@
      {
       "familyMemberId": "member-selfrow",
       "relationshipToOwner": "self"
+     },
+     {
+      "familyMemberId": "member-elder",
+      "relationshipToOwner": "parent"
      }
     ],
     "focusSection": null,
@@ -6518,6 +7724,82 @@
       },
       "weekAhead": {
        "tag": "week-member-selfrow"
+      }
+     },
+     {
+      "chart": {
+       "birthProfile": {
+        "birthDateLocal": "1992-03-03",
+        "birthLatitude": 11.5,
+        "birthLongitude": 78.25,
+        "birthPlace": "Synthetic Nagar",
+        "birthProfileId": "bp-member-elder",
+        "birthTimeConfidenceMinutes": 5,
+        "birthTimeLocal": "06:30",
+        "birthTimezone": "Asia/Kolkata",
+        "children": "1",
+        "currentLatitude": null,
+        "currentLongitude": null,
+        "currentPlace": null,
+        "currentTimezone": null,
+        "displayName": "Devi Synthetic",
+        "employmentType": "salaried",
+        "maritalStatus": "married",
+        "relationshipToOwner": "self"
+       },
+       "chartId": "chart-member-elder",
+       "doshams": [
+        {
+         "code": "DOSHAM-chart-member-elder"
+        }
+       ],
+       "yogas": [
+        {
+         "code": "YOGA-chart-member-elder"
+        }
+       ]
+      },
+      "dailyGuidance": {
+       "score": 55
+      },
+      "dasha": {
+       "tag": "dasha-member-elder"
+      },
+      "dashaAntar": [
+       {
+        "tag": "antar-member-elder"
+       }
+      ],
+      "dashaMaha": {
+       "tag": "maha-member-elder"
+      },
+      "displayName": "Devi Synthetic",
+      "explanation": {
+       "tag": "explanation-member-elder"
+      },
+      "memberId": "member-elder",
+      "nakshatraCard": {
+       "tag": "nak-member-elder"
+      },
+      "peyarchiUpcoming": [
+       {
+        "tag": "peyarchi-member-elder"
+       }
+      ],
+      "sani": {
+       "tag": "sani-member-elder"
+      },
+      "summary": {
+       "chartId": "chart-member-elder",
+       "janmaNakshatra": "PUSHYA",
+       "lagnaRasi": 9,
+       "moonRasi": 4
+      },
+      "transit": {
+       "tag": "transit-member-elder"
+      },
+      "weekAhead": {
+       "tag": "week-member-elder"
       }
      }
     ],
@@ -7150,6 +8432,82 @@
       },
       "weekAhead": {
        "tag": "week-member-selfrow"
+      }
+     },
+     {
+      "chart": {
+       "birthProfile": {
+        "birthDateLocal": "1992-03-03",
+        "birthLatitude": 11.5,
+        "birthLongitude": 78.25,
+        "birthPlace": "Synthetic Nagar",
+        "birthProfileId": "bp-member-elder",
+        "birthTimeConfidenceMinutes": 5,
+        "birthTimeLocal": "06:30",
+        "birthTimezone": "Asia/Kolkata",
+        "children": "1",
+        "currentLatitude": null,
+        "currentLongitude": null,
+        "currentPlace": null,
+        "currentTimezone": null,
+        "displayName": "Devi Synthetic",
+        "employmentType": "salaried",
+        "maritalStatus": "married",
+        "relationshipToOwner": "self"
+       },
+       "chartId": "chart-member-elder",
+       "doshams": [
+        {
+         "code": "DOSHAM-chart-member-elder"
+        }
+       ],
+       "yogas": [
+        {
+         "code": "YOGA-chart-member-elder"
+        }
+       ]
+      },
+      "dailyGuidance": {
+       "score": 55
+      },
+      "dasha": {
+       "tag": "dasha-member-elder"
+      },
+      "dashaAntar": [
+       {
+        "tag": "antar-member-elder"
+       }
+      ],
+      "dashaMaha": {
+       "tag": "maha-member-elder"
+      },
+      "displayName": "Devi Synthetic",
+      "explanation": {
+       "tag": "explanation-member-elder"
+      },
+      "memberId": "member-elder",
+      "nakshatraCard": {
+       "tag": "nak-member-elder"
+      },
+      "peyarchiUpcoming": [
+       {
+        "tag": "peyarchi-member-elder"
+       }
+      ],
+      "sani": {
+       "tag": "sani-member-elder"
+      },
+      "summary": {
+       "chartId": "chart-member-elder",
+       "janmaNakshatra": "PUSHYA",
+       "lagnaRasi": 9,
+       "moonRasi": 4
+      },
+      "transit": {
+       "tag": "transit-member-elder"
+      },
+      "weekAhead": {
+       "tag": "week-member-elder"
       }
      }
     ],
@@ -7374,6 +8732,10 @@
      {
       "familyMemberId": "member-selfrow",
       "relationshipToOwner": "self"
+     },
+     {
+      "familyMemberId": "member-elder",
+      "relationshipToOwner": "parent"
      }
     ],
     "focusSection": null,
@@ -7605,6 +8967,82 @@
       },
       "weekAhead": {
        "tag": "week-member-selfrow"
+      }
+     },
+     {
+      "chart": {
+       "birthProfile": {
+        "birthDateLocal": "1992-03-03",
+        "birthLatitude": 11.5,
+        "birthLongitude": 78.25,
+        "birthPlace": "Synthetic Nagar",
+        "birthProfileId": "bp-member-elder",
+        "birthTimeConfidenceMinutes": 5,
+        "birthTimeLocal": "06:30",
+        "birthTimezone": "Asia/Kolkata",
+        "children": "1",
+        "currentLatitude": null,
+        "currentLongitude": null,
+        "currentPlace": null,
+        "currentTimezone": null,
+        "displayName": "Devi Synthetic",
+        "employmentType": "salaried",
+        "maritalStatus": "married",
+        "relationshipToOwner": "self"
+       },
+       "chartId": "chart-member-elder",
+       "doshams": [
+        {
+         "code": "DOSHAM-chart-member-elder"
+        }
+       ],
+       "yogas": [
+        {
+         "code": "YOGA-chart-member-elder"
+        }
+       ]
+      },
+      "dailyGuidance": {
+       "score": 55
+      },
+      "dasha": {
+       "tag": "dasha-member-elder"
+      },
+      "dashaAntar": [
+       {
+        "tag": "antar-member-elder"
+       }
+      ],
+      "dashaMaha": {
+       "tag": "maha-member-elder"
+      },
+      "displayName": "Devi Synthetic",
+      "explanation": {
+       "tag": "explanation-member-elder"
+      },
+      "memberId": "member-elder",
+      "nakshatraCard": {
+       "tag": "nak-member-elder"
+      },
+      "peyarchiUpcoming": [
+       {
+        "tag": "peyarchi-member-elder"
+       }
+      ],
+      "sani": {
+       "tag": "sani-member-elder"
+      },
+      "summary": {
+       "chartId": "chart-member-elder",
+       "janmaNakshatra": "PUSHYA",
+       "lagnaRasi": 9,
+       "moonRasi": 4
+      },
+      "transit": {
+       "tag": "transit-member-elder"
+      },
+      "weekAhead": {
+       "tag": "week-member-elder"
       }
      }
     ],
@@ -8238,6 +9676,82 @@
       "weekAhead": {
        "tag": "week-member-selfrow"
       }
+     },
+     {
+      "chart": {
+       "birthProfile": {
+        "birthDateLocal": "1992-03-03",
+        "birthLatitude": 11.5,
+        "birthLongitude": 78.25,
+        "birthPlace": "Synthetic Nagar",
+        "birthProfileId": "bp-member-elder",
+        "birthTimeConfidenceMinutes": 5,
+        "birthTimeLocal": "06:30",
+        "birthTimezone": "Asia/Kolkata",
+        "children": "1",
+        "currentLatitude": null,
+        "currentLongitude": null,
+        "currentPlace": null,
+        "currentTimezone": null,
+        "displayName": "Devi Synthetic",
+        "employmentType": "salaried",
+        "maritalStatus": "married",
+        "relationshipToOwner": "self"
+       },
+       "chartId": "chart-member-elder",
+       "doshams": [
+        {
+         "code": "DOSHAM-chart-member-elder"
+        }
+       ],
+       "yogas": [
+        {
+         "code": "YOGA-chart-member-elder"
+        }
+       ]
+      },
+      "dailyGuidance": {
+       "score": 55
+      },
+      "dasha": {
+       "tag": "dasha-member-elder"
+      },
+      "dashaAntar": [
+       {
+        "tag": "antar-member-elder"
+       }
+      ],
+      "dashaMaha": {
+       "tag": "maha-member-elder"
+      },
+      "displayName": "Devi Synthetic",
+      "explanation": {
+       "tag": "explanation-member-elder"
+      },
+      "memberId": "member-elder",
+      "nakshatraCard": {
+       "tag": "nak-member-elder"
+      },
+      "peyarchiUpcoming": [
+       {
+        "tag": "peyarchi-member-elder"
+       }
+      ],
+      "sani": {
+       "tag": "sani-member-elder"
+      },
+      "summary": {
+       "chartId": "chart-member-elder",
+       "janmaNakshatra": "PUSHYA",
+       "lagnaRasi": 9,
+       "moonRasi": 4
+      },
+      "transit": {
+       "tag": "transit-member-elder"
+      },
+      "weekAhead": {
+       "tag": "week-member-elder"
+      }
      }
     ],
     "selectedDate": "2026-10-12",
@@ -8452,6 +9966,10 @@
      {
       "familyMemberId": "member-selfrow",
       "relationshipToOwner": "self"
+     },
+     {
+      "familyMemberId": "member-elder",
+      "relationshipToOwner": "parent"
      }
     ],
     "focusSection": null,
@@ -8683,6 +10201,82 @@
       },
       "weekAhead": {
        "tag": "week-member-selfrow"
+      }
+     },
+     {
+      "chart": {
+       "birthProfile": {
+        "birthDateLocal": "1992-03-03",
+        "birthLatitude": 11.5,
+        "birthLongitude": 78.25,
+        "birthPlace": "Synthetic Nagar",
+        "birthProfileId": "bp-member-elder",
+        "birthTimeConfidenceMinutes": 5,
+        "birthTimeLocal": "06:30",
+        "birthTimezone": "Asia/Kolkata",
+        "children": "1",
+        "currentLatitude": null,
+        "currentLongitude": null,
+        "currentPlace": null,
+        "currentTimezone": null,
+        "displayName": "Devi Synthetic",
+        "employmentType": "salaried",
+        "maritalStatus": "married",
+        "relationshipToOwner": "self"
+       },
+       "chartId": "chart-member-elder",
+       "doshams": [
+        {
+         "code": "DOSHAM-chart-member-elder"
+        }
+       ],
+       "yogas": [
+        {
+         "code": "YOGA-chart-member-elder"
+        }
+       ]
+      },
+      "dailyGuidance": {
+       "score": 55
+      },
+      "dasha": {
+       "tag": "dasha-member-elder"
+      },
+      "dashaAntar": [
+       {
+        "tag": "antar-member-elder"
+       }
+      ],
+      "dashaMaha": {
+       "tag": "maha-member-elder"
+      },
+      "displayName": "Devi Synthetic",
+      "explanation": {
+       "tag": "explanation-member-elder"
+      },
+      "memberId": "member-elder",
+      "nakshatraCard": {
+       "tag": "nak-member-elder"
+      },
+      "peyarchiUpcoming": [
+       {
+        "tag": "peyarchi-member-elder"
+       }
+      ],
+      "sani": {
+       "tag": "sani-member-elder"
+      },
+      "summary": {
+       "chartId": "chart-member-elder",
+       "janmaNakshatra": "PUSHYA",
+       "lagnaRasi": 9,
+       "moonRasi": 4
+      },
+      "transit": {
+       "tag": "transit-member-elder"
+      },
+      "weekAhead": {
+       "tag": "week-member-elder"
       }
      }
     ],
@@ -9316,6 +10910,82 @@
       "weekAhead": {
        "tag": "week-member-selfrow"
       }
+     },
+     {
+      "chart": {
+       "birthProfile": {
+        "birthDateLocal": "1992-03-03",
+        "birthLatitude": 11.5,
+        "birthLongitude": 78.25,
+        "birthPlace": "Synthetic Nagar",
+        "birthProfileId": "bp-member-elder",
+        "birthTimeConfidenceMinutes": 5,
+        "birthTimeLocal": "06:30",
+        "birthTimezone": "Asia/Kolkata",
+        "children": "1",
+        "currentLatitude": null,
+        "currentLongitude": null,
+        "currentPlace": null,
+        "currentTimezone": null,
+        "displayName": "Devi Synthetic",
+        "employmentType": "salaried",
+        "maritalStatus": "married",
+        "relationshipToOwner": "self"
+       },
+       "chartId": "chart-member-elder",
+       "doshams": [
+        {
+         "code": "DOSHAM-chart-member-elder"
+        }
+       ],
+       "yogas": [
+        {
+         "code": "YOGA-chart-member-elder"
+        }
+       ]
+      },
+      "dailyGuidance": {
+       "score": 55
+      },
+      "dasha": {
+       "tag": "dasha-member-elder"
+      },
+      "dashaAntar": [
+       {
+        "tag": "antar-member-elder"
+       }
+      ],
+      "dashaMaha": {
+       "tag": "maha-member-elder"
+      },
+      "displayName": "Devi Synthetic",
+      "explanation": {
+       "tag": "explanation-member-elder"
+      },
+      "memberId": "member-elder",
+      "nakshatraCard": {
+       "tag": "nak-member-elder"
+      },
+      "peyarchiUpcoming": [
+       {
+        "tag": "peyarchi-member-elder"
+       }
+      ],
+      "sani": {
+       "tag": "sani-member-elder"
+      },
+      "summary": {
+       "chartId": "chart-member-elder",
+       "janmaNakshatra": "PUSHYA",
+       "lagnaRasi": 9,
+       "moonRasi": 4
+      },
+      "transit": {
+       "tag": "transit-member-elder"
+      },
+      "weekAhead": {
+       "tag": "week-member-elder"
+      }
      }
     ],
     "selectedDate": "2026-10-12",
@@ -9760,6 +11430,10 @@
      {
       "familyMemberId": "member-selfrow",
       "relationshipToOwner": "self"
+     },
+     {
+      "familyMemberId": "member-elder",
+      "relationshipToOwner": "parent"
      }
     ],
     "focusSection": null,
@@ -9991,6 +11665,82 @@
       },
       "weekAhead": {
        "tag": "week-member-selfrow"
+      }
+     },
+     {
+      "chart": {
+       "birthProfile": {
+        "birthDateLocal": "1992-03-03",
+        "birthLatitude": 11.5,
+        "birthLongitude": 78.25,
+        "birthPlace": "Synthetic Nagar",
+        "birthProfileId": "bp-member-elder",
+        "birthTimeConfidenceMinutes": 5,
+        "birthTimeLocal": "06:30",
+        "birthTimezone": "Asia/Kolkata",
+        "children": "1",
+        "currentLatitude": null,
+        "currentLongitude": null,
+        "currentPlace": null,
+        "currentTimezone": null,
+        "displayName": "Devi Synthetic",
+        "employmentType": "salaried",
+        "maritalStatus": "married",
+        "relationshipToOwner": "self"
+       },
+       "chartId": "chart-member-elder",
+       "doshams": [
+        {
+         "code": "DOSHAM-chart-member-elder"
+        }
+       ],
+       "yogas": [
+        {
+         "code": "YOGA-chart-member-elder"
+        }
+       ]
+      },
+      "dailyGuidance": {
+       "score": 55
+      },
+      "dasha": {
+       "tag": "dasha-member-elder"
+      },
+      "dashaAntar": [
+       {
+        "tag": "antar-member-elder"
+       }
+      ],
+      "dashaMaha": {
+       "tag": "maha-member-elder"
+      },
+      "displayName": "Devi Synthetic",
+      "explanation": {
+       "tag": "explanation-member-elder"
+      },
+      "memberId": "member-elder",
+      "nakshatraCard": {
+       "tag": "nak-member-elder"
+      },
+      "peyarchiUpcoming": [
+       {
+        "tag": "peyarchi-member-elder"
+       }
+      ],
+      "sani": {
+       "tag": "sani-member-elder"
+      },
+      "summary": {
+       "chartId": "chart-member-elder",
+       "janmaNakshatra": "PUSHYA",
+       "lagnaRasi": 9,
+       "moonRasi": 4
+      },
+      "transit": {
+       "tag": "transit-member-elder"
+      },
+      "weekAhead": {
+       "tag": "week-member-elder"
       }
      }
     ],
@@ -10256,6 +12006,10 @@
      {
       "displayName": "Akila Duplicate",
       "memberId": "member-selfrow"
+     },
+     {
+      "displayName": "Devi Synthetic",
+      "memberId": "member-elder"
      }
     ],
     "onFocusConsumed": "ƒ",
@@ -10758,6 +12512,82 @@
       },
       "weekAhead": {
        "tag": "week-member-selfrow"
+      }
+     },
+     {
+      "chart": {
+       "birthProfile": {
+        "birthDateLocal": "1992-03-03",
+        "birthLatitude": 11.5,
+        "birthLongitude": 78.25,
+        "birthPlace": "Synthetic Nagar",
+        "birthProfileId": "bp-member-elder",
+        "birthTimeConfidenceMinutes": 5,
+        "birthTimeLocal": "06:30",
+        "birthTimezone": "Asia/Kolkata",
+        "children": "1",
+        "currentLatitude": null,
+        "currentLongitude": null,
+        "currentPlace": null,
+        "currentTimezone": null,
+        "displayName": "Devi Synthetic",
+        "employmentType": "salaried",
+        "maritalStatus": "married",
+        "relationshipToOwner": "self"
+       },
+       "chartId": "chart-member-elder",
+       "doshams": [
+        {
+         "code": "DOSHAM-chart-member-elder"
+        }
+       ],
+       "yogas": [
+        {
+         "code": "YOGA-chart-member-elder"
+        }
+       ]
+      },
+      "dailyGuidance": {
+       "score": 55
+      },
+      "dasha": {
+       "tag": "dasha-member-elder"
+      },
+      "dashaAntar": [
+       {
+        "tag": "antar-member-elder"
+       }
+      ],
+      "dashaMaha": {
+       "tag": "maha-member-elder"
+      },
+      "displayName": "Devi Synthetic",
+      "explanation": {
+       "tag": "explanation-member-elder"
+      },
+      "memberId": "member-elder",
+      "nakshatraCard": {
+       "tag": "nak-member-elder"
+      },
+      "peyarchiUpcoming": [
+       {
+        "tag": "peyarchi-member-elder"
+       }
+      ],
+      "sani": {
+       "tag": "sani-member-elder"
+      },
+      "summary": {
+       "chartId": "chart-member-elder",
+       "janmaNakshatra": "PUSHYA",
+       "lagnaRasi": 9,
+       "moonRasi": 4
+      },
+      "transit": {
+       "tag": "transit-member-elder"
+      },
+      "weekAhead": {
+       "tag": "week-member-elder"
       }
      }
     ],
