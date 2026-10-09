@@ -37,7 +37,7 @@ import { useSession } from "@/hooks/useSession";
 import type { UserMode } from "@/hooks/useSession";
 import { usePersonalData } from "@/hooks/usePersonalData";
 import { useDeviceTimeZone } from "@/hooks/useDeviceTimeZone";
-import { useFamilyData, type MemberChart } from "@/hooks/useFamilyData";
+import { useFamilyData } from "@/hooks/useFamilyData";
 import { usePlanData } from "@/hooks/usePlanData";
 import { useJournalData } from "@/hooks/useJournalData";
 import { useNotificationInbox } from "@/hooks/useNotificationInbox";
@@ -54,6 +54,10 @@ import { DashboardFooterMorningGuidance } from "./dashboard-footer-morning-nova"
 import { LifeModePicker, lifeModeLabel } from "./life-mode-picker";
 import { DashboardAskVinaadiWidget } from "./dashboard-ask-vinaadi-widget";
 import { ViewSwap } from "./ui/view-swap";
+import {
+  chartIdFor, isOwnChart, maritalStatusFor, memberChartFor, memberPickerOptions, numerologyMembers,
+  ownerAsMemberChart, poruthamCandidates, reconcileOwnerScore, synastryMemberOptions,
+} from "./dashboard-workspace-chart-view";
 
 const STORAGE_KEY = "jothidam-ai-dashboard-state";
 /** Holds the `lifeModeSetAt` whose 60-day focus strip the reader dismissed. */
@@ -522,7 +526,7 @@ export function DashboardWorkspace() {
   const [remediesLoading, setRemediesLoading] = useState(false);
 
   async function loadRemedies(targetChartId?: string) {
-    const chartId = targetChartId ?? resolveLifeAreasChartId();
+    const chartId = targetChartId ?? lifeAreasChartId;
     if (!chartId || remediesLoading) return;
     setRemediesLoading(true);
     try {
@@ -755,11 +759,7 @@ export function DashboardWorkspace() {
       if (personal.birthProfileId) {
         void personal.refreshPersonalBundle(personal.birthProfileId, selectedDate, true, { forceDay: true });
       }
-      const targetChartId = (() => {
-        if (!lifeAreasViewId) return personal.chartId;
-        const member = family.memberCharts.find((mc) => mc.memberId === lifeAreasViewId);
-        return member?.chart.chartId ?? personal.chartId;
-      })();
+      const targetChartId = chartIdFor(family.memberCharts, lifeAreasViewId, personal.chartId);
       if (!targetChartId || targetChartId === personal.chartId) return;
       personal.setPredictionsLoading(true);
       personal.setJadhagamReport(null);
@@ -772,11 +772,7 @@ export function DashboardWorkspace() {
       if (personal.birthProfileId) {
         void personal.refreshPersonalBundle(personal.birthProfileId, selectedDate, true, { forceDay: true });
       }
-      const targetChartId = (() => {
-        if (!lifeAreasViewId) return personal.chartId;
-        const member = family.memberCharts.find((mc) => mc.memberId === lifeAreasViewId);
-        return member?.chart.chartId ?? personal.chartId;
-      })();
+      const targetChartId = chartIdFor(family.memberCharts, lifeAreasViewId, personal.chartId);
       if (!targetChartId || targetChartId === personal.chartId) return;
       personal.setPredictionsLoading(true);
       personal.setJadhagamReport(null);
@@ -1176,14 +1172,10 @@ export function DashboardWorkspace() {
   // Life areas insights re-run when the resolved chart changes or date changes.
   // Deliberately NOT including family.memberCharts (a new array reference every
   // render) — we only need the resolved chart ID for the selected member.
-  const lifeAreasResolvedChartId = (() => {
-    if (!lifeAreasViewId) return personal.chartId;
-    const member = family.memberCharts.find((mc) => mc.memberId === lifeAreasViewId);
-    return member?.chart.chartId ?? personal.chartId;
-  })();
+  const lifeAreasChartId = chartIdFor(family.memberCharts, lifeAreasViewId, personal.chartId);
   useEffect(() => {
     if (!session.hydrated) return;
-    const targetChartId = lifeAreasResolvedChartId;
+    const targetChartId = lifeAreasChartId;
     if (!targetChartId) return;
     personal.setJadhagamReport(null);
     // Remedies & gemstone advice are per-chart — clear the previous member's
@@ -1202,7 +1194,7 @@ export function DashboardWorkspace() {
     void personal.refreshLifeAreasInsights(targetChartId, selectedDate)
       .finally(() => personal.setPredictionsLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session.hydrated, lifeAreasViewId, selectedDate, lifeAreasResolvedChartId]);
+  }, [session.hydrated, lifeAreasViewId, selectedDate, lifeAreasChartId]);
 
   function showToast(message: string, tone: "success" | "error" = "success") {
     if (tone === "error") toast.error(message);
@@ -1228,40 +1220,19 @@ export function DashboardWorkspace() {
 
   // ── Derived / resolved state ──────────────────────────────
 
-  function resolveLifeAreasChartId(): string {
-    if (!lifeAreasViewId) return personal.chartId;
-    const member = family.memberCharts.find((mc) => mc.memberId === lifeAreasViewId);
-    return member?.chart.chartId ?? personal.chartId;
-  }
-
-  function resolveMuhurtaChartId(): string {
-    if (!muhurtaMemberId) return personal.chartId;
-    const member = family.memberCharts.find((mc) => mc.memberId === muhurtaMemberId);
-    return member?.chart.chartId ?? personal.chartId;
-  }
+  const muhurtaChartId = chartIdFor(family.memberCharts, muhurtaMemberId, personal.chartId);
 
   const selectedVault = family.vaults.find((v) => v.familyVaultId === family.selectedVaultId) ?? null;
 
-  function resolveMemberChart(viewId: string | null): MemberChart | null {
-    if (!viewId) return null;
-    return family.memberCharts.find((mc) => mc.memberId === viewId) ?? null;
-  }
+  const personalMemberChart = memberChartFor(family.memberCharts, personalViewId);
+  const lifeAreasMemberChart = memberChartFor(family.memberCharts, lifeAreasViewId);
 
-  const personalMemberChart = resolveMemberChart(personalViewId);
-  const lifeAreasMemberChart = resolveMemberChart(lifeAreasViewId);
-
-  // Life focus D4 (owner ruling Q2): a focus is about the reader's own life,
-  // so a family member's chart gets the neutral order. The relationship lives
-  // on the vault member — `birthProfile.relationshipToOwner` reads "self" for
-  // every persisted chart and cannot tell them apart.
-  const isOwnChart = (viewId: string | null) =>
-    !viewId || family.familyMembers.find((f) => f.familyMemberId === viewId)?.relationshipToOwner === "self";
-  const todayFocus = appliedFocus(lifeModeStatus, isOwnChart(personalViewId));
-  const lifeAreasFocus = appliedFocus(lifeModeStatus, isOwnChart(lifeAreasViewId));
+  const todayFocus = appliedFocus(lifeModeStatus, isOwnChart(family.familyMembers, personalViewId));
+  const lifeAreasFocus = appliedFocus(lifeModeStatus, isOwnChart(family.familyMembers, lifeAreasViewId));
   // Phase 3. Goals is always the reader's own chart; the muhurta view follows
   // its member picker; the month grid's chip is always read on the own chart.
   const ownFocus = appliedFocus(lifeModeStatus, true);
-  const muhurtaFocus = appliedFocus(lifeModeStatus, isOwnChart(muhurtaMemberId));
+  const muhurtaFocus = appliedFocus(lifeModeStatus, isOwnChart(family.familyMembers, muhurtaMemberId));
   const monthFocus = personal.chartId && ownFocus.activities.length > 0
     ? { chartId: personal.chartId, activities: ownFocus.activities, label: lifeModeLabel(activeLifeMode, lang) }
     : null;
@@ -1277,23 +1248,9 @@ export function DashboardWorkspace() {
   const personalSani = personalMemberChart?.sani ?? personal.sani;
   const personalPeyarchiUpcoming = personalMemberChart?.peyarchiUpcoming ?? personal.peyarchiUpcoming;
 
-  // The owner's row in familyAggregate is reconciled against their own live daily-guidance
-  // score, so the same person can't show two different "today" scores on one screen (this
-  // feeds both the classic household strip and Nova's family-today card).
-  const ownerBirthProfileId = personal.chart?.birthProfile.birthProfileId;
-  const familyAggregateForToday = family.familyAggregate
-    ? {
-        ...family.familyAggregate,
-        members: family.familyAggregate.members.map((m) =>
-          // `memberCharts` intentionally excludes the synthetic owner row, so
-          // it cannot be used to identify this member. The birth-profile ID is
-          // shared by the live personal reading and the aggregate owner row.
-          ownerBirthProfileId !== undefined && m.birthProfileId === ownerBirthProfileId && personal.dailyGuidance?.score != null
-            ? { ...m, individualScore: personal.dailyGuidance.score }
-            : m
-        ),
-      }
-    : family.familyAggregate;
+  const familyAggregateForToday = reconcileOwnerScore(
+    family.familyAggregate, personal.chart?.birthProfile.birthProfileId, personal.dailyGuidance?.score,
+  );
 
   // Life Areas tab specific resolved data (follows lifeAreasViewId selector) —
   // feeds the Overview sub-tab's guidance/gochar cards, moved here from
@@ -1301,30 +1258,9 @@ export function DashboardWorkspace() {
   const lifeAreasDailyGuidance = lifeAreasMemberChart?.dailyGuidance ?? personal.dailyGuidance;
   const lifeAreasTransit = lifeAreasMemberChart?.transit ?? personal.transit;
   const lifeAreasSani = lifeAreasMemberChart?.sani ?? personal.sani;
-  // Backend's family-aggregate injects a synthetic "owner" row (familyMemberId === birthProfileId)
-  // so family-score averaging includes the owner alongside managed members. useFamilyData.ts
-  // deliberately excludes that row from family.memberCharts (to avoid duplicating the owner in
-  // member-picker pill lists elsewhere), so the Family tab's own member grid — which reads the
-  // *unfiltered* aggregate — can never resolve a chart for that row via memberCharts.find(...).
-  // The owner's own chart/dasha/dailyGuidance are already loaded here as `personal.*`; assembling
-  // them into a MemberChart-shaped object lets the Family tab render/click the owner's tile like
-  // any other member's, with no extra fetch.
-  const ownerMemberChart: MemberChart | null = !personal.chart ? null : {
-    memberId: personal.birthProfileId,
-    displayName: personal.chart.birthProfile.displayName,
-    chart: personal.chart,
-    explanation: personal.chartExplanation,
-    summary: personal.chartSummary,
-    transit: personal.transit,
-    sani: personal.sani,
-    peyarchiUpcoming: personal.peyarchiUpcoming,
-    dailyGuidance: personal.dailyGuidance,
-    weekAhead: personal.weekAhead,
-    dasha: personal.dasha,
-    dashaMaha: personal.dashaMaha,
-    dashaAntar: personal.dashaAntar,
-    nakshatraCard: personal.nakshatraCard,
-  };
+  // The aggregate's synthetic owner row (familyMemberId === birthProfileId) is excluded from
+  // `memberCharts`, so the Family tab resolves the owner's tile from this instead.
+  const ownerMemberChart = ownerAsMemberChart(personal);
 
   const journalRetentionDays = journal.journalSettings?.journalRetentionDays ?? 365;
 
@@ -2076,30 +2012,6 @@ export function DashboardWorkspace() {
           </TabPane>
 
           <TabPane visible={isPaneRendered("tools")} active={activeTab === "tools"}>
-            {(() => {
-            // `activeTool` is component-level state now (it used to be derived
-            // here from the nine show* booleans) — that is what makes it
-            // addressable as `/dashboard/tools/<tool>`.
-            // Note: Find Birth Time (rectification) removed — results were unreliable
-            // needsProfile/openTool/closeTool now live at component level (see
-            // above, near the other cross-tab focus helpers) so Today's Quick
-            // Links can reuse them via focusTool.
-            // Compatibility tool (moved from the Family page 2026-07-21): join the
-            // vault's member charts with their relationship labels for the picker.
-            const synastryMemberOptions = family.memberCharts.map((mc) => {
-              const fm = family.familyMembers.find((f) => f.familyMemberId === mc.memberId);
-              return { memberId: mc.memberId, displayName: mc.displayName, relationshipToOwner: fm?.relationshipToOwner ?? "other" };
-            });
-            // Numerology's "Reading for" switcher — same member charts as
-            // Compatibility above, just the {memberId, displayName, chartId}
-            // shape the panel's picker needs.
-            const numerologyMembers = family.memberCharts.map((mc) => ({
-              memberId: mc.memberId,
-              displayName: mc.displayName,
-              chartId: mc.chart.chartId,
-            }));
-
-            return (
               <ViewSwap viewKey={activeTool ?? "tools-hub"}>
                 <DashboardToolsTabNova
                 lang={lang}
@@ -2124,43 +2036,18 @@ export function DashboardWorkspace() {
                 selectedDate={selectedDate}
                 onDateChange={setSelectedDate}
                 familyVaultId={family.selectedVaultId ?? undefined}
-                numerologyMembers={numerologyMembers}
+                numerologyMembers={numerologyMembers(family.memberCharts)}
                 ownerChart={personal.chart}
                 synastryMemberCharts={family.memberCharts}
-                synastryMemberOptions={synastryMemberOptions}
+                synastryMemberOptions={synastryMemberOptions(family.memberCharts, family.familyMembers)}
                 relationshipAlerts={family.relationshipAlerts}
                 relationshipAlertsLoading={family.relationshipAlertsLoading}
-                familyMembersForPorutham={[
-                  ...(personal.chart ? [{
-                    memberId: `owner:${personal.chart.birthProfile.birthProfileId}`,
-                    displayName: personal.chart.birthProfile.displayName,
-                    birthDateLocal: personal.chart.birthProfile.birthDateLocal,
-                    birthTimeLocal: personal.chart.birthProfile.birthTimeLocal ?? "",
-                    birthPlace: personal.chart.birthProfile.birthPlace,
-                    birthLatitude: personal.chart.birthProfile.birthLatitude,
-                    birthLongitude: personal.chart.birthProfile.birthLongitude,
-                    birthTimezone: personal.chart.birthProfile.birthTimezone,
-                  }] : []),
-                  ...family.memberCharts
-                    .filter((mc) => mc.chart.birthProfile.birthProfileId !== personal.chart?.birthProfile.birthProfileId)
-                    .map((mc) => ({
-                      memberId: mc.memberId,
-                      displayName: mc.displayName,
-                      birthDateLocal: mc.chart.birthProfile.birthDateLocal,
-                      birthTimeLocal: mc.chart.birthProfile.birthTimeLocal ?? "",
-                      birthPlace: mc.chart.birthProfile.birthPlace,
-                      birthLatitude: mc.chart.birthProfile.birthLatitude,
-                      birthLongitude: mc.chart.birthProfile.birthLongitude,
-                      birthTimezone: mc.chart.birthProfile.birthTimezone,
-                    })),
-                ]}
+                familyMembersForPorutham={poruthamCandidates(personal.chart, family.memberCharts)}
                 onGoToPlan={() => goToTab("plan")}
                 onGoToCalendar={() => goToTab("calendar")}
                 onOpenAskVinaadi={() => setAskVinaadiOpen(true)}
                 />
               </ViewSwap>
-            );
-            })()}
           </TabPane>
 
           <TabPane visible={isPaneRendered("family")} active={activeTab === "family"}>
@@ -2221,8 +2108,8 @@ export function DashboardWorkspace() {
               locationLabel={personal.panchangamLocationLabel}
               panchangamTimezone={personal.panchangamTimezone}
               onSelectDate={setSelectedDate}
-              chartId={resolveMuhurtaChartId()}
-              memberCharts={family.memberCharts.map((mc) => ({ memberId: mc.memberId, displayName: mc.displayName }))}
+              chartId={muhurtaChartId}
+              memberCharts={memberPickerOptions(family.memberCharts)}
               selectedMemberId={muhurtaMemberId}
               onSelectMember={setMuhurtaMemberId}
               focusView={calendarFocusView}
@@ -2248,27 +2135,20 @@ export function DashboardWorkspace() {
               doshams={(lifeAreasMemberChart?.chart ?? personal.chart)?.doshams ?? []}
               jadhagamReport={personal.jadhagamReport}
               jadhagamReportLoading={personal.jadhagamReportLoading}
-              onLoadJadhagamReport={() => void personal.loadJadhagamReport(resolveLifeAreasChartId())}
+              onLoadJadhagamReport={() => void personal.loadJadhagamReport(lifeAreasChartId)}
               chartSummary={lifeAreasMemberChart?.summary ?? personal.chartSummary}
               birthDisplayName={birthForm.displayName}
-              maritalStatus={(() => {
-                if (!lifeAreasViewId) return birthForm.maritalStatus || undefined;
-                const mc = family.memberCharts.find((m) => m.memberId === lifeAreasViewId);
-                const rel = mc?.chart.birthProfile.relationshipToOwner;
-                // Spouse/parent/grandparent are definitionally married — no need to ask
-                if (rel === "spouse" || rel === "parent" || rel === "grandparent") return "married";
-                return undefined;
-              })()}
-              memberCharts={family.memberCharts.map((mc) => ({ memberId: mc.memberId, displayName: mc.displayName }))}
+              maritalStatus={maritalStatusFor(family.memberCharts, lifeAreasViewId, birthForm.maritalStatus)}
+              memberCharts={memberPickerOptions(family.memberCharts)}
               selectedMemberId={lifeAreasViewId}
               onSelectMember={setLifeAreasViewId}
               focusArea={lifeAreasFocus.area}
               active={activeTab === "life-areas"}
-              chartId={resolveLifeAreasChartId()}
+              chartId={lifeAreasChartId}
               remedyPlan={remedyPlan}
               gemstoneAdvice={gemstoneAdvice}
               remediesLoading={remediesLoading}
-              onLoadRemedies={() => void loadRemedies(resolveLifeAreasChartId())}
+              onLoadRemedies={() => void loadRemedies(lifeAreasChartId)}
               goals={plan.goals}
               onGoToPlan={() => goToTab("plan")}
               onGoToChart={() => goToTab("family")}
