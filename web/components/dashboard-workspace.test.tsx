@@ -16,6 +16,7 @@ import { readFileSync } from "node:fs";
  */
 const source = readFileSync("components/dashboard-workspace.tsx", "utf8");
 const navigationSource = readFileSync("hooks/useWorkspaceNavigation.ts", "utf8");
+const formsSource = readFileSync("components/dashboard-workspace-profile-forms.ts", "utf8");
 
 describe("dashboard-workspace — first post-calculation screen (T5)", () => {
   it("routes a freshly calculated chart to Family & Charts, not Today", () => {
@@ -24,9 +25,11 @@ describe("dashboard-workspace — first post-calculation screen (T5)", () => {
     // (dashboard-family-charts-hybrid.tsx §3, MEMBER OVERVIEW). Landing a
     // first-time reader on Today instead skips straight past the one
     // screen written to be read rather than scanned.
-    const fn = source.slice(source.indexOf("async function handleCreateProfile"));
-    const body = fn.slice(0, fn.indexOf("\n  async function handleCreateVault"));
+    const fn = formsSource.slice(formsSource.indexOf("async function handleCreateProfile"));
+    const body = fn.slice(0, fn.indexOf("\n  async function handleAddMember"));
 
+    expect(body.length).toBeGreaterThan(0);
+    expect(body).not.toMatch(/handleAddMember/);
     expect(body).toMatch(/setActiveTab\(response\.data\.chartId \? "family" : "personal"\)/);
   });
 
@@ -107,8 +110,9 @@ describe("dashboard-workspace — onboarding banner waits for an answer (DXA-04)
 
 describe("dashboard-workspace — family onboarding (T19)", () => {
   it("creates 'Your family' only when the first member is submitted", () => {
-    const fn = source.slice(source.indexOf("async function handleAddMember"));
+    const fn = formsSource.slice(formsSource.indexOf("async function handleAddMember"));
     const body = fn.slice(0, fn.indexOf("\n  async function handleSaveEdit"));
+    expect(body.length).toBeGreaterThan(0);
 
     expect(body).toMatch(/if \(!targetVaultId\)/);
     expect(body).toMatch(/name: lang === "ta" \? "உங்கள் குடும்பம்" : "Your family"/);
@@ -116,7 +120,9 @@ describe("dashboard-workspace — family onboarding (T19)", () => {
   });
 
   it("does not retain a separate family-creation handler", () => {
-    expect(source).not.toMatch(/async function handleCreateVault/);
-    expect(source).not.toMatch(/busyCreateVault/);
+    for (const text of [source, formsSource]) {
+      expect(text).not.toMatch(/async function handleCreateVault/);
+      expect(text).not.toMatch(/busyCreateVault/);
+    }
   });
 });
