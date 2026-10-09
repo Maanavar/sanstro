@@ -15,6 +15,7 @@ import { readFileSync } from "node:fs";
  * proves the reader got there.
  */
 const source = readFileSync("components/dashboard-workspace.tsx", "utf8");
+const navigationSource = readFileSync("hooks/useWorkspaceNavigation.ts", "utf8");
 
 describe("dashboard-workspace — first post-calculation screen (T5)", () => {
   it("routes a freshly calculated chart to Family & Charts, not Today", () => {
@@ -55,7 +56,7 @@ describe("dashboard-workspace — bare /dashboard is always Today (DXA-02, D1)",
   const hydrationBody = hydration.slice(0, hydration.indexOf("}, [session.hydrated]);"));
 
   it("starts on the path's tab, else Today", () => {
-    expect(source).toMatch(/parseDashboardPath\(pathname, \{ qaEnabled: ENABLE_QA_TAB \}\)\.tab \?\? "personal"/);
+    expect(navigationSource).toMatch(/parseDashboardPath\(pathname, \{ qaEnabled: ENABLE_QA_TAB \}\)\.tab \?\? "personal"/);
   });
 
   it("does not restore the last tab from localStorage", () => {
@@ -63,9 +64,13 @@ describe("dashboard-workspace — bare /dashboard is always Today (DXA-02, D1)",
     expect(hydrationBody.length).toBeGreaterThan(0);
     expect(hydrationBody).not.toMatch(/parsed\.activeTab/);
     expect(hydrationBody).not.toMatch(/sanitizeRestoredTab/);
-    // The only tab the hydration effect may set is the one the URL names.
-    const setters = hydrationBody.match(/setActiveTab\([^)]*\)/g) ?? [];
-    expect(setters).toEqual(["setActiveTab(fromUrl)"]);
+    // Hydration sets no tab itself; it adopts the URL's, and that is the only one set.
+    expect(hydrationBody.match(/setActiveTab\([^)]*\)/g) ?? []).toEqual([]);
+    expect(hydrationBody).toMatch(/adoptUrlDestination\(\)/);
+    const adopt = navigationSource.slice(navigationSource.indexOf("function adoptUrlDestination"));
+    const adoptBody = adopt.slice(0, adopt.indexOf("function enableUrlSync"));
+    expect(adoptBody.length).toBeGreaterThan(0);
+    expect(adoptBody.match(/setActiveTab\([^)]*\)/g)).toEqual(["setActiveTab(fromUrl)"]);
   });
 
   it("no longer persists the active tab", () => {
@@ -91,7 +96,7 @@ describe("dashboard-workspace — onboarding banner waits for an answer (DXA-04)
     const emptyCheck = gateBody.indexOf("family.vaults.length === 0");
     expect(readyCheck).toBeGreaterThan(-1);
     expect(readyCheck).toBeLessThan(emptyCheck);
-    expect(gateBody).toMatch(/family\.vaultsReady, family\.vaults\]/);
+    expect(gateBody).toMatch(/family\.vaultsReady, family\.vaults,/);
   });
 
   it("renders the banner only on a definite false", () => {

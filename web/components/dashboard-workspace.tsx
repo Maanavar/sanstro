@@ -2,7 +2,6 @@
 
 import dynamic from "next/dynamic";
 import { LocalizedLink as Link } from "@/components/localized-link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { MotionConfig, motion, useReducedMotion } from "framer-motion";
 
@@ -12,10 +11,7 @@ import { isLocationMismatch, pickCheckIn } from "@vinaadi/shared/checkIn";
 import { apiFetchJson, toQuery } from "@/lib/api";
 import { getFriendlyErrorMessage } from "@/lib/error-messages";
 import { isBirthDateWithinBounds } from "@/lib/birth-date";
-import {
-  DEFAULT_SETTINGS_SECTION, TAB_QUERY_PARAM, dashboardPath, isDashboardTool,
-  parseDashboardPath, sanitizeUrlTab, type DashboardTool, type Tab,
-} from "@/lib/dashboard-tabs";
+import type { Tab } from "@/lib/dashboard-tabs";
 import { todayIso } from "@/lib/format";
 import { DUR, EASE_NOVA } from "@/lib/motion";
 import { t } from "@/lib/i18n";
@@ -41,9 +37,9 @@ import { useFamilyData } from "@/hooks/useFamilyData";
 import { usePlanData } from "@/hooks/usePlanData";
 import { useJournalData } from "@/hooks/useJournalData";
 import { useNotificationInbox } from "@/hooks/useNotificationInbox";
+import { ENABLE_QA_TAB, useWorkspaceNavigation } from "@/hooks/useWorkspaceNavigation";
 
 import type { EditMemberState } from "./dashboard-edit-member-modal";
-import type { SettingsSectionId } from "./dashboard-settings-rail";
 import { ConfirmDialog, type ConfirmDialogState } from "./modal-shell";
 import type { StatusMessage } from "./dashboard-ui-nova";
 import { CelestialAmbientNova } from "./celestial-ambient-nova";
@@ -62,7 +58,6 @@ import {
 const STORAGE_KEY = "jothidam-ai-dashboard-state";
 /** Holds the `lifeModeSetAt` whose 60-day focus strip the reader dismissed. */
 const FOCUS_NUDGE_DISMISSED_KEY = "vinaadi-focus-nudge-dismissed";
-const ENABLE_QA_TAB = process.env.NODE_ENV !== "production";
 
 /**
  * Footer link — either a workspace tab (local state + a URL rewrite, no
@@ -223,7 +218,6 @@ const DashboardToolsTabNova = dynamic(
   { loading: LazyPanelFallback },
 );
 
-type SettingsSubTab = "setup" | "session";
 type Relationship = "self" | "spouse" | "child" | "parent" | "sibling" | "grandparent" | "other";
 
 const RELATIONSHIP_WEIGHTS: Record<Relationship, string> = {
@@ -360,76 +354,19 @@ export function DashboardWorkspace() {
   const setStatus = useCallback((text: string, tone: "success" | "error" = "success") => {
     setStatusMessage(text ? { text, tone } : null);
   }, []);
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const urlTabParam = searchParams.get(TAB_QUERY_PARAM);
-  // Seeded from the PATH at first render, not hardcoded to "personal".
-  //
-  // This matters on a cold arrival: someone opening or reloading
-  // `/dashboard/calendar` must land on Calendar in the very first paint. With a
-  // hardcoded default they got **Today** first and only moved to the real
-  // destination once the hydration effect below had resolved — and that effect
-  // waits on `/auth/me`, so the wrong screen sat there for a whole round trip.
-  //
-  // `usePathname()` already knows the destination on that first render; nothing
-  // has to be awaited to read it. The hydration effect still runs and is now a
-  // no-op for this value, but it still owns the one case a path cannot answer:
-  // the legacy `?tab=` param, which only applies when the path names nothing.
-  // A bare path is Today; the last tab is not restored (DXA-02, D1).
-  //
-  // In-app tab clicks no longer go through any of this: the workspace is
-  // mounted by app/dashboard/(workspace)/layout.tsx, which the router keeps
-  // alive across every /dashboard ⇄ /dashboard/* move, so a tab change is state
-  // plus a URL rewrite and this initialiser runs once per real page load.
-  const [activeTab, setActiveTab] = useState<Tab>(
-    () => parseDashboardPath(pathname, { qaEnabled: ENABLE_QA_TAB }).tab ?? "personal",
-  );
+  // Destination, URL sync, pane keep-alive, scroll reset and cross-tab focus.
+  const {
+    activeTab, setActiveTab, activeTool, settingsSubTab, setSettingsSubTab, settingsSection,
+    isPaneRendered, exploreReturnTab,
+    goToTab, goToExploreDestination, returnToExplore, openTool, closeTool, focusTool,
+    openSetupInSettings, navigateSettings, adoptUrlDestination, enableUrlSync,
+    lifeAreasFocusSubTab, focusLifeAreas, consumeLifeAreasFocus,
+    calendarFocusView, focusCalendar, consumeCalendarFocus,
+    familyFocusSection, focusFamily, consumeFamilyFocus,
+  } = useWorkspaceNavigation();
   // In-design confirmation dialog for destructive actions (DASH-05) —
   // replaces the browser confirm() popups.
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null);
-  const [exploreReturnTab, setExploreReturnTab] = useState<Tab | null>(null);
-  // Settings is two panes (setup / session) over nine rail sections, and the
-  // URL names the SECTION — the pane is derived from it, because "setup" is
-  // the only section the setup pane draws. Seeded from the path for the same
-  // reason `activeTool` is: `/dashboard/settings/notifications` must land on
-  // Notifications, not land on the default and slide there a render later.
-  const [settingsSubTab, setSettingsSubTab] = useState<SettingsSubTab>(
-    () => (parseDashboardPath(pathname, { qaEnabled: ENABLE_QA_TAB }).section ?? DEFAULT_SETTINGS_SECTION) === "setup"
-      ? "setup"
-      : "session",
-  );
-  const [settingsSection, setSettingsSection] = useState<SettingsSectionId>(() => {
-    // "setup" is the other pane's section, never this one's — seeding it here
-    // would hand the session pane a section it cannot draw.
-    const fromPath = parseDashboardPath(pathname, { qaEnabled: ENABLE_QA_TAB }).section;
-    return fromPath && fromPath !== "setup" ? fromPath : "account";
-  });
-  // Which pane is on screen right now. Settings splits into two independent
-  // panes (setup / session) that need the same keep-alive treatment as a top-
-  // level tab, so it gets its own compound key; every other tab is just itself.
-  const currentPaneKey = activeTab === "settings" ? `settings-${settingsSubTab}` : activeTab;
-  // The one settings value the URL carries. The two states above cannot
-  // disagree about it — the setup pane draws exactly the "setup" section — so
-  // the path names the section and the pane is recovered from it on the way
-  // back in. Ignored by `dashboardPath` on every tab but `settings`.
-  const urlSettingsSection: SettingsSectionId = settingsSubTab === "setup" ? "setup" : settingsSection;
-  // Panes are mounted once and never unmounted again (see `TabPane` below) —
-  // switching tabs used to fully unmount/remount the outgoing and incoming
-  // tab's whole subtree (a single AnimatePresence child keyed by the tab), so
-  // every panel with its own local `loading` state re-showed that loading
-  // state on every single revisit, even though it had already loaded. This
-  // ref is the record of which panes have ever been on screen; once true for
-  // a pane, it stays mounted and is just hidden via CSS instead.
-  const visitedPanesRef = useRef<Set<string> | null>(null);
-  if (visitedPanesRef.current === null) visitedPanesRef.current = new Set([currentPaneKey]);
-  useEffect(() => {
-    visitedPanesRef.current?.add(currentPaneKey);
-  }, [currentPaneKey]);
-  const isPaneRendered = useCallback(
-    (key: string) => key === currentPaneKey || (visitedPanesRef.current?.has(key) ?? false),
-    [currentPaneKey],
-  );
   const [selectedDate, setSelectedDate] = useState(todayIso());
   // Starts at the language the page was *rendered* in (LangProvider is seeded
   // from the request cookie in app/layout.tsx), not at English (DXA-05).
@@ -456,57 +393,8 @@ export function DashboardWorkspace() {
   const [showRectification, setShowRectification] = useState(false);
   const [askVinaadiOpen, setAskVinaadiOpen] = useState(false);
 
-  // ── Destination ⇄ URL ────────────────────────────────────
-  // The tab AND the open tool are addressable as path segments
-  // (`/dashboard/calendar`, `/dashboard/tools/numerology`) so both can be
-  // deep-linked, bookmarked, and walked with browser back/forward. Segments,
-  // not the `?tab=` query param this used to write — see lib/dashboard-tabs.ts
-  // for the slug vocabulary and for how the legacy param still resolves.
-  //
-  // push vs. replace: a destination the *user* chose is a navigation and earns
-  // a history entry (back should undo it). One the *app* chose — the setup
-  // gate, the QA fallback, a post-save redirect — is a correction, and pushing
-  // those would trap the user in a loop where back re-triggers the same
-  // redirect. So the intent-carrying helpers below (goToTab, openTool, …) flag
-  // "push"; every other setActiveTab call site falls through to "replace" by
-  // default, which is what they want.
-  const navIntentRef = useRef<"push" | "replace">("replace");
-  // State, not a ref: the outbound effect depends on it, so flipping it at the
-  // end of hydration triggers one normalising write. That is what rewrites a
-  // legacy `?tab=` link, or a mistyped path, to its canonical URL even when the
-  // resolved tab happens to equal the default and no other dependency changes.
-  const [urlSyncReady, setUrlSyncReady] = useState(false);
-  const goToTab = useCallback((tab: Tab) => {
-    navIntentRef.current = "push";
-    setExploreReturnTab(null);
-    setActiveTab(tab);
-  }, []);
-
-  const goToExploreDestination = useCallback((tab: Tab) => {
-    navIntentRef.current = "push";
-    setExploreReturnTab(tab);
-    setActiveTab(tab);
-  }, []);
-
-  const returnToExplore = useCallback(() => {
-    navIntentRef.current = "push";
-    setExploreReturnTab(null);
-    setActiveTab("explore");
-  }, []);
-  // The open tool is ONE value, not nine booleans (it was nine until
-  // 2026-07-28). Only one tool panel can be open at a time — the old setters
-  // were only ever called together, from openTool/closeTool, each assigning
-  // `toolId === "…"` — so the booleans could never legally disagree, and
-  // collapsing them is what lets the tool be addressable in the URL alongside
-  // the tab. The nine `show*` flags below are now derived, so every consumer
-  // downstream is unchanged.
-  // Seeded from the path for the same reason as `activeTab` above — otherwise
-  // `/dashboard/tools/numerology` lands on the Tools card grid and only opens
-  // the panel a round-trip later. `parseDashboardPath` only ever reports a tool
-  // under the `tools` tab, so this cannot disagree with the tab seeded above.
-  const [activeTool, setActiveTool] = useState<DashboardTool | null>(
-    () => parseDashboardPath(pathname, { qaEnabled: ENABLE_QA_TAB }).tool,
-  );
+  // The nine `show*` flags are derived from the one open tool, so every
+  // consumer downstream reads them unchanged.
   const showWrapped = activeTool === "wrapped";
   const showRetrospective = activeTool === "retro";
   const showPorutham = activeTool === "porutham";
@@ -609,65 +497,9 @@ export function DashboardWorkspace() {
   // View-selector IDs for member cross-tab views
   const [personalViewId, setPersonalViewId] = useState<string | null>(null);
   const [lifeAreasViewId, setLifeAreasViewId] = useState<string | null>(null);
-
-  // Cross-tab sub-tab focus for Life Areas — lets a link-out (Family's
-  // "View all remedies →" / "Forecast →") land on the correct populated
-  // sub-tab, not just the tab's default Overview (IA audit 2026-07-22).
-  const [lifeAreasFocusSubTab, setLifeAreasFocusSubTab] = useState<string | null>(null);
-  const focusLifeAreas = useCallback((sub: string) => {
-    setLifeAreasFocusSubTab(sub);
-    goToTab("life-areas");
-  }, [goToTab]);
-
-  // Cross-tab view focus for Calendar — lets Goals' "Best Dates & Muhurta in
-  // Calendar →" open the muhurta view directly (IA audit 2026-07-22, Phase 3).
-  const [calendarFocusView, setCalendarFocusView] = useState<string | null>(null);
-  const focusCalendar = useCallback((view: string) => {
-    setCalendarFocusView(view);
-    goToTab("calendar");
-  }, [goToTab]);
-
-  // Cross-tab section focus for Family & Charts — the Today tab's Dasa Chapter
-  // "Open →" and Family Today "Family →" used to both dump the user at the top
-  // of the family page; these land them on the actual section (#hy-dashas /
-  // #hy-members) instead.
-  const [familyFocusSection, setFamilyFocusSection] = useState<string | null>(null);
   // Timing is explicitly scoped: a family member selected for a muhurta does
   // not silently replace the chart currently being read in Life Areas.
   const [muhurtaMemberId, setMuhurtaMemberId] = useState<string | null>(null);
-  const focusFamily = useCallback((section: string) => {
-    setFamilyFocusSection(section);
-    goToTab("family");
-  }, [goToTab]);
-
-  // ── Scroll reset on destination change ───────────────────
-  // Panes are kept mounted and hidden with CSS rather than unmounted, and the
-  // workspace itself no longer remounts on navigation (the router keeps the
-  // (workspace) layout alive), so nothing resets the window scroll on a tab
-  // change any more — it used to be a side effect of the remount this fix
-  // removed. Without it, leaving a tab from halfway down dropped you into the
-  // middle of the next one.
-  //
-  // Skipped on the first render, which belongs to whatever the arriving URL
-  // named (including its anchor), and skipped whenever a cross-tab focus
-  // request is in flight — focusLifeAreas/focusCalendar/focusFamily place the
-  // scroll themselves, and the family deep-link retries for up to ~4s, so
-  // yanking to the top here would fight them.
-  const scrollResetPrimedRef = useRef(false);
-  useEffect(() => {
-    if (!scrollResetPrimedRef.current) {
-      scrollResetPrimedRef.current = true;
-      return;
-    }
-    if (familyFocusSection || lifeAreasFocusSubTab || calendarFocusView) return;
-    // `auto`, not `smooth`: the destination is already fading in under the
-    // TabPane transition, and a competing smooth scroll reads as the page
-    // sliding out from under the content.
-    window.scrollTo({ top: 0, behavior: "auto" });
-  // The focus values are read as an escape hatch, not as triggers — only an
-  // actual destination change should reset the scroll.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPaneKey, activeTool]);
 
   // null = not decided yet (DXA-04). The banner shows only on a definite
   // `false`; starting at `false` flashed "A few steps to get started" at every
@@ -684,19 +516,13 @@ export function DashboardWorkspace() {
   // mark-read live in the hook.
   const inbox = useNotificationInbox({ lang, onError: (msg) => toast.error(msg) });
 
-  useEffect(() => {
-    if (!ENABLE_QA_TAB && activeTab === "qa") {
-      setActiveTab("personal");
-    }
-  }, [activeTab]);
-
   // ── Domain hooks ─────────────────────────────────────────
 
   const session = useSession({
     onSetupRedirect: useCallback(() => {
       setActiveTab("settings");
       setSettingsSubTab("setup");
-    }, []),
+    }, [setActiveTab, setSettingsSubTab]),
   });
 
   // ── Life Mode (Feature 2) ─────────────────────────────────
@@ -716,31 +542,9 @@ export function DashboardWorkspace() {
     predictionsEnabled: activeTab === "life-areas",
   });
 
-  // Tools tab open/close — lifted to component level (was local to the
-  // `activeTab === "tools"` render block) so Today's Quick Links can open a
-  // specific tool from outside the Tools tab, the same way focusLifeAreas/
-  // focusCalendar/focusFamily reach into their tabs (homepage redesign
-  // 2026-07-24).
   // Only a finished lookup that found nothing means "no profile" (DXA-03);
   // during the lookup the chart-dependent tiles must not grey out.
   const needsProfile = personal.birthProfileLookupDone && !personal.birthProfileId;
-  // Opening/closing a tool is a navigation: it earns a history entry and a URL
-  // (`/dashboard/tools/numerology`), so Back leaves the tool the way it leaves
-  // a tab. An unrecognised id closes the panel rather than opening nothing —
-  // the Tools tab's card specs also carry the two cross-nav ids, which never
-  // reach here.
-  const openTool = useCallback((toolId: string) => {
-    navIntentRef.current = "push";
-    setActiveTool(isDashboardTool(toolId) ? toolId : null);
-  }, []);
-  const closeTool = useCallback(() => {
-    navIntentRef.current = "push";
-    setActiveTool(null);
-  }, []);
-  const focusTool = useCallback((toolId: string) => {
-    openTool(toolId);
-    goToTab("tools");
-  }, [openTool, goToTab]);
 
   const family = useFamilyData({
     ownerUserId,
@@ -798,31 +602,8 @@ export function DashboardWorkspace() {
     if (!session.hydrated) return;
     const authedUserId = session.sessionUserId;
     setOwnerUserId(authedUserId);
-    // A destination in the URL is an explicit instruction and outranks the
-    // restored session. Resolved outside the isSameUser branch on purpose: a
-    // link shared with someone else must still land where it names, even though
-    // that person's localStorage belongs to a different user and gets cleared
-    // below.
-    //
-    // Legacy fallback: `/dashboard?tab=tools` was the scheme until 2026-07-28
-    // and is still out there in bookmarks and shared links, so the param is
-    // consulted when the path itself names nothing. The outbound sync below
-    // then rewrites the URL to the path form and drops the param.
-    const fromPath = parseDashboardPath(pathname, { qaEnabled: ENABLE_QA_TAB });
-    const fromLegacyParam = fromPath.tab ? null : sanitizeUrlTab(urlTabParam, { qaEnabled: ENABLE_QA_TAB });
-    const fromUrl = fromPath.tab ?? fromLegacyParam?.tab ?? null;
-    if (fromUrl) {
-      setActiveTab(fromUrl);
-      setActiveTool(fromUrl === "tools" ? fromPath.tool : null);
-      if (fromUrl === "settings") {
-        // Also covers the legacy `?tab=settings`, which names no section: that
-        // resolves to the default here and the outbound sync writes the
-        // section into the path on its way to dropping the param.
-        const section = fromPath.section ?? DEFAULT_SETTINGS_SECTION;
-        setSettingsSubTab(section === "setup" ? "setup" : "session");
-        if (section !== "setup") setSettingsSection(section);
-      }
-    }
+    // The URL's destination outranks the restored session, whoever's it is.
+    adoptUrlDestination();
     try {
       const stored = window.localStorage.getItem(STORAGE_KEY);
       if (stored) {
@@ -856,10 +637,7 @@ export function DashboardWorkspace() {
     } catch {
       // ignore parse errors
     }
-    // Only now may the outbound sync write to the URL — before this point
-    // `activeTab` is still the "personal" default and would overwrite the very
-    // destination we just read.
-    setUrlSyncReady(true);
+    enableUrlSync();
     // Load DB lang preference — overrides localStorage (works across devices).
     // GET /settings/ui answers flat ({ lang, dashboard_mode }) — there is no
     // { data } envelope to unwrap.
@@ -869,71 +647,6 @@ export function DashboardWorkspace() {
     }).catch(() => { /* non-critical — localStorage fallback is fine */ });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.hydrated]);
-
-  // ── Destination → URL (outbound) ──────────────────────────
-  // Mirrors the active tab and open tool into the path. Keyed on those two
-  // state values (plus the readiness latch) ALONE — never on `pathname`. That
-  // distinction is what stops the back/forward ping-pong: a browser Back
-  // changes only the URL (activeTab still lags one render), and if this effect
-  // also woke on that change it would write the *old* destination straight back
-  // into the URL, undoing the Back and fighting the inbound effect below — the
-  // two would then flip each other forever. By waking only when the state
-  // itself changes, a Back is handled solely by the inbound effect (URL →
-  // state); this effect then re-runs once the state has caught up, sees the URL
-  // already correct, and bails. `pathname` is still read fresh from render
-  // scope for that bail check.
-  useEffect(() => {
-    if (!urlSyncReady) return;
-    const nextPath = dashboardPath(activeTab, { tool: activeTool, section: urlSettingsSection });
-    // Everything except the superseded `?tab=` survives the rewrite — the
-    // destination lives in the path now, so carrying the old param forward
-    // would leave `/dashboard/tools?tab=tools` in the address bar.
-    const query = new URLSearchParams(Array.from(searchParams.entries()));
-    query.delete(TAB_QUERY_PARAM);
-    const nextSearch = query.toString();
-    if (nextPath === pathname && nextSearch === searchParams.toString()) return;
-    const href = nextSearch ? `${nextPath}?${nextSearch}` : nextPath;
-    const intent = navIntentRef.current;
-    navIntentRef.current = "replace";
-    // scroll: false — the scroll reset above already owns this, and it can tell
-    // a plain tab switch from a cross-tab jump that wants to land on a section.
-    // The router's blanket jump-to-top cannot, and fights both the panel
-    // transition and those deep links.
-    if (intent === "push") router.push(href, { scroll: false });
-    else router.replace(href, { scroll: false });
-  // searchParams/pathname/router are stable per navigation; pathname is read
-  // for the bail but deliberately NOT a dependency (see comment above).
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, activeTool, urlSettingsSection, urlSyncReady]);
-
-  // ── URL → destination (inbound) ───────────────────────────
-  // Back/forward and hand-edited URLs. Guarded the same way as the outbound
-  // effect.
-  useEffect(() => {
-    if (!urlSyncReady) return;
-    const fromUrl = parseDashboardPath(pathname, { qaEnabled: ENABLE_QA_TAB });
-    // A path naming no tab means Today here, NOT "leave things alone" — Back to
-    // a bare `/dashboard` must actually land on Today rather than stranding the
-    // previous tab on screen under a URL that no longer describes it. The
-    // hydration effect above reads the same null the same way: bare means Today.
-    const nextTab = fromUrl.tab ?? "personal";
-    const nextTool = nextTab === "tools" ? fromUrl.tool : null;
-    // Bare `/dashboard/settings` names no section, so it means the default —
-    // the same "a URL is user-editable input" rule the parser applies to a
-    // typo'd slug. The outbound sync then writes the explicit path back.
-    const nextSection = nextTab === "settings" ? fromUrl.section ?? DEFAULT_SETTINGS_SECTION : null;
-    if (nextTab === activeTab && nextTool === activeTool && (nextSection === null || nextSection === urlSettingsSection)) return;
-    // A history move is not a new navigation — never push in response to one.
-    navIntentRef.current = "replace";
-    setExploreReturnTab(null);
-    setActiveTab(nextTab);
-    setActiveTool(nextTool);
-    if (nextSection) {
-      setSettingsSubTab(nextSection === "setup" ? "setup" : "session");
-      if (nextSection !== "setup") setSettingsSection(nextSection);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname, urlSyncReady]);
 
   // ── Persist lang to DB when changed ───────────────────────
   const langSyncRef = useRef(false);
@@ -1009,7 +722,10 @@ export function DashboardWorkspace() {
     } else {
       setOnboardingDone(true);
     }
-  }, [session.hydrated, personal.birthProfileLookupDone, personal.birthProfileId, family.vaultsReady, family.vaults]);
+  }, [
+    session.hydrated, personal.birthProfileLookupDone, personal.birthProfileId, family.vaultsReady, family.vaults,
+    setActiveTab, setSettingsSubTab,
+  ]);
 
   // ── Data trigger effects ───────────────────────────────
 
@@ -1199,23 +915,6 @@ export function DashboardWorkspace() {
   function showToast(message: string, tone: "success" | "error" = "success") {
     if (tone === "error") toast.error(message);
     else toast.success(message);
-  }
-
-  function openSetupInSettings() {
-    setActiveTab("settings");
-    setSettingsSubTab("setup");
-  }
-
-  // Unified navigation for the Settings rail: "setup" routes to the onboarding
-  // sub-tab; every other id routes to the session panels and selects a section.
-  function navigateSettings(id: SettingsSectionId) {
-    setActiveTab("settings");
-    if (id === "setup") {
-      setSettingsSubTab("setup");
-    } else {
-      setSettingsSubTab("session");
-      setSettingsSection(id);
-    }
   }
 
   // ── Derived / resolved state ──────────────────────────────
@@ -2092,7 +1791,7 @@ export function DashboardWorkspace() {
               onGoToForecast: () => focusLifeAreas("predictions"),
               onGoToTools: () => goToTab("tools"),
               focusSection: familyFocusSection,
-              onFocusConsumed: () => setFamilyFocusSection(null),
+              onFocusConsumed: consumeFamilyFocus,
             };
             return <DashboardFamilyChartsHybrid {...familyTabProps} />;
             })()}
@@ -2113,7 +1812,7 @@ export function DashboardWorkspace() {
               selectedMemberId={muhurtaMemberId}
               onSelectMember={setMuhurtaMemberId}
               focusView={calendarFocusView}
-              onFocusConsumed={() => setCalendarFocusView(null)}
+              onFocusConsumed={consumeCalendarFocus}
               pending={personal.personalPending}
               muhurtaFocusActivities={muhurtaFocus.activities}
               monthFocus={monthFocus}
@@ -2153,7 +1852,7 @@ export function DashboardWorkspace() {
               onGoToPlan={() => goToTab("plan")}
               onGoToChart={() => goToTab("family")}
               focusSubTab={lifeAreasFocusSubTab}
-              onFocusConsumed={() => setLifeAreasFocusSubTab(null)}
+              onFocusConsumed={consumeLifeAreasFocus}
             />
           </TabPane>
 
