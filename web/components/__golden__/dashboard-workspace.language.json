@@ -1,0 +1,2939 @@
+[
+ {
+  "step": "first paint in Tamil with nothing stored",
+  "url": "/dashboard",
+  "history": 1,
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "today"
+  ],
+  "dom": {
+   "htmlLang": "ta",
+   "dataLang": "ta",
+   "activeTab": "personal",
+   "onboarding": null,
+   "exploreBack": null,
+   "printTag": "திருக்கணித ஜோதிடம்",
+   "feedbackLabel": "கருத்து",
+   "footer": {
+    "legal": "ஜோதிடம் ஒரு பாரம்பரிய நம்பிக்கை அமைப்பு — அறிவியல் உண்மை அல்ல. மருத்துவ, சட்ட, நிதி முடிவுகளுக்கு தகுதிவாய்ந்த நிபுணரை அணுகுங்கள்.",
+    "navLabel": "அடிக்குறிப்பு வழிசெலுத்தல்",
+    "links": [
+     [
+      "ஆராயுங்கள்",
+      "BUTTON:இன்று:",
+      "BUTTON:நாட்காட்டி:",
+      "BUTTON:வாழ்க்கைத் துறைகள்:",
+      "A:சொற்களஞ்சியம்:/dashboard/glossary"
+     ],
+     [
+      "தனிப்பட்ட",
+      "BUTTON:குடும்பம் & ஜாதகம்:",
+      "BUTTON:குறிப்பேடு:",
+      "BUTTON:அமைப்புகள்:"
+     ]
+    ]
+   }
+  },
+  "hooks": {
+   "useFamilyData": {
+    "onStatus": "ƒ",
+    "ownerUserId": "user-synthetic",
+    "selectedDate": "2026-10-09"
+   },
+   "useJournalData": {
+    "lang": "ta",
+    "onError": "ƒ",
+    "onStatus": "ƒ"
+   },
+   "useNotificationInbox": {
+    "lang": "ta",
+    "onError": "ƒ"
+   },
+   "usePersonalData": {
+    "onStatus": "ƒ",
+    "predictionsEnabled": false,
+    "selectedDate": "2026-10-09"
+   },
+   "usePlanData": {
+    "chartId": "chart-owner",
+    "onError": "ƒ",
+    "onGoalAdded": "ƒ",
+    "onGoalRemoved": "ƒ"
+   },
+   "useSession": {
+    "onSetupRedirect": "ƒ"
+   }
+  },
+  "props": {
+   "ambient": {
+    "moon": {
+     "cyclePosition": 0.5,
+     "fraction": 1,
+     "waxing": true
+    }
+   },
+   "ask": {
+    "activeLifeMode": "CAREER",
+    "chartId": "chart-owner",
+    "goalTrack": null,
+    "hideLauncher": true,
+    "lang": "ta",
+    "onOpenChange": "ƒ",
+    "open": false
+   },
+   "footerMorning": {
+    "lang": "ta",
+    "onOpenSettings": "ƒ"
+   },
+   "hero": {
+    "activeTab": "personal",
+    "alertCount": 1,
+    "alertItems": [
+     {
+      "body": "செய்தி",
+      "title": "தலைப்பு",
+      "type": "transit"
+     }
+    ],
+    "askReady": true,
+    "birthDisplayName": "Akila Synthetic",
+    "birthTimeConfidenceMinutes": 5,
+    "birthTimeLocal": "06:30",
+    "chartSummary": {
+     "chartId": "chart-owner",
+     "janmaNakshatra": "ASHWINI",
+     "lagnaRasi": 6,
+     "moonRasi": 1
+    },
+    "dayLoading": false,
+    "inboxItems": [
+     {
+      "tag": "inbox-item"
+     }
+    ],
+    "inboxUnreadCount": 1,
+    "lang": "ta",
+    "onAskVinaadi": "ƒ",
+    "onDateChange": "ƒ",
+    "onGoToSettings": "ƒ",
+    "onInboxOpen": "ƒ",
+    "onLangToggle": "ƒ",
+    "onMarkAllRead": "ƒ",
+    "onMarkOneRead": "ƒ",
+    "onOpenNotificationSettings": "ƒ",
+    "onSignOut": "ƒ",
+    "onTabChange": "ƒ",
+    "onUserMenuClose": "ƒ",
+    "onUserMenuToggle": "ƒ",
+    "panchangamPlace": "Synthetic Nagar",
+    "panchangamSunrise": "06:01",
+    "selectedDate": "2026-10-09",
+    "selectedVault": {
+     "familyVaultId": "vault-synthetic",
+     "memberCount": 2,
+     "name": "Synthetic household",
+     "ownerUserId": "user-synthetic"
+    },
+    "selectedVaultId": "vault-synthetic",
+    "showUserMenu": false,
+    "status": null,
+    "userEmail": "synthetic@example.test"
+   },
+   "today": {
+    "activeLifeMode": "CAREER",
+    "birthDisplayName": "Akila Synthetic",
+    "bundleSectionErrors": {
+     "weekAhead": "synthetic"
+    },
+    "dailyGuidanceRange": [
+     {
+      "date": "2026-10-09",
+      "score": 74
+     }
+    ],
+    "dasha": {
+     "tag": "dasha-owner"
+    },
+    "dashaAntar": [
+     {
+      "tag": "antar-owner"
+     }
+    ],
+    "deviceTimeZone": "Asia/Kolkata",
+    "familyAggregate": {
+     "dateLocal": "2026-10-09",
+     "familyScore": 63,
+     "familyVaultId": "vault-synthetic",
+     "members": [
+      {
+       "activeCycleTags": [],
+       "bestWindows": [],
+       "birthProfileId": "bp-owner-synthetic",
+       "birthTimeConfidenceMinutes": 5,
+       "cautionWindows": [],
+       "chartId": "chart-bp-owner-synthetic",
+       "displayName": "Akila Synthetic",
+       "familyMemberId": "bp-owner-synthetic",
+       "individualScore": 74,
+       "label": "steady",
+       "memberWeight": 1.15
+      },
+      {
+       "activeCycleTags": [],
+       "bestWindows": [],
+       "birthProfileId": "bp-member-spouse",
+       "birthTimeConfidenceMinutes": 5,
+       "cautionWindows": [],
+       "chartId": "chart-member-spouse",
+       "displayName": "Bala Synthetic",
+       "familyMemberId": "member-spouse",
+       "individualScore": 61,
+       "label": "steady",
+       "memberWeight": 1.15
+      }
+     ]
+    },
+    "familyPending": false,
+    "lang": "ta",
+    "lifeAreas": [
+     {
+      "area": "CAREER",
+      "score": 66
+     }
+    ],
+    "lifeFocus": {
+     "activities": [
+      "job_change",
+      "business_start"
+     ],
+     "area": "CAREER",
+     "remediesFirst": false
+    },
+    "locationCheck": null,
+    "locationCheckProfileId": "bp-owner-synthetic",
+    "needsProfile": false,
+    "onDismissFocusNudge": "ƒ",
+    "onDismissLocationCheck": "ƒ",
+    "onGoToAllTools": "ƒ",
+    "onGoToCalendar": "ƒ",
+    "onGoToChart": "ƒ",
+    "onGoToCharts": "ƒ",
+    "onGoToExplore": "ƒ",
+    "onGoToFamily": "ƒ",
+    "onGoToJournal": "ƒ",
+    "onGoToLifeAreas": "ƒ",
+    "onKeepFocus": "ƒ",
+    "onLocationResolved": "ƒ",
+    "onOpenActivityTiming": "ƒ",
+    "onOpenAskVinaadi": "ƒ",
+    "onOpenChartGen": "ƒ",
+    "onOpenCompatibility": "ƒ",
+    "onOpenFocusPicker": "ƒ",
+    "onOpenMuhurta": "ƒ",
+    "onOpenNotificationSettings": "ƒ",
+    "onOpenNumerology": "ƒ",
+    "onOpenRasipalan": "ƒ",
+    "onRetryBundle": "ƒ",
+    "panchangam": {
+     "sunrise": "06:01",
+     "tithi": {
+      "number": 15,
+      "paksha": "SHUKLA"
+     }
+    },
+    "panchangamPlace": "Synthetic Nagar",
+    "panchangamTimezone": "Asia/Kolkata",
+    "panchangamTimings": {
+     "tag": "timings"
+    },
+    "personalChartSummary": {
+     "chartId": "chart-owner",
+     "janmaNakshatra": "ASHWINI",
+     "lagnaRasi": 6,
+     "moonRasi": 1
+    },
+    "personalDailyGuidance": {
+     "score": 74
+    },
+    "personalMemberChart": null,
+    "personalPending": false,
+    "personalSani": {
+     "tag": "sani-owner"
+    },
+    "peyarchiUpcoming": [
+     {
+      "tag": "peyarchi-owner"
+     }
+    ],
+    "remedyMemberCharts": [
+     {
+      "chart": {
+       "birthProfile": {
+        "birthDateLocal": "1992-03-03",
+        "birthLatitude": 11.5,
+        "birthLongitude": 78.25,
+        "birthPlace": "Synthetic Nagar",
+        "birthProfileId": "bp-member-spouse",
+        "birthTimeConfidenceMinutes": 5,
+        "birthTimeLocal": "06:30",
+        "birthTimezone": "Asia/Kolkata",
+        "children": "1",
+        "currentLatitude": null,
+        "currentLongitude": null,
+        "currentPlace": null,
+        "currentTimezone": null,
+        "displayName": "Bala Synthetic",
+        "employmentType": "salaried",
+        "maritalStatus": "married",
+        "relationshipToOwner": "spouse"
+       },
+       "chartId": "chart-member-spouse",
+       "doshams": [
+        {
+         "code": "DOSHAM-chart-member-spouse"
+        }
+       ],
+       "yogas": [
+        {
+         "code": "YOGA-chart-member-spouse"
+        }
+       ]
+      },
+      "dailyGuidance": {
+       "score": 61
+      },
+      "dasha": {
+       "tag": "dasha-member-spouse"
+      },
+      "dashaAntar": [
+       {
+        "tag": "antar-member-spouse"
+       }
+      ],
+      "dashaMaha": {
+       "tag": "maha-member-spouse"
+      },
+      "displayName": "Bala Synthetic",
+      "explanation": {
+       "tag": "explanation-member-spouse"
+      },
+      "memberId": "member-spouse",
+      "nakshatraCard": {
+       "tag": "nak-member-spouse"
+      },
+      "peyarchiUpcoming": [
+       {
+        "tag": "peyarchi-member-spouse"
+       }
+      ],
+      "sani": {
+       "tag": "sani-member-spouse"
+      },
+      "summary": {
+       "chartId": "chart-member-spouse",
+       "janmaNakshatra": "PUSHYA",
+       "lagnaRasi": 9,
+       "moonRasi": 4
+      },
+      "transit": {
+       "tag": "transit-member-spouse"
+      },
+      "weekAhead": {
+       "tag": "week-member-spouse"
+      }
+     },
+     {
+      "chart": {
+       "birthProfile": {
+        "birthDateLocal": "1992-03-03",
+        "birthLatitude": 11.5,
+        "birthLongitude": 78.25,
+        "birthPlace": "Synthetic Nagar",
+        "birthProfileId": "bp-member-child",
+        "birthTimeConfidenceMinutes": 5,
+        "birthTimeLocal": "06:30",
+        "birthTimezone": "Asia/Kolkata",
+        "children": "1",
+        "currentLatitude": null,
+        "currentLongitude": null,
+        "currentPlace": null,
+        "currentTimezone": null,
+        "displayName": "Chitra Synthetic",
+        "employmentType": "salaried",
+        "maritalStatus": "married",
+        "relationshipToOwner": "child"
+       },
+       "chartId": "chart-member-child",
+       "doshams": [
+        {
+         "code": "DOSHAM-chart-member-child"
+        }
+       ],
+       "yogas": [
+        {
+         "code": "YOGA-chart-member-child"
+        }
+       ]
+      },
+      "dailyGuidance": {
+       "score": 58
+      },
+      "dasha": {
+       "tag": "dasha-member-child"
+      },
+      "dashaAntar": [
+       {
+        "tag": "antar-member-child"
+       }
+      ],
+      "dashaMaha": {
+       "tag": "maha-member-child"
+      },
+      "displayName": "Chitra Synthetic",
+      "explanation": {
+       "tag": "explanation-member-child"
+      },
+      "memberId": "member-child",
+      "nakshatraCard": {
+       "tag": "nak-member-child"
+      },
+      "peyarchiUpcoming": [
+       {
+        "tag": "peyarchi-member-child"
+       }
+      ],
+      "sani": {
+       "tag": "sani-member-child"
+      },
+      "summary": {
+       "chartId": "chart-member-child",
+       "janmaNakshatra": "PUSHYA",
+       "lagnaRasi": 9,
+       "moonRasi": 4
+      },
+      "transit": {
+       "tag": "transit-member-child"
+      },
+      "weekAhead": {
+       "tag": "week-member-child"
+      }
+     },
+     {
+      "chart": {
+       "birthProfile": {
+        "birthDateLocal": "1992-03-03",
+        "birthLatitude": 11.5,
+        "birthLongitude": 78.25,
+        "birthPlace": "Synthetic Nagar",
+        "birthProfileId": "bp-member-selfrow",
+        "birthTimeConfidenceMinutes": 5,
+        "birthTimeLocal": "06:30",
+        "birthTimezone": "Asia/Kolkata",
+        "children": "1",
+        "currentLatitude": null,
+        "currentLongitude": null,
+        "currentPlace": null,
+        "currentTimezone": null,
+        "displayName": "Akila Duplicate",
+        "employmentType": "salaried",
+        "maritalStatus": "married",
+        "relationshipToOwner": "self"
+       },
+       "chartId": "chart-member-selfrow",
+       "doshams": [
+        {
+         "code": "DOSHAM-chart-member-selfrow"
+        }
+       ],
+       "yogas": [
+        {
+         "code": "YOGA-chart-member-selfrow"
+        }
+       ]
+      },
+      "dailyGuidance": {
+       "score": 70
+      },
+      "dasha": {
+       "tag": "dasha-member-selfrow"
+      },
+      "dashaAntar": [
+       {
+        "tag": "antar-member-selfrow"
+       }
+      ],
+      "dashaMaha": {
+       "tag": "maha-member-selfrow"
+      },
+      "displayName": "Akila Duplicate",
+      "explanation": {
+       "tag": "explanation-member-selfrow"
+      },
+      "memberId": "member-selfrow",
+      "nakshatraCard": {
+       "tag": "nak-member-selfrow"
+      },
+      "peyarchiUpcoming": [
+       {
+        "tag": "peyarchi-member-selfrow"
+       }
+      ],
+      "sani": {
+       "tag": "sani-member-selfrow"
+      },
+      "summary": {
+       "chartId": "chart-member-selfrow",
+       "janmaNakshatra": "PUSHYA",
+       "lagnaRasi": 9,
+       "moonRasi": 4
+      },
+      "transit": {
+       "tag": "transit-member-selfrow"
+      },
+      "weekAhead": {
+       "tag": "week-member-selfrow"
+      }
+     }
+    ],
+    "selectedDate": "2026-10-09",
+    "showFocusNudge": true,
+    "showingPreviousDay": false,
+    "todayDate": "2026-10-09",
+    "userMode": "BALANCED",
+    "weekAhead": {
+     "tag": "week-owner"
+    }
+   }
+  },
+  "effects": [
+   [
+    "api",
+    "GET",
+    "/api/v1/settings/ui",
+    null
+   ],
+   [
+    "journal.loadJournalSettings"
+   ],
+   [
+    "getLifeMode"
+   ],
+   [
+    "journal.loadJournalEntries",
+    "chart-owner"
+   ],
+   [
+    "journal.loadContextData",
+    "chart-owner"
+   ],
+   [
+    "personal.refreshPersonalBundle",
+    "bp-owner-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.refreshFamilyBundle",
+    "vault-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.loadRelationshipAlerts",
+    "vault-synthetic"
+   ],
+   [
+    "personal.setJadhagamReport",
+    null
+   ],
+   [
+    "personal.setLifeAreas",
+    null
+   ],
+   [
+    "family.loadVaults",
+    "user-synthetic"
+   ]
+  ]
+ },
+ {
+  "step": "Tamil reader's first member names the new family in Tamil",
+  "url": "/dashboard",
+  "history": "2/2",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "today"
+  ],
+  "activeTab": "personal",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "ask": {
+    "open": false
+   }
+  },
+  "effects": [
+   [
+    "→",
+    "hero.onTabChange",
+    "settings"
+   ],
+   [
+    "window.scrollTo",
+    {
+     "behavior": "auto",
+     "top": 0
+    }
+   ],
+   [
+    "router.push",
+    "/dashboard/settings/setup",
+    {
+     "scroll": false
+    }
+   ],
+   [
+    "→",
+    "setup.onMemberFormChange",
+    {
+     "birthDateLocal": "1992-03-03",
+     "birthLatitude": "11.5",
+     "birthLongitude": "78.25",
+     "birthPlace": "Synthetic Nagar",
+     "birthTimeConfidenceMinutes": "15",
+     "birthTimeLocal": "07:45",
+     "birthTimeSource": "family_record",
+     "birthTimezone": "Asia/Kolkata",
+     "calculateNow": true,
+     "currentLatitude": "",
+     "currentLongitude": "",
+     "currentPlace": "",
+     "currentTimezone": "",
+     "displayName": "Bala Synthetic",
+     "memberWeight": "1.00",
+     "relationshipToOwner": "spouse"
+    }
+   ],
+   [
+    "→",
+    "setup.onAddMember",
+    {
+     "preventDefault": "ƒ"
+    }
+   ],
+   [
+    "api",
+    "POST",
+    "/api/v1/family-vaults",
+    {
+     "ownerUserId": "user-synthetic",
+     "name": "உங்கள் குடும்பம்",
+     "defaultLanguage": "ta-en"
+    }
+   ],
+   [
+    "family.setSelectedVaultId",
+    "vault-created"
+   ],
+   [
+    "family.loadVaults",
+    "user-synthetic"
+   ],
+   [
+    "api",
+    "POST",
+    "/api/v1/family-vaults/vault-created/members",
+    {
+     "ownerUserId": "user-synthetic",
+     "familyVaultId": "vault-created",
+     "relationshipToOwner": "spouse",
+     "displayName": "Bala Synthetic",
+     "birthDateLocal": "1992-03-03",
+     "birthTimeLocal": "07:45",
+     "birthPlace": "Synthetic Nagar",
+     "birthLatitude": 11.5,
+     "birthLongitude": 78.25,
+     "birthTimezone": "Asia/Kolkata",
+     "calculateNow": true,
+     "memberWeight": 1,
+     "birthTimeSource": "family_record",
+     "birthTimeConfidenceMinutes": 15
+    }
+   ],
+   [
+    "toast.success",
+    "Bala Synthetic added to your family."
+   ],
+   [
+    "family.loadVaults",
+    "user-synthetic"
+   ],
+   [
+    "family.refreshFamilyBundle",
+    "vault-created",
+    "2026-10-09"
+   ],
+   [
+    "window.scrollTo",
+    {
+     "behavior": "auto",
+     "top": 0
+    }
+   ],
+   [
+    "router.replace",
+    "/dashboard",
+    {
+     "scroll": false
+    }
+   ]
+  ]
+ },
+ {
+  "step": "stored Tamil, DB English wins",
+  "url": "/dashboard",
+  "history": "1/1",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "today"
+  ],
+  "activeTab": "personal",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "ask": {
+    "open": false
+   }
+  },
+  "effects": [
+   [
+    "storage.set",
+    "jothidam-ai-dashboard-state",
+    {
+     "ownerUserId": "user-synthetic",
+     "selectedDate": "2026-10-12",
+     "selectedVaultId": "vault-synthetic",
+     "birthProfileId": "bp-owner-synthetic",
+     "chartId": "chart-owner",
+     "birthForm": {
+      "ownerUserId": "user-synthetic",
+      "displayName": "Akila Synthetic",
+      "birthDateLocal": "1990-01-15",
+      "birthTimeLocal": "06:30",
+      "birthPlace": "Synthetic Nagar",
+      "birthLatitude": "11.5",
+      "birthLongitude": "78.25",
+      "birthTimezone": "Asia/Kolkata",
+      "currentPlace": "",
+      "currentLatitude": "",
+      "currentLongitude": "",
+      "currentTimezone": "",
+      "relationshipToOwner": "self",
+      "calculateNow": true,
+      "maritalStatus": "",
+      "employmentType": "",
+      "children": "",
+      "birthTimeSource": "unknown",
+      "birthTimeConfidenceMinutes": "0"
+     },
+     "activeTab": "calendar",
+     "lang": "ta",
+     "hasVisitedReading": false
+    }
+   ],
+   [
+    "family.setSelectedVaultId",
+    "vault-synthetic"
+   ],
+   [
+    "personal.setBirthProfileId",
+    "bp-owner-synthetic"
+   ],
+   [
+    "personal.setChartId",
+    "chart-owner"
+   ],
+   [
+    "api",
+    "GET",
+    "/api/v1/settings/ui",
+    null
+   ],
+   [
+    "journal.loadJournalSettings"
+   ],
+   [
+    "getLifeMode"
+   ],
+   [
+    "journal.loadJournalEntries",
+    "chart-owner"
+   ],
+   [
+    "journal.loadContextData",
+    "chart-owner"
+   ],
+   [
+    "personal.refreshPersonalBundle",
+    "bp-owner-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.refreshFamilyBundle",
+    "vault-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.loadRelationshipAlerts",
+    "vault-synthetic"
+   ],
+   [
+    "personal.setJadhagamReport",
+    null
+   ],
+   [
+    "personal.setLifeAreas",
+    null
+   ],
+   [
+    "family.loadVaults",
+    "user-synthetic"
+   ],
+   [
+    "personal.refreshPersonalBundle",
+    "bp-owner-synthetic",
+    "2026-10-12"
+   ],
+   [
+    "family.refreshFamilyBundle",
+    "vault-synthetic",
+    "2026-10-12"
+   ],
+   [
+    "personal.setJadhagamReport",
+    null
+   ],
+   [
+    "personal.setLifeAreas",
+    null
+   ],
+   [
+    "api",
+    "PATCH",
+    "/api/v1/settings/ui",
+    {
+     "lang": "en"
+    }
+   ]
+  ]
+ },
+ {
+  "step": "toggled to Tamil",
+  "url": "/dashboard",
+  "history": 1,
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "today"
+  ],
+  "dom": {
+   "htmlLang": "ta",
+   "dataLang": "ta",
+   "activeTab": "personal",
+   "onboarding": null,
+   "exploreBack": null,
+   "printTag": "திருக்கணித ஜோதிடம்",
+   "feedbackLabel": "கருத்து",
+   "footer": {
+    "legal": "ஜோதிடம் ஒரு பாரம்பரிய நம்பிக்கை அமைப்பு — அறிவியல் உண்மை அல்ல. மருத்துவ, சட்ட, நிதி முடிவுகளுக்கு தகுதிவாய்ந்த நிபுணரை அணுகுங்கள்.",
+    "navLabel": "அடிக்குறிப்பு வழிசெலுத்தல்",
+    "links": [
+     [
+      "ஆராயுங்கள்",
+      "BUTTON:இன்று:",
+      "BUTTON:நாட்காட்டி:",
+      "BUTTON:வாழ்க்கைத் துறைகள்:",
+      "A:சொற்களஞ்சியம்:/dashboard/glossary"
+     ],
+     [
+      "தனிப்பட்ட",
+      "BUTTON:குடும்பம் & ஜாதகம்:",
+      "BUTTON:குறிப்பேடு:",
+      "BUTTON:அமைப்புகள்:"
+     ]
+    ]
+   }
+  },
+  "hooks": {
+   "useFamilyData": {
+    "onStatus": "ƒ",
+    "ownerUserId": "user-synthetic",
+    "selectedDate": "2026-10-12"
+   },
+   "useJournalData": {
+    "lang": "ta",
+    "onError": "ƒ",
+    "onStatus": "ƒ"
+   },
+   "useNotificationInbox": {
+    "lang": "ta",
+    "onError": "ƒ"
+   },
+   "usePersonalData": {
+    "onStatus": "ƒ",
+    "predictionsEnabled": false,
+    "selectedDate": "2026-10-12"
+   },
+   "usePlanData": {
+    "chartId": "chart-owner",
+    "onError": "ƒ",
+    "onGoalAdded": "ƒ",
+    "onGoalRemoved": "ƒ"
+   },
+   "useSession": {
+    "onSetupRedirect": "ƒ"
+   }
+  },
+  "props": {
+   "ambient": {
+    "moon": {
+     "cyclePosition": 0.5,
+     "fraction": 1,
+     "waxing": true
+    }
+   },
+   "ask": {
+    "activeLifeMode": "CAREER",
+    "chartId": "chart-owner",
+    "goalTrack": null,
+    "hideLauncher": true,
+    "lang": "ta",
+    "onOpenChange": "ƒ",
+    "open": false
+   },
+   "footerMorning": {
+    "lang": "ta",
+    "onOpenSettings": "ƒ"
+   },
+   "hero": {
+    "activeTab": "personal",
+    "alertCount": 1,
+    "alertItems": [
+     {
+      "body": "செய்தி",
+      "title": "தலைப்பு",
+      "type": "transit"
+     }
+    ],
+    "askReady": true,
+    "birthDisplayName": "Akila Synthetic",
+    "birthTimeConfidenceMinutes": 5,
+    "birthTimeLocal": "06:30",
+    "chartSummary": {
+     "chartId": "chart-owner",
+     "janmaNakshatra": "ASHWINI",
+     "lagnaRasi": 6,
+     "moonRasi": 1
+    },
+    "dayLoading": false,
+    "inboxItems": [
+     {
+      "tag": "inbox-item"
+     }
+    ],
+    "inboxUnreadCount": 1,
+    "lang": "ta",
+    "onAskVinaadi": "ƒ",
+    "onDateChange": "ƒ",
+    "onGoToSettings": "ƒ",
+    "onInboxOpen": "ƒ",
+    "onLangToggle": "ƒ",
+    "onMarkAllRead": "ƒ",
+    "onMarkOneRead": "ƒ",
+    "onOpenNotificationSettings": "ƒ",
+    "onSignOut": "ƒ",
+    "onTabChange": "ƒ",
+    "onUserMenuClose": "ƒ",
+    "onUserMenuToggle": "ƒ",
+    "panchangamPlace": "Synthetic Nagar",
+    "panchangamSunrise": "06:01",
+    "selectedDate": "2026-10-12",
+    "selectedVault": {
+     "familyVaultId": "vault-synthetic",
+     "memberCount": 2,
+     "name": "Synthetic household",
+     "ownerUserId": "user-synthetic"
+    },
+    "selectedVaultId": "vault-synthetic",
+    "showUserMenu": false,
+    "status": null,
+    "userEmail": "synthetic@example.test"
+   },
+   "today": {
+    "activeLifeMode": "CAREER",
+    "birthDisplayName": "Akila Synthetic",
+    "bundleSectionErrors": {
+     "weekAhead": "synthetic"
+    },
+    "dailyGuidanceRange": [
+     {
+      "date": "2026-10-09",
+      "score": 74
+     }
+    ],
+    "dasha": {
+     "tag": "dasha-owner"
+    },
+    "dashaAntar": [
+     {
+      "tag": "antar-owner"
+     }
+    ],
+    "deviceTimeZone": "Asia/Kolkata",
+    "familyAggregate": {
+     "dateLocal": "2026-10-09",
+     "familyScore": 63,
+     "familyVaultId": "vault-synthetic",
+     "members": [
+      {
+       "activeCycleTags": [],
+       "bestWindows": [],
+       "birthProfileId": "bp-owner-synthetic",
+       "birthTimeConfidenceMinutes": 5,
+       "cautionWindows": [],
+       "chartId": "chart-bp-owner-synthetic",
+       "displayName": "Akila Synthetic",
+       "familyMemberId": "bp-owner-synthetic",
+       "individualScore": 74,
+       "label": "steady",
+       "memberWeight": 1.15
+      },
+      {
+       "activeCycleTags": [],
+       "bestWindows": [],
+       "birthProfileId": "bp-member-spouse",
+       "birthTimeConfidenceMinutes": 5,
+       "cautionWindows": [],
+       "chartId": "chart-member-spouse",
+       "displayName": "Bala Synthetic",
+       "familyMemberId": "member-spouse",
+       "individualScore": 61,
+       "label": "steady",
+       "memberWeight": 1.15
+      }
+     ]
+    },
+    "familyPending": false,
+    "lang": "ta",
+    "lifeAreas": [
+     {
+      "area": "CAREER",
+      "score": 66
+     }
+    ],
+    "lifeFocus": {
+     "activities": [
+      "job_change",
+      "business_start"
+     ],
+     "area": "CAREER",
+     "remediesFirst": false
+    },
+    "locationCheck": null,
+    "locationCheckProfileId": "bp-owner-synthetic",
+    "needsProfile": false,
+    "onDismissFocusNudge": "ƒ",
+    "onDismissLocationCheck": "ƒ",
+    "onGoToAllTools": "ƒ",
+    "onGoToCalendar": "ƒ",
+    "onGoToChart": "ƒ",
+    "onGoToCharts": "ƒ",
+    "onGoToExplore": "ƒ",
+    "onGoToFamily": "ƒ",
+    "onGoToJournal": "ƒ",
+    "onGoToLifeAreas": "ƒ",
+    "onKeepFocus": "ƒ",
+    "onLocationResolved": "ƒ",
+    "onOpenActivityTiming": "ƒ",
+    "onOpenAskVinaadi": "ƒ",
+    "onOpenChartGen": "ƒ",
+    "onOpenCompatibility": "ƒ",
+    "onOpenFocusPicker": "ƒ",
+    "onOpenMuhurta": "ƒ",
+    "onOpenNotificationSettings": "ƒ",
+    "onOpenNumerology": "ƒ",
+    "onOpenRasipalan": "ƒ",
+    "onRetryBundle": "ƒ",
+    "panchangam": {
+     "sunrise": "06:01",
+     "tithi": {
+      "number": 15,
+      "paksha": "SHUKLA"
+     }
+    },
+    "panchangamPlace": "Synthetic Nagar",
+    "panchangamTimezone": "Asia/Kolkata",
+    "panchangamTimings": {
+     "tag": "timings"
+    },
+    "personalChartSummary": {
+     "chartId": "chart-owner",
+     "janmaNakshatra": "ASHWINI",
+     "lagnaRasi": 6,
+     "moonRasi": 1
+    },
+    "personalDailyGuidance": {
+     "score": 74
+    },
+    "personalMemberChart": null,
+    "personalPending": false,
+    "personalSani": {
+     "tag": "sani-owner"
+    },
+    "peyarchiUpcoming": [
+     {
+      "tag": "peyarchi-owner"
+     }
+    ],
+    "remedyMemberCharts": [
+     {
+      "chart": {
+       "birthProfile": {
+        "birthDateLocal": "1992-03-03",
+        "birthLatitude": 11.5,
+        "birthLongitude": 78.25,
+        "birthPlace": "Synthetic Nagar",
+        "birthProfileId": "bp-member-spouse",
+        "birthTimeConfidenceMinutes": 5,
+        "birthTimeLocal": "06:30",
+        "birthTimezone": "Asia/Kolkata",
+        "children": "1",
+        "currentLatitude": null,
+        "currentLongitude": null,
+        "currentPlace": null,
+        "currentTimezone": null,
+        "displayName": "Bala Synthetic",
+        "employmentType": "salaried",
+        "maritalStatus": "married",
+        "relationshipToOwner": "spouse"
+       },
+       "chartId": "chart-member-spouse",
+       "doshams": [
+        {
+         "code": "DOSHAM-chart-member-spouse"
+        }
+       ],
+       "yogas": [
+        {
+         "code": "YOGA-chart-member-spouse"
+        }
+       ]
+      },
+      "dailyGuidance": {
+       "score": 61
+      },
+      "dasha": {
+       "tag": "dasha-member-spouse"
+      },
+      "dashaAntar": [
+       {
+        "tag": "antar-member-spouse"
+       }
+      ],
+      "dashaMaha": {
+       "tag": "maha-member-spouse"
+      },
+      "displayName": "Bala Synthetic",
+      "explanation": {
+       "tag": "explanation-member-spouse"
+      },
+      "memberId": "member-spouse",
+      "nakshatraCard": {
+       "tag": "nak-member-spouse"
+      },
+      "peyarchiUpcoming": [
+       {
+        "tag": "peyarchi-member-spouse"
+       }
+      ],
+      "sani": {
+       "tag": "sani-member-spouse"
+      },
+      "summary": {
+       "chartId": "chart-member-spouse",
+       "janmaNakshatra": "PUSHYA",
+       "lagnaRasi": 9,
+       "moonRasi": 4
+      },
+      "transit": {
+       "tag": "transit-member-spouse"
+      },
+      "weekAhead": {
+       "tag": "week-member-spouse"
+      }
+     },
+     {
+      "chart": {
+       "birthProfile": {
+        "birthDateLocal": "1992-03-03",
+        "birthLatitude": 11.5,
+        "birthLongitude": 78.25,
+        "birthPlace": "Synthetic Nagar",
+        "birthProfileId": "bp-member-child",
+        "birthTimeConfidenceMinutes": 5,
+        "birthTimeLocal": "06:30",
+        "birthTimezone": "Asia/Kolkata",
+        "children": "1",
+        "currentLatitude": null,
+        "currentLongitude": null,
+        "currentPlace": null,
+        "currentTimezone": null,
+        "displayName": "Chitra Synthetic",
+        "employmentType": "salaried",
+        "maritalStatus": "married",
+        "relationshipToOwner": "child"
+       },
+       "chartId": "chart-member-child",
+       "doshams": [
+        {
+         "code": "DOSHAM-chart-member-child"
+        }
+       ],
+       "yogas": [
+        {
+         "code": "YOGA-chart-member-child"
+        }
+       ]
+      },
+      "dailyGuidance": {
+       "score": 58
+      },
+      "dasha": {
+       "tag": "dasha-member-child"
+      },
+      "dashaAntar": [
+       {
+        "tag": "antar-member-child"
+       }
+      ],
+      "dashaMaha": {
+       "tag": "maha-member-child"
+      },
+      "displayName": "Chitra Synthetic",
+      "explanation": {
+       "tag": "explanation-member-child"
+      },
+      "memberId": "member-child",
+      "nakshatraCard": {
+       "tag": "nak-member-child"
+      },
+      "peyarchiUpcoming": [
+       {
+        "tag": "peyarchi-member-child"
+       }
+      ],
+      "sani": {
+       "tag": "sani-member-child"
+      },
+      "summary": {
+       "chartId": "chart-member-child",
+       "janmaNakshatra": "PUSHYA",
+       "lagnaRasi": 9,
+       "moonRasi": 4
+      },
+      "transit": {
+       "tag": "transit-member-child"
+      },
+      "weekAhead": {
+       "tag": "week-member-child"
+      }
+     },
+     {
+      "chart": {
+       "birthProfile": {
+        "birthDateLocal": "1992-03-03",
+        "birthLatitude": 11.5,
+        "birthLongitude": 78.25,
+        "birthPlace": "Synthetic Nagar",
+        "birthProfileId": "bp-member-selfrow",
+        "birthTimeConfidenceMinutes": 5,
+        "birthTimeLocal": "06:30",
+        "birthTimezone": "Asia/Kolkata",
+        "children": "1",
+        "currentLatitude": null,
+        "currentLongitude": null,
+        "currentPlace": null,
+        "currentTimezone": null,
+        "displayName": "Akila Duplicate",
+        "employmentType": "salaried",
+        "maritalStatus": "married",
+        "relationshipToOwner": "self"
+       },
+       "chartId": "chart-member-selfrow",
+       "doshams": [
+        {
+         "code": "DOSHAM-chart-member-selfrow"
+        }
+       ],
+       "yogas": [
+        {
+         "code": "YOGA-chart-member-selfrow"
+        }
+       ]
+      },
+      "dailyGuidance": {
+       "score": 70
+      },
+      "dasha": {
+       "tag": "dasha-member-selfrow"
+      },
+      "dashaAntar": [
+       {
+        "tag": "antar-member-selfrow"
+       }
+      ],
+      "dashaMaha": {
+       "tag": "maha-member-selfrow"
+      },
+      "displayName": "Akila Duplicate",
+      "explanation": {
+       "tag": "explanation-member-selfrow"
+      },
+      "memberId": "member-selfrow",
+      "nakshatraCard": {
+       "tag": "nak-member-selfrow"
+      },
+      "peyarchiUpcoming": [
+       {
+        "tag": "peyarchi-member-selfrow"
+       }
+      ],
+      "sani": {
+       "tag": "sani-member-selfrow"
+      },
+      "summary": {
+       "chartId": "chart-member-selfrow",
+       "janmaNakshatra": "PUSHYA",
+       "lagnaRasi": 9,
+       "moonRasi": 4
+      },
+      "transit": {
+       "tag": "transit-member-selfrow"
+      },
+      "weekAhead": {
+       "tag": "week-member-selfrow"
+      }
+     }
+    ],
+    "selectedDate": "2026-10-12",
+    "showFocusNudge": true,
+    "showingPreviousDay": false,
+    "todayDate": "2026-10-09",
+    "userMode": "BALANCED",
+    "weekAhead": {
+     "tag": "week-owner"
+    }
+   }
+  },
+  "effects": [
+   [
+    "→",
+    "hero.onLangToggle"
+   ],
+   [
+    "api",
+    "PATCH",
+    "/api/v1/settings/ui",
+    {
+     "lang": "ta"
+    }
+   ]
+  ]
+ },
+ {
+  "step": "Tamil: back-to-explore label",
+  "url": "/dashboard/family",
+  "history": 3,
+  "shown": [
+   "ambient",
+   "ask",
+   "family",
+   "footerMorning",
+   "hero"
+  ],
+  "dom": {
+   "htmlLang": "ta",
+   "dataLang": "ta",
+   "activeTab": "family",
+   "onboarding": null,
+   "exploreBack": "←விளக்கத்திற்குத் திரும்பு",
+   "printTag": "திருக்கணித ஜோதிடம்",
+   "feedbackLabel": "கருத்து",
+   "footer": {
+    "legal": "ஜோதிடம் ஒரு பாரம்பரிய நம்பிக்கை அமைப்பு — அறிவியல் உண்மை அல்ல. மருத்துவ, சட்ட, நிதி முடிவுகளுக்கு தகுதிவாய்ந்த நிபுணரை அணுகுங்கள்.",
+    "navLabel": "அடிக்குறிப்பு வழிசெலுத்தல்",
+    "links": [
+     [
+      "ஆராயுங்கள்",
+      "BUTTON:இன்று:",
+      "BUTTON:நாட்காட்டி:",
+      "BUTTON:வாழ்க்கைத் துறைகள்:",
+      "A:சொற்களஞ்சியம்:/dashboard/glossary"
+     ],
+     [
+      "தனிப்பட்ட",
+      "BUTTON:குடும்பம் & ஜாதகம்:",
+      "BUTTON:குறிப்பேடு:",
+      "BUTTON:அமைப்புகள்:"
+     ]
+    ]
+   }
+  },
+  "hooks": {
+   "useFamilyData": {
+    "onStatus": "ƒ",
+    "ownerUserId": "user-synthetic",
+    "selectedDate": "2026-10-12"
+   },
+   "useJournalData": {
+    "lang": "ta",
+    "onError": "ƒ",
+    "onStatus": "ƒ"
+   },
+   "useNotificationInbox": {
+    "lang": "ta",
+    "onError": "ƒ"
+   },
+   "usePersonalData": {
+    "onStatus": "ƒ",
+    "predictionsEnabled": false,
+    "selectedDate": "2026-10-12"
+   },
+   "usePlanData": {
+    "chartId": "chart-owner",
+    "onError": "ƒ",
+    "onGoalAdded": "ƒ",
+    "onGoalRemoved": "ƒ"
+   },
+   "useSession": {
+    "onSetupRedirect": "ƒ"
+   }
+  },
+  "props": {
+   "ambient": {
+    "moon": {
+     "cyclePosition": 0.5,
+     "fraction": 1,
+     "waxing": true
+    }
+   },
+   "ask": {
+    "activeLifeMode": "CAREER",
+    "chartId": "chart-owner",
+    "goalTrack": null,
+    "hideLauncher": true,
+    "lang": "ta",
+    "onOpenChange": "ƒ",
+    "open": false
+   },
+   "explore": {
+    "lang": "ta",
+    "memberCharts": [
+     {
+      "chart": {
+       "birthProfile": {
+        "birthDateLocal": "1992-03-03",
+        "birthLatitude": 11.5,
+        "birthLongitude": 78.25,
+        "birthPlace": "Synthetic Nagar",
+        "birthProfileId": "bp-member-spouse",
+        "birthTimeConfidenceMinutes": 5,
+        "birthTimeLocal": "06:30",
+        "birthTimezone": "Asia/Kolkata",
+        "children": "1",
+        "currentLatitude": null,
+        "currentLongitude": null,
+        "currentPlace": null,
+        "currentTimezone": null,
+        "displayName": "Bala Synthetic",
+        "employmentType": "salaried",
+        "maritalStatus": "married",
+        "relationshipToOwner": "spouse"
+       },
+       "chartId": "chart-member-spouse",
+       "doshams": [
+        {
+         "code": "DOSHAM-chart-member-spouse"
+        }
+       ],
+       "yogas": [
+        {
+         "code": "YOGA-chart-member-spouse"
+        }
+       ]
+      },
+      "dailyGuidance": {
+       "score": 61
+      },
+      "dasha": {
+       "tag": "dasha-member-spouse"
+      },
+      "dashaAntar": [
+       {
+        "tag": "antar-member-spouse"
+       }
+      ],
+      "dashaMaha": {
+       "tag": "maha-member-spouse"
+      },
+      "displayName": "Bala Synthetic",
+      "explanation": {
+       "tag": "explanation-member-spouse"
+      },
+      "memberId": "member-spouse",
+      "nakshatraCard": {
+       "tag": "nak-member-spouse"
+      },
+      "peyarchiUpcoming": [
+       {
+        "tag": "peyarchi-member-spouse"
+       }
+      ],
+      "sani": {
+       "tag": "sani-member-spouse"
+      },
+      "summary": {
+       "chartId": "chart-member-spouse",
+       "janmaNakshatra": "PUSHYA",
+       "lagnaRasi": 9,
+       "moonRasi": 4
+      },
+      "transit": {
+       "tag": "transit-member-spouse"
+      },
+      "weekAhead": {
+       "tag": "week-member-spouse"
+      }
+     },
+     {
+      "chart": {
+       "birthProfile": {
+        "birthDateLocal": "1992-03-03",
+        "birthLatitude": 11.5,
+        "birthLongitude": 78.25,
+        "birthPlace": "Synthetic Nagar",
+        "birthProfileId": "bp-member-child",
+        "birthTimeConfidenceMinutes": 5,
+        "birthTimeLocal": "06:30",
+        "birthTimezone": "Asia/Kolkata",
+        "children": "1",
+        "currentLatitude": null,
+        "currentLongitude": null,
+        "currentPlace": null,
+        "currentTimezone": null,
+        "displayName": "Chitra Synthetic",
+        "employmentType": "salaried",
+        "maritalStatus": "married",
+        "relationshipToOwner": "child"
+       },
+       "chartId": "chart-member-child",
+       "doshams": [
+        {
+         "code": "DOSHAM-chart-member-child"
+        }
+       ],
+       "yogas": [
+        {
+         "code": "YOGA-chart-member-child"
+        }
+       ]
+      },
+      "dailyGuidance": {
+       "score": 58
+      },
+      "dasha": {
+       "tag": "dasha-member-child"
+      },
+      "dashaAntar": [
+       {
+        "tag": "antar-member-child"
+       }
+      ],
+      "dashaMaha": {
+       "tag": "maha-member-child"
+      },
+      "displayName": "Chitra Synthetic",
+      "explanation": {
+       "tag": "explanation-member-child"
+      },
+      "memberId": "member-child",
+      "nakshatraCard": {
+       "tag": "nak-member-child"
+      },
+      "peyarchiUpcoming": [
+       {
+        "tag": "peyarchi-member-child"
+       }
+      ],
+      "sani": {
+       "tag": "sani-member-child"
+      },
+      "summary": {
+       "chartId": "chart-member-child",
+       "janmaNakshatra": "PUSHYA",
+       "lagnaRasi": 9,
+       "moonRasi": 4
+      },
+      "transit": {
+       "tag": "transit-member-child"
+      },
+      "weekAhead": {
+       "tag": "week-member-child"
+      }
+     },
+     {
+      "chart": {
+       "birthProfile": {
+        "birthDateLocal": "1992-03-03",
+        "birthLatitude": 11.5,
+        "birthLongitude": 78.25,
+        "birthPlace": "Synthetic Nagar",
+        "birthProfileId": "bp-member-selfrow",
+        "birthTimeConfidenceMinutes": 5,
+        "birthTimeLocal": "06:30",
+        "birthTimezone": "Asia/Kolkata",
+        "children": "1",
+        "currentLatitude": null,
+        "currentLongitude": null,
+        "currentPlace": null,
+        "currentTimezone": null,
+        "displayName": "Akila Duplicate",
+        "employmentType": "salaried",
+        "maritalStatus": "married",
+        "relationshipToOwner": "self"
+       },
+       "chartId": "chart-member-selfrow",
+       "doshams": [
+        {
+         "code": "DOSHAM-chart-member-selfrow"
+        }
+       ],
+       "yogas": [
+        {
+         "code": "YOGA-chart-member-selfrow"
+        }
+       ]
+      },
+      "dailyGuidance": {
+       "score": 70
+      },
+      "dasha": {
+       "tag": "dasha-member-selfrow"
+      },
+      "dashaAntar": [
+       {
+        "tag": "antar-member-selfrow"
+       }
+      ],
+      "dashaMaha": {
+       "tag": "maha-member-selfrow"
+      },
+      "displayName": "Akila Duplicate",
+      "explanation": {
+       "tag": "explanation-member-selfrow"
+      },
+      "memberId": "member-selfrow",
+      "nakshatraCard": {
+       "tag": "nak-member-selfrow"
+      },
+      "peyarchiUpcoming": [
+       {
+        "tag": "peyarchi-member-selfrow"
+       }
+      ],
+      "sani": {
+       "tag": "sani-member-selfrow"
+      },
+      "summary": {
+       "chartId": "chart-member-selfrow",
+       "janmaNakshatra": "PUSHYA",
+       "lagnaRasi": 9,
+       "moonRasi": 4
+      },
+      "transit": {
+       "tag": "transit-member-selfrow"
+      },
+      "weekAhead": {
+       "tag": "week-member-selfrow"
+      }
+     }
+    ],
+    "nakshatraCard": {
+     "tag": "nak-owner"
+    },
+    "onNavigate": "ƒ",
+    "onOpenAskVinaadi": "ƒ",
+    "pending": false,
+    "personalChart": {
+     "birthProfile": {
+      "birthDateLocal": "1990-01-15",
+      "birthLatitude": 11.5,
+      "birthLongitude": 78.25,
+      "birthPlace": "Synthetic Nagar",
+      "birthProfileId": "bp-owner-synthetic",
+      "birthTimeConfidenceMinutes": 5,
+      "birthTimeLocal": "06:30",
+      "birthTimezone": "Asia/Kolkata",
+      "children": "1",
+      "currentLatitude": null,
+      "currentLongitude": null,
+      "currentPlace": null,
+      "currentTimezone": null,
+      "displayName": "Akila Synthetic",
+      "employmentType": "salaried",
+      "maritalStatus": "single",
+      "relationshipToOwner": "self"
+     },
+     "chartId": "chart-owner",
+     "doshams": [
+      {
+       "code": "DOSHAM-chart-owner"
+      }
+     ],
+     "yogas": [
+      {
+       "code": "YOGA-chart-owner"
+      }
+     ]
+    },
+    "personalChartSummary": {
+     "chartId": "chart-owner",
+     "janmaNakshatra": "ASHWINI",
+     "lagnaRasi": 6,
+     "moonRasi": 1
+    },
+    "personalDailyGuidance": {
+     "score": 74
+    }
+   },
+   "family": {
+    "alertsLoading": false,
+    "busy": {
+     "deletingMemberId": "",
+     "deletingVaultId": "",
+     "family": false,
+     "memberCharts": false,
+     "vaults": false
+    },
+    "familyAggregate": {
+     "dateLocal": "2026-10-09",
+     "familyScore": 63,
+     "familyVaultId": "vault-synthetic",
+     "members": [
+      {
+       "activeCycleTags": [],
+       "bestWindows": [],
+       "birthProfileId": "bp-owner-synthetic",
+       "birthTimeConfidenceMinutes": 5,
+       "cautionWindows": [],
+       "chartId": "chart-bp-owner-synthetic",
+       "displayName": "Akila Synthetic",
+       "familyMemberId": "bp-owner-synthetic",
+       "individualScore": 74,
+       "label": "steady",
+       "memberWeight": 1.15
+      },
+      {
+       "activeCycleTags": [],
+       "bestWindows": [],
+       "birthProfileId": "bp-member-spouse",
+       "birthTimeConfidenceMinutes": 5,
+       "cautionWindows": [],
+       "chartId": "chart-member-spouse",
+       "displayName": "Bala Synthetic",
+       "familyMemberId": "member-spouse",
+       "individualScore": 61,
+       "label": "steady",
+       "memberWeight": 1.15
+      }
+     ]
+    },
+    "familyComposite": {
+     "tag": "composite"
+    },
+    "familyDetail": {
+     "tag": "detail"
+    },
+    "familyMembers": [
+     {
+      "familyMemberId": "member-spouse",
+      "relationshipToOwner": "spouse"
+     },
+     {
+      "familyMemberId": "member-child",
+      "relationshipToOwner": "child"
+     },
+     {
+      "familyMemberId": "member-selfrow",
+      "relationshipToOwner": "self"
+     }
+    ],
+    "focusSection": null,
+    "lang": "ta",
+    "memberCharts": [
+     {
+      "chart": {
+       "birthProfile": {
+        "birthDateLocal": "1992-03-03",
+        "birthLatitude": 11.5,
+        "birthLongitude": 78.25,
+        "birthPlace": "Synthetic Nagar",
+        "birthProfileId": "bp-member-spouse",
+        "birthTimeConfidenceMinutes": 5,
+        "birthTimeLocal": "06:30",
+        "birthTimezone": "Asia/Kolkata",
+        "children": "1",
+        "currentLatitude": null,
+        "currentLongitude": null,
+        "currentPlace": null,
+        "currentTimezone": null,
+        "displayName": "Bala Synthetic",
+        "employmentType": "salaried",
+        "maritalStatus": "married",
+        "relationshipToOwner": "spouse"
+       },
+       "chartId": "chart-member-spouse",
+       "doshams": [
+        {
+         "code": "DOSHAM-chart-member-spouse"
+        }
+       ],
+       "yogas": [
+        {
+         "code": "YOGA-chart-member-spouse"
+        }
+       ]
+      },
+      "dailyGuidance": {
+       "score": 61
+      },
+      "dasha": {
+       "tag": "dasha-member-spouse"
+      },
+      "dashaAntar": [
+       {
+        "tag": "antar-member-spouse"
+       }
+      ],
+      "dashaMaha": {
+       "tag": "maha-member-spouse"
+      },
+      "displayName": "Bala Synthetic",
+      "explanation": {
+       "tag": "explanation-member-spouse"
+      },
+      "memberId": "member-spouse",
+      "nakshatraCard": {
+       "tag": "nak-member-spouse"
+      },
+      "peyarchiUpcoming": [
+       {
+        "tag": "peyarchi-member-spouse"
+       }
+      ],
+      "sani": {
+       "tag": "sani-member-spouse"
+      },
+      "summary": {
+       "chartId": "chart-member-spouse",
+       "janmaNakshatra": "PUSHYA",
+       "lagnaRasi": 9,
+       "moonRasi": 4
+      },
+      "transit": {
+       "tag": "transit-member-spouse"
+      },
+      "weekAhead": {
+       "tag": "week-member-spouse"
+      }
+     },
+     {
+      "chart": {
+       "birthProfile": {
+        "birthDateLocal": "1992-03-03",
+        "birthLatitude": 11.5,
+        "birthLongitude": 78.25,
+        "birthPlace": "Synthetic Nagar",
+        "birthProfileId": "bp-member-child",
+        "birthTimeConfidenceMinutes": 5,
+        "birthTimeLocal": "06:30",
+        "birthTimezone": "Asia/Kolkata",
+        "children": "1",
+        "currentLatitude": null,
+        "currentLongitude": null,
+        "currentPlace": null,
+        "currentTimezone": null,
+        "displayName": "Chitra Synthetic",
+        "employmentType": "salaried",
+        "maritalStatus": "married",
+        "relationshipToOwner": "child"
+       },
+       "chartId": "chart-member-child",
+       "doshams": [
+        {
+         "code": "DOSHAM-chart-member-child"
+        }
+       ],
+       "yogas": [
+        {
+         "code": "YOGA-chart-member-child"
+        }
+       ]
+      },
+      "dailyGuidance": {
+       "score": 58
+      },
+      "dasha": {
+       "tag": "dasha-member-child"
+      },
+      "dashaAntar": [
+       {
+        "tag": "antar-member-child"
+       }
+      ],
+      "dashaMaha": {
+       "tag": "maha-member-child"
+      },
+      "displayName": "Chitra Synthetic",
+      "explanation": {
+       "tag": "explanation-member-child"
+      },
+      "memberId": "member-child",
+      "nakshatraCard": {
+       "tag": "nak-member-child"
+      },
+      "peyarchiUpcoming": [
+       {
+        "tag": "peyarchi-member-child"
+       }
+      ],
+      "sani": {
+       "tag": "sani-member-child"
+      },
+      "summary": {
+       "chartId": "chart-member-child",
+       "janmaNakshatra": "PUSHYA",
+       "lagnaRasi": 9,
+       "moonRasi": 4
+      },
+      "transit": {
+       "tag": "transit-member-child"
+      },
+      "weekAhead": {
+       "tag": "week-member-child"
+      }
+     },
+     {
+      "chart": {
+       "birthProfile": {
+        "birthDateLocal": "1992-03-03",
+        "birthLatitude": 11.5,
+        "birthLongitude": 78.25,
+        "birthPlace": "Synthetic Nagar",
+        "birthProfileId": "bp-member-selfrow",
+        "birthTimeConfidenceMinutes": 5,
+        "birthTimeLocal": "06:30",
+        "birthTimezone": "Asia/Kolkata",
+        "children": "1",
+        "currentLatitude": null,
+        "currentLongitude": null,
+        "currentPlace": null,
+        "currentTimezone": null,
+        "displayName": "Akila Duplicate",
+        "employmentType": "salaried",
+        "maritalStatus": "married",
+        "relationshipToOwner": "self"
+       },
+       "chartId": "chart-member-selfrow",
+       "doshams": [
+        {
+         "code": "DOSHAM-chart-member-selfrow"
+        }
+       ],
+       "yogas": [
+        {
+         "code": "YOGA-chart-member-selfrow"
+        }
+       ]
+      },
+      "dailyGuidance": {
+       "score": 70
+      },
+      "dasha": {
+       "tag": "dasha-member-selfrow"
+      },
+      "dashaAntar": [
+       {
+        "tag": "antar-member-selfrow"
+       }
+      ],
+      "dashaMaha": {
+       "tag": "maha-member-selfrow"
+      },
+      "displayName": "Akila Duplicate",
+      "explanation": {
+       "tag": "explanation-member-selfrow"
+      },
+      "memberId": "member-selfrow",
+      "nakshatraCard": {
+       "tag": "nak-member-selfrow"
+      },
+      "peyarchiUpcoming": [
+       {
+        "tag": "peyarchi-member-selfrow"
+       }
+      ],
+      "sani": {
+       "tag": "sani-member-selfrow"
+      },
+      "summary": {
+       "chartId": "chart-member-selfrow",
+       "janmaNakshatra": "PUSHYA",
+       "lagnaRasi": 9,
+       "moonRasi": 4
+      },
+      "transit": {
+       "tag": "transit-member-selfrow"
+      },
+      "weekAhead": {
+       "tag": "week-member-selfrow"
+      }
+     }
+    ],
+    "mode": "BALANCED",
+    "onClosePrasna": "ƒ",
+    "onDeleteMember": "ƒ",
+    "onDeleteVault": "ƒ",
+    "onEditMember": "ƒ",
+    "onEditSelf": "ƒ",
+    "onFocusConsumed": "ƒ",
+    "onGoToForecast": "ƒ",
+    "onGoToJournal": "ƒ",
+    "onGoToLifeAreas": "ƒ",
+    "onGoToRemedies": "ƒ",
+    "onGoToTools": "ƒ",
+    "onOpenPrasna": "ƒ",
+    "onOpenSetup": "ƒ",
+    "onRefreshFamily": "ƒ",
+    "onSelectVault": "ƒ",
+    "ownerChart": {
+     "birthProfile": {
+      "birthDateLocal": "1990-01-15",
+      "birthLatitude": 11.5,
+      "birthLongitude": 78.25,
+      "birthPlace": "Synthetic Nagar",
+      "birthProfileId": "bp-owner-synthetic",
+      "birthTimeConfidenceMinutes": 5,
+      "birthTimeLocal": "06:30",
+      "birthTimezone": "Asia/Kolkata",
+      "children": "1",
+      "currentLatitude": null,
+      "currentLongitude": null,
+      "currentPlace": null,
+      "currentTimezone": null,
+      "displayName": "Akila Synthetic",
+      "employmentType": "salaried",
+      "maritalStatus": "single",
+      "relationshipToOwner": "self"
+     },
+     "chartId": "chart-owner",
+     "doshams": [
+      {
+       "code": "DOSHAM-chart-owner"
+      }
+     ],
+     "yogas": [
+      {
+       "code": "YOGA-chart-owner"
+      }
+     ]
+    },
+    "ownerChartId": "chart-owner",
+    "ownerMemberChart": {
+     "chart": {
+      "birthProfile": {
+       "birthDateLocal": "1990-01-15",
+       "birthLatitude": 11.5,
+       "birthLongitude": 78.25,
+       "birthPlace": "Synthetic Nagar",
+       "birthProfileId": "bp-owner-synthetic",
+       "birthTimeConfidenceMinutes": 5,
+       "birthTimeLocal": "06:30",
+       "birthTimezone": "Asia/Kolkata",
+       "children": "1",
+       "currentLatitude": null,
+       "currentLongitude": null,
+       "currentPlace": null,
+       "currentTimezone": null,
+       "displayName": "Akila Synthetic",
+       "employmentType": "salaried",
+       "maritalStatus": "single",
+       "relationshipToOwner": "self"
+      },
+      "chartId": "chart-owner",
+      "doshams": [
+       {
+        "code": "DOSHAM-chart-owner"
+       }
+      ],
+      "yogas": [
+       {
+        "code": "YOGA-chart-owner"
+       }
+      ]
+     },
+     "dailyGuidance": {
+      "score": 74
+     },
+     "dasha": {
+      "tag": "dasha-owner"
+     },
+     "dashaAntar": [
+      {
+       "tag": "antar-owner"
+      }
+     ],
+     "dashaMaha": {
+      "tag": "maha-owner"
+     },
+     "displayName": "Akila Synthetic",
+     "explanation": {
+      "tag": "explanation-owner"
+     },
+     "memberId": "bp-owner-synthetic",
+     "nakshatraCard": {
+      "tag": "nak-owner"
+     },
+     "peyarchiUpcoming": [
+      {
+       "tag": "peyarchi-owner"
+      }
+     ],
+     "sani": {
+      "tag": "sani-owner"
+     },
+     "summary": {
+      "chartId": "chart-owner",
+      "janmaNakshatra": "ASHWINI",
+      "lagnaRasi": 6,
+      "moonRasi": 1
+     },
+     "transit": {
+      "tag": "transit-owner"
+     },
+     "weekAhead": {
+      "tag": "week-owner"
+     }
+    },
+    "panchangam": {
+     "sunrise": "06:01",
+     "tithi": {
+      "number": 15,
+      "paksha": "SHUKLA"
+     }
+    },
+    "relationshipAlerts": [
+     {
+      "tag": "alert"
+     }
+    ],
+    "selectedDate": "2026-10-12",
+    "selectedVaultId": "vault-synthetic",
+    "showPrasna": false,
+    "vaults": [
+     {
+      "familyVaultId": "vault-synthetic",
+      "memberCount": 2,
+      "name": "Synthetic household",
+      "ownerUserId": "user-synthetic"
+     }
+    ]
+   },
+   "footerMorning": {
+    "lang": "ta",
+    "onOpenSettings": "ƒ"
+   },
+   "hero": {
+    "activeTab": "family",
+    "alertCount": 1,
+    "alertItems": [
+     {
+      "body": "செய்தி",
+      "title": "தலைப்பு",
+      "type": "transit"
+     }
+    ],
+    "askReady": true,
+    "birthDisplayName": "Akila Synthetic",
+    "birthTimeConfidenceMinutes": 5,
+    "birthTimeLocal": "06:30",
+    "chartSummary": {
+     "chartId": "chart-owner",
+     "janmaNakshatra": "ASHWINI",
+     "lagnaRasi": 6,
+     "moonRasi": 1
+    },
+    "dayLoading": false,
+    "inboxItems": [
+     {
+      "tag": "inbox-item"
+     }
+    ],
+    "inboxUnreadCount": 1,
+    "lang": "ta",
+    "onAskVinaadi": "ƒ",
+    "onDateChange": "ƒ",
+    "onGoToSettings": "ƒ",
+    "onInboxOpen": "ƒ",
+    "onLangToggle": "ƒ",
+    "onMarkAllRead": "ƒ",
+    "onMarkOneRead": "ƒ",
+    "onOpenNotificationSettings": "ƒ",
+    "onSignOut": "ƒ",
+    "onTabChange": "ƒ",
+    "onUserMenuClose": "ƒ",
+    "onUserMenuToggle": "ƒ",
+    "panchangamPlace": "Synthetic Nagar",
+    "panchangamSunrise": "06:01",
+    "selectedDate": "2026-10-12",
+    "selectedVault": {
+     "familyVaultId": "vault-synthetic",
+     "memberCount": 2,
+     "name": "Synthetic household",
+     "ownerUserId": "user-synthetic"
+    },
+    "selectedVaultId": "vault-synthetic",
+    "showUserMenu": false,
+    "status": null,
+    "userEmail": "synthetic@example.test"
+   },
+   "settingsSession": {
+    "birthProfileId": "bp-owner-synthetic",
+    "blockedLifeModes": [
+     "MARRIAGE"
+    ],
+    "busyFamily": false,
+    "busyJournalSettings": false,
+    "busyPersonal": false,
+    "busyRetentionApply": false,
+    "chartId": "chart-owner",
+    "contextData": {
+     "tag": "context"
+    },
+    "janmaNakshatra": "ASHWINI",
+    "journalLastRetentionReviewedAt": null,
+    "journalLastUpdatedAt": "2026-09-01T00:00:00Z",
+    "journalNextRecommendedReviewDate": "2027-01-01",
+    "journalRetentionDays": 180,
+    "lagnaRasi": 6,
+    "lang": "ta",
+    "lifeMode": "CAREER",
+    "moonRasi": 1,
+    "notificationPrefs": {
+     "tag": "prefs"
+    },
+    "onAcknowledgeJournalReminder": "ƒ",
+    "onApplyRetention": "ƒ",
+    "onContextUpdated": "ƒ",
+    "onLangChange": "ƒ",
+    "onNavigate": "ƒ",
+    "onNotificationPrefsSaved": "ƒ",
+    "onRefreshFamily": "ƒ",
+    "onRefreshPersonal": "ƒ",
+    "onSaveJournalRetentionDays": "ƒ",
+    "onSaveLifeMode": "ƒ",
+    "onSaveUserSettings": "ƒ",
+    "onSelectedDateChange": "ƒ",
+    "onSignOut": "ƒ",
+    "ownerUserId": "user-synthetic",
+    "section": "appearance",
+    "selectedDate": "2026-10-12",
+    "selectedVaultId": "vault-synthetic",
+    "userDisplayName": "Akila Synthetic",
+    "userMode": "BALANCED",
+    "vaultName": "Synthetic household"
+   },
+   "today": {
+    "activeLifeMode": "CAREER",
+    "birthDisplayName": "Akila Synthetic",
+    "bundleSectionErrors": {
+     "weekAhead": "synthetic"
+    },
+    "dailyGuidanceRange": [
+     {
+      "date": "2026-10-09",
+      "score": 74
+     }
+    ],
+    "dasha": {
+     "tag": "dasha-owner"
+    },
+    "dashaAntar": [
+     {
+      "tag": "antar-owner"
+     }
+    ],
+    "deviceTimeZone": "Asia/Kolkata",
+    "familyAggregate": {
+     "dateLocal": "2026-10-09",
+     "familyScore": 63,
+     "familyVaultId": "vault-synthetic",
+     "members": [
+      {
+       "activeCycleTags": [],
+       "bestWindows": [],
+       "birthProfileId": "bp-owner-synthetic",
+       "birthTimeConfidenceMinutes": 5,
+       "cautionWindows": [],
+       "chartId": "chart-bp-owner-synthetic",
+       "displayName": "Akila Synthetic",
+       "familyMemberId": "bp-owner-synthetic",
+       "individualScore": 74,
+       "label": "steady",
+       "memberWeight": 1.15
+      },
+      {
+       "activeCycleTags": [],
+       "bestWindows": [],
+       "birthProfileId": "bp-member-spouse",
+       "birthTimeConfidenceMinutes": 5,
+       "cautionWindows": [],
+       "chartId": "chart-member-spouse",
+       "displayName": "Bala Synthetic",
+       "familyMemberId": "member-spouse",
+       "individualScore": 61,
+       "label": "steady",
+       "memberWeight": 1.15
+      }
+     ]
+    },
+    "familyPending": false,
+    "lang": "ta",
+    "lifeAreas": [
+     {
+      "area": "CAREER",
+      "score": 66
+     }
+    ],
+    "lifeFocus": {
+     "activities": [
+      "job_change",
+      "business_start"
+     ],
+     "area": "CAREER",
+     "remediesFirst": false
+    },
+    "locationCheck": null,
+    "locationCheckProfileId": "bp-owner-synthetic",
+    "needsProfile": false,
+    "onDismissFocusNudge": "ƒ",
+    "onDismissLocationCheck": "ƒ",
+    "onGoToAllTools": "ƒ",
+    "onGoToCalendar": "ƒ",
+    "onGoToChart": "ƒ",
+    "onGoToCharts": "ƒ",
+    "onGoToExplore": "ƒ",
+    "onGoToFamily": "ƒ",
+    "onGoToJournal": "ƒ",
+    "onGoToLifeAreas": "ƒ",
+    "onKeepFocus": "ƒ",
+    "onLocationResolved": "ƒ",
+    "onOpenActivityTiming": "ƒ",
+    "onOpenAskVinaadi": "ƒ",
+    "onOpenChartGen": "ƒ",
+    "onOpenCompatibility": "ƒ",
+    "onOpenFocusPicker": "ƒ",
+    "onOpenMuhurta": "ƒ",
+    "onOpenNotificationSettings": "ƒ",
+    "onOpenNumerology": "ƒ",
+    "onOpenRasipalan": "ƒ",
+    "onRetryBundle": "ƒ",
+    "panchangam": {
+     "sunrise": "06:01",
+     "tithi": {
+      "number": 15,
+      "paksha": "SHUKLA"
+     }
+    },
+    "panchangamPlace": "Synthetic Nagar",
+    "panchangamTimezone": "Asia/Kolkata",
+    "panchangamTimings": {
+     "tag": "timings"
+    },
+    "personalChartSummary": {
+     "chartId": "chart-owner",
+     "janmaNakshatra": "ASHWINI",
+     "lagnaRasi": 6,
+     "moonRasi": 1
+    },
+    "personalDailyGuidance": {
+     "score": 74
+    },
+    "personalMemberChart": null,
+    "personalPending": false,
+    "personalSani": {
+     "tag": "sani-owner"
+    },
+    "peyarchiUpcoming": [
+     {
+      "tag": "peyarchi-owner"
+     }
+    ],
+    "remedyMemberCharts": [
+     {
+      "chart": {
+       "birthProfile": {
+        "birthDateLocal": "1992-03-03",
+        "birthLatitude": 11.5,
+        "birthLongitude": 78.25,
+        "birthPlace": "Synthetic Nagar",
+        "birthProfileId": "bp-member-spouse",
+        "birthTimeConfidenceMinutes": 5,
+        "birthTimeLocal": "06:30",
+        "birthTimezone": "Asia/Kolkata",
+        "children": "1",
+        "currentLatitude": null,
+        "currentLongitude": null,
+        "currentPlace": null,
+        "currentTimezone": null,
+        "displayName": "Bala Synthetic",
+        "employmentType": "salaried",
+        "maritalStatus": "married",
+        "relationshipToOwner": "spouse"
+       },
+       "chartId": "chart-member-spouse",
+       "doshams": [
+        {
+         "code": "DOSHAM-chart-member-spouse"
+        }
+       ],
+       "yogas": [
+        {
+         "code": "YOGA-chart-member-spouse"
+        }
+       ]
+      },
+      "dailyGuidance": {
+       "score": 61
+      },
+      "dasha": {
+       "tag": "dasha-member-spouse"
+      },
+      "dashaAntar": [
+       {
+        "tag": "antar-member-spouse"
+       }
+      ],
+      "dashaMaha": {
+       "tag": "maha-member-spouse"
+      },
+      "displayName": "Bala Synthetic",
+      "explanation": {
+       "tag": "explanation-member-spouse"
+      },
+      "memberId": "member-spouse",
+      "nakshatraCard": {
+       "tag": "nak-member-spouse"
+      },
+      "peyarchiUpcoming": [
+       {
+        "tag": "peyarchi-member-spouse"
+       }
+      ],
+      "sani": {
+       "tag": "sani-member-spouse"
+      },
+      "summary": {
+       "chartId": "chart-member-spouse",
+       "janmaNakshatra": "PUSHYA",
+       "lagnaRasi": 9,
+       "moonRasi": 4
+      },
+      "transit": {
+       "tag": "transit-member-spouse"
+      },
+      "weekAhead": {
+       "tag": "week-member-spouse"
+      }
+     },
+     {
+      "chart": {
+       "birthProfile": {
+        "birthDateLocal": "1992-03-03",
+        "birthLatitude": 11.5,
+        "birthLongitude": 78.25,
+        "birthPlace": "Synthetic Nagar",
+        "birthProfileId": "bp-member-child",
+        "birthTimeConfidenceMinutes": 5,
+        "birthTimeLocal": "06:30",
+        "birthTimezone": "Asia/Kolkata",
+        "children": "1",
+        "currentLatitude": null,
+        "currentLongitude": null,
+        "currentPlace": null,
+        "currentTimezone": null,
+        "displayName": "Chitra Synthetic",
+        "employmentType": "salaried",
+        "maritalStatus": "married",
+        "relationshipToOwner": "child"
+       },
+       "chartId": "chart-member-child",
+       "doshams": [
+        {
+         "code": "DOSHAM-chart-member-child"
+        }
+       ],
+       "yogas": [
+        {
+         "code": "YOGA-chart-member-child"
+        }
+       ]
+      },
+      "dailyGuidance": {
+       "score": 58
+      },
+      "dasha": {
+       "tag": "dasha-member-child"
+      },
+      "dashaAntar": [
+       {
+        "tag": "antar-member-child"
+       }
+      ],
+      "dashaMaha": {
+       "tag": "maha-member-child"
+      },
+      "displayName": "Chitra Synthetic",
+      "explanation": {
+       "tag": "explanation-member-child"
+      },
+      "memberId": "member-child",
+      "nakshatraCard": {
+       "tag": "nak-member-child"
+      },
+      "peyarchiUpcoming": [
+       {
+        "tag": "peyarchi-member-child"
+       }
+      ],
+      "sani": {
+       "tag": "sani-member-child"
+      },
+      "summary": {
+       "chartId": "chart-member-child",
+       "janmaNakshatra": "PUSHYA",
+       "lagnaRasi": 9,
+       "moonRasi": 4
+      },
+      "transit": {
+       "tag": "transit-member-child"
+      },
+      "weekAhead": {
+       "tag": "week-member-child"
+      }
+     },
+     {
+      "chart": {
+       "birthProfile": {
+        "birthDateLocal": "1992-03-03",
+        "birthLatitude": 11.5,
+        "birthLongitude": 78.25,
+        "birthPlace": "Synthetic Nagar",
+        "birthProfileId": "bp-member-selfrow",
+        "birthTimeConfidenceMinutes": 5,
+        "birthTimeLocal": "06:30",
+        "birthTimezone": "Asia/Kolkata",
+        "children": "1",
+        "currentLatitude": null,
+        "currentLongitude": null,
+        "currentPlace": null,
+        "currentTimezone": null,
+        "displayName": "Akila Duplicate",
+        "employmentType": "salaried",
+        "maritalStatus": "married",
+        "relationshipToOwner": "self"
+       },
+       "chartId": "chart-member-selfrow",
+       "doshams": [
+        {
+         "code": "DOSHAM-chart-member-selfrow"
+        }
+       ],
+       "yogas": [
+        {
+         "code": "YOGA-chart-member-selfrow"
+        }
+       ]
+      },
+      "dailyGuidance": {
+       "score": 70
+      },
+      "dasha": {
+       "tag": "dasha-member-selfrow"
+      },
+      "dashaAntar": [
+       {
+        "tag": "antar-member-selfrow"
+       }
+      ],
+      "dashaMaha": {
+       "tag": "maha-member-selfrow"
+      },
+      "displayName": "Akila Duplicate",
+      "explanation": {
+       "tag": "explanation-member-selfrow"
+      },
+      "memberId": "member-selfrow",
+      "nakshatraCard": {
+       "tag": "nak-member-selfrow"
+      },
+      "peyarchiUpcoming": [
+       {
+        "tag": "peyarchi-member-selfrow"
+       }
+      ],
+      "sani": {
+       "tag": "sani-member-selfrow"
+      },
+      "summary": {
+       "chartId": "chart-member-selfrow",
+       "janmaNakshatra": "PUSHYA",
+       "lagnaRasi": 9,
+       "moonRasi": 4
+      },
+      "transit": {
+       "tag": "transit-member-selfrow"
+      },
+      "weekAhead": {
+       "tag": "week-member-selfrow"
+      }
+     }
+    ],
+    "selectedDate": "2026-10-12",
+    "showFocusNudge": true,
+    "showingPreviousDay": false,
+    "todayDate": "2026-10-09",
+    "userMode": "BALANCED",
+    "weekAhead": {
+     "tag": "week-owner"
+    }
+   }
+  },
+  "effects": [
+   [
+    "→",
+    "hero.onGoToSettings"
+   ],
+   [
+    "session.setShowUserMenu",
+    false
+   ],
+   [
+    "window.scrollTo",
+    {
+     "behavior": "auto",
+     "top": 0
+    }
+   ],
+   [
+    "router.replace",
+    "/dashboard/settings/account",
+    {
+     "scroll": false
+    }
+   ],
+   [
+    "→",
+    "settingsSession.onNavigate",
+    "appearance"
+   ],
+   [
+    "router.replace",
+    "/dashboard/settings/appearance",
+    {
+     "scroll": false
+    }
+   ],
+   [
+    "→",
+    "hero.onTabChange",
+    "explore"
+   ],
+   [
+    "window.scrollTo",
+    {
+     "behavior": "auto",
+     "top": 0
+    }
+   ],
+   [
+    "router.push",
+    "/dashboard/explore",
+    {
+     "scroll": false
+    }
+   ],
+   [
+    "→",
+    "explore.onNavigate",
+    "family"
+   ],
+   [
+    "window.scrollTo",
+    {
+     "behavior": "auto",
+     "top": 0
+    }
+   ],
+   [
+    "router.push",
+    "/dashboard/family",
+    {
+     "scroll": false
+    }
+   ]
+  ]
+ },
+ {
+  "step": "another user's stored state is cleared, not applied",
+  "url": "/dashboard",
+  "history": "1/1",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "today"
+  ],
+  "activeTab": "personal",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "ask": {
+    "open": false
+   }
+  },
+  "effects": [
+   [
+    "storage.set",
+    "jothidam-ai-dashboard-state",
+    {
+     "ownerUserId": "user-someone-else",
+     "selectedDate": "2026-10-12",
+     "selectedVaultId": "vault-synthetic",
+     "birthProfileId": "bp-owner-synthetic",
+     "chartId": "chart-owner",
+     "birthForm": {
+      "ownerUserId": "user-synthetic",
+      "displayName": "Akila Synthetic",
+      "birthDateLocal": "1990-01-15",
+      "birthTimeLocal": "06:30",
+      "birthPlace": "Synthetic Nagar",
+      "birthLatitude": "11.5",
+      "birthLongitude": "78.25",
+      "birthTimezone": "Asia/Kolkata",
+      "currentPlace": "",
+      "currentLatitude": "",
+      "currentLongitude": "",
+      "currentTimezone": "",
+      "relationshipToOwner": "self",
+      "calculateNow": true,
+      "maritalStatus": "",
+      "employmentType": "",
+      "children": "",
+      "birthTimeSource": "unknown",
+      "birthTimeConfidenceMinutes": "0"
+     },
+     "activeTab": "calendar",
+     "lang": "ta",
+     "hasVisitedReading": false
+    }
+   ],
+   [
+    "storage.remove",
+    "jothidam-ai-dashboard-state"
+   ],
+   [
+    "api",
+    "GET",
+    "/api/v1/settings/ui",
+    null
+   ],
+   [
+    "journal.loadJournalSettings"
+   ],
+   [
+    "getLifeMode"
+   ],
+   [
+    "journal.loadJournalEntries",
+    "chart-owner"
+   ],
+   [
+    "journal.loadContextData",
+    "chart-owner"
+   ],
+   [
+    "personal.refreshPersonalBundle",
+    "bp-owner-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.refreshFamilyBundle",
+    "vault-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.loadRelationshipAlerts",
+    "vault-synthetic"
+   ],
+   [
+    "personal.setJadhagamReport",
+    null
+   ],
+   [
+    "personal.setLifeAreas",
+    null
+   ],
+   [
+    "family.loadVaults",
+    "user-synthetic"
+   ]
+  ]
+ },
+ {
+  "step": "a stored past date is not restored",
+  "url": "/dashboard",
+  "history": "1/1",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "today"
+  ],
+  "activeTab": "personal",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "ask": {
+    "open": false
+   }
+  },
+  "effects": [
+   [
+    "storage.set",
+    "jothidam-ai-dashboard-state",
+    {
+     "ownerUserId": "user-synthetic",
+     "selectedDate": "2026-10-01",
+     "selectedVaultId": "vault-synthetic",
+     "birthProfileId": "bp-owner-synthetic",
+     "chartId": "chart-owner",
+     "birthForm": {
+      "ownerUserId": "user-synthetic",
+      "displayName": "Akila Synthetic",
+      "birthDateLocal": "1990-01-15",
+      "birthTimeLocal": "06:30",
+      "birthPlace": "Synthetic Nagar",
+      "birthLatitude": "11.5",
+      "birthLongitude": "78.25",
+      "birthTimezone": "Asia/Kolkata",
+      "currentPlace": "",
+      "currentLatitude": "",
+      "currentLongitude": "",
+      "currentTimezone": "",
+      "relationshipToOwner": "self",
+      "calculateNow": true,
+      "maritalStatus": "",
+      "employmentType": "",
+      "children": "",
+      "birthTimeSource": "unknown",
+      "birthTimeConfidenceMinutes": "0"
+     },
+     "activeTab": "calendar",
+     "lang": "en",
+     "hasVisitedReading": false
+    }
+   ],
+   [
+    "family.setSelectedVaultId",
+    "vault-synthetic"
+   ],
+   [
+    "personal.setBirthProfileId",
+    "bp-owner-synthetic"
+   ],
+   [
+    "personal.setChartId",
+    "chart-owner"
+   ],
+   [
+    "api",
+    "GET",
+    "/api/v1/settings/ui",
+    null
+   ],
+   [
+    "journal.loadJournalSettings"
+   ],
+   [
+    "getLifeMode"
+   ],
+   [
+    "journal.loadJournalEntries",
+    "chart-owner"
+   ],
+   [
+    "journal.loadContextData",
+    "chart-owner"
+   ],
+   [
+    "personal.refreshPersonalBundle",
+    "bp-owner-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.refreshFamilyBundle",
+    "vault-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.loadRelationshipAlerts",
+    "vault-synthetic"
+   ],
+   [
+    "personal.setJadhagamReport",
+    null
+   ],
+   [
+    "personal.setLifeAreas",
+    null
+   ],
+   [
+    "family.loadVaults",
+    "user-synthetic"
+   ]
+  ]
+ }
+]
