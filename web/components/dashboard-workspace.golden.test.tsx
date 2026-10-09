@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /*
@@ -98,6 +98,11 @@ vi.mock("./dashboard-today-tab-nova", () => ({
     })}</output>
   ),
 }));
+vi.mock("./dashboard-calendar-tab-nova", () => ({
+  DashboardCalendarTabNova: (props: { chartId: string; selectedDate: string }) => (
+    <output data-testid="calendar-probe">{JSON.stringify({ chartId: props.chartId, date: props.selectedDate })}</output>
+  ),
+}));
 
 import { DashboardWorkspace } from "./dashboard-workspace";
 
@@ -105,6 +110,7 @@ describe("dashboard workspace composition golden", () => {
   beforeEach(() => {
     route.pathname = "/dashboard";
     window.localStorage.clear();
+    vi.stubGlobal("scrollTo", noop);
   });
 
   it("hands a synthetic reader's coherent Today state to the first visible pane", async () => {
@@ -112,6 +118,16 @@ describe("dashboard workspace composition golden", () => {
 
     await waitFor(() => expect(screen.getByTestId("today-probe")).toHaveTextContent(
       JSON.stringify({ name: "Akila Synthetic", date: "2026-10-09", score: 74, focus: null }),
+    ));
+  });
+
+  it("keeps footer navigation inside the workspace and preserves the synthetic calendar context", async () => {
+    render(<DashboardWorkspace />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Calendar" }));
+
+    await waitFor(() => expect(screen.getByTestId("calendar-probe")).toHaveTextContent(
+      JSON.stringify({ chartId: "chart-synthetic-akila", date: "2026-10-09" }),
     ));
   });
 });
