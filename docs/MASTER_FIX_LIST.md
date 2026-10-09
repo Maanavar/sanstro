@@ -2106,6 +2106,10 @@ then A14, A15, A13.
   signatures to introspect as expected (`python -c "import ...; inspect.signature(...)"`).
   CI runs mypy on Linux, unaffected by this; **needs mypy confirmation on
   CI or a later local retry before this is treated as done.**
+  **Full backend suite, 2026-10-09 (after this commit): 6221 passed, 7
+  skipped, coverage 92.83% (1:34:55).** mypy still blocked locally by the
+  same SAC issue on a second retry ~2 hours after the first — not treating
+  it as transient any further; CI is the next real check for it.
   **Third unit, golden first — `assess_marriage_prediction` (2026-10-08) —
   and a live defect it exposed.** The function is already pure (a
   `MarriageAssessmentInput`), so `tests/test_marriage_prediction_golden.py`
