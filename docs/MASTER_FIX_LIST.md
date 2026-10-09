@@ -2249,7 +2249,10 @@ then A14, A15, A13.
   production's; route wrapping (`age_gated`, `alternative_framing`, the
   prediction log), persistence and `logger` calls are outside a pure-function
   comparison; the Tamil copy is compared byte-for-byte and unchanged, not
-  read. Full backend suite: pending, recorded below when it finishes.
+  read. **Full backend suite at `2489434`: 6241 passed, 7 skipped, coverage
+  92.84% (1:23:56)** — +20 on the last run, exactly the 6 scoring and 14
+  narration stage tests; the 7 skips are the known D2-hora and six
+  printed-publisher sunrise cases.
   **Missing-placement `KeyError` — fixed (2026-10-09, owner asked).** The
   30 raising cases above. The scoring stage reads Venus and the 7th and 2nd
   lords by name; the promise gate answers SILENT for a missing Venus or 7th
@@ -2272,9 +2275,11 @@ then A14, A15, A13.
   the gate catches them). Comparator HEAD → tree: **30 differ, exactly the
   30 that raised** (raises 30 → 0, SILENT 579 → 609, every other count
   unchanged). mypy clean on 368 files; ruff clean.
-  **Blind spot:** the full backend suite below started at `2489434`, before
-  this fix; the fix is covered by its own test, the marriage files and the
-  comparator, not by that run.
+  **Blind spot:** the local full suite above ran at `2489434`, before this
+  fix. The fix itself is covered by its own test, the marriage files, the
+  comparator, and **CI on PR #5 at `89b7515`: every job green** (backend
+  pytest, ruff + mypy, Alembic round-trip, web, token ratchet, compose stack,
+  web image; Playwright e2e skipped by the workflow).
   **Fourth unit, golden first — `dashboard-workspace.tsx` (2026-10-09).**
   *An earlier attempt by another agent (Codex), reviewed and superseded:*
   `44f69a2`/`c9130ad` added a two-case "composition golden" that recorded 4
