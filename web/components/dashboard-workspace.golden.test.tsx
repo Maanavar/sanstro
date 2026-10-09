@@ -772,6 +772,33 @@ describe("dashboard workspace behaviour golden", { timeout: 120_000 }, () => {
       h.props.clear();
     }
 
+    // Before /auth/me the URL sync is dormant: a reader can still press Back or click a tab.
+    {
+      const waiting = returningReader();
+      waiting.session = { ...waiting.session, hydrated: false };
+      start(waiting, "/dashboard/calendar");
+      h.nav.entries = [{ pathname: "/dashboard", search: "" }, { pathname: "/dashboard/calendar", search: "" }];
+      h.nav.index = 1;
+      await compact("before /auth/me: calendar, with Today behind it");
+      await historyBack();
+      await compact("before /auth/me: Back to bare /dashboard");
+      rerender((w) => { w.session = { ...w.session, hydrated: true }; });
+      await compact("after /auth/me, following a Back to bare /dashboard");
+      cleanup();
+      h.props.clear();
+    }
+    {
+      const waiting = returningReader();
+      waiting.session = { ...waiting.session, hydrated: false };
+      start(waiting, "/dashboard");
+      await call("hero", "onTabChange", "journal");
+      await compact("before /auth/me: a Journal click on bare /dashboard");
+      rerender((w) => { w.session = { ...w.session, hydrated: true }; });
+      await compact("after /auth/me, following a Journal click");
+      cleanup();
+      h.props.clear();
+    }
+
     // First paint comes before /auth/me answers: the path alone must place the reader.
     for (const path of ["/dashboard/settings/notifications", "/dashboard/tools/numerology", "/dashboard/calendar", "/dashboard?tab=journal"]) {
       const waiting = returningReader();

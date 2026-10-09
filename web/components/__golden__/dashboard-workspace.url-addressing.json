@@ -1721,6 +1721,280 @@
   ]
  },
  {
+  "step": "before /auth/me: calendar, with Today behind it",
+  "url": "/dashboard/calendar",
+  "history": "2/2",
+  "shown": [
+   "ambient",
+   "ask",
+   "calendar",
+   "footerMorning",
+   "hero"
+  ],
+  "activeTab": "calendar",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "calendar": {
+    "focusView": null,
+    "chartId": "chart-owner",
+    "selectedMemberId": null
+   },
+   "ask": {
+    "open": false
+   }
+  },
+  "effects": []
+ },
+ {
+  "step": "before /auth/me: Back to bare /dashboard",
+  "url": "/dashboard",
+  "history": "1/2",
+  "shown": [
+   "ambient",
+   "ask",
+   "calendar",
+   "footerMorning",
+   "hero"
+  ],
+  "activeTab": "calendar",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "calendar": {
+    "focusView": null,
+    "chartId": "chart-owner",
+    "selectedMemberId": null
+   },
+   "ask": {
+    "open": false
+   }
+  },
+  "effects": [
+   [
+    "→",
+    "browser.back"
+   ]
+  ]
+ },
+ {
+  "step": "after /auth/me, following a Back to bare /dashboard",
+  "url": "/dashboard/calendar",
+  "history": "1/2",
+  "shown": [
+   "ambient",
+   "ask",
+   "calendar",
+   "footerMorning",
+   "hero"
+  ],
+  "activeTab": "calendar",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "calendar": {
+    "focusView": null,
+    "chartId": "chart-owner",
+    "selectedMemberId": null
+   },
+   "ask": {
+    "open": false
+   }
+  },
+  "effects": [
+   [
+    "api",
+    "GET",
+    "/api/v1/settings/ui",
+    null
+   ],
+   [
+    "journal.loadJournalSettings"
+   ],
+   [
+    "getLifeMode"
+   ],
+   [
+    "journal.loadJournalEntries",
+    "chart-owner"
+   ],
+   [
+    "journal.loadContextData",
+    "chart-owner"
+   ],
+   [
+    "personal.refreshPersonalBundle",
+    "bp-owner-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.refreshFamilyBundle",
+    "vault-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.loadRelationshipAlerts",
+    "vault-synthetic"
+   ],
+   [
+    "personal.setJadhagamReport",
+    null
+   ],
+   [
+    "personal.setLifeAreas",
+    null
+   ],
+   [
+    "router.replace",
+    "/dashboard/calendar",
+    {
+     "scroll": false
+    }
+   ],
+   [
+    "family.loadVaults",
+    "user-synthetic"
+   ],
+   [
+    "window.scrollTo",
+    {
+     "behavior": "auto",
+     "top": 0
+    }
+   ],
+   [
+    "window.scrollTo",
+    {
+     "behavior": "auto",
+     "top": 0
+    }
+   ]
+  ]
+ },
+ {
+  "step": "before /auth/me: a Journal click on bare /dashboard",
+  "url": "/dashboard",
+  "history": "1/1",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "journal"
+  ],
+  "activeTab": "journal",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "ask": {
+    "open": false
+   }
+  },
+  "effects": [
+   [
+    "→",
+    "hero.onTabChange",
+    "journal"
+   ],
+   [
+    "window.scrollTo",
+    {
+     "behavior": "auto",
+     "top": 0
+    }
+   ]
+  ]
+ },
+ {
+  "step": "after /auth/me, following a Journal click",
+  "url": "/dashboard/journal",
+  "history": "2/2",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "journal"
+  ],
+  "activeTab": "journal",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "ask": {
+    "open": false
+   }
+  },
+  "effects": [
+   [
+    "api",
+    "GET",
+    "/api/v1/settings/ui",
+    null
+   ],
+   [
+    "journal.loadJournalSettings"
+   ],
+   [
+    "getLifeMode"
+   ],
+   [
+    "journal.loadJournalEntries",
+    "chart-owner"
+   ],
+   [
+    "journal.loadContextData",
+    "chart-owner"
+   ],
+   [
+    "personal.refreshPersonalBundle",
+    "bp-owner-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.refreshFamilyBundle",
+    "vault-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.loadRelationshipAlerts",
+    "vault-synthetic"
+   ],
+   [
+    "personal.setJadhagamReport",
+    null
+   ],
+   [
+    "personal.setLifeAreas",
+    null
+   ],
+   [
+    "router.push",
+    "/dashboard/journal",
+    {
+     "scroll": false
+    }
+   ],
+   [
+    "family.loadVaults",
+    "user-synthetic"
+   ],
+   [
+    "window.scrollTo",
+    {
+     "behavior": "auto",
+     "top": 0
+    }
+   ],
+   [
+    "window.scrollTo",
+    {
+     "behavior": "auto",
+     "top": 0
+    }
+   ]
+  ]
+ },
+ {
   "step": "before /auth/me: /dashboard/settings/notifications",
   "url": "/dashboard/settings/notifications",
   "history": "1/1",
