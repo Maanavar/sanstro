@@ -1375,16 +1375,16 @@
  },
  {
   "step": "cold /dashboard?tab=journal",
-  "url": "/dashboard",
+  "url": "/dashboard/journal",
   "history": "1/1",
   "shown": [
    "ambient",
    "ask",
    "footerMorning",
    "hero",
-   "today"
+   "journal"
   ],
-  "activeTab": "personal",
+  "activeTab": "journal",
   "exploreBack": false,
   "predictionsEnabled": false,
   "focus": {
@@ -1452,35 +1452,21 @@
    [
     "family.loadVaults",
     "user-synthetic"
-   ],
-   [
-    "window.scrollTo",
-    {
-     "behavior": "auto",
-     "top": 0
-    }
-   ],
-   [
-    "router.replace",
-    "/dashboard",
-    {
-     "scroll": false
-    }
    ]
   ]
  },
  {
   "step": "cold /dashboard?tab=settings",
-  "url": "/dashboard",
+  "url": "/dashboard/settings/setup",
   "history": "1/1",
   "shown": [
    "ambient",
    "ask",
    "footerMorning",
    "hero",
-   "today"
+   "setup"
   ],
-  "activeTab": "personal",
+  "activeTab": "settings",
   "exploreBack": false,
   "predictionsEnabled": false,
   "focus": {
@@ -1548,20 +1534,6 @@
    [
     "family.loadVaults",
     "user-synthetic"
-   ],
-   [
-    "window.scrollTo",
-    {
-     "behavior": "auto",
-     "top": 0
-    }
-   ],
-   [
-    "router.replace",
-    "/dashboard",
-    {
-     "scroll": false
-    }
    ]
   ]
  },
@@ -1779,16 +1751,16 @@
  },
  {
   "step": "after /auth/me, following a Back to bare /dashboard",
-  "url": "/dashboard/calendar",
+  "url": "/dashboard",
   "history": "1/2",
   "shown": [
    "ambient",
    "ask",
-   "calendar",
    "footerMorning",
-   "hero"
+   "hero",
+   "today"
   ],
-  "activeTab": "calendar",
+  "activeTab": "personal",
   "exploreBack": false,
   "predictionsEnabled": false,
   "focus": {
@@ -1845,22 +1817,8 @@
     null
    ],
    [
-    "router.replace",
-    "/dashboard/calendar",
-    {
-     "scroll": false
-    }
-   ],
-   [
     "family.loadVaults",
     "user-synthetic"
-   ],
-   [
-    "window.scrollTo",
-    {
-     "behavior": "auto",
-     "top": 0
-    }
    ],
    [
     "window.scrollTo",
@@ -1977,20 +1935,6 @@
    [
     "family.loadVaults",
     "user-synthetic"
-   ],
-   [
-    "window.scrollTo",
-    {
-     "behavior": "auto",
-     "top": 0
-    }
-   ],
-   [
-    "window.scrollTo",
-    {
-     "behavior": "auto",
-     "top": 0
-    }
    ]
   ]
  },
@@ -2314,16 +2258,16 @@
  },
  {
   "step": "after /auth/me: /dashboard?tab=journal",
-  "url": "/dashboard",
+  "url": "/dashboard/journal",
   "history": "1/1",
   "shown": [
    "ambient",
    "ask",
    "footerMorning",
    "hero",
-   "today"
+   "journal"
   ],
-  "activeTab": "personal",
+  "activeTab": "journal",
   "exploreBack": false,
   "predictionsEnabled": false,
   "focus": {
@@ -2391,20 +2335,6 @@
    [
     "family.loadVaults",
     "user-synthetic"
-   ],
-   [
-    "window.scrollTo",
-    {
-     "behavior": "auto",
-     "top": 0
-    }
-   ],
-   [
-    "router.replace",
-    "/dashboard",
-    {
-     "scroll": false
-    }
    ]
   ]
  },

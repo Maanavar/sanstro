@@ -109,6 +109,13 @@ export function useWorkspaceNavigation() {
   // legacy `?tab=` link, or a mistyped path, to its canonical URL even when the
   // resolved tab happens to equal the default and no other dependency changes.
   const [urlSyncReady, setUrlSyncReady] = useState(false);
+  // Until the sync arms, the URL can change only by a history move and the
+  // destination only by an in-app action (or hydration adopting a legacy
+  // `?tab=`). Whichever moved wins the arming commit and the other effect
+  // stands down for it — otherwise both act, in opposite directions, and the
+  // last navigation to land decides.
+  const mountPathnameRef = useRef(pathname);
+  const armingWinnerRef = useRef<"url" | "state" | null>(null);
   const goToTab = useCallback((tab: Tab) => {
     navIntentRef.current = "push";
     setExploreReturnTab(null);
@@ -251,6 +258,8 @@ export function useWorkspaceNavigation() {
   // that `activeTab` is still the "personal" default and would overwrite the
   // very destination the hydration effect just read.
   function enableUrlSync() {
+    if (urlSyncReady) return;
+    armingWinnerRef.current = pathname !== mountPathnameRef.current ? "url" : "state";
     setUrlSyncReady(true);
   }
 
@@ -267,7 +276,7 @@ export function useWorkspaceNavigation() {
   // already correct, and bails. `pathname` is still read fresh from render
   // scope for that bail check.
   useEffect(() => {
-    if (!urlSyncReady) return;
+    if (!urlSyncReady || armingWinnerRef.current === "url") return;
     const nextPath = dashboardPath(activeTab, { tool: activeTool, section: urlSettingsSection });
     // Everything except the superseded `?tab=` survives the rewrite — the
     // destination lives in the path now, so carrying the old param forward
@@ -295,6 +304,10 @@ export function useWorkspaceNavigation() {
   // effect.
   useEffect(() => {
     if (!urlSyncReady) return;
+    // Runs after the outbound effect in the arming commit, so it clears the latch.
+    const armingWinner = armingWinnerRef.current;
+    armingWinnerRef.current = null;
+    if (armingWinner === "state") return;
     const fromUrl = parseDashboardPath(pathname, { qaEnabled: ENABLE_QA_TAB });
     // A path naming no tab means Today here, NOT "leave things alone" — Back to
     // a bare `/dashboard` must actually land on Today rather than stranding the

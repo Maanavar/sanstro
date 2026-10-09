@@ -772,6 +772,13 @@ describe("dashboard workspace behaviour golden", { timeout: 120_000 }, () => {
       h.props.clear();
     }
 
+    // A legacy ?tab= link lands where it names, with one canonicalising replace.
+    for (const [path, url, tab] of [["/dashboard?tab=journal", "/dashboard/journal", "journal"], ["/dashboard?tab=settings", "/dashboard/settings/setup", "settings"]]) {
+      const legacy = record.find((c) => c.step === `cold ${path}`)!;
+      expect(legacy).toMatchObject({ url, activeTab: tab });
+      expect((legacy.effects as unknown[][]).filter((e) => String(e[0]).startsWith("router."))).toEqual([["router.replace", url, { scroll: false }]]);
+    }
+
     // Before /auth/me the URL sync is dormant: a reader can still press Back or click a tab.
     {
       const waiting = returningReader();
@@ -784,6 +791,8 @@ describe("dashboard workspace behaviour golden", { timeout: 120_000 }, () => {
       await compact("before /auth/me: Back to bare /dashboard");
       rerender((w) => { w.session = { ...w.session, hydrated: true }; });
       await compact("after /auth/me, following a Back to bare /dashboard");
+      expect(lastStep()).toMatchObject({ url: "/dashboard", activeTab: "personal" });
+      expect(lastEffects().filter((e) => String(e[0]).startsWith("router."))).toEqual([]);
       cleanup();
       h.props.clear();
     }
@@ -795,6 +804,8 @@ describe("dashboard workspace behaviour golden", { timeout: 120_000 }, () => {
       await compact("before /auth/me: a Journal click on bare /dashboard");
       rerender((w) => { w.session = { ...w.session, hydrated: true }; });
       await compact("after /auth/me, following a Journal click");
+      expect(lastStep()).toMatchObject({ url: "/dashboard/journal", activeTab: "journal" });
+      expect(lastEffects().filter((e) => String(e[0]).startsWith("router."))).toEqual([["router.push", "/dashboard/journal", { scroll: false }]]);
       cleanup();
       h.props.clear();
     }

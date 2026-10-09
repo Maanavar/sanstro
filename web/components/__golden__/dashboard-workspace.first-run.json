@@ -303,20 +303,6 @@
    [
     "family.loadVaults",
     "user-synthetic"
-   ],
-   [
-    "window.scrollTo",
-    {
-     "behavior": "auto",
-     "top": 0
-    }
-   ],
-   [
-    "window.scrollTo",
-    {
-     "behavior": "auto",
-     "top": 0
-    }
    ]
   ]
  },
