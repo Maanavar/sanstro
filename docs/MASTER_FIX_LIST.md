@@ -2184,6 +2184,39 @@ then A14, A15, A13.
   prediction log remain outside this pure-function comparison. The full 76
   related files and full backend suite are deferred until the marriage unit's
   remaining narration extraction is complete.
+  **Scoring stage re-proved with a stronger comparator (2026-10-09).** The
+  stage above and its first comparator were written by another agent
+  (Codex), interrupted before the narration stage; reviewed here. That
+  comparator compared only the returned result, so it could not see the
+  quantity the stage computes (10 → 9 moved 5 of 450 cases), and its matrix
+  never reached BLOCKED/SILENT or a scored LOW. Its `MonkeyPatch.context()`
+  patched nothing. `scripts/a13_compare_marriage_prediction.py` now:
+  (a) installs a recording `min`/`max` as module globals in each loaded copy
+  — they shadow the builtins for that copy only — so every affliction-penalty
+  cap and the final `max(0, min(100, score))` clamp are compared with their
+  arguments: **the raw score of every scored case**; (b) runs the
+  golden-derived matrix under all four `reasoning_bands` ×
+  `reasoning_chart_signature` combinations (1,800 cases; the first run
+  pinned both to defaults); (c) adds 6,000 seeded synthetic inputs over every
+  `MarriageAssessmentInput` field × gate None/True/False × both flags,
+  biased so the promise gate's BLOCKED and SILENT grades are reached; (d)
+  compares a raised exception by type and message; (e) takes `--candidate
+  REV`, so a committed stage is re-proved without touching the tree.
+  `065318a~1` → `065318a`: **7,800 cases, 0 differ; 2,954 scored cases
+  compared on raw score.** Every verdict path reached: relationship gate
+  1,859, age gate 984, upper-age gate 1,273, promise BLOCKED 121 / SILENT
+  579, married HIGH 508 / MEDIUM 205 / LOW 61, timing without a band HIGH
+  359 / MEDIUM 354 / LOW 197 and with one HIGH 454 / MEDIUM 708 / LOW 108,
+  raises 30; bands STRONG 308, LIKELY 656, MIXED 221, WEAK 85, BLOCKED 121,
+  SILENT 579; causal chain 194. Controls: the same 10 → 9 now changes
+  **2,194** cases (2,093 seen only by the score probe); a 31-day date shift
+  on one profile, 300.
+  **Found, not changed:** the 30 raising cases are a `KeyError` when Venus
+  is missing from `planets_rasi` and the promise gate does not run (gate off,
+  or a married profile); with the gate on, the same input reads SILENT. Old
+  and new raise identically. A persisted chart always carries all nine
+  grahas, so no reader reaches it today; recorded, not fixed, in a
+  structural unit.
   **Fourth unit, golden first — `dashboard-workspace.tsx` (2026-10-09).**
   *An earlier attempt by another agent (Codex), reviewed and superseded:*
   `44f69a2`/`c9130ad` added a two-case "composition golden" that recorded 4
