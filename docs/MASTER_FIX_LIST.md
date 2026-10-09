@@ -2215,8 +2215,11 @@ then A14, A15, A13.
   only by history and the destination only by an in-app action (or a legacy
   param adopted); whichever moved wins the arming commit and the other
   effect stands down for it. Golden diff limited to exactly those
-  checkpoints; controls 5/5. **Not covered:** a pre-`/auth/me` Back to a
-  path naming a different tab (hydration adopts it, so the two agree —
+  checkpoints; controls 5/5. Verified by the owner in a browser on 2026-10-09:
+  a legacy `/dashboard?tab=journal` link landed on Journal; the golden models
+  Next's router, and this is the real-router confirmation. **Not covered:** a
+  pre-`/auth/me` Back to a path naming a different tab (hydration adopts it,
+  so the two agree —
   argued, not recorded).
   **Found, not changed — owner's call.** Settings opened from the user menu,
   Today's "notification settings" and Journal's "manage context" go through
