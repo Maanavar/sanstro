@@ -2110,6 +2110,14 @@ then A14, A15, A13.
   skipped, coverage 92.83% (1:34:55).** mypy still blocked locally by the
   same SAC issue on a second retry ~2 hours after the first — not treating
   it as transient any further; CI is the next real check for it.
+  **mypy confirmed clean, 2026-10-09, in a CI-identical container** (third
+  retry on the host still blocked, same `librt.base64` import): ci.yml's
+  backend-lint job installs only `mypy==2.3.1 ruff==0.15.17` on Python 3.12,
+  so `docker run python:3.12-slim` (3.12.14) with the repo mounted read-only
+  and exactly that install reproduces it — `mypy app`: "Success: no issues
+  found in 368 source files"; `ruff check app tests`: clean. Run at
+  `c9130ad`, whose `app/` is identical to `9976c79`. The block is a host
+  (Smart App Control) problem; this container is the local route around it.
   **Third unit, golden first — `assess_marriage_prediction` (2026-10-08) —
   and a live defect it exposed.** The function is already pure (a
   `MarriageAssessmentInput`), so `tests/test_marriage_prediction_golden.py`
@@ -2146,6 +2154,87 @@ then A14, A15, A13.
   skipped. ruff, mypy clean. **Blind spots:** the golden does not cover the route's wrapping
   (`age_gated`, `alternative_framing`, the prediction log) or a caller that
   builds the input without lords; no extraction from this unit yet.
+  **Fourth unit, golden first — `dashboard-workspace.tsx` (2026-10-09).**
+  *An earlier attempt by another agent (Codex), reviewed and superseded:*
+  `44f69a2`/`c9130ad` added a two-case "composition golden" that recorded 4
+  of the Today pane's ~55 props and Calendar's chart id/date. All 5
+  realistic mutations passed it — Today handed `todayDate` for
+  `selectedDate`, Muhurta's chart resolver bypassed, Today's Calendar jump
+  sent to Today, the own-chart focus check forced false, the guidance
+  fallback reversed — because its selected date equalled today and no
+  member or life mode was ever selected. Replaced, not built on.
+  *Golden* — `components/dashboard-workspace.golden.test.tsx` (`2401025`,
+  extended by `2e80185`, `f0a7778`, `1668ddd`, each recorded against the
+  pre-extraction workspace): every pane, overlay and the hero is a probe
+  that records all the props it is handed; five scenarios (returning
+  reader, URL addressing, language, first run, mutations) drive the
+  workspace through those props, a fake App Router (navigations applied on
+  the next task — Next commits them in a transition, so `usePathname()`
+  never changes under a running effect), the hooks' callbacks, and a
+  deterministic flush of the 500 ms persistence debounce. Each checkpoint
+  records URL, visible pane, the workspace's own DOM and every side effect
+  (router, API, hook calls, storage, toasts, scroll). Transcripts under
+  `components/__golden__/` (~1.1 MB); 5 consecutive runs identical. Named
+  assertions back DXA-02, T5, onboarding step 3, owner-score
+  reconciliation, the persisted shape, legacy links and pre-`/auth/me`
+  Back/click, so a regenerated fixture cannot drop them. **Controls on the
+  workspace: 26 of 27 caught**; four harness gaps found by controls were
+  closed before the extraction that needed them (Back-then-Forward, the
+  pre-`/auth/me` first paint, a member whose chart disagrees with its vault
+  row, vaults not yet fetched).
+  *Extractions* (golden byte-identical after each):
+  `13361e4` — the chart-view rules (member lookup written out five times,
+  owner-score reconciliation, owner-as-member, the Porutham/Compatibility/
+  Numerology pickers, Life Areas' marital status) → pure
+  `components/dashboard-workspace-chart-view.ts`; 16 direct tests; controls
+  5/5 (two caught only by the direct tests — a live score of 0, the reader
+  listed twice). `232d50c` — destination state and URL sync (tab/tool/
+  settings seeded from the path, push-vs-replace intent, the arming latch,
+  outbound/inbound effects, pane keep-alive, scroll reset, QA fallback,
+  explore return, cross-tab focus) → `hooks/useWorkspaceNavigation.ts`,
+  verbatim; hydration calls `adoptUrlDestination()`/`enableUrlSync()` where
+  it used to act; controls 7/7. `c04d9cc` — profile and family-membership
+  drafts, validation, busy flags and the ten create/edit/delete handlers →
+  `components/dashboard-workspace-profile-forms.ts`, moved by script; the
+  two effects that write `birthForm` stay in the workspace so
+  fill-from-chart still runs after hydration's restore in the same commit;
+  controls 11/11. `932a8c0` — `personalViewId` never had a setter, so the
+  Today/Explore member-chart branch was unreachable; removed (golden: 28
+  lines removed, every one `"personalMemberChart": null`).
+  **DashboardWorkspace 2,574 → 1,611 lines** (navigation hook 361 after
+  the fix below, forms hook 591, pure module 137). After the last commit:
+  web vitest 143 files / 1,477 passed with the coverage thresholds met;
+  `eslint . --max-warnings=0` and `tsc --noEmit` clean.
+  **Defect found and fixed — `517f20c`.** In the commit that arms the URL
+  sync both URL effects acted on any state/URL disagreement, in opposite
+  directions, and whichever navigation landed last decided. Who saw it: a
+  legacy `/dashboard?tab=<x>` bookmark landed on Today; a Back to bare
+  `/dashboard` before `/auth/me` answered was undone; a tab click before it
+  survived only by timing; a new reader sent to Setup by the onboarding
+  gate saw Today for one commit. Rule now: before arming, the URL can move
+  only by history and the destination only by an in-app action (or a legacy
+  param adopted); whichever moved wins the arming commit and the other
+  effect stands down for it. Golden diff limited to exactly those
+  checkpoints; controls 5/5. **Not covered:** a pre-`/auth/me` Back to a
+  path naming a different tab (hydration adopts it, so the two agree —
+  argued, not recorded).
+  **Found, not changed — owner's call.** Settings opened from the user menu,
+  Today's "notification settings" and Journal's "manage context" go through
+  `navigateSettings`, which never sets the push intent, so they `replace`
+  and Back skips Settings; Today's Journal/Calendar/Life Areas/Charts jumps
+  use `setActiveTab` (replace) while its Family/Chart jumps push. And a
+  `goToTab` to the tab already shown sets the intent but triggers no
+  navigation, so the next replace-intended jump pushes — whether Back
+  returns from Settings depends on the previous click. The hook's own
+  comment says reader-chosen destinations push; making that true means
+  classifying every `setActiveTab` call site as reader- or app-chosen
+  (is a Settings section change a history step?), which is a product
+  decision. The golden records today's behaviour.
+  **Blind spots:** the real panes, hooks and router are not exercised —
+  their contracts are only what crosses this boundary; framer-motion styles
+  other than `display` are ignored; a `setState` updater handed to a hook
+  setter is recorded as "ƒ", not evaluated; the QA fallback is unreachable
+  under test (`ENABLE_QA_TAB` is a module constant); no browser run.
   **Previously not started:** steps 1–6 — `build_daily_guidance_response` (883 lines),
   `get_life_areas` (689), `assess_marriage_prediction` (648) and
   `dashboard-workspace.tsx` (2,415 lines now, 2,574 at audit) need golden
