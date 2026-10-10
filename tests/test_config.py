@@ -38,6 +38,13 @@ def test_staging_requires_auth_secrets(monkeypatch):
 # Process roles — SEC-1 §5.2. Least privilege for the scheduler process.
 # ---------------------------------------------------------------------------
 
+# Long enough to clear the HS256 secret-length floor that production gained on
+# 2026-10-10 (app/core/jwt_keys.py, tests/test_jwt_secret_rotation.py). The
+# tests below are about proxy hops and secret channels, not secret strength, and
+# a one-character production secret no longer boots.
+_JWT_SECRET = "synthetic-production-jwt-secret-not-a-real-key"  # noqa: S105
+
+
 def _production(**overrides):
     """A minimal production Settings, overridable per test."""
     kwargs = {
@@ -230,7 +237,7 @@ def test_matching_proxy_hop_counts_boot(monkeypatch):
     monkeypatch.delenv("APP_ENV", raising=False)
     monkeypatch.setenv("TRUSTED_PROXY_HOPS_BEFORE_WEB", "1")
 
-    settings = _production(jwt_secret="j", admin_api_key="a", trusted_proxy_count=1)
+    settings = _production(jwt_secret=_JWT_SECRET, admin_api_key="a", trusted_proxy_count=1)
 
     assert settings.trusted_proxy_count == 1
 
@@ -242,7 +249,7 @@ def test_mismatched_proxy_hop_counts_refuse_to_boot_in_production(monkeypatch):
     monkeypatch.setenv("TRUSTED_PROXY_HOPS_BEFORE_WEB", "1")
 
     with pytest.raises(RuntimeError) as excinfo:
-        _production(jwt_secret="j", admin_api_key="a", trusted_proxy_count=0)
+        _production(jwt_secret=_JWT_SECRET, admin_api_key="a", trusted_proxy_count=0)
 
     message = str(excinfo.value)
     assert "TRUSTED_PROXY_HOPS_BEFORE_WEB=1" in message
@@ -262,7 +269,7 @@ def test_the_cdn_pair_the_docs_used_to_recommend_is_now_rejected(monkeypatch):
     monkeypatch.setenv("TRUSTED_PROXY_HOPS_BEFORE_WEB", "2")
 
     with pytest.raises(RuntimeError, match="must be equal"):
-        _production(jwt_secret="j", admin_api_key="a", trusted_proxy_count=1)
+        _production(jwt_secret=_JWT_SECRET, admin_api_key="a", trusted_proxy_count=1)
 
 
 def test_a_mismatch_outside_production_warns_rather_than_blocking(monkeypatch, caplog):
@@ -289,7 +296,7 @@ def test_an_unsupplied_web_count_cannot_be_checked_and_says_so(monkeypatch, capl
     monkeypatch.delenv("TRUSTED_PROXY_HOPS_BEFORE_WEB", raising=False)
 
     with caplog.at_level("WARNING"):
-        settings = _production(jwt_secret="j", admin_api_key="a", trusted_proxy_count=1)
+        settings = _production(jwt_secret=_JWT_SECRET, admin_api_key="a", trusted_proxy_count=1)
 
     assert settings.trusted_proxy_count == 1
     assert "cross-check is inactive" in caplog.text
@@ -300,7 +307,7 @@ def test_a_non_integer_web_count_is_a_boot_failure(monkeypatch):
     monkeypatch.setenv("TRUSTED_PROXY_HOPS_BEFORE_WEB", "yes")
 
     with pytest.raises(RuntimeError, match="must be an integer"):
-        _production(jwt_secret="j", admin_api_key="a", trusted_proxy_count=1)
+        _production(jwt_secret=_JWT_SECRET, admin_api_key="a", trusted_proxy_count=1)
 
 
 def test_the_worker_is_not_subject_to_the_cross_check(monkeypatch):

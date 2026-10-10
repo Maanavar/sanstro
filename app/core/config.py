@@ -161,6 +161,13 @@ class Settings(BaseSettings):
 
     # Auth
     jwt_secret: str | None = Field(default=None)
+    # Rotation form: comma-separated secrets, NEWEST FIRST. The first signs; all
+    # of them verify. Takes precedence over jwt_secret when set, and is never
+    # split off jwt_secret itself, so a single secret containing a comma is
+    # safe. Unlike the encryption-key twin below, dropping a secret too early
+    # loses no data - it signs everyone out. See app/core/jwt_keys.py and
+    # docs/DATA_PROTECTION.md.
+    jwt_secrets: str = Field(default="")
     # HMAC only, enforced: an asymmetric algorithm would put a public key on the
     # verify path, which is the precondition of python-jose CVE-2026-85394 (the
     # advisory CI's pip-audit step ignores on this premise —
@@ -342,14 +349,30 @@ class Settings(BaseSettings):
                 enforce=app_env in real_user_envs,
             )
 
+        # Deferred deliberately: app/core/jwt_keys.py imports this module at its
+        # top, and a validator runs at Settings() construction, long after both
+        # modules are loaded - so importing here breaks the cycle that an
+        # import-time import would create. The thresholds and the
+        # plural-beats-singular rule live there, with the rotation procedure.
+        from app.core.jwt_keys import (
+            MIN_SECRET_BYTES,
+            split_jwt_secrets,
+            undersized_jwt_secrets,
+        )
+
         missing: list[str] = []
-        if serves_http and not self.jwt_secret:
+        # Either form satisfies this, for the same reason the encryption key
+        # below accepts either: a deployment mid-rotation sets only the plural
+        # one, and refusing to boot on that would make rotating the secret an
+        # outage - which is what kept it unrotatable before 2026-10-10.
+        jwt_secrets_configured = split_jwt_secrets(self.jwt_secrets, self.jwt_secret)
+        if serves_http and not jwt_secrets_configured:
             missing.append("JOTHIDAM_JWT_SECRET")
         if serves_http and not self.admin_api_key:
             missing.append("JOTHIDAM_ADMIN_API_KEY")
 
         if app_env not in real_user_envs:
-            if not self.jwt_secret:
+            if not jwt_secrets_configured:
                 self.jwt_secret = secrets.token_urlsafe(48)
                 _logger.warning("ephemeral dev secret - JWT tokens won't survive restart")
             if not self.admin_api_key:
@@ -377,6 +400,30 @@ class Settings(BaseSettings):
         # .env in the image, so cookie_secure defaulted false and this raised.
         if serves_http and not self.cookie_secure:
             insecure.append("JOTHIDAM_COOKIE_SECURE must be true (JWT cookie over HTTPS only)")
+        # An HMAC secret shorter than its hash is brute-forceable offline from a
+        # single captured token, and forging one mints any session. python-jose
+        # never said so; PyJWT warns, once per process, into a log nobody reads
+        # during a deploy - so this refuses instead.
+        #
+        # It refuses rather than warns because the fix is now cheap: prepend a
+        # long secret to JOTHIDAM_JWT_SECRETS, deploy, and no reader is signed
+        # out (app/core/jwt_keys.py). Before the plural form existed, refusing
+        # here would have forced the outage it is trying to avoid.
+        if serves_http:
+            short = undersized_jwt_secrets(jwt_secrets_configured, self.jwt_algorithm)
+            if short:
+                minimum = MIN_SECRET_BYTES[self.jwt_algorithm]
+                where = (
+                    f"JOTHIDAM_JWT_SECRETS entries {short}"
+                    if self.jwt_secrets.strip()
+                    else "JOTHIDAM_JWT_SECRET"
+                )
+                insecure.append(
+                    f"{where} shorter than {minimum} bytes, which is weak for "
+                    f"{self.jwt_algorithm}. Prepend a longer secret to "
+                    "JOTHIDAM_JWT_SECRETS (newest first) and deploy - existing "
+                    "sessions keep working; see docs/DATA_PROTECTION.md section 2a."
+                )
         if self.debug:
             insecure.append("JOTHIDAM_DEBUG must be false in production")
         if insecure:

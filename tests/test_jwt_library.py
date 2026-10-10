@@ -29,7 +29,7 @@ from uuid import UUID
 import pytest
 from fastapi import HTTPException
 
-from app.core import auth
+from app.core import auth, jwt_keys
 
 pytestmark = pytest.mark.no_db
 
@@ -53,8 +53,13 @@ JOSE_HS512 = (
 
 @pytest.fixture
 def settings(monkeypatch):
-    current = SimpleNamespace(jwt_secret=SECRET, jwt_algorithm="HS256", jwt_expire_minutes=60)
+    current = SimpleNamespace(
+        jwt_secret=SECRET, jwt_secrets="", jwt_algorithm="HS256", jwt_expire_minutes=60
+    )
+    # Both readers: auth reads the algorithm and signs, jwt_keys holds the
+    # secret list and is the only caller of jwt.decode (2026-10-10).
     monkeypatch.setattr(auth, "get_settings", lambda: current)
+    monkeypatch.setattr(jwt_keys, "get_settings", lambda: current)
     return current
 
 

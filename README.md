@@ -92,7 +92,8 @@ Full variable reference:
 | `JOTHIDAM_HOST` / `JOTHIDAM_PORT` | Uvicorn bind |
 | `JOTHIDAM_API_V1_PREFIX` | Route prefix (default `/api/v1`) |
 | `JOTHIDAM_DATABASE_URL` | PostgreSQL connection string |
-| `JOTHIDAM_JWT_SECRET` | **Required in staging/production** — ephemeral in dev |
+| `JOTHIDAM_JWT_SECRET` | **Required in staging/production** — ephemeral in dev. Must be at least as long as the signing hash (32 bytes for HS256) or production refuses to boot |
+| `JOTHIDAM_JWT_SECRETS` | Rotation only: comma-separated, newest first. First signs, all verify, so a rotation signs nobody out. `docs/DATA_PROTECTION.md` §2a |
 | `JOTHIDAM_ADMIN_API_KEY` | **Required in staging/production** |
 | `JOTHIDAM_COOKIE_SECURE` | Set `true` in production (HTTPS only) |
 | `JOTHIDAM_ANTHROPIC_API_KEY` | Enables Ask Vinaadi (AI chat) |

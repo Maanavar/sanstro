@@ -57,6 +57,11 @@ services:
       # which secret. The failure moves from `compose up` to a container that
       # exits immediately with a named error.
       JOTHIDAM_JWT_SECRET: ${JOTHIDAM_JWT_SECRET:-}
+      # Set during a rotation only: comma-separated, newest first. Without this
+      # passthrough the rotation form would exist in the app and be unreachable
+      # in the deployed stack, which is how the secret became unrotatable in the
+      # first place. docs/DATA_PROTECTION.md section 2a.
+      JOTHIDAM_JWT_SECRETS: ${JOTHIDAM_JWT_SECRETS:-}
       JOTHIDAM_ADMIN_API_KEY: ${JOTHIDAM_ADMIN_API_KEY:-}
       JOTHIDAM_ENCRYPTION_KEY: ${JOTHIDAM_ENCRYPTION_KEY:-}
       JOTHIDAM_ANTHROPIC_API_KEY: ${JOTHIDAM_ANTHROPIC_API_KEY:-}

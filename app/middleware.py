@@ -6,7 +6,6 @@ import time
 import uuid
 from ipaddress import ip_address
 
-import jwt
 from fastapi import Request, Response, status
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -175,11 +174,11 @@ def _extract_user_id(request: Request) -> str | None:
         return None
     token = auth[7:]
     try:
-        from app.core.config import get_settings
-        settings = get_settings()
-        if settings.jwt_secret is None:
-            return None
-        payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+        # Through jwt_keys, not jwt.decode: a rotation in flight means a reader's
+        # token may verify under the previous secret, and keying their rate limit
+        # by IP instead for a day would penalise everyone behind one NAT.
+        from app.core.jwt_keys import decode_jwt_payload
+        payload = decode_jwt_payload(token)
         sub = payload.get("sub")
         return f"uid:{sub}" if sub else None
     except Exception:

@@ -82,9 +82,12 @@ def _jwt_decode_calls():
 
 def test_every_jwt_decode_pins_its_algorithms():
     calls = _jwt_decode_calls()
-    # app/core/auth.py and app/middleware.py at the time of writing; a scan that
-    # finds nothing would pass vacuously.
-    assert {p for p, _ in calls} >= {"app/core/auth.py", "app/middleware.py"}
+    # Exactly one site since 2026-10-10: app/core/jwt_keys.py verifies against
+    # every configured secret so a rotation signs nobody out, and duplicating
+    # that loop - and this pin - at each caller was the alternative. Equality,
+    # not a superset: a scan that finds nothing would pass vacuously, and a new
+    # direct jwt.decode anywhere in app/ is a second place to get this wrong.
+    assert {p for p, _ in calls} == {"app/core/jwt_keys.py"}
     unpinned = [
         f"{p}:{n.lineno}"
         for p, n in calls

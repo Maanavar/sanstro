@@ -1,7 +1,10 @@
 """JWT authentication layer for Vinaadi AI.
 
 Design:
-- Stateless HS256 JWTs; secret lives in JOTHIDAM_JWT_SECRET env var.
+- Stateless HS256 JWTs. The secret lives in JOTHIDAM_JWT_SECRET, or in
+  JOTHIDAM_JWT_SECRETS (newest first) while a rotation is in flight; signing and
+  verification both go through app/core/jwt_keys.py, which is the only place in
+  the app that calls jwt.decode.
 - `get_current_user` extracts and validates the Bearer token, then resolves
   (or auto-creates) the User row so every downstream handler gets a real UUID.
 - `get_admin_user` additionally checks X-Admin-Key header against
@@ -23,6 +26,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
+from app.core.jwt_keys import decode_jwt_payload, signing_secret
 from app.db.session import get_db
 from app.models.user import User
 
@@ -59,8 +63,7 @@ def create_access_token(
 ) -> str:
     """Create a signed JWT for the given subject (user_id or email)."""
     settings = get_settings()
-    if settings.jwt_secret is None:
-        raise RuntimeError("JWT secret is not configured.")
+    secret = signing_secret()
     now = datetime.now(UTC)
     expire = now + (expires_delta or timedelta(minutes=settings.jwt_expire_minutes))
     payload: dict[str, object] = {
@@ -72,16 +75,13 @@ def create_access_token(
     }
     if jti is not None:
         payload["jti"] = jti
-    return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
+    return jwt.encode(payload, secret, algorithm=settings.jwt_algorithm)
 
 
 def decode_token(token: str) -> dict:
     """Decode and verify a JWT. Raises HTTPException on any failure."""
-    settings = get_settings()
-    if settings.jwt_secret is None:
-        raise RuntimeError("JWT secret is not configured.")
     try:
-        return jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+        return decode_jwt_payload(token)
     except jwt.PyJWTError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
