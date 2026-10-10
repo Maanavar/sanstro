@@ -861,6 +861,14 @@ describe("dashboard workspace behaviour golden", { timeout: 120_000 }, () => {
 
     await call("hero", "onGoToSettings");
     await compact("settings via hero");
+    // A jump to the tab already shown navigates nowhere, so the effect that
+    // consumes the push intent never runs. It must therefore not arm it: the
+    // rail change on the next line is app-chosen and has to replace. Dropping
+    // the guard in goToTab flips exactly this step to router.push, which is how
+    // "does Back leave Settings?" came to depend on the click before it.
+    await call("hero", "onTabChange", "settings");
+    await call("settingsSession", "onNavigate", "appearance");
+    await compact("a no-op jump does not leave the next move pushing");
     for (const section of ["notifications", "setup", "privacy", "context"]) {
       await call(section === "privacy" ? "setup" : "settingsSession", "onNavigate", section);
       await compact(`settings → ${section}`);

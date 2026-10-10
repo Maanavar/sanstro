@@ -3803,7 +3803,7 @@
  {
   "step": "settings via hero",
   "url": "/dashboard/settings/account",
-  "history": "9/9",
+  "history": "10/10",
   "shown": [
    "ambient",
    "ask",
@@ -3850,8 +3850,61 @@
     }
    ],
    [
-    "router.replace",
+    "router.push",
     "/dashboard/settings/account",
+    {
+     "scroll": false
+    }
+   ]
+  ]
+ },
+ {
+  "step": "a no-op jump does not leave the next move pushing",
+  "url": "/dashboard/settings/appearance",
+  "history": "10/10",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "settingsSession"
+  ],
+  "activeTab": "settings",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "calendar": {
+    "focusView": null,
+    "chartId": "chart-owner",
+    "selectedMemberId": null
+   },
+   "tools": {
+    "activeTool": null
+   },
+   "ask": {
+    "open": true
+   },
+   "settingsSession": {
+    "section": "appearance"
+   },
+   "viewSwap": {
+    "viewKey": "tools-hub"
+   }
+  },
+  "effects": [
+   [
+    "→",
+    "hero.onTabChange",
+    "settings"
+   ],
+   [
+    "→",
+    "settingsSession.onNavigate",
+    "appearance"
+   ],
+   [
+    "router.replace",
+    "/dashboard/settings/appearance",
     {
      "scroll": false
     }
@@ -3861,7 +3914,7 @@
  {
   "step": "settings → notifications",
   "url": "/dashboard/settings/notifications",
-  "history": "9/9",
+  "history": "10/10",
   "shown": [
    "ambient",
    "ask",
@@ -3909,7 +3962,7 @@
  {
   "step": "settings → setup",
   "url": "/dashboard/settings/setup",
-  "history": "9/9",
+  "history": "10/10",
   "shown": [
    "ambient",
    "ask",
@@ -3964,7 +4017,7 @@
  {
   "step": "settings → privacy",
   "url": "/dashboard/settings/privacy",
-  "history": "9/9",
+  "history": "10/10",
   "shown": [
    "ambient",
    "ask",
@@ -4019,7 +4072,7 @@
  {
   "step": "settings → context",
   "url": "/dashboard/settings/life-context",
-  "history": "9/9",
+  "history": "10/10",
   "shown": [
    "ambient",
    "ask",
@@ -4067,7 +4120,7 @@
  {
   "step": "settings pane in Tamil",
   "url": "/dashboard/settings/life-context",
-  "history": 9,
+  "history": 10,
   "shown": [
    "ambient",
    "ask",

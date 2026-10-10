@@ -666,7 +666,7 @@
  {
   "step": "today.onGoToJournal",
   "url": "/dashboard/journal",
-  "history": "3/3",
+  "history": "4/4",
   "shown": [
    "ambient",
    "ask",
@@ -721,7 +721,7 @@
     }
    ],
    [
-    "router.replace",
+    "router.push",
     "/dashboard/journal",
     {
      "scroll": false
@@ -732,7 +732,7 @@
  {
   "step": "today.onGoToCalendar",
   "url": "/dashboard/calendar",
-  "history": "4/4",
+  "history": "6/6",
   "shown": [
    "ambient",
    "ask",
@@ -788,7 +788,7 @@
     }
    ],
    [
-    "router.replace",
+    "router.push",
     "/dashboard/calendar",
     {
      "scroll": false
@@ -799,7 +799,7 @@
  {
   "step": "today.onGoToLifeAreas",
   "url": "/dashboard/life-areas",
-  "history": "5/5",
+  "history": "8/8",
   "shown": [
    "ambient",
    "ask",
@@ -860,7 +860,7 @@
     }
    ],
    [
-    "router.replace",
+    "router.push",
     "/dashboard/life-areas",
     {
      "scroll": false
@@ -871,7 +871,7 @@
  {
   "step": "today.onGoToChart",
   "url": "/dashboard/family",
-  "history": "7/7",
+  "history": "10/10",
   "shown": [
    "ambient",
    "ask",
@@ -936,7 +936,7 @@
  {
   "step": "today.onGoToCharts",
   "url": "/dashboard/family",
-  "history": "8/8",
+  "history": "12/12",
   "shown": [
    "ambient",
    "ask",
@@ -1001,7 +1001,7 @@
     }
    ],
    [
-    "router.replace",
+    "router.push",
     "/dashboard/family",
     {
      "scroll": false
@@ -1012,7 +1012,7 @@
  {
   "step": "today.onOpenAskVinaadi",
   "url": "/dashboard",
-  "history": "9/9",
+  "history": "13/13",
   "shown": [
    "ambient",
    "ask",
@@ -1070,7 +1070,7 @@
  {
   "step": "today.onOpenNotificationSettings",
   "url": "/dashboard/settings/notifications",
-  "history": "10/10",
+  "history": "14/14",
   "shown": [
    "ambient",
    "ask",
@@ -1131,7 +1131,7 @@
  {
   "step": "today.onOpenChartGen",
   "url": "/dashboard/tools/jadhagam-generator",
-  "history": "12/12",
+  "history": "16/16",
   "shown": [
    "ambient",
    "ask",
@@ -1213,7 +1213,7 @@
  {
   "step": "today.onOpenMuhurta",
   "url": "/dashboard/calendar",
-  "history": "14/14",
+  "history": "18/18",
   "shown": [
    "ambient",
    "ask",
@@ -1294,7 +1294,7 @@
  {
   "step": "today.onOpenCompatibility",
   "url": "/dashboard/tools/compatibility",
-  "history": "16/16",
+  "history": "20/20",
   "shown": [
    "ambient",
    "ask",
@@ -1380,7 +1380,7 @@
  {
   "step": "today.onOpenActivityTiming",
   "url": "/dashboard/tools/activity-timing",
-  "history": "18/18",
+  "history": "22/22",
   "shown": [
    "ambient",
    "ask",
@@ -1469,7 +1469,7 @@
  {
   "step": "today.onOpenRasipalan",
   "url": "/dashboard/tools/rasipalan",
-  "history": "20/20",
+  "history": "24/24",
   "shown": [
    "ambient",
    "ask",
@@ -1558,7 +1558,7 @@
  {
   "step": "today.onOpenNumerology",
   "url": "/dashboard/tools/numerology",
-  "history": "22/22",
+  "history": "26/26",
   "shown": [
    "ambient",
    "ask",
@@ -1647,7 +1647,7 @@
  {
   "step": "today.onGoToExplore",
   "url": "/dashboard/explore",
-  "history": "24/24",
+  "history": "28/28",
   "shown": [
    "ambient",
    "ask",
@@ -1735,7 +1735,7 @@
  {
   "step": "today.onGoToAllTools",
   "url": "/dashboard/tools",
-  "history": "26/26",
+  "history": "30/30",
   "shown": [
    "ambient",
    "ask",
@@ -1817,7 +1817,7 @@
  {
   "step": "today.onOpenFocusPicker",
   "url": "/dashboard",
-  "history": "27/27",
+  "history": "31/31",
   "shown": [
    "ambient",
    "ask",
@@ -1888,7 +1888,7 @@
  {
   "step": "today.onRetryBundle",
   "url": "/dashboard",
-  "history": "27/27",
+  "history": "31/31",
   "shown": [
    "ambient",
    "ask",
@@ -1954,7 +1954,7 @@
  {
   "step": "calendar: muhurta for the spouse",
   "url": "/dashboard/calendar",
-  "history": 28,
+  "history": 32,
   "shown": [
    "ambient",
    "ask",
@@ -3810,7 +3810,7 @@
  {
   "step": "calendar: muhurta for a self-tagged member keeps the focus",
   "url": "/dashboard/calendar",
-  "history": "28/28",
+  "history": "32/32",
   "shown": [
    "ambient",
    "ask",
@@ -3863,7 +3863,7 @@
  {
   "step": "calendar: another date",
   "url": "/dashboard/calendar",
-  "history": 28,
+  "history": 32,
   "shown": [
    "ambient",
    "ask",
@@ -5721,7 +5721,7 @@
  {
   "step": "life areas: the child's chart",
   "url": "/dashboard/life-areas",
-  "history": 29,
+  "history": 33,
   "shown": [
    "ambient",
    "ask",
@@ -7592,7 +7592,7 @@
  {
   "step": "life areas: remedies loaded",
   "url": "/dashboard/life-areas",
-  "history": 29,
+  "history": 33,
   "shown": [
    "ambient",
    "ask",
@@ -9479,7 +9479,7 @@
  {
   "step": "life areas: the spouse's chart",
   "url": "/dashboard/life-areas",
-  "history": 29,
+  "history": 33,
   "shown": [
    "ambient",
    "ask",
@@ -11331,7 +11331,7 @@
  {
   "step": "life areas: back to own chart",
   "url": "/dashboard/life-areas",
-  "history": 29,
+  "history": 33,
   "shown": [
    "ambient",
    "ask",
@@ -13179,7 +13179,7 @@
  {
   "step": "lifeAreas.onGoToPlan",
   "url": "/dashboard/goals",
-  "history": "30/30",
+  "history": "34/34",
   "shown": [
    "ambient",
    "ask",
@@ -13250,7 +13250,7 @@
  {
   "step": "lifeAreas.onGoToChart",
   "url": "/dashboard/family",
-  "history": "32/32",
+  "history": "36/36",
   "shown": [
    "ambient",
    "ask",
@@ -13335,7 +13335,7 @@
  {
   "step": "family & charts",
   "url": "/dashboard/family",
-  "history": 32,
+  "history": 36,
   "shown": [
    "ambient",
    "ask",
@@ -15210,7 +15210,7 @@
  {
   "step": "family.onGoToJournal",
   "url": "/dashboard/journal",
-  "history": "33/33",
+  "history": "37/37",
   "shown": [
    "ambient",
    "ask",
@@ -15281,7 +15281,7 @@
  {
   "step": "family.onGoToLifeAreas",
   "url": "/dashboard/life-areas",
-  "history": "35/35",
+  "history": "39/39",
   "shown": [
    "ambient",
    "ask",
@@ -15366,7 +15366,7 @@
  {
   "step": "family.onGoToRemedies",
   "url": "/dashboard/life-areas",
-  "history": "37/37",
+  "history": "41/41",
   "shown": [
    "ambient",
    "ask",
@@ -15444,7 +15444,7 @@
  {
   "step": "family.onGoToForecast",
   "url": "/dashboard/life-areas",
-  "history": "39/39",
+  "history": "43/43",
   "shown": [
    "ambient",
    "ask",
@@ -15526,7 +15526,7 @@
  {
   "step": "family.onGoToTools",
   "url": "/dashboard/tools",
-  "history": "41/41",
+  "history": "45/45",
   "shown": [
    "ambient",
    "ask",
@@ -15616,7 +15616,7 @@
  {
   "step": "family.onOpenSetup",
   "url": "/dashboard/settings/setup",
-  "history": "42/42",
+  "history": "47/47",
   "shown": [
    "ambient",
    "ask",
@@ -15690,7 +15690,7 @@
     }
    ],
    [
-    "router.replace",
+    "router.push",
     "/dashboard/settings/setup",
     {
      "scroll": false
@@ -15701,7 +15701,7 @@
  {
   "step": "family.onOpenPrasna",
   "url": "/dashboard/family",
-  "history": "43/43",
+  "history": "48/48",
   "shown": [
    "ambient",
    "ask",
@@ -15772,7 +15772,7 @@
  {
   "step": "family: prasna closed, refreshed",
   "url": "/dashboard/family",
-  "history": "43/43",
+  "history": "48/48",
   "shown": [
    "ambient",
    "ask",
@@ -15836,7 +15836,7 @@
  {
   "step": "plan.onGoToLifeAreas",
   "url": "/dashboard/life-areas",
-  "history": "45/45",
+  "history": "50/50",
   "shown": [
    "ambient",
    "ask",
@@ -15921,7 +15921,7 @@
  {
   "step": "plan.onGoToCalendar",
   "url": "/dashboard/calendar",
-  "history": "47/47",
+  "history": "52/52",
   "shown": [
    "ambient",
    "ask",
@@ -16006,7 +16006,7 @@
  {
   "step": "plan.onGoToMuhurta",
   "url": "/dashboard/calendar",
-  "history": "49/49",
+  "history": "54/54",
   "shown": [
    "ambient",
    "ask",
@@ -16084,7 +16084,7 @@
  {
   "step": "plan.onGoToJournal",
   "url": "/dashboard/journal",
-  "history": "51/51",
+  "history": "56/56",
   "shown": [
    "ambient",
    "ask",
@@ -16173,7 +16173,7 @@
  {
   "step": "plan.onGoToChart",
   "url": "/dashboard/family",
-  "history": "53/53",
+  "history": "58/58",
   "shown": [
    "ambient",
    "ask",
@@ -16258,7 +16258,7 @@
  {
   "step": "plan pane",
   "url": "/dashboard/goals",
-  "history": 54,
+  "history": 59,
   "shown": [
    "ambient",
    "ask",
@@ -18239,7 +18239,7 @@
  {
   "step": "journal.onGoToChart",
   "url": "/dashboard/family",
-  "history": "56/56",
+  "history": "61/61",
   "shown": [
    "ambient",
    "ask",
@@ -18340,7 +18340,7 @@
  {
   "step": "journal.onManageContext → settings",
   "url": "/dashboard/settings/life-context",
-  "history": 57,
+  "history": 63,
   "shown": [
    "ambient",
    "ask",
@@ -20303,7 +20303,7 @@
     }
    ],
    [
-    "router.replace",
+    "router.push",
     "/dashboard/settings/life-context",
     {
      "scroll": false
@@ -20314,7 +20314,7 @@
  {
   "step": "explore pane",
   "url": "/dashboard/explore",
-  "history": 58,
+  "history": 64,
   "shown": [
    "ambient",
    "ask",
@@ -22270,7 +22270,7 @@
  {
   "step": "explore → calendar shows the way back",
   "url": "/dashboard/calendar",
-  "history": "59/59",
+  "history": "65/65",
   "shown": [
    "ambient",
    "ask",
@@ -22337,7 +22337,7 @@
  {
   "step": "back to explore",
   "url": "/dashboard/explore",
-  "history": "60/60",
+  "history": "66/66",
   "shown": [
    "ambient",
    "ask",
@@ -22403,7 +22403,7 @@
  {
   "step": "a plain tab change drops the way back",
   "url": "/dashboard/journal",
-  "history": "61/61",
+  "history": "67/67",
   "shown": [
    "ambient",
    "ask",
@@ -22475,7 +22475,7 @@
  {
   "step": "hero.onOpenNotificationSettings",
   "url": "/dashboard/settings/notifications",
-  "history": "62/62",
+  "history": "68/68",
   "shown": [
    "ambient",
    "ask",
@@ -22541,7 +22541,7 @@
  {
   "step": "hero.onGoToSettings",
   "url": "/dashboard/settings/account",
-  "history": "62/62",
+  "history": "68/68",
   "shown": [
    "ambient",
    "ask",
@@ -22604,7 +22604,7 @@
  {
   "step": "hero.onSignOut",
   "url": "/dashboard/settings/account",
-  "history": "62/62",
+  "history": "68/68",
   "shown": [
    "ambient",
    "ask",
@@ -22663,7 +22663,7 @@
  {
   "step": "hero.onAskVinaadi",
   "url": "/dashboard/settings/account",
-  "history": "62/62",
+  "history": "68/68",
   "shown": [
    "ambient",
    "ask",
@@ -22715,7 +22715,7 @@
  {
   "step": "hero.onUserMenuToggle",
   "url": "/dashboard/settings/account",
-  "history": "62/62",
+  "history": "68/68",
   "shown": [
    "ambient",
    "ask",
@@ -22771,7 +22771,7 @@
  {
   "step": "hero.onUserMenuClose",
   "url": "/dashboard/settings/account",
-  "history": "62/62",
+  "history": "68/68",
   "shown": [
    "ambient",
    "ask",
@@ -22827,7 +22827,7 @@
  {
   "step": "hero.onInboxOpen",
   "url": "/dashboard/settings/account",
-  "history": "62/62",
+  "history": "68/68",
   "shown": [
    "ambient",
    "ask",
@@ -22882,7 +22882,7 @@
  {
   "step": "hero.onMarkAllRead",
   "url": "/dashboard/settings/account",
-  "history": "62/62",
+  "history": "68/68",
   "shown": [
    "ambient",
    "ask",
@@ -22937,7 +22937,7 @@
  {
   "step": "hero: date changed",
   "url": "/dashboard/settings/account",
-  "history": 62,
+  "history": 68,
   "shown": [
    "ambient",
    "ask",
@@ -24906,7 +24906,7 @@
  {
   "step": "footer.Calendar",
   "url": "/dashboard/calendar",
-  "history": "63/63",
+  "history": "69/69",
   "shown": [
    "ambient",
    "ask",
@@ -24972,7 +24972,7 @@
  {
   "step": "footer.Life Areas",
   "url": "/dashboard/life-areas",
-  "history": "64/64",
+  "history": "70/70",
   "shown": [
    "ambient",
    "ask",
@@ -25038,7 +25038,7 @@
  {
   "step": "footer.Family & Charts",
   "url": "/dashboard/family",
-  "history": "65/65",
+  "history": "71/71",
   "shown": [
    "ambient",
    "ask",
@@ -25104,7 +25104,7 @@
  {
   "step": "footer.Journal",
   "url": "/dashboard/journal",
-  "history": "66/66",
+  "history": "72/72",
   "shown": [
    "ambient",
    "ask",
@@ -25170,7 +25170,7 @@
  {
   "step": "footer.Settings",
   "url": "/dashboard/settings/account",
-  "history": "67/67",
+  "history": "73/73",
   "shown": [
    "ambient",
    "ask",
@@ -25236,7 +25236,7 @@
  {
   "step": "footer.Today",
   "url": "/dashboard",
-  "history": "68/68",
+  "history": "74/74",
   "shown": [
    "ambient",
    "ask",
@@ -25302,7 +25302,7 @@
  {
   "step": "feedback opened",
   "url": "/dashboard",
-  "history": "68/68",
+  "history": "74/74",
   "shown": [
    "ambient",
    "ask",
@@ -25355,7 +25355,7 @@
  {
   "step": "persisted",
   "url": "/dashboard",
-  "history": 68,
+  "history": 74,
   "shown": [
    "ambient",
    "ask",

@@ -116,23 +116,30 @@ export function useWorkspaceNavigation() {
   // last navigation to land decides.
   const mountPathnameRef = useRef(pathname);
   const armingWinnerRef = useRef<"url" | "state" | null>(null);
+  // Arm the intent only for a call that actually moves the addressed
+  // destination. The flag is consumed by the outbound effect, and that effect
+  // runs only when the destination state changes — so a no-op jump (goToTab to
+  // the tab already shown, closeTool with no tool open) left "push" armed, and
+  // the NEXT navigation inherited it. That is how an app-chosen replace came to
+  // push, and why "does Back return me from Settings?" depended on what the
+  // reader had clicked before. Found by the golden fixtures, fixed 2026-10-10.
   const goToTab = useCallback((tab: Tab) => {
-    navIntentRef.current = "push";
+    if (tab !== activeTab) navIntentRef.current = "push";
     setExploreReturnTab(null);
     setActiveTab(tab);
-  }, []);
+  }, [activeTab]);
 
   const goToExploreDestination = useCallback((tab: Tab) => {
-    navIntentRef.current = "push";
+    if (tab !== activeTab) navIntentRef.current = "push";
     setExploreReturnTab(tab);
     setActiveTab(tab);
-  }, []);
+  }, [activeTab]);
 
   const returnToExplore = useCallback(() => {
-    navIntentRef.current = "push";
+    if (activeTab !== "explore") navIntentRef.current = "push";
     setExploreReturnTab(null);
     setActiveTab("explore");
-  }, []);
+  }, [activeTab]);
   // The open tool is ONE value, not nine booleans (it was nine until
   // 2026-07-28). Only one tool panel can be open at a time — the old setters
   // were only ever called together, from openTool/closeTool, each assigning
@@ -215,13 +222,14 @@ export function useWorkspaceNavigation() {
   // the Tools tab's card specs also carry the two cross-nav ids, which never
   // reach here.
   const openTool = useCallback((toolId: string) => {
-    navIntentRef.current = "push";
-    setActiveTool(isDashboardTool(toolId) ? toolId : null);
-  }, []);
+    const next = isDashboardTool(toolId) ? toolId : null;
+    if (next !== activeTool) navIntentRef.current = "push";
+    setActiveTool(next);
+  }, [activeTool]);
   const closeTool = useCallback(() => {
-    navIntentRef.current = "push";
+    if (activeTool !== null) navIntentRef.current = "push";
     setActiveTool(null);
-  }, []);
+  }, [activeTool]);
   const focusTool = useCallback((toolId: string) => {
     openTool(toolId);
     goToTab("tools");
@@ -332,7 +340,24 @@ export function useWorkspaceNavigation() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname, urlSyncReady]);
 
+  // Entering Settings is a history step; moving around inside it is not.
+  //
+  // Both of these used to leave the intent alone, so they replaced, and Back
+  // from Settings skipped straight past it to whatever the reader was looking
+  // at before — from the user menu, from Today's "notification settings" and
+  // from Journal's "manage context" alike. A reader who opens Settings chose
+  // that destination, so by this hook's own rule it earns an entry.
+  //
+  // A *section* change inside Settings does not, and that is the product call
+  // this encodes (2026-10-10): the section is a sub-location on one screen, so
+  // one visit to Settings is one entry however much the reader clicks in the
+  // rail, and Back means "leave Settings" rather than "previous section". The
+  // alternative — one entry per section — makes Back's meaning depend on how
+  // far the reader browsed, which is the unpredictability being fixed here.
+  const enteringSettings = () => activeTab !== "settings";
+
   function openSetupInSettings() {
+    if (enteringSettings()) navIntentRef.current = "push";
     setActiveTab("settings");
     setSettingsSubTab("setup");
   }
@@ -340,6 +365,7 @@ export function useWorkspaceNavigation() {
   // Unified navigation for the Settings rail: "setup" routes to the onboarding
   // sub-tab; every other id routes to the session panels and selects a section.
   function navigateSettings(id: SettingsSectionId) {
+    if (enteringSettings()) navIntentRef.current = "push";
     setActiveTab("settings");
     if (id === "setup") {
       setSettingsSubTab("setup");

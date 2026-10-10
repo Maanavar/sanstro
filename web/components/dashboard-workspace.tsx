@@ -623,6 +623,11 @@ export function DashboardWorkspace() {
 
   // ── Onboarding gate ────────────────────────────────────
 
+  // The raw setter, deliberately, here and in the session's onSetupRedirect
+  // above: this destination is app-chosen, so it must replace rather than push.
+  // Pushing a gate redirect traps the reader — Back re-triggers it. Every
+  // reader-chosen jump goes through goToTab/navigateSettings instead, which arm
+  // the push intent (web/hooks/useWorkspaceNavigation.ts, 2026-10-10).
   useEffect(() => {
     if (!session.hydrated || !personal.birthProfileLookupDone) return;
     if (!personal.birthProfileId) {
@@ -1104,7 +1109,7 @@ export function DashboardWorkspace() {
               onShowEditProfile={() => setShowEditProfile(true)}
               onEditBirthProfile={handleEditBirthProfile}
               birthProfilesReloadToken={birthProfilesReloadToken}
-              onGoToPersonal={() => setActiveTab("personal")}
+              onGoToPersonal={() => goToTab("personal")}
               userMode={session.userMode}
               onModeChange={(mode) => void saveUserSettings(mode, { toast: true })}
             />
@@ -1149,11 +1154,11 @@ export function DashboardWorkspace() {
               bundleSectionErrors={personal.bundleSectionErrors}
               onRetryBundle={() => void personal.refreshPersonalBundle(undefined, undefined, true, { forceDay: true })}
               onGoToFamily={() => focusFamily("hy-members")}
-              onGoToJournal={() => setActiveTab("journal")}
-              onGoToCalendar={() => setActiveTab("calendar")}
-              onGoToLifeAreas={() => setActiveTab("life-areas")}
+              onGoToJournal={() => goToTab("journal")}
+              onGoToCalendar={() => goToTab("calendar")}
+              onGoToLifeAreas={() => goToTab("life-areas")}
               onGoToChart={() => focusFamily("hy-dashas")}
-              onGoToCharts={() => setActiveTab("family")}
+              onGoToCharts={() => goToTab("family")}
               onOpenAskVinaadi={() => setAskVinaadiOpen(true)}
               onOpenNotificationSettings={() => navigateSettings("notifications")}
               needsProfile={needsProfile}

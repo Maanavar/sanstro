@@ -1361,7 +1361,7 @@
  {
   "step": "Tamil: back-to-explore label",
   "url": "/dashboard/family",
-  "history": 3,
+  "history": 4,
   "shown": [
    "ambient",
    "ask",
@@ -2653,7 +2653,7 @@
     }
    ],
    [
-    "router.replace",
+    "router.push",
     "/dashboard/settings/account",
     {
      "scroll": false
