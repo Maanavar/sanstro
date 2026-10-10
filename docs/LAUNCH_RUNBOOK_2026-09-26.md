@@ -30,7 +30,8 @@ This page has three parts:
 
 ### Step 1: Domain
 - [ ] Register **vinaadi.com**. It currently returns NXDOMAIN, and every canonical, sitemap entry and share card uses it.
-      *If you pick a different domain,* tell me and it becomes a one-line change: `SITE_URL` in `packages/shared/src/constants/site.ts` plus `JOTHIDAM_PUBLIC_SITE_URL`. The parity test keeps the two in step.
+      *If you pick a different domain,* tell me — but **it is not the one-line change this line used to claim.** Checked 2026-10-10 (owner: the domain is not owned yet and may be bought in a month): `vinaadi.com` appears **297 times across 108 files**, and **100 of those files are code or tests holding the literal string**, against only 17 that import `SITE_URL`/`SITE_HOST` from `packages/shared/src/constants/site.ts`. `web/components/public-share-card.tsx` alone hardcodes it 10 times — the component GRW-04's constant was created for. Five test files assert the literal, so they move too.
+      Routing those 100 files through the existing constant is mechanical and wants a ratchet test to keep it true; until that is done, a domain change is a ~100-file edit, and `SITE_URL` + `JOTHIDAM_PUBLIC_SITE_URL` (which the parity test does keep in step) is only where it *starts*.
 - [ ] Point `vinaadi.com` at the web host and redirect `www.vinaadi.com` to it.
 - **Check:** `Resolve-DnsName vinaadi.com -Server 8.8.8.8` returns an address.
 
