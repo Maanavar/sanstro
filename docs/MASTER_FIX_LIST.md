@@ -2374,6 +2374,10 @@ then A14, A15, A13.
   classifying every `setActiveTab` call site as reader- or app-chosen
   (is a Settings section change a history step?), which is a product
   decision. The golden records today's behaviour.
+  **Ruled and fixed 2026-10-10** (owner delegated it) — entering Settings
+  pushes, a section change inside it replaces, the four Today jumps join their
+  siblings, and the stale intent is gone. See "Three decisions the owner
+  delegated" below; the golden now records *that* behaviour.
   **Blind spots:** the real panes, hooks and router are not exercised —
   their contracts are only what crosses this boundary; framer-motion styles
   other than `display` are ignored; a `setState` updater handed to a hook
@@ -2470,7 +2474,10 @@ commit. Only the varshaphala one touches a Phase 3 test:
   HMAC key shorter than the hash (32 bytes for HS256); jose never warned. The
   dev default secret is 64 chars; if production's `JOTHIDAM_JWT_SECRET` is
   shorter, the log will say so once per process — rotating it logs everyone
-  out, so that is an owner decision, not done here. The decode scan misses
+  out, so that is an owner decision, not done here.
+  **Superseded 2026-10-10** (owner delegated it; see "Three decisions the owner
+  delegated" below): a short secret is now a production boot failure, because
+  `JOTHIDAM_JWT_SECRETS` made rotating it cost nobody a sign-out. The decode scan misses
   `from jwt import decode`. Dated reference docs (2026-08-25, 2026-10-06)
   still say python-jose; `HOW_TO_USE_CODEBASE.md` and REFACTOR_PLAN 1.2 are
   updated.
@@ -2594,6 +2601,112 @@ Alembic round-trip, design-token ratchet, web image, compose smoke (on
 re-run, see above), Mobile CI on both push and pull_request. Playwright e2e
 skipped (no external base URL configured), so its 30-minute timeout is still
 a guess.
+
+#### Three decisions the owner delegated (2026-10-10)
+
+From the Codex brief's leftovers. The owner handed over items 1-3 ("full
+ownership to take the right decision"); Phase 4 stays next, not started.
+
+- [x] **1. The JWT secret could not be rotated, so its length could not be
+  enforced.** Recorded 2026-10-08 as "rotating it logs everyone out, so that is
+  an owner decision" — a weakness nobody could act on, because acting on it was
+  an outage. Both halves are now fixed together, in that order.
+  *Rotation:* `JOTHIDAM_JWT_SECRETS` (comma-separated, **newest first**; first
+  signs, all verify) mirrors the encryption-key design in §2 of
+  `docs/DATA_PROTECTION.md` exactly, so there is one rotation shape in this
+  codebase rather than two. The singular `JOTHIDAM_JWT_SECRET` is unchanged,
+  still supported, and never split on commas — which is why the rotation form is
+  its own variable. Procedure, cost of each stage and the web/mobile asymmetry
+  are in the new §2a; the short version is that stage 1 signs nobody out, and
+  dropping the old secret early costs a web sign-out and **no data**, unlike its
+  encryption twin.
+  *Length floor:* a production API process now **refuses to boot** on a secret
+  shorter than the hash it feeds (32/48/64 bytes for HS256/384/512). It refuses
+  rather than warns because the fix became cheap in the same change. The message
+  names the variable actually set and the **position** of each offending secret,
+  never its value.
+  *One decode site.* `app/core/jwt_keys.py` is now the only caller of
+  `jwt.decode` in the app; `app/core/auth.py` and `app/middleware.py` both go
+  through it, so the secret loop and the `algorithms=[...]` pin exist once.
+  Verification prefers the error from the secret that actually verified the
+  signature, so an expired token signed under the *older* secret reports expiry
+  rather than a misleading bad signature.
+  **Gate:** `tests/test_jwt_secret_rotation.py` (24). **Controls, both reverted:**
+  verifying against only the newest secret → the rotation-survival and
+  expiry-preference tests fail; the length check neutered → all four refusal
+  tests fail ("DID NOT RAISE"). `test_jwt_hmac_only.py`'s decode-site ratchet is
+  now equality on `{app/core/jwt_keys.py}`, not a superset — a second direct
+  `jwt.decode` anywhere in `app/` fails it. 70 passed across the four JWT/config
+  files; ruff and mypy clean (369 files).
+  **Found on the way:** five `test_config.py` proxy-hop cases passed
+  `jwt_secret="j"` to a *production* Settings; two expected a successful boot and
+  would have broken. They now use a realistic synthetic secret — the cases are
+  about proxy hops, not secret strength.
+  **Blind spots:** whether production's current secret clears the floor is
+  unknowable from here (the first deploy answers it); the decode ratchet still
+  misses `from jwt import decode`; nothing enforces that the operator waits out
+  stage 2 before dropping the old secret; rotation remains a blunt global
+  sign-out and not a revocation mechanism — SEC-5 is still open for the web
+  session, and `users.token_version` is still the per-user lever.
+- [~] **2. The pre-A12 plaintext dumps — decided, evidenced, deletion pending.**
+  Three dumps taken before `uu4e5f6a7b8c` held the 14 A12 columns in plaintext.
+  The owner was asked per file on 2026-10-08 and kept these three, with no
+  evidence about their contents on the table. There is now a census, in
+  `docs/DATA_PROTECTION.md` §3: the real owner has the **same three** birth
+  profiles in all three dumps and in the live database, and every row they hold
+  that the database does not belongs to a synthetic account (`@e2e.test`,
+  `@example.test`, `@example.com`, `@example.local`) — exactly what the two July
+  cleanups deliberately removed. So they cannot reconstruct anything, and
+  restoring one would now also need the A12 backfill re-run.
+  **Decision: delete all three.** A replacement was taken and *proven* first,
+  which is the order that matters: `backups/vinaadi_dev_20261010_0726.sql`
+  (ciphertext, 40.6 MB) restored into a throwaway database and
+  `scripts/verify_restore.py` returned PASS — 22 encrypted values across 5
+  tables decrypted with correct shapes, restored row counts identical to live.
+  That doubles as this project's first actual restore drill (§4.8 of the
+  architecture guide asked for one); it says nothing about RPO/RTO, which are
+  still unset.
+  **Not done:** the deletion itself. The agent session's sandbox refused the
+  three `Remove-Item` calls as irreversible local destruction, so they are the
+  owner's to run — the three paths are in §3. Until then the three files are
+  still the most sensitive on the host.
+- [x] **3. Back's behaviour around Settings — ruled and fixed.** The three
+  symptoms recorded above as "Found, not changed — owner's call":
+  *Entering Settings now pushes.* From the user menu, Today's "notification
+  settings", Journal's "manage context" and Family's "complete setup" — a reader
+  who opens Settings chose that destination, which is what the hook's own rule
+  already said. **A section change *inside* Settings still replaces**, and that
+  is the product call this encodes: the section is a sub-location on one screen,
+  so one visit to Settings is one history entry however much the reader clicks
+  in the rail, and Back means "leave Settings" rather than "previous section".
+  The alternative makes Back's meaning depend on how far the reader browsed,
+  which is the unpredictability being fixed.
+  *The four Today jumps that disagreed with their siblings* (Journal, Calendar,
+  Life Areas, Charts, plus Setup's "go to Today") now go through `goToTab` like
+  Family/Chart already did. This needed no new ruling — the reader-chose-it rule
+  covers them. The genuinely app-chosen destinations (the onboarding gate, the
+  session setup redirect, post-save redirects) deliberately keep the raw setter
+  and still replace; a comment at the gate says why, because pushing a redirect
+  traps the reader.
+  *The stale intent is gone.* The push flag is now armed only by a call that
+  actually moves the addressed destination, so a no-op jump no longer leaves it
+  set for the next navigation to inherit.
+  **Gate:** the golden fixtures. The diff is **exactly eight** `router.replace`
+  → `router.push` flips (settings-via-hero ×2, the four Today jumps,
+  `family.onOpenSetup`, `journal.onManageContext`) plus the history counters that
+  follow from them — no prop, DOM or visibility change anywhere — and
+  `replace /dashboard/settings/appearance` stayed a replace, which is the
+  section ruling holding in the same transcript. One step was added for the
+  stale-intent case, which the existing scenarios did not reach.
+  **Controls, both reverted:** the no-op guard removed → that one step flips to
+  `router.push` and nothing else moves; the Settings push removed → 3 snapshots
+  fail, and `today.onOpenNotificationSettings` drops from push to replace —
+  which also proves it had only ever pushed *by accident*, on a stale intent
+  left by the step before it. Web vitest 143 files / 1,477 passed;
+  `eslint . --max-warnings=0` and `tsc --noEmit` clean.
+  **Blind spots:** unchanged from the golden's own list — no real router, no
+  browser run, no real panes. In particular Back's behaviour after these eight
+  flips has not been clicked through in a browser, only modelled.
 
 ## Agent Completion Checklist
 
