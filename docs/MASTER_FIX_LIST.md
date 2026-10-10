@@ -2573,6 +2573,17 @@ commit. Only the varshaphala one touches a Phase 3 test:
   layout fine. The web build depends on Google Fonts answering consistently
   at build time; self-hosting the faces (`next/font/local`) would remove that
   dependency. **Not done** — recorded here, not fixed.
+  **Recurred 2026-10-10** on run 38016152691 (the delegated-decisions push),
+  byte-identical: `TypeError: Cannot read properties of null (reading '1')` at
+  `google/loader.js:122`, `pnpm --filter jothidam-ai-web build` exit 1. The same
+  run's "Web Docker image (build and boot)" job built the same web app in 4m2s,
+  so it is the fonts answering, not the code. Passed on a re-run of that one job
+  (4m37s), every other check green on the first attempt.
+  **Two occurrences in three days makes this a recurring CI blocker, not noise.**
+  Every compose-smoke run is one Google Fonts hiccup away from a red PR, and the
+  failure names a `next/font` internal rather than the dependency, so the next
+  reader will debug the build. Self-hosting the faces is the fix and is still
+  not done.
 
 **CI on `f939b77` (2026-10-08, after the cache move, A14 steps 7–8, A15
 coverage and the first guidance extraction):** all green on the first
