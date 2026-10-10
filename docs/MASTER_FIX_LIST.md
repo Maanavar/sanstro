@@ -1477,7 +1477,12 @@ then A14, A15, A13.
   related suites. **Blind spots:** the owner's own tile shares the helper but
   is not exercised; the Tamil/English chip copy was not re-reviewed.
 - [~] **A14 — contract completeness. Steps 1–2 done (the nine schema gaps);
-  steps 3–8 (generated transport contracts) not started.** The nine operations
+  steps 3–8 done for two coherent groups, 15 operations total (the original
+  nine plus the six chart numerology GETs, closed 2026-10-08 with 17 server
+  Literals pinned to their producing enums/tables); further groups and
+  wrapper migration for web's remaining direct `apiFetchJson` calls are
+  expansion per the guide's own rollout note, not a blocker — status updated
+  2026-10-09.** The nine operations
   the field guard skipped now declare concrete `response_model`s that describe
   the payload each already sent: Chara, Yogini, Ashtottari, Kalachakra and
   conditional dashas (`app/schemas/secondary_dashas.py`), Shadbala
@@ -1835,9 +1840,19 @@ then A14, A15, A13.
   - The gate proves the config says these things, not that a job passes.
   - The two most recent CI runs on origin (2026-10-06/07) failed on Web and
     Backend lint; both predate commits not yet pushed, and were not re-run.
-- [~] **A13 — module boundaries. Step 7 (dependency-direction gate) and all
-  three cited inversions done (the panchangam cache on 2026-10-08, below);
-  every large extraction (steps 1–6) not started.**
+- [x] **A13 — module boundaries. Step 7 (dependency-direction gate) and all
+  three cited inversions done (the panchangam cache on 2026-10-08, below).
+  All four audit-named large extractions (steps 1–6) are now done, each
+  golden-first with an exact same-process comparison and mutation controls:
+  `build_daily_guidance_response` (885→632 lines across three stages: dasha
+  strength, briefing, palan), `get_life_areas` (689→376 across two stages:
+  scoring, narration), `assess_marriage_prediction` (648→142 across two
+  stages: scoring, narration — plus a hash-order chart-signature bug and a
+  missing-placement `KeyError` found and fixed along the way), and
+  `dashboard-workspace.tsx` (2,574→1,611 across three extractions: chart-
+  view rules, navigation/URL sync, profile-forms — plus a URL-arming race
+  found and fixed, owner-confirmed in a real browser). Status updated
+  2026-10-09; see each unit's own entry below for proof and blind spots.**
   The audit's three dependency findings, re-verified then handled:
   - `app/models/*` (5 files) imported their column types from
     `app.services.encryption` → the module moved, content unchanged
