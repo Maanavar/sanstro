@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import pytest
 
+from app.calculations.chart_strength import d9_dignity_label
 from app.calculations.planet_conditions import COMBUST_MEANING, RETROGRADE_MEANING
 from app.schemas.charts import PlanetPosition
 from app.services.chart_explanation_service import (
@@ -41,6 +42,7 @@ def _planet(
         isCombust=combust,
         isCazimi=cazimi,
         d9Rasi=d9_rasi,
+        d9Dignity=d9_dignity_label(graha, d9_rasi),
         isVargottama=vargottama,
         showRetrogradeBadge=retro,
         strengthScore=55,
@@ -141,14 +143,17 @@ def test_d9_debilitation_surfaces_as_a_caution() -> None:
 
 
 @pytest.mark.no_db
-def test_vargottama_outranks_d9_debilitation_and_reads_as_a_boost() -> None:
-    """Vargottama is exempt from the D9 debilitation penalty in the scorer, so
-    the prose must not contradict the number by calling it a caution."""
+def test_neecha_vargottama_states_both_facts_and_is_not_a_boost() -> None:
+    """Ruling 2026-10-01: vargottama no longer exempts a D9 debility. The scorer
+    charges both rows, so the prose names both and does not read as a boost."""
     facets = _facets(_planet("JUPITER", 9, 10, 10, vargottama=True), fn="TRIKONA")
     condition = _by_key(facets, "condition")
     assert condition is not None
-    assert condition.tone == "BOOST"
-    assert "vargottama" in condition.value.en.lower()
+    assert condition.tone != "BOOST"
+    text = condition.value.en.lower()
+    assert "vargottama" in text
+    assert "debilitat" in text
+    assert "placed well in the rasi" not in text  # false for a neecha-rasi graha
 
 
 @pytest.mark.no_db

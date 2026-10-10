@@ -25,7 +25,7 @@ conventions that are fine but should stay on the astrologer-review radar.
 | Ayanamsa | Lahiri via Swiss Ephemeris `SIDM_LAHIRI` | ✅ |
 | Node type | Mean node, doctrinally documented (§2), JHora caveat noted | ✅ documented convention |
 | Ketu | Rahu + 180°, same speed, always retrograde | ✅ |
-| Hindu sunrise | disc-center, no refraction, geocentric (`SE_BIT_HINDU_RISING` = 896 fallback verified against swephexp.h) | ✅ (WI-07) |
+| Thirukanitham sunrise | **apparent upper limb + atmospheric refraction** (Swiss Ephemeris default, no extra rsmi bits) — re-ruled 2026-09-29, superseding the disc-centre/no-refraction `SE_BIT_HINDU_RISING` this row used to name. The disc-centre variant is retained as `SunriseConvention.GEOMETRIC_DISC_CENTER` and is not the default. | ✅ convention ruled; publisher parity still open (AR-5) |
 | Julian Day conversion | Meeus Gregorian algorithm, tz-aware guard | ✅ |
 | DST handling | fold-0/fold-1 disambiguation, non-existent time raises | ✅ |
 | Nakshatra/pada/rasi indexing | 13°20′/3°20′ with 1e-9 epsilon boundary guard | ✅ |

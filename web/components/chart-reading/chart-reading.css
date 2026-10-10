@@ -1,0 +1,54 @@
+/* Chart reading — Story view motion (FTR-19).
+   Every rule animates FROM a start state TO the element's base style, so the
+   base is always the finished frame: the global reduced-motion guard in
+   dashboard-nova.css collapses animation-duration and leaves it on screen.
+   Motion explains a relationship or an arrival; nothing here loops. */
+
+.cr-rise {
+  animation: cr-rise 260ms var(--ease-nova, ease-out) both;
+}
+
+@keyframes cr-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* An aspect line drawing from the planet that casts it. */
+.cr-draw {
+  stroke-dasharray: 1;
+  animation: cr-draw 560ms ease-out both;
+}
+
+@keyframes cr-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* A dasa period filling to today, then the playhead settling on it. */
+.cr-grow {
+  transform-origin: left center;
+  animation: cr-grow 520ms var(--ease-nova, ease-out) both;
+}
+
+@keyframes cr-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+.cr-playhead {
+  animation: cr-settle 520ms var(--ease-nova, ease-out) both;
+}
+
+@keyframes cr-settle {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+}

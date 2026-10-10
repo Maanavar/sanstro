@@ -1,8 +1,10 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
+import { JsonLd } from "@/lib/json-ld";
 import type { Metadata } from "next";
 import { WhyBirthTimeMattersPageContent } from "./PageContent";
 
-export const metadata: Metadata = {
-  title: "Why Birth Time Matters in Tamil Astrology — Lagna and Dasa | Vinaadi",
+const EN_METADATA: Metadata = {
+  title: "Why Birth Time Matters in Tamil Astrology — Lagna and Dasa",
   description:
     "In Thirukanitham astrology, birth time determines your lagna (which changes every ~2 hours) and the Moon's exact birth-star pada. Both shape your full chart and dasa sequence. Learn why accuracy matters and what to do when birth time is uncertain.",
   keywords: [
@@ -29,6 +31,10 @@ export const metadata: Metadata = {
     description: "Lagna changes every 2 hours, dasa depends on Moon pada — accurate birth time is essential for a correct jadhagam.",
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/learn/why-birth-time-matters");
+}
 
 const FAQ_JSONLD = {
   "@context": "https://schema.org",
@@ -72,10 +78,7 @@ const FAQ_JSONLD = {
 export default function WhyBirthTimeMattersPage() {
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSONLD) }}
-      />
+      <JsonLd en={FAQ_JSONLD} />
       <WhyBirthTimeMattersPageContent />
     </>
   );

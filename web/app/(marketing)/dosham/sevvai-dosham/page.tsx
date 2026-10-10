@@ -1,9 +1,11 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
+import { JsonLd, articleTa, faqPageLd } from "@/lib/json-ld";
 import type { Metadata } from "next";
 import { DOSHAM_SEVVAI_FAQ } from "@/lib/marketing-i18n";
 import { SevvaiDoshamContent } from "./PageContent";
 
-export const metadata: Metadata = {
-  title: "Sevvai Dosham (Mangal Dosha) — Meaning, Calculation & Pariharam | Vinaadi",
+const EN_METADATA: Metadata = {
+  title: "Sevvai Dosham (Mangal Dosha) — Meaning, Calculation & Pariharam",
   description:
     "Sevvai dosham (Mangal dosha / Manglik) forms when Mars sits in the 1st, 2nd, 4th, 7th, 8th or 12th house. Learn how it is calculated, what it means for marriage, when it is cancelled, and the traditional pariharam with slokam.",
   keywords: [
@@ -33,15 +35,12 @@ export const metadata: Metadata = {
   },
 };
 
-const FAQ_JSONLD = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: DOSHAM_SEVVAI_FAQ.map((f) => ({
-    "@type": "Question",
-    name: f.q.en,
-    acceptedAnswer: { "@type": "Answer", text: f.a.en },
-  })),
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/dosham/sevvai-dosham");
+}
+
+const FAQ_JSONLD = faqPageLd(DOSHAM_SEVVAI_FAQ, "en");
+const FAQ_JSONLD_TA = faqPageLd(DOSHAM_SEVVAI_FAQ, "ta");
 
 const ARTICLE_JSONLD = {
   "@context": "https://schema.org",
@@ -56,8 +55,8 @@ const ARTICLE_JSONLD = {
 export default function SevvaiDoshamPage() {
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ARTICLE_JSONLD) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSONLD) }} />
+      <JsonLd en={ARTICLE_JSONLD} ta={articleTa(ARTICLE_JSONLD)} />
+      <JsonLd en={FAQ_JSONLD} ta={FAQ_JSONLD_TA} />
       <SevvaiDoshamContent />
     </>
   );

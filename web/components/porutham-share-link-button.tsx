@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { createPoruthamShare, revokePoruthamShare } from "@vinaadi/shared/api/porutham-shares";
 import { readErrorMessage } from "@/lib/api";
+import { track } from "@/lib/analytics";
 import type { Lang } from "@/lib/i18n";
+import { useReferralCode, whatsappHref, withRef } from "@/lib/share";
 
 type CompatibilityContext = "GENERAL" | "MARRIAGE" | "FRIENDSHIP" | "BUSINESS" | "FAMILY";
 
@@ -32,9 +34,14 @@ export function PoruthamShareLinkButton({ lang, formA, formB, compatibilityConte
   const [labelA, setLabelA] = useState("");
   const [labelB, setLabelB] = useState("");
   const [shareId, setShareId] = useState<string | null>(null);
-  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [rawShareUrl, setShareUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
+  // The family member who opens this and signs up is credited to the sharer.
+  const refCode = useReferralCode(open);
+  const shareUrl = rawShareUrl ? withRef(rawShareUrl, refCode) : null;
+  const shareText =
+    lang === "ta" ? "எங்கள் திருமணப் பொருத்தம் — விநாடியில் பாருங்கள்:" : "Our porutham result on Vinaadi:";
 
   function reset() {
     setStage("idle");
@@ -87,6 +94,7 @@ export function PoruthamShareLinkButton({ lang, formA, formB, compatibilityConte
 
   async function handleCopy() {
     if (!shareUrl) return;
+    track("share_clicked", { surface: "porutham_link", channel: "copy" });
     try {
       await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
@@ -100,7 +108,7 @@ export function PoruthamShareLinkButton({ lang, formA, formB, compatibilityConte
     if (!shareUrl || typeof navigator === "undefined" || !navigator.share) return;
     try {
       await navigator.share({
-        title: lang === "ta" ? "Vinaadi AI · பொருத்தம் முடிவு" : "Vinaadi AI · Porutham result",
+        title: lang === "ta" ? "விநாடி · பொருத்தம் முடிவு" : "Vinaadi · Porutham result",
         url: shareUrl,
       });
     } catch {
@@ -221,11 +229,24 @@ export function PoruthamShareLinkButton({ lang, formA, formB, compatibilityConte
                     {copied ? (lang === "ta" ? "நகலெடுக்கப்பட்டது ✓" : "Copied ✓") : (lang === "ta" ? "நகலெடு" : "Copy")}
                   </button>
                 </div>
-                {typeof navigator !== "undefined" && !!navigator.share && (
-                  <button type="button" onClick={() => void handleNativeShare()} style={{ padding: "8px 16px", borderRadius: "9px", border: "1px solid var(--color-border)", background: "none", color: "var(--color-accent-strong, var(--color-accent))", cursor: "pointer", fontWeight: 600, fontSize: "0.8rem", fontFamily: "inherit" }}>
-                    {lang === "ta" ? "பகிர்…" : "Share…"}
-                  </button>
-                )}
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                  {/* WhatsApp first, and always — the native sheet is missing on
+                      most desktops and several in-app browsers (GRW-10). */}
+                  <a
+                    href={whatsappHref(shareText, shareUrl)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => track("share_clicked", { surface: "porutham_link", channel: "whatsapp" })}
+                    style={{ padding: "8px 16px", borderRadius: "9px", border: "none", background: "var(--color-accent)", color: "var(--color-on-accent)", fontWeight: 700, fontSize: "0.8rem", textDecoration: "none" }}
+                  >
+                    WhatsApp
+                  </a>
+                  {typeof navigator !== "undefined" && !!navigator.share && (
+                    <button type="button" onClick={() => { track("share_clicked", { surface: "porutham_link", channel: "native" }); void handleNativeShare(); }} style={{ padding: "8px 16px", borderRadius: "9px", border: "1px solid var(--color-border)", background: "none", color: "var(--color-accent-strong, var(--color-accent))", cursor: "pointer", fontWeight: 600, fontSize: "0.8rem", fontFamily: "inherit" }}>
+                      {lang === "ta" ? "பகிர்…" : "Share…"}
+                    </button>
+                  )}
+                </div>
                 {error && <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-low)" }}>{error}</p>}
                 <div style={{ display: "flex", gap: "10px", justifyContent: "space-between", alignItems: "center" }}>
                   <button

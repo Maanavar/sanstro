@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import Link from "next/link";
-import { apiFetchJson } from "@/lib/api";
-import { LANG_STORAGE_KEY, type Lang } from "@/lib/i18n";
+import { DashboardAuxiliaryShell } from "@/components/dashboard-auxiliary-shell";
+import { useLang } from "@/components/lang-toggle";
 import { purchaseReport } from "@vinaadi/shared/api/reports";
 import { PPU_REPORT_PRODUCTS, PPU_PORUTHAM_PRODUCTS, PPU_TOPUP_PRODUCTS } from "@vinaadi/shared/constants/tiers";
+import { OPEN_BETA } from "@vinaadi/shared/constants";
 
 type Section = { heading: { en: string; ta: string }; products: typeof PPU_REPORT_PRODUCTS | typeof PPU_PORUTHAM_PRODUCTS | typeof PPU_TOPUP_PRODUCTS };
 
@@ -28,24 +28,11 @@ const SECTIONS: Section[] = [
 type BuyState = "idle" | "loading" | "queued" | "error";
 
 export default function ReportsPage() {
-  const router = useRouter();
-  const [lang, setLang] = useState<Lang>("ta");
+  const [lang] = useLang();
   const [buyState, setBuyState] = useState<Record<string, BuyState>>({});
   // Announced via the aria-live region below so screen readers hear the
   // outcome of the async action (DASH-08).
   const [announcement, setAnnouncement] = useState("");
-
-  useEffect(() => {
-    const stored = localStorage.getItem(LANG_STORAGE_KEY);
-    if (stored === "ta" || stored === "en") setLang(stored as Lang);
-    // GET /settings/ui answers flat ({ lang, dashboard_mode }) — no { data } envelope.
-    void apiFetchJson<{ lang?: string }>("/api/v1/settings/ui")
-      .then((j) => {
-        const dbLang = j?.lang;
-        if (dbLang === "ta" || dbLang === "en") setLang(dbLang as Lang);
-      })
-      .catch(() => {});
-  }, []);
 
   const ta = lang === "ta";
 
@@ -105,7 +92,8 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="cd-shell" style={{ minHeight: "100vh", background: "var(--color-bg)", color: "var(--color-text)", padding: "24px 16px 48px" }}>
+    <DashboardAuxiliaryShell pageTitle={{ en: "Reports", ta: "அறிக்கைகள்" }}>
+      <div className="cd-page" style={{ color: "var(--color-text)", paddingTop: "var(--space-6)", paddingBottom: "var(--space-8)" }}>
       {/* Screen-reader announcement for async purchase outcomes (DASH-08). */}
       <p
         role="status"
@@ -116,15 +104,8 @@ export default function ReportsPage() {
       </p>
       <div style={{ maxWidth: "820px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "28px" }}>
 
-        {/* Header */}
+        {/* Page introduction */}
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <button
-            type="button"
-            onClick={() => router.back()}
-            style={{ background: "transparent", border: "1px solid var(--color-border)", borderRadius: "8px", color: "var(--color-muted)", padding: "6px 12px", fontSize: "0.8rem", cursor: "pointer" }}
-          >
-            ← {ta ? "திரும்பு" : "Back"}
-          </button>
           <div>
             <h1 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 700, color: "var(--color-text-strong)" }}>
               {ta ? "அறிக்கைகளை வாங்கு" : "Buy Reports"}
@@ -198,7 +179,9 @@ export default function ReportsPage() {
           </section>
         ))}
 
-        {/* Upgrade CTA */}
+        {/* Upgrade CTA — withheld during the open beta: there is no trial to
+            start and nothing to subscribe to until payments launch. */}
+        {!OPEN_BETA && (
         <div style={{ padding: "20px", borderRadius: "14px", background: "var(--color-surface-soft)", border: "1px solid var(--color-border)", textAlign: "center" }}>
           <p style={{ margin: "0 0 8px", fontWeight: 700, color: "var(--color-text-strong)" }}>
             {ta ? "பிரீமியம் திட்டத்தில் மாதம் 5 விரிவான அறிக்கைகள் இலவசம்" : "Premium plan includes 5 detailed reports per month"}
@@ -213,7 +196,9 @@ export default function ReportsPage() {
             {ta ? "பிரீமியம் பார்க்க →" : "View Premium →"}
           </Link>
         </div>
+        )}
       </div>
-    </div>
+      </div>
+    </DashboardAuxiliaryShell>
   );
 }

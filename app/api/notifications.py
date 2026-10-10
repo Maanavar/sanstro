@@ -38,7 +38,7 @@ class NotificationListResponse(BaseModel):
 
 def _due_status_filter(now: datetime):
     return or_(
-        Notification.status == "sent",
+        Notification.status.in_(("sent", "expired", "failed")),
         and_(Notification.status == "queued", Notification.send_at <= now),
     )
 

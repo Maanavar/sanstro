@@ -9,6 +9,7 @@ from dataclasses import dataclass
 
 from app.calculations.aspects import aspect_strength, aspects_house, effective_natural_class
 from app.calculations.astro import house_from_reference
+from app.calculations.doctrine_options import DEFAULT_DOCTRINE, DoctrineOptions
 from app.calculations.transits import combustion_severity, is_cazimi, is_gandanta
 from app.constants.astrology import SIGN_LORD as _SIGN_LORD_CONSTANT
 
@@ -20,6 +21,18 @@ from app.constants.astrology import SIGN_LORD as _SIGN_LORD_CONSTANT
 # fixed bonus. EC-7.1 ruling (2026-07-15).
 CAZIMI_BONUS = 10.0
 MAX_COMBUSTION_PENALTY = 22.0
+
+# Rasi sandhi: a graha within 1° of either sign boundary. Never charged on top
+# of the Baladi avastha cost for the same degree; the larger of the two applies
+# (astrologer ruling 2026-09-23, sign-edge Q1). See the natal score below.
+#
+# [PRODUCT] scoring rule, not doctrine (astrologer, 2026-10-01). Classical
+# texts give sandhi and Baladi as separate observations and do not say how to
+# combine them in a numeric score. Taking max(sandhi, Baladi) is Vinaadi's way
+# of not counting one degree fact twice; the astrologer endorsed keeping it on
+# that basis and asked that it be labelled as a product rule.
+SANDHI_EDGE_DEGREES = 1.0
+SANDHI_PENALTY = 8.0
 
 # Navamsa (D9) dignity modifiers on the same 0-100 composite scale. The bonus
 # is long-standing; the penalty was added 2026-07-18 to close a one-sided
@@ -38,8 +51,14 @@ MAX_COMBUSTION_PENALTY = 22.0
 # double-counting. So the base stays 5.0 and a Rasi-exalted graha (dignity 100)
 # is charged 10.0 — level with Gandanta, above Rasi sandhi, and still well
 # inside the combustion gradient's -22 maximum, which is the right neighbourhood
-# for a structural dignity failure in a score that is not Shadbala. Vargottama
-# remains exempt.
+# for a structural dignity failure in a score that is not Shadbala.
+#
+# Vargottama is NOT an exemption (astrologer ruling 2026-10-01, reversing the
+# 2026-07-18 default). A graha vargottama in its debilitation sign is neecha in
+# both charts; vargottama makes that placement consistent, it does not erase
+# it. So the D9 neecha penalty is charged and the separate +4 vargottama term
+# is still awarded — two facts, two rows in the breakdown, neither cancelling
+# the other.
 D9_DIGNITY_BONUS = 5.0
 D9_DEBILITATION_PENALTY = 5.0
 D9_DEBILITATION_PENALTY_EXALTED = 10.0
@@ -278,8 +297,104 @@ def d9_dignity_tier(planet: str, d9_rasi: int) -> int:
     return _d9_dignity_tier(planet, d9_rasi)
 
 
-def _dignity_score(planet: str, natal_rasi: int, natal_longitude: float) -> int:
-    """Returns dignity score per 9-level table."""
+def d9_dignity_label(planet: str, d9_rasi: int) -> str:
+    """Return the sign-level Navamsa dignity used by chart clients.
+
+    A Navamsa has no independent degree for a graha, so the D1-only
+    Moolatrikona degree zones do not apply here. Nodes and Mandhi have no
+    classical sign-lord dignity in this model and stay neutral rather than
+    inheriting a modern proxy silently.
+    """
+    if planet not in EXALTATION_RASI:
+        return "NEUTRAL_SIGN"
+    if d9_rasi == DEBILITATION_RASI.get(planet):
+        return "DEBILITATED"
+    if d9_rasi == EXALTATION_RASI.get(planet):
+        return "EXALTED"
+    if d9_rasi in OWN_SIGN_RASI.get(planet, frozenset()):
+        return "OWN_SIGN"
+    sign_lord = SIGN_LORD.get(d9_rasi)
+    if sign_lord in _NATURAL_FRIENDS.get(planet, frozenset()):
+        return "FRIEND_SIGN"
+    if sign_lord in _NATURAL_ENEMIES.get(planet, frozenset()):
+        return "ENEMY_SIGN"
+    return "NEUTRAL_SIGN"
+
+
+# ── Compound (Panchadha) relationship — engine audit G1 ──────────────────────
+# BPHS: the five-fold relationship combines the permanent (naisargika) friendship
+# with the temporary (tatkalika) one — a graha 2/3/4/10/11/12 signs from another
+# is its temporary friend, any other position a temporary enemy. This is the ONE
+# definition: shadbala.py's Saptavargaja Bala imports it. Until 2026-09-15 it
+# lived only there, so the production dignity score used the permanent half
+# alone (docs/THIRUKANITHAM_ENGINE_AUDIT_2026-07-23.md, G1).
+REL_GREAT_FRIEND, REL_FRIEND, REL_NEUTRAL, REL_ENEMY, REL_GREAT_ENEMY = (
+    "GREAT_FRIEND", "FRIEND", "NEUTRAL", "ENEMY", "GREAT_ENEMY",
+)
+_TEMPORARY_FRIEND_HOUSES = frozenset({2, 3, 4, 10, 11, 12})
+_COMPOUND_GRADE: dict[tuple[str, str], str] = {
+    (REL_FRIEND, REL_FRIEND): REL_GREAT_FRIEND,
+    (REL_FRIEND, REL_ENEMY): REL_NEUTRAL,
+    (REL_NEUTRAL, REL_FRIEND): REL_FRIEND,
+    (REL_NEUTRAL, REL_ENEMY): REL_ENEMY,
+    (REL_ENEMY, REL_FRIEND): REL_NEUTRAL,
+    (REL_ENEMY, REL_ENEMY): REL_GREAT_ENEMY,
+}
+# Compound friendship is defined for the seven grahas; the nodes own no sign and
+# keep the permanent-table reading.
+_COMPOUND_GRAHAS = frozenset({"SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN"})
+
+# Dignity points per compound grade. [PRODUCT] numbers on a [CLASSICAL] order:
+# FRIEND 60 / NEUTRAL 50 / ENEMY 35 are the anchors the permanent-only table
+# already used, so the only new values are the two outer tiers, each 10 points
+# beyond its neighbour. The order matches Deeptadi avastha (Mudita = great
+# friend's sign, Khala = great enemy's), and _deeptadi_avastha's thresholds
+# place 70 and 25 in exactly those labels without being touched.
+_COMPOUND_DIGNITY: dict[str, int] = {
+    REL_GREAT_FRIEND: 70,
+    REL_FRIEND: 60,
+    REL_NEUTRAL: 50,
+    REL_ENEMY: 35,
+    REL_GREAT_ENEMY: 25,
+}
+
+
+def natural_relationship(planet: str, other: str) -> str:
+    """Permanent (naisargika) relationship of ``planet`` toward ``other``."""
+    if other in _NATURAL_FRIENDS.get(planet, frozenset()):
+        return REL_FRIEND
+    if other in _NATURAL_ENEMIES.get(planet, frozenset()):
+        return REL_ENEMY
+    return REL_NEUTRAL
+
+
+def temporary_relationship(planet_rasi: int, other_rasi: int) -> str:
+    """Temporary (tatkalika) relationship: friend when ``other`` sits 2/3/4/10/11/12
+    signs from ``planet``, enemy otherwise (the same sign included)."""
+    house = house_from_reference(planet_rasi, other_rasi)
+    return REL_FRIEND if house in _TEMPORARY_FRIEND_HOUSES else REL_ENEMY
+
+
+def compound_relationship(planet: str, other: str, rasi_map: Mapping[str, int]) -> str:
+    """Five-fold (Panchadha) relationship of ``planet`` toward ``other``."""
+    natural = natural_relationship(planet, other)
+    temporary = temporary_relationship(rasi_map[planet], rasi_map[other])
+    return _COMPOUND_GRADE[(natural, temporary)]
+
+
+def _dignity_score(
+    planet: str,
+    natal_rasi: int,
+    natal_longitude: float,
+    planet_rasi_map: Mapping[str, int] | None = None,
+) -> int:
+    """Returns dignity score per 9-level table.
+
+    With ``planet_rasi_map`` a graha in another's sign is graded by the compound
+    (permanent + temporary) relationship toward that sign's lord (G1). Without
+    it — or for a node, or when the lord's position is unknown — the permanent
+    relationship alone decides, which is the pre-G1 behaviour.
+    """
     if planet in DEBILITATION_RASI and natal_rasi == DEBILITATION_RASI[planet]:
         return 15
 
@@ -302,6 +417,15 @@ def _dignity_score(planet: str, natal_rasi: int, natal_longitude: float) -> int:
         return 80
 
     sign_lord = SIGN_LORD.get(natal_rasi)
+    if (
+        sign_lord
+        and sign_lord != planet
+        and planet_rasi_map is not None
+        and planet in _COMPOUND_GRAHAS
+        and planet in planet_rasi_map
+        and sign_lord in planet_rasi_map
+    ):
+        return _COMPOUND_DIGNITY[compound_relationship(planet, sign_lord, planet_rasi_map)]
     if sign_lord:
         if sign_lord in _NATURAL_FRIENDS.get(planet, frozenset()):
             return 60
@@ -342,13 +466,22 @@ _AVASTHA_MULTIPLIER_ODD = (0.50, 0.75, 1.00, 0.65, 0.25)
 _AVASTHA_MULTIPLIER_EVEN = (0.25, 0.65, 1.00, 0.75, 0.50)
 
 
-def _avastha_multiplier(natal_longitude: float, rasi: int) -> float:
+# Baladi is defined for the seven grahas only. The nodes are always retrograde,
+# so a mechanical reading would run their stages backwards; their strength comes
+# through the dispositor and the node doctrine instead. Astrologer ruling
+# 2026-09-23, sign-edge Q2.
+_BALADI_EXEMPT: frozenset[str] = frozenset({"RAHU", "KETU"})
+
+
+def _avastha_multiplier(natal_longitude: float, rasi: int, planet: str | None = None) -> float:
     """Baladi avastha multiplier — classical zoning, [PRODUCT] curve.
 
     The 6-degree zones and the odd/even reversal are BPHS. The five multiplier
     values are a smoothed product curve, not the classical fractions; see the
-    block comment above before changing either.
+    block comment above before changing either. Rahu and Ketu are neutral (1.0).
     """
+    if planet in _BALADI_EXEMPT:
+        return 1.0
     deg = natal_longitude % 30.0
     zone = min(int(deg / 6.0), 4)
     is_odd = (rasi % 2 == 1)
@@ -445,21 +578,36 @@ def _dik_bala_score(planet: str, house_from_lagna: int) -> float:
 
 def _kala_bala_score(
     planet: str,
-    is_daytime: bool,
+    is_daytime: bool | None,
     paksha_is_shukla: bool,
     is_vargottama: bool,
     d9_rasi: int | None,
 ) -> float:
-    """Temporal strength 0.0-1.0."""
+    """Temporal strength 0.0-1.0.
+
+    `is_daytime` is three-valued: ``None`` means the birth's day/night could not
+    be resolved (no birth time on file — see
+    `_chart_planets.resolve_daytime_birth`). Nathonnatha is then scored at the
+    midpoint, the same value Mercury gets for having no day/night preference,
+    rather than on a fabricated boolean. An unknown time used to arrive here as
+    ``True``, which is not neutral: it awarded Sun/Jupiter/Venus 1.0 and docked
+    Moon/Mars/Saturn to 0.4 on the strength of nothing.
+    """
     # Nathonnatha rule (BPHS) — day-strong: Sun, Jupiter, Venus; night-strong:
-    # Moon, Mars, Saturn. Must match shadbala._nathonnatha_bala (WI-01).
+    # Moon, Mars, Saturn. That GROUPING must match shadbala._nathonnatha_bala
+    # (WI-01). The formula deliberately does not: Shadbala's is BPHS's
+    # continuous 0-60 virupa ramp from local midnight to noon, with 30 for an
+    # unknown time and Mercury always 60; this is a two-level 1.0/0.4 step on
+    # the 0-1 product scale, 0.7 for unknown and for Mercury.
     diurnal = frozenset({"SUN", "JUPITER", "VENUS"})
     nocturnal = frozenset({"MOON", "MARS", "SATURN"})
+    #: Midpoint of the 1.0/0.4 nathonnatha pair — "no day/night claim either way".
+    natha_unknown = 0.7
 
     if planet in diurnal:
-        natha = 1.0 if is_daytime else 0.4
+        natha = natha_unknown if is_daytime is None else (1.0 if is_daytime else 0.4)
     elif planet in nocturnal:
-        natha = 1.0 if not is_daytime else 0.4
+        natha = natha_unknown if is_daytime is None else (1.0 if not is_daytime else 0.4)
     elif planet == "MERCURY":
         natha = 0.7
     else:
@@ -475,12 +623,13 @@ def _kala_bala_score(
         paksha = 0.7
 
     # Signed: a D9-debilitated planet loses the same margin a D9-dignified one
-    # gains. Vargottama holds the tier at +1 even in a debilitation sign — the
-    # sign repeating across D1/D9 is classically stabilising, so it is not also
-    # charged the neecha penalty.
+    # gains. Vargottama lifts a neutral D9 to +1, but never a debilitated one:
+    # vargottama in the neecha sign is neecha in both charts, and the ruling of
+    # 2026-10-01 keeps the two facts separate rather than letting one erase the
+    # other.
     tier = 0 if d9_rasi is None else _d9_dignity_tier(planet, d9_rasi)
-    if is_vargottama:
-        tier = max(tier, 1)
+    if is_vargottama and tier == 0:
+        tier = 1
     d9_bonus = 0.2 * tier
     return max(0.0, min(1.0, (natha * 0.50 + paksha * 0.30) + d9_bonus * 0.20))
 
@@ -638,15 +787,16 @@ def compute_strength_breakdown(
     is_retrograde: bool,
     is_vargottama: bool = False,
     d9_rasi: int | None = None,
-    is_daytime: bool = True,
+    is_daytime: bool | None = True,
     paksha_is_shukla: bool = True,
     benefic_aspect_count: int = 0,
     malefic_aspect_count: int = 0,
     speed_ratio: float | None = None,
+    planet_rasi_map: Mapping[str, int] | None = None,
 ) -> dict[str, str]:
     """Returns sthana/dik/kala/chesta/naisargika/drik/baladi/jagradadi/deeptadi labels."""
     house = house_from_reference(natal_lagna_rasi, natal_rasi)
-    dignity = _dignity_score(planet, natal_rasi, natal_longitude)
+    dignity = _dignity_score(planet, natal_rasi, natal_longitude, planet_rasi_map)
 
     sthana = "STRONG" if dignity >= 80 else ("NEUTRAL" if dignity >= 50 else "WEAK")
 
@@ -672,7 +822,7 @@ def compute_strength_breakdown(
         "chesta": chesta,
         "naisargika": naisargika,
         "drik": drik,
-        "baladi": _baladi_avastha(natal_longitude, natal_rasi),
+        "baladi": "NEUTRAL" if planet in _BALADI_EXEMPT else _baladi_avastha(natal_longitude, natal_rasi),
         "jagradadi": _jagradadi_avastha(natal_longitude, natal_rasi),
         "deeptadi": _deeptadi_avastha(dignity),
     }
@@ -723,10 +873,11 @@ def compute_natal_planet_score(
     benefic_aspect_count: int = 0,
     malefic_aspect_count: int = 0,
     d9_rasi: int | None = None,
-    is_daytime: bool = True,
+    is_daytime: bool | None = True,
     paksha_is_shukla: bool = True,
     speed_ratio: float | None = None,
     planetary_wars: dict[str, str] | None = None,
+    planet_rasi_map: Mapping[str, int] | None = None,
 ) -> int:
     """
     Full Shadbala-weighted natal planet strength score.
@@ -750,6 +901,7 @@ def compute_natal_planet_score(
         paksha_is_shukla=paksha_is_shukla,
         speed_ratio=speed_ratio,
         planetary_wars=planetary_wars,
+        planet_rasi_map=planet_rasi_map,
     )
     return score
 
@@ -766,10 +918,11 @@ def explain_natal_planet_score(
     benefic_aspect_count: int = 0,
     malefic_aspect_count: int = 0,
     d9_rasi: int | None = None,
-    is_daytime: bool = True,
+    is_daytime: bool | None = True,
     paksha_is_shukla: bool = True,
     speed_ratio: float | None = None,
     planetary_wars: dict[str, str] | None = None,
+    planet_rasi_map: Mapping[str, int] | None = None,
 ) -> tuple[int, list[ScoreContribution]]:
     """``(score, contributions)`` — the score plus why it is that number.
 
@@ -788,8 +941,23 @@ def explain_natal_planet_score(
     contributions: list[ScoreContribution] = []
     house = house_from_reference(natal_lagna_rasi, natal_rasi)
 
-    dignity = _dignity_score(planet, natal_rasi, natal_longitude)
-    avastha = _avastha_multiplier(natal_longitude, natal_rasi)
+    dignity = _dignity_score(planet, natal_rasi, natal_longitude, planet_rasi_map)
+    avastha = _avastha_multiplier(natal_longitude, natal_rasi, planet)
+
+    # Sign edge vs Baladi — one fact, one penalty (astrologer ruling 2026-09-23,
+    # sign-edge Q1; a [PRODUCT] scoring rule, see SANDHI_PENALTY). Inside the edge band the planet is also in the first or last
+    # 6° Baladi zone, so charging the flat sandhi term on top of the avastha
+    # scaling double-penalised the same degree. Whichever costs more is kept:
+    # the Baladi cost is what the multiplier removes from the sthana term,
+    # dignity * (1 - avastha) * 0.60 * 0.30.
+    deg_in_sign = natal_longitude % 30
+    in_sandhi = deg_in_sign <= SANDHI_EDGE_DEGREES or deg_in_sign >= 30.0 - SANDHI_EDGE_DEGREES
+    sandhi_charged = False
+    if in_sandhi:
+        baladi_cost = dignity * (1.0 - avastha) * 0.60 * 0.30
+        if SANDHI_PENALTY > baladi_cost:
+            avastha = 1.0
+            sandhi_charged = True
     if house in {1, 4, 7, 10}:
         house_strength = 80
     elif house in {5, 9}:
@@ -858,8 +1026,9 @@ def explain_natal_planet_score(
         # The penalty is deliberately NOT gated on dignity. Gating it would
         # re-open the exact hole this closes: the case that most needs the
         # correction is a Rasi-exalted (dignity == 100) planet sitting neecha
-        # in Navamsa. Vargottama is exempt, as in the Kala Bala branch above.
-        elif d9_tier < 0 and not is_vargottama:
+        # in Navamsa. Vargottama is not exempt (ruling 2026-10-01): it keeps
+        # its own +4 row above, and this row charges the debility beside it.
+        elif d9_tier < 0:
             # Graded 2026-08-27 (§7 Q12): a Rasi-exalted graha sitting neecha in
             # Navamsa is the case the D9 exists to catch — "exalted in name,
             # powerless in effect" — and is charged double. Anything else is a
@@ -899,12 +1068,15 @@ def explain_natal_planet_score(
                     )
                 )
 
-    deg_in_sign = natal_longitude % 30
-    if deg_in_sign <= 1.0 or deg_in_sign >= 29.0:
-        shadbala -= 8.0
+    if sandhi_charged:
+        shadbala -= SANDHI_PENALTY
         contributions.append(
-            ScoreContribution("sandhi", -8.0, "degree_in_sign", f"{deg_in_sign:.2f}")
+            ScoreContribution("sandhi", -SANDHI_PENALTY, "degree_in_sign", f"{deg_in_sign:.2f}")
         )
+    elif in_sandhi:
+        # Kept as a zero row so the breakdown still says why no -8 appears:
+        # the larger Baladi cost already sits inside the sthana term.
+        contributions.append(ScoreContribution("sandhi", 0.0, "absorbed_by", "baladi"))
 
     if is_gandanta(natal_longitude):
         shadbala -= 10.0
@@ -977,6 +1149,20 @@ FUNCTIONAL_STRENGTH_DELTA: dict[str, float] = {
 
 _YUTI_WEIGHT = 6.0
 _YUTI_CAP = 10.0
+
+# G2 (engine audit) — yuti graded by orb. Whole-sign stays the GATE: two grahas
+# in one rasi are conjunct, as Tamil practice reads it, however far apart. The
+# degree separation only grades HOW MUCH — full weight at 0 degrees, tapering
+# linearly to half weight at 30. [PRODUCT] curve: the texts give the rule, not
+# a taper, and the 0.5 floor keeps a wide same-sign yuti a real yuti instead of
+# erasing it. Graha yuddha (1 degree) and combustion keep their own classical orbs.
+_YUTI_ORB_FLOOR = 0.5
+
+
+def yuti_orb_factor(separation_degrees: float) -> float:
+    """Weight for a same-sign yuti, 1.0 at exact conjunction to 0.5 at 30 degrees."""
+    separation = max(0.0, min(30.0, separation_degrees))
+    return 1.0 - (1.0 - _YUTI_ORB_FLOOR) * separation / 30.0
 _DRISHTI_QUALITY_WEIGHT = 5.0
 _DRISHTI_CAP = 10.0
 _NEECHA_BHANGA_BONUS = 14.0
@@ -999,73 +1185,36 @@ def neecha_bhanga_cancelled(
     lagna_rasi: int,
     d9_rasi_map: Mapping[str, int] | None = None,
     d9_lagna_rasi: int | None = None,
+    options: DoctrineOptions = DEFAULT_DOCTRINE,
 ) -> tuple[bool, list[str]]:
     """Canonical Neecha Bhanga (debilitation-cancellation) test for ONE planet.
 
     THE single source of truth, shared by the yoga detector
-    (``_yoga_detect.detect_neecha_bhanga`` — the visible yoga card) and the
-    strength synthesis (``_neecha_bhanga_planets`` — the +14 bhanga term).
-    Before this existed the two carried divergent condition sets and could
-    disagree on the same chart (audit C2,
+    (``_yoga_detect.detect_neecha_bhanga`` — the visible yoga card), the
+    strength synthesis (``_neecha_bhanga_planets`` — the +14 bhanga term), the
+    yogakaraka card and bhava palan. Before this existed they carried divergent
+    condition sets and could disagree on the same chart (audit C2,
     docs/THIRUKANITHAM_ENGINE_AUDIT_2026-07-23.md). Returns
-    ``(cancelled, conditions)`` naming the classical rules that fired.
+    ``(cancelled, conditions)``, one marker per rule that fired.
 
-    A planet not standing in its own debilitation rasi is never a candidate →
-    ``(False, [])``. The four substantive rules (BPHS / standard Tamil
-    Thirukanitham):
-      1. the lord of the debilitation sign sits in a kendra from lagna or Moon,
-      2. the planet that *exalts* in the debilitation sign sits in a kendra from
-         lagna or Moon,
-      3. the lord of the sign where THIS planet exalts casts a drishti on it,
-      4. the planet is strong in the Navamsa — in a kendra/trikona from the D9
-         lagna when that is known, else dignified (own/exaltation) in D9.
+    The rules themselves live in `app.calculations.neecha_bhanga`, one row per
+    Phaladeepika verse (DOCTRINE_DECISIONS v1.3, DD-09). Any one rule cancels;
+    there is no count threshold. The Navamsa rule and the two conditions the
+    engine shipped without a verse are switched off by default (O-7, O-12).
     Retrograde is a supporting *note* only (added by the caller), never on its
     own a cancellation — closing the old lone-retrograde over-detection (G6).
     """
-    deb_rasi = DEBILITATION_RASI.get(planet)
-    if deb_rasi is None or planet_rasi.get(planet) != deb_rasi:
-        return False, []
+    from app.calculations.neecha_bhanga import evaluate_neecha_bhanga
 
-    moon_rasi = planet_rasi.get("MOON")
-
-    def _in_kendra(from_rasi: int | None, target_rasi: int | None) -> bool:
-        if from_rasi is None or target_rasi is None:
-            return False
-        return house_from_reference(from_rasi, target_rasi) in _KENDRA_HOUSES
-
-    conditions: list[str] = []
-
-    # (1) lord of the debilitation sign in a kendra from lagna or Moon
-    deb_lord = SIGN_LORD.get(deb_rasi)
-    deb_lord_rasi = planet_rasi.get(deb_lord) if deb_lord else None
-    if _in_kendra(lagna_rasi, deb_lord_rasi) or _in_kendra(moon_rasi, deb_lord_rasi):
-        conditions.append("debilitation_sign_lord_in_kendra")
-
-    # (2) the planet that exalts in the debilitation sign, in a kendra
-    exalter = {rasi: p for p, rasi in EXALTATION_RASI.items()}.get(deb_rasi)
-    exalter_rasi = planet_rasi.get(exalter) if exalter else None
-    if _in_kendra(lagna_rasi, exalter_rasi) or _in_kendra(moon_rasi, exalter_rasi):
-        conditions.append("exalter_of_debilitation_sign_in_kendra")
-
-    # (3) the lord of the sign where THIS planet exalts casts a drishti on it
-    own_exalt_rasi = EXALTATION_RASI.get(planet)
-    if own_exalt_rasi is not None:
-        exaltation_sign_lord = SIGN_LORD[own_exalt_rasi]
-        esl_rasi = planet_rasi.get(exaltation_sign_lord)
-        if esl_rasi is not None and aspects_house(exaltation_sign_lord, esl_rasi, deb_rasi):
-            conditions.append("exaltation_sign_lord_aspects_debilitated")
-
-    # (4) the debilitated planet strong in the Navamsa (D9)
-    if d9_rasi_map is not None and planet in d9_rasi_map:
-        d9_rasi = d9_rasi_map[planet]
-        if d9_lagna_rasi is not None:
-            strong_d9 = house_from_reference(d9_lagna_rasi, d9_rasi) in _KENDRA_TRIKONA_HOUSES
-        else:
-            strong_d9 = _has_d9_dignity(planet, d9_rasi)
-        if strong_d9:
-            conditions.append("debilitated_planet_strong_d9")
-
-    return bool(conditions), conditions
+    evaluation = evaluate_neecha_bhanga(
+        planet,
+        planet_rasi=planet_rasi,
+        lagna_rasi=lagna_rasi,
+        d9_rasi_map=d9_rasi_map,
+        d9_lagna_rasi=d9_lagna_rasi,
+        options=options,
+    )
+    return evaluation.cancelled, evaluation.markers
 
 
 def _neecha_bhanga_planets(
@@ -1073,10 +1222,12 @@ def _neecha_bhanga_planets(
     lagna_rasi: int,
     d9_rasi_map: Mapping[str, int] | None,
     d9_lagna_rasi: int | None = None,
+    doctrine: DoctrineOptions = DEFAULT_DOCTRINE,
 ) -> frozenset[str]:
     """Planets whose debilitation is cancelled, via the canonical
     ``neecha_bhanga_cancelled`` predicate (shared with the yoga detector so the
-    strength number and the yoga card can never disagree — audit C2)."""
+    strength number and the yoga card can never disagree — audit C2). The
+    caller passes the same `doctrine` the yoga detector gets, for the same reason."""
     return frozenset(
         planet
         for planet in DEBILITATION_RASI
@@ -1086,6 +1237,7 @@ def _neecha_bhanga_planets(
             lagna_rasi=lagna_rasi,
             d9_rasi_map=d9_rasi_map,
             d9_lagna_rasi=d9_lagna_rasi,
+            options=doctrine,
         )[0]
     )
 
@@ -1099,6 +1251,8 @@ def apply_holistic_synthesis(
     benefic_planets: frozenset[str],
     d9_rasi_map: Mapping[str, int] | None = None,
     d9_lagna_rasi: int | None = None,
+    planet_longitude: Mapping[str, float] | None = None,
+    doctrine: DoctrineOptions = DEFAULT_DOCTRINE,
 ) -> dict[str, dict[str, float]]:
     """Second-pass relational refinement of base natal strength (spec §4).
 
@@ -1110,8 +1264,12 @@ def apply_holistic_synthesis(
     benefic set; any other scored graha is treated as malefic for the yuti and
     drishti sign. Only grahas present in BOTH ``base_scores`` and ``planet_rasi``
     are scored (Mandhi and unscored bodies are ignored).
+
+    ``planet_longitude`` grades each yuti by degree separation (G2,
+    ``yuti_orb_factor``). Omitted, every same-sign companion carries full weight
+    — the pre-G2 whole-sign reading.
     """
-    neecha = _neecha_bhanga_planets(planet_rasi, lagna_rasi, d9_rasi_map, d9_lagna_rasi)
+    neecha = _neecha_bhanga_planets(planet_rasi, lagna_rasi, d9_rasi_map, d9_lagna_rasi, doctrine)
     grahas = [g for g in base_scores if g in planet_rasi]
     out: dict[str, dict[str, float]] = {}
 
@@ -1131,7 +1289,11 @@ def apply_holistic_synthesis(
             if other == planet or planet_rasi[other] != rasi:
                 continue
             sign = 1.0 if other in benefic_planets else -1.0
-            yuti += sign * (base_scores[other] - 50) / 50.0 * _YUTI_WEIGHT
+            orb = 1.0
+            if planet_longitude is not None and planet in planet_longitude and other in planet_longitude:
+                diff = abs(planet_longitude[planet] - planet_longitude[other]) % 360.0
+                orb = yuti_orb_factor(min(diff, 360.0 - diff))
+            yuti += sign * (base_scores[other] - 50) / 50.0 * _YUTI_WEIGHT * orb
         yuti = max(-_YUTI_CAP, min(_YUTI_CAP, yuti))
 
         # G4 weighted drishti — aspect QUALITY graded by the aspecting planet's

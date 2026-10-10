@@ -7,7 +7,7 @@ import { useBirthProfileForm } from "@/hooks/useBirthProfileForm";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { dt, FAMILY_ONBOARDING, ONBOARDING_DETAIL_LEVEL } from "@/lib/dashboard-i18n";
-import type { FamilyVaultListItem } from "@/lib/types";
+import type { BirthProfileResponse, FamilyVaultListItem } from "@/lib/types";
 import { PlaceCombobox } from "./place-combobox";
 import { RectificationWizard } from "./dashboard-rectification-wizard";
 import { DashboardLearnArticleModal } from "./dashboard-learn-article-modal";
@@ -17,6 +17,7 @@ import { SettingsRail, type SettingsSectionId } from "./dashboard-settings-rail"
 import { Button, StatusChip } from "./ui";
 import { Field, FieldShell, Input, Select } from "./ui/field";
 import { ArrowUpRight } from "lucide-react";
+import { OPEN_BETA, PLAY_STORE_URL } from "@vinaadi/shared/constants";
 
 type Relationship = "self" | "spouse" | "child" | "parent" | "sibling" | "grandparent" | "other";
 
@@ -89,6 +90,9 @@ interface DashboardSetupTabProps {
   onCreateProfile: (e: FormEvent<HTMLFormElement>) => void;
   onAddMember: (e: FormEvent<HTMLFormElement>) => void;
   onShowEditProfile: () => void;
+  /** Opens the shared edit modal on one row of the all-birth-profiles list. */
+  onEditBirthProfile?: (profile: BirthProfileResponse) => void;
+  birthProfilesReloadToken?: number;
   onGoToPersonal: () => void;
   onModeChange?: (mode: UserMode) => void;
 }
@@ -204,6 +208,8 @@ export function DashboardSetupTab({
   onCreateProfile,
   onAddMember,
   onShowEditProfile,
+  onEditBirthProfile,
+  birthProfilesReloadToken,
   onGoToPersonal,
   userMode = "BALANCED",
   onModeChange,
@@ -610,7 +616,12 @@ export function DashboardSetupTab({
                 {lang === "ta" ? "பிறந்த விவர பட்டியல்" : "All birth profiles"}
               </h3>
             </div>
-            <BirthProfilesManager lang={lang} activeProfileId={birthProfileId} />
+            <BirthProfilesManager
+              lang={lang}
+              activeProfileId={birthProfileId}
+              onEditProfile={onEditBirthProfile}
+              reloadToken={birthProfilesReloadToken}
+            />
           </div>
         )}
 
@@ -652,8 +663,8 @@ export function DashboardSetupTab({
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={"var(--color-high)"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0, marginTop: "1px" }}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
             <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.5 }}>
               {lang === "ta"
-                ? "இவர்களின் விவரங்கள் மறையாக்கம் செய்யப்பட்டு பாதுகாப்பாக சேமிக்கப்படுகின்றன — யாருக்கும் விற்கப்படுவதில்லை. எப்போது வேண்டுமானாலும் அமைப்புகளில் நீக்கலாம் அல்லது திருத்தலாம்."
-                : "Their details are encrypted and kept private — never sold or shared. You can delete or correct any member anytime from Settings."}
+                ? "இவர்களின் விவரங்கள் தனிப்பட்டவையாகவே வைக்கப்படுகின்றன — யாருக்கும் விற்கப்படுவதில்லை. எப்போது வேண்டுமானாலும் அமைப்புகளில் நீக்கலாம் அல்லது திருத்தலாம்."
+                : "Their details are kept private — never sold or shared. You can delete or correct any member anytime from Settings."}
             </p>
           </div>
 
@@ -784,10 +795,18 @@ export function DashboardSetupTab({
         </div>
       )}
 
-      {/* ── Premium upgrade nudge — shown once birth profile exists ── */}
-      {!!birthProfileId && (
+      {/* ── Premium upgrade nudge — shown once birth profile exists, and not
+          during the open beta, when there is nothing to subscribe to ── */}
+      {!!birthProfileId && !OPEN_BETA && (
         <div style={{
-          background: "linear-gradient(135deg, var(--color-surface-3) 0%, var(--color-surface-2) 100%)",
+          /* Was surface-3 -> surface-2. On light, surface-3 is the palette's
+             deepest cream and every ink in this panel is dark, so the deep end
+             was the contrast floor: --color-muted measured 4.47 there, under
+             AA, and --color-text-accent was no better. surface-soft keeps the
+             recessed-panel read (it is still a step below the card) and gives
+             the three inks their headroom back. Dark was unaffected either
+             way — there surface-3 is genuinely deeper and the inks are light. */
+          background: "linear-gradient(135deg, var(--color-surface-soft) 0%, var(--color-surface-2) 100%)",
           borderRadius: "var(--radius-md)", padding: "var(--space-5) var(--space-6)",
           display: "grid", gridTemplateColumns: "1fr auto", gap: "var(--space-4)",
           alignItems: "center",
@@ -833,17 +852,19 @@ export function DashboardSetupTab({
                 App Store <ArrowUpRight size={14} strokeWidth={1.5} aria-hidden="true" />
               </a>
             )}
-            <a
-              href="https://play.google.com/store/apps/details?id=ai.vinaadi.app"
-              style={{
-                display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "var(--space-1)",
-                padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-md)",
-                border: "1px solid var(--color-border-strong)", color: "var(--color-text-strong)", textDecoration: "none",
-                fontSize: "var(--text-base)", fontWeight: 700, whiteSpace: "nowrap",
-              }}
-            >
-              Google Play <ArrowUpRight size={14} strokeWidth={1.5} aria-hidden="true" />
-            </a>
+            {PLAY_STORE_URL && (
+              <a
+                href={PLAY_STORE_URL}
+                style={{
+                  display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "var(--space-1)",
+                  padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-md)",
+                  border: "1px solid var(--color-border-strong)", color: "var(--color-text-strong)", textDecoration: "none",
+                  fontSize: "var(--text-base)", fontWeight: 700, whiteSpace: "nowrap",
+                }}
+              >
+                Google Play <ArrowUpRight size={14} strokeWidth={1.5} aria-hidden="true" />
+              </a>
+            )}
           </div>
         </div>
       )}

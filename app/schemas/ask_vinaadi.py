@@ -56,3 +56,19 @@ class AskVinaadiResponse(BaseModel):
     meta: ResponseMeta
 
     model_config = ConfigDict(populate_by_name=True)
+
+
+class AskVinaadiDailyStatus(BaseModel):
+    """GET /ask-vinaadi/daily-status — a bare object, not a {success, data}
+    envelope; deployed clients read it that way. A user on a monthly quota gets
+    `dailyLimit: null`; otherwise `monthlyLimit` is null.
+    """
+
+    chips_used: int = Field(alias="chipsUsed")
+    chips_remaining: int = Field(alias="chipsRemaining")
+    is_premium: bool = Field(alias="isPremium")
+    open_beta: bool = Field(alias="openBeta")
+    daily_limit: int | None = Field(alias="dailyLimit")
+    monthly_limit: int | None = Field(alias="monthlyLimit")
+
+    model_config = ConfigDict(populate_by_name=True)

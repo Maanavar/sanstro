@@ -19,7 +19,7 @@ from datetime import date, datetime, timedelta
 
 import pytest
 
-from app.calculations.panchangam import best_gowri_slot, calculate_daily_panchangam
+from app.calculations.panchangam import best_gowri_slot
 from app.data.kuligai_polarity import rejects as kuligai_rejects
 from app.services.muhurta_service import (
     _MIN_WINDOW,
@@ -31,6 +31,7 @@ from app.services.muhurta_service import (
     _norm,
     _overlaps,
 )
+from app.services.panchangam_cache import calculate_daily_panchangam
 
 # Chennai — a location, not a person; no synthetic identity is needed here.
 LATITUDE, LONGITUDE, TIMEZONE = 13.0827, 80.2707, "Asia/Kolkata"

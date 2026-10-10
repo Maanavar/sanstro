@@ -13,6 +13,7 @@ from pathlib import Path
 
 import pytest
 
+from app.calculations.chart_strength import d9_dignity_label
 from app.schemas.charts import PlanetPosition
 from app.services.chart_explanation_service import _build_bhava_section
 
@@ -21,7 +22,16 @@ pytestmark = pytest.mark.no_db
 _ROOT_WEB = Path(__file__).resolve().parent.parent / "web" / "components"
 
 
-def _planet(graha: str, rasi: int, lagna_rasi: int = 1, strength: int = 50) -> PlanetPosition:
+def _planet(
+    graha: str,
+    rasi: int,
+    lagna_rasi: int = 1,
+    strength: int = 50,
+    d9_rasi: int | None = None,
+) -> PlanetPosition:
+    # Defaults to the Rasi sign (vargottama) so existing fixtures are unchanged; pass
+    # `d9_rasi` explicitly where a test needs the two vargas to differ.
+    d9 = rasi if d9_rasi is None else d9_rasi
     return PlanetPosition(
         graha=graha,
         rasi_name=f"Rasi{rasi}",
@@ -35,7 +45,10 @@ def _planet(graha: str, rasi: int, lagna_rasi: int = 1, strength: int = 50) -> P
         speed_deg_per_day=1.0,
         is_retrograde=False,
         is_combust=False,
-        d9_rasi=rasi,
+        d9_rasi=d9,
+        # Derived, never hand-typed: a fixture that pairs a navamsa sign with a
+        # dignity it cannot carry states a rule the engine does not hold.
+        d9_dignity=d9_dignity_label(graha, d9),
         is_vargottama=False,
         show_retrograde_badge=False,
         strength_score=strength,
@@ -126,10 +139,11 @@ def test_no_dative_suffix_or_bindu_transliteration_regressions():
       Tamil it reads primarily as "semen". The term is "பரல்".
 
     Checked against the web component because that is where the string lives.
+    The panel was split into `chart-reading/` (FTR-05, 2026-10-04); the line
+    now sits in the Astrologer view, so the shell and that folder are read.
     """
-    panel = (
-        _ROOT_WEB / "dashboard-chart-explanation.tsx"
-    ).read_text(encoding="utf-8")
+    sources = [_ROOT_WEB / "dashboard-chart-explanation.tsx", *sorted((_ROOT_WEB / "chart-reading").glob("*.tsx"))]
+    panel = "\n".join(path.read_text(encoding="utf-8") for path in sources)
     # Only look at the rendered template literals, not the explanatory comment
     # that names the rejected forms on purpose.
     rendered = "\n".join(
@@ -152,3 +166,187 @@ def test_lagna_itself_surfaces_aspects_onto_it():
     first = next(b for b in section.bhavas if b.house == 1)
     assert first.occupants == []
     assert "JUPITER" in first.aspecting_planets
+
+# ── Bhava palan reaches the response (2026-09-28) ──────────────────────────────
+#
+# The verdict/why/conduct triple is assembled in `_build_bhava_section`, so these
+# assert it is actually ON the schema object a surface receives — not merely that
+# the calculation module works, which tests/test_bhava_palan.py already covers.
+
+
+def test_every_house_carries_a_verdict_and_conduct():
+    planets = [_planet("SATURN", 10), _planet("SUN", 1), _planet("VENUS", 7, strength=29)]
+    section = _build_bhava_section(planets, lagna_rasi=1)
+
+    for bhava in section.bhavas:
+        assert bhava.verdict in {"SUPPORTED", "MIXED", "NEEDS_CARE"}, bhava.house
+        assert bhava.polarity in {"DIRECT", "UPACHAYA", "INVERTED"}, bhava.house
+        # Both languages, always — an English-only payload strands every Tamil
+        # reader, and the audit harness pins its account to lang "en" so nothing
+        # else in CI would notice.
+        for field in (bhava.band_word, bhava.house_label, bhava.framing, bhava.why):
+            assert field is not None, f"house {bhava.house} missing a palan field"
+            assert field.ta and field.en
+        assert len(bhava.lean_on) >= 1
+        assert len(bhava.go_slowly_with) >= 1
+        for item in bhava.lean_on + bhava.go_slowly_with:
+            assert item.ta and item.en
+
+
+def test_dusthana_polarity_and_notes_are_wired_through():
+    section = _build_bhava_section([_planet("SUN", 1)], lagna_rasi=1)
+    by_house = {b.house: b for b in section.bhavas}
+
+    for house in (6, 8, 12):
+        assert by_house[house].polarity == "INVERTED"
+        # The line that stops a green chip on a low house looking like a bug.
+        assert by_house[house].polarity_note is not None
+    for house in (3, 11):
+        assert by_house[house].polarity == "UPACHAYA"
+        assert by_house[house].polarity_note is not None
+    for house in (1, 7, 10):
+        assert by_house[house].polarity_note is None
+
+
+def test_the_contrast_line_reaches_the_schema_only_where_chips_disagree():
+    """Wired through, and serialised under the name web reads.
+
+    Mesha lagna, 10th = Magaram, lord Saturn at 44 (below web's 45 "Needs support"
+    cut) and placed in the 3rd, away from it. Venus and Mercury sit in the 10th and
+    Jupiter aspects it from the 4th, which carries it to 52 — Supported at the
+    green cut raised on 2026-09-30.
+    """
+    planets = [
+        _planet("SATURN", 3, strength=44),
+        _planet("VENUS", 10),
+        _planet("MERCURY", 10),
+        _planet("JUPITER", 4),
+    ]
+    section = _build_bhava_section(planets, lagna_rasi=1)
+    by_house = {b.house: b for b in section.bhavas}
+
+    tenth = by_house[10]
+    assert tenth.verdict == "SUPPORTED"
+    assert tenth.contrast is not None
+    assert tenth.contrast.en.startswith("Lord Saturn is weak, but ")
+    assert "carry this house" in tenth.contrast.en
+    assert tenth.contrast.ta
+    assert tenth.model_dump(by_alias=True)["contrast"]["en"] == tenth.contrast.en
+
+    # Every lord here other than Saturn sits at the neutral 50 ("Moderate"), so
+    # nothing else on the page contradicts anything.
+    assert all(b.contrast is None for h, b in by_house.items() if by_house[h].lord != "SATURN")
+
+
+def test_the_eighth_house_label_avoids_the_longevity_register():
+    """ஆயுள் ஸ்தானம் is the almanac name and is deliberately NOT used — it invites
+    exactly the longevity question this product permanently refuses."""
+    section = _build_bhava_section([_planet("SUN", 1)], lagna_rasi=1)
+    eighth = next(b for b in section.bhavas if b.house == 8)
+    assert eighth.house_label is not None
+    assert "ஆயுள்" not in eighth.house_label.ta
+
+
+def test_a_weak_seventh_lord_does_not_produce_a_supported_seventh():
+    """The defect that motivated the whole panel, asserted at the seam.
+
+    Mesha lagna: the 7th is Thulam, its lord Venus. Venus weak and placed away
+    from the 7th, with Saturn's 10th drishti landing on the empty 7th, must not
+    band SUPPORTED — which is exactly what the old UI dot showed, because it read
+    only the lord's score and ignored the aspect.
+    """
+    planets = [_planet("VENUS", 3, strength=22), _planet("SATURN", 10), _planet("SUN", 1)]
+    section = _build_bhava_section(planets, lagna_rasi=1)
+    seventh = next(b for b in section.bhavas if b.house == 7)
+
+    assert seventh.occupants == []
+    assert "SATURN" in seventh.aspecting_planets
+    assert seventh.verdict != "SUPPORTED", (
+        f"an empty, Saturn-aspected 7th with a weak lord banded {seventh.verdict}"
+    )
+    # And the reason must name a graha, so the reader can check it on the chart.
+    assert seventh.why is not None
+    assert any(n in seventh.why.en for n in ("Venus", "Saturn"))
+
+
+# ── The Navamsa must actually reach the why-line ────────────────────────────────
+#
+# Every test of the clause itself lives in tests/test_bhava_palan.py and hands
+# `build_palan` a D9 map directly, so all of them stay green if this wiring is
+# dropped. This is the only check that `_build_bhava_section` really passes one.
+
+
+def test_the_navamsa_reaches_the_bhava_why_line(monkeypatch):
+    """Capture what the section hands down, rather than asserting on rendered copy.
+
+    Asserting on the sentence would pass for the wrong reason: three of the four
+    neecha bhanga routes are Rasi-side and produce a clause with no Navamsa involved.
+
+    Discriminating by construction — every planet's D9 sign differs from its Rasi
+    sign, so this fails if the map is dropped (KeyError), if it is never passed
+    (None), or if `planets_rasi` is passed in its place.
+    """
+    seen: list[dict] = []
+    import app.services.chart_explanation_service as svc
+
+    real = svc.build_palan
+
+    def spy(*args, **kwargs):
+        seen.append(dict(kwargs))
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(svc, "build_palan", spy)
+
+    planets = [
+        _planet("SUN", 1, d9_rasi=5),
+        _planet("VENUS", 6, d9_rasi=11),
+        _planet("SATURN", 9, d9_rasi=2),
+    ]
+    rasi_map = {"SUN": 1, "VENUS": 6, "SATURN": 9}
+    d9_map = {"SUN": 5, "VENUS": 11, "SATURN": 2}
+
+    _build_bhava_section(planets, lagna_rasi=1, d9_lagna_rasi=4)
+
+    assert len(seen) == 12
+    for kwargs in seen:
+        assert kwargs["d9_lagna_rasi"] == 4
+        assert kwargs["d9_rasi"] == d9_map
+        assert kwargs["d9_rasi"] != rasi_map
+
+
+def test_the_navamsa_is_absent_rather_than_guessed_when_not_supplied(monkeypatch):
+    """Omitting the D9 lagna must pass None down, never a stand-in.
+
+    `lord_dignity_of` falls back to sign-level D9 dignity when the D9 lagna is unknown,
+    which is a different (weaker) bhanga test — substituting the Rasi lagna here would
+    silently answer a question the caller did not ask.
+    """
+    seen: list[dict] = []
+    import app.services.chart_explanation_service as svc
+
+    real = svc.build_palan
+
+    def spy(*args, **kwargs):
+        seen.append(dict(kwargs))
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(svc, "build_palan", spy)
+    _build_bhava_section([_planet("SUN", 1, d9_rasi=5)], lagna_rasi=1)
+
+    assert seen and all(kwargs["d9_lagna_rasi"] is None for kwargs in seen)
+
+
+def test_the_bhava_band_does_not_move_when_the_navamsa_does(monkeypatch):
+    """The clause explains the number; it must not change it (ruling Q5).
+
+    `compute_bhava_bala` feeds the live Life Areas score, so a reading panel that
+    shifted a band would move every user's numbers for a copy change.
+    """
+    planets_a = [_planet("SUN", 1, d9_rasi=5), _planet("VENUS", 6, d9_rasi=11)]
+    planets_b = [_planet("SUN", 1, d9_rasi=9), _planet("VENUS", 6, d9_rasi=3)]
+
+    a = _build_bhava_section(planets_a, lagna_rasi=1, d9_lagna_rasi=4)
+    b = _build_bhava_section(planets_b, lagna_rasi=1, d9_lagna_rasi=10)
+
+    assert [x.bhava_bala for x in a.bhavas] == [x.bhava_bala for x in b.bhavas]
+    assert [x.verdict for x in a.bhavas] == [x.verdict for x in b.bhavas]

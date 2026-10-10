@@ -5,6 +5,8 @@ from typing import Annotated, Literal
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, field_validator
 
+from app.core.subscription import open_beta_active
+
 _EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 
 CONSENT_REQUIRED_MESSAGE = "You must accept the privacy policy to create an account."
@@ -105,6 +107,14 @@ class AuthUserResponse(BaseModel):
     #: to serialise; every current site passes it explicitly, and the safe
     #: default is the *lower* privilege.
     tier: Literal["registered", "premium"] = Field(default="registered")
+    #: True while the open beta runs (``settings.open_beta``). The server already
+    #: holds a beta account to premium's limits (``limits_for_user``); this tells
+    #: the client to unlock the same features and to show no upgrade prompt.
+    #: Kept beside ``tier`` rather than folded into it, so ``tier`` stays the
+    #: subscription fact and the day the beta ends needs no data migration.
+    #: Read from settings, not passed per site, so no construction site can
+    #: disagree with the server's own gating.
+    open_beta: bool = Field(default_factory=open_beta_active, alias="openBeta")
     #: True when the client should show the consent panel: the user has never
     #: consented, or consented to a policy version older than the live one.
     #: One boolean rather than two, because the product response is the same and

@@ -1,22 +1,28 @@
 # docs/ Index — Vinaadi AI
 
-Quick map to the right document for each purpose. **Last regenerated: 2026-07-16.**
+Quick map to the right document for each purpose. **Last updated: 2026-10-06.**
 
 > Files under [archive/](archive/) are historical and **superseded** — kept for
 > reference only, do not treat as current. Everything else is live.
 
 ## Start Here
+- [VINAADI_PRODUCT_TECHNICAL_CAPABILITY_REFERENCE_2026-10-06.md](VINAADI_PRODUCT_TECHNICAL_CAPABILITY_REFERENCE_2026-10-06.md) — **Current whole-product source of truth.** Merged from two independent code audits of commit `8913117`, with every disagreement settled against the code. Desktop, native and public capability catalogue with live/hidden/partial status; per-domain chapters (chart, yogas, doshams, dasha, transits, daily, life areas, muhurta, porutham, numerology, Ask Vinaadi); tech stack, architecture, data model and data flows; platform and explainability matrices; route and endpoint-consumer inventory; dead/hidden register; risk register R-1…R-18 and prioritised recommendations
 - [VINAADI_DASHBOARD_SYSTEM_REFERENCE_2026-08-25.md](VINAADI_DASHBOARD_SYSTEM_REFERENCE_2026-08-25.md) — **What the signed-in product is and does.** Every dashboard screen explained (product layer first, then architecture), access/tier model, engine map, tech stack, testing, full route + API reference, and a findings appendix
 - [VINAADI_MARKETING_SITE_SYSTEM_REFERENCE_2026-08-25.md](VINAADI_MARKETING_SITE_SYSTEM_REFERENCE_2026-08-25.md) — **What the public site is and does.** All 121 marketing routes, the free tools and their rate limits, the acquisition/conversion model, SEO architecture, rendering strategy, and a findings appendix
 - [VINAADI_FUNCTION_CALCULATION_AND_SCORING_REFERENCE_2026-08-27.md](VINAADI_FUNCTION_CALCULATION_AND_SCORING_REFERENCE_2026-08-27.md) — **What the engine computes and how every score is derived.** The 14-layer pipeline, every calculating function and the measures it consumes, a register of all 36 user-visible scores with formula and marker, worked arithmetic for the daily score / prediction score / muhurta scale / porutham, the declared non-computations, 12 open questions and a reviewer sign-off sheet. Hand this to an external astrologer
 - [VINAADI_PAGE_NEEDED_REGISTER_2026-08-27.md](VINAADI_PAGE_NEEDED_REGISTER_2026-08-27.md) — **The five executing rules that have no citation** (`PN-1`…`PN-5`: naisargika node rows, Baladi multipliers, Sevvai gender weighting, Sade Sati month bands, Jeevan/Nethiram cutoffs). Code site, provenance grade and scoring reach for each, plus what closes a row — **including why "Vakya or Thirukanitham" is a mandatory field and not clerical**. Read before citing any almanac rule
 - [../README.md](../README.md) — Project setup: prerequisites, Docker, backend, web, mobile, quick reference
 - [../CLAUDE.md](../CLAUDE.md) — Workspace rules: path conventions, PowerShell/shell rules, DB safety, encoding
-- [AGENT_INSTRUCTIONS.md](AGENT_INSTRUCTIONS.md) — **Canonical agent reference**: stack map, mandatory astrology/coding rules, Tamil + cultural rules, tone rules, UI/UX rules, anti-patterns
-- [../AGENTS.md](../AGENTS.md) — Agent work guide scoped to mobile-app gap closure (bugs → features → polish)
+- [AGENT_INSTRUCTIONS.md](AGENT_INSTRUCTIONS.md) — **Canonical agent reference**: stack map, mandatory astrology/coding rules, Tamil + cultural rules, tone rules, UI/UX rules, anti-patterns. A summary: CLAUDE.md wins on workspace rules and the ratified doctrine decisions win on astrology (its "Which document wins" section)
+- [../AGENTS.md](../AGENTS.md) — Entry point for any AI agent: the non-negotiables in one page, pointing at the authoritative docs
 - [HOW_TO_USE_CODEBASE.md](HOW_TO_USE_CODEBASE.md) — Codebase orientation: repo layout, service map, key patterns
 
 ## Canonical Specifications (source of truth — do not modify lightly)
+
+The v1 specs below were the original design. Where a later ratified doctrine
+decision or dated owner ruling differs, the later ruling wins; the OpenAPI YAML
+and SQL DDL are design references, not generated from the running app.
+
 - [Jothidam_AI_Product_Specification_v7_FULL_Master_Build_Thirukanitham_2026.md](Jothidam_AI_Product_Specification_v7_FULL_Master_Build_Thirukanitham_2026.md) — **Master product spec**: full feature list, business logic, user flows
 - [Jothidam_AI_Formula_Engine_Specification_v1_Thirukanitham_2026.md](Jothidam_AI_Formula_Engine_Specification_v1_Thirukanitham_2026.md) — **Calculation formulas**: ayanamsa, dasha, divisional charts, dosha rules — source of truth for astrology math
 - [Jothidam_AI_Technical_API_Database_Spec_v1_Thirukanitham_2026.md](Jothidam_AI_Technical_API_Database_Spec_v1_Thirukanitham_2026.md) — API endpoints, request/response schemas, PostgreSQL schema
@@ -50,6 +56,8 @@ Quick map to the right document for each purpose. **Last regenerated: 2026-07-16
 - [SEVVAIRAGU.MD](SEVVAIRAGU.MD) — Sevvai/Rahu dosha validation rules (Tamil-specific, with test scenarios)
 - [FAQ_COMPARISON_WITH_OTHER_SOFTWARE.md](FAQ_COMPARISON_WITH_OTHER_SOFTWARE.md) — Why Vinaadi's output deliberately differs from JHora / Parashara Light etc.
 - [ASTROLOGER_REVIEW_QUEUE.md](ASTROLOGER_REVIEW_QUEUE.md) — Open items awaiting astrologer sign-off
+- [DOCTRINE_DECISIONS_V1.2.md](DOCTRINE_DECISIONS_V1.2.md) - Yoga/dosham doctrine v1.5 implementation record; defaults, open items, physical-source checklist and explicit limitations
+- [DOCTRINE_V15_PRACTITIONER_SIGNOFF_PACKET.md](DOCTRINE_V15_PRACTITIONER_SIGNOFF_PACKET.md) - Generated, unsigned practitioner packet: live 84-cell O-9 matrix, O-2/O-11/O-17/O-18 choices, physical-edition ledger and native-Tamil review
 - [ASTROLOGER_LIVE_SESSION_BACKLOG_2026-07.md](ASTROLOGER_LIVE_SESSION_BACKLOG_2026-07.md) — Backlog worked through in the live Tamil-reader astrologer session
 - [STAKEHOLDER_AUDIT_ASTROLOGER_CUSTOMER_2026-07.md](STAKEHOLDER_AUDIT_ASTROLOGER_CUSTOMER_2026-07.md) — Combined jyotishi + customer audit findings
 - [PROPENSITY_ASTROLOGER_REVIEW_2026-07.md](PROPENSITY_ASTROLOGER_REVIEW_2026-07.md) — Astrologer review of the propensity ("chances & cautions") card set
@@ -69,6 +77,7 @@ Quick map to the right document for each purpose. **Last regenerated: 2026-07-16
 - [REASONING_LAYER_UPGRADE_PLAN.md](REASONING_LAYER_UPGRADE_PLAN.md) — Reasoning-layer upgrade plan (calibration, explanation surfaces)
 
 ## Content & Tamil Astrology Reference
+- [PERSONAL_PALAN_CONTENT_REVIEW_2026-09-23.md](PERSONAL_PALAN_CONTENT_REVIEW_2026-09-23.md) — Review packet and release gate for the chart-personalised daily palan; 144-row area/Moon-house matrix, tara modifiers, precedence cases, safety rules and dual sign-off
 - [NATCHATHIRAM_DASHA_WRITING_GUIDE.md](NATCHATHIRAM_DASHA_WRITING_GUIDE.md) — Rules and patterns for writing dasha content for all 27 nakshatrams
 - [tamil-review-age-phase.md](tamil-review-age-phase.md) — Native-Tamil review notes: age-phase content
 - [tamil-review-daily-briefing.md](tamil-review-daily-briefing.md) — Native-Tamil review notes: daily briefing
@@ -81,6 +90,8 @@ Quick map to the right document for each purpose. **Last regenerated: 2026-07-16
 - [MASTER_FIX_LIST.md](MASTER_FIX_LIST.md) — Cumulative fix/issue tracking list
 - [API_FRONTEND_WIRING_AUDIT_2026-07.md](API_FRONTEND_WIRING_AUDIT_2026-07.md) — Endpoint-by-endpoint audit of what's wired to a real frontend vs. dead/unreachable
 - [CRON_WORKER.md](CRON_WORKER.md) — Cron/scheduler worker design and operation
+- [NOTIFICATION_DELIVERY.md](NOTIFICATION_DELIVERY.md) — Durable notification outbox guarantees, expiry, retries, and operations runbook
+- [A12_BIRTH_DATA_CONSUMER_INVENTORY_2026-10-08.md](A12_BIRTH_DATA_CONSUMER_INVENTORY_2026-10-08.md) — A12 assessment-only inventory of birth-time consumers, equivalent confidentiality leaks, and schema options; no migration decision
 
 ## Dashboard & Web UX
 - [DASHBOARD_UI_REVAMP_PLAN.md](DASHBOARD_UI_REVAMP_PLAN.md) — Dashboard UI revamp plan (largest design doc)

@@ -17,6 +17,8 @@ import { RADIUS, S } from "@/theme/spacing";
 import { TamilType, EnType } from "@/theme/typography";
 import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "@/hooks/useSession";
+import { assertPurchaseReady } from "@/lib/purchaseIdentity";
+import { getMySubscription } from "@/api/auth";
 let Purchases: typeof import("react-native-purchases").default | null = null;
 // A static import would run at module load and crash Expo Go, where the
 // native bridge these JSI modules need does not exist. The require has to
@@ -60,6 +62,47 @@ export default function PremiumScreen() {
       });
   }, []);
 
+  /**
+   * Take the tier from the SERVER, not from the store's reply.
+   *
+   * A04: both handlers used to call `setSession(user, "premium")` on a
+   * successful store transaction, which records a local flag as if it were
+   * backend access. The backend grants premium from its own subscription
+   * projection, fed by the webhook, so the only honest source is the backend.
+   *
+   * The webhook can also land after the store replies. When it has not yet,
+   * this leaves the tier as the server currently reports it — a bounded pending
+   * state — rather than asserting premium the server does not agree with.
+   */
+  async function applyEntitlementFromServer() {
+    if (!user) return;
+    try {
+      const info = await getMySubscription();
+      // `{ success, data: SubscriptionInfo | null }` — `data` is null for an
+      // account with no subscription row yet, which is exactly the
+      // webhook-not-yet-arrived case.
+      const serverTier = info.data?.tier;
+      setSession(user, serverTier === "premium" ? "premium" : "registered");
+      if (serverTier !== "premium") {
+        showToast(
+          isTamil
+            ? "கொள்முதல் பெறப்பட்டது. சில நிமிடங்களில் Premium செயல்படும்."
+            : "Purchase received. Premium will activate in a few minutes.",
+          "success",
+        );
+      }
+    } catch {
+      // The purchase succeeded at the store; we simply cannot confirm the
+      // backend's view yet. Claiming premium locally is what this replaces.
+      showToast(
+        isTamil
+          ? "கொள்முதல் பெறப்பட்டது. நிலையை உறுதிப்படுத்த முடியவில்லை."
+          : "Purchase received. Could not confirm status yet.",
+        "success",
+      );
+    }
+  }
+
   async function handleSubscribe() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     const pkg = selectedPlan === "monthly" ? monthlyPkg : annualPkg;
@@ -71,12 +114,18 @@ export default function PremiumScreen() {
       return;
     }
     try {
+      // A04: refuse unless the purchase SDK is bound to the signed-in account.
+      // Without this the purchase went out under whatever identity the SDK
+      // happened to hold — an anonymous id on a fresh launch, or the previous
+      // account's after a switch — and the backend webhook cannot resolve
+      // either to a user.
+      if (!user) throw new Error("not signed in");
+      await assertPurchaseReady(user.userId);
+
       const { customerInfo } = await Purchases.purchasePackage(pkg);
       if (customerInfo.entitlements.active["premium"]) {
-        if (user) {
-          setSession(user, "premium");
-        }
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        await applyEntitlementFromServer();
         router.replace("/(tabs)/today");
       }
     } catch (e: unknown) {
@@ -96,10 +145,15 @@ export default function PremiumScreen() {
       return;
     }
     try {
+      // Same gate as purchase. A restore under the wrong identity would attach
+      // someone else's receipts to this session's view of the world.
+      if (!user) throw new Error("not signed in");
+      await assertPurchaseReady(user.userId);
+
       const ci = await Purchases.restorePurchases();
       if (ci.entitlements.active["premium"]) {
-        if (user) setSession(user, "premium");
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        await applyEntitlementFromServer();
         router.replace("/(tabs)/today");
       } else {
         showToast(

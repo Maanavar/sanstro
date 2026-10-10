@@ -209,6 +209,11 @@
   z-index: 199;
 }
 
+/* Portalled to .cd-shell: above the page, below the top bar popover. */
+.cd-overlay--page {
+  z-index: 50;
+}
+
 .cd-empty-note {
   margin: 0;
   padding: var(--space-2) var(--space-3);
@@ -235,7 +240,7 @@
   align-items: center;
   justify-content: center;
   position: relative;
-  transition: background 150ms ease, border-color 150ms ease;
+  transition: background 150ms var(--ease-nova), border-color 150ms var(--ease-nova);
   flex-shrink: 0;
 }
 
@@ -268,6 +273,24 @@
   line-height: 1;
 }
 
+/* One-click Warm ↔ Nova Galaxy flip in the topbar. Which face shows is
+   decided by [data-theme] on <html> — written pre-paint by the inline script in
+   app/layout.tsx and again by hooks/useTheme.ts — so the icon is correct on the
+   very first frame and React never has to guess it. The sun is the unqualified
+   default because dark is the app's default theme; if the attribute were ever
+   missing the button would still show an icon rather than going blank. */
+.cd-theme-btn__moon {
+  display: none;
+}
+
+[data-theme="light"] .cd-theme-btn__sun {
+  display: none;
+}
+
+[data-theme="light"] .cd-theme-btn__moon {
+  display: block;
+}
+
 .cd-lang-btn {
   padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-pill);
@@ -277,7 +300,7 @@
   font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 150ms ease;
+  transition: background 150ms var(--ease-nova);
 }
 
 .cd-lang-btn:hover {
@@ -297,7 +320,7 @@
   align-items: center;
   justify-content: center;
   border: 2px solid var(--color-border-strong);
-  transition: transform 0.12s ease;
+  transition: transform 0.12s var(--ease-nova);
   flex-shrink: 0;
 }
 
@@ -315,7 +338,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   padding: 6px;
-  box-shadow: 0 8px 32px var(--color-shadow-warm);
+  box-shadow: var(--elev-3, 0 8px 32px var(--color-shadow-warm));
 }
 
 .cd-dropdown {
@@ -407,7 +430,7 @@
 
 .cd-dropdown__icon {
   color: var(--color-faint);
-  transition: color 150ms ease;
+  transition: color 150ms var(--ease-nova);
 }
 
 .cd-dropdown__btn--nav:hover .cd-dropdown__icon {
@@ -448,7 +471,7 @@
 .cd-tab__chevron {
   flex: none;
   color: var(--color-faint);
-  transition: transform 180ms ease, color 150ms ease;
+  transition: transform 180ms var(--ease-nova), color 150ms var(--ease-nova);
 }
 
 .cd-tab--more:hover .cd-tab__chevron,
@@ -480,14 +503,135 @@
   margin: 4px 0;
 }
 
+/* ── Notification panel (bell) ─────────────────────────────────────────
+   Header · scrolling list · footer. Only the list scrolls. The panel lives
+   in the sticky top bar, so page scroll can never bring an overflowing
+   bottom edge into view: the height is capped to what is left of the
+   viewport below the panel's own top edge (--cd-notif-max, measured in
+   dashboard-hero.tsx; the calc() is the pre-measure fallback). */
 .cd-alerts-popover {
-  min-width: 280px;
-  max-width: 340px;
+  width: min(384px, calc(100vw - 24px));
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  max-height: min(560px, calc(100vh - 96px));
+  max-height: min(560px, var(--cd-notif-max, calc(100dvh - 96px)));
+  overflow: hidden;
 }
 
-.cd-alerts-head {
-  margin: 0 0 6px;
-  padding: var(--space-1) var(--space-2);
+.cd-notif__head,
+.cd-notif__foot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+/* Wraps rather than squeezes: a Tamil title + count and "mark all read" do
+   not fit one line at 375px, and a shrinking title slid under the button. */
+.cd-notif__head {
+  flex-wrap: wrap;
+  row-gap: 2px;
+  padding: 10px 10px 10px 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.cd-notif__head .cd-notif__action {
+  margin-left: auto;
+}
+
+.cd-notif__foot {
+  padding: 6px 10px 6px 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.cd-notif__title {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--color-text-strong);
+}
+
+.cd-notif__count {
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+  color: var(--color-accent-strong);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.cd-notif__action,
+.cd-notif__mark,
+.cd-notif__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-accent-strong);
+  font-family: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 120ms var(--ease-nova);
+}
+
+.cd-notif__action,
+.cd-notif__link {
+  min-height: 32px;
+  padding: 0 10px;
+  font-size: 0.75rem;
+}
+
+.cd-notif__link {
+  margin-left: -10px;
+  font-weight: 700;
+}
+
+.cd-notif__action--quiet {
+  color: var(--color-muted);
+}
+
+.cd-notif__action:hover,
+.cd-notif__mark:hover,
+.cd-notif__link:hover {
+  background: var(--color-hover-bg);
+}
+
+.cd-notif__action:focus-visible,
+.cd-notif__mark:focus-visible,
+.cd-notif__link:focus-visible,
+.cd-notif__body:focus-visible {
+  outline: 2px solid var(--color-accent-strong);
+  outline-offset: -2px;
+}
+
+/* min-height: 0 is what lets a flex child shrink below its content and
+   scroll; without it the column grows past max-height instead. */
+.cd-notif__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  padding: 4px 0;
+}
+
+.cd-notif__section + .cd-notif__section {
+  margin-top: 4px;
+}
+
+.cd-notif__section-head {
+  margin: 0;
+  padding: 10px 16px 6px;
   font-size: 0.625rem;
   font-weight: 700;
   color: var(--color-faint);
@@ -495,30 +639,171 @@
   letter-spacing: 0.08em;
 }
 
-.cd-alert-item {
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-sm);
-  margin-bottom: var(--space-1);
-  background: var(--color-surface-soft);
-  border: 1px solid var(--color-border);
-}
-
-.cd-alert-item:last-child {
-  margin-bottom: 0;
-}
-
-.cd-alert-item__title {
-  margin: 0 0 2px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--color-accent);
-}
-
-.cd-alert-item__body {
+.cd-notif__day,
+.cd-notif__list {
+  list-style: none;
   margin: 0;
-  font-size: 0.75rem;
+  padding: 0;
+}
+
+/* The day's alerts sit together on one quiet ground: they describe the
+   selected date, not a message someone sent. */
+.cd-notif__day {
+  margin: 0 10px 4px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-soft);
+}
+
+.cd-notif__day-item {
+  padding: 10px 12px;
+}
+
+.cd-notif__day-item + .cd-notif__day-item {
+  border-top: 1px solid var(--color-border);
+}
+
+.cd-notif__row {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px 16px;
+  transition: background 120ms var(--ease-nova);
+}
+
+.cd-notif__row + .cd-notif__row {
+  border-top: 1px solid var(--color-border);
+}
+
+.cd-notif__row:hover {
+  background: var(--color-surface-soft);
+}
+
+.cd-notif__row--unread {
+  background: color-mix(in srgb, var(--color-accent) 6%, transparent);
+}
+
+.cd-notif__row--unread:hover {
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+}
+
+.cd-notif__glyph {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+  color: var(--color-accent-strong);
+}
+
+.cd-notif__glyph[data-tone="day"] {
+  background: color-mix(in srgb, var(--color-positive) 16%, transparent);
+  color: var(--color-positive);
+}
+
+.cd-notif__glyph[data-tone="neutral"] {
+  background: var(--color-surface-soft);
   color: var(--color-muted);
-  line-height: 1.45;
+}
+
+.cd-notif__main {
+  min-width: 0;
+}
+
+.cd-notif__meta {
+  margin: 0 0 3px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 0.6875rem;
+  color: var(--color-faint);
+}
+
+.cd-notif__dot {
+  margin-left: auto;
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--color-accent);
+}
+
+.cd-notif__item-title {
+  margin: 0 0 2px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--color-text-strong);
+  overflow-wrap: anywhere;
+}
+
+/* Read rows step back by weight, not opacity — opacity dimmed the body
+   text below its contrast floor. */
+.cd-notif__row:not(.cd-notif__row--unread) .cd-notif__item-title {
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.cd-notif__item-text {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--color-muted);
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+}
+
+.cd-notif__mark {
+  margin: 6px 0 0 -8px;
+  min-height: 28px;
+  padding: 0 8px;
+  font-size: 0.72rem;
+}
+
+.cd-notif__note {
+  margin: 0;
+  padding: 8px 16px 12px;
+  font-size: 0.75rem;
+  color: var(--color-faint);
+}
+
+.cd-notif__empty {
+  padding: 32px 16px;
+  text-align: center;
+}
+
+.cd-notif__empty-disc {
+  width: 44px;
+  height: 44px;
+  margin: 0 auto 10px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface-soft);
+  color: var(--color-muted);
+}
+
+.cd-notif__empty-text {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--color-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cd-notif__row,
+  .cd-notif__action,
+  .cd-notif__mark,
+  .cd-notif__link {
+    transition: none;
+  }
 }
 
 .cd-tabnav {
@@ -579,7 +864,7 @@
   white-space: nowrap;
   flex-shrink: 0;
   position: relative;
-  transition: color 150ms ease;
+  transition: color 150ms var(--ease-nova);
   /* A nav label is a control, not prose — double-clicking one to switch tabs
      should not leave its text selected underneath. */
   -webkit-user-select: none;
@@ -704,7 +989,7 @@
 .cd-skeleton {
   position: relative;
   overflow: hidden;
-  background: var(--panel-tan, #D4C8AE);
+  background: color-mix(in srgb, var(--color-text-strong) 8%, transparent);
   border-radius: var(--radius-sm);
 }
 
@@ -713,7 +998,12 @@
   position: absolute;
   inset: 0;
   transform: translateX(-100%);
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--color-text-strong) 14%, transparent),
+    transparent
+  );
   animation: cd-shimmer 1.4s ease-in-out infinite;
 }
 
@@ -723,38 +1013,40 @@
   }
 }
 
-/* Skeleton card components always use the cream/tan palette inside the dashboard
-   regardless of system theme — the dashboard shell has a fixed cream background */
+/* Skeletons inherit Nova's active surface and stay deliberately quiet in either
+   theme. The dashboard no longer has a fixed cream background. */
 .cd-main-content .skel-card {
-  background: var(--panel-cream, #FAF5EA);
-  border-color: var(--panel-tan-light, #E4DBC8);
+  background: var(--color-surface);
+  border-color: var(--color-border);
 }
 
 .cd-main-content .skel {
-  background: var(--panel-tan, #D4C8AE);
+  background: color-mix(in srgb, var(--color-text-strong) 8%, transparent);
 }
 
 .cd-main-content .skel::after {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.55) 50%,
+    color-mix(in srgb, var(--color-text-strong) 14%, transparent) 50%,
     transparent 100%
   );
 }
 
 .cd-main-content .skel-metric-cell {
-  background: var(--panel-cream, #FAF5EA);
-  border-color: var(--panel-tan-light, #E4DBC8);
+  background: var(--color-surface);
+  border-color: var(--color-border);
 }
 
 .cd-main-content .skel-transit-list {
-  background: var(--panel-cream, #FAF5EA);
-  border-color: var(--panel-tan-light, #E4DBC8);
+  background: var(--color-surface);
+  border-color: var(--color-border);
 }
 
+/* Between the card and the bars, as --surface-2 is in skeleton.css: on the
+   card colour itself the four corner cells vanish and the chart loses its shape. */
 .cd-main-content .skel-chart-corner {
-  background: var(--panel-tan-light, #E4DBC8);
+  background: color-mix(in srgb, var(--color-text-strong) 4%, transparent);
 }
 
 @media (max-width: 900px) {
@@ -826,8 +1118,30 @@
   .cd-dropdown,
   .cd-alerts-popover {
     right: -8px;
-    width: min(340px, calc(100vw - 24px));
     max-width: calc(100vw - 24px);
+  }
+
+  .cd-dropdown {
+    width: min(340px, calc(100vw - 24px));
+  }
+}
+
+/* Phone: the bell is not the right-most control (theme, language and avatar
+   follow it), so a panel right-aligned to the bell ran off the LEFT edge —
+   at 375px it started near x = -113. Release the bell's anchor so the panel
+   positions against the sticky top bar instead, and span it gutter to
+   gutter as a sheet. */
+@media (max-width: 600px) {
+  .cd-popover-anchor--notif {
+    position: static;
+  }
+
+  .cd-alerts-popover {
+    top: calc(100% + 6px);
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-width: none;
   }
 }
 
@@ -881,8 +1195,8 @@
   .cd-brand__sub,
   .cd-status-pill,
   .cd-vault-name,
-  .cd-alerts-head,
-  .cd-alert-item__title,
+  .cd-notif__section-head,
+  .cd-notif__count,
   .cd-tab,
   .surface__title,
   .surface__subhead,
@@ -947,9 +1261,14 @@
    Use a shared fixed width instead (wide enough for the
    longest label) so every row lines up like the English mode.
    Also relax line-height on display-size text so Tamil
-   ascenders/descenders aren't clipped. */
-.cd-shell[data-lang="ta"] .cd-detail-spec-row {
-  grid-template-columns: 200px minmax(0, 1fr) auto;
+   ascenders/descenders aren't clipped.
+   Above 720px only: at phone width the rows stack to one column
+   (dashboard-globals.css), and this selector's higher specificity used
+   to override that, holding Calendar at 372px on a Tamil 320px phone. */
+@media (min-width: 721px) {
+  .cd-shell[data-lang="ta"] .cd-detail-spec-row {
+    grid-template-columns: 200px minmax(0, 1fr) auto;
+  }
 }
 
 .cd-shell[data-lang="ta"] .cd-detail-spec-row__label {
@@ -1030,7 +1349,7 @@
     overflow: hidden;
     padding: var(--space-2) 0;
     gap: 2px;
-    transition: width 200ms ease;
+    transition: width 200ms var(--ease-nova);
   }
 
   .cd-left-rail[data-expanded="true"] {
@@ -1041,7 +1360,14 @@
   .cd-main-content {
     flex: 1;
     min-width: 0;
+    /* `clip`, not `hidden`: `overflow-x: hidden` forces overflow-y to `auto`,
+       which makes this column a scroll container that never scrolls (it has
+       no height cap) — and every `position: sticky` inside it then sticks to
+       that dead scroller instead of the page, i.e. never. `clip` crops the
+       same overflow without creating a scroll container. `hidden` stays as
+       the fallback for browsers without `clip` (pre-Safari 16). */
     overflow-x: hidden;
+    overflow-x: clip;
     min-height: calc(100vh - 54px);
   }
 }
@@ -1060,10 +1386,10 @@
   background: transparent;
   color: var(--color-faint);
   cursor: pointer;
-  transition: background var(--duration-fast, 150ms) ease,
-              color var(--duration-fast, 150ms) ease,
-              width 200ms ease,
-              padding 200ms ease;
+  transition: background var(--duration-fast, 150ms) var(--ease-nova),
+              color var(--duration-fast, 150ms) var(--ease-nova),
+              width 200ms var(--ease-nova),
+              padding 200ms var(--ease-nova);
   flex-shrink: 0;
 }
 
@@ -1111,7 +1437,7 @@
   white-space: nowrap;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 100ms ease 60ms;
+  transition: opacity 100ms var(--ease-nova) 60ms;
   z-index: 200;
 }
 
@@ -1180,7 +1506,7 @@
   border-radius: 6px;
 }
 .setup-advanced__chev {
-  transition: transform 160ms ease;
+  transition: transform 160ms var(--ease-nova);
   flex-shrink: 0;
 }
 .setup-advanced[open] > summary .setup-advanced__chev { transform: rotate(90deg); }
@@ -1200,7 +1526,7 @@
   background: var(--color-border);
   margin: var(--space-2) auto;
   flex-shrink: 0;
-  transition: width 200ms ease;
+  transition: width 200ms var(--ease-nova);
 }
 
 .cd-left-rail[data-expanded="true"] .cd-rail-divider {
@@ -1309,7 +1635,7 @@
   letter-spacing: 0.02em;
   font-family: inherit;
   opacity: 0.85;
-  transition: opacity 120ms ease;
+  transition: opacity 120ms var(--ease-nova);
 }
 
 .cd-household-strip__link:hover {

@@ -6,7 +6,8 @@
 // three presentational leaf components (DayTimeline, MoonPhaseMark,
 // LunarTithiBadge) with no Classic/Nova fork.
 
-import { addDays, formatClockLabel, formatDateLabel } from "@/lib/format";
+import { D1_RASI_NAMES, D1_RASI_NAMES_TA } from "@/lib/chart-utils";
+import { addDays, formatClockHour, formatClockLabel, formatDateLabel } from "@/lib/format";
 import { tLang, tNakshatra } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { lunarSpecialTithiMeta } from "@/lib/lunar";
@@ -21,8 +22,9 @@ export type { LimbNow } from "@/lib/panchangam-limb";
 
 export type CalendarView = "panchangam" | "monthly";
 
-export const RASI_NAMES_EN = ["", "Mesham", "Rishabam", "Mithunam", "Kadagam", "Simmam", "Kanni", "Thulam", "Viruchigam", "Dhanusu", "Magaram", "Kumbam", "Meenam"];
-export const RASI_NAMES_TA = ["", "மேஷம்", "ரிஷபம்", "மிதுனம்", "கடகம்", "சிம்மம்", "கன்னி", "துலாம்", "விருச்சிகம்", "தனுசு", "மகரம்", "கும்பம்", "மீனம்"];
+// The canonical tables, not a fourth hand-copy — see lib/chart-utils.
+export const RASI_NAMES_EN = D1_RASI_NAMES;
+export const RASI_NAMES_TA = D1_RASI_NAMES_TA;
 
 // Tamil solar months start dates (approximate Gregorian: month-day)
 // Chithirai begins ~Apr 14, then every ~30–31 days
@@ -99,12 +101,9 @@ function getTamilMonthDate(dateStr: string, lang: Lang): string {
  * above cannot: it is a year-independent month-start approximation and is
  * already a day off the engine for Karthigai, Thai and Panguni in 2026.
  *
- * So the approximation is a *loading placeholder*, not a second opinion. It
- * fills the header for the frame before the panchangam response lands, and the
- * server value replaces it the moment there is one. Two Tamil dates rendered
- * from two different sources is how the deleted 2026 Aavani override came to
- * disagree with the engine in the first place; prefer this helper over calling
- * `getTamilMonthDate` directly anywhere a response is in scope.
+ * D6 forbids a client approximation before the panchangam response arrives.
+ * Keep the private approximation intact until its deletion is explicitly
+ * approved, but do not call it from a rendered date surface.
  */
 export function resolveTamilDate(
   serverValue: BiText | null | undefined,
@@ -115,7 +114,7 @@ export function resolveTamilDate(
     const fromServer = tLang(serverValue, lang);
     if (fromServer) return fromServer;
   }
-  return getTamilMonthDate(dateStr, lang);
+  return "";
 }
 
 const NAKSHATRA_ORDER = [
@@ -178,7 +177,7 @@ export function moonRasiFromNakshatra(name: string, pada = 1): number {
 // for rollover). Mirrors `formatChandrashtamaWindowEdge`'s day-qualifier
 // approach, using "tomorrow" for the common next-day case.
 export function formatUntilLabel(endsAt: string, endsAtIso: string, dateLocal: string, lang: Lang): string {
-  const clock = formatClockLabel(endsAt);
+  const clock = formatClockLabel(endsAt, lang);
   if (!endsAtIso.includes("T")) return clock;
   const endDate = endsAtIso.slice(0, 10);
   if (endDate === dateLocal) return clock;
@@ -188,8 +187,8 @@ export function formatUntilLabel(endsAt: string, endsAtIso: string, dateLocal: s
   return lang === "ta" ? `${dayLabel}, ${clock}` : `${clock} (${dayLabel})`;
 }
 
-export function formatChandrashtamaWindowEdge(value: string, dateLocal: string): string {
-  const clock = formatClockLabel(value);
+export function formatChandrashtamaWindowEdge(value: string, dateLocal: string, lang: Lang = "en"): string {
+  const clock = formatClockLabel(value, lang);
   if (!value.includes("T")) return clock;
   const edgeDate = value.slice(0, 10);
   return edgeDate === dateLocal ? clock : `${clock}, ${formatDateLabel(edgeDate)}`;
@@ -234,7 +233,7 @@ export function formatOwnChandrashtamaWindow(
     ? named.find((window) => !window.rasiNumber || window.rasiNumber === ownRasiNumber)
     : undefined) ?? named[0];
   if (!mine) return "";
-  return `${tNakshatra(mine.name, lang)} ${formatChandrashtamaWindowEdge(mine.start, dateLocal)} - ${formatChandrashtamaWindowEdge(mine.end, dateLocal)}`;
+  return `${tNakshatra(mine.name, lang)} ${formatChandrashtamaWindowEdge(mine.start, dateLocal, lang)} - ${formatChandrashtamaWindowEdge(mine.end, dateLocal, lang)}`;
 }
 
 /** Every distinct affected janma rasi the day touches, in the order they occur.
@@ -274,7 +273,7 @@ export function formatChandrashtamaWindowSummary(
       const qualifier = repeated.has(window.name) && window.rasiNumber
         ? ` (${rasiName(window.rasiNumber, lang)})`
         : "";
-      return `${tNakshatra(window.name, lang)}${qualifier} ${formatChandrashtamaWindowEdge(window.start, dateLocal)} - ${formatChandrashtamaWindowEdge(window.end, dateLocal)}`;
+      return `${tNakshatra(window.name, lang)}${qualifier} ${formatChandrashtamaWindowEdge(window.start, dateLocal, lang)} - ${formatChandrashtamaWindowEdge(window.end, dateLocal, lang)}`;
     })
     .join("; ");
 }
@@ -307,18 +306,28 @@ export type DayTimelineBand = {
   key: string;
   start: string;
   end: string;
-  /** best/good are the auspicious greens; the three avoid kinds step down in
-   *  intensity so Rahu > Yama > Kuligai reads at a glance, mirroring the
-   *  severity ramp of the "Your day" ribbon on the Today tab. */
-  kind: "best" | "good" | "avoid-strong" | "avoid" | "avoid-soft";
+  /** Kuligai is contextual, not a generic avoid period. Keep it visually
+   *  distinct from both the auspicious and avoid ramps.
+   *
+   *  `avoid-scoped` is the narrow-scope rung: Durmuhurtham binds only on
+   *  auspicious work and new beginnings, so it must not paint at Rahu's or
+   *  Yamagandam's intensity. It is the same hue as `avoid`, one step down —
+   *  narrower scope reads as lighter, never as more severe. */
+  kind: "best" | "good" | "contextual" | "avoid-strong" | "avoid" | "avoid-scoped" | "avoid-soft";
   label: string;
 };
 
-const DAY_TIMELINE_BAND_STYLE: Record<DayTimelineBand["kind"], { fill: string; opacity: number }> = {
+/** The one severity ramp. `NovaAvoidStrip`'s dots read their fill and opacity
+ *  from this table by band kind, because the strip and the timeline paint the
+ *  same windows a few pixels apart — two ramps disagreeing on one card is
+ *  worse than having none. Change a colour here and both surfaces move. */
+export const DAY_TIMELINE_BAND_STYLE: Record<DayTimelineBand["kind"], { fill: string; opacity: number }> = {
   best: { fill: "var(--color-score-high)", opacity: 0.9 },
   good: { fill: "var(--color-score-high)", opacity: 0.5 },
+  contextual: { fill: "var(--color-accent-secondary)", opacity: 0.64 },
   "avoid-strong": { fill: "var(--color-score-low)", opacity: 0.9 },
   avoid: { fill: "var(--color-score-mid)", opacity: 0.88 },
+  "avoid-scoped": { fill: "var(--color-score-mid)", opacity: 0.62 },
   "avoid-soft": { fill: "var(--color-score-mid)", opacity: 0.45 },
 };
 
@@ -346,22 +355,21 @@ function toHours(timeStr: string): number | null {
   return h! + (Number.isFinite(m) ? m! : 0) / 60;
 }
 
-function formatHourLabel(h: number): string {
+function formatHourLabel(h: number, lang: Lang): string {
   const hr = ((Math.round(h) % 24) + 24) % 24;
-  if (hr === 0) return "12 am";
-  if (hr < 12) return `${hr} am`;
-  if (hr === 12) return "12 pm";
-  return `${hr - 12} pm`;
+  return formatClockHour(`${hr}:00`, lang);
 }
 
 export function DayTimeline({
   bands,
   sunrise,
   sunset,
+  lang = "en",
 }: {
   bands: DayTimelineBand[];
   sunrise?: string;
   sunset?: string;
+  lang?: Lang;
 }) {
   const sunriseH = (sunrise ? toHours(sunrise) : null) ?? DEFAULT_SUNRISE_H;
   const rawSunsetH = sunset ? toHours(sunset) : null;
@@ -422,7 +430,7 @@ export function DayTimeline({
 
   return (
     <div style={{ marginTop: "var(--space-3)" }}>
-      <svg viewBox="0 0 600 188" style={{ width: "100%", height: "auto", display: "block" }}>
+      <svg viewBox={`0 0 600 ${lang === "ta" ? 202 : 188}`} style={{ width: "100%", height: "auto", display: "block" }}>
         <defs>
           <linearGradient id="day-timeline-dome" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={"var(--color-score-mid)"} stopOpacity="0.24" />
@@ -446,7 +454,7 @@ export function DayTimeline({
           const style = DAY_TIMELINE_BAND_STYLE[band.kind];
           return (
             <rect key={band.key} x={x} y={HORIZON_Y - 4} width={width} height="9" rx="5" fill={style.fill} opacity={style.opacity}>
-              <title>{`${band.label} ${formatClockLabel(band.start)} – ${formatClockLabel(band.end)}`}</title>
+              <title>{`${band.label} ${formatClockLabel(band.start, lang)} – ${formatClockLabel(band.end, lang)}`}</title>
             </rect>
           );
         })}
@@ -456,7 +464,16 @@ export function DayTimeline({
           return (
             <g key={h}>
               <line x1={x} y1={HORIZON_Y + 3} x2={x} y2={HORIZON_Y + 11} stroke={"var(--color-faint)"} strokeWidth="2" />
-              <text x={x} y={HORIZON_Y + 26} textAnchor="middle" fontSize="12" fill={"var(--color-faint)"} fontFamily="var(--font-mono)">{formatHourLabel(h)}</text>
+              {lang === "ta" ? (
+                // Period-word stacked over the hour so neighbouring ticks don't collide.
+                <text x={x} textAnchor="middle" fontSize="11" fill={"var(--color-faint)"}>
+                  {formatHourLabel(h, lang).split(" ").map((part, i) => (
+                    <tspan key={i} x={x} y={HORIZON_Y + 24 + i * 14}>{part}</tspan>
+                  ))}
+                </text>
+              ) : (
+                <text x={x} y={HORIZON_Y + 26} textAnchor="middle" fontSize="12" fill={"var(--color-faint)"} fontFamily="var(--font-mono)">{formatHourLabel(h, lang)}</text>
+              )}
             </g>
           );
         })}
@@ -600,5 +617,6 @@ export function festivalTags(festival: Pick<PanchangamFestival, "category" | "ta
   return Array.from(new Set(tags.filter(Boolean)));
 }
 
-export const VRATHA_FESTIVAL_PATTERN = /ekadashi|ekadasi|pradosham|sashti|chaturthi|chathurthi|ashtami|amavas|pourn|vratam|vratham|thiruvonam/i;
-
+// "pradhosam" is the backend's own spelling (festivals.py) — without it every
+// Pradhosam fell into the Festivals filter and the Vratham toggle never hid it.
+export const VRATHA_FESTIVAL_PATTERN = /ekadashi|ekadasi|pradosham|pradhosam|sashti|chaturthi|chathurthi|ashtami|amavas|pourn|vratam|vratham|thiruvonam/i;

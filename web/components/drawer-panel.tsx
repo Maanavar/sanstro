@@ -2,6 +2,7 @@
 
 import React, { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { Presence } from "./ui/presence";
 
 interface DrawerPanelProps {
   title: string;
@@ -28,6 +29,10 @@ interface DrawerPanelProps {
   children: React.ReactNode;
   /** Visual theme. Defaults to the dark panel; "light" matches parchment surfaces. */
   theme?: "dark" | "light";
+  /** Keep the portal mounted through the exit animation. */
+  open?: boolean;
+  /** Invoked after the retained exit finishes, so callers need no timer. */
+  onExitComplete?: () => void;
 }
 
 export function DrawerPanel({
@@ -40,6 +45,8 @@ export function DrawerPanel({
   onClose,
   children,
   theme = "dark",
+  open = true,
+  onExitComplete,
 }: DrawerPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
@@ -60,6 +67,7 @@ export function DrawerPanel({
 
   // Focus trap and ESC key
   useEffect(() => {
+    if (!open) return;
     const prevFocus = document.activeElement as HTMLElement | null;
     panelRef.current?.focus();
 
@@ -85,16 +93,17 @@ export function DrawerPanel({
       document.removeEventListener("keydown", onKeyDown);
       prevFocus?.focus();
     };
-  }, [onClose]);
+  }, [onClose, open]);
 
   // The backdrop is fixed but weightless: a wheel gesture over it scrolled the
   // page underneath, so closing the drawer landed the reader somewhere else in
   // the month. Lock the document while the sheet owns the screen.
   useEffect(() => {
+    if (!open) return;
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = previous; };
-  }, []);
+  }, [open]);
 
   const classes = [
     "drawer",
@@ -103,7 +112,7 @@ export function DrawerPanel({
   ].filter(Boolean).join(" ");
 
   const drawer = (
-    <div className={classes} role="dialog" aria-modal="true" aria-labelledby={titleId}>
+    <Presence open={open} onExitComplete={onExitComplete} className={classes} role="dialog" aria-modal="true" aria-labelledby={titleId}>
       <div className="drawer__backdrop" onClick={onClose} />
       <div
         className="drawer__panel"
@@ -131,7 +140,7 @@ export function DrawerPanel({
         <div className="drawer__body">{children}</div>
         {footer ? <div className="drawer__footer">{footer}</div> : null}
       </div>
-    </div>
+    </Presence>
   );
 
   return portalHost ? createPortal(drawer, portalHost) : null;

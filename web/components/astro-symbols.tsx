@@ -4,6 +4,8 @@ import type { CSSProperties } from "react";
 import type { NatchathiramEntry } from "@/lib/natchathiram-data";
 import { romanNakshathiramName, romanNakshathiramLabel } from "@/lib/tamil-astro";
 import { ZodiacBadge } from "@/components/zodiac-badge";
+import { useLang } from "@/components/lang-context";
+import { rasiDisplayName } from "@/lib/chart-utils";
 import { NakshatraBadge } from "@/components/nakshatra-badge";
 
 const RASI_GLYPHS: Record<string, { glyph: string; tone: string }> = {
@@ -49,31 +51,40 @@ const NAK_PX = { sm: 40, md: 52, lg: 124 } as const;
 const BADGE_WRAP_RESET: CSSProperties = { background: "none", boxShadow: "none", borderRadius: 0 };
 
 export function RasiGlyph({ rasi, label, size = "md" }: { rasi?: string; label?: string; size?: "sm" | "md" | "lg" }) {
+  const [lang] = useLang();
   const num = rasi ? RASI_NUMBER_BY_EN[rasi.trim().toLowerCase()] ?? null : null;
+  // A caller's `label` wins; without one the accessible name is the rasi in the
+  // reader's language, from the key, never the English name string.
+  const accessibleName = label ?? (num != null ? rasiDisplayName(num, lang) : (rasi ?? (lang === "ta" ? "ராசி" : "Rasi")));
 
   // Fallback to the classical Unicode glyph if the name doesn't resolve.
   if (num == null) {
     const item = rasiFor(rasi);
     return (
-      <span className={cx("as-rasi", `as-rasi--${item.tone}`, `as-rasi--${size}`)} aria-label={label ?? rasi ?? "Rasi"}>
+      <span className={cx("as-rasi", `as-rasi--${item.tone}`, `as-rasi--${size}`)} aria-label={accessibleName}>
         {item.glyph}
       </span>
     );
   }
 
   return (
-    <span className={cx("as-rasi", `as-rasi--${size}`)} style={BADGE_WRAP_RESET} aria-label={label ?? rasi ?? "Rasi"}>
+    <span className={cx("as-rasi", `as-rasi--${size}`)} style={BADGE_WRAP_RESET} aria-label={accessibleName}>
       <ZodiacBadge rasi={num} size={RASI_PX[size]} glyph={RASI_GLYPHS[rasi ?? ""]?.glyph} />
     </span>
   );
 }
 
-export function NakshatraSigil({ number, name, size = "md" }: { number: number; name?: string; size?: "sm" | "md" | "lg" }) {
+export function NakshatraSigil({ number, name, nameTa, size = "md" }: { number: number; name?: string; nameTa?: string; size?: "sm" | "md" | "lg" }) {
+  const [lang] = useLang();
+  const label =
+    lang === "ta"
+      ? nameTa ? `${nameTa} நட்சத்திரம்` : `நட்சத்திரம் ${number}`
+      : name ? `${romanNakshathiramName(name)} nakshathiram` : `Nakshathiram ${number}`;
   return (
     <span
       className={cx("as-nak", `as-nak--${size}`)}
       style={BADGE_WRAP_RESET}
-      aria-label={name ? `${romanNakshathiramName(name)} nakshathiram` : `Nakshathiram ${number}`}
+      aria-label={label}
     >
       <NakshatraBadge nakshatra={number} size={NAK_PX[size]} />
     </span>
@@ -110,24 +121,27 @@ export type NatchathiramFacts = Pick<
 >;
 
 export function NatchathiramFactVisual({ data }: { data: NatchathiramFacts }) {
+  const [lang] = useLang();
+  const ta = lang === "ta";
   const englishName = romanNakshathiramName(data.name_en);
+  const rasi = ta ? data.rasi_ta : data.rasi_en;
 
+  // One language: the reader's. The card used to print the English name over the
+  // Tamil one (and the reverse) whichever language the page was in.
   return (
     <div className="as-profile">
       <div className="as-profile__main">
-        <NakshatraSigil number={data.number} name={englishName} size="lg" />
+        <NakshatraSigil number={data.number} name={englishName} nameTa={data.name_ta} size="lg" />
         <div>
-          <p className="as-card__eyebrow">Birth Star</p>
-          <h3 className="as-profile__title">{romanNakshathiramLabel(englishName)}</h3>
-          <p className="as-profile__sub">{data.name_ta}</p>
+          <p className="as-card__eyebrow">{ta ? "பிறந்த நட்சத்திரம்" : "Birth Star"}</p>
+          <h3 className="as-profile__title">{ta ? `${data.name_ta} நட்சத்திரம்` : romanNakshathiramLabel(englishName)}</h3>
         </div>
       </div>
       <div className="as-profile__rasi">
-        <RasiGlyph rasi={data.rasi_en} label={data.rasi_en} size="lg" />
+        <RasiGlyph rasi={data.rasi_en} label={rasi} size="lg" />
         <div>
-          <p className="as-card__eyebrow">Rasi</p>
-          <p className="as-profile__value">{data.rasi_en}</p>
-          <p className="as-profile__sub">{data.rasi_ta}</p>
+          <p className="as-card__eyebrow">{ta ? "ராசி" : "Rasi"}</p>
+          <p className="as-profile__value">{rasi}</p>
         </div>
       </div>
     </div>
@@ -135,19 +149,23 @@ export function NatchathiramFactVisual({ data }: { data: NatchathiramFacts }) {
 }
 
 export function TopicSymbolPanel({ topic }: { topic: "method" | "thirukanitham" | "jadhagam" | "birth-time" | "porutham" | "chandrashtama" | "about" | "dosham" | "yogam" | "pariharam" | "temple" }) {
+  const [lang] = useLang();
   const config = {
-    method: { title: "Calculation Stack", sub: "ephemeris, ayanamsa, panchangam", marks: ["♈", "☉", "☽", "27"] },
-    thirukanitham: { title: "Precise Sky", sub: "drik positions, not guesswork", marks: ["☉", "☽", "♃", "♄"] },
-    jadhagam: { title: "Chart Map", sub: "lagna, rasi, houses and dasa", marks: ["D1", "♋", "☽", "9"] },
-    "birth-time": { title: "Minutes Matter", sub: "lagna can shift with time", marks: ["00", "♋", "D1", "↻"] },
-    porutham: { title: "Matching Lens", sub: "birth star, rasi and dosha checks", marks: ["10", "♎", "27", "⚬"] },
-    chandrashtama: { title: "8th Moon", sub: "awareness window, not fear", marks: ["☽", "8", "♏", "!"] },
-    about: { title: "Vinaadi", sub: "Tamil astrology, made readable", marks: ["27", "D1", "☽", "♈"] },
-    dosham: { title: "Dosham", sub: "afflictions, strength and balance", marks: ["♂", "☊", "♄", "7"] },
-    yogam: { title: "Yogam", sub: "combinations, dignity and rise", marks: ["♃", "☽", "★", "10"] },
-    pariharam: { title: "Pariharam", sub: "devotion, slokam and steadiness", marks: ["ॐ", "🪔", "108", "♀"] },
-    temple: { title: "Sacred Sthalam", sub: "deity, blessing and faith", marks: ["🛕", "♄", "ॐ", "9"] },
+    method: { title: ["Calculation Stack", "கணிதத் தொகுப்பு"], sub: ["ephemeris, ayanamsa, panchangam", "கிரக நிலை, அயனாம்சம், பஞ்சாங்கம்"], marks: ["♈", "☉", "☽", "27"] },
+    thirukanitham: { title: ["Precise Sky", "துல்லியமான வானம்"], sub: ["drik positions, not guesswork", "கண்ணால் காணும் கணிப்பு, ஊகம் அல்ல"], marks: ["☉", "☽", "♃", "♄"] },
+    jadhagam: { title: ["Chart Map", "ஜாதகக் கட்ட வரைபடம்"], sub: ["lagna, rasi, houses and dasa", "லக்னம், ராசி, பாவங்கள், தசை"], marks: ["D1", "♋", "☽", "9"] },
+    "birth-time": { title: ["Minutes Matter", "நிமிடங்களும் முக்கியம்"], sub: ["lagna can shift with time", "நேரம் மாறினால் லக்னம் மாறலாம்"], marks: ["00", "♋", "D1", "↻"] },
+    porutham: { title: ["Matching Lens", "பொருத்தப் பார்வை"], sub: ["birth star, rasi and dosha checks", "நட்சத்திரம், ராசி, தோஷப் பரிசோதனை"], marks: ["10", "♎", "27", "⚬"] },
+    chandrashtama: { title: ["8th Moon", "எட்டாம் சந்திரன்"], sub: ["awareness window, not fear", "அச்சம் அல்ல, விழிப்புணர்வுக் காலம்"], marks: ["☽", "8", "♏", "!"] },
+    about: { title: ["Vinaadi", "Vinaadi"], sub: ["Tamil astrology, made readable", "தமிழ் ஜோதிடம், எளிமையாகப் படிக்க"], marks: ["27", "D1", "☽", "♈"] },
+    dosham: { title: ["Dosham", "தோஷம்"], sub: ["afflictions, strength and balance", "பாதிப்புகள், வலிமை, சமநிலை"], marks: ["♂", "☊", "♄", "7"] },
+    yogam: { title: ["Yogam", "யோகம்"], sub: ["combinations, dignity and rise", "சேர்க்கைகள், மேன்மை, உயர்வு"], marks: ["♃", "☽", "★", "10"] },
+    pariharam: { title: ["Pariharam", "பரிகாரம்"], sub: ["devotion, slokam and steadiness", "பக்தி, ஸ்லோகம், மன உறுதி"], marks: ["ॐ", "🪔", "108", "♀"] },
+    temple: { title: ["Sacred Sthalam", "புனிதத் தலம்"], sub: ["deity, blessing and faith", "தெய்வம், அருள், நம்பிக்கை"], marks: ["🛕", "♄", "ॐ", "9"] },
   }[topic];
+  const i = lang === "ta" ? 1 : 0;
+  const title = config.title[i];
+  const sub = config.sub[i];
 
   return (
     <div className="as-topic">
@@ -156,8 +174,8 @@ export function TopicSymbolPanel({ topic }: { topic: "method" | "thirukanitham" 
           <span key={`${mark}-${index}`} className={`as-topic__mark as-topic__mark--${index}`}>{mark}</span>
         ))}
       </div>
-      <p className="as-card__eyebrow">{config.sub}</p>
-      <h3 className="as-topic__title">{config.title}</h3>
+      <p className="as-card__eyebrow">{sub}</p>
+      <h3 className="as-topic__title">{title}</h3>
     </div>
   );
 }

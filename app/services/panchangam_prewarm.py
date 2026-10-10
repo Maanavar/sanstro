@@ -23,8 +23,8 @@ from datetime import UTC, date, datetime, timedelta
 
 from sqlalchemy.orm import Session
 
-from app.calculations.panchangam import calculate_daily_panchangam_range
 from app.db.session import SessionLocal
+from app.services.panchangam_cache import calculate_daily_panchangam_range
 
 logger = logging.getLogger(__name__)
 

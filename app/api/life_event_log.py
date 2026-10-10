@@ -6,12 +6,13 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user
+from app.core.entitlements import require_feature
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.life_event_log import LifeEventLogCreate, LifeEventLogCreateResponse, LifeEventLogResponse
 from app.services.life_event_log_service import get_life_event_log, log_life_event
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_feature("life_event_log_enabled"))])
 
 
 @router.get("/charts/{chart_id}/life-event-log", response_model=LifeEventLogResponse, tags=["life-event-log"])

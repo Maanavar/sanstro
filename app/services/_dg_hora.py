@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 
-from app.calculations.astro import resolve_timezone
+from app.calculations.astro import format_clock_hhmm, resolve_timezone
 from app.calculations.panchangam import gowri_category_rank, gowri_kala_label
 from app.schemas.daily_guidance import (
     DailyGuidanceSuggestion,
@@ -132,7 +132,7 @@ def _minutes(start: datetime, end: datetime) -> int:
 
 
 def _hm(value: datetime) -> str:
-    return value.strftime("%H:%M")
+    return format_clock_hhmm(value)
 
 
 def _supportive_sets(
@@ -418,8 +418,8 @@ def _caution_windows(panchangam) -> list[DailyGuidanceWindow]:
     windows = [
         DailyGuidanceWindow(
             type="RAHU_KALAM",
-            start=panchangam.rahu_kalam.start.strftime("%H:%M"),
-            end=panchangam.rahu_kalam.end.strftime("%H:%M"),
+            start=format_clock_hhmm(panchangam.rahu_kalam.start),
+            end=format_clock_hhmm(panchangam.rahu_kalam.end),
         )
     ]
     for window_type, attr in (("YAMAGANDAM", "yamagandam"), ("KULIGAI", "kuligai")):
@@ -428,8 +428,8 @@ def _caution_windows(panchangam) -> list[DailyGuidanceWindow]:
             windows.append(
                 DailyGuidanceWindow(
                     type=window_type,
-                    start=slot.start.strftime("%H:%M"),
-                    end=slot.end.strftime("%H:%M"),
+                    start=format_clock_hhmm(slot.start),
+                    end=format_clock_hhmm(slot.end),
                 )
             )
     return windows

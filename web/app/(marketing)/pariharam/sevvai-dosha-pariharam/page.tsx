@@ -1,9 +1,11 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
+import { JsonLd, articleTa, faqPageLd } from "@/lib/json-ld";
 import type { Metadata } from "next";
 import { PARIHARAM_SEVVAI_FAQ } from "@/lib/marketing-i18n";
 import { SevvaiDoshaPariharamContent } from "./PageContent";
 
-export const metadata: Metadata = {
-  title: "Sevvai Dosham Pariharam — Mars Remedy, Temples & Mantra | Vinaadi",
+const EN_METADATA: Metadata = {
+  title: "Sevvai Dosham Pariharam — Mars Remedy, Temples & Mantra",
   description:
     "Sevvai dosham pariharam: understanding Mars placement, which charts are truly affected, and the step-by-step remedy — Vaitheeswaran Koil, Murugan worship and the Angaraka mantra.",
   keywords: [
@@ -32,15 +34,12 @@ export const metadata: Metadata = {
   },
 };
 
-const FAQ_JSONLD = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: PARIHARAM_SEVVAI_FAQ.map((f) => ({
-    "@type": "Question",
-    name: f.q.en,
-    acceptedAnswer: { "@type": "Answer", text: f.a.en },
-  })),
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/pariharam/sevvai-dosha-pariharam");
+}
+
+const FAQ_JSONLD = faqPageLd(PARIHARAM_SEVVAI_FAQ, "en");
+const FAQ_JSONLD_TA = faqPageLd(PARIHARAM_SEVVAI_FAQ, "ta");
 
 const ARTICLE_JSONLD = {
   "@context": "https://schema.org",
@@ -55,8 +54,8 @@ const ARTICLE_JSONLD = {
 export default function SevvaiDoshaPariharamPage() {
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ARTICLE_JSONLD) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSONLD) }} />
+      <JsonLd en={ARTICLE_JSONLD} ta={articleTa(ARTICLE_JSONLD)} />
+      <JsonLd en={FAQ_JSONLD} ta={FAQ_JSONLD_TA} />
       <SevvaiDoshaPariharamContent />
     </>
   );

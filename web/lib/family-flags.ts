@@ -24,10 +24,11 @@ import { verdictPhrase } from "./verdict-lexicon";
  */
 
 /** Saturn-cycle tags the family aggregate can append (see
- *  `app/services/family_vault_service.py::_member_active_tags`, fed by
- *  `classify_sani_cycle` from the Moon and `KANDAKA_SANI` from the Lagna).
- *  Ordered most- to least-significant: a member can be inside a Moon-based and
- *  a Lagna-based cycle at once, and the card shows one chip. */
+ *  `app/services/family_vault_service.py::_sani_cycle_tags`: the Moon cycle from
+ *  `classify_sani_cycle`, then `KANDAKA_SANI`, also from the Moon — doctrine A-1).
+ *  Ordered most- to least-significant: Saturn 4th from the Moon is Ardhashtama
+ *  and Kandaka at once, and the card shows one chip. `KANTAKA_SANI` is the
+ *  reference-free tag the sani-cycle Lagna cross-check now carries. */
 const SANI_CYCLE_RANK = [
   "JANMA_SANI",
   "EZHARAI_SANI_PHASE_2",

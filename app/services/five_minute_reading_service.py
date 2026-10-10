@@ -85,8 +85,14 @@ own ``addressed_to`` branch); Beat 7's friction facet swaps
 a verdict, the same standard the 2-minute reading already applies to keep
 ``nature`` in this register's opening beat while dropping its strength/
 shadow beat outright (``_beat_topic_in_full``'s own ``addressed_to`` branch).
-``parent``/``other`` are not designed for this length per the spec and never
-will be — same 404 the flag gate returns when off, not a fallback beat set.
+
+``parent``/``other`` 404'd here until the OWNER RULING OF 2026-10-06, which
+gave every family member's card both lengths. ``other`` (an adult family
+member) now takes the full self sequence in the third person, from
+``_VOICE_THEM`` and this module's ``_THEM`` tables. ``parent`` (a child, read
+to their parent) takes a seven-beat reading built for that reader — see
+``_parent_beats`` — that adds dated, chart-derived beats to the 2-minute
+parent reading and no temperament.
 
 Reuses ``ChartContext``/``build_chart_context`` from ``one_minute_reading_
 service`` rather than recomputing anything — see that module's docstring on
@@ -138,21 +144,27 @@ from app.services.one_minute_reading_service import (
     _MOON_MIND,  # noqa: PLC2701 (internal use)
     _TOPIC_AREA,  # noqa: PLC2701 (internal use)
     _VOICE,  # noqa: PLC2701 (internal use)
+    _VOICE_THEM,  # noqa: PLC2701 (internal use)
+    TOPIC_CHILD_GROWTH,
     TOPIC_ELDER,
     TOPIC_UNKNOWN,
     BaseRate,
     ChartContext,
     Provenance,
+    _beat_age_question,  # noqa: PLC2701 (internal use)
     _beat_last_ten_years,  # noqa: PLC2701 (internal use)
     _beat_next_ten_years,  # noqa: PLC2701 (internal use)
     _beat_one_thing,  # noqa: PLC2701 (internal use)
     _beat_right_now,  # noqa: PLC2701 (internal use)
     _beat_what_this_rests_on,  # noqa: PLC2701 (internal use)
     _beat_who_you_are,  # noqa: PLC2701 (internal use)
+    _beat_years_ahead_for_a_child,  # noqa: PLC2701 (internal use)
     _cap,  # noqa: PLC2701 (internal use)
+    _first_name,  # noqa: PLC2701 (internal use)
     _marital_status_pending_question,  # noqa: PLC2701 (internal use)
     _month_year,  # noqa: PLC2701 (internal use)
     _outlook,  # noqa: PLC2701 (internal use)
+    _voice,  # noqa: PLC2701 (internal use)
     _word_count,  # noqa: PLC2701 (internal use)
     forward_beat_names_mahadasha_handover,
 )
@@ -231,6 +243,13 @@ _FIVE_MIN_WORD_BUDGET: dict[str, tuple[int, int]] = {
     # tightened number this session cannot check would be worse than an honest
     # loose one.
     "client_with_guardian": (650, 380),
+    # Owner ruling 2026-10-06: a family member's chart gets the longer reading
+    # too. An adult (`other`) takes the self reading's beats in the third
+    # person, so the self ceiling. A child (`parent`) takes a seven-beat
+    # reading built for a parent to read — see `_parent_beats` — and the
+    # guardian ceiling, the nearest register in shape.
+    "other": (650, 450),
+    "parent": (650, 380),
 }
 
 
@@ -258,11 +277,15 @@ _REPETITION_ALLOWED: frozenset[str] = frozenset()
 # 2-minute suite is bidirectional rather than a checklist.
 def _content_strings() -> set[str]:
     strings: set[str] = set()
-    for voice in _VOICE.values():
+    # Both voice tables. `_VOICE_THEM`'s `nature` carries a `{name}` slot, so it
+    # is scanned as the text either side of the slot; a placeholder never
+    # appears in rendered output and would match nothing.
+    for voice in (*_VOICE.values(), *_VOICE_THEM.values()):
         for facet in (voice.gift, voice.shadow, voice.life_lesson, voice.past_texture,
                       voice.now_texture, voice.action, voice.asks, voice.mechanism):
             strings.update(facet)
-        strings.update((voice.nature.ta, voice.nature.en))
+        for text in (voice.nature.ta, voice.nature.en):
+            strings.update(part.strip() for part in text.split("{name}"))
         for domain in voice.domain_flex.values():
             strings.update(domain)
     # `_PERIOD_THEME` is DELIBERATELY NOT SCANNED, and the reason generalises:
@@ -285,7 +308,10 @@ def _content_strings() -> set[str]:
     # in it, because substring matching cannot tell a repetition from a
     # coincidence at that length. `_AREA_NOUN` is out for the same reason.
     for table in (_SHADOW_ESSENCE, _BHUKTI_FLAVOR, _GOCHARA_SANI,
-                  _LORD_STRENGTH_NOTE, _LAGNA_FACE, _MOON_MIND):
+                  _LORD_STRENGTH_NOTE, _LAGNA_FACE, _MOON_MIND,
+                  _SHADOW_ESSENCE_THEM, _BHUKTI_FLAVOR_THEM, _GOCHARA_SANI_THEM,
+                  _LORD_STRENGTH_NOTE_THEM, _LAGNA_FACE_THEM, _MOON_MIND_THEM,
+                  _CHILD_PERIOD_TEXTURE):
         for entry in table.values():
             strings.update(entry)
     return {s for s in strings if s and s not in _REPETITION_ALLOWED}
@@ -381,6 +407,22 @@ _TABLE_PROVENANCE: dict[str, tuple[Provenance, BaseRate]] = {
     # here, and DERIVED-adjacent in the sense that the band it keys on is a
     # number this chart produced rather than a table lookup.
     "_LORD_STRENGTH_NOTE": (Provenance.RULE, BaseRate.KEYED),
+    # Owner ruling 2026-10-06 — the third-person twins a family member's
+    # reading is built from. Each carries its base table's class unchanged:
+    # moving a clause from "you" to "they" changes who it is about, not what
+    # kind of claim it is.
+    "_SHADOW_ESSENCE_THEM": (Provenance.TENDENCY, BaseRate.KEYED),
+    "_BHUKTI_FLAVOR_THEM": (Provenance.RULE, BaseRate.KEYED),
+    "_GOCHARA_SANI_THEM": (Provenance.RULE, BaseRate.KEYED),
+    "_LORD_STRENGTH_NOTE_THEM": (Provenance.RULE, BaseRate.KEYED),
+    "_TOPIC_LENS_THEM": (Provenance.FRAME, BaseRate.KEYED),
+    "_LAGNA_FACE_THEM": (Provenance.TENDENCY, BaseRate.KEYED),
+    "_MOON_MIND_THEM": (Provenance.TENDENCY, BaseRate.KEYED),
+    # What a period under each lord tends to bring a growing child — the
+    # `now_texture` rule read onto the life surface a child actually has, the
+    # same move `_MINOR_NOW_TEXTURE` makes for a teenager. RULE, describing the
+    # period and never the child.
+    "_CHILD_PERIOD_TEXTURE": (Provenance.RULE, BaseRate.KEYED),
 }
 
 # §2.3. One label per graha — the noun the theme sentence opens on. Not a new
@@ -471,16 +513,10 @@ _BHUKTI_FLAVOR: dict[str, tuple[str, str]] = {
 # §2.5. One opening clause per topic, used to reframe the STRONGEST graha's
 # own `gift` (facet 1) into that domain — a grammatical hinge, not a new
 # characterization. "At work, that shows up as..." / "In how you learn, that
-# shows up as...". Eight entries, not the spec's estimated nine:
-# TOPIC_THIRD_PARTY is the ninth non-UNKNOWN topic, and it is structurally
-# unreachable here — Beat 7 only ever builds on the "self" register (every
-# other register 404s before any beat is built), and TOPIC_THIRD_PARTY is
-# only ever assigned on the "other" register. A dead entry that no test could
-# ever exercise is worse than the KeyError a genuine mis-key would raise.
-# CHILD_GROWTH/TEEN are unreachable on "self" today for the same structural
-# reason (a minor's chart never reaches "self" — see build_chart_context) but
-# are included anyway: the client_with_guardian register is next on this
-# module's own roadmap and TEEN is its likely topic beat.
+# shows up as...". Eight entries, one per reachable non-UNKNOWN topic
+# (TOPIC_THIRD_PARTY, once a ninth, was retired 2026-10-06 — an adult family
+# member is now routed on their own profile like anyone else). TEEN is the
+# `client_with_guardian` topic and CHILD_GROWTH the `parent` one.
 #
 # THE OPENER LOST ITS "that shows up as" ON 2026-08-11, with the rebuild of the
 # beat it opens. That trailing clause existed to hand off to a temperament
@@ -730,7 +766,204 @@ _GUIDANCE_FALLBACK: tuple[str, str] = (
 )
 
 
-def _beat_core_nature_extended(*, strongest: str, addressed_to: str) -> OneMinuteBeat:
+# ── A family member's reading: the same tables, about them ───────────────────
+#
+# Owner ruling 2026-10-06 (see one_minute_reading_service, "Reading a chart that
+# belongs to somebody else"). Every table below is the third-person twin of the
+# table it is named after, hand-written and keyed identically so a builder takes
+# either one. Where a base entry already says nothing about "you" it is carried
+# over verbatim rather than re-typed, so the two cannot drift; the dict-merge
+# form makes the handful of entries that DO change the only ones on the page.
+# English is singular "they"; Tamil is the honorific அவர்.
+#
+# PENDING NATIVE-TAMIL REVIEW — the base tables' "review passed" markers do not
+# transfer to their twins.
+_SHADOW_ESSENCE_THEM: dict[str, tuple[str, str]] = {
+    **_SHADOW_ESSENCE,
+    "SUN": ("தான் நம்பாத நிலைப்பாட்டைத் தொடர்ந்து காப்பாற்றுதல்", "defending a position they no longer believe"),
+    "MOON": ("சூழலின் மனநிலையைத் தனக்குள் விட்டுவிடுதல்", "letting the room's mood become theirs"),
+}
+
+_BHUKTI_FLAVOR_THEM: dict[str, tuple[str, str]] = {
+    **_BHUKTI_FLAVOR,
+    "MARS": (
+        "இந்தக் காலம் மற்றபடி கேட்பதை விட வேகமாக நகரும்படி அவரைத் தூண்டுகிறது",
+        "pushes them to move faster than the rest of this stretch asks for",
+    ),
+}
+
+_GOCHARA_SANI_THEM: dict[int, tuple[str, str]] = {
+    **_GOCHARA_SANI,
+    1: (
+        "இந்தக் காலம் அவரது உடலையும் மனநிலையையும் நேரடியாகச் சோதிக்கிறது; முன்பு எளிதாக இருந்தவை "
+        "இப்போது கூடுதல் முயற்சி கேட்கின்றன",
+        "this stretch presses directly on their body and their mood; things that used to take "
+        "little effort now ask for more",
+    ),
+    2: (
+        "இது பணத்தையும் குடும்பத்தில் அவர் பேசும் விதத்தையும் சோதிக்கிறது; இந்தக் காலத்தில் "
+        "செலவும் சொல்லும் கவனமாக இருக்க வேண்டும்",
+        "it presses on money and on how they speak inside the family; spending and wording both "
+        "repay care in this stretch",
+    ),
+    4: (
+        "இது வீட்டையும் உள்ளுக்குள்ளான நிம்மதியையும் சோதிக்கிறது; அவர் நிற்கும் தளமே "
+        "பரிசோதிக்கப்படுகிறது",
+        "it presses on home and on their inner quiet; the ground they stand on is what is being "
+        "tested",
+    ),
+    5: (
+        "இது அவரது தீர்ப்பையும், அவர் உருவாக்குவதையும், பிள்ளைகள் சார்ந்ததையும் சோதிக்கிறது; "
+        "இந்தக் காலத்தில் சூதாட்டம் பொருந்தாது",
+        "it presses on their judgment, on what they make, and on anything to do with children; "
+        "this is not a stretch that rewards a gamble",
+    ),
+    9: (
+        "இது அதிர்ஷ்டத்தையும் தந்தை சார்ந்ததையும் சோதிக்கிறது; முயற்சிக்குரிய பலன் வர நேரம் எடுக்கிறது",
+        "it presses on fortune and on anything to do with their father; effort takes longer than "
+        "it should to return",
+    ),
+    11: (
+        "இது சனி மிகச் சிறப்பாக நிற்கும் இடம் — வருமானமும், அவரைச் சுற்றியுள்ள வட்டமும் "
+        "விரிவடைகின்றன",
+        "this is the strongest place Saturn stands — income and the circle around them both widen",
+    ),
+    12: (
+        "செலவும், தூரமும், கலைந்த தூக்கமும் வழக்கத்தை விட அதிக எடையாகின்றன; குறைவாகச் செலவழித்து "
+        "அதிகமாக ஓய்வெடுக்கும்படி இந்தக் காலம் அவரைக் கேட்கிறது",
+        "expense, distance and broken sleep all weigh more than they used to; this is the stretch "
+        "that asks them to spend less and rest more",
+    ),
+}
+
+_LORD_STRENGTH_NOTE_THEM: dict[str, tuple[str, str]] = {
+    "STRONG": (
+        "அது அங்கே வலுவாக இருக்கிறது — அதனால் அவரது வாழ்க்கையின் இந்தப் பகுதி அழுத்தத்தில் "
+        "தானாகவே தாங்கிக்கொள்கிறது",
+        "it is strong there, so this side of their life tends to hold under pressure without "
+        "being rescued",
+    ),
+    "MODERATE": (
+        "அது அங்கே நடுத்தரமாக இருக்கிறது — அவரது வாழ்க்கையின் இந்தப் பகுதி முயற்சிக்குப் பதில் "
+        "தருகிறது, ஆனால் தானாக நடப்பதில்லை",
+        "it is moderate there — this side of their life answers to effort, but it does not run "
+        "itself",
+    ),
+    "WEAK": (
+        "அது அங்கே பலவீனமாக இருக்கிறது — அதனால்தான் அவரது வாழ்க்கையின் இந்தப் பகுதிக்கு எப்போதும் "
+        "கூடுதல் கவனம் தேவைப்பட்டிருக்கிறது",
+        "it is not strong there, which is why this side of their life has always needed more "
+        "deliberate attention than it looks like it should",
+    ),
+}
+
+_TOPIC_LENS_THEM: dict[str, tuple[str, str]] = {
+    **_TOPIC_LENS,
+    "TEEN": ("தன்னை நிலைப்படுத்துவதில்,", "In how they're finding their footing,"),
+    "EDUCATION": ("அவர் கற்கும் விதத்தில்,", "In how they learn,"),
+    "MARRIAGE": ("அவர் தேர்ந்தெடுக்கும் விதத்தில்,", "In who and how they choose,"),
+    "ELDER": ("உடல்நலம் மற்றும் அவர் ஒப்படைப்பதில்,", "In health and what they hand on,"),
+    "STEADYING": ("இப்போது அவரை நிலைநிறுத்துவதில்,", "In what steadies them now,"),
+}
+
+# The tension beat's two tables. `_LAGNA_FACE`'s Tamil entries each end on the
+# second-person verb (தெரிகிறீர்கள்), so all twelve move; three English entries
+# name "you". `_MOON_MIND` describes the manas impersonally ("a mind that…") and
+# only rasi 3's English reaches for "your".
+_LAGNA_FACE_THEM: dict[int, tuple[str, str]] = {
+    1: ("ஏற்கனவே நகர்ந்துகொண்டிருப்பவராகத் தெரிகிறார்", "already in motion"),
+    2: ("அவசரமற்றவராகத் தெரிகிறார்; அதை உறுதி என்று படிக்கிறார்கள்",
+        "unhurried, and people read that as certainty"),
+    3: ("விரைவானவராகவும் பேச எளியவராகவும் தெரிகிறார்", "quick, and easy to talk to"),
+    4: ("யாரை அருகில் விடுவது என்பதில் கவனமானவராகத் தெரிகிறார்", "careful about who gets close"),
+    5: ("கேட்காமலேயே பொறுப்பில் இருப்பவராகத் தெரிகிறார்", "as someone in charge, asked or not"),
+    6: ("நுணுக்கமானவராக — சில நேரம் திருத்துபவராக — தெரிகிறார்", "exact, and sometimes correcting"),
+    7: ("அவரது கருத்து தெரிவதற்கு முன்பே இணக்கமானவராகத் தெரிகிறார்",
+        "agreeable long before anyone meets their opinion"),
+    8: ("படிக்க முடியாதவராகத் தெரிகிறார்; ஆழம் இருக்கும் என்று எண்ணுகிறார்கள்",
+        "hard to read, and people assume depth"),
+    9: ("வெளிப்படையானவராகத் தெரிகிறார்; நேரடித்தன்மை நம்பிக்கையாகப் படுகிறது",
+        "open, and people read directness as confidence"),
+    10: ("தன் வயதை விட மூத்தவராகத் தெரிகிறார்", "serious, and older than they are"),
+    11: ("கூட்டத்திற்குள் இருந்தாலும் சற்று தனித்தவராகத் தெரிகிறார்",
+         "slightly apart, even from inside the group"),
+    12: ("உண்மையில் இருப்பதை விட மென்மையானவராகத் தெரிகிறார்", "softer than they are"),
+}
+
+_MOON_MIND_THEM: dict[int, tuple[str, str]] = {
+    **_MOON_MIND,
+    3: ("சூழ்நிலையை விட வேகமாக ஓடும்", "a mind that runs ahead of their circumstances"),
+}
+
+# "{name} comes across …" rather than the self frame's "People meet you …":
+# with "people" as the subject, the `_LAGNA_FACE` entries that close on "than
+# they are" read as being about the people. Every entry completes either verb.
+_TENSION_FRAME_THEM: tuple[str, str] = (
+    "லக்னத்தால் {name} {face}. உள்ளே இயங்குவதோ — {mind}.",
+    "{name} comes across {face}. What is actually running underneath is {mind}.",
+)
+_TENSION_CLOSE_THEM: tuple[str, str] = (
+    "மற்றவர்கள் அவரைப் படிக்கும் விதத்திற்கும், அவர் உண்மையில் முடிவெடுக்கும் விதத்திற்கும் "
+    "இடையிலான இந்த இடைவெளிதான், அவருக்குத் தன்னுடனேயே ஏற்படும் உராய்வின் பெரும்பகுதி.",
+    "That gap — between how they are read and how they actually decide — is where most of the "
+    "friction they have with themselves comes from.",
+)
+_ASKS_CONNECTIVE_THEM: tuple[str, str] = ("இந்தக் காலம் அவரிடம் கேட்பது:", "What this period asks of them:")
+_GUIDANCE_FALLBACK_THEM: tuple[str, str] = (
+    "{area} பற்றி ஒரு திறந்த கேள்வியை, அவர் உண்மையில் நம்பும் ஒருவரிடம் கொண்டு செல்வது.",
+    "taking one open question about {area} to the next person whose judgment they actually trust.",
+)
+
+# A child's period, for the `parent` register's longer reading. What a stretch
+# under each lord tends to bring a growing child — read onto school, home,
+# play and temperament, never onto an adult life surface (the adult-token lint
+# in tests/test_five_minute_reading.py walks this table directly). Written to
+# follow "{name} is in a {lord} period now, until {year}." Each is a whole
+# clause the caller only capitalises and closes.
+_CHILD_PERIOD_TEXTURE: dict[str, tuple[str, str]] = {
+    "SUN": (
+        "இந்தக் காலத்தில் அவர் கவனிக்கப்பட விரும்புவார் — பொறுப்பும் பாராட்டும் அவரை வளர்க்கும்",
+        "this is a stretch where they want to be seen, and responsibility and recognition help "
+        "them grow",
+    ),
+    "MOON": (
+        "இந்தக் காலத்தில் மனநிலையும் வீட்டின் சூழலும் அதிகம் தெரியும்; சீரான நாட்கள் அவரை நிலைப்படுத்தும்",
+        "in this stretch mood and the feel of home count for more, and regular days steady them",
+    ),
+    "MARS": (
+        "இந்தக் காலம் சக்தியும் வேகமும் நிறைந்தது; அந்தச் சக்திக்குச் செல்லும் இடம் இருந்தால் நன்றாக நடக்கும்",
+        "this stretch runs on energy and speed, and it goes well when that energy has somewhere to go",
+    ),
+    "MERCURY": (
+        "இந்தக் காலம் பேச்சு, கேள்விகள், கற்றலுக்குப் பலன் தரும்",
+        "this stretch rewards talking, questions and learning",
+    ),
+    "JUPITER": (
+        "இந்தக் காலம் விரிவடைகிறது — கற்றலும், ஆசிரியர்களும், மூத்தவர்களின் வழிகாட்டலும் உதவும்",
+        "this stretch widens things — learning, teachers and the guidance of older people tend to help",
+    ),
+    "VENUS": (
+        "இந்தக் காலம் இதமானது — நட்பும், கலையும், அழகானவற்றின் மீதான ரசனையும் எளிதாக வளரும்",
+        "this is a gentle stretch, where friendships, art and a feel for beautiful things come easily",
+    ),
+    "SATURN": (
+        "இந்தக் காலம் மெதுவாக நகரும்; பொறுமையாகக் கட்டியெழுப்புவது நீடிக்கும்",
+        "this stretch moves slowly, and what is built patiently in it lasts",
+    ),
+    "RAHU": (
+        "இந்தக் காலம் புதியதன் மீதும் வழக்கத்திற்கு மாறானதன் மீதும் அவரது ஆர்வத்தைத் தூண்டும்",
+        "this stretch pulls their interest toward whatever is new and unusual",
+    ),
+    "KETU": (
+        "இந்தக் காலம் உள்முகமானது; தனியாக இருக்கும் நேரத்திலும் அவர் வளர்கிறார்",
+        "this stretch turns inward, and they grow in their quiet time too",
+    ),
+}
+
+
+def _beat_core_nature_extended(
+    *, strongest: str, addressed_to: str, display_name: str = ""
+) -> OneMinuteBeat:
     """5-minute Beat 3 (§2.1) — gift, its mechanism, shadow. One graha, one beat.
 
     Extends the 2-minute reading's ``_beat_strength_and_cost`` with exactly
@@ -761,7 +994,7 @@ def _beat_core_nature_extended(*, strongest: str, addressed_to: str) -> OneMinut
     nothing for it to hinge into, and printing it alone would attach a
     cost-explaining clause to a gift with no cost named.
     """
-    voice = _VOICE[strongest]
+    voice = _voice(strongest, addressed_to)
 
     if addressed_to == "client_with_guardian":
         ta = f"உங்கள் உண்மையான பலம் {voice.gift[0]}."
@@ -769,13 +1002,18 @@ def _beat_core_nature_extended(*, strongest: str, addressed_to: str) -> OneMinut
         basis_ta = f"வலிமையான கிரகம் {planet_ta(strongest)} — பலம் இதிலிருந்தே"
         basis_en = f"Strongest graha {planet_en(strongest)} — the gift, from it"
     else:
+        if addressed_to == "other":
+            given = _first_name(display_name)
+            whose_ta, whose_en, costs_en = f"{given}-இன்", f"{given}'s", "costs them"
+        else:
+            whose_ta, whose_en, costs_en = "உங்கள்", "Your", "costs you"
         ta = (
-            f"உங்கள் உண்மையான பலம் {voice.gift[0]}. "
+            f"{whose_ta} உண்மையான பலம் {voice.gift[0]}. "
             f"விலை என்பது {voice.shadow[0]} — {voice.mechanism[0]}."
         )
         en = (
-            f"Your real strength is {voice.gift[1]}. "
-            f"Where it costs you is {voice.shadow[1]} — {voice.mechanism[1]}."
+            f"{whose_en} real strength is {voice.gift[1]}. "
+            f"Where it {costs_en} is {voice.shadow[1]} — {voice.mechanism[1]}."
         )
         basis_ta = f"வலிமையான கிரகம் {planet_ta(strongest)} — பலமும், விலையும், அதன் வழிமுறையும் இதிலிருந்தே"
         basis_en = f"Strongest graha {planet_en(strongest)} — the gift, its cost, and the mechanism between them"
@@ -801,7 +1039,7 @@ _RELATIONSHIPS_CONNECTIVE: tuple[str, str] = (
 )
 
 
-def _beat_repeating_pattern(*, strongest: str) -> OneMinuteBeat:
+def _beat_repeating_pattern(*, strongest: str, addressed_to: str = "self") -> OneMinuteBeat:
     """5-minute Beat 4 (§2.2) — one shadow trait, relocated into two domains.
 
     ONE GRAHA, BY CONSTRUCTION (§0.3): reuses the SAME ``strongest`` graha
@@ -825,7 +1063,7 @@ def _beat_repeating_pattern(*, strongest: str) -> OneMinuteBeat:
     the same shape: drop the restated clause and let Beat 4 continue
     straight from Beat 3's own sentence instead of repeating it.
     """
-    voice = _VOICE[strongest]
+    voice = _voice(strongest, addressed_to)
     work_ta, work_en = voice.domain_flex["WORK"]
     relationships_ta, relationships_en = voice.domain_flex["RELATIONSHIPS"]
 
@@ -869,7 +1107,9 @@ _TENSION_CLOSE: tuple[str, str] = (
 )
 
 
-def _beat_the_tension(*, lagna_rasi: int, moon_rasi: int) -> OneMinuteBeat:
+def _beat_the_tension(
+    *, lagna_rasi: int, moon_rasi: int, addressed_to: str = "self", display_name: str = ""
+) -> OneMinuteBeat:
     """5-minute Beat 5 (§7, NEW 2026-08-11) — the one named internal contradiction.
 
     Built from ``_LAGNA_FACE`` and ``_MOON_MIND``, and those two tables were
@@ -895,14 +1135,21 @@ def _beat_the_tension(*, lagna_rasi: int, moon_rasi: int) -> OneMinuteBeat:
     the two significators the reading names in Beat 1 and then never reads
     from again.
     """
-    face_ta, face_en = _LAGNA_FACE[lagna_rasi]
-    mind_ta, mind_en = _MOON_MIND[moon_rasi]
+    if addressed_to == "other":
+        face_ta, face_en = _LAGNA_FACE_THEM[lagna_rasi]
+        mind_ta, mind_en = _MOON_MIND_THEM[moon_rasi]
+        frame, close = _TENSION_FRAME_THEM, _TENSION_CLOSE_THEM
+    else:
+        face_ta, face_en = _LAGNA_FACE[lagna_rasi]
+        mind_ta, mind_en = _MOON_MIND[moon_rasi]
+        frame, close = _TENSION_FRAME, _TENSION_CLOSE
+    name = _first_name(display_name)
 
     return OneMinuteBeat(
         id="the_tension",
         text=OneMinuteText(
-            ta=f"{_TENSION_FRAME[0].format(face=face_ta, mind=mind_ta)} {_TENSION_CLOSE[0]}",
-            en=f"{_TENSION_FRAME[1].format(face=face_en, mind=mind_en)} {_TENSION_CLOSE[1]}",
+            ta=f"{frame[0].format(face=face_ta, mind=mind_ta, name=name)} {close[0]}",
+            en=f"{frame[1].format(face=face_en, mind=mind_en, name=name)} {close[1]}",
         ),
         basis=OneMinuteText(
             ta=f"லக்னம் ராசி {lagna_rasi} (வெளித்தோற்றம்); சந்திரன் ராசி {moon_rasi} (மனம்)",
@@ -912,7 +1159,12 @@ def _beat_the_tension(*, lagna_rasi: int, moon_rasi: int) -> OneMinuteBeat:
 
 
 def _beat_last_period_extended(
-    *, timeline: VimshottariTimeline, as_of: date, birth_date: date
+    *,
+    timeline: VimshottariTimeline,
+    as_of: date,
+    birth_date: date,
+    addressed_to: str = "self",
+    display_name: str = "",
 ) -> tuple[OneMinuteBeat, tuple[int, str] | None]:
     """5-minute Beat 5 (§2.3) — the 2-minute dated-past beat, plus one theme word.
 
@@ -929,7 +1181,12 @@ def _beat_last_period_extended(
     is no longer byte-identical to the 2-minute beat, so it gets its own id.
     """
     beat, hinge, _theme_lord = _beat_last_ten_years(
-        timeline=timeline, as_of=as_of, birth_date=birth_date, theme_table=_PERIOD_THEME
+        timeline=timeline,
+        as_of=as_of,
+        birth_date=birth_date,
+        theme_table=_PERIOD_THEME,
+        addressed_to=addressed_to,
+        display_name=display_name,
     )
     return OneMinuteBeat(id="last_period", text=beat.text, basis=beat.basis), hinge
 
@@ -947,6 +1204,7 @@ def _beat_this_period_extended(
     addressed_to: str,
     as_of: date,
     forward_beat_follows: bool,
+    display_name: str = "",
 ) -> OneMinuteBeat:
     """5-minute Beat 6 (§2.4) — the 2-minute right_now beat, plus what it asks.
 
@@ -1018,12 +1276,15 @@ def _beat_this_period_extended(
             and has_bhukti_clause
             and forward_beat_names_mahadasha_handover(timeline=timeline, as_of=as_of)
         ),
+        display_name=display_name,
     )
-    asks_ta, asks_en = _VOICE[maha_lord].asks
+    them = addressed_to == "other"
+    asks_ta, asks_en = _voice(maha_lord, addressed_to).asks
+    asks_connective = _ASKS_CONNECTIVE_THEM if them else _ASKS_CONNECTIVE
 
     bhukti_ta = bhukti_en = ""
     if has_bhukti_clause:
-        flavor_ta, flavor_en = _BHUKTI_FLAVOR[antar_lord]
+        flavor_ta, flavor_en = (_BHUKTI_FLAVOR_THEM if them else _BHUKTI_FLAVOR)[antar_lord]
         bhukti_ta = (
             f" இப்போதைய {planet_ta(antar_lord)} பகுதி — {_month_year(antar.end_date, 'ta')} வரை — "
             f"{flavor_ta}."
@@ -1036,14 +1297,16 @@ def _beat_this_period_extended(
     return OneMinuteBeat(
         id="this_period",
         text=OneMinuteText(
-            ta=f"{base.text.ta}{bhukti_ta} {_ASKS_CONNECTIVE[0]} {asks_ta}.",
-            en=f"{base.text.en}{bhukti_en} {_ASKS_CONNECTIVE[1]} {asks_en}.",
+            ta=f"{base.text.ta}{bhukti_ta} {asks_connective[0]} {asks_ta}.",
+            en=f"{base.text.en}{bhukti_en} {asks_connective[1]} {asks_en}.",
         ),
         basis=base.basis,
     )
 
 
-def _beat_window_ahead(*, moon_rasi: int, as_of: date) -> OneMinuteBeat:
+def _beat_window_ahead(
+    *, moon_rasi: int, as_of: date, addressed_to: str = "self", display_name: str = ""
+) -> OneMinuteBeat:
     """5-minute Beat 8 (§7, NEW 2026-08-11) — the one dated gochara window.
 
     THE ONLY BEAT IN EITHER READING THAT IS ABOUT THIS SEASON. Every other
@@ -1077,7 +1340,11 @@ def _beat_window_ahead(*, moon_rasi: int, as_of: date) -> OneMinuteBeat:
         )
     )
     house = house_from_reference(moon_rasi, saturn_rasi)
-    texture_ta, texture_en = _GOCHARA_SANI[house]
+    them = addressed_to == "other"
+    texture_ta, texture_en = (_GOCHARA_SANI_THEM if them else _GOCHARA_SANI)[house]
+    given = _first_name(display_name)
+    from_ta = f"{given}-இன் ராசியிலிருந்து" if them else "உங்கள் ராசியிலிருந்து"
+    from_en = f"from {given}'s Moon" if them else "from your Moon"
 
     egress = julian_day_to_utc_datetime(
         find_saturn_egress_jd(
@@ -1091,11 +1358,11 @@ def _beat_window_ahead(*, moon_rasi: int, as_of: date) -> OneMinuteBeat:
     phase_en = f" — {phase[1]}" if phase else ""
 
     ta = (
-        f"இப்போது சனி உங்கள் ராசியிலிருந்து {house}ஆம் இடத்தில் நகர்கிறார்{phase_ta}. "
+        f"இப்போது சனி {from_ta} {house}ஆம் இடத்தில் நகர்கிறார்{phase_ta}. "
         f"{_cap(texture_ta)}. {_month_year(egress, 'ta')} அளவில் அது இடம் மாறுகிறது."
     )
     en = (
-        f"Saturn is currently transiting the {_ordinal_en(house)} from your Moon{phase_en}. "
+        f"Saturn is currently transiting the {_ordinal_en(house)} {from_en}{phase_en}. "
         f"{_cap(texture_en)}. It moves on around {_month_year(egress, 'en')}."
     )
 
@@ -1104,7 +1371,7 @@ def _beat_window_ahead(*, moon_rasi: int, as_of: date) -> OneMinuteBeat:
         text=OneMinuteText(ta=ta, en=en),
         basis=OneMinuteText(
             ta=(
-                f"கோசார சனி ராசி {saturn_rasi}; ஜென்ம ராசி {moon_rasi}; "
+                f"கோச்சார சனி ராசி {saturn_rasi}; ஜென்ம ராசி {moon_rasi}; "
                 f"ராசியிலிருந்து {house}ஆம் இடம்; இடம் மாறுவது {egress.isoformat()}"
             ),
             en=(
@@ -1159,8 +1426,13 @@ def _beat_topic_in_full(
     addressed_to: str,
     lagna_rasi: int | None,
     planets: tuple[PlanetPosition, ...],
+    display_name: str = "",
 ) -> OneMinuteBeat:
     """5-minute Beat 9 (§2.5, rebuilt 2026-08-11) — the topic read from its own house.
+
+    FAMILY MEMBERS (owner ruling 2026-10-06): `other` takes every facet in its
+    third-person form. A child's chart does not come here — see
+    ``_beat_topic_house_for_a_child``.
 
     FACET 1 IS NOW A HOUSE, NOT A TEMPERAMENT, and that is the substantive
     change. It used to be the strongest graha's ``gift`` reframed through
@@ -1205,7 +1477,9 @@ def _beat_topic_in_full(
     Caller-gated on ``topic != TOPIC_UNKNOWN``, same as the 2-minute reading's
     own age-question beat.
     """
-    lens_ta, lens_en = _TOPIC_LENS[topic]
+    them = addressed_to == "other"
+    given = _first_name(display_name)
+    lens_ta, lens_en = (_TOPIC_LENS_THEM if them else _TOPIC_LENS)[topic]
     area_ta, area_en = _AREA_NOUN[_TOPIC_AREA[topic]]
 
     next_change = timeline.current_antardasha.end_date
@@ -1226,13 +1500,17 @@ def _beat_topic_in_full(
         house, lord, record = resolved
         title_ta, title_en = house_lord_title(house)
         sig_ta, sig_en = house_significations(record.house_from_lagna)
-        note_ta, note_en = _LORD_STRENGTH_NOTE[strength_band(record.strength_score)]
+        note_ta, note_en = (_LORD_STRENGTH_NOTE_THEM if them else _LORD_STRENGTH_NOTE)[
+            strength_band(record.strength_score)
+        ]
+        whose_ta = f"{given}-இன்" if them else "உங்கள்"
+        whose_en, where_en = (f"{given}'s", "their") if them else ("your", "your")
         house_ta = (
-            f"{lens_ta} உங்கள் {title_ta} {planet_ta(lord)}, அவர் {record.house_from_lagna}ஆம் "
+            f"{lens_ta} {whose_ta} {title_ta} {planet_ta(lord)}, அவர் {record.house_from_lagna}ஆம் "
             f"வீட்டில் அமர்ந்திருக்கிறார் — {sig_ta}. {note_ta}."
         )
         house_en = (
-            f"{lens_en} your {title_en} is {planet_en(lord)}, and it sits in your "
+            f"{lens_en} {whose_en} {title_en} is {planet_en(lord)}, and it sits in {where_en} "
             f"{_ordinal_en(record.house_from_lagna)} house — {sig_en}. {_cap(note_en)}."
         )
         basis_house_ta = (
@@ -1271,7 +1549,7 @@ def _beat_topic_in_full(
     facet3_ta = facet3_en = ""
     basis_friction_ta = basis_friction_en = ""
     if resolved is None and addressed_to != "client_with_guardian":
-        essence_ta, essence_en = _SHADOW_ESSENCE[strongest]
+        essence_ta, essence_en = (_SHADOW_ESSENCE_THEM if them else _SHADOW_ESSENCE)[strongest]
         # CARRIES THE LENS, because on this path nothing else does. The lens is
         # normally attached to the house sentence, and with the house sentence
         # withheld the beat opened straight on "Where it runs into friction:" —
@@ -1304,13 +1582,14 @@ def _beat_topic_in_full(
     if topic == TOPIC_ELDER:
         refusal_ta, refusal_en = _LONGEVITY_REFUSAL
 
+    guidance = _GUIDANCE_FALLBACK_THEM if them else _GUIDANCE_FALLBACK
     ta = " ".join(
         part
         for part in (
             house_ta,
             facet3_ta,
             outlook_ta,
-            f"{_GUIDANCE_CONNECTIVE[0]} {_GUIDANCE_FALLBACK[0].format(area=area_ta)}",
+            f"{_GUIDANCE_CONNECTIVE[0]} {guidance[0].format(area=area_ta)}",
             refusal_ta,
         )
         if part
@@ -1321,7 +1600,7 @@ def _beat_topic_in_full(
             house_en,
             facet3_en,
             outlook_en,
-            f"{_GUIDANCE_CONNECTIVE[1]} {_GUIDANCE_FALLBACK[1].format(area=area_en)}",
+            f"{_GUIDANCE_CONNECTIVE[1]} {guidance[1].format(area=area_en)}",
             refusal_en,
         )
         if part
@@ -1338,7 +1617,7 @@ def _beat_topic_in_full(
 
 
 def _beat_one_thing_keyed(
-    *, timeline: VimshottariTimeline, addressed_to: str
+    *, timeline: VimshottariTimeline, addressed_to: str, display_name: str = ""
 ) -> OneMinuteBeat:
     """The closing remedy, saying out loud what it descends from.
 
@@ -1362,27 +1641,195 @@ def _beat_one_thing_keyed(
     family in the room with the teenager), and stacking a second frame on it
     would displace the one that was written for the age.
     """
-    if addressed_to == "client_with_guardian":
+    if addressed_to in ("client_with_guardian", "parent"):
+        # The parent register's action is the parent's own (`_CHILD_VOICE`),
+        # with its own lead-in, for the same reason as the teenager's above.
         return _beat_one_thing(timeline=timeline, addressed_to=addressed_to)
 
     lord = timeline.current_mahadasha.lord
+    if addressed_to == "other":
+        given = _first_name(display_name)
+        ta = (
+            f"{given}-க்கு ஒரு செயல் — இது இன்றைய நாளை ஒட்டியது அல்ல, அவர் இருக்கும் "
+            f"{planet_ta(lord)} காலத்தை ஒட்டியது: {_VOICE_THEM[lord].action[0]}."
+        )
+        en = (
+            f"One thing for {given}, and it is keyed to the {planet_en(lord)} period they are in "
+            f"rather than to today: {_VOICE_THEM[lord].action[1]}."
+        )
+    else:
+        ta = (
+            f"ஒரு செயல் — இது இன்றைய நாளை ஒட்டியது அல்ல, நீங்கள் இருக்கும் "
+            f"{planet_ta(lord)} காலத்தை ஒட்டியது: {_VOICE[lord].action[0]}."
+        )
+        en = (
+            f"One thing, and it is keyed to the {planet_en(lord)} period you are in rather "
+            f"than to today: {_VOICE[lord].action[1]}."
+        )
     return OneMinuteBeat(
         id="one_thing",
-        text=OneMinuteText(
-            ta=(
-                f"ஒரு செயல் — இது இன்றைய நாளை ஒட்டியது அல்ல, நீங்கள் இருக்கும் "
-                f"{planet_ta(lord)} காலத்தை ஒட்டியது: {_VOICE[lord].action[0]}."
-            ),
-            en=(
-                f"One thing, and it is keyed to the {planet_en(lord)} period you are in rather "
-                f"than to today: {_VOICE[lord].action[1]}."
-            ),
-        ),
+        text=OneMinuteText(ta=ta, en=en),
         basis=OneMinuteText(
             ta=f"நடப்பு {planet_ta(lord)} மகாதசையை அடிப்படையாகக் கொண்டது",
             en=f"Anchored on the running {planet_en(lord)} mahadasha",
         ),
     )
+
+
+# ── A child's longer reading (owner ruling 2026-10-06) ───────────────────────
+#
+# §0.2 refused the `parent` register this length ("a parent does not want five
+# minutes of a toddler's temperament"). The owner overruled the scope — every
+# family member's card offers both lengths — and the reason for the refusal is
+# kept as the design constraint instead: the longer child reading carries MORE
+# of what a parent can use (the running period and what it tends to bring at
+# this age, the home house and its lord, when the next period begins) and NO
+# more temperament. It is the 2-minute parent reading's own beats with two
+# dated, chart-derived beats added between them; nothing adult-facing and no
+# character verdict is reachable from it.
+
+
+def _beat_child_period(
+    *, timeline: VimshottariTimeline, display_name: str
+) -> OneMinuteBeat:
+    """The running period for a child, what it tends to bring at this age, and
+    its current sub-period with the month that sub-period ends.
+
+    THE PERIOD'S END YEAR IS LEFT TO `what_comes_after`, which follows two beats
+    later and states the same handover to the month ("…until 2028, and Rahu
+    begins in May 2028"); printing it here too read as the reading saying one
+    thing twice. The texture is still bounded where it is said — by the
+    bhukti's month when a bhukti clause follows, and by the end year itself on
+    swabhukti, where there is no nearer date — so a slow texture (Saturn's
+    "moves slowly") is never an unbounded statement about a child. Same
+    judgement `_beat_this_period_extended` makes for the adult reading.
+    """
+    maha = timeline.current_mahadasha
+    antar = timeline.current_antardasha
+    given = _first_name(display_name)
+    texture_ta, texture_en = _CHILD_PERIOD_TEXTURE[maha.lord]
+    has_bhukti_clause = antar.lord != maha.lord
+    until_ta = "" if has_bhukti_clause else f", {maha.end_date.year} வரை"
+    until_en = "" if has_bhukti_clause else f", and it runs to {maha.end_date.year}"
+    ta = (
+        f"{given} இப்போது {planet_ta(maha.lord)} காலத்தில் இருக்கிறார்{until_ta}. "
+        f"{_cap(texture_ta)}."
+    )
+    en = f"{given} is in a {planet_en(maha.lord)} period now{until_en}. {_cap(texture_en)}."
+    if has_bhukti_clause:
+        flavor_ta, flavor_en = _BHUKTI_FLAVOR_THEM[antar.lord]
+        ta += (
+            f" இப்போதைய {planet_ta(antar.lord)} பகுதி — {_month_year(antar.end_date, 'ta')} வரை — "
+            f"{flavor_ta}."
+        )
+        en += (
+            f" Its current {planet_en(antar.lord)} phase, which runs to "
+            f"{_month_year(antar.end_date, 'en')}, {flavor_en}."
+        )
+    return OneMinuteBeat(
+        id="this_period",
+        text=OneMinuteText(ta=ta, en=en),
+        basis=OneMinuteText(
+            ta=(
+                f"{planet_ta(maha.lord)} மகாதசை / {planet_ta(antar.lord)} புத்தி "
+                f"({antar.start_date.isoformat()} – {antar.end_date.isoformat()})"
+            ),
+            en=(
+                f"{planet_en(maha.lord)} mahadasha / {planet_en(antar.lord)} antardasha "
+                f"({antar.start_date.isoformat()} to {antar.end_date.isoformat()})"
+            ),
+        ),
+    )
+
+
+def _beat_topic_house_for_a_child(
+    *,
+    topic: str,
+    lagna_rasi: int | None,
+    planets: tuple[PlanetPosition, ...],
+    display_name: str,
+) -> OneMinuteBeat | None:
+    """The home house, its lord, and where that lord sits — and nothing else.
+
+    `_beat_topic_in_full`'s house sentence minus the significations of the
+    house the lord occupies: those are adult life surfaces by construction (the
+    7th's are marriage and spouse, the 8th's open on longevity) and a child's
+    reading may name neither. The outlook clause is spent by the age-question
+    beat before this one, and the parent's one action closes the reading, so
+    friction, outlook and guidance all stay out. With no confirmed lagna there
+    is no house to read, and the beat is dropped (None) rather than emptied.
+    """
+    resolved = (
+        None
+        if lagna_rasi is None
+        else _topic_house_lord(topic=topic, lagna_rasi=lagna_rasi, planets=planets)
+    )
+    if resolved is None:
+        return None
+    house, lord, record = resolved
+    given = _first_name(display_name)
+    lens_ta, lens_en = _TOPIC_LENS_THEM[topic]
+    title_ta, title_en = house_lord_title(house)
+    note_ta, note_en = _LORD_STRENGTH_NOTE_THEM[strength_band(record.strength_score)]
+    return OneMinuteBeat(
+        id="topic_in_full",
+        text=OneMinuteText(
+            ta=(
+                f"{lens_ta} {given}-இன் {title_ta} {planet_ta(lord)}, அவர் "
+                f"{record.house_from_lagna}ஆம் வீட்டில் அமர்ந்திருக்கிறார். {note_ta}."
+            ),
+            en=(
+                f"{lens_en} {given}'s {title_en} is {planet_en(lord)}, and it sits in their "
+                f"{_ordinal_en(record.house_from_lagna)} house. {_cap(note_en)}."
+            ),
+        ),
+        basis=OneMinuteText(
+            ta=(
+                f"கவனப் பகுதி {_TOPIC_AREA[topic]}; {house}ஆம் வீடு, அதிபதி {planet_ta(lord)} "
+                f"{record.house_from_lagna}-ல், வலிமை {record.strength_score}/100"
+            ),
+            en=(
+                f"Focus area {_TOPIC_AREA[topic]}; house {house}, lord {planet_en(lord)} in "
+                f"{record.house_from_lagna}, strength {record.strength_score}/100"
+            ),
+        ),
+    )
+
+
+def _parent_beats(
+    context: ChartContext, *, opening: OneMinuteBeat, rests_on: OneMinuteBeat
+) -> list[OneMinuteBeat]:
+    """The `parent` register's longer reading, in the order a parent reads it:
+    who the child is → what this age asks → the period running now → the home
+    house → when the next period begins → the one thing a parent can do."""
+    name = context.profile.display_name
+    beats = [
+        opening,
+        rests_on,
+        _beat_age_question(
+            topic=context.topic,
+            display_name=name,
+            age=context.age,
+            age_band=context.age_band,
+            timeline=context.timeline,
+            addressed_to=context.addressed_to,
+        ),
+        _beat_child_period(timeline=context.timeline, display_name=name),
+    ]
+    house_beat = _beat_topic_house_for_a_child(
+        topic=TOPIC_CHILD_GROWTH,
+        lagna_rasi=context.lagna.rasi if context.lagna_reliable else None,
+        planets=context.planets,
+        display_name=name,
+    )
+    if house_beat is not None:
+        beats.append(house_beat)
+    years = _beat_years_ahead_for_a_child(
+        timeline=context.timeline, as_of=context.as_of, display_name=name
+    )
+    beats.append(OneMinuteBeat(id="what_comes_after", text=years.text, basis=years.basis))
+    beats.append(_beat_one_thing(timeline=context.timeline, addressed_to=context.addressed_to))
+    return beats
 
 
 # Where the withheld topic beat would have stood — the beat that comes right
@@ -1393,12 +1840,10 @@ _FIVE_MIN_QUESTION_ANCHOR_BEAT = "what_comes_after"
 
 
 def build_five_minute_reading(context: ChartContext) -> FiveMinuteReadingResponse:
-    if context.addressed_to not in ("self", "client_with_guardian"):
-        # parent/other: not designed for this length, ever (§0.2). Same 404
-        # the flag gate returns, not a fallback beat set: no beat-building
-        # function below is ever reached for these values.
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not available.")
-
+    # Every register ships as of the owner ruling of 2026-10-06. Until then
+    # `parent` and `other` 404'd here (§0.2), which is why the length switch
+    # never appeared on a family member's card.
+    name = context.profile.display_name
     opening = _beat_who_you_are(
         display_name=context.profile.display_name,
         nakshatra=context.moon.nakshatra,
@@ -1418,13 +1863,15 @@ def build_five_minute_reading(context: ChartContext) -> FiveMinuteReadingRespons
         addressed_to=context.addressed_to,
         birth_time_source=context.profile.birth_time_source,
     )
-    core_nature = _beat_core_nature_extended(
-        strongest=context.strongest, addressed_to=context.addressed_to
-    )
 
     pending: OneMinutePendingQuestion | None = None
 
-    if context.addressed_to == "client_with_guardian":
+    if context.addressed_to == "parent":
+        beats = _parent_beats(context, opening=opening, rests_on=rests_on)
+    elif context.addressed_to == "client_with_guardian":
+        core_nature = _beat_core_nature_extended(
+            strongest=context.strongest, addressed_to=context.addressed_to
+        )
         # §0.2's reduced 6-beat list: identity, rests-on, nature (reduced,
         # above), current period, age-topic mini-reading, one thing. Beat 4
         # (repeating pattern, built from `shadow`) and Beat 5 (dated past)
@@ -1489,11 +1936,18 @@ def build_five_minute_reading(context: ChartContext) -> FiveMinuteReadingRespons
         # material, which is backwards. Three of the beats below (the tension,
         # the window ahead, the forward horizon) exist to correct that, and the
         # topic beat was rebuilt on house material for the same reason.
+        #
+        # `self` and `other` share it: an adult family member's reading is this
+        # sequence in the third person (owner ruling 2026-10-06). Every builder
+        # takes `addressed_to` and the name, and picks its own copy.
+        register = context.addressed_to
         beats = [
             opening,
             rests_on,
-            core_nature,
-            _beat_repeating_pattern(strongest=context.strongest),
+            _beat_core_nature_extended(
+                strongest=context.strongest, addressed_to=register, display_name=name
+            ),
+            _beat_repeating_pattern(strongest=context.strongest, addressed_to=register),
         ]
 
         # Withheld on an unconfirmed birth time, not softened — see
@@ -1503,7 +1957,12 @@ def build_five_minute_reading(context: ChartContext) -> FiveMinuteReadingRespons
         # two places a problem lives is worse than none.
         if context.lagna_reliable:
             beats.append(
-                _beat_the_tension(lagna_rasi=context.lagna.rasi, moon_rasi=context.moon.rasi)
+                _beat_the_tension(
+                    lagna_rasi=context.lagna.rasi,
+                    moon_rasi=context.moon.rasi,
+                    addressed_to=register,
+                    display_name=name,
+                )
             )
 
         # Elder path skips the dated past entirely, same call and same
@@ -1517,6 +1976,8 @@ def build_five_minute_reading(context: ChartContext) -> FiveMinuteReadingRespons
                 timeline=context.timeline,
                 as_of=context.as_of,
                 birth_date=context.profile.birth_date_local,
+                addressed_to=register,
+                display_name=name,
             )
             beats.append(last_period_beat)
 
@@ -1524,12 +1985,20 @@ def build_five_minute_reading(context: ChartContext) -> FiveMinuteReadingRespons
             _beat_this_period_extended(
                 timeline=context.timeline,
                 hinge=hinge,
-                addressed_to=context.addressed_to,
+                addressed_to=register,
                 as_of=context.as_of,
                 forward_beat_follows=True,
+                display_name=name,
             )
         )
-        beats.append(_beat_window_ahead(moon_rasi=context.moon.rasi, as_of=context.as_of))
+        beats.append(
+            _beat_window_ahead(
+                moon_rasi=context.moon.rasi,
+                as_of=context.as_of,
+                addressed_to=register,
+                display_name=name,
+            )
+        )
 
         # Withheld, not defaulted — identical reasoning to the 2-minute
         # reading's own age-question beat: every version of the topic beat is
@@ -1541,9 +2010,10 @@ def build_five_minute_reading(context: ChartContext) -> FiveMinuteReadingRespons
                     topic=context.topic,
                     strongest=context.strongest,
                     timeline=context.timeline,
-                    addressed_to=context.addressed_to,
+                    addressed_to=register,
                     lagna_rasi=context.lagna.rasi if context.lagna_reliable else None,
                     planets=context.planets,
+                    display_name=name,
                 )
             )
 
@@ -1558,7 +2028,10 @@ def build_five_minute_reading(context: ChartContext) -> FiveMinuteReadingRespons
         # feel like a chapter instead of a verdict, and this is the only beat
         # in the module that names a handover the reader has not reached yet.
         forward = _beat_next_ten_years(
-            timeline=context.timeline, as_of=context.as_of, addressed_to=context.addressed_to
+            timeline=context.timeline,
+            as_of=context.as_of,
+            addressed_to=register,
+            display_name=name,
         )
         beats.append(
             OneMinuteBeat(id="what_comes_after", text=forward.text, basis=forward.basis)
@@ -1566,12 +2039,15 @@ def build_five_minute_reading(context: ChartContext) -> FiveMinuteReadingRespons
 
         beats.append(
             _beat_one_thing_keyed(
-                timeline=context.timeline, addressed_to=context.addressed_to
+                timeline=context.timeline, addressed_to=register, display_name=name
             )
         )
 
         if context.topic == TOPIC_UNKNOWN and not (context.profile.marital_status or "").strip():
-            pending = _marital_status_pending_question(before_beat=_FIVE_MIN_QUESTION_ANCHOR_BEAT)
+            pending = _marital_status_pending_question(
+                before_beat=_FIVE_MIN_QUESTION_ANCHOR_BEAT,
+                about=_first_name(name) if register == "other" else None,
+            )
 
     return FiveMinuteReadingResponse(
         data=FiveMinuteReadingData(

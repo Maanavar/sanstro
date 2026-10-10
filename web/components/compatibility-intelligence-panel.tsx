@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { AlertTriangle } from "lucide-react";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
-import { t, tNakshatra } from "@/lib/i18n";
+import { rasiDisplayName } from "@/lib/chart-utils";
+import { t, tNakshatra, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { CompatibilityIntelligenceData } from "@/lib/types";
 import { scoreColorPct } from "@/lib/format";
@@ -157,12 +159,30 @@ function SectionCard({ title, children }: { title: string; children: React.React
   );
 }
 
-function Badge({ text, color, bg }: { text: string; color: string; bg: string }) {
+/** `warn` draws a real icon instead of the "⚠ " text prefix the dosha badges
+ *  used to carry. Three reasons the glyph had to go, in order of how much they
+ *  cost a reader:
+ *
+ *    1. "⚠" is Extended_Pictographic. Some platforms resolve it to the
+ *       monochrome text presentation and some to the colour emoji, so the same
+ *       badge is a small brown triangle on one machine and a saturated
+ *       yellow-and-black sign on the next — and in the colour presentation it
+ *       ignores `color` entirely, which is the one thing a dosha badge uses to
+ *       say "this is the adverse one".
+ *    2. It sat inside the translated string, so the mark was duplicated across
+ *       six literals and could drift out of one of them silently.
+ *    3. Screen readers announce it. "warning sign Rajju Dosha" is noise on a
+ *       badge whose colour and wording already carry the warning; the icon is
+ *       aria-hidden and the sentence is just "Rajju Dosha".
+ */
+function Badge({ text, color, bg, warn = false }: { text: string; color: string; bg: string; warn?: boolean }) {
   return (
     <span style={{
+      display: "inline-flex", alignItems: "center", gap: "5px",
       fontSize: "0.72rem", fontWeight: 700, padding: "3px 10px", borderRadius: "999px",
       background: bg, color, border: `1px solid ${color}33`,
     }}>
+      {warn && <AlertTriangle aria-hidden="true" focusable="false" size={12} strokeWidth={2.5} style={{ flex: "none" }} />}
       {text}
     </span>
   );
@@ -393,7 +413,7 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
                 <span style={{ display: "inline-flex", alignItems: "center", gap: "7px" }}>
                   <ZodiacBadge rasi={identity.rasi} size={32} />
                   <span style={{ fontSize: "0.8rem", color: W.inkMid }}>
-                    {identity.rasiName}{" "}
+                    {rasiDisplayName(identity.rasi, lang)}{" "}
                     <GlossaryTerm term="rasi" lang={lang}>{en ? "Rasi" : "ராசி"}</GlossaryTerm>
                   </span>
                 </span>
@@ -406,7 +426,7 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
                 </span>
               </div>
               <div style={{ fontSize: "0.78rem", color: W.muted }}>
-                {identity.lagnaRasiName} {en ? "Lagnam" : "லக்னம்"}
+                {rasiDisplayName(identity.lagnaRasi, lang)} {en ? "Lagnam" : "லக்னம்"}
               </div>
             </div>
           ))}
@@ -463,9 +483,9 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
             <span style={{ fontSize: "0.9rem", color: W.muted }}>/{d.poruthamMax}</span>
           </div>
           <Badge text={d.poruthamLabel} {...poruthamLabelBadge(d.poruthamLabel)} />
-          {d.rajjuDosha && <Badge text={en ? "⚠ Rajju Dosha" : "⚠ ரஜ்ஜு தோஷம்"} color={W.rust} bg="var(--cl-rust-soft)" />}
-          {d.vedhaDosha && <Badge text={en ? "⚠ Vedha Dosha" : "⚠ வேத தோஷம்"} color={W.rust} bg="var(--cl-rust-soft)" />}
-          {d.nadiDosha.hasNadiDosha && <Badge text={en ? "⚠ Nadi Dosha" : "⚠ நாடி தோஷம்"} color={W.rust} bg="var(--cl-rust-soft)" />}
+          {d.rajjuDosha && <Badge warn text={en ? "Rajju Dosha" : "ரஜ்ஜு தோஷம்"} color={W.rust} bg="var(--cl-rust-soft)" />}
+          {d.vedhaDosha && <Badge warn text={en ? "Vedha Dosha" : "வேத தோஷம்"} color={W.rust} bg="var(--cl-rust-soft)" />}
+          {d.nadiDosha.hasNadiDosha && <Badge warn text={en ? "Nadi Dosha" : "நாடி தோஷம்"} color={W.rust} bg="var(--cl-rust-soft)" />}
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
           {d.poruthamKutas.map(k => (
@@ -492,16 +512,21 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
             <div key={i} style={{ flex: 1, minWidth: "200px", background: W.surface, borderRadius: "10px", padding: "12px 16px" }}>
               <p style={{ margin: "0 0 8px", fontSize: "0.78rem", fontWeight: 700, color: W.terracotta }}>{label}</p>
               <p style={{ margin: "0 0 4px", fontSize: "0.8rem", color: W.inkMid }}>
-                {en ? `7th Lord: ${strength.seventhLord}` : `7ஆம் அதிபதி: ${strength.seventhLord}`}
+                {en ? `7th Lord: ${tPlanetLord(strength.seventhLord, "en")}` : `7ஆம் அதிபதி: ${tPlanetLord(strength.seventhLord, "ta")}`}
                 {en ? ` in house ${strength.seventhLordHouse}` : ` ${strength.seventhLordHouse}ஆம் இடம்`}
               </p>
               <p style={{ margin: "0 0 4px", fontSize: "0.8rem", color: W.inkMid }}>
                 {en ? `Venus in house ${strength.venusHouse}` : `சுக்கிரன் ${strength.venusHouse}ஆம் இடம்`}
                 {" · "}{en ? `Strength ${strength.venusStrength}/100` : `வலிமை ${strength.venusStrength}/100`}
               </p>
+              {/* Same swap as Badge's `warn`, inline. `flex-start` + the 1px
+                  nudge optically centres a 12px triangle against a 0.76rem
+                  line; `align-items: center` would sit it low, because the
+                  glyph's visual mass is below its box centre. */}
               {strength.hasMaleficInSeventh && (
-                <p style={{ margin: "4px 0 0", fontSize: "0.76rem", color: W.rust }}>
-                  ⚠ {en ? "Malefic in 7th house" : "7ஆம் இடத்தில் பாதக கிரகம்"}
+                <p style={{ margin: "4px 0 0", fontSize: "0.76rem", color: W.rust, display: "flex", alignItems: "flex-start", gap: "5px" }}>
+                  <AlertTriangle aria-hidden="true" focusable="false" size={12} strokeWidth={2.5} style={{ flex: "none", marginTop: "1px" }} />
+                  {en ? "Malefic in 7th house" : "7ஆம் இடத்தில் பாதக கிரகம்"}
                 </p>
               )}
               <div style={{ marginTop: "8px" }}>
@@ -567,10 +592,10 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
           <Badge text={d.dashaHarmony.harmonyLabel} {...harmonyBadge(d.dashaHarmony.harmonyLabel)} />
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
             <span style={{ fontSize: "0.78rem", color: W.muted, background: W.surface, border: `1px solid ${W.border}`, borderRadius: "999px", padding: "2px 10px" }}>
-              {d.personAName}: {d.dashaHarmony.personAMahaLord} / {d.dashaHarmony.personAantarLord} {en ? "until" : "வரை"} {d.dashaHarmony.personAMahaEnd}
+              {d.personAName}: {tPlanetLord(d.dashaHarmony.personAMahaLord, en ? "en" : "ta")} / {tPlanetLord(d.dashaHarmony.personAantarLord, en ? "en" : "ta")} {en ? "until" : "வரை"} {d.dashaHarmony.personAMahaEnd}
             </span>
             <span style={{ fontSize: "0.78rem", color: W.muted, background: W.surface, border: `1px solid ${W.border}`, borderRadius: "999px", padding: "2px 10px" }}>
-              {d.personBName}: {d.dashaHarmony.personBMahaLord} / {d.dashaHarmony.personBAntarLord} {en ? "until" : "வரை"} {d.dashaHarmony.personBMahaEnd}
+              {d.personBName}: {tPlanetLord(d.dashaHarmony.personBMahaLord, en ? "en" : "ta")} / {tPlanetLord(d.dashaHarmony.personBAntarLord, en ? "en" : "ta")} {en ? "until" : "வரை"} {d.dashaHarmony.personBMahaEnd}
             </span>
           </div>
         </div>

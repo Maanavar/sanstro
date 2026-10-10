@@ -113,7 +113,7 @@ def test_perf_compute_bhinnashtakavarga():
 @pytest.mark.no_db
 def test_perf_calculate_daily_panchangam():
     """Daily panchangam (no cache, no DB) must complete within 1 s."""
-    from app.calculations.panchangam import calculate_daily_panchangam
+    from app.services.panchangam_cache import calculate_daily_panchangam
 
     budget_s = 1.0
     elapsed = _elapsed(

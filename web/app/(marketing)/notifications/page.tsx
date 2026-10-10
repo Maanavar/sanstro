@@ -3,23 +3,20 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ArrowLeft,
-  Bell,
-  Cake,
   Check,
   CheckCheck,
   CircleAlert,
   Inbox,
-  Orbit,
-  Route,
   SlidersHorizontal,
-  Sparkles,
-  Sunrise,
 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
+import {
+  NOTIFICATION_LOCALE as LOCALE,
+  notificationMeta as metaFor,
+  notificationRelativeTime as relativeTime,
+} from "@/lib/notification-display";
 import type { NotificationInboxItem, NotificationInboxResponse } from "@/lib/types";
-import { useSession } from "@/hooks/useSession";
+import { useLang } from "@/components/lang-toggle";
 import type { Lang } from "@/lib/i18n";
 
 /**
@@ -27,10 +24,9 @@ import type { Lang } from "@/lib/i18n";
  * "Open full inbox" link.
  *
  * Design notes:
- *  - Reached from the signed-in dashboard, so it carries a context bar (back to
- *    dashboard + notification settings) rather than the marketing nav's
- *    sign-up CTA. Arriving here used to leave you on a bare page with one text
- *    link back and no route to the preferences that produce these messages.
+ *  - This is an authenticated utility surface, so its layout supplies the same
+ *    dashboard header/footer as the workspace instead of a one-off context bar
+ *    or the public site's sign-up chrome.
  *  - The bell popover shows the default page of 30. "Full" has to mean more
  *    than the popover already showed, so this asks for the endpoint's maximum.
  *  - Bilingual: `useSession()` already resolves the account language, so a
@@ -42,34 +38,7 @@ const INBOX_LIMIT = 100;
 
 type Filter = "all" | "unread";
 
-type Tone = "cycle" | "day" | "neutral";
-
-type TypeMeta = { icon: LucideIcon; tone: Tone; en: string; ta: string };
-
-/** The six types `notification_dispatch_service.NotificationType` can emit.
- *  Anything else falls back to the humanised enum + a neutral bell, so a new
- *  backend type renders sensibly before this map catches up. */
-const TYPE_META: Record<string, TypeMeta> = {
-  MORNING_NALLA_NERAM: { icon: Sunrise, tone: "day", en: "Morning timing", ta: "காலை நேரம்" },
-  DASHA_TRANSITION: { icon: Orbit, tone: "cycle", en: "Dasa change", ta: "தசை மாற்றம்" },
-  PEYARCHI: { icon: Route, tone: "cycle", en: "Peyarchi", ta: "பெயர்ச்சி" },
-  PIRANTHA_NAAL: { icon: Cake, tone: "day", en: "Pirantha Naal", ta: "பிறந்த நாள்" },
-  JADHAGAM_D1_NUDGE: { icon: Sparkles, tone: "neutral", en: "Chart nudge", ta: "ஜாதக நினைவூட்டல்" },
-  GENERAL: { icon: Bell, tone: "neutral", en: "Update", ta: "தகவல்" },
-};
-
-function typeLabel(type: string) {
-  return type.replace(/[_-]+/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
-}
-
-function metaFor(type: string, lang: Lang): { icon: LucideIcon; tone: Tone; label: string } {
-  const known = TYPE_META[type];
-  if (known) return { icon: known.icon, tone: known.tone, label: lang === "ta" ? known.ta : known.en };
-  return { icon: Bell, tone: "neutral", label: typeLabel(type) };
-}
-
 const COPY = {
-  back: { en: "Back to dashboard", ta: "டாஷ்போர்டுக்குத் திரும்பு" },
   settings: { en: "Notification settings", ta: "அறிவிப்பு அமைப்புகள்" },
   title: { en: "Inbox", ta: "அறிவிப்பு பெட்டி" },
   lead: {
@@ -102,15 +71,12 @@ const COPY = {
   groupYesterday: { en: "Yesterday", ta: "நேற்று" },
   groupWeek: { en: "Earlier this week", ta: "இந்த வாரம்" },
   groupEarlier: { en: "Earlier", ta: "முந்தையவை" },
-  justNow: { en: "Just now", ta: "இப்போது" },
   announceAllRead: { en: "All notifications marked read.", ta: "அனைத்து அறிவிப்புகளும் படித்ததாக குறிக்கப்பட்டன." },
 } as const;
 
 function say(key: keyof typeof COPY, lang: Lang) {
   return COPY[key][lang];
 }
-
-const LOCALE: Record<Lang, string> = { ta: "ta-IN", en: "en-GB" };
 
 /** Day-bucket key for the group headings. Compares calendar days in the
  *  viewer's own zone — "yesterday" must mean yesterday locally, not 24h ago. */
@@ -130,25 +96,8 @@ function bucketOf(iso: string, now: Date): Bucket {
   return "groupEarlier";
 }
 
-/** Relative age, hand-written in both languages rather than left to
- *  Intl.RelativeTimeFormat — Tamil output varies by engine and this is a
- *  glanceable label, not prose. */
-function relativeTime(iso: string, lang: Lang, now: Date): string {
-  const sent = new Date(iso).getTime();
-  if (Number.isNaN(sent)) return "";
-  const minutes = Math.round((now.getTime() - sent) / 60_000);
-  if (minutes < 1) return say("justNow", lang);
-  if (minutes < 60) return lang === "ta" ? `${minutes} நிமிடத்திற்கு முன்` : `${minutes} min ago`;
-  const hours = Math.round(minutes / 60);
-  if (hours < 24) return lang === "ta" ? `${hours} மணி நேரத்திற்கு முன்` : `${hours} hr ago`;
-  const days = Math.round(hours / 24);
-  if (days === 1) return say("groupYesterday", lang);
-  if (days < 7) return lang === "ta" ? `${days} நாட்களுக்கு முன்` : `${days} days ago`;
-  return new Date(sent).toLocaleDateString(LOCALE[lang], { day: "numeric", month: "short" });
-}
-
 export default function NotificationsPage() {
-  const { hydrated, lang } = useSession();
+  const [lang] = useLang();
   const [items, setItems] = useState<NotificationInboxItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -180,9 +129,8 @@ export default function NotificationsPage() {
   }, []);
 
   useEffect(() => {
-    if (!hydrated) return;
     void loadInbox();
-  }, [hydrated, loadInbox]);
+  }, [loadInbox]);
 
   async function handleMarkAllRead() {
     setMarkingAllRead(true);
@@ -255,20 +203,7 @@ export default function NotificationsPage() {
   const showEmpty = !loading && visible.length === 0;
 
   return (
-    <div className="clarity-shell cl-inbox-shell">
-      <div className="cl-inbox-bar">
-        <div className="cl-inbox-bar__inner">
-          <Link href="/dashboard" className="cl-inbox-navlink">
-            <ArrowLeft size={16} strokeWidth={1.9} aria-hidden="true" />
-            {say("back", lang)}
-          </Link>
-          <Link href="/dashboard/settings" className="cl-inbox-navlink cl-inbox-navlink--muted">
-            <SlidersHorizontal size={16} strokeWidth={1.9} aria-hidden="true" />
-            {say("settings", lang)}
-          </Link>
-        </div>
-      </div>
-
+    <div className="clarity-shell cl-inbox-shell cl-inbox-shell--embedded">
       <main className="cl-inbox-main">
         <header className="cl-inbox-head">
           <h1 className="cl-inbox-head__h1">{say("title", lang)}</h1>
@@ -361,7 +296,7 @@ export default function NotificationsPage() {
                   {say("showAll", lang)}
                 </button>
               ) : (
-                <Link href="/dashboard/settings" className="cl-inbox-btn">
+                <Link href="/dashboard/settings/notifications" className="cl-inbox-btn">
                   <SlidersHorizontal size={16} strokeWidth={1.9} aria-hidden="true" />
                   {say("settings", lang)}
                 </Link>

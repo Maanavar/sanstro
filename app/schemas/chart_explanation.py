@@ -65,6 +65,15 @@ class ChartExplanationCoreIdentity(BaseModel):
     current_antardasha: str = Field(alias="currentAntardasha")
     current_pratyantardasha: str = Field(alias="currentPratyantardasha")
     explanation: ChartExplanationText
+    # Present only when the Lagna sits so close to a sign boundary that a
+    # birth-time error of a few minutes (or the recorded confidence window)
+    # would put it in the neighbouring sign. Null for everyone else.
+    lagna_edge_note: ChartExplanationText | None = Field(default=None, alias="lagnaEdgeNote")
+    # Same idea for the Navamsa (D9) Lagna, which changes every ~13 minutes and
+    # feeds yoga detection. Firm tier (±5 min) only.
+    navamsa_lagna_edge_note: ChartExplanationText | None = Field(
+        default=None, alias="navamsaLagnaEdgeNote"
+    )
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -176,6 +185,30 @@ class ChartExplanationBhava(BaseModel):
     theme: ChartExplanationText
     explanation: ChartExplanationText
 
+    # ── Bhava palan (2026-09-28) ────────────────────────────────────────────────
+    # The verdict/why/conduct triple the reading panel actually shows. `bhavaBala`
+    # above is deliberately NOT the thing a surface renders: the scale is centred at
+    # 45 with a stdev of 6, so "45/100" reads as "mediocre" for a perfectly ordinary
+    # house. Render `verdict` + `bandWord`; never the number
+    # (docs/BHAVA_PALAN_SECTION_PLAN_2026-09-28.md §9-Q2).
+    verdict: str | None = Field(default=None)  # SUPPORTED | MIXED | NEEDS_CARE
+    polarity: str | None = Field(default=None)  # DIRECT | UPACHAYA | INVERTED
+    band_word: ChartExplanationText | None = Field(default=None, alias="bandWord")
+    house_label: ChartExplanationText | None = Field(default=None, alias="houseLabel")
+    framing: ChartExplanationText | None = Field(default=None)
+    why: ChartExplanationText | None = Field(default=None)
+    lean_on: list[ChartExplanationText] = Field(default_factory=list, alias="leanOn")
+    go_slowly_with: list[ChartExplanationText] = Field(
+        default_factory=list, alias="goSlowlyWith"
+    )
+    karaka_note: ChartExplanationText | None = Field(default=None, alias="karakaNote")
+    polarity_note: ChartExplanationText | None = Field(default=None, alias="polarityNote")
+    # One short line for the CLOSED row, present only where the lord's own strength
+    # chip points the other way from this house's chip (a green 10th under a weak
+    # Saturn; a red 12th under a strong Jupiter). Names what carried or held the
+    # house. `bhava_palan.render_contrast`.
+    contrast: ChartExplanationText | None = Field(default=None)
+
     model_config = ConfigDict(populate_by_name=True)
 
 
@@ -283,6 +316,39 @@ class ChartExplanationPeyarchiSection(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class ChartExplanationStoryPlanet(BaseModel):
+    graha: str
+    # Facet keys (into this planet's `facets`) the Story view shows as its
+    # "why", at most two, in display order.
+    why_facet_keys: list[str] = Field(alias="whyFacetKeys")
+    active_now: bool = Field(alias="activeNow")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class ChartExplanationStoryCare(BaseModel):
+    name: str
+    kind: str  # DOSHAM | YOGA
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class ChartExplanationStory(BaseModel):
+    """The Story view's selections (FTR-21, app/services/reading_story.py).
+
+    Keys and engine names, not prose — surfaces localise them — except the
+    headline, a template over chart fields.
+    """
+
+    headline: ChartExplanationText | None = None
+    planets: list[ChartExplanationStoryPlanet] = Field(default_factory=list)
+    top_natal_yogas: list[str] = Field(default_factory=list, alias="topNatalYogas")
+    top_active_yogas: list[str] = Field(default_factory=list, alias="topActiveYogas")
+    care_patterns: list[ChartExplanationStoryCare] = Field(default_factory=list, alias="carePatterns")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class ChartExplanationData(BaseModel):
     chart_id: UUID = Field(alias="chartId")
     core_identity: ChartExplanationCoreIdentity = Field(alias="coreIdentity")
@@ -298,6 +364,8 @@ class ChartExplanationData(BaseModel):
     summary: ChartExplanationSummarySection
     peyarchi: ChartExplanationPeyarchiSection
     method_note: ChartExplanationText = Field(alias="methodNote")
+    # Additive (FTR-21): the Story view's picks, computed once for every surface.
+    story: ChartExplanationStory | None = None
 
     model_config = ConfigDict(populate_by_name=True)
 

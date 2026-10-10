@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import { identifyUser, resetAnalytics } from "@/lib/analytics";
+import { withNextPath } from "@/lib/auth-redirect";
 
 export type UserMode = "BEGINNER" | "BALANCED" | "TRADITIONAL";
 export type GoalTrack = "CAREER" | "EXAM" | "RELATIONSHIP" | "FINANCIAL" | null;
@@ -78,7 +79,11 @@ export function useSession(options: UseSessionOptions = {}) {
             headers: { "X-Vinaadi-CSRF": "1" },
           }).catch(() => undefined);
         }
-        window.location.href = "/login";
+        // Carry where they were. An expired session on
+        // `/dashboard/tools/porutham` used to sign you back in onto Today, so
+        // a session that timed out while you were reading something looked
+        // like the app had lost your place.
+        window.location.href = withNextPath("/login", window.location.pathname + window.location.search);
       }
     }
 

@@ -136,6 +136,30 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ARG SENTRY_AUTH_TOKEN
 ARG SENTRY_ORG
 ARG SENTRY_PROJECT
+# NEXT_PUBLIC_* values are inlined into the browser bundle by `next build`, so
+# they must exist HERE, at build time — setting them on the running container
+# changes nothing. None were declared, so every image built from this file
+# shipped analytics and web push compiled down to no-ops (GRW-03). Unset is
+# still safe: lib/analytics.ts and lib/firebase-messaging.ts no-op on "".
+# Pass with `docker build --build-arg NEXT_PUBLIC_POSTHOG_KEY=phc_...`.
+ARG NEXT_PUBLIC_POSTHOG_KEY=""
+ARG NEXT_PUBLIC_POSTHOG_HOST=""
+ARG NEXT_PUBLIC_FIREBASE_API_KEY=""
+ARG NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=""
+ARG NEXT_PUBLIC_FCM_PROJECT_ID=""
+ARG NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=""
+ARG NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=""
+ARG NEXT_PUBLIC_FIREBASE_APP_ID=""
+ARG NEXT_PUBLIC_FCM_VAPID_KEY=""
+ENV NEXT_PUBLIC_POSTHOG_KEY=$NEXT_PUBLIC_POSTHOG_KEY \
+    NEXT_PUBLIC_POSTHOG_HOST=$NEXT_PUBLIC_POSTHOG_HOST \
+    NEXT_PUBLIC_FIREBASE_API_KEY=$NEXT_PUBLIC_FIREBASE_API_KEY \
+    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=$NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN \
+    NEXT_PUBLIC_FCM_PROJECT_ID=$NEXT_PUBLIC_FCM_PROJECT_ID \
+    NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=$NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET \
+    NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=$NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID \
+    NEXT_PUBLIC_FIREBASE_APP_ID=$NEXT_PUBLIC_FIREBASE_APP_ID \
+    NEXT_PUBLIC_FCM_VAPID_KEY=$NEXT_PUBLIC_FCM_VAPID_KEY
 # node_modules first (symlinks into the .pnpm store are preserved by COPY
 # --from), then the sources over the top. node_modules is excluded from the
 # build context, so the second COPY cannot clobber the first.

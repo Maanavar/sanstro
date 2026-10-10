@@ -3,10 +3,11 @@ from __future__ import annotations
 from datetime import date
 from uuid import UUID, uuid4
 
-from sqlalchemy import Boolean, Date, ForeignKey, Index, Numeric, String, text
+from sqlalchemy import Boolean, ForeignKey, Index, Numeric, String, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
+from app.db.encrypted_types import EncryptedDate
 
 
 class FamilyMember(TimestampMixin, Base):
@@ -26,7 +27,7 @@ class FamilyMember(TimestampMixin, Base):
     gender_for_traditional_rules: Mapped[str] = mapped_column(
         String(32), nullable=False, default="not_specified", server_default=text("'not_specified'")
     )
-    date_of_birth_local: Mapped[date | None] = mapped_column(Date, nullable=True)
+    date_of_birth_local: Mapped[date | None] = mapped_column(EncryptedDate, nullable=True)
     is_minor: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default=text("false"))
     managed_by_user_id: Mapped[UUID | None] = mapped_column(ForeignKey("users.user_id", ondelete="SET NULL"), nullable=True)
     consent_status: Mapped[str] = mapped_column(

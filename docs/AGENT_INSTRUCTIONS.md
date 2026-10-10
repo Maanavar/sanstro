@@ -1,7 +1,22 @@
 # Vinaadi AI — Agent Instructions
-**Last updated:** 2026-09-03  
+**Last updated:** 2026-10-08 (A16: contradictions with current source resolved)  
 **Test suite:** see CI  
-**Stack:** FastAPI + PostgreSQL + SQLAlchemy (backend) · Next.js 15 + TypeScript (frontend)
+**Stack:** FastAPI + PostgreSQL + SQLAlchemy (backend) · Next.js 15 + TypeScript (web) · Expo (mobile) · `@vinaadi/shared` (`packages/shared`)
+
+**Which document wins.** This file is a summary and loses every conflict:
+
+1. **Workspace, shell, database safety, API-contract coordination:** [CLAUDE.md](../CLAUDE.md).
+2. **Astrology doctrine:** the ratified decisions in
+   [DOCTRINE_DECISIONS_V1.md](DOCTRINE_DECISIONS_V1.md) and
+   [DOCTRINE_DECISIONS_V1.2.md](DOCTRINE_DECISIONS_V1.2.md), then the dated owner
+   rulings recorded after them (rulebook appendix, `MASTER_FIX_LIST.md`). A later
+   dated ruling supersedes an earlier one; a refactor never creates doctrine.
+3. **Current status of work:** [MASTER_FIX_LIST.md](MASTER_FIX_LIST.md) and
+   [ROADMAP_TASKS.md](ROADMAP_TASKS.md). Status sections below marked *historical*
+   are dated snapshots, not the current state.
+
+`tests/test_authoritative_docs.py` fails if a path or link named here stops
+existing. It cannot tell whether the sentence around a path is still true.
 
 ---
 
@@ -25,15 +40,16 @@ Tamil-first bilingual astrology daily companion. Users enter their birth details
 - `TRANSIT_BASE_SCORE` in `daily_guidance_service.py` — custom numeric weights per planet per house, not from any classical Shadbala text
 - `PLANET_DAILY_WEIGHT` — custom weighting per planet (Jupiter 0.18, Saturn 0.20, etc.)
 - `PLANET_PERIOD_SCORE` — custom base score per dasha lord
-- No Shadbala (6-fold planetary strength) computation
-- No Ashtamangala, Mrityu Bhaga, or Sarvashtakavarga checks
+- Shadbala (6-fold planetary strength) **is** computed (`app/calculations/shadbala.py`, served by `app/services/shadbala_service.py`), but the daily score does not read it — the weights above stay custom
+- Ashtakavarga is computed (`app/calculations/ashtakavarga.py`); the daily score reads Bhinnashtakavarga bindus to grade each transit (`_transit_with_av_score`)
+- No Ashtamangala or Mrityu Bhaga check
 - Jupiter/Saturn Lagna-based bonus/penalty is a supplemental adjustment on top of Moon-based score, not classical
 
 **If asked to "fully follow Thirukanitham methodology"** — be honest: core framework follows it (ayanamsa, dasha, kalam, nakshatra, house system), but the daily score weights are the author's custom formula, not from any printed Thirukanitham text.
 
-**Repo root:** `C:\Users\senth\OneDrive\문서\GitHub\sanstro`  
+**Repo root:** `D:\sanstro`  
 **Shell:** PowerShell. Use `.\.venv\Scripts\python.exe` for Python.  
-**Run tests:** `.\.venv\Scripts\python.exe -m pytest tests/ -x -q`
+**Run tests:** set the test-DB variables from CLAUDE.md rule 4 first (`vinaadi_test` on port 5433 — never `vinaadi_dev`), then `.\.venv\Scripts\python.exe -m pytest tests/ -x -q`. Add `--no-cov` for a subset; the suite is coverage-gated.
 
 ---
 
@@ -46,18 +62,18 @@ Tamil-first bilingual astrology daily companion. Users enter their birth details
 - Dasha: **Vimshottari** only. Period lengths in `app/calculations/dasha.py` — do not change.
 - Chandrashtama: **8th Rasi from natal Moon Rasi** — NOT 8th nakshatra. Code in `app/services/daily_guidance_service.py`. (BUG-01 fixed, don't revert.)
 - Amavasai (Tithi 30): **No score penalty**. It is a sacred ancestor day — trigger content card only. (BUG-02 fixed, don't revert.)
-- Kandaka Sani: computed from **Lagna Rasi**, not Moon Rasi. (BUG-03 fixed.)
+- Kandaka Sani: Saturn in the **4th, 7th or 10th from the Janma Rasi** (natal Moon), labelled "Kantaka Sani (from Janma Rasi)" / "கண்டக சனி (ஜென்ம ராசி)" on every surface. Ruled 2026-08-19 (doctrine A-1, `docs/VINAADI_RULEBOOK_TABLE_APPENDIX.md` `GO-10`), superseding BUG-03's Lagna reckoning. It overlaps the Moon cycles by design — 4th from the Moon is Ardhashtama *and* Kandaka — and the score still applies one penalty. Code: `classify_kandaka_cycle` in `app/calculations/transits.py`.
 - Kalam timings (Rahu Kalam, Yamagandam, Kuligai): divide the actual local sunrise-to-sunset daylight interval into 8 equal parts, then apply the weekday slot order. Code anchors at `sunrise` and uses `(sunset - sunrise) / 8` in `app/calculations/panchangam.py`.
 - Transit scoring: primary reference is **Janma Rasi (natal Moon)**. Jupiter/Saturn from Lagna are secondary adjustments only.
 - Score formula weights (`TRANSIT_BASE_SCORE`, `PLANET_DAILY_WEIGHT`, `PLANET_PERIOD_SCORE`) are in `app/services/daily_guidance_service.py`. Do not change these without explicit instruction — they are the author's calibrated values.
-- All score calculation intent is documented in `docs/Jothidam_AI_Formula_Engine_Specification_v1_Thirukanitham_2026.md`. When formula spec conflicts with product spec, **formula spec wins for calculations within the Thirukanitham standard**, product spec wins for UX.
+- Original score calculation intent is documented in `docs/Jothidam_AI_Formula_Engine_Specification_v1_Thirukanitham_2026.md`. When formula spec conflicts with product spec, **formula spec wins for calculations within the Thirukanitham standard**, product spec wins for UX. Both lose to the ratified doctrine decisions and later dated owner rulings (see "Which document wins" above).
 
 ### Coding rules
 - Every user-facing string must have both `ta` and `en` fields. Never hardcode Tamil or English only.
 - Never add `ensure_ascii=True` to JSON serialisation — Tamil bytes must pass through as UTF-8.
 - All JSON responses must include `Content-Type: application/json; charset=utf-8` (handled by `SecurityHeadersMiddleware` in `app/middleware.py`).
-- Calculation version: `"jothidam-formula-engine-v1.1-2026"` — bump only when score formula changes (invalidates `DailyScore` cache rows).
-- Panchangam results are cached in `panchangam_cache` table. Clear it (`DELETE FROM panchangam_cache`) after any kalam/tithi calculation fix.
+- Version strings live in `app/constants/versions.py`: `CHART_CALCULATION_VERSION` (the natal-chart engine) and `API_RESPONSE_VERSION` (non-chart responses). Bumping either **recomputes nothing** — it records provenance. Recomputing stored charts is a deliberate migration.
+- Panchangam results are cached in the `panchangam_cache` table by `app/services/panchangam_cache.py` (the read-through cache and the session-taking `calculate_daily_panchangam`; the calculation itself, `compute_daily_panchangam`, takes no session). After a kalam/tithi calculation fix, bump `PANCHANGAM_CACHE_DATA_VERSION` in `app/calculations/panchangam.py` so stale rows stop matching. Never run `DELETE` against `vinaadi_dev` by hand.
 - Run the full test suite before marking any task done; it must be green.
 
 ---
@@ -68,7 +84,8 @@ Tamil-first bilingual astrology daily companion. Users enter their birth details
 sanstro/
 ├── app/
 │   ├── api/              # FastAPI routers (one file per domain)
-│   ├── calculations/     # Pure astrological math (no DB)
+│   ├── calculations/     # Astrological math — intended DB-free (A13: panchangam.py still does cache SQL)
+│   ├── constants/        # Version strings and shared constants
 │   ├── core/             # Config, auth (JWT), security
 │   ├── db/               # SQLAlchemy session
 │   ├── middleware.py     # Rate limiting, security headers, request logging
@@ -78,18 +95,22 @@ sanstro/
 ├── docs/                 # Specs and instructions
 ├── migrations/           # Alembic migrations
 ├── tests/                # pytest test suite
+├── mobile/               # Expo app
+├── packages/shared/src/
+│   ├── api/              # Typed endpoint wrappers — new endpoints go here (CLAUDE.md)
+│   └── types/index.ts    # Response types shared by web and mobile
 └── web/                  # Next.js frontend
     ├── app/
     │   ├── api/backend/[...path]/route.ts   # Proxy: all /api/backend/* → FastAPI
-    │   ├── dashboard/page.tsx
-    │   ├── layout.tsx
-    │   └── login/page.tsx
-    ├── components/       # All React components
+    │   └── dashboard/    # Dashboard routes
+    ├── components/       # React components
+    ├── hooks/            # Feature data hooks (TanStack Query)
     └── lib/
-        ├── api.ts        # apiFetchJson helper
+        ├── api.ts        # apiFetchJson + binds the shared ApiClient to it
+        ├── backend-url.ts # The one resolver for the server-side backend URL
         ├── format.ts     # formatClockLabel, formatDateLabel, getScoreBand
-        ├── i18n.ts       # All UI strings + panchangam lookup maps
-        └── types.ts      # All TypeScript types
+        ├── i18n.ts       # Core UI strings + panchangam lookup maps (more catalogs beside it)
+        └── types.ts      # Web-only types; shared response types live in packages/shared
 ```
 
 ---
@@ -99,32 +120,12 @@ sanstro/
 ### Router registration (`app/main.py`)
 All routers mount under `/api/v1` prefix (set in `app/core/config.py`).
 
-| Router file | Endpoints |
-|---|---|
-| `app/api/auth.py` | `/auth/register`, `/auth/login`, `/auth/logout`, `/auth/me` |
-| `app/api/birth_profiles.py` | `/birth-profiles`, `/birth-profiles/me/latest` |
-| `app/api/charts.py` | `/charts/calculate`, `/charts/{id}/summary`, `/charts/{id}/dasha`, `/charts/{id}/daily-guidance`, `/charts/{id}/gochar/current`, `/charts/{id}/sani-cycle`, `/charts/{id}/peyarchi/upcoming`, `/charts/{id}/life-areas` |
-| `app/api/daily_guidance.py` | `/daily-guidance/range`, `/daily-guidance/week-ahead`*, `/activity-timing`*, `/charts/{id}/dasha/timeline`*, `/transits/peyarchi-report/{id}`*, `/journal/{id}/correlations`* |
-| `app/api/panchangam.py` | `/panchangam/daily`, `/panchangam/timings` |
-| `app/api/family_vaults.py` | `/family-vaults`, `/family-vaults/{id}`, `/family-vaults/{id}/daily-aggregate`, `/family-vaults/{id}/calendar`, `/family-vaults/{id}/members` |
-| `app/api/goals.py` | `/goals` |
-| `app/api/alerts.py` | `/alerts/ambient` |
-| `app/api/content.py` | `/content/nakshatra/{1-27}`* |
-| `app/api/transits.py` | `/charts/{id}/transits/major`, `/charts/{id}/gochar/current`, `/charts/{id}/sani-cycle` |
-| `app/api/journal.py` | `/journal`, `/journal/prompts`*, `/journal/export`* |
-| `app/api/life_areas.py` | `/charts/{id}/life-areas` |
-| `app/api/context.py` | `/context`* |
-| `app/api/retrospective.py` | `/retrospective`* |
-| `app/api/relationships.py` | `/relationships/alerts`*, `/relationships/{id}/synastry`* |
-| `app/api/decisions.py` | `/decisions/brief`* |
-| `app/api/whatif.py` | `/whatif` |
-| `app/api/settings.py` | `/settings/journal` |
-| `app/api/notification_preferences.py` | `/settings/notifications`* |
-| `app/api/feedback.py` | `/feedback` |
-| `app/api/qa.py` | `/qa/validate`, `/qa/regression-report` |
-| `app/api/admin.py` | `/admin/user/{id}`, `/admin/stats` |
-
-`*` = Backend implemented, no frontend consumer yet.
+The route inventory is the application's own OpenAPI document, not a table
+here — a copied table listed 22 routers and went stale as the app grew past
+it. Read the decorators under `app/api/`, or generate the schema from the app
+(`app.openapi()`) in a test environment. The contract guards
+`tests/test_api_wrapper_route_contract.py` and
+`tests/test_api_wrapper_field_contract.py` check the shared wrappers against it.
 
 ### Core service files
 | File | Purpose |
@@ -148,54 +149,28 @@ All routers mount under `/api/v1` prefix (set in `app/core/config.py`).
 ### Middleware (`app/middleware.py`)
 - `SecurityHeadersMiddleware` — security headers + **`Content-Type: application/json; charset=utf-8`** on every JSON response
 - `RequestLoggingMiddleware` — structured JSON access log
-- `RateLimitMiddleware` — 120 req/min per IP sliding window
+- `RateLimitMiddleware` — 120 req/min per IP sliding window (fails open on a limiter outage by design; the auth endpoints instead return a bounded 503 — A06)
 
 ### Config (`app/core/config.py`)
-Key env vars: `DATABASE_URL`, `SECRET_KEY`, `JWT_ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES`, `JOTHIDAM_FCM_PROJECT_ID`, `JOTHIDAM_FCM_SERVICE_ACCOUNT_JSON`
+Every setting is read with the `JOTHIDAM_` prefix (`JOTHIDAM_DATABASE_URL`, `JOTHIDAM_FCM_PROJECT_ID`, …), and any setting may instead be read from the file named by `JOTHIDAM_<NAME>_FILE` — the custody path for secrets (`docs/SEC1_SECRET_CUSTODY_RULING.md`). The `Settings` class is the list.
 
 ---
 
 ## 5. FRONTEND — KEY FILES
 
 ### State management
-All global state lives in `web/components/dashboard-workspace.tsx`. It:
-- Owns all API fetch calls (43 distinct calls)
-- Passes data down as props to tab components
-- No Redux/Zustand — plain `useState` + `useRef`
+Server data lives in feature hooks under `web/hooks/` on TanStack Query
+(`web/lib/queryClient.ts` sets the shared stale times). A panel that loads from
+the API uses `useApiQuery` (`web/hooks/useApiQuery.ts`) or a feature hook such
+as `usePersonalData`/`useFamilyData` — not a hand-rolled `useState` +
+`useEffect` block, which refetched on every tab switch.
 
-### Data flow
-```
-dashboard-workspace.tsx
-  ├── [state] personalChart, personalDailyGuidance, ambientAlerts, panchangam, etc.
-  ├── → DashboardHero (tabs, date picker, language toggle)
-  ├── → DashboardPersonalTab (personal view — score, dasha, transits, emotional weather)
-  ├── → DashboardFamilyTab (family vaults, member cards)
-  ├── → DashboardCalendarTab (7-day calendar, panchangam detail)
-  ├── → DashboardLifeAreasTab (12 life areas)
-  └── → DashboardSetupTab / DashboardSettingsTab / DashboardQaTab
-```
+`web/components/dashboard-workspace.tsx` is still the dashboard shell and still
+holds a large share of cross-feature UI state (route, selected chart, overlays).
+That coupling is architecture finding A13 — do not add new server data to it.
 
-### Props passed to DashboardPersonalTab
-```typescript
-lang, selectedDate, birthProfileId,
-personalChart,           // D1 + D9 charts, planet table
-personalChartSummary,    // lagna, moon sign, nakshatra, dasha label
-personalDailyGuidance,   // score, breakdown, reasons, remedy, emotionalWeather,
-                         // nakshatraPerspective, contextInsight, journalInsight,
-                         // bestWindows, cautionWindows, actionSuggestion
-dailyGuidanceRange,      // 3-day preview
-ambientAlerts,           // peyarchi + relationship alerts (AmbientAlertItem[])
-personalDasha,           // current dasha periods (maha/antar/pratyantar)
-personalDashaMaha,       // maha timeline
-personalDashaAntar,      // antar timeline
-personalTransit,         // gochar snapshot
-personalSani,            // Saturn cycle
-peyarchiUpcoming,        // upcoming Jupiter/Saturn sign changes
-panchangam,              // tithi, nakshatra, yoga, karana, kalam, hora
-panchangamTimings,       // kalam timings only
-goals, goalsBusy, ...    // goals + handlers
-whatIf...                // what-if state + handlers
-```
+The old prop-by-prop inventory of this file is gone on purpose: it described a
+component that had already moved on. Read the component's own props type.
 
 ### i18n system (`web/lib/i18n.ts`)
 ```typescript
@@ -219,69 +194,36 @@ formatClockLabel(value: string): string
 ```
 
 ### Proxy (`web/app/api/backend/[...path]/route.ts`)
-All frontend API calls go to `/api/backend/api/v1/...` → proxied to FastAPI at `BACKEND_URL` (default `http://127.0.0.1:8000`). The proxy also sets `charset=utf-8` on JSON responses.
+All frontend API calls go to `/api/backend/api/v1/...` → proxied to FastAPI. The server-side backend URL is resolved in one place, `web/lib/backend-url.ts` (A01): `BACKEND_URL`, with the legacy `API_BASE_URL` accepted as an alias. The `http://127.0.0.1:8000` default applies to `next dev` only — the request-time proxy refuses to fall back to it in production. Never add another inline `?? "http://127.0.0.1:8000"`. The proxy also sets `charset=utf-8` on JSON responses.
 
-### UI primitives (`web/components/dashboard-ui.tsx`)
-`Button`, `Surface`, `Metric`, `Chip`, `Modal`, `TextInput`, `DateInput`, `Select`  
-Always use these — don't create one-off styled divs for common patterns.
-
----
-
-## 6. TYPESCRIPT TYPES (`web/lib/types.ts`)
-
-Key types an agent needs:
-
-```typescript
-DailyGuidanceData {
-  score: number
-  scoreBreakdown: { moonTransit, dashaSupport, panchangam, gocharSupport, personalCautions, remedialActionSupport }
-  bestWindows: DailyGuidanceWindow[]     // {type, start "HH:MM", end "HH:MM"}
-  cautionWindows: DailyGuidanceWindow[]
-  text: BiText                           // {ta, en}
-  reasons: DailyGuidanceReasons          // {moonTransit, dashaSupport, panchangam, gochar, personalCaution}
-  remedy: BiText
-  actionSuggestion: BiText
-  cautionSuggestion: BiText
-  emotionalWeather: DailyGuidanceEmotionalWeather | null
-  nakshatraPerspective: BiText | null
-  contextInsight: BiText | null          // non-null only when user has event + caution day
-  journalInsight: DailyGuidanceJournalInsight | null  // non-null only when 30+ journal entries
-}
-
-DailyGuidanceEmotionalWeather {
-  tone: string                           // "heavy" | "expansive" | "restless" | "calm" | "scattered" | "confident"
-  physicalTendency: string
-  bestUseOfDay: string
-  avoidBefore: BiText | null
-  toneText: BiText
-  physicalTendencyText: BiText
-  bestUseOfDayText: BiText
-}
-
-AmbientAlertItem {
-  alertId, source: "PEYARCHI" | "RELATIONSHIP"
-  significanceScore: number              // 0–100
-  triggerPlanet, triggerType
-  eventDate, daysFromToday: number
-  title: BiText, message: BiText
-}
-
-PanchangamDailyResponseData {
-  vara: { weekday: string, lord: string }     // keys like "SUNDAY", "SUN"
-  tithi: { number, name: string, paksha: "SHUKLA"|"KRISHNA", endsAt: "HH:MM" }
-  nakshatra: { name: string, pada: number, endsAt: "HH:MM" }
-  yoga: { number, name: string }
-  karana: { name: string }
-  kalam: { rahuKalam: {start, end, slot}, yamagandam: {start, end, slot}, kuligai: {start, end, slot} }
-  abhijit: { start, end, isRestrictedByWeekday }
-  hora: { index, lord: string, start: "HH:MM", end: "HH:MM" }[]
-  sunrise, sunset: "HH:MM"
-}
-```
+### UI primitives (`web/components/ui/`)
+The Nova component kit — `Card`, `Button`, `Segmented`, `Chip`, `BilingualText`, … — imported from `@/components/ui`. `AsyncSection` (loading / error / unavailable states) is imported from `@/components/ui/async-section`. `Score`, `Table` and `ProgressBar` are imported from their own files, never the barrel (they pull in framer-motion; see the note in `web/components/ui/index.ts`). Styling lives in the component-kit section of `web/app/dashboard/dashboard-nova.css`.
+The older `web/components/dashboard-ui.tsx` primitives (`Surface`, `Metric`, `Modal`, …) remain in use but are not where new primitives go.
 
 ---
 
-## 7. WHAT IS NOT IN THE FRONTEND YET
+## 6. TYPESCRIPT TYPES
+
+Response types shared by web and mobile live in
+`packages/shared/src/types/index.ts`; `web/lib/types.ts` holds web-only types.
+Read the type there rather than a copy here — this section used to reproduce
+four response shapes and they drifted.
+
+Two rules the types alone will not tell you:
+
+- **Render the key, not the name.** Most astrology terms arrive twice — a
+  language-free key and a pre-rendered English name (`rasi` vs `rasiName`). See
+  CLAUDE.md "Display boundary".
+- **A wrapper's declared type is an assertion, not a check.** The shared client
+  transports `unknown` and casts. Until generated contracts land (A14), a
+  backend field rename compiles cleanly on both sides.
+
+---
+
+## 7. WHAT IS NOT IN THE FRONTEND YET — *historical (2026-05-27), superseded*
+
+Kept as a dated record and no longer maintained. Current status lives in
+`docs/MASTER_FIX_LIST.md` and `docs/ROADMAP_TASKS.md`.
 
 Status updated 2026-05-27 per VINAADI_ENHANCEMENT_ROADMAP_v1.md Section 0A.
 
@@ -300,37 +242,43 @@ Status updated 2026-05-27 per VINAADI_ENHANCEMENT_ROADMAP_v1.md Section 0A.
 
 ## 8. HOW TO ADD A NEW FRONTEND FEATURE (pattern)
 
-### Step 1 — Add type to `web/lib/types.ts` if needed
-Check if the response type already exists. If not, add it following the `ApiEnvelope<T>` pattern:
+*Rewritten 2026-10-08 (A16). The previous recipe added state to
+`dashboard-workspace.tsx` and ended its fetch in `.catch(() => {})` — a failure
+nobody could see, in the component architecture finding A13 is trying to shrink.
+Do not follow copies of it.*
+
+### Step 1 — A typed wrapper in `packages/shared/src/api/`
+New endpoints get a wrapper there (CLAUDE.md forward policy), with its response
+type in `packages/shared/src/types/index.ts`. Re-read the FastAPI decorator and
+confirm path-vs-query and the HTTP verb before wiring it — two wrappers have
+drifted from their routes before. In web the shared client already runs over
+`apiFetchJson` (bound in `web/lib/api.ts`), so the proxy is used either way.
+
+### Step 2 — Read it through a hook, not component state
 ```typescript
-export type MyNewData = { field: string; biField: BiText; };
+// e.g. in web/hooks/ or beside the panel
+const { data, state, refetch } = useApiQuery({
+  key: ["my-feature", chartId],
+  queryFn: () => getMyFeature(chartId).then((r) => r.data),
+  enabled: Boolean(chartId),
+  // Only if a 404 means "not available for this chart", not "broken":
+  // (dashboard-propensities-panel-nova.tsx is the one current example)
+  unavailableWhen: (e) => /404/.test(String((e as { message?: string })?.message ?? e)),
+});
 ```
 
-### Step 2 — Add fetch in `web/components/dashboard-workspace.tsx`
-```typescript
-const [myNewData, setMyNewData] = useState<MyNewData | null>(null);
-
-// Inside refreshPersonalBundle(), after parallel bundle:
-apiFetchJson<ApiEnvelope<MyNewData>>(`/api/v1/my-endpoint${toQuery({chartId})}`)
-  .then(r => setMyNewData(r.data))
-  .catch(() => {});  // fire-and-forget, never block the main bundle
-
-// Pass as prop to the tab component:
-// <DashboardPersonalTab myNewData={myNewData} ... />
+### Step 3 — Render every state, including failure
+```tsx
+<AsyncSection
+  state={state}
+  error={{ ta: "…ஏற்ற முடியவில்லை.", en: "Could not load my feature." }}
+  onRetry={refetch}
+/>
+{data && <Card>{/* render keys through their localisers */}</Card>}
 ```
-
-### Step 3 — Add to tab component props type and render
-```typescript
-// In the tab component props type:
-myNewData: MyNewData | null;
-
-// In JSX — always conditional, never crash on null:
-{myNewData && (
-  <Surface title={t("my_new_label", lang)}>
-    <p>{tLang(myNewData.biField, lang)}</p>
-  </Surface>
-)}
-```
+A failure is shown, or deliberately classified as "unavailable" — never
+swallowed. If something genuinely must not block the page, say so in a comment
+that names what the user sees instead.
 
 ### Step 4 — Add i18n keys to `web/lib/i18n.ts`
 ```typescript
@@ -392,37 +340,43 @@ from app.api.my_feature import router as my_feature_router
 app.include_router(my_feature_router, prefix=settings.api_v1_prefix)
 ```
 
-### Step 5 — Tests (`tests/test_my_feature.py`)
+### Step 5 — Tests (`tests/test_<feature>.py`)
 Test at least: happy path, missing data returns null not crash, auth required.
+
+### Step 6 — Keep `response_model` concrete
+A route without a concrete `response_model` is invisible to the contract
+guards — nine operations were skipped for exactly this (A14). Then add the
+shared wrapper (frontend Step 1).
 
 ---
 
 ## 10. DATABASE MODELS (summary)
 
-Key tables and their primary purpose:
+The models are the list: `app/models/`, one file per table. A copied field table
+here had already gone wrong (dasha periods are stored as Julian days, not dates).
 
-| Model file | Table | Key fields |
-|---|---|---|
-| `user.py` | `users` | email, password_hash |
-| `birth_profile.py` | `birth_profiles` | owner_user_id, birth_datetime_utc, lat, lng, timezone_name |
-| `chart.py` | `charts` | birth_profile_id, calculation_version, lagna_rasi, moon_rasi, janma_nakshatra |
-| `chart_planet.py` | `chart_planets` | chart_id, graha, rasi, nakshatra, pada, degree, house, retrograde, combust |
-| `dasha_period.py` | `dasha_periods` | chart_id, level (maha/antar/pratyantar), lord, start_date, end_date |
-| `panchangam_cache.py` | `panchangam_cache` | cache_date, latitude, longitude, ayanamsa_type, data (JSON) — 24h TTL |
-| `daily_score.py` | `daily_scores` | chart_id, date_local, score, calculation_version |
-| `family_vault.py` | `family_vaults` | owner_user_id, name |
-| `family_member.py` | `family_members` | vault_id, birth_profile_id, relationship_to_owner, member_weight |
-| `user_notification_preference.py` | `user_notification_preferences` | notification_channel (none/email/push/both), morning_alert_enabled, smart_silence_enabled, fcm_device_token |
-| `peyarchi_alert.py` | `peyarchi_alerts` | chart_id, planet, from_rasi, to_rasi, event_date, significance_score |
+Two things the model files will not warn you about:
 
-All models use `TimestampMixin` (created_at, updated_at). UUIDs for all primary keys.
+- **Encrypted columns cannot be filtered in SQL.** Birth instant, place and
+  timezone, current location, `charts.julian_day`/`lagna_longitude`, planet
+  longitudes/degree/speed/`raw_payload`, and `family_members.date_of_birth_local`
+  are Fernet ciphertext (A12b, migration `uu4e5f6a7b8c`). Compare them in
+  Python after decryption. A new encrypted column must also be added to
+  `scripts/rotate_encryption_key.py` and `scripts/verify_restore.py`. See
+  `docs/DATA_PROTECTION.md`.
+- Rasi/nakshatra/pada keys stay plaintext by ruling — which is why the public
+  copy does not claim birth details are encrypted at rest.
 
 ---
 
 ## 11. TEST FILES
 
+Set the test-DB variables first (CLAUDE.md rule 4). A second pytest run on this
+machine drops the first one's schema — check for one before believing a local
+failure (CLAUDE.md "Local test runs are not authoritative").
+
 Run all: `.\.venv\Scripts\python.exe -m pytest tests/ -x -q`  
-Run one: `.\.venv\Scripts\python.exe -m pytest tests/test_panchangam_api.py -x -v`
+Run one: `.\.venv\Scripts\python.exe -m pytest tests/test_panchangam_api.py -x -v --no-cov`
 
 | Test file | Covers |
 |---|---|
@@ -449,10 +403,18 @@ Run one: `.\.venv\Scripts\python.exe -m pytest tests/test_panchangam_api.py -x -
 | `docs/Jothidam_AI_QA_Golden_Test_Cases_v1_Thirukanitham_2026.md` | Verifying calculation output against known-correct values |
 | `docs/Jothidam_AI_OpenAPI_v1_Thirukanitham_2026.yaml` | Full API contract reference |
 | `docs/Jothidam_AI_PostgreSQL_Schema_v1_Thirukanitham_2026.sql` | Database schema DDL |
-| `docs/FRONTEND.md` | Current UI status, frontend feature backlog, surfaces for emotionalWeather/nakshatraPerspective/journalInsight/contextInsight/ambientAlerts |
+| `docs/archive/FRONTEND.md` | *Archived.* Early UI status and backlog; historical only |
 | `docs/VINAADI_ENHANCEMENT_ROADMAP_v1.md` | Forward roadmap, decisions log — what to build next and why |
+| `docs/DOCTRINE_DECISIONS_V1.md`, `docs/DOCTRINE_DECISIONS_V1.2.md` | Ratified doctrine — wins over every spec above |
+| `docs/MASTER_FIX_LIST.md` | What is actually done, with each item's gate and blind spots |
+| `docs/INDEX.md` | Map of every doc |
 
-**Conflict resolution rule:** Formula spec > Product spec for calculations. Both > any other doc.
+The OpenAPI YAML and the PostgreSQL DDL above are 2026 v1 design documents, not
+generated from the running app — the app's own `app.openapi()` and `app/models/`
+plus `migrations/` are the current contract and schema.
+
+**Conflict resolution rule:** see "Which document wins" at the top of this file.
+Among the original specs, formula spec > product spec for calculations.
 
 ---
 
@@ -468,13 +430,18 @@ Run one: `.\.venv\Scripts\python.exe -m pytest tests/test_panchangam_api.py -x -
 | Chandrashtama using nakshatra count | Must use Rasi count (8th rasi from natal Moon Rasi) |
 | Adding a new screen without conditional null check | Always guard: `{data && <Surface>...</Surface>}`, never crash on null |
 | Calling `formatClockLabel` on a date (not time) field | Only pass time strings `"HH:MM"` or ISO datetimes, not plain dates |
-| Hardcoding Tamil string directly in JSX | All strings must be in STRINGS dict in `i18n.ts` and use `t()` or `tLang()` |
+| Hardcoding Tamil string directly in JSX | Put the string pair in the catalog that owns the surface — `web/lib/i18n.ts`, `web/lib/dashboard-i18n.ts`, `web/lib/marketing-i18n.ts` or `web/lib/login-i18n.ts` — and render the active language only |
 | Using `ensure_ascii=True` in any JSON serialisation | Tamil bytes must flow as raw UTF-8 |
 | Amending existing git commit after hook failure | Always create a NEW commit — never `git commit --amend` after a failed hook |
 
 ---
 
-## 14. CURRENT STATUS (2026-05-24)
+## 14. STATUS SNAPSHOT (2026-05-24) — *historical, superseded*
+
+Kept as a dated record and no longer maintained; it is not the current state.
+Current status: `docs/MASTER_FIX_LIST.md`. One line below is now **wrong**
+rather than merely old — kalam is *not* on fixed 90-minute slots; see §2
+(sunrise-to-sunset ÷ 8).
 
 ### Done — backend + frontend wired
 - Daily guidance score, reasons, remedy — Personal tab
@@ -494,7 +461,7 @@ Run one: `.\.venv\Scripts\python.exe -m pytest tests/test_panchangam_api.py -x -
 - 3-day range preview — Calendar tab
 - D1 + D9 charts + planet table — Personal tab (Chart context surface)
 - Life areas (12 areas) — Life Areas tab
-- Kalam times fixed to Thirukanitham 90-min fixed slots — backend
+- ~~Kalam times fixed to Thirukanitham 90-min fixed slots — backend~~ *(superseded: daylight ÷ 8, §2)*
 
 ### Done — backend only, no frontend yet
 - Synastry charts, relationship alerts
@@ -631,7 +598,7 @@ Primary compatibility framework — NOT the same as synastry score.
 - Nakshatra→rasi mapping is pada-aware via the canonical 9-pada-per-rasi helper in `app/calculations/astro.py` — never reintroduce the old coarse 3-nakshatra-per-rasi formula.
 - Chandrashtama = **8th rasi from natal Moon rasi**, not 8th nakshatra from Janma Nakshatra (Janma/Anujanma/Trijanma nakshatra checks are a separate concept).
 - Pariharam Badhaka-dosham targeting uses the lagna-specific badhaka lord via `get_badhaka_lord(lagna_rasi, SIGN_LORD)` — never hardcoded Saturn.
-- Ardhashtama Sani (4th-from-Moon) is **kept** as an active affliction alongside Kantaka Sani (4th-from-Lagna) — both are genuine, distinct cautions; the daily-score double-count is already guarded in `daily_guidance_service.py` (decision 2026-06-05, issue T3).
+- Ardhashtama Sani (4th-from-Moon) is **kept** as an active affliction. Since doctrine A-1 (2026-08-19) Kandaka Sani is also counted from the Moon (4/7/10), so Saturn 4th from the Moon is *both* Ardhashtama and Kandaka — the reader is told both names and the daily score applies one penalty (`daily_guidance_service.py`). This supersedes the 2026-06-05 T3 wording, which paired Ardhashtama with a Lagna-reckoned Kantaka.
 
 ---
 
@@ -652,7 +619,7 @@ Every generated string, notification, narrative, and explanation must follow the
 ## 17. UI/UX & FEATURE-SPECIFIC RULES
 
 ### 17.1 Frontend API calls — always through the proxy helper
-All frontend API calls **must** go through `apiFetchJson()` from `web/lib/api.ts` (it prepends `/api/backend`, routed by the Next.js proxy to FastAPI). Never call `fetch('/api/v1/...')` directly — there is no Next.js route at that path and it 404s.
+All frontend API traffic **must** go through the proxy transport in `web/lib/api.ts` (it prepends `/api/backend`, routed by the Next.js proxy to FastAPI). Never call `fetch('/api/v1/...')` directly — there is no Next.js route at that path and it 404s. For a **new** endpoint that transport is reached through its shared wrapper (§8 Step 1), which `web/lib/api.ts` binds to `apiFetchJson`; existing direct `apiFetchJson` call sites are grandfathered.
 ```ts
 // WRONG — 404s
 fetch(`/api/v1/charts/${chartId}/life-events`, { credentials: "include" })
@@ -709,7 +676,7 @@ Both need clear onboarding copy explaining the distinction — users have been c
 ```
 
 ### 17.4 Shadow work journal
-Jungian-adapted introspective journaling using the Rahu/Ketu axis, 8th house, and 12th house. Must be chart-specific: Rahu sign/house → "what you chase but fear," Ketu → "what you abandon but need," 8th-house lord placement drives the shadow theme. All API calls go through `apiFetchJson()` (§17.1).
+Jungian-adapted introspective journaling using the Rahu/Ketu axis, 8th house, and 12th house. Must be chart-specific: Rahu sign/house → "what you chase but fear," Ketu → "what you abandon but need," 8th-house lord placement drives the shadow theme. All API calls go through the proxy transport (§17.1).
 
 ### 17.5 Life event log — valid event types
 `app/schemas/life_event_log.py` (`VALID_EVENT_TYPES`) and the frontend dropdown in `dashboard-life-event-log.tsx` must always stay in sync:

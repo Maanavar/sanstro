@@ -4,6 +4,12 @@ Last updated: 2026-06-26
 
 Scope: Security, resilience, astrology accuracy, and follow-up verification work from the consolidated review list.
 
+## Calendar Monthly — 2026-09-15
+
+- [~] Owner-approved reference redesign using Nova fonts/colors, compact
+  observance sidebar, selected-day summary and responsive grid. See
+  [design and verification notes](CALENDAR_MONTHLY_REDESIGN_2026-09-15.md).
+
 This document is written as an agent handoff. A coding agent should be able to pick one task ID, inspect the listed files, implement the fix, add or update tests, and report the result without relying on the original review chat.
 
 ## Before Starting
@@ -865,6 +871,1853 @@ Done when:
 - Admin destructive surface is inventoried.
 - Missing authorization or flag checks are fixed.
 - Tests cover the inventory.
+
+## Architecture remediation A01–A16 — 2026-10-07
+
+Evidence: [Architecture audit](ARCHITECTURE_AUDIT_2026-10-07.md). Implementation
+guide, phase order and definition of done:
+[Findings and solutions](ARCHITECTURE_FINDINGS_AND_SOLUTIONS_2026-10-07.md) §6.
+
+Every finding below was re-verified against current source before any edit; all
+sixteen still described the code exactly as written, with no line-number drift
+worth recording.
+
+### Phase 1
+
+- [x] **A01 — production Compose misroutes API traffic.** `docker-compose.app.yml`
+  handed the web service `API_BASE_URL`; every reader in `web/` reads
+  `BACKEND_URL` and fell back to loopback *inside the web container*. Fixed by
+  naming the canonical variable in Compose and routing all seven readers through
+  `web/lib/backend-url.ts`, which validates format, accepts the old name as a
+  warned transitional alias, and refuses the development default in production
+  at request time (never at module scope, so `next build` is unaffected).
+  Gate: `web/lib/backend-url.test.ts` (15 cases). Baseline recorded: against the
+  unfixed tree it failed 5 of them, naming `API_BASE_URL` in the web service and
+  all seven direct readers.
+  **Blind spot:** static. It cannot resolve `api`, open a socket, or run the
+  proxy. `scripts/compose-proxy-smoke.ps1` + the `compose-proxy-smoke` CI job
+  cover that half — see A01-b, which is NOT yet green.
+- [x] **A01-b — end-to-end Compose smoke, and the api image that blocked it.**
+  Running the smoke surfaced a separate defect: **the api image did not build at
+  all, from any machine.** `Dockerfile` used `python:3.12-slim`,
+  `requirements.txt:85` pins `pyswisseph==2.10.3.2` for
+  `python_version < '3.14'`, and pyswisseph publishes **no cp312 wheel in any
+  release** — so pip fell back to the sdist and died on
+  `[Errno 2] No such file or directory: 'gcc'`. The Dockerfile's own comment
+  ("wheels exist for psycopg2-binary / pyswisseph / cryptography") was false for
+  that base image. Two things hid it: no CI job builds this file, and the
+  backend test job installs the same requirements successfully because
+  `ubuntu-latest` ships gcc.
+
+  **Owner decision 2026-10-07:** compile in a throwaway `wheels` stage and keep
+  the runtime slim — rather than adding gcc to the shipped image, or moving to
+  `python:3.14-slim` and the `swisseph-ffi` binding, which would put production
+  on a backend CI does not test (`docs/vinaadi-fix-spec.md` requires both
+  bindings to be verified).
+  **Verified:** image builds, 554MB, `import swisseph` → `2.10.03`, and `gcc` is
+  absent from the runtime image.
+
+  **Smoke executed, with its negative control:** `scripts/compose-proxy-smoke.ps1`
+  brings up db + redis + api + web from the real compose file under an isolated
+  project name and asserts six claims through the Next proxy — `/`,
+  `/api/backend/health/ready`, synthetic register → login → `auth/me` (Bearer,
+  so a Secure cookie over plain HTTP cannot confound it), and a bounded 502 on
+  backend outage. All six PASS. With `-BreakBackendUrl` (loopback, the address
+  A01's fallback produced) the proxy claims FAIL, as required.
+
+  **Blind spots:**
+  - The web image **cannot be built on this machine**: `pnpm install` exhausts
+    the Dockerfile's 3 × 480s retry budget, the condition `web/Dockerfile`
+    already documents. The smoke therefore ran against `vinaadi-web:local`, an
+    image built four weeks ago that **predates `web/lib/backend-url.ts`**. It
+    reads `process.env.BACKEND_URL` directly, so the run proves the *compose
+    configuration* half end to end — container DNS, the proxy, POST bodies and
+    the Authorization header — but **not** the new resolver, which is covered
+    only by the unit gate. CI builds both images and runs the same script.
+  - An earlier version of the script fired its probes while the api container
+    was still running Alembic, reporting 502 on a correct stack. Worse, the
+    negative control would then have "passed" because the backend had not
+    finished booting rather than because the URL was wrong — a gate that cannot
+    fail. It now waits for the api healthcheck before making any claim.
+  - It reads the compose file in the repo, not whatever `-f` overlay or
+    `env_file` an operator actually deploys with.
+- [x] **A03 — replay revocation rolled back.** The theft-signal branch revoked
+  the user's active refresh tokens and raised 401; `get_db` rolled the
+  transaction back on that exception, discarding the revocation. The endpoint
+  answered "revoked", logged a theft signal, and left every successor usable.
+  Fixed with a narrow `db.commit()` before the raise — safe here because the
+  only prior database work in the handler is one SELECT, so no unrelated pending
+  state can ride along. A failed commit now logs
+  `refresh_token_theft_revocation_failed` and returns 503 instead of recording a
+  theft signal that never persisted.
+  **Owner ruling 2026-10-07:** the incident also advances `token_version`, so
+  access tokens already issued die immediately. Policy, not an implementation
+  detail: a legitimate client replaying a stale token is signed out everywhere.
+  Gate: `tests/test_refresh_replay_revocation.py` (5 cases). Baseline recorded:
+  4 of 5 failed against the unfixed tree; the fifth (ordinary rotation must not
+  advance `token_version`) passed before and after, by design.
+  **Blind spot:** sequential. A bulk `UPDATE ... WHERE revoked_at IS NULL`
+  cannot revoke a row inserted after it runs, so a successor issued *during*
+  replay handling is outside these tests. Closing that needs issuance and
+  revocation to share a generation check (A03 step 7), which this change does
+  not attempt. The suite also says nothing about the mobile client's reaction to
+  the 401, or about whether the theft signal reaches an operator.
+- [x] **A02 / A07 / A08 — mobile identity, cache and refresh lifecycle.**
+  Done as one work package, because the three findings are one defect seen from
+  three places: no component owned "the session changed".
+
+  **A02.** `src/state/sessionTransition.ts` is now the single owner of a session
+  starting or ending, with `src/lib/sessionIdentity.ts` holding the account and
+  a *generation* — a number that makes work started before a transition
+  unpublishable after it. Order is the design: the generation advances first, so
+  everything in flight is obsolete before anything is torn down. Call sites
+  converted: `app/_layout.tsx` (bootstrap + terminal 401),
+  `app/(auth)/login.tsx`, `app/(tabs)/me.tsx` (sign-out).
+  Defence in depth: `src/lib/queryKeys.ts::accountKey()` namespaces the five
+  account-independent private keys (`family-vaults`, `notification-prefs`,
+  `notification-inbox`, `my-subscription`, `ask-vinaadi-status`) across seven
+  call sites.
+  **Baseline recorded:** driving the pre-A02 sign-out sequence (`logout()`,
+  `clearTokens()`, `clearUserPrefs()`) against the real cache served B
+  `{"items":[{"familyVaultId":"A-vault"}]}` with **0 requests issued**.
+
+  **A07.** `encryptedQueryPersister.ts` now uses the installed library's real
+  `Persister`/`PersistedClient` types instead of a hand-written `any`, which is
+  what let the wrong shape compile: the filter was checking `clientState.queries`
+  *on the envelope*, so it returned its input untouched. Policy is now an
+  allowlist (`src/lib/queryCachePolicy.ts`) — the denylist was unsafe by
+  default, matching none of a dozen private surfaces, and repairing only the
+  envelope bug would have *started* persisting them. Namespaced per account,
+  version-busted, and validated on restore (schema, envelope age, per-key age,
+  shape), re-filtering inbound so a cache written by an older build is still
+  policed.
+  **Owner ruling 2026-10-07:** persist the user's own chart summary, current
+  dasha, and a short-lived today snapshot. **Family-vault data is NOT persisted
+  in V1.** Everything unlisted is memory-only.
+  **Baseline recorded:** against the installed library's own `dehydrate` output
+  the pre-fix persister wrote `["profile","family-vaults"]` — and `profile` is
+  pattern #2 of its own denylist.
+
+  **A08.** `fetchWithAuth` is now one refresh and one replay, then terminal;
+  single-flight refresh preserved; refreshed credentials are not written if the
+  generation moved; a terminal 401 routes through A02's full teardown instead of
+  clearing tokens alone.
+  **Baseline recorded:** the pre-fix client against a persistently-401 resource
+  ends in `FATAL ERROR: Ineffective mark-compacts near heap limit — JavaScript
+  heap out of memory`. The audit's probe looked bounded only because the probe
+  failed its own fifth refresh on purpose.
+
+  **Gates:** `__tests__/encryptedQueryPersister.test.ts` (12),
+  `__tests__/sessionTransition.test.ts` (10), `__tests__/apiClientRefresh.test.ts`
+  (7), `__tests__/queryKeyScoping.test.ts` (4 — ratchet, verified to fail in both
+  directions when one call site is reverted). Full mobile suite 151/151, tsc and
+  lint clean.
+
+  **A gap these tests did not catch, found by reading the library:**
+  `PersistQueryClientProvider` restores exactly once, in a mount effect that runs
+  before bootstrap knows who is signed in — so with per-call identity resolution
+  the persisted cache would have been written forever and never read, and every
+  cold start would have had no offline data. The coordinator now restores
+  explicitly once the identity is live. Two tests cover it, confirmed to fail
+  with that call removed.
+
+  **Blind spots:**
+  - No component is rendered. The coordinator is proven correct when called;
+    that `me.tsx`'s button reaches it is ordinary source a reviewer must check.
+  - `fetch` is a mock resolving immediately, so A08 proves retry *structure*, not
+    behaviour on a slow or flapping link. **Request deadlines and cancellation
+    (A08 step 7) are NOT implemented and not claimed.**
+  - The query-key ratchet is a source match on literal keys; a key built at
+    runtime or via another helper is invisible to it.
+  - Error classification (A08 step 8) is not implemented: a failed refresh is
+    still treated as terminal, so a network outage during refresh signs the user
+    out. Pre-existing behaviour, deliberately unchanged here.
+  - A user id in a cache key is isolation metadata, never an access check; the
+    backend must still refuse A's data to B.
+  - Purchase-SDK identity is explicitly out of scope here and is A04.
+  - The mobile suite now reports 151/151 where the audit saw 117 passed + 1
+    five-second screen-test timeout. That test was not touched; its passing here
+    is not evidence the open-handle warning is resolved.
+- [x] **A04 / A05 — purchase identity and billing event consistency.**
+
+  **Owner decision 2026-10-07:** block purchase and restore until the purchase
+  SDK confirms it is bound to the signed-in UUID; **no automatic transfer** of
+  existing purchases. Mismatched historical receipts are reconciled by hand
+  against provider evidence.
+
+  **The provider contract was read, not remembered.** RevenueCat's webhook
+  field reference confirms `id` (unique, **reused on retries**),
+  `event_timestamp_ms` (also reused), `app_user_id` /
+  `original_app_user_id` / `aliases`, `product_id`, `transaction_id` /
+  `original_transaction_id`, `expiration_at_ms`, `store`. The installed SDK
+  (`react-native-purchases` 8.12.0) was checked the same way: `logIn`,
+  `logOut`, `isAnonymous`, `getAppUserID` all exist, and `logOut()` on an
+  already-anonymous user is an error rather than a no-op — which is why the
+  adapter asks first, as the guide instructed.
+
+  **A05 (backend).** New `webhook_events` inbox with a unique
+  `(provider, event_id)`; the constraint is the idempotency guarantee, because
+  a prior SELECT would let two concurrent deliveries both pass. Account
+  resolution now walks `app_user_id` → `original_app_user_id` → `aliases`, so a
+  purchase made under an anonymous id still reaches the right account. An
+  unresolvable event is recorded as `unresolved` instead of being dropped.
+  Ordering guard: `subscriptions.provider_event_timestamp` holds the last
+  applied event's time, and an older event is recorded `stale` and changes
+  nothing. `provider_subscription_id` now holds `original_transaction_id` (what
+  its name always claimed) and the SKU moved to the new `provider_product_id`.
+  Migration `ss2c3d4e5f6a`, additive, reversible, **round-trip verified**
+  (upgrade → downgrade → upgrade on `vinaadi_test`).
+  **No backfill was needed, and that was checked rather than assumed:**
+  `subscriptions` held 0 rows and 0 duplicate `user_id`s, so there was nothing
+  to deduplicate and no stored value being redefined. The guide's caution about
+  a uniqueness migration presumes rows exist.
+
+  **A04 (mobile).** `src/lib/purchaseIdentity.ts` is an adapter with explicit
+  states (`unavailable` | `signed-out` | `syncing` | `ready` | `failed`), so an
+  absent SDK in Expo Go is distinguishable from a real billing error — the old
+  code swallowed both into one silent `catch`. Generation-guarded, so a slow
+  bind for A cannot publish readiness after a switch to B, and single-flighted,
+  so the coordinator and bootstrap share one `logIn`. Wired into A02's
+  coordinator on both edges. `app/premium.tsx` now calls `assertPurchaseReady`
+  before `purchasePackage` and `restorePurchases`, and takes the tier from the
+  **server** (`getMySubscription`, the existing shared wrapper) instead of
+  writing a local `setSession(user, "premium")` on the store's reply — with a
+  bounded pending message when the webhook has not landed yet.
+  The mount-only `purchases.logIn(me.userId)` in `app/_layout.tsx` is gone.
+
+  **Gates:** `tests/test_webhook_inbox.py` (15), `mobile/__tests__/purchaseIdentity.test.ts`
+  (15, including a source ratchet that the screen actually consults the gate —
+  verified to fail when one `assertPurchaseReady` is removed).
+  **Baseline:** the pre-fix handler was driven directly — renewal → `active`,
+  then an hour-older expiration → **`inactive`**, with
+  `provider_subscription_id == 'premium_monthly'`, a SKU in a column named
+  subscription id. Both defects reproduced before any edit.
+  **Existing suites:** 43 pass across `test_revenuecat_webhook`,
+  `test_subscription`, `test_tier_parity`, `test_webhook_inbox`. Contract guards
+  unchanged at **288 passed / 9 skipped** — the audit's own figures. mypy, ruff
+  and mobile tsc/lint clean.
+
+  **A regression I caused and caught:** requiring `id` and returning 400 broke
+  8 existing webhook tests, whose fixtures omit it because the old handler never
+  read the field. A 400 would also make RevenueCat drop such an event
+  permanently (they retry 5xx, not 4xx). Replaced with a deterministic
+  content-derived key, so a redelivery still dedupes and no event is lost —
+  which left all 8 fixtures untouched and still asserting what they asserted.
+
+  **Blind spots:**
+  - **No store transaction, sandbox account or receipt was involved.** The SDK
+    is a stub. Whether a correctly-identified purchase is *attributed* as
+    intended is a RevenueCat dashboard question, and **the project's
+    alias/transfer settings were never inspected** — which is also why no
+    transfer behaviour is implemented.
+  - **No reconciliation against provider state (A05 step 7).** Entitlement is
+    still derived from the event stream alone, so a permanently lost event is
+    not recovered by anything here.
+  - Concurrent delivery of two initial events is not raced in a test; the
+    index on `(provider, provider_subscription_id)` is deliberately **not
+    unique**, because a store can reissue an `original_transaction_id` across
+    sandbox and production and rejecting real events at the database layer
+    would be worse than the duplicate.
+  - The purchase-gate ratchet is a source match: it proves the call precedes
+    the transaction in the file, not that it covers every reachable path. No
+    screen test renders the real premium component.
+  - `mobile/__tests__/birth-details.screen.test.tsx` ("bundled place search
+    B-006") still flakes under full-suite load at ~15s and passes 5/5 in
+    isolation. That is the test the audit already recorded timing out; it was
+    not touched and is **not** fixed.
+- [x] **A06 — Redis outages no longer grant unlimited authentication attempts.**
+  `RedisRateLimitBackend.check` caught every Redis error and returned
+  `allowed=True`, and `AuthThrottler` used that same backend, so during an
+  outage a five-logins-per-minute throttle became unlimited. `allowed=True` was
+  carrying two incompatible meanings — "within budget" and "could not check" —
+  with no way for a caller to tell them apart.
+
+  `RateLimitResult` now reports `available`, and the policy for acting on it
+  lives with the protected operation. The global per-IP middleware
+  **deliberately still fails open** (an aggregate control; locking everyone out
+  over infrastructure is the worse trade) and is unchanged — one test pins that
+  an unavailable result still reads as `allowed` for exactly that reason.
+
+  **Owner decision 2026-10-07:** auth endpoints return a bounded **503** with
+  `Retry-After`. Not 401 — the credentials have not been proven invalid, and a
+  client reading 401 as "signed out" would log users out over a Redis fault.
+  Not 429 — reserved for a limit genuinely exceeded. The availability cost is
+  the point of the ruling, not an oversight. The rejected alternative was a
+  per-process fallback limiter, which keeps sign-in working while silently
+  multiplying the effective limit by the worker and replica count.
+
+  `AuthThrottler.check()` is replaced by `evaluate()` (reports) + `enforce()`
+  (applies the policy, raises). All **8** protected call sites across
+  `app/api/auth.py`, `mobile_auth.py` and `admin.py` were converted — each had
+  carried its own five-line `raise HTTPException(429, …)` block, which is how
+  one policy came to be stated eight times and changeable in seven of them
+  without the eighth. Net −80 lines in `app/api/`. Per-action messages moved
+  into a typed `_Budget` record; the heterogeneous dict it replaced inferred as
+  `object` and needed casts mypy could not check.
+
+  Operations: [`docs/runbooks/REDIS_OUTAGE.md`](runbooks/REDIS_OUTAGE.md),
+  including the trap that `ADMIN_ELEVATION` is itself throttled — so during an
+  outage an operator cannot elevate, and recovery must not route through the
+  admin console.
+
+  **Gate:** `tests/test_auth_throttle_outage.py` (17). **Baseline:** 15 of 16
+  failed against the unfixed tree; the one that passed is the middleware
+  behaviour being deliberately preserved. Existing `test_auth_throttle.py`
+  migrated to `evaluate()` and still green. mypy and ruff clean.
+
+  **Blind spots:**
+  - **A06 step 6 is NOT done.** `/health/ready` reports Redis as required, but
+    the supplied nginx config proxies everything to `web`, so readiness still
+    does not control traffic. What happens when every instance is unready is
+    undecided. This is unimplemented infrastructure work.
+  - **No metric is exported.** The degradation signal is a named log line
+    (`auth_throttle_limiter_unavailable`), not the `limiter_unavailable_total`
+    counter the audit's observability table calls for.
+  - The outage is injected by making the Redis client raise — the failure mode
+    the backend catches, not a partition, a timeout, or a half-open socket.
+  - Tested at the application boundary, **not through the real ingress**, which
+    is what the audit's acceptance criterion actually names.
+  - Startup asymmetry, recorded rather than fixed: `get_rate_limit_backend()` is
+    `lru_cache`d, so a process that *starts* with Redis unreachable falls back
+    to the in-memory limiter and stays there until restarted. Runtime recovery
+    needs no restart and is tested; restarting during an outage makes
+    enforcement weaker, not stronger.
+  - Mobile is tested not to sign out on a 503; the user-facing message is still
+    the generic client error rather than the server's detail. Not changed —
+    step 4 asks only that it not sign out.
+
+### Phase 2
+
+- [x] **A09 / A10 — scheduler ownership and durable notification delivery.**
+  Done as one package per the guide's own instruction to address them together
+  "enough to prevent duplicate ownership from becoming duplicate delivery."
+
+  **Owner decision 2026-10-08 (A09): DEDICATED WORKER ONLY.** `worker` in
+  `docker-compose.app.yml` is no longer behind `profiles: ["scaled"]` — it is
+  the sole production scheduler, always started. `app/core/config.py` refuses
+  to boot a production/staging API with `run_scheduler_in_web=true`; the
+  default flipped from `true` to `false`. `app/core/leader_lock.py` gained
+  `SchedulerLease.check()`, which re-verifies the advisory lock by pinned
+  `pg_backend_pid()` rather than trusting SQLAlchemy not to have silently
+  reconnected the held connection. `app/worker.py` calls `check()` every
+  `JOTHIDAM_SCHEDULER_HEARTBEAT_INTERVAL_SECONDS` and raises (terminating the
+  process for supervised restart) the moment it fails, recording a durable
+  heartbeat (`scheduler_heartbeats`, new table) on every successful cycle.
+  `app/worker_health.py` is the container healthcheck, reading that heartbeat's
+  freshness rather than merely the process existing.
+
+  **Owner decision 2026-10-08 (A10): PER-NOTIFICATION EXPIRY, DROP SILENTLY
+  PAST IT.** `notification_dispatch_service.py` was rewritten around a
+  transactional outbox: `dispatch_notification()` now only persists intent
+  (`notifications`, gained `logical_key` unique + `expires_at`) and per-channel
+  work (`notification_deliveries`, new table) — it never calls a provider.
+  `process_notification_outbox()` (scheduled every minute) atomically claims
+  due work with `FOR UPDATE SKIP LOCKED` in bounded batches, commits the claim
+  before any provider call, and only then performs the push/email I/O in a
+  second transaction. Claims carry a 5-minute expiry and a fencing token so a
+  crashed worker's claim is recoverable without a resurrected worker
+  overwriting a newer owner's result. Push and email advance independently;
+  transient failures get bounded exponential backoff with jitter, capped at 5
+  attempts before `exhausted`. Expired work is marked `expired` and never sent
+  — the in-app inbox still shows it (`_due_status_filter` in
+  `app/api/notifications.py` now includes `expired`/`failed`, not just
+  `sent`). `app/services/birth_profile_service.py`'s D+1 onboarding nudge now
+  goes through `dispatch_notification()` too, closing a pre-existing
+  check-then-insert race (a duplicate send was possible between the SELECT and
+  the INSERT); the new unique `logical_key` makes that an
+  `on_conflict_do_nothing` instead.
+
+  Migration `tt3d4e5f6a7b`, additive, reversible, **round-trip verified**
+  (`DROP SCHEMA public CASCADE` → upgrade head → downgrade -1 → upgrade head
+  on `vinaadi_test`, confirmed both new tables exist after the second
+  upgrade). Existing `notifications` rows keep NULL `logical_key`/`expires_at`
+  and get no delivery rows — replaying historical queued/failed rows was
+  explicitly rejected as turning an infra rollout into a user-visible resend.
+
+  **Gates:** `tests/test_notification_outbox.py` (7: committed-intent
+  delivery, expiry before send, future-dated inbox-only expiry, partial
+  channel success with independent retry, two-worker claim exclusivity,
+  claim-expiry fencing, provider-accepted-but-commit-failed at-least-once),
+  `tests/test_scheduler_worker_resilience.py` (4: real `pg_terminate_backend`
+  leadership loss, healthy-leadership confirmation + mutual exclusion,
+  heartbeat freshness/aging, compose ownership shape),
+  `tests/test_architecture_a09_a10_baseline.py` (3: production API refuses
+  scheduler ownership, worker fails rather than idles without leadership,
+  provider never called before intent commit).
+
+  **Every gate verified to fail with its fix removed, not just assumed:**
+  - Dropping `.with_for_update(skip_locked=True)` from the outbox claim query:
+    `test_two_workers_cannot_claim_the_same_delivery` **did not catch this** in
+    its first form — the two claims ran sequentially (first commits, then
+    second starts), so the `WHERE status NOT IN ('claimed', ...)` clause alone
+    passed the assertion with no row lock involved at all, proving nothing
+    about concurrent workers. Rewritten to keep worker-a's transaction open
+    (uncommitted) while worker-b claims, so only `SKIP LOCKED` can keep
+    worker-b off the row. Confirmed: fails (both workers claim the same
+    delivery) with the fix removed, passes with it restored.
+  - Stubbing `SchedulerLease.check()` to `return self.is_leader` (no real
+    `pg_locks` query): `test_lease_detects_terminated_postgresql_session`
+    correctly fails. The classid/objid split of the 64-bit advisory-lock key
+    was also verified by hand against real PostgreSQL (not just inferred from
+    the killed-connection path, which never exercises the comparison).
+  - Sharing one request session across dashboard-bundle sections again (A11,
+    see below) was verified the same way.
+
+  **Blind spots:**
+  - FCM/SMTP expose no idempotency key the outbox can hand back on retry; if a
+    provider accepts a request and the worker dies before the outcome commits,
+    a retry can still send a real duplicate. Documented in
+    `docs/NOTIFICATION_DELIVERY.md`, not solved — the guide says this is a
+    residual limit of any outbox over these providers, not a defect here.
+  - No replicated-worker scenario was run (single worker is the entire
+    production topology per the owner decision); A09 step 4's bounded-backoff
+    follower retry is therefore not implemented, correctly, since there are no
+    followers to retry.
+  - `test_two_workers_cannot_claim_the_same_delivery` proves row-level mutual
+    exclusion for the claim query specifically. It says nothing about the
+    `_complete_claim` write path's own `with_for_update()` (line ~489),
+    which was not independently fault-injected.
+  - The smart-silence suppression check (pre-existing logic, relocated to
+    delivery time rather than dispatch time) was not re-audited against the
+    Sani-cycle tagging itself — only its new position in the pipeline.
+
+- [x] **A11 — transaction ownership and dashboard isolation.**
+  `app/services/dashboard_bundle_service.py`'s `safe_db()` helper now opens an
+  independent `SessionLocal.begin()` per optional, DB-backed section
+  (`dailyGuidance`, `dailyGuidanceRange`, `transit`, `sani`,
+  `peyarchiUpcoming`, `explanation`, `panchangam`, `panchangamTimings`,
+  `lifeAreas`, `weekAhead`) instead of sharing the request-scoped session —
+  per the guide's explicit warning (step 5), **not** via `begin_nested()`,
+  since `Session.begin_nested()` flushes unconditionally and `app/db/session.py`
+  disables autoflush on purpose. A `DBAPIError` with `connection_invalidated`
+  still aborts the whole request (a lost connection is a hard dependency, not
+  an isolatable section); every other DB exception is caught, recorded in
+  `errors[section]`, and returns `None` for that section only. Pure-calculation
+  sections (`summary`, `dasha`, `nakshatraCard`) keep the cheap in-process
+  `safe()` path — no DB session, nothing to isolate.
+
+  **Gate:** `tests/test_dashboard_bundle_api.py::test_dashboard_bundle_recovers_after_real_postgres_statement_failure`
+  — a real `SELECT * FROM a11_table_that_must_not_exist` (genuine
+  `ProgrammingError`, not a mocked exception) injected into one section, then
+  asserts the immediately-following section **and** a later one both still
+  return data. **Verified to fail with the fix removed:** reverting `safe_db`
+  to run on the shared session reproduces exactly the finding's predicted
+  failure mode — `psycopg2.errors.InFailedSqlTransaction: current transaction
+  is aborted` cascades into `lifeAreas` and `weekAhead`, which have nothing to
+  do with the section that actually broke.
+
+  **Blind spots:**
+  - Each optional section now opens and closes its own connection-pool
+    checkout; sequential within one request (dict-literal field order), so no
+    extra concurrent pool pressure, but more round-trip checkouts per request
+    than before. Not benchmarked.
+  - `_chart_persist.py` and other write paths with their own internal commits
+    (A03's durable security operation, A05's webhook inbox) were deliberately
+    left alone per step 8's explicit exception — this item only touched the
+    read-mostly dashboard composition, not every service that still decides
+    its own commit timing.
+  - No test forces a genuinely **unavailable** connection (vs. a statement
+    error) through this path to confirm the whole-request failure branch;
+    `connection_invalidated` is exercised by inspection of the SQLAlchemy
+    `DBAPIError` contract, not by a fault-injected dropped socket.
+
+- [x] **A12 — birth-data consumer inventory (assessment only, as ruled).**
+  **Owner decision 2026-10-08: INVESTIGATE CONSUMERS FIRST, DECIDE AFTER.** No
+  model, column, migration, row, or key was touched — `vinaadi_dev` has real
+  birth-profile rows and stayed out of scope entirely.
+  [`docs/A12_BIRTH_DATA_CONSUMER_INVENTORY_2026-10-08.md`](A12_BIRTH_DATA_CONSUMER_INVENTORY_2026-10-08.md)
+  found zero database-side filter/order/join/uniqueness consumers of
+  `birth_profiles.birth_datetime_utc` in current source — every read is
+  application-side. It also names what an isolated migration on that one
+  column would miss: `charts.julian_day` is a plaintext, reversible encoding
+  of the same instant; `family_members.date_of_birth_local` is a plaintext
+  duplicate with a real SQL equality consumer
+  (`family_vault_service.py:222`); mobile's A07 cache persists full
+  `chart-full` responses (exact UTC instant, Julian day, natal positions) for
+  up to 30 days; Jadhagam PDF exports print birth date/time/place outside any
+  database control. Line citations spot-checked against current source and
+  confirmed accurate. Four options laid out (derive post-decrypt, encrypt the
+  column too, protect the full natal-input/derivative set, or retain plaintext
+  with a narrower documented claim) with the recommendation that an isolated
+  `birth_datetime_utc` migration not be approved as "birth-data
+  confidentiality" without first ruling on `julian_day` and the family DOB
+  duplicate. **No implementation decision was made; none was asked for.**
+
+  **Owner ruling 2026-10-08:** narrow public copy now, then Option C including
+  natal derivatives (`julian_day`, lagna/planet longitudes, dasha JDs) and the
+  family DOB duplicate (Python comparison, no blind index); mobile cache and
+  PDFs out of scope. Full table and two still-open questions (birth place /
+  timezone, backup-key policy) in the A12 memo's "Owner ruling" section.
+
+- [x] **A12a — public "encrypted at rest" claim narrowed.** Six surfaces, EN+TA:
+  privacy page, beta page, family page, home trust strip, family-setup note,
+  `packages/shared/src/data/legal.ts` (which claimed *all* data encrypted at
+  rest). Wording now says only what is true (HTTPS, restricted access, never
+  sold, deletable). **Gate:** `web/lib/encryption-claim-copy.test.ts` —
+  baseline before the copy change: failed naming all 6 files with both the
+  English and Tamil claim on each. **Blind spots:** source-text scan only;
+  backend-served or runtime-assembled copy, mobile `app/`/`src/` screens (none
+  found by hand on 2026-10-08) and the generated
+  `docs/dashboard-i18n-catalog.json` are outside it. **Tamil:** six strings
+  (four reworded, two deletions) reviewed via a user-supplied review on
+  2026-10-08; its changes applied — privacy access sentence simplified, home
+  "ஒருபோதும் விற்கப்படாது" for "never sold", family-setup "kept private" as
+  "தனிப்பட்டவையாகவே வைக்கப்படுகின்றன" (was "stored safely"), and `legal.ts`
+  gained the missing authorised-access sentence. Still open: family-setup Tamil
+  says "not sold to anyone" where English says "never sold or shared".
+
+- [x] **A12b — Option C: encrypt the natal-input and derivative set.** Migration
+  `uu4e5f6a7b8c`: 14 columns to Fernet — `birth_profiles` UTC instant, birth
+  place/timezone, current place/lat/lon/timezone; `charts.julian_day`,
+  `lagna_longitude`; `chart_planets.absolute_longitude`, `degree_in_rasi`,
+  `speed_deg_per_day`, `raw_payload`; `family_members.date_of_birth_local`. New
+  `EncryptedDateTime` (refuses naive values) and `EncryptedJSON` types. Both
+  duplicate checks now compare place/timezone/DOB decrypted in Python. Input
+  schemas gained `max_length` 255/64 (12 fields) — the DB no longer caps them.
+  Rotation script and restore drill list every new column.
+  **Gate:** `tests/test_birth_data_at_rest.py`. Baseline on unfixed code:
+  14 of 14 columns not `bytea`, and 11 of 11 synthetic birth facts (place,
+  current place/tz, birth tz, UTC date, current lon, JD, lagna, Moon longitude
+  and degree, family DOB) readable in `row_to_json` dumps.
+  **Migration round trip on `vinaadi_test`:** seeded plaintext at `tt3d4e5f6a7b`
+  (incl. NULLs and a Tamil JSON payload) → upgrade (all 14 `bytea`, ORM reads
+  every value back) → downgrade (snapshot identical, byte for byte) → upgrade.
+  The first round trip failed on the Tamil row — re-serialising JSON `\u`-escaped
+  it — fixed by encrypting `raw_payload::text` verbatim.
+  **Blind spots:** the dormant-table assertion (dasha/varga) has never been seen
+  to fail, since no writer exists to add; coarse rasi/nakshatra keys still
+  reveal the birth date (by ruling — copy stays narrowed); pre-migration
+  backups hold plaintext (forward-only policy, `DATA_PROTECTION.md` §3).
+  **Applied to `vinaadi_dev` 2026-10-08** (`ss2c3d4e5f6a` → `tt3d4e5f6a7b` →
+  `uu4e5f6a7b8c`) after `backups/backup_pre_uu4e5f6a7b8c_20261008_1106.sql`;
+  every row read back through the ORM (4 profiles, 5 charts, 46 planets,
+  2 family DOBs). That backup is itself a plaintext copy — see
+  `DATA_PROTECTION.md` §3.
+  **Full backend suite** (first end-to-end run since Phase 1): 5943 passed,
+  16 skipped, 1 failed — `test_duplicate_birth_profile_create_is_rejected`
+  filtered on `BirthProfile.birth_place` in SQL to count rows; the 409 itself
+  passed. Fixed to compare after decryption; no other test filters on an
+  encrypted column (grep).
+
+### Phase 3 — started 2026-10-08 (owner: "proceed with phase 3")
+
+Order per the guide's §6: A16 first (documents other work is read against),
+then A14, A15, A13.
+
+- [x] **A16 — contradictory authoritative documentation.** The three cited
+  contradictions in `docs/AGENT_INSTRUCTIONS.md` were still present and are
+  fixed: repo root was `C:\Users\senth\OneDrive\…` (now `D:\sanstro`, matching
+  CLAUDE.md and AGENTS.md); "No Shadbala" (it is computed —
+  `app/calculations/shadbala.py` — but the daily score does not read it);
+  "Kandaka Sani from Lagna Rasi" (doctrine A-1, 2026-08-19: Janma Rasi over
+  4/7/10, labelled, overlapping Ardhashtama by design, one penalty). The §8
+  feature recipe — new state in `dashboard-workspace.tsx` ending in
+  `.catch(() => {})` — is replaced by shared wrapper → `useApiQuery` →
+  `AsyncSection` with every state rendered. Also corrected, each checked
+  against source: the calculation-version rule (a bump recomputes nothing —
+  `app/constants/versions.py`); panchangam cache invalidation (bump
+  `PANCHANGAM_CACHE_DATA_VERSION`, never `DELETE` by hand); the backend-URL
+  default (A01's resolver; production refuses the loopback); config env names
+  (all `JOTHIDAM_`); Ashtakavarga (the daily score reads BAV); UI primitives
+  (Nova kit in `web/components/ui/`); i18n catalogs; `docs/FRONTEND.md` →
+  `docs/archive/`; the test-run command now points at the test-DB variables.
+  Copied inventories that had drifted — the 22-row router table, four TS
+  response shapes, the model field table (dasha "start_date", long since JD),
+  the dashboard prop list — are replaced with pointers to the code that owns
+  them. §7 and §14 status sections are kept, labelled *historical,
+  superseded*; §14's "90-min fixed slots" kalam line is struck through as
+  contradicting §2. A "Which document wins" hierarchy now heads the file:
+  CLAUDE.md for workspace, ratified doctrine + later dated rulings for
+  astrology, MASTER_FIX_LIST for status. CLAUDE.md and AGENTS.md said the UX
+  harness walks English top-level tabs only and never ran in Tamil; it has
+  `overlays` and `ta` phases now, and both say what is still outside it.
+  `docs/INDEX.md` misdescribed AGENTS.md and ranked the v1 specs above later
+  rulings.
+
+  **Gate:** `tests/test_authoritative_docs.py` over the six "Start Here" docs —
+  relative links resolve, backticked repo paths exist, every "Repo root"
+  statement agrees. **Baseline / fix-removed run** (doc edits stashed, test
+  kept): 3 failed — CLAUDE.md's `scripts/ux-audit-core.mjs` (really under
+  `web/`), AGENT_INSTRUCTIONS' `docs/FRONTEND.md`, and three conflicting repo
+  roots. After: 13 passed.
+  **Blind spots:** the gate proves paths exist, not that the sentence around
+  them is true — every doctrine/behaviour correction above was checked by hand
+  against source, and that is the only check on them. Paths inside fenced code
+  blocks and paths without a known top-level prefix are not checked. Only the
+  six docs are covered; the ~200 other Markdown files in `docs/` were not reviewed.
+  Unverified and left as written: §1/§2 "Jupiter/Saturn from Lagna are
+  secondary adjustments", the §15 tables. No architecture-decision records
+  were added (guide step 5).
+
+  **Found while verifying — FIXED in a follow-up commit (owner gave Claude
+  ownership of next steps, 2026-10-08; applies the existing A-1 ruling, no
+  new doctrine):** `transit_service.build_sani_cycle_response` computed its
+  Lagna cross-check (`lagnaBasedCycle`) with `classify_kandaka_cycle`, which
+  stamps `KANDAKA_SANI` — rendered "Kantaka Sani · from Janma Rasi"
+  (`web/lib/family-flags.ts`) for a house counted from the **Lagna**. Worse,
+  `family_vault_service` took its *only* Kandaka from that cross-check (member
+  tags and the owner/member day cards), so family members were flagged by the
+  reckoning A-1 replaced and never by the one it chose.
+  Fix: the cross-check keeps its slot and limb wording but carries the
+  reference-free `KANTAKA_SANI` (plain "Kantaka Sani", under the card's
+  existing "Sani · from Lagna" heading); family tags and day-card types now
+  come from `_sani_cycle_tags` — the Moon cycle, then Kandaka from the Janma
+  Rasi over 4/7/10, layered as A-1 says. No response field, param or tag
+  vocabulary changed (both tags already existed and are localised on web;
+  mobile renders neither), so no client change was needed beyond a comment.
+  **Who sees a difference:** a member with Saturn 4/7/10 from the Lagna but
+  not the Moon loses the family Kandaka chip; one with Saturn 7/10 from the
+  Moon gains it (4th was already flagged as Ardhashtama).
+  **Gate:** `tests/test_kandaka_reference_a1.py` — scans 2000–2040 for the
+  synthetic member to find a Lagna-only and a Moon-only year, then checks the
+  real sani-cycle, daily-aggregate and today endpoints. Fix-removed controls:
+  both service files stashed → fails on the label (`'KANDAKA_SANI' !=
+  'KANDAKA_SANI'`); only the family file stashed → fails because a Moon-7/10
+  member carried only `['NORMAL_DAY']`. After: passes; 440 passed across the 28
+  related suites. **Blind spots:** the owner's own tile shares the helper but
+  is not exercised; the Tamil/English chip copy was not re-reviewed.
+- [~] **A14 — contract completeness. Steps 1–2 done (the nine schema gaps);
+  steps 3–8 done for two coherent groups, 15 operations total (the original
+  nine plus the six chart numerology GETs, closed 2026-10-08 with 17 server
+  Literals pinned to their producing enums/tables); further groups and
+  wrapper migration for web's remaining direct `apiFetchJson` calls are
+  expansion per the guide's own rollout note, not a blocker — status updated
+  2026-10-09.** The nine operations
+  the field guard skipped now declare concrete `response_model`s that describe
+  the payload each already sent: Chara, Yogini, Ashtottari, Kalachakra and
+  conditional dashas (`app/schemas/secondary_dashas.py`), Shadbala
+  (`app/schemas/shadbala.py`), remedy plan (`app/schemas/remedies.py`),
+  Varshaphala (its model already existed; the route returned `model_dump` and
+  never declared it), and Ask Vinaadi daily-status (`AskVinaadiDailyStatus`, a
+  bare object — no envelope, as deployed clients read it). No route, param,
+  verb or payload changed, so no web/mobile/shared edit was needed.
+  **Gate:** `tests/test_a14_response_contracts.py`, two tests per operation.
+  (1) A concrete 200 schema exists (and a concrete `data` for enveloped
+  routes) — baseline 9 of 9 failed: eight "no 200 JSON response schema", and
+  daily-status "not a concrete object" (`-> dict`). (2) The model is lossless:
+  the route function's raw return, encoded as FastAPI encodes a model-less
+  route, must equal the HTTP body — so a model that drops, adds or alters a
+  value fails, and so does the next builder change that adds a field and
+  forgets the model. Fix-removed control: deleting `note` from
+  `ShadbalaData` failed it, naming the missing key. After: 18 passed. The
+  field guard now runs all nine (288 passed / 9 skipped → 297 passed /
+  0 skipped); none of the nine TS interfaces had drifted.
+  Existing suites for the nine routes: 310 passed.
+  **Blind spots:** the lossless check sees only branches the synthetic chart
+  reaches — not a chart with no running Chara period, a monthly-quota user's
+  daily status, or an unknown birth time. It compares JSON values, so `5` →
+  `5.0` passes (identical to every JSON client). The field guard still checks
+  names only, not value types or nullability; that is what generation (steps
+  3–8) is for. Remedy `caution_ta/en` are nullable in the model but typed
+  `string` in `RemedyItem` (tools.ts) — a nullability gap the guard cannot see.
+  **A14 steps 3–6, first endpoint group (2026-10-08, second pass).**
+  Toolchain check: no OpenAPI→TS generator was installed (only `zod` in web),
+  and a new npm dependency means a `pnpm install` on the machine where
+  installs have stalled before — so `scripts/generate_api_types.py` is a small
+  dependency-free generator over `app.openapi()`. It raises on any schema
+  shape it does not support rather than guessing. It writes
+  `packages/shared/src/generated/api-types.ts` for the nine operations above.
+  `packages/shared/src/api/__contracts__/generated-fit.ts` asks `tsc` whether
+  each generated server `…Data` type is assignable to the hand-written type
+  its wrapper casts to — value types and nullability, which the field guard
+  cannot see. Its first run failed 6 of 9:
+  - **Real client drift, fixed in `packages/shared`:** `CharaDashaData.lagnaRasi`
+    was `string`, but the route has always sent a number (no consumer read it).
+    `RemedyItem.caution_ta/en` were `string`; the server sends `null` when the
+    gemstone policy has no caution (web already coalesced it; mobile does not
+    render it). Web and mobile `tsc` stay clean after both changes.
+  - **Server models looser than the payload, tightened:** `level` →
+    `Literal["maha","antar"]`, `paksha` → `Literal["SHUKLA","KRISHNA"]`, and
+    `charKarakas` → a fixed eight-key `CharaKarakas` model (the route always
+    passes all eight candidate grahas; the calculation refuses the Rahu-less
+    shape).
+  **Gates:** `tsc` on the fit file (runs in mobile CI's shared type-check) —
+  fix-removed control: restoring `caution_ta: string` fails it at the remedy
+  line. `tests/test_generated_api_types.py` regenerates in-process and fails if
+  the committed file is stale. The lossless test above re-runs against the
+  tightened models.
+  **Blind spots:** nine operations only; the fit is one-directional (a field
+  the wrapper declares but the server omits is still only the field guard's
+  check); generated types are not yet consumed by any wrapper — they verify,
+  they do not replace. **Not started:** wrapper migration onto generated types
+  (step 7) and runtime validation of consequential inputs (step 8).
+  **A14 step 7, first group (2026-10-08, third pass): the nine wrappers now
+  export aliases of the generated types.** A `tsc` probe compared all 20
+  exported hand-written types with their generated twins: 14 identical, 6
+  where the server type was narrower — Varshaphala (the client omitted
+  `tajakaPlanets`/`itthasalaPairs`/`isarafaPairs`), Chara (`charKarakas`
+  `| null`, never sent null), Ashtottari (`applicability?`, always sent),
+  daily-status (`chipsRemaining | null`; both service branches clamp at 0, so
+  the server model is right), remedy plan and item. All 20 became
+  `export type X = Server.Y`, exported names unchanged; shared, web and
+  mobile `tsc` 0 errors — no consumer or fixture relied on the looser shapes.
+  Type aliases are erased at runtime, so no JS changed.
+  `generated-fit.ts` was one-directional (server assignable to client), which
+  aliasing makes trivially true; it now requires mutual assignability for all
+  20 pairs, so a re-hand-written type that drifts fails. Fix-removed control:
+  HEAD's hand-written `charaDasha.ts` restored → fails at the `CharaDashaData`
+  line (the old check passed it).
+  **The field guard silently lost seven of the nine.**
+  `tests/test_api_wrapper_field_contract.py` parsed only `export interface`,
+  so an aliased cast dropped out (84 → 77 casts, 3611 → 3472 fields) under
+  floors (65 / 2400) that did not notice — and Chara and Varshaphala fell back
+  to stale same-named interfaces in `src/types/index.ts`, which the wrappers
+  no longer use. It now parses the generated file under a `Server.` prefix
+  (nested references qualified) and resolves `export type X = Server.Y`
+  aliases: 346 interfaces, 84 casts, 3701 fields. Floors raised to 330 / 82 /
+  3600, and `test_aliased_wrapper_types_stay_in_the_guard` names any aliased
+  cast that leaves. Control (alias resolution disabled): 4 failed, naming the
+  seven missing casts; the Varshaphala cast, resolved to the stale
+  `src/types` duplicate, also failed against the route.
+  **Found, not fixed:** `src/types/index.ts` holds a parallel, hand-written
+  copy of two of these server shapes — `CharaDashaData` (+ `CharaKarakaMap`,
+  still `| null`) and `VarshaphalaData` (+ `VarshaphalaAreaOutlook`; no
+  `chartId`) — and they are live: web's grandfathered direct `apiFetchJson`
+  calls cast to them (`dashboard-family-charts-hybrid.tsx:909`,
+  `dashboard-workspace.tsx:588`). Neither the aliases nor the field guard
+  (which reads only shared-wrapper casts) covers that path. Aliasing those
+  two to the generated types is the obvious follow-up; not done here. (The
+  camelCase `RemedyPlanItem` there is different: a web view model that
+  `dashboard-workspace.tsx:540` maps the snake_case rows into — not a copy.)
+  **Fixed 2026-10-08 (fifth pass).** Re-verified: both direct fetches still
+  at the cited lines. The copies were wider than the entry said: the
+  nested `CharaDashaPeriod`, `TajakaPlanetPosition` and `TajakaAspect` are
+  copies too, re-exported by `web/lib/types.ts`, and the hand-written
+  `TajakaPlanetPosition` was **wrong**: `{planet, rasi, rasiName, house,
+  longitude}` where the route sends `{planet, rasi, degreeInRasi}`. Nothing
+  read those fields (web renders only the itthasala/isarafa pairs), so it was
+  latent. All seven are now `export type X = Server.Y` in `src/types/index.ts`;
+  `RemedyPlanItem` untouched. **Gate:** seven `Types.*` lines in
+  `generated-fit.ts`, mutual assignability with the generated type. Baseline
+  (lines added, copies unchanged): 3 of 7 failed — `CharaDashaData`
+  (`charKarakas | null`), `VarshaphalaData` (no `chartId`, wrong planet shape),
+  `TajakaPlanetPosition`; that run is also the fix-removed control. After:
+  shared, web and mobile `tsc` 0 errors; field guard 95 passed; mobile
+  `contracts.test.ts` 21 passed. **Blind spots:** compile-time only — the two
+  direct fetches still cast unvalidated JSON; other hand-written copies in
+  `src/types` that no wrapper aliases are not detected (this entry found
+  three by name, not by search).
+  **Blind spots:** nine operations only; the guard follows only the exact
+  `export type X = Server.Y;` form.
+  **Next group tried and stopped — chart numerology GETs (2026-10-08).** The
+  six `/charts/{id}/numerology/*` GETs are the most coherent next group (one
+  wrapper, concrete schemas; the generator rendered all of them, +367 lines).
+  But a `tsc` probe of the 9 same-named types found 1 identical, 7 where the
+  *server* is looser than the client, and `LuckyDatesResponse` incompatible —
+  so the old one-directional fit would have failed on 8 of 9. Two classes,
+  neither an alias job; the generator change was reverted, nothing half-done
+  is committed:
+  1. **`X | null | undefined` vs `X | null`** (`reading.compound`, `who`,
+     `label`, `targetRasiEn`, …): the generator marks a defaulted Pydantic
+     field optional because OpenAPI's `required` omits fields with defaults —
+     yet FastAPI always serializes them. Same root as the envelope's
+     `success?`. Fix belongs in the generator (output-mode schemas, or
+     treating defaulted response fields as present), decided once for all
+     groups.
+  2. **`string` vs literal unions** (`epoch` → `PersonalYearEpoch`,
+     `functionalNature` → `FunctionalNature`, …): closing it means
+     `Literal[...]` on the Pydantic models, which changes server-side
+     validation — every producer must be checked first, or an unexpected
+     value becomes a 500 instead of a looser client type.
+  Do class 1 first: it is mechanical and shrinks class 2 to the real
+  value-set questions.
+  **Class 1 fixed — generator precision (2026-10-08, fourth pass).**
+  Re-verified the premise first: FastAPI 0.136.1 builds response schemas in
+  Pydantic 2.13 serialization mode, whose `field_is_required` leaves a
+  defaulted field out of `required` unless `json_schema_serialization_defaults_required`
+  is set (it is not, anywhere). Nothing in `app/` drops fields on the way out:
+  no route sets `response_model_exclude*`/`include`, and no model uses
+  `exclude_if`, `exclude=True`, or a model/field serializer. So every
+  property of a serialization schema is written on every response.
+  The generator now takes each listed route's `response_model` and builds its
+  schema with Pydantic's public `models_json_schema(..., "serialization")`
+  and a `GenerateJsonSchema` subclass that marks model/dataclass fields
+  present (TypedDict `NotRequired` keys keep Pydantic's answer, because they
+  can really be absent). It **refuses** a route with any field-dropping
+  `response_model_*` option rather than emitting a false "present". A probe
+  over the nine operations plus the six numerology GETs showed identical
+  component names, root refs and property sets to `app.openapi()`; only
+  `required` grew (the full numerology list, e.g. `BabyNameCandidateOut` +17
+  fields, `who`, `label`, `compound`). For the nine committed operations the
+  regenerated file changed one line: `VarshaphalaResponse.success?` →
+  `success`.
+  **Gate:** `tests/test_generated_api_types.py` gained a probe app whose
+  defaulted fields (`None`, `default_factory=list`, `True`, nested model,
+  TypedDict) are fetched over HTTP; every key the body carries must be
+  non-optional in the rendered TS, and the TypedDict's absent `NotRequired`
+  key must stay `?`. Baseline (throwaway test, current generator over
+  `probe_app.openapi()`): failed, 6 of 6 sent keys generated optional
+  (`inner listDefault loose note nullableDefault plainDefault`). Plus 5
+  parametrised refusals, one per dropping option. Fix-removed control
+  (override and refusal disabled): 7 of 8 failed — staleness, the probe, and
+  all 5 refusals. After: 8 passed; field guard 87 passed;
+  `test_a14_response_contracts.py` passed; shared, web and mobile `tsc`
+  0 errors.
+  **Blind spots:** a handler returning a `Response`/`JSONResponse` directly
+  bypasses the model, so the generated "present" would be unchecked for it
+  (none of the listed routes do); Pydantic's `exclude_if` is honoured but not
+  exercised (nothing uses it); the generated file no longer reads
+  `app.openapi()`, so a FastAPI-only schema transform (none today) would not
+  reach it.
+  **Numerology group, class 2 — inventoried and STOPPED (2026-10-08,
+  owner's "stop and report if this grows large").** With class 1 fixed the
+  six GETs were added to `OPERATIONS` and a type-level deep diff run over the
+  9 same-named pairs: `NallaNeramWindow` is identical; the other 8 fail
+  server → client **only** on `str` vs a client literal union; the 3
+  client → server failures are client `?:`/`undefined` (alias would remove
+  them). Generator change reverted again; nothing committed but this entry.
+  The 17 `str` fields, by producer:
+  - **Enum `.value`, value set equal to the client union** (verified by
+    importing each enum): `NumberReadingOut.compoundTone` (`CompoundTone`),
+    `NodeBasisOut.kind`, `AlignmentBasisOut.strengthRule`,
+    `NumberAlignmentOut.functionalNature`/`.verdict`, `VerdictBandOut.verdict`,
+    `PersonalYearOut`/`LuckyDatesResponse`/`MarriageDatesResponse.epoch`,
+    `BabyNamesResponse.mode`, `BabyNameCandidateOut.relation`
+    (`AksharaRelation`), `BabyNamesResponse.emptyReasonCode`,
+    `MuhurtaFactor.verdict` (`muhurta_engine.Verdict`).
+  - **Enum with a value the client union lacks — a real value-set question:**
+    `BabyNameCandidateOut.confidence` (`MatchConfidence.NO_MATCH = "no_match"`,
+    assigned at `numerology_naming.py:311/564/658`) and
+    `BabyNamesResponse.relaxationsApplied` (`Relaxation.NONE = "none"`).
+    Either the value is filtered before the response (then the Literal can
+    omit it) or the client union is incomplete (then the client is wrong).
+    Not yet traced.
+  - **Not an enum:** `MuhurthamNaalReading`/`MuhurthamNaalMatchItem.taraQuality`
+    (`TARA_QUALITY[tara]` table, `muhurtham_naal_service.py:460`) and
+    `BabyNameCandidateOut.gender` (naming data rows).
+  Saved name sessions are safe for a Literal: they store only the name and
+  are re-scored through the same converters (`numerology_name_session_service`).
+  **Why stopped:** `app/schemas/muhurta.py` and `muhurtham_naal.py` also
+  serve the muhurta and muhurtham-naal routes, so tightening them changes
+  validation outside this group; and two value sets above are unresolved.
+  **Proposed next step:** a `Literal` per field with a no_db test pinning
+  each `get_args(Literal)` to its enum's values (the guard against a new
+  member becoming a 500), the two open value sets resolved first, then
+  alias the 9 types and extend `generated-fit.ts`.
+  **The two value sets, traced 2026-10-08 (owner handed over the decision) —
+  one was a live web crash.** `Relaxation.NONE`: never emitted — `applied`
+  only ever receives named rungs, and a sweep of all 108 paadhams × 4 modes
+  over the real corpus saw sibling/rasi/any-akshara/single-script, never
+  `none`; no code references it. `MatchConfidence.NO_MATCH`: the corpus sweep
+  never produces it (every corpus name opens some paadham), but a **parent's
+  own shortlist name** is scored by `evaluate_against_target`, which returns
+  it whenever the opening letter opens no paadham — probed: "Zara", "Xavier",
+  "Quinn", "Fiona" → `no_match` / `no_paadham`. The client union lacked it,
+  and both baby-name surfaces (dashboard tool, public `/tools/baby-name-finder`)
+  render `pick(CONFIDENCE_CHIP[c.confidence])` → `pick(undefined)` →
+  `TypeError`. Web already had copy for the *relation* `no_paadham`, not the
+  *confidence*. **Fixed:** `"no_match"` added to the shared union (doc
+  comment says when it is sent) and to `CONFIDENCE_LABEL`/`CHIP`/`TONE`
+  (neutral tone; Tamil reuses the existing "not one of the 108 paadham
+  letters" wording — **unreviewed by a native reader**). **Gate:**
+  `web/lib/baby-name-copy.test.ts` renders chip/label/tone in both languages
+  for every value the server enum can send. Baseline (copy unchanged): 1 of 5
+  failed, `TypeError: Cannot read properties of undefined (reading 'en')`
+  for `no_match`. After: 5 passed; shared, web, mobile `tsc` 0 errors; web
+  lint clean. **Blind spots:** the test's list of server values is
+  hand-copied until the Literal/fit step below ties it to the server; the
+  crash was found by reading code and probing the engine, not reproduced in
+  a browser.
+  **Numerology group closed (2026-10-08).** Every producer of the 17 fields
+  re-traced before any `Literal`: all are engine-enum `.value`s or values
+  already stored as those strings (`ChartBabyNames` holds `.value`s), except
+  `taraQuality` (`TARA_QUALITY`, three values) and candidate `gender` (corpus:
+  f 115 / m 91 / n 9; user names carry none); the three hand-written
+  `MuhurtaFactor(verdict="BONUS"|"NEUTRAL"|"PENALTY")` in `muhurta_service`
+  are inside the set (and mypy now checks them); no route takes these models
+  as input; nothing rebuilds them from stored JSON (name sessions store the
+  name and re-score). `Relaxation.NONE` deleted from the enum (dead).
+  Changes: `Literal` vocabularies in `app/schemas/numerology.py` (12 aliases,
+  15 fields), `TaraQuality` in `muhurtham_naal.py` (2 fields), the five-state
+  verdict on `MuhurtaFactor`. The six GETs are in the generator. The client
+  numerology types stay hand-written (their field notes carry doctrine —
+  D3, D6, the review gate — that an alias would drop); instead
+  `generated-fit.ts` requires mutual assignability for the nine response
+  types plus `NumberReading`, `NumberAlignment`, `BabyNameCandidate` and the
+  shared `MuhurtaSlot`/`MuhurtaFactor`. Getting there tightened the client to
+  what the server always sends: 21 `?:` removed (`MuhurtaSlot` ×8 — e.g.
+  `almanacMuhurtham`, whose comment said "absent" for non-weddings; it is
+  `null` — `MuhurtaFactor` ×4, `MuhurtaCitation` ×5, `pirai`, marriage-dates
+  `partnerChartId`/`partnerFavourableNumbers`/`subjectWho`/`partner`/`readings`),
+  and **`MuhurthamNaalContext.dailyLocation` added — the server sent it and the
+  client type did not have it.** Two web test fixtures that built shapes the
+  server never sends now carry the fields. No runtime code changed on any
+  client.
+  **Gates:** `tests/test_numerology_wire_literals.py` (18) pins each Literal to
+  its producing enum / the Tara table / the corpus genders. Baseline: 18 of 18
+  failed (all `str`). Control (`"no_match"` dropped from the server Literal):
+  the pin test fails 1, and after regeneration the fit fails on
+  `BabyNamesResponse` and `BabyNameCandidate` — the two gates chain, so the
+  web copy test's hand-written value list is now tied to the engine.
+  **Found while gating:** the type-level deep diff used in the inventory cannot
+  see a field the server sends and the client lacks (an object with extra
+  fields is assignable); `Same<>` caught `dailyLocation` that the probe had
+  passed. After: backend pin 18 passed; generator + field guard + A14
+  contracts and every numerology/muhurta test file (63 files): 1831 passed;
+  shared/web/mobile `tsc` 0; web vitest 141 files / 1456; mobile Jest 175;
+  web lint, ruff, mypy clean.
+  **Blind spots:** a future producer that builds one of these models from a
+  string not taken from the pinned source; the fit is compile-time — nothing
+  validates the bytes a client receives; other muhurta/numerology routes (the
+  POSTs) are still outside the generator.
+  **A14 step 8 — runtime validation, first two targets (2026-10-08).** The
+  guide names categories, not endpoints ("unstable provider responses,
+  persisted payloads, consequential inputs"; §4.7 adds "parse and validate
+  provider output, test malformed/partial responses") — so the targets were
+  chosen, not given: the two places where an unchecked shape does the most
+  damage. Not every fetch is wrapped.
+  - **Mobile credentials.** `rotateTokens` cast the refresh JSON and wrote it
+    to SecureStore; login and register wrote server tokens the same way. The
+    two keys are written separately, so a 200 with one bad half stores the
+    good half beside a stale other half — for refresh, a refresh token the
+    server has just rotated (revoked), and presenting it later is what A03's
+    replay detection answers by revoking every session. Now `isTokenPair`
+    (`mobile/src/lib/tokenPair.ts`, pure) is checked in `rotateTokens` and in
+    the sink, `setTokens`, before either key is written; a malformed refresh
+    is a failed refresh (session ends cleanly), a malformed login an ordinary
+    sign-in error (both screens already catch). Baselines: refresh suite 4 of
+    4 new cases failed (`setTokens` called with the bad body); secureStore 3
+    of 3 failed (keys written). After: 18 passed; full mobile Jest 175/175;
+    tsc clean; lint still 14 warnings. **Blind spots:** mocked SecureStore and
+    fetch — no device keychain; `expiresIn` is not checked (nothing reads it).
+  - **AI provider output.** `_call_claude` returned `json.loads(raw)` as-is
+    and `answer_question` read it with `.get`, list concatenation and
+    `BiText(...)`, so a wrong-shaped body — a JSON list or number, a nested
+    object where answer text belongs, a string where the signal list belongs —
+    was an unhandled exception: an opaque 500 (the API layer's except clause
+    did refund the reserved chip). `_parse_provider_payload` now checks it:
+    not JSON or a bare JSON string → that text is the answer (the old
+    fallback); not an object, or `ta`/`en` present but not text → a 502
+    "unusable answer", chip refunded; `signals_used` not a list → no provider
+    signals, non-string entries dropped. Missing `ta`/`en` and unknown
+    confidence/verdict keep their existing defaults. Baseline: 6 of 6 new
+    tests failed with unhandled `AttributeError`s. After: Ask Vinaadi files 23
+    passed; ruff and mypy clean. **Blind spots:** mocked Anthropic client; a
+    model reply wrapped in a ```json fence still falls to the plain-text path
+    and shows the fence — unchanged, and not new.
+- [x] **A15 — CI coverage (config side; not yet observed on a runner).**
+  Re-verified: mobile CI type-checked and linted only, its path filter was
+  `mobile/**` + `packages/shared/**`, and mobile lint covered `app/` only.
+  Changes: mobile CI runs Jest (`pnpm -F mobile test --ci`); triggers on
+  `packages/**`, root `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`,
+  `.npmrc` and the workflow file; mobile lint covers `src/` with
+  `--max-warnings 14` (the measured baseline: 0 errors, 3 warnings in `app/`,
+  11 in `src/` — require-imports ×6, unused-vars ×2, exhaustive-deps ×2,
+  array-type ×1); every job in both workflows now has `timeout-minutes`, set at
+  about twice the durations measured on this branch's runs of 2026-10-02/07
+  (pytest 13–14 min → 30; web 2–3 → 20; e2e never ran → 30, labelled a guess).
+  The mobile job keeps its display name "Type-check + lint" so a check made
+  required under that name is not orphaned.
+  **Step 7 (cold screen-test timeout):** did not reproduce. 4 of 4 local runs
+  green, 167/167, 13–21 s, including `--maxWorkers=2`; slowest test 1.2 s
+  against Jest's 5 s default; no open-handle warning. So no `--forceExit` and
+  no raised timeout. Step 5's full-stack smoke already exists (A01's
+  `compose-proxy-smoke` with its negative control).
+  **Gate:** `tests/test_ci_workflow_coverage.py` reads the workflow files.
+  Fix removed (workflows + package.json stashed): 6 of 7 failed, naming the 8
+  unbounded jobs, the missing Jest step, the 5 ignored root files per event,
+  and the app-only lint script. After: 7 passed. Lint ratchet control: a
+  one-warning probe in `src/` passed the old script and failed the new one
+  ("too many warnings (maximum: 14)").
+  **Blind spots / not done:**
+  - **Nothing has run on GitHub.** The branch could not be pushed from this
+    session, so the Jest step and the new triggers are unobserved on a runner.
+  - **`main` has no branch protection** (`gh api …/branches/main/protection` →
+    404, 2026-10-08). No check is required, so a red run blocks nothing — the
+    "required check" half of step 4 has nothing to attach to. Turning it on
+    is an owner action in GitHub settings.
+  - ~~Web coverage thresholds (20% lines / 15% branches) are unchanged.~~
+    **Raised 2026-10-08 from a measurement:** the full web suite (140 files,
+    1451 tests, `vitest run --coverage`) measured statements/lines 54.7%,
+    branches 76.5%, functions 56.3%. Thresholds now 50/50/72/50 (lines,
+    functions, branches, statements) — ~4-6 points under, room for churn but
+    not for losing a test batch; the old 20/15 would have passed a two-thirds
+    drop. Control: `lines: 60` → "Coverage for lines (54.7%) does not meet
+    global threshold (60%)", exit 1. **Blind spot:** one local measurement;
+    the include set is `lib/hooks/components` only — `app/**` pages are
+    outside it. The e2e job's 30-minute timeout is still a guess: e2e has
+    never run (no base URL configured).
+  - The gate proves the config says these things, not that a job passes.
+  - The two most recent CI runs on origin (2026-10-06/07) failed on Web and
+    Backend lint; both predate commits not yet pushed, and were not re-run.
+- [x] **A13 — module boundaries. Step 7 (dependency-direction gate) and all
+  three cited inversions done (the panchangam cache on 2026-10-08, below).
+  All four audit-named large extractions (steps 1–6) are now done, each
+  golden-first with an exact same-process comparison and mutation controls:
+  `build_daily_guidance_response` (885→632 lines across three stages: dasha
+  strength, briefing, palan), `get_life_areas` (689→376 across two stages:
+  scoring, narration), `assess_marriage_prediction` (648→142 across two
+  stages: scoring, narration — plus a hash-order chart-signature bug and a
+  missing-placement `KeyError` found and fixed along the way), and
+  `dashboard-workspace.tsx` (2,574→1,611 across three extractions: chart-
+  view rules, navigation/URL sync, profile-forms — plus a URL-arming race
+  found and fixed, owner-confirmed in a real browser). Status updated
+  2026-10-09; see each unit's own entry below for proof and blind spots.**
+  The audit's three dependency findings, re-verified then handled:
+  - `app/models/*` (5 files) imported their column types from
+    `app.services.encryption` → the module moved, content unchanged
+    (`git mv`), to `app/db/encrypted_types.py`, the persistence layer. All
+    in-repo importers updated, including historical migration
+    `dd3e4f5a6b7c` (import path only) and `test_encryption_rotation.py`.
+  - `app/calculations/propensities.py` imported `AstroFactor`/`BiText` from
+    `app.services.life_area_prediction_models` → that module (four dataclasses
+    plus a helper depending only on `calculations`) moved to
+    `app/calculations/life_area_prediction_models.py`; 10 importers updated.
+  - `app/calculations/panchangam.py` cache SQL — left as an explicit
+    baseline entry in the first pass; **moved 2026-10-08**, see the entry
+    after the gate below.
+  **Gate:** `tests/test_dependency_direction.py` — `ast`-parsed imports
+  (top-level, in-function and `TYPE_CHECKING` alike) against five rules:
+  calculations ↛ models/services/api/db/sqlalchemy/fastapi; models ↛
+  services/api; db ↛ services/api/models; core ↛ services/api; services ↛
+  api. Baseline is the four panchangam imports, self-cleaning (a stale entry
+  fails). Fix removed (moves stashed): failed naming exactly the six cited
+  imports (5 models + propensities). After: 3 passed. **Full backend suite
+  after the moves: 5994 passed, 7 skipped, 0 failed** (56 min, local).
+  **Blind spots:** `importlib`/`__import__` by name; coupling passed in at
+  runtime (a `Session` argument to a calculation is DB coupling the import
+  graph cannot see — panchangam would still be coupled after an import-only
+  fix); `core → models` is allowed by design (auth needs `User`); schemas →
+  services (numerology, dashboard bundle) is the API boundary depending on
+  application, which is the permitted direction, so it is not ruled.
+  **Panchangam cache moved out of the calculation (2026-10-08).**
+  Re-verified first: the cache was `_load_cached_snapshot`,
+  `_load_cached_snapshots_in_range`, `purge_expired_panchangam_cache`,
+  `_store_cached_snapshot` and three session-taking entry points
+  (`calculate_daily_panchangam`, `…_range`, `with_daylight_lagna_schedule`),
+  with 13 app modules, 1 script and 17 test files importing them. **The
+  handoff's "tests reach private cache helpers 33 times in test_panchangam.py"
+  was wrong:** those 33 are `calculate_daily_panchangam(` calls with no
+  session (pure computation); no test referenced a cache helper. Every
+  panchangam monkeypatch targets either a consumer-module name
+  (`pdf_export_service`/`daily_push_cron`/`muhurtham_naal_service`
+  `.calculate_daily_panchangam[_range]`) or a compute dependency inside
+  `app.calculations.panchangam` (`calculate_rise_transit_jd`,
+  `calculate_sidereal_planets`) — both keep intercepting if consumers keep
+  the same imported name and the computation stays put.
+  Now: `app/calculations/panchangam.py` is pure — `compute_daily_panchangam`,
+  `compute_daily_panchangam_range`, `attach_daylight_lagna_schedule`,
+  snapshot (de)serialization and `PANCHANGAM_CACHE_DATA_VERSION` (it versions
+  the serialized shape, so it stays with the serializer). The cache helpers,
+  `PANCHANGAM_CACHE_TTL_HOURS` and the three entry points — same names, same
+  signatures, same queries, log lines and fallbacks — are in
+  `app/services/panchangam_cache.py`. Consumers changed only the import path
+  (script-driven, then `ruff --fix --select I`). `_date_range` became public
+  `date_range` (no other user). AGENT_INSTRUCTIONS' cache line names the new
+  module.
+  **Gate:** all four BASELINE entries deleted (the list is now empty), and a
+  new check refuses any `session`/`db` parameter in `app/calculations` — the
+  runtime coupling the import graph could not see. Baseline before the move:
+  2 failed, naming the 4 imports and 7 session-taking functions. After: 4
+  passed. **Cache-path control:** with the service's two cache reads forced
+  to miss, `test_daily_panchangam_endpoint_reuses_cached_row` and
+  `test_monthly_panchangam_uses_cached_dominant_values` both fail, the
+  traceback running service → `compute_daily_panchangam` → the patched
+  `calculate_rise_transit_jd` — so the patches intercept through the move.
+  Targeted suites (every file importing or patching panchangam, perf budget
+  included): 375 passed, 6 skipped. ruff, mypy (368 files) clean.
+  **Full backend suite after the move: 6009 passed, 7 skipped, 0 failed**
+  (64 min, local, 2026-10-08).
+  **Before/after equivalence:** HEAD's `panchangam.py` loaded from git as a
+  separate module, then old `calculate_daily_panchangam(session=None)` vs new
+  `compute_daily_panchangam`, serialized snapshot compared key by key — 4
+  synthetic places (Chennai, Madurai, London, Sydney) × 13 dates through
+  2026, the sparse-`only` range path and the lagna-schedule path: 56
+  snapshots, 0 differ. Control: shifting one date by a day → 4 differ.
+  **Blind spots:** the session check knows two parameter names; a session
+  under another name, or reached through another object, passes it. The
+  equivalence run covers the computation; the cache's own SQL was moved
+  verbatim and is covered by the cache-path tests, not by that comparison.
+  **Steps 1–6, first unit — `build_daily_guidance_response` (2026-10-08).**
+  Golden first, committed on its own (`tests/test_daily_guidance_golden.py`):
+  four synthetic profiles × four 2026 dates, built with no database
+  (`_chart_response_from_profile` + `session=None`). Normalised because CI's
+  pyswisseph and local swisseph-ffi have already disagreed at a rounding
+  edge: floats to 2 places, clock times and ISO datetimes masked, everything
+  else exact. Control: one score weight 0.28 → 0.27 fails 11 of 16.
+  Then three pure stages moved, verbatim, into `app/services/_dg_scoring.py`
+  (already the home of `weighted_moon_score`/`weighted_panchangam_score`):
+  `transit_component` (gochara + Ashtakavarga + Vedha + the Moon-Jupiter /
+  Lagna-Saturn adjustments; returns the score and the house-from-Moon map the
+  palan reads), `personal_safety_component` (the Sade Sati murthi grade needs
+  the ephemeris, so the builder computes it — only when the cycle calls for
+  it, as before — and passes it in), and `composite_day_score` (weights,
+  label with the Chandrashtama demotion, confidence band and reason). The
+  duplicate `is_combust` call is now one. The builder calls them in the same
+  order: 885 → 808 lines. No doctrine changed.
+  **Proof:** golden unchanged (17 passed); HEAD's builder loaded from git and
+  run beside the new one on the same 16 cases, compared exactly (raw JSON,
+  `generatedAt` removed): 0 differ — control (one profile's dates shifted):
+  4 differ. New `tests/test_dg_stages.py`: 20 direct tests of the stages'
+  rules with plain values (each caution's cost, murthi grading, Kandaka
+  scored once under A-1, component rounding, the Chandrashtama demotion, the
+  exact 100 maximum, the three confidence bands). The 18 test files touching
+  daily guidance: 357 passed. ruff and mypy clean. Six imports the builder no
+  longer used were removed after checking no module or test reaches them
+  through `daily_guidance_service` (by import or by patch string).
+  **Blind spots:** the golden masks clock times and covers only
+  `session=None` and `ta-en`; the exact comparison covers the same 16 cases.
+  The fixture is 594 KB (mostly Tamil copy), the largest test file in the
+  repo. **Not started:** the rest of the builder (dasha strength,
+  briefing, palan assembly), `get_life_areas` (689), `assess_marriage_prediction`
+  (648), `dashboard-workspace.tsx` (2,415).
+  **Dasha-strength stage extracted (2026-10-08, second unit pass).** Patch
+  targets re-checked first, by import and by string path: tests patch only
+  `build_daily_guidance_response`, `get_daily_guidance` and
+  `_enrich_action_with_goal_track` on this module, nothing inside the stage
+  (`test_service_priority_m11`'s `calculate_vimshottari_timeline` patch is on
+  `dasha_transition_service`). `dasha_component` in `_dg_scoring.py` takes
+  the chart's planets, the three running lords, lagna, natal Moon rasi, the
+  day's transit bodies, `natal_rasi_by_graha`, `is_daytime` and age, and
+  returns the score plus the natal-strength map the pratyantar narrative
+  reads. The vimshottari timeline stays in the builder (its lords and end date
+  are read later), and so does `resolve_daytime_birth_for_profile` (a
+  sunrise computation), passed in like the murthi grade. The three copies of
+  the "strength_score, else compute from placement" block are one inner
+  function; order of insertion into the strength map is unchanged
+  (maha, antar, pratyantar). The stage's `is_daytime` is `bool | None`, as
+  the resolver returns for an unknown birth time (mypy caught the first
+  annotation). Six imports the builder no longer used were removed after
+  checking nothing reaches them through this module. 808 → 726 lines. No
+  doctrine changed.
+  **Proof:** golden unchanged (17 passed; fixture file untouched). Exact
+  same-process comparison, HEAD's module from `git show` beside the new one,
+  raw JSON minus `generatedAt`: 7 synthetic profiles (the golden four plus
+  Coimbatore, Sydney, Trichy) × 14 dates (2026–2040) × {strength as built,
+  `strength_score` zeroed so the placement path runs} × {briefing flag off,
+  on}, plus 3 profiles with the birth time nulled on the snapshot
+  (`is_daytime=None`): **560 cases, 0 differ**; 21 maha/antar pairs seen, 12
+  with a lord that has no scored transit (Sun/Mercury/Venus), 5 maha = antar.
+  Controls: one profile's dates shifted → 40 differ; the stage's maha weight
+  0.45 → 0.44 → differences reported. New `TestDasha` in
+  `tests/test_dg_stages.py` (7 tests: generic score for an absent lord, own
+  strength kept without a transit, transit house from the natal Moon,
+  strength computed from placement when absent, pratyantar reported but not
+  scored, 10–95 clamp at both ends). Controls: weight 0.44 → 5 of 7 fail;
+  pratyantar not recorded → 1 fails. The 21 test files that touch daily
+  guidance: 434 passed. ruff and mypy (368 files) clean.
+  **Blind spots:** maha lords seen were 6 of 9 (no Mercury, Saturn or Ketu
+  maha in the matrix — the stage is lord-agnostic, but that is argued, not
+  observed); the
+  "lord absent from the chart" branch is unreachable from a real chart and is
+  covered only by the direct test.
+  **Briefing and palan assembly extracted (2026-10-08, third unit pass).**
+  Two module-level functions in `daily_guidance_service.py` (not a new
+  module: both are response composition, not scoring, and keeping them here
+  leaves every name the builder resolves where it was): `_daily_briefing`
+  (the Track A synthesis, inputs explicit; the `daily_briefing_synth` flag
+  check stays in the builder) and `_personal_palan_response` (the
+  `build_personal_palan` result → `PersonalPalan` schema). The palan's
+  `build_personal_palan` call and both `run_safety_pass` calls stay in the
+  builder, in the same order. 726 → 632 lines (885 at the start of A13). mypy
+  caught two wrong first annotations (`moon_score` is `int`;
+  `personal_caution` is the narrative `BiText`), both fixed before commit.
+  **Proof:** golden 17 passed, unchanged; exact same-process comparison against
+  `a3afc72`: **560 cases, 0 differ**. Controls: dates shifted → 40 differ;
+  palan adapter mutated (`dashaAreas` emptied) → 560 differ, all in
+  `personalPalan`; briefing mutated (`ta`/`en` swapped) → exactly the 280
+  flag-on cases differ, all in `briefing`. (A first briefing mutation, the
+  synthesizer's `seed`, changed no visible output — the seed picks among
+  variants and those cases did not move; it is not a usable probe.)
+  **Blind spots:** no direct tests for the two adapters — they are field
+  mapping, covered by the golden and the comparison; nested
+  `_build_tithi_card` / `_build_activity_board` are still inside the builder.
+  **Second unit, golden first — `get_life_areas` (2026-10-08).**
+  `tests/test_life_areas_golden.py`, committed before any extraction: the
+  daily golden's four synthetic profiles × four 2026 dates and its
+  normalisation (imported, not copied). `get_life_areas` touches the database
+  in five places; each is replaced at the service module's own names — owner
+  check passes, `load_persisted_chart_response` returns the synthetic chart, no
+  active goals, a session whose life-events query is empty, and
+  `log_prediction` records its calls, which are **part of the golden** (which
+  areas get logged as HIGH-confidence claims is behaviour). Flags are pinned to
+  their shipped defaults so an override elsewhere cannot move it. Reach,
+  asserted by `test_golden_matrix_reaches_the_branches_that_matter`: 192 areas
+  with all three confidences (LOW 139 / MEDIUM 44 / HIGH 9), 4 with
+  Chandrashtama applied, 4 readings, 9 logged claims across 5 of 16 cases.
+  Control: the chain blend 0.65/0.35 → 0.64/0.36 fails 16 of 16. After: 17
+  passed. **Blind spots:** as the daily golden (masked clock times, float
+  drift < 0.005), plus: no active goals, no life events (so
+  `chartValidationStatus` is always null and `validate_chart_against_events`
+  never runs), default flags only, and the real owner check and persistence
+  are stubbed. The fixture is 1.39 MB — the largest test file, over twice the
+  daily golden.
+  **First `get_life_areas` stage — per-area scoring (2026-10-08).** Patch
+  targets re-checked: `test_life_areas_service.py` patches `svc._score_area`,
+  which the moved code still looks up as a module global, so it keeps
+  intercepting; `test_daily_snapshot_sections` patches `get_life_areas` on its
+  own module. `_score_life_area` (module-level, beside `get_life_areas`)
+  takes the area plus 18 explicit chart/transit/request inputs and returns an
+  `_AreaScore`: `_score_area`, the karaka chain blended 65/35, the promise-gate
+  reading (classified from the score **before** the blend — now pinned by a
+  test), the area remedy, the maha/antar area scores, the karaka's transit
+  house and driver line, and the three-signal confidence tier. Moved verbatim
+  by script (inputs renamed, nothing reordered); the chain dict is handed back
+  as the same object because the loop prepends BAV-derived factors to it.
+  Narration, phase gating, the married framing, maraka guard, prediction log
+  and projections stay in the loop. 689 → 620 lines.
+  **Proof:** life-areas golden 17 passed, unchanged. Exact same-process
+  comparison, HEAD's module from `git show` beside the new one under the
+  golden's stubs, raw JSON minus `generatedAt` plus every `log_prediction`
+  call: 8 synthetic profiles (golden four + Coimbatore 1979, Sydney 2001,
+  Trichy 1956, Chennai 2016 — a child) × {as built, married, retired,
+  student} × 9 dates × flags {defaults, all off}: **576 cases, 0 differ**.
+  Controls: one profile's dates shifted → 64 differ; the confidence threshold
+  60 → 61 inside the stage → 220 differ. New
+  `tests/test_life_area_score_stage.py` (8 tests, fakes for `_score_area` and
+  the chain): the 65/35 blend, the reading from the pre-blend score, no gate →
+  no reading, BLOCKED ignores timing, HIGH/MEDIUM/LOW, a karaka with no
+  transit reads house 1 at 50, a signal of exactly 60 counts. Controls:
+  reading from the blended score → that test fails (`MIXED` vs
+  `PROMISED_AND_TIMED`); 64/36 blend → 2 fail; threshold 61 → the boundary
+  test fails (it was added after the first threshold run passed all seven —
+  the fixtures sat far from 60). The 18 test files touching life areas: 277
+  passed. mypy (368 files) and ruff clean.
+  **Blind spots:** no active goals or life events in either the golden or the
+  comparison; `get_life_areas` is still 620 lines — the narration half of the
+  loop (≈250 lines of bundle edits) is the next stage and is not started.
+  `assess_marriage_prediction` and `dashboard-workspace.tsx`: not started.
+  **Second `get_life_areas` stage — narration and forward projection
+  (2026-10-09).** Re-checked patch targets first: nothing in `tests/`
+  monkeypatches `_narrative`, `_build_area_reason`, `_maraka_safety_check`,
+  `_find_next_improvement_date`, `_projected_area_score`,
+  `_married_relationship_text` or `interpret_score` on this module, so moving
+  their call sites is safe. `_narrate_life_area` (module-level, beside
+  `_score_life_area`) takes one area's `_AreaScore` plus the request-level
+  context (23 named inputs) and returns an `_AreaNarration`: the final
+  bundle, reading, confidence, driver reason, label, goal-focus flag, phase-
+  skip flag, causal chain, remedy kind, score band, the six/twelve-month
+  projected scores, and a `should_log` bool — the D5 HIGH-confidence /
+  not-maraka-suppressed check, computed but not acted on, because the
+  `log_prediction` DB write has to stay with the session in the loop. Moved
+  verbatim (inputs renamed to flat values — `current_age`→`native_age`,
+  `natal_moon.rasi`→`natal_moon_rasi`, `_daily_location`→`location`, etc. —
+  nothing reordered). One pre-existing side effect is preserved exactly: the
+  function still mutates `scored.chain` in place (prepends the BAV-derived
+  factor codes) rather than copying it, since the loop's `chain_result` is
+  the same dict object. `get_life_areas` itself: 620 → 376 lines.
+  **Proof:** life-areas golden 17 passed, unchanged. Exact same-process
+  comparison (HEAD's module via `git show`, under the golden's stubs, raw
+  JSON minus `generatedAt`): 7 profiles (the golden four + Coimbatore,
+  Trichy, a 2016 child) × {as-built, married, retired, student} × 11 dates
+  (including 2031 and leap-day 2040) × flags {defaults, all off}: **336
+  cases, 0 differ**. Controls: one profile's dates shifted → 40 differ; the
+  ≥70 action-line threshold 70 → 71 inside the new function → golden fails
+  3 of 17. The 9 test files touching `life_areas_service` (bav_derived,
+  bav_disclosure_boundary, bhava_palan, daily_snapshot_sections,
+  engine_depth_g1_g4, life_area_score_stage, life_areas_golden,
+  life_areas_service, life_focus_phase1): 187 passed. ruff clean.
+  **mypy could not be run locally — recorded, not swept under.** Every
+  invocation failed at import time with `ImportError: DLL load failed while
+  importing base64: An Application Control policy has blocked this file`
+  (`mypy.ipc` → `librt.base64...pyd`, mypy 2.3.1's mypyc-compiled runtime).
+  Confirmed via `Microsoft-Windows-CodeIntegrity/Operational` events 3077/
+  3089/3118/3033: Smart App Control blocking the DLL as not meeting the
+  Enterprise signing level — the same class of block as
+  [[feedback_sac_blocks_unreputable_dll_transiently]] (there: `swe.dll`,
+  resolved on retry), but here **12 retries over ~15 minutes did not
+  resolve it**, so this is recorded rather than retried indefinitely. The
+  module was confirmed to import cleanly and the new function/dataclass
+  signatures to introspect as expected (`python -c "import ...; inspect.signature(...)"`).
+  CI runs mypy on Linux, unaffected by this; **needs mypy confirmation on
+  CI or a later local retry before this is treated as done.**
+  **Full backend suite, 2026-10-09 (after this commit): 6221 passed, 7
+  skipped, coverage 92.83% (1:34:55).** mypy still blocked locally by the
+  same SAC issue on a second retry ~2 hours after the first — not treating
+  it as transient any further; CI is the next real check for it.
+  **mypy confirmed clean, 2026-10-09, in a CI-identical container** (third
+  retry on the host still blocked, same `librt.base64` import): ci.yml's
+  backend-lint job installs only `mypy==2.3.1 ruff==0.15.17` on Python 3.12,
+  so `docker run python:3.12-slim` (3.12.14) with the repo mounted read-only
+  and exactly that install reproduces it — `mypy app`: "Success: no issues
+  found in 368 source files"; `ruff check app tests`: clean. Run at
+  `c9130ad`, whose `app/` is identical to `9976c79`. The block is a host
+  (Smart App Control) problem; this container is the local route around it.
+  **Third unit, golden first — `assess_marriage_prediction` (2026-10-08) —
+  and a live defect it exposed.** The function is already pure (a
+  `MarriageAssessmentInput`), so `tests/test_marriage_prediction_golden.py`
+  builds that input from a synthetic chart exactly as
+  `app/api/predictions.py` does from a persisted one; 6 profiles (the golden
+  four + a child and an elder for the age gates) × 4 dates × {as built,
+  married, parent, promise gate off}: 96 cases + a matrix test (both gates
+  named, ≥2 confidences, ≥3 bands, ≥8 distinct predictions). **The first
+  write and the first test run disagreed on 12 cases** — all `chart_signature`.
+  Cause: `_compute_chart_signature` took `list(payload.active_dasha_lords)[0]`
+  as the maha lord; the field is a `set`, string hashing is seeded per
+  process, so one chart was framed "revolves around the Moon" in one web
+  worker and "around Jupiter" in another (`PYTHONHASHSEED=0` vs 1–2:
+  reproduced). Fix: `MarriageAssessmentInput` gains `maha_lord`/`antar_lord`
+  (optional, ordered); the route passes the timeline's; the signature reads
+  them, and without them uses no dasha signal unless maha = antar (the set
+  can say that much) — never a guess. Same family, latent: the propensities
+  endpoint set `maha_lord=sorted(lords)[0]` (alphabetical — a Saturn maha
+  with a Jupiter antar recorded as Jupiter); nothing reads those two fields
+  today; now from the timeline. Health/career/wealth use the set only for
+  membership or `sorted()` lists — order-free, unchanged. **Who sees a
+  difference:** a marriage reading whose dominant graha depended on the dasha
+  points now always credits the real maha lord.
+  **Gates:** `tests/test_marriage_signature_determinism.py` — the prediction
+  computed in 4 subprocesses under hash seeds 0–3 must agree. Baseline: 2
+  distinct outputs (`…MOON…` vs `…JUPITER…` for Madurai). After: 4 passed
+  (plus: the signature credits the given maha lord either way round; no lords
+  → no dasha signal). Golden: 97 passed under each of seeds 0–3. Golden
+  control: the STRONG-dasha bonus 10 → 9 fails **only 1 of 97** — the
+  prediction exposes no raw score, so an internal change shows only where it
+  crosses a confidence/verdict boundary. **Any extraction from this unit
+  needs the exact old-vs-new comparison, not the golden alone.** The 76 test
+  files touching marriage, predictions or propensities: 2116 passed, 1
+  skipped. ruff, mypy clean. **Blind spots:** the golden does not cover the route's wrapping
+  (`age_gated`, `alternative_framing`, the prediction log) or a caller that
+  builds the input without lords.
+  **First `assess_marriage_prediction` stage — scoring (2026-10-09).** The
+  pre-move function was 648 lines. A test search found import callers only;
+  no test patched a call on `app.services.marriage_service`, so the move
+  breaks no interception point. `_score_marriage_prediction` takes the typed
+  payload plus the resolved promise gate and married-harmony mode, and returns
+  a named `_MarriageScore`: the clamped internal score, factors, supports,
+  challenges, and dasha/transit support. The 7th/2nd/4th/5th-house, Venus,
+  D9, affliction, dasha, transit, age, Sevvai and Rahu-Ketu rules moved
+  together; applicability gates, narration, bands, signature and safety stay
+  in the public function. `assess_marriage_prediction`: **648 → 225 lines**.
+  **Proof:** golden + determinism + direct stage tests: 107 passed. The
+  same-process comparator loads `git show HEAD:app/services/marriage_service.py`
+  under a registered alias and compares sorted full-result JSON over 6
+  synthetic profiles × 15 dates spanning 2026–2040 × {as built, married,
+  parent, promise gate off, maha/antar absent}: **450 cases, 0 differ**.
+  Reach: verdict paths age gate 36, relationship gate 90, upper-age gate 88,
+  married HIGH 58 / MEDIUM 1, timing HIGH 144 / MEDIUM 33; confidences HIGH
+  202 / MEDIUM 34 / LOW 214; bands STRONG 62 / LIKELY 56 / absent 332.
+  Controls: shifting one profile's dates by 31 days → 75 differ; changing the
+  extracted STRONG-dasha weight 10 → 9 → 5 differ, and the direct weight test
+  failed (1 failed / 5 passed). After restoration, 6 direct tests pass.
+  Container Python 3.12 with CI's pinned mypy 2.3.1 and ruff 0.15.17: mypy
+  clean on 368 files; ruff clean on `app tests`.
+  **Blind spots:** the matrix never reaches promise BLOCKED/SILENT or a LOW
+  scored verdict (LOW counts above are applicability gates), and an internal
+  score change remains invisible unless it changes a returned field — the
+  10 → 9 control changed only 5 of 450. The route wrapping, persistence and
+  prediction log remain outside this pure-function comparison. The full 76
+  related files and full backend suite are deferred until the marriage unit's
+  remaining narration extraction is complete.
+  **Scoring stage re-proved with a stronger comparator (2026-10-09).** The
+  stage above and its first comparator were written by another agent
+  (Codex), interrupted before the narration stage; reviewed here. That
+  comparator compared only the returned result, so it could not see the
+  quantity the stage computes (10 → 9 moved 5 of 450 cases), and its matrix
+  never reached BLOCKED/SILENT or a scored LOW. Its `MonkeyPatch.context()`
+  patched nothing. `scripts/a13_compare_marriage_prediction.py` now:
+  (a) installs a recording `min`/`max` as module globals in each loaded copy
+  — they shadow the builtins for that copy only — so every affliction-penalty
+  cap and the final `max(0, min(100, score))` clamp are compared with their
+  arguments: **the raw score of every scored case**; (b) runs the
+  golden-derived matrix under all four `reasoning_bands` ×
+  `reasoning_chart_signature` combinations (1,800 cases; the first run
+  pinned both to defaults); (c) adds 6,000 seeded synthetic inputs over every
+  `MarriageAssessmentInput` field × gate None/True/False × both flags,
+  biased so the promise gate's BLOCKED and SILENT grades are reached; (d)
+  compares a raised exception by type and message; (e) takes `--candidate
+  REV`, so a committed stage is re-proved without touching the tree.
+  `065318a~1` → `065318a`: **7,800 cases, 0 differ; 2,954 scored cases
+  compared on raw score.** Every verdict path reached: relationship gate
+  1,859, age gate 984, upper-age gate 1,273, promise BLOCKED 121 / SILENT
+  579, married HIGH 508 / MEDIUM 205 / LOW 61, timing without a band HIGH
+  359 / MEDIUM 354 / LOW 197 and with one HIGH 454 / MEDIUM 708 / LOW 108,
+  raises 30; bands STRONG 308, LIKELY 656, MIXED 221, WEAK 85, BLOCKED 121,
+  SILENT 579; causal chain 194. Controls: the same 10 → 9 now changes
+  **2,194** cases (2,093 seen only by the score probe); a 31-day date shift
+  on one profile, 300.
+  **Found, not changed:** the 30 raising cases are a `KeyError` when Venus
+  is missing from `planets_rasi` and the promise gate does not run (gate off,
+  or a married profile); with the gate on, the same input reads SILENT. Old
+  and new raise identically. A persisted chart always carries all nine
+  grahas, so no reader reaches it today; recorded, not fixed, in a
+  structural unit.
+  **Second `assess_marriage_prediction` stage — narration (2026-10-09).**
+  `_narrate_marriage_prediction` takes the `_MarriageScore`, the resolved
+  gate, the band, the married-harmony mode and the two flag values, and
+  returns a named `_MarriageNarration`: both main-prediction strings,
+  confidence, band and causal chain. The married and timing copy at the 70/50
+  boundaries, the band → legacy confidence swap, the WEAK-promise cap and the
+  LOW-only causal chain moved together. `combine_gate_and_timing` and the
+  flag reads stay in the public function in their original order, and
+  `reasoning_bands` is still read only when there is a gate. Test search:
+  import callers only; no test patches a name on this module.
+  `assess_marriage_prediction` **225 → 142 lines** (648 before the unit);
+  `_score_marriage_prediction` 455, `_narrate_marriage_prediction` 109;
+  module 922 → 961.
+  **Proof:** comparator HEAD → tree and `065318a~1` → tree: 7,800 cases each,
+  **0 differ**, same reach as above. Controls, each reverted: timing HIGH
+  boundary 70 → 71, 34 differ and 2 direct tests fail; WEAK cap removed, 351
+  differ, 1 fails; band flag ignored, 72 differ, 1 fails; married MEDIUM
+  boundary 50 → 51, 6 differ — **and all 9 of the first draft's direct tests
+  passed**: the married branch's boundaries had no direct test. Added (the
+  married 70/50 boundaries; with the band flag off the band is recorded and
+  the score's confidence kept; no gate, no band) and re-ran that control: 1
+  fails. 14 direct narration tests, 6 scoring. The 87 test files touching
+  marriage, predictions or propensities (the earlier 76 plus files added
+  since): **2,476 passed, 1 skipped**. CI-identical container: mypy clean on
+  368 files; ruff clean on `app tests` and the comparator.
+  **Blind spots:** both sides run in one process, so a set-order dependency
+  would be identical on both and invisible here — that is
+  `test_marriage_signature_determinism.py`'s job (seeds 0–3); the synthetic
+  inputs are random, not drawn from real charts, so their branch mix is not
+  production's; route wrapping (`age_gated`, `alternative_framing`, the
+  prediction log), persistence and `logger` calls are outside a pure-function
+  comparison; the Tamil copy is compared byte-for-byte and unchanged, not
+  read. **Full backend suite at `2489434`: 6241 passed, 7 skipped, coverage
+  92.84% (1:23:56)** — +20 on the last run, exactly the 6 scoring and 14
+  narration stage tests; the 7 skips are the known D2-hora and six
+  printed-publisher sunrise cases.
+  **Missing-placement `KeyError` — fixed (2026-10-09, owner asked).** The
+  30 raising cases above. The scoring stage reads Venus and the 7th and 2nd
+  lords by name; the promise gate answers SILENT for a missing Venus or 7th
+  lord, but only when it runs. So a missing one raised `KeyError` with the
+  gate off or for a married profile (the gate never runs for one), and a
+  missing **2nd** lord raised even with the gate on (the gate does not look
+  at it — the comparator's synthetic inputs never removed it, so this third
+  path was found by reading, not by the matrix). Now
+  `assess_marriage_prediction` checks `_missing_scored_placements` after the
+  gate and answers with the same SILENT redirect (`_missing_data_gate`, which
+  the gate's own missing-data branch now shares), logging which graha was
+  missing. Gate-on reads with Venus or the 7th lord missing are unchanged;
+  the gate still answers them first. **Who sees a difference:** nobody today
+  — a persisted chart carries all nine grahas; a hand-built or partial input
+  now gets SILENT, not a 500.
+  **Gate:** `tests/test_marriage_missing_placement.py` — Venus, Saturn and
+  the Sun (Kadagam lagna: 7th and 2nd lords) each removed × gate off / gate
+  on / married must read SILENT; complete placements must not. With the
+  guard disabled: 7 of 9 fail (gate-on Venus and Saturn pass either way, as
+  the gate catches them). Comparator HEAD → tree: **30 differ, exactly the
+  30 that raised** (raises 30 → 0, SILENT 579 → 609, every other count
+  unchanged). mypy clean on 368 files; ruff clean.
+  **Blind spot:** the local full suite above ran at `2489434`, before this
+  fix. The fix itself is covered by its own test, the marriage files, the
+  comparator, and **CI on PR #5 at `89b7515`: every job green** (backend
+  pytest, ruff + mypy, Alembic round-trip, web, token ratchet, compose stack,
+  web image; Playwright e2e skipped by the workflow).
+  **Fourth unit, golden first — `dashboard-workspace.tsx` (2026-10-09).**
+  *An earlier attempt by another agent (Codex), reviewed and superseded:*
+  `44f69a2`/`c9130ad` added a two-case "composition golden" that recorded 4
+  of the Today pane's ~55 props and Calendar's chart id/date. All 5
+  realistic mutations passed it — Today handed `todayDate` for
+  `selectedDate`, Muhurta's chart resolver bypassed, Today's Calendar jump
+  sent to Today, the own-chart focus check forced false, the guidance
+  fallback reversed — because its selected date equalled today and no
+  member or life mode was ever selected. Replaced, not built on.
+  *Golden* — `components/dashboard-workspace.golden.test.tsx` (`2401025`,
+  extended by `2e80185`, `f0a7778`, `1668ddd`, each recorded against the
+  pre-extraction workspace): every pane, overlay and the hero is a probe
+  that records all the props it is handed; five scenarios (returning
+  reader, URL addressing, language, first run, mutations) drive the
+  workspace through those props, a fake App Router (navigations applied on
+  the next task — Next commits them in a transition, so `usePathname()`
+  never changes under a running effect), the hooks' callbacks, and a
+  deterministic flush of the 500 ms persistence debounce. Each checkpoint
+  records URL, visible pane, the workspace's own DOM and every side effect
+  (router, API, hook calls, storage, toasts, scroll). Transcripts under
+  `components/__golden__/` (~1.1 MB); 5 consecutive runs identical. Named
+  assertions back DXA-02, T5, onboarding step 3, owner-score
+  reconciliation, the persisted shape, legacy links and pre-`/auth/me`
+  Back/click, so a regenerated fixture cannot drop them. **Controls on the
+  workspace: 26 of 27 caught**; four harness gaps found by controls were
+  closed before the extraction that needed them (Back-then-Forward, the
+  pre-`/auth/me` first paint, a member whose chart disagrees with its vault
+  row, vaults not yet fetched).
+  *Extractions* (golden byte-identical after each):
+  `13361e4` — the chart-view rules (member lookup written out five times,
+  owner-score reconciliation, owner-as-member, the Porutham/Compatibility/
+  Numerology pickers, Life Areas' marital status) → pure
+  `components/dashboard-workspace-chart-view.ts`; 16 direct tests; controls
+  5/5 (two caught only by the direct tests — a live score of 0, the reader
+  listed twice). `232d50c` — destination state and URL sync (tab/tool/
+  settings seeded from the path, push-vs-replace intent, the arming latch,
+  outbound/inbound effects, pane keep-alive, scroll reset, QA fallback,
+  explore return, cross-tab focus) → `hooks/useWorkspaceNavigation.ts`,
+  verbatim; hydration calls `adoptUrlDestination()`/`enableUrlSync()` where
+  it used to act; controls 7/7. `c04d9cc` — profile and family-membership
+  drafts, validation, busy flags and the ten create/edit/delete handlers →
+  `components/dashboard-workspace-profile-forms.ts`, moved by script; the
+  two effects that write `birthForm` stay in the workspace so
+  fill-from-chart still runs after hydration's restore in the same commit;
+  controls 11/11. `932a8c0` — `personalViewId` never had a setter, so the
+  Today/Explore member-chart branch was unreachable; removed (golden: 28
+  lines removed, every one `"personalMemberChart": null`).
+  **DashboardWorkspace 2,574 → 1,611 lines** (navigation hook 361 after
+  the fix below, forms hook 591, pure module 137). After the last commit:
+  web vitest 143 files / 1,477 passed with the coverage thresholds met;
+  `eslint . --max-warnings=0` and `tsc --noEmit` clean.
+  **Defect found and fixed — `517f20c`.** In the commit that arms the URL
+  sync both URL effects acted on any state/URL disagreement, in opposite
+  directions, and whichever navigation landed last decided. Who saw it: a
+  legacy `/dashboard?tab=<x>` bookmark landed on Today; a Back to bare
+  `/dashboard` before `/auth/me` answered was undone; a tab click before it
+  survived only by timing; a new reader sent to Setup by the onboarding
+  gate saw Today for one commit. Rule now: before arming, the URL can move
+  only by history and the destination only by an in-app action (or a legacy
+  param adopted); whichever moved wins the arming commit and the other
+  effect stands down for it. Golden diff limited to exactly those
+  checkpoints; controls 5/5. Verified by the owner in a browser on 2026-10-09:
+  a legacy `/dashboard?tab=journal` link landed on Journal; the golden models
+  Next's router, and this is the real-router confirmation. **Not covered:** a
+  pre-`/auth/me` Back to a path naming a different tab (hydration adopts it,
+  so the two agree —
+  argued, not recorded).
+  **Found, not changed — owner's call.** Settings opened from the user menu,
+  Today's "notification settings" and Journal's "manage context" go through
+  `navigateSettings`, which never sets the push intent, so they `replace`
+  and Back skips Settings; Today's Journal/Calendar/Life Areas/Charts jumps
+  use `setActiveTab` (replace) while its Family/Chart jumps push. And a
+  `goToTab` to the tab already shown sets the intent but triggers no
+  navigation, so the next replace-intended jump pushes — whether Back
+  returns from Settings depends on the previous click. The hook's own
+  comment says reader-chosen destinations push; making that true means
+  classifying every `setActiveTab` call site as reader- or app-chosen
+  (is a Settings section change a history step?), which is a product
+  decision. The golden records today's behaviour.
+  **Ruled and fixed 2026-10-10** (owner delegated it) — entering Settings
+  pushes, a section change inside it replaces, the four Today jumps join their
+  siblings, and the stale intent is gone. See "Three decisions the owner
+  delegated" below; the golden now records *that* behaviour.
+  **Blind spots:** the real panes, hooks and router are not exercised —
+  their contracts are only what crosses this boundary; framer-motion styles
+  other than `display` are ignored; a `setState` updater handed to a hook
+  setter is recorded as "ƒ", not evaluated; the QA fallback is unreachable
+  under test (`ENABLE_QA_TAB` is a module constant); no browser run.
+  **Previously not started:** steps 1–6 — `build_daily_guidance_response` (883 lines),
+  `get_life_areas` (689), `assess_marriage_prediction` (648) and
+  `dashboard-workspace.tsx` (2,415 lines now, 2,574 at audit) need golden
+  fixtures before any extraction.
+  **Found (pre-existing), fixed in a separate commit:** `mypy app` reported 4
+  errors at HEAD with CI's pinned mypy 2.3.1 — `narrative_engine.py` (Optional
+  `gochara_grade` result used as a key) and `_yoga_dosham.py` (invariant
+  `list[Literal]`) — so CI's backend-lint job could not pass. Annotation-level
+  fixes, no behaviour change; mypy now clean on 367 files.
+
+#### First CI on a runner after the Phase 3 push (2026-10-08)
+
+The 20 Phase 3 commits were pushed on 2026-10-08 (owner: "you push it now").
+Runs 37751457301 (CI, pull_request), 37751457502 (Mobile CI, pull_request) and
+37751452397 (Mobile CI, push) on `17c1e6b`. Five reds; each fixed in its own
+commit. Only the varshaphala one touches a Phase 3 test:
+
+- [x] **Web — `lib/css-surface-boundary.test.ts` (red since 2026-10-07).**
+  `bef9714` gave `/notifications` the dashboard chrome
+  (`DashboardAuxiliaryShell`) and its layout imports the three dashboard
+  stylesheets. The gate knew three load contexts and treated everything in
+  `app/(marketing)/` as marketing-only, so it reported 125 dashboard classes
+  as unreachable — classes that route does load. A false positive, not a
+  styling defect. Fix: `css-inventory.mjs --emit-boundary` splits marketing
+  routes by the extra route-level CSS their own nested layouts import and
+  emits each as a `nested` context; the test checks each against exactly
+  marketing + those sheets, requires the inbox context to exist with >100
+  classes (no vacuous pass), and the loader test now scans every `layout.*`
+  under `app/` and names the inbox layout as a deliberate second loader of
+  `dashboard-globals.css` (it scanned three files and so could not see it).
+  **Controls:** inbox layout without `dashboard-nova.css` → the nested check
+  and the loads assertion fail; a plain marketing page importing the
+  dashboard shell → the plain-marketing check fails with the same 125. Web
+  vitest 140 files / 1451 passed; web lint clean.
+  **Blind spots:** nested-layout CSS is detected only for static
+  `import "x.css"` in a `layout.*` file inside `app/(marketing)/`; a sheet
+  imported by a page or a component is not a load context. Whether
+  marketing.css and the dashboard sheets cascade cleanly together on
+  `/notifications` is untested — that route loads both.
+- [x] **Backend lint — pip-audit: python-jose 3.5.0, CVE-2026-85394
+  (GHSA-3qf3-8w2g-rqmx), no fixed release.** HMAC key setup accepts a
+  DER-encoded public key, so a holder of the service's public key can forge
+  HS256 tokens when decode does not restrict `algorithms`. Both preconditions
+  are absent: one symmetric secret, and both jose decode sites
+  (`app/core/auth.py`, `app/middleware.py`) pass `algorithms=[...]`. But the
+  first was only a comment — `jwt_algorithm` was a free `str` from
+  `JOTHIDAM_JWT_ALGORITHM`. Fix: `jwt_algorithm` is typed
+  `Literal["HS256","HS384","HS512"]` (boot refuses anything else; nothing in
+  the repo, `.env`, compose or workflows sets it), and the advisory is ignored
+  in `ci.yml` under both IDs with its premise written verbatim.
+  **Gate:** `tests/test_jwt_hmac_only.py` (no_db). Baseline before the config
+  change: 6 failed (RS256, ES256, PS256, EdDSA, none, hs256 all accepted), 5
+  passed. After: 11 passed; with test_config + CI-coverage, 42 passed.
+  pip-audit with the ignore exits 0; mypy and ruff clean.
+  **Blind spots:** the AST scan sees only `<name>.decode` where `<name>` is
+  imported `from jose import jwt`; `import jose` + `jose.jwt.decode` is not
+  matched. **The real fix is leaving python-jose for PyJWT** (REFACTOR_PLAN
+  1.2), which retires this ignore and the ecdsa one together — not done.
+  **Done 2026-10-08 (owner handed over the decision): python-jose → PyJWT,
+  and every pip-audit ignore is gone.** Surface re-verified first: jose was
+  used only in `app/core/auth.py` (encode/decode/`JWTError`), the rate
+  limiter's subject read in `app/middleware.py`, and `tests/test_auth.py`.
+  Now `import jwt` / `jwt.PyJWTError` there; the middleware's
+  optional-import guard is gone (PyJWT is a hard dependency). Lock: removed
+  `python-jose`, `ecdsa`, `rsa`, `pyasn1`, `six` (each needed only by jose or
+  ecdsa — `pip show`; `pip check` clean after uninstalling them and
+  refreshing the stale editable metadata); `pyproject` names `PyJWT>=2.15,<3.0`
+  (`cryptography` is its own direct dependency, so dropping jose's
+  `[cryptography]` extra loses nothing). **Found on the way:** redis 5.3
+  already depended on PyJWT and the lock never pinned it — this venv held
+  2.13.0, which has 14 advisories (PYSEC-2026-4140…4183, fixed by 2.15.0);
+  pinned `PyJWT==2.15.1` (latest). `pip-audit -r requirements.txt` with **no
+  ignores**: "No known vulnerabilities found". CI's four `--ignore-vuln`
+  lines and their premise paragraphs are removed.
+  **Gate:** `tests/test_jwt_library.py` (11). Two tokens minted by
+  python-jose 3.5.0 through `create_access_token`'s exact claim set (HS256
+  access, HS512 pwreset; synthetic secret/subject; exp 2099) must decode to
+  the same claims — the first request after the deploy is a token PyJWT
+  never issued. Expired, tampered, other-algorithm, `alg: none` and
+  wrong-secret tokens are refused with 401; a new token round-trips with
+  integer `iat`/`exp`. Ratchets: nothing in app/tests/scripts imports `jose`;
+  the lock pins PyJWT and none of the removed five. **Baseline (under jose):**
+  the 9 equivalence tests passed — the behaviour to keep — and both ratchets
+  failed. After: 11 passed on 2.13.0 and on 2.15.1. `test_jwt_hmac_only.py`
+  now scans PyJWT decode calls (still requires `algorithms=[...]` at both
+  sites). The 32 auth-related test files: 428 passed on 2.13.0, and with
+  the new file 439 passed on 2.15.1. ruff, mypy clean.
+  **Blind spots / notes:** PyJWT ≥ 2.10 emits `InsecureKeyLengthWarning` for an
+  HMAC key shorter than the hash (32 bytes for HS256); jose never warned. The
+  dev default secret is 64 chars; if production's `JOTHIDAM_JWT_SECRET` is
+  shorter, the log will say so once per process — rotating it logs everyone
+  out, so that is an owner decision, not done here.
+  **Superseded 2026-10-10** (owner delegated it; see "Three decisions the owner
+  delegated" below): a short secret is now a production boot failure, because
+  `JOTHIDAM_JWT_SECRETS` made rotating it cost nobody a sign-out. The decode scan misses
+  `from jwt import decode`. Dated reference docs (2026-08-25, 2026-10-06)
+  still say python-jose; `HOW_TO_USE_CODEBASE.md` and REFACTOR_PLAN 1.2 are
+  updated.
+- [x] **Mobile — Jest cold-start timeout (A15 step 7; it did reproduce).**
+  The push-triggered run failed `birth-details`' first test at 5 s; the
+  pull_request run of the same commit passed. Measured: local cold
+  (`--no-cache`, as CI always is) — first test per screen file 11.5–18.4 s
+  (2 of 4 files failed), later tests 0.15–4.7 s; local warm in-band — reading's
+  first test still over 5 s. The cost is React Native's lazily-required modules
+  on first render, not the screen. Fix: `jest.setTimeout(30_000)` in
+  `jest.setup.screens.js`, so it applies to the screens project only (~1.6x
+  the worst measured). After, cold: 167/167, first tests 9.3–11.6 s.
+  **Control:** the cold run before the change is the baseline (2 failed).
+  **Not fixed:** "A worker process has failed to exit gracefully" still
+  prints on full runs; `--detectOpenHandles` on the screens project reported
+  no open handle, so the leak's owner is unidentified. No `--forceExit` added.
+  The reading screen logs act() warnings on its first test.
+  **Owner identified 2026-10-08 (investigated, not fixed — owner asked for a
+  report first).** By project: utils (147) and react (16) never print it;
+  screens (12) does. Every pair of the four screen files run with
+  `--maxWorkers=2` (a single file runs in-band and cannot show it): the three
+  pairs containing `reading.screen.test.tsx` warn, the three without it do
+  not. That file is the only screen test that builds a `QueryClient`, one per
+  render, with the default `gcTime` and no `clear()`; after RNTL unmounts, React
+  Query schedules a 5-minute cache-collection `setTimeout` per query, which
+  holds the worker open. **Confirmed by control, file restored after:** the
+  same pair with `gcTime: Infinity` → 0 of 2 runs warn; unchanged → 2 of 2 warn.
+  **Proposed fix (one test file):** `gcTime: Infinity` in that client's
+  defaults, or keep the clients and `clear()` them in `afterEach`. No product
+  code is involved. Not explained: why `--detectOpenHandles` did not report
+  the timer.
+  **Fixed 2026-10-08 (owner handed over the decision):** `gcTime: Infinity` in
+  that test's `QueryClient`. Full mobile Jest 175/175 in 2 of 2 runs with no
+  worker warning (every earlier full run printed it); lint clean. **Blind
+  spot:** a future screen test that builds its own client can reintroduce it;
+  nothing enforces the setting.
+- [x] **Backend tests — `test_response_model_is_lossless[varshaphala]`
+  (5996 passed, 1 failed).** The only difference: one `tajakaPlanets`
+  `degreeInRasi`, 11.2445 (HTTP) vs 11.2446 (direct call). The test compared
+  the HTTP body with a *second, separate computation*, so it measured the
+  calculation's reproducibility, not the model. **Cause not found.** Ruled
+  out locally: `calculate_sidereal_planets` is bit-identical for the same JD
+  after interleaved lagna/ayanamsa/Sun-Moon calls, on swisseph-ffi with the
+  data files and on Moshier (60 JDs × 3 shuffled rounds, 0 differences); no
+  code outside `ephemeris.py` touches Swiss global state and every call is
+  under `_SWISS_LOCK`; requests do not share a DB session and
+  `EncryptedFloat` round-trips exactly. Not ruled out: CI runs Python 3.12 +
+  **pyswisseph**, which this machine (Python 3.14 only) cannot run. Fix to the
+  *gate*: the route function runs once, and that value goes through FastAPI's
+  own `serialize_response` with the route's own response field and flags;
+  the HTTP body must match in shape (keys, value kinds). 18 passed. Control:
+  `note` removed from `ShadbalaData` → fails naming `note`.
+  **Blind spots:** the HTTP comparison is shape-only. **Open:** whether
+  varshaphala (or any route) is non-reproducible across calls on pyswisseph —
+  a 3.12 environment is needed to answer it. A user-visible effect, if real,
+  is a 4th-decimal flip of a displayed degree.
+  **Investigated 2026-10-08 — the calculation is reproducible on CI's
+  runtime; not fixed, nothing to fix there.** `python:3.12-slim` (3.12.14)
+  with `requirements.txt` (pyswisseph 2.10.03 built from source — the slim
+  image needs `gcc g++`; it has no wheel) and the repo's `ephe/` files. A
+  script ran `calculate_tajaka_chart` for 40 synthetic natal-Sun/year inputs,
+  then 3 more times each in shuffled order with 0–3 unrelated
+  `calculate_sidereal_planets`/lagna calls interleaved: **240 repeats over two
+  processes, 0 exact differences** in any planet longitude or the solar-return
+  JD; the two processes' first passes are bit-identical (360 values). Against
+  local swisseph-ffi on 3.14: 1 of 360 values differs, by 7.1e-15 (an ulp),
+  0 at the route's 4-place rounding. The path has no cache: the solar return
+  is a 70-step bisection over `sun_longitude_at_jd`. So the 11.2445/11.2446
+  flip needed an input ~1e-5° apart, not a library difference. The only input
+  that can differ between that test's two calls is the natal Sun read from
+  `ChartPlanet` (`EncryptedFloat` round-trips exactly; sessions use the
+  default `expire_on_commit=True`). Not tested: the DB-backed path on 3.12
+  (the test DB's guard requires localhost:5433 from the host). The test no
+  longer compares two computations, so it cannot recur as a test failure;
+  whether a user can see two degrees for one chart is still open, and if so
+  the cause is upstream of the calculation.
+- [x] **Compose stack — "backend outage is a bounded 502" got a 502 and
+  failed.** The proxy returns `{"detail":"Backend unreachable"}`; the claim
+  also requires "unreachable" in the body, and the body read as `""`.
+  `Invoke-Probe` read error bodies via `GetResponseStream()`, which exists on
+  Windows PowerShell 5.1's `WebResponse` but not on PowerShell 7's
+  `HttpResponseMessage` — and CI runs the script under `pwsh` on Linux, so
+  every error body was empty there. The A01-b local PASS was under 5.1. Fix:
+  `-SkipHttpErrorCheck` on 7+. Verified on 5.1 against a local 502 server
+  (status 502, body read, match True). **Verified on 7 in CI** (run
+  37759598560, re-run of the failed job): all six claims PASS under `pwsh`,
+  and the `-BreakBackendUrl` negative control still FAILs — now printing the
+  `{"detail":"Backend unreachable"}` body it used to read as empty.
+  **Separate flake seen on the first attempt of that run:** the smoke's web
+  image build died in `next/font` (`Cannot read properties of null (reading
+  '1')`, google `loader.js:122` — Google Fonts returned a font URL without a
+  file extension), while the run's own "Web Docker image" job built the same
+  layout fine. The web build depends on Google Fonts answering consistently
+  at build time; self-hosting the faces (`next/font/local`) would remove that
+  dependency. **Not done** — recorded here, not fixed.
+  **Recurred 2026-10-10** on run 38016152691 (the delegated-decisions push),
+  byte-identical: `TypeError: Cannot read properties of null (reading '1')` at
+  `google/loader.js:122`, `pnpm --filter jothidam-ai-web build` exit 1. The same
+  run's "Web Docker image (build and boot)" job built the same web app in 4m2s,
+  so it is the fonts answering, not the code. Passed on a re-run of that one job
+  (4m37s), every other check green on the first attempt.
+  **Two occurrences in three days makes this a recurring CI blocker, not noise.**
+  Every compose-smoke run is one Google Fonts hiccup away from a red PR, and the
+  failure names a `next/font` internal rather than the dependency, so the next
+  reader will debug the build. Self-hosting the faces is the fix and is still
+  not done.
+
+**CI on `f939b77` (2026-10-08, after the cache move, A14 steps 7–8, A15
+coverage and the first guidance extraction):** all green on the first
+attempt — pytest 6053 passed / 7 skipped (+45 = exactly the new tests: daily-
+guidance golden 17, stage tests 20, Ask Vinaadi provider 6, aliased-guard 1,
+session-parameter gate 1; skips unchanged, so the golden ran and passed on
+CI's pyswisseph despite the platform difference it was normalised for), web
+with the new coverage thresholds, backend lint, Alembic, token ratchet, web
+image, compose smoke, Mobile CI on push and pull_request.
+
+**CI on `297778f` (pushed by the owner, 2026-10-08):** all green — pytest 6091
+passed / 7 skipped (same as local; both goldens pass on pyswisseph), web 1451,
+Mobile CI on push and pull_request.
+
+**Local, after the 2026-10-08 continuation (`264f36c`, 8 commits ahead of
+origin, not pushed):** full backend suite 6091 passed / 7 skipped, coverage
+92.81% (58 min) — CI's 6053 plus exactly the 38 new tests (generator 6,
+dasha stage 7, life-areas golden 17, life-area stage 8); mobile Jest 175/175
+(the reading-screen worker warning still prints, as reported above); web
+vitest 140 files / 1451 with coverage thresholds met; web lint clean; mypy
+and ruff clean. Not yet observed on a CI runner.
+
+**CI after these fixes (`3f90de4`, 2026-10-08):** all green — pytest 6008
+passed / 7 skipped (14 min), web, backend lint (ruff, mypy, pip-audit),
+Alembic round-trip, design-token ratchet, web image, compose smoke (on
+re-run, see above), Mobile CI on both push and pull_request. Playwright e2e
+skipped (no external base URL configured), so its 30-minute timeout is still
+a guess.
+
+#### Three decisions the owner delegated (2026-10-10)
+
+From the Codex brief's leftovers. The owner handed over items 1-3 ("full
+ownership to take the right decision"); Phase 4 stays next, not started.
+
+- [x] **1. The JWT secret could not be rotated, so its length could not be
+  enforced.** Recorded 2026-10-08 as "rotating it logs everyone out, so that is
+  an owner decision" — a weakness nobody could act on, because acting on it was
+  an outage. Both halves are now fixed together, in that order.
+  *Rotation:* `JOTHIDAM_JWT_SECRETS` (comma-separated, **newest first**; first
+  signs, all verify) mirrors the encryption-key design in §2 of
+  `docs/DATA_PROTECTION.md` exactly, so there is one rotation shape in this
+  codebase rather than two. The singular `JOTHIDAM_JWT_SECRET` is unchanged,
+  still supported, and never split on commas — which is why the rotation form is
+  its own variable. Procedure, cost of each stage and the web/mobile asymmetry
+  are in the new §2a; the short version is that stage 1 signs nobody out, and
+  dropping the old secret early costs a web sign-out and **no data**, unlike its
+  encryption twin.
+  *Length floor:* a production API process now **refuses to boot** on a secret
+  shorter than the hash it feeds (32/48/64 bytes for HS256/384/512). It refuses
+  rather than warns because the fix became cheap in the same change. The message
+  names the variable actually set and the **position** of each offending secret,
+  never its value.
+  *One decode site.* `app/core/jwt_keys.py` is now the only caller of
+  `jwt.decode` in the app; `app/core/auth.py` and `app/middleware.py` both go
+  through it, so the secret loop and the `algorithms=[...]` pin exist once.
+  Verification prefers the error from the secret that actually verified the
+  signature, so an expired token signed under the *older* secret reports expiry
+  rather than a misleading bad signature.
+  **Gate:** `tests/test_jwt_secret_rotation.py` (24). **Controls, both reverted:**
+  verifying against only the newest secret → the rotation-survival and
+  expiry-preference tests fail; the length check neutered → all four refusal
+  tests fail ("DID NOT RAISE"). `test_jwt_hmac_only.py`'s decode-site ratchet is
+  now equality on `{app/core/jwt_keys.py}`, not a superset — a second direct
+  `jwt.decode` anywhere in `app/` fails it. 70 passed across the four JWT/config
+  files; ruff and mypy clean (369 files).
+  **Found on the way:** five `test_config.py` proxy-hop cases passed
+  `jwt_secret="j"` to a *production* Settings; two expected a successful boot and
+  would have broken. They now use a realistic synthetic secret — the cases are
+  about proxy hops, not secret strength.
+  **Blind spots:** whether production's current secret clears the floor is
+  unknowable from here (the first deploy answers it); the decode ratchet still
+  misses `from jwt import decode`; nothing enforces that the operator waits out
+  stage 2 before dropping the old secret; rotation remains a blunt global
+  sign-out and not a revocation mechanism — SEC-5 is still open for the web
+  session, and `users.token_version` is still the per-user lever.
+- [~] **2. The pre-A12 plaintext dumps — decided, evidenced, deletion pending.**
+  Three dumps taken before `uu4e5f6a7b8c` held the 14 A12 columns in plaintext.
+  The owner was asked per file on 2026-10-08 and kept these three, with no
+  evidence about their contents on the table. There is now a census, in
+  `docs/DATA_PROTECTION.md` §3: the real owner has the **same three** birth
+  profiles in all three dumps and in the live database, and every row they hold
+  that the database does not belongs to a synthetic account (`@e2e.test`,
+  `@example.test`, `@example.com`, `@example.local`) — exactly what the two July
+  cleanups deliberately removed. So they cannot reconstruct anything, and
+  restoring one would now also need the A12 backfill re-run.
+  **Decision: delete all three.** A replacement was taken and *proven* first,
+  which is the order that matters: `backups/vinaadi_dev_20261010_0726.sql`
+  (ciphertext, 40.6 MB) restored into a throwaway database and
+  `scripts/verify_restore.py` returned PASS — 22 encrypted values across 5
+  tables decrypted with correct shapes, restored row counts identical to live.
+  That doubles as this project's first actual restore drill (§4.8 of the
+  architecture guide asked for one); it says nothing about RPO/RTO, which are
+  still unset.
+  **Not done:** the deletion itself. The agent session's sandbox refused the
+  three `Remove-Item` calls as irreversible local destruction, so they are the
+  owner's to run — the three paths are in §3. Until then the three files are
+  still the most sensitive on the host.
+- [x] **3. Back's behaviour around Settings — ruled and fixed.** The three
+  symptoms recorded above as "Found, not changed — owner's call":
+  *Entering Settings now pushes.* From the user menu, Today's "notification
+  settings", Journal's "manage context" and Family's "complete setup" — a reader
+  who opens Settings chose that destination, which is what the hook's own rule
+  already said. **A section change *inside* Settings still replaces**, and that
+  is the product call this encodes: the section is a sub-location on one screen,
+  so one visit to Settings is one history entry however much the reader clicks
+  in the rail, and Back means "leave Settings" rather than "previous section".
+  The alternative makes Back's meaning depend on how far the reader browsed,
+  which is the unpredictability being fixed.
+  *The four Today jumps that disagreed with their siblings* (Journal, Calendar,
+  Life Areas, Charts, plus Setup's "go to Today") now go through `goToTab` like
+  Family/Chart already did. This needed no new ruling — the reader-chose-it rule
+  covers them. The genuinely app-chosen destinations (the onboarding gate, the
+  session setup redirect, post-save redirects) deliberately keep the raw setter
+  and still replace; a comment at the gate says why, because pushing a redirect
+  traps the reader.
+  *The stale intent is gone.* The push flag is now armed only by a call that
+  actually moves the addressed destination, so a no-op jump no longer leaves it
+  set for the next navigation to inherit.
+  **Gate:** the golden fixtures. The diff is **exactly eight** `router.replace`
+  → `router.push` flips (settings-via-hero ×2, the four Today jumps,
+  `family.onOpenSetup`, `journal.onManageContext`) plus the history counters that
+  follow from them — no prop, DOM or visibility change anywhere — and
+  `replace /dashboard/settings/appearance` stayed a replace, which is the
+  section ruling holding in the same transcript. One step was added for the
+  stale-intent case, which the existing scenarios did not reach.
+  **Controls, both reverted:** the no-op guard removed → that one step flips to
+  `router.push` and nothing else moves; the Settings push removed → 3 snapshots
+  fail, and `today.onOpenNotificationSettings` drops from push to replace —
+  which also proves it had only ever pushed *by accident*, on a stale intent
+  left by the step before it. Web vitest 143 files / 1,477 passed;
+  `eslint . --max-warnings=0` and `tsc --noEmit` clean.
+  **Blind spots:** unchanged from the golden's own list — no real router, no
+  browser run, no real panes. In particular Back's behaviour after these eight
+  flips has not been clicked through in a browser, only modelled.
 
 ## Agent Completion Checklist
 

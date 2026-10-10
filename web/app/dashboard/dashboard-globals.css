@@ -163,11 +163,14 @@
 }
 
 @media (max-width: 720px) {
+/* minmax(0, 1fr), as at desktop: a bare `1fr` is minmax(auto, 1fr), so one
+   nowrap metric hint set the column's floor and held Life areas at 635px on a
+   375px phone. */
 .metric-strip,
     .surface__metrics,
     .form-grid,
     .settings-grid {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
     }
 }
 
@@ -287,7 +290,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 150ms ease, color 150ms ease;
+  transition: background 150ms var(--ease-nova), color 150ms var(--ease-nova);
   flex-shrink: 0;
 }
 
@@ -376,17 +379,12 @@
 .collapsible__arrow {
   font-size: 0.75rem;
   color: var(--color-muted);
-  transition: transform 200ms ease;
+  transition: transform 200ms var(--ease-nova);
   flex-shrink: 0;
 }
 
 .collapsible__arrow--open {
   transform: rotate(180deg);
-}
-
-.collapsible__body {
-  overflow: hidden;
-  transition: max-height 250ms ease, opacity 200ms ease;
 }
 
 .cd-responsive-tools-panel {
@@ -704,7 +702,7 @@
   border: 1px solid rgba(255, 255, 255, 0.09);
   background: rgba(255, 255, 255, 0.03);
   overflow: hidden;
-  transition: border-color 0.15s;
+  transition: border-color 0.15s var(--ease-nova);
 }
 
 .life-event-card:hover {
@@ -965,7 +963,7 @@
   text-align: left;
   cursor: pointer;
   box-shadow: 0 1px 4px rgba(26, 22, 18, 0.03);
-  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+  transition: transform 180ms var(--ease-nova), box-shadow 180ms var(--ease-nova), border-color 180ms var(--ease-nova);
 }
 
 .cd-tools-v3-card--accent {
@@ -1015,7 +1013,7 @@
   font-weight: 800;
   letter-spacing: 0.08em;
   flex-shrink: 0;
-  transition: transform 180ms ease;
+  transition: transform 180ms var(--ease-nova);
 }
 
 .cd-tools-v3-card:hover .cd-tools-v3-card__icon {
@@ -1047,7 +1045,7 @@
   line-height: 1.18;
   letter-spacing: -0.02em;
   color: #1A1612;
-  transition: color 150ms ease;
+  transition: color 150ms var(--ease-nova);
 }
 
 .cd-tools-v3-card:hover .cd-tools-v3-card__title {
@@ -1102,7 +1100,7 @@
   align-items: center;
   justify-content: center;
   color: #A89D89;
-  transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
+  transition: background 150ms var(--ease-nova), color 150ms var(--ease-nova), border-color 150ms var(--ease-nova);
 }
 
 .cd-tools-v3-card:hover .cd-tools-v3-card__arrow {
@@ -1135,7 +1133,7 @@
   padding: 7px 16px;
   font-size: 0.78rem;
   font-weight: 700;
-  transition: background 150ms ease, color 150ms ease;
+  transition: background 150ms var(--ease-nova), color 150ms var(--ease-nova);
 }
 
 .cd-tools-v3-detail__back:hover {
@@ -1314,7 +1312,7 @@
   justify-content: center;
   font-size: 1.1rem;
   color: #F4EEE2;
-  transition: transform 150ms ease, box-shadow 150ms ease;
+  transition: transform 150ms var(--ease-nova), box-shadow 150ms var(--ease-nova);
 }
 
 .cd-feedback-fab:hover {
@@ -1503,7 +1501,7 @@
 .cd-score-chip__bar-fill {
   height: 100%;
   border-radius: 2px;
-  transition: width 0.4s ease;
+  transition: width 0.4s var(--ease-nova);
 }
 
 .cd-score-chip__desc {
@@ -1579,4 +1577,3 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
-

@@ -14,6 +14,7 @@ from app.core.auth import get_current_user
 from app.core.chart_access import assert_chart_owner as _assert_chart_owner
 from app.db.session import get_db
 from app.models.user import User
+from app.schemas.remedies import RemedyPlanResponse
 from app.services.chart_service import load_persisted_chart_response
 
 router = APIRouter()
@@ -57,7 +58,7 @@ def gemstone_advice(
     }
 
 
-@router.get("/charts/{chart_id}/remedy-plan", tags=["remedies"])
+@router.get("/charts/{chart_id}/remedy-plan", response_model=RemedyPlanResponse, tags=["remedies"])
 def remedy_plan(
     chart_id: UUID,
     session: Session = Depends(get_db),

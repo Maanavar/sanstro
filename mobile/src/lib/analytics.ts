@@ -24,6 +24,7 @@ const ALLOWED_EVENTS = new Set([
   "share_card_shared",
   "onboarding_complete",
   "whatsapp_share_tapped",
+  "life_focus_ask_chip_tapped",
 ]);
 
 const ALLOWED_EVENT_PROPERTIES = new Set([
@@ -32,6 +33,9 @@ const ALLOWED_EVENT_PROPERTIES = new Set([
   "source",
   "report_upsell",
   "pages",
+  "focus",
+  "surface",
+  "chip_index",
 ]);
 
 /**
@@ -78,7 +82,7 @@ export function initAnalytics(sentryDsn: string, posthogApiKey: string, posthogH
   const dsn = sentryDsn.trim();
   if (isValidSentryDsn(dsn)) {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       _sentry = require("@sentry/react-native") as SentryModule;
       _sentry.init({ dsn, enableNative: true });
     } catch {
@@ -92,7 +96,7 @@ export function initAnalytics(sentryDsn: string, posthogApiKey: string, posthogH
   if (!posthogKey) return;
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { PostHog } = require("posthog-react-native") as {
       PostHog: new (
         apiKey: string,

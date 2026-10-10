@@ -1,5 +1,8 @@
 "use client";
 
+import type { ReactNode } from "react";
+
+import { dt, LIFE_FOCUS } from "@/lib/dashboard-i18n";
 import { getScoreBand } from "@/lib/format";
 import { WarningGlyph } from "./icons";
 import { t, tLang } from "@/lib/i18n";
@@ -7,11 +10,21 @@ import type { Lang } from "@/lib/i18n";
 import type { LifeAreaData } from "@/lib/types";
 import { readingPhrase, readingTone } from "@/lib/reasoning";
 
+/** Element id of the life-focus card; the Life areas tab scrolls to it. */
+export const LIFE_FOCUS_CARD_ID = "life-area-focus";
+
 interface LifeAreaCardProps {
   area: LifeAreaData;
   lang: Lang;
   ageRelevant: boolean;
   onOpenDetail?: () => void;
+  /** The reader's life focus (plan §3, Life areas tab). Labels the card and
+   *  gives it the id the tab scrolls to, so pass it to one card at most. */
+  isLifeFocus?: boolean;
+  /** Area-specific findings rendered at the foot of the card — the
+   *  RELATIONSHIPS (marriage) area's Sevvai and Rahu–Ketu verdicts
+   *  (plan 2026-10-06, item 6). */
+  footer?: ReactNode;
 }
 
 const FACTOR_LABELS: Record<string, { ta: string; en: string }> = {
@@ -82,9 +95,9 @@ function humaniseFactorKey(key: string, lang: Lang): string {
         : suffix === "lord_weak"
         ? (lang === "ta" ? "அதிபதி பலவீனம்" : "house lord weak")
         : suffix === "transit_supportive"
-        ? (lang === "ta" ? "கிரகநகர்வு ஆதரவு" : "transit supportive")
+        ? (lang === "ta" ? "கோச்சார ஆதரவு" : "transit supportive")
         : suffix === "transit_difficult"
-        ? (lang === "ta" ? "கிரகநகர்வு சவால்" : "transit difficult")
+        ? (lang === "ta" ? "கோச்சார சவால்" : "transit difficult")
         : suffix === "occupies_house"
         ? (lang === "ta" ? "இந்த வீட்டில் அமர்வு" : "occupies this house")
         : suffix === "aspects_house"
@@ -96,7 +109,7 @@ function humaniseFactorKey(key: string, lang: Lang): string {
 }
 
 
-export function LifeAreaCard({ area, lang, ageRelevant, onOpenDetail }: LifeAreaCardProps) {
+export function LifeAreaCard({ area, lang, ageRelevant, onOpenDetail, isLifeFocus = false, footer }: LifeAreaCardProps) {
   const scoreBand = getScoreBand(area.score);
 
   const barColor =
@@ -109,6 +122,7 @@ export function LifeAreaCard({ area, lang, ageRelevant, onOpenDetail }: LifeArea
 
   return (
     <div
+      id={isLifeFocus ? LIFE_FOCUS_CARD_ID : undefined}
       style={{
         padding: "var(--space-6) var(--space-7)",
         borderRadius: "var(--radius-lg)",
@@ -139,7 +153,25 @@ export function LifeAreaCard({ area, lang, ageRelevant, onOpenDetail }: LifeArea
                 border: "1px solid rgba(184,90,44,0.3)",
               }}
             >
-              {lang === "ta" ? "உங்கள் இலக்கு" : "Your focus"}
+              {/* "Your goal", not "Your focus": an active goal is a concrete
+                  plan, and "Your focus" now names the life-focus setting. The
+                  Tamil always said இலக்கு (goal). */}
+              {lang === "ta" ? "உங்கள் இலக்கு" : "Your goal"}
+            </span>
+          )}
+          {isLifeFocus && (
+            <span
+              style={{
+                fontSize: "0.625rem",
+                fontWeight: 700,
+                padding: "2px 8px",
+                borderRadius: "999px",
+                background: "var(--color-accent-muted)",
+                color: "var(--color-accent-strong)",
+                border: "1px solid var(--color-border-strong)",
+              }}
+            >
+              {dt(LIFE_FOCUS.pinnedLabel, lang)}
             </span>
           )}
           {/* D4 contradiction reading (reasoning Phase 3): additive, present
@@ -171,9 +203,17 @@ export function LifeAreaCard({ area, lang, ageRelevant, onOpenDetail }: LifeArea
         <span style={{ fontFamily: "var(--font-body)", fontSize: "1rem", fontWeight: 400, color: "var(--color-faint)", marginLeft: "var(--space-0_5)" }}>/100</span>
       </p>
 
-      <div style={{ height: "var(--space-1)", borderRadius: "var(--radius-pill)", background: "var(--color-border)", marginBottom: "var(--space-4)", overflow: "hidden" }}>
+      <div style={{ height: "var(--space-1)", borderRadius: "var(--radius-pill)", background: "var(--color-border)", marginBottom: area.scoreBandText ? "var(--space-2)" : "var(--space-4)", overflow: "hidden" }}>
         <div style={{ width: `${area.score}%`, height: "100%", borderRadius: "var(--radius-pill)", background: barColor }} />
       </div>
+
+      {/* What the number means, in the owner-approved copy (2026-10-01). The
+          server reads it from this same score, so it cannot disagree with it. */}
+      {area.scoreBandText && (
+        <p data-testid="life-area-score-band" style={{ margin: "0 0 var(--space-4)", fontSize: "0.8125rem", fontWeight: 600, color: "var(--color-text-strong)", lineHeight: 1.45 }}>
+          {tLang(area.scoreBandText, lang)}
+        </p>
+      )}
 
       <p style={{ margin: "0 0 var(--space-4)", fontSize: "0.875rem", color: "var(--color-text)", lineHeight: 1.6 }}>
         {tLang(area.narrative, lang)}
@@ -197,7 +237,7 @@ export function LifeAreaCard({ area, lang, ageRelevant, onOpenDetail }: LifeArea
           {area.dashaActivation ? (lang === "ta" ? "தசை செயல்பாடு" : "Dasha active") : (lang === "ta" ? "தசை நடுநிலை" : "Dasha neutral")}
         </span>
         <span style={{ fontSize: "0.625rem", border: "1px solid var(--color-border)", borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2)", color: "var(--color-muted)" }}>
-          {lang === "ta" ? "கிரகநகர்வு ஆதரவு" : "Transit support"}: {area.transitSupport}
+          {lang === "ta" ? "கோச்சார ஆதரவு" : "Transit support"}: {area.transitSupport}
         </span>
       </div>
 
@@ -244,11 +284,13 @@ export function LifeAreaCard({ area, lang, ageRelevant, onOpenDetail }: LifeArea
       {area.remedy && (
         <div style={{ marginTop: "var(--space-2_5)", padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-sm)", background: "var(--chart-d1-lagna-bg)", border: "1px solid rgba(184,90,44,0.25)" }}>
           <p className="cd-kicker" style={{ margin: "0 0 var(--space-0_5)", color: "var(--color-mid-text)", letterSpacing: "0.08em" }}>
-            {t("remedy_label", lang)}
+            {t(area.remedyKind === "MAINTAIN" ? "remedy_label_maintain" : "remedy_label", lang)}
           </p>
           <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-text)", lineHeight: 1.45 }}>{tLang(area.remedy, lang)}</p>
         </div>
       )}
+
+      {footer}
 
       {onOpenDetail && (
         <button
@@ -266,7 +308,7 @@ export function LifeAreaCard({ area, lang, ageRelevant, onOpenDetail }: LifeArea
             fontWeight: 600,
             cursor: "pointer",
             fontFamily: "inherit",
-            transition: "border-color 120ms ease, color 120ms ease",
+            transition: "border-color 120ms var(--ease-nova), color 120ms var(--ease-nova)",
           }}
         >
           {lang === "ta" ? "விவரம்" : "Details"}

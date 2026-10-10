@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-
 import { useLang } from "@/components/lang-toggle";
 import { GLOSSARY, type GlossaryKey } from "@/lib/glossary";
 
@@ -30,7 +28,7 @@ const TERM_LABELS: Record<GlossaryKey, { en: string; ta: string }> = {
   bhukti: { en: "Bhukti", ta: "புக்தி" },
   rasi: { en: "Rasi", ta: "ராசி" },
   nakshatra: { en: "Nakshatra", ta: "நட்சத்திரம்" },
-  gochar: { en: "Gochar", ta: "கோசாரம்" },
+  gochar: { en: "Gochar", ta: "கோச்சாரம்" },
   shadbala: { en: "Shadbala", ta: "ஷட்பலம்" },
   sthanaBala: { en: "Sthana Bala", ta: "ஸ்தான பலம்" },
   digBala: { en: "Dig Bala", ta: "திக் பலம்" },
@@ -78,11 +76,17 @@ const TERM_LABELS: Record<GlossaryKey, { en: string; ta: string }> = {
   ekadashi: { en: "Ekadashi", ta: "ஏகாதசி" },
   pradosham: { en: "Pradosham", ta: "பிரதோஷம்" },
   vratham: { en: "Vratham", ta: "விரதம்" },
+  // Chart-reading vocabulary (FTR-16). New Tamil, pending native review.
+  antaram: { en: "Antaram", ta: "அந்தரம்" },
+  kendra: { en: "Kendra", ta: "கேந்திரம்" },
+  trikona: { en: "Trikona", ta: "திரிகோணம்" },
+  dusthana: { en: "Dusthana", ta: "துஷ்டானம்" },
+  drishti: { en: "Drishti", ta: "பார்வை" },
+  paral: { en: "Paral", ta: "பரல்" },
 };
 
 // New Tamil, pending native review.
 const COPY = {
-  back: { en: "Back to dashboard", ta: "டேஷ்போர்டுக்குத் திரும்பு" },
   kicker: { en: "Dashboard help", ta: "டேஷ்போர்டு உதவி" },
   title: { en: "Glossary", ta: "சொற்களஞ்சியம்" },
   intro: {
@@ -107,21 +111,7 @@ export function GlossaryIndex() {
   }));
 
   return (
-    <div className="cd-shell" data-ui="nova">
-      <div className="cd-page" style={{ paddingTop: "var(--space-6)", paddingBottom: "var(--space-8)" }}>
-        <Link
-          href="/dashboard"
-          style={{
-            display: "inline-flex",
-            marginBottom: "var(--space-4)",
-            color: "var(--color-accent-secondary)",
-            fontSize: "var(--text-sm)",
-            fontWeight: 700,
-            textDecoration: "none",
-          }}
-        >
-          {pick(COPY.back)}
-        </Link>
+    <div className="cd-page" style={{ paddingTop: "var(--space-6)", paddingBottom: "var(--space-8)" }}>
         <header style={{ maxWidth: "760px", marginBottom: "var(--space-5)" }}>
           <p style={{ margin: "0 0 var(--space-2)", color: "var(--color-muted)", fontSize: "var(--text-sm)", fontWeight: 700 }}>
             {pick(COPY.kicker)}
@@ -165,7 +155,6 @@ export function GlossaryIndex() {
             </article>
           ))}
         </section>
-      </div>
     </div>
   );
 }

@@ -52,6 +52,10 @@ class ErrorCode(str, Enum):
     TOKEN_EXPIRED = "TOKEN_EXPIRED"  # noqa: S105 - client-visible code, never a credential
     TOKEN_INVALID = "TOKEN_INVALID"  # noqa: S105 - client-visible code, never a credential
     TOKEN_REVOKED = "TOKEN_REVOKED"  # noqa: S105 - client-visible code, never a credential
+    # PREMIUM_REQUIRED: the feature is not in the caller's plan. Distinct from
+    # ACCESS_DENIED (not yours) because the client answer differs: offer the
+    # upgrade, not an apology. Raised by app.core.entitlements.require_feature.
+    PREMIUM_REQUIRED = "PREMIUM_REQUIRED"
 
     # Limits and conflicts.
     PROFILE_LIMIT_REACHED = "PROFILE_LIMIT_REACHED"
@@ -113,6 +117,7 @@ ERROR_MESSAGES: dict[ErrorCode, ErrorMessageDefinition] = {
     ErrorCode.TOKEN_EXPIRED: _entry(401, "உங்கள் அமர்வு முடிந்துவிட்டது. மீண்டும் உள்நுழையவும்.", "Your session has expired. Please log in again.", "Token expired."),
     ErrorCode.TOKEN_INVALID: _entry(401, "உங்கள் அமர்வு செல்லுபடியாக இல்லை. மீண்டும் உள்நுழையவும்.", "Your session is invalid. Please log in again.", "Token invalid."),
     ErrorCode.TOKEN_REVOKED: _entry(401, "உங்கள் அமர்வு நிறுத்தப்பட்டுள்ளது. மீண்டும் உள்நுழையவும்.", "Your session has been revoked. Please log in again.", "Token revoked."),
+    ErrorCode.PREMIUM_REQUIRED: _entry(403, "இந்த வசதி பிரீமியம் திட்டத்தில் கிடைக்கும்.", "This feature is part of the Premium plan.", "Premium required."),
     ErrorCode.PROFILE_LIMIT_REACHED: _entry(409, "உங்கள் பிறப்புத் தகவல் வரம்பை அடைந்துவிட்டீர்கள்.", "You have reached your birth-profile limit.", "Profile limit reached."),
     ErrorCode.RESOURCE_LIMIT_EXCEEDED: _entry(409, "உங்கள் திட்ட வரம்பை அடைந்துவிட்டீர்கள்.", "You have reached a plan limit.", "Resource limit exceeded."),
     ErrorCode.RATE_LIMITED: _entry(429, "மிக விரைவாக கோரிக்கைகள் வருகின்றன. சிறிது நேரம் கழித்து முயற்சிக்கவும்.", "Too many requests. Please wait a moment and try again.", "Rate limited."),

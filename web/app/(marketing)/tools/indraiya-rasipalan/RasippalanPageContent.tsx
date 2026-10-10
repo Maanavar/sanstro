@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { LocalizedLink as Link } from "@/components/localized-link";
 import { RasippalanTool } from "./RasippalanTool";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
@@ -129,7 +129,7 @@ export async function RasippalanPageContent() {
               <p className="cl-cta-strip__body">
                 {lang === "en"
                   ? "Create a free account for chart-personalised daily guidance — dasha period, transits, and panchangam all woven together."
-                  : "ஜாதகத்துடன் இணைந்த தனிப்பட்ட தினசரி வழிகாட்டுதலுக்கு — தசை, கிரகநகர்வு, பஞ்சாங்கம் ஒன்றாக இணைந்து — இலவச கணக்கை உருவாக்கவும்."}
+                  : "ஜாதகத்துடன் இணைந்த தனிப்பட்ட தினசரி வழிகாட்டுதலுக்கு — தசை, கோச்சாரம், பஞ்சாங்கம் ஒன்றாக இணைந்து — இலவச கணக்கை உருவாக்கவும்."}
               </p>
             </div>
             <Link href="/dashboard" className="cl-btn cl-btn--solid">

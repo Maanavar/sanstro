@@ -518,16 +518,31 @@ export interface MuhurthamNaal {
   nallaNeram: NallaNeramWindow[];
 }
 
-export interface MuhurthamNaalMatch {
-  naal: MuhurthamNaal;
+/** One chart's reading of one published date. `who` is null for a single chart. */
+export interface MuhurthamNaalReading {
+  who: BiText | null;
   taraNumber: number;
   taraName: BiText;
   taraQuality: "GOOD" | "NEUTRAL" | "AVOID";
+  isChandrashtama: boolean;
+  /** The reading whose tara set `matchScore` — exactly one per match. */
+  governs: boolean;
+}
+
+export interface MuhurthamNaalMatch {
+  naal: MuhurthamNaal;
+  /** The governing reading's tara. */
+  taraNumber: number;
+  taraName: BiText;
+  taraQuality: "GOOD" | "NEUTRAL" | "AVOID";
+  /** Chandrashtama for either chart. */
   isChandrashtama: boolean;
   /** The almanac's verdict. Numerology reads this; it can never set it. */
   isRecommended: boolean;
   matchScore: number;
   reasons: BiText[];
+  /** One per chart, in request order. */
+  readings: MuhurthamNaalReading[];
 }
 
 export interface MuhurthamNaalContext {
@@ -537,18 +552,42 @@ export interface MuhurthamNaalContext {
   recommendedCount: number;
   totalCount: number;
   source: string;
+  /** Panchangam location the dates were ranked at (the server always sends it). */
+  dailyLocation: { latitude: number; longitude: number; timezone: string; source: "current" | "birth" } | null;
+  /** Couple mode only; null otherwise. */
+  subjectWho: BiText | null;
+  partner: {
+    who: BiText;
+    janmaNakshatra: BiText;
+    janmaRasiNumber: number;
+    chandrashtamaRasiNumber: number;
+  } | null;
+}
+
+/** One chart's numerology for one published date. `who` is null for a single chart. */
+export interface NumerologyDateReading {
+  who: BiText | null;
+  numerology: DateNumerology;
+  /** The reading whose adjustment is in `adjustedScore` — exactly one per match. */
+  governs: boolean;
 }
 
 export interface NumerologyNaalMatch {
   match: MuhurthamNaalMatch;
+  /** The governing reading. */
   numerology: DateNumerology;
   adjustedScore: number;
+  /** One per chart, in request order. */
+  readings: NumerologyDateReading[];
 }
 
 export interface MarriageDatesResponse {
   year: number;
   epoch: PersonalYearEpoch;
   favourableNumbers: number[];
+  /** Couple mode only; null otherwise. */
+  partnerChartId: string | null;
+  partnerFavourableNumbers: number[] | null;
   context: MuhurthamNaalContext;
   /** Best-first, but recommended dates always sort ahead of the rest. */
   matches: NumerologyNaalMatch[];
@@ -914,15 +953,27 @@ export async function getNumerologyLuckyDates(
   ) as Promise<LuckyDatesResponse>;
 }
 
-/** Curated almanac muhurtham naals for a year, re-ranked by numerology. */
+/**
+ * Curated almanac muhurtham naals for a year, re-ranked by numerology.
+ *
+ * With `couple`, both the almanac verdict and the numerology are the couple's:
+ * the partner's saved chart is read too, and the weaker side governs each.
+ * Backend: GET /charts/{chart_id}/numerology/marriage-dates (query params
+ * year, recommendedOnly, partnerChartId, subjectRole).
+ */
 export async function getNumerologyMarriageDates(
   chartId: string,
   year = 2027,
   recommendedOnly = false,
+  couple?: { partnerChartId: string; subjectRole?: "BRIDE" | "GROOM" | "PERSON" },
 ): Promise<MarriageDatesResponse> {
   return getApiClient().get(
     `/charts/${encodeURIComponent(chartId)}/numerology/marriage-dates`,
-    { year, recommendedOnly },
+    {
+      year,
+      recommendedOnly,
+      ...(couple ? { partnerChartId: couple.partnerChartId, subjectRole: couple.subjectRole ?? "PERSON" } : {}),
+    },
   ) as Promise<MarriageDatesResponse>;
 }
 
@@ -1079,9 +1130,11 @@ export type AksharaRelation =
  * script matched and is unambiguous for this row. `"ambiguous"` — matched,
  * but the matching script is lossy for this specific row (see the backend's
  * `numerology_naming` module for why neither script alone is trustworthy on
- * every row).
+ * every row). `"no_match"` — the opening letter opens no paadham at all; the
+ * server sends it for a parent's own shortlist name ("Zara", "Xavier"), with
+ * `relation: "no_paadham"`.
  */
-export type MatchConfidence = "confirmed" | "tamil_only" | "latin_only" | "ambiguous";
+export type MatchConfidence = "confirmed" | "tamil_only" | "latin_only" | "ambiguous" | "no_match";
 
 /** One alternative spelling offered against a flagged baby-name candidate. */
 export interface BetterSpelling {

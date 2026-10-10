@@ -30,6 +30,30 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
 
+  /**
+   * Parent URLs that had no page.
+   *
+   * Truncating a URL to look for the section above it is ordinary navigation,
+   * and five parents answered it with a 404: `/panchangam`, `/trust`,
+   * `/tools`, `/learn` and `/features`. Two of those have one obvious
+   * destination and are redirected here. The other three need a real hub page
+   * listing their children — a redirect would have to pick one of ten tools or
+   * six articles arbitrarily — so they fall through to `app/not-found.tsx`,
+   * which now names the sections instead of showing Next's blank default.
+   *
+   * Permanent (308): these parents have never served anything else, so there
+   * is no cached 200 to worry about and the target is not going to move.
+   * `lib/seo-metadata.test.ts` cannot see any of this — it walks `page.tsx`
+   * files, so a route that exists only as a redirect, and a parent that exists
+   * as nothing at all, are both outside what it checks.
+   */
+  async redirects() {
+    return [
+      { source: "/panchangam", destination: "/panchangam/today", permanent: true },
+      { source: "/trust", destination: "/trust/about-vinaadi", permanent: true },
+    ];
+  },
+
   async headers() {
     return [
       {

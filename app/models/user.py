@@ -36,6 +36,22 @@ class User(TimestampMixin, Base):
     # request rather than being silently counted as having agreed.
     consent_given_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     consent_policy_version: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    # First touch — where the visitor who became this account first arrived from
+    # (GRW-03). Written once, at account creation, from the web's `vinaadi_ft`
+    # cookie (app/services/acquisition_service.py). Campaign tags, a referrer
+    # *host* and a landing *path* only: no full URL, no query string, nothing a
+    # person typed. Null for every account that predates it and for mobile
+    # sign-ups, which carry no cookie.
+    acquisition_source: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    acquisition_medium: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    acquisition_campaign: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    acquisition_ref: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    acquisition_referrer_host: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    acquisition_landing_path: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # This account's own referral code (GRW-13), minted on first request, so
+    # accounts that never share never get one. Random, not derived from the
+    # user id: a share link must not leak an identifier.
+    referral_code: Mapped[str | None] = mapped_column(String(16), nullable=True, unique=True)
 
     birth_profiles = relationship(
         "BirthProfile", back_populates="owner_user", cascade="all, delete-orphan", passive_deletes=True

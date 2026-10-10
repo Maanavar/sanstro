@@ -11,6 +11,7 @@ from app.calculations.ashtakavarga import compute_bhinnashtakavarga, compute_sar
 from app.calculations.astro import house_from_reference, resolve_timezone, utc_datetime_to_julian_day
 from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.ephemeris import calculate_sidereal_planets
+from app.calculations.life_area_prediction_models import LifeAreaPrediction
 from app.core.age_gate import is_married_settled, is_minor_age, is_past_prime_marriage_age
 from app.core.auth import get_current_user
 from app.db.session import get_db
@@ -23,7 +24,6 @@ from app.services.chart_service import load_persisted_chart_response
 from app.services.context_service import get_context_row
 from app.services.feature_flags import get_flag
 from app.services.health_service import HealthAssessmentInput, assess_health_prediction
-from app.services.life_area_prediction_models import LifeAreaPrediction
 from app.services.location_service import resolve_effective_daily_timezone
 from app.services.marriage_service import MarriageAssessmentInput, assess_marriage_prediction
 from app.services.prediction_log_service import log_prediction
@@ -202,7 +202,7 @@ def get_marriage_prediction(
     current_user: User = Depends(get_current_user),
 ) -> PredictionResponse:
     on_date = as_of or date.today()
-    snapshot, planets_rasi, active_dasha_lords, transit, age, life_stage, _employment_type, marital_status, relationship_to_owner, _timeline = _load_chart_context(
+    snapshot, planets_rasi, active_dasha_lords, transit, age, life_stage, _employment_type, marital_status, relationship_to_owner, timeline = _load_chart_context(
         session, chart_id, current_user, on_date
     )
 
@@ -232,6 +232,8 @@ def get_marriage_prediction(
         d9_rasi_by_planet=d9_rasi_by_planet,
         relationship_to_owner=relationship_to_owner,
         planet_longitudes=planet_longitudes,
+        maha_lord=timeline.current_mahadasha.lord,
+        antar_lord=timeline.current_antardasha.lord,
     )
     result = assess_marriage_prediction(payload)
     is_parental = relationship_to_owner in {"parent", "grandparent"}
@@ -442,7 +444,6 @@ def get_propensities(
     doshams_active = {
         d.name.upper() for d in snapshot.data.doshams if d.is_present and not d.is_cancelled
     }
-    lords = sorted(active_dasha_lords)
 
     # Phase 2 — real timing evidence: each planet's current transiting house
     # from Lagna (gochara gate), the Sarvashtakavarga bindu count per rasi
@@ -459,8 +460,11 @@ def get_propensities(
         lagna_rasi=snapshot.data.lagna.rasi,
         planets=snapshot.data.planets,
         active_dasha_lords=active_dasha_lords,
-        maha_lord=lords[0] if lords else "",
-        antar_lord=lords[-1] if lords else "",
+        # From the timeline. These were `sorted(active_dasha_lords)[0]` / `[-1]`
+        # — alphabetical, so a Saturn maha with a Jupiter antar was recorded as
+        # a Jupiter maha. Nothing reads them today; they are right now anyway.
+        maha_lord=timeline.current_mahadasha.lord,
+        antar_lord=timeline.current_antardasha.lord,
         yogas_present=yogas_present,
         doshams_active=doshams_active,
         age=age,

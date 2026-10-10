@@ -3,7 +3,6 @@
   "ignorePatterns": [
     ".next/",
     "node_modules/",
-    "scripts/",
     "test-results/",
     "playwright-report/"
   ]

@@ -31,8 +31,11 @@ export const BETA = {
   ),
   page_free_h:  s("Free while in beta", "பீட்டாவில் இலவசம்"),
   page_free_b:  s(
-    "Every feature is unlocked for now. When we launch the full version, we'll give you plenty of notice before anything changes — and your existing data and readings carry over.",
-    "தற்போது ஒவ்வொரு அம்சமும் திறக்கப்பட்டுள்ளது. முழுப் பதிப்பை வெளியிடும்போது, எதுவும் மாறுவதற்கு முன் உங்களுக்கு முன்னறிவிப்பு வழங்குவோம் — உங்கள் தரவும் வாசிப்புகளும் தொடரும்."
+    // Kept true by the server: JOTHIDAM_OPEN_BETA gives every account premium's
+    // limits (app/core/subscription.py). Ask Vinaadi alone keeps a daily cap —
+    // each answer costs money to generate — so the copy names it.
+    "Every feature is unlocked for now, with no charge. The one limit is a daily fair-use cap on Ask Vinaadi questions. When we launch the full version, we'll give you plenty of notice before anything changes — and your existing data and readings carry over.",
+    "தற்போது ஒவ்வொரு அம்சமும் கட்டணமின்றி திறக்கப்பட்டுள்ளது. ஒரே வரம்பு: விநாடியிடம் கேட்கும் கேள்விகளுக்கு நாள்தோறும் ஒரு நியாயமான அளவு. முழுப் பதிப்பை வெளியிடும்போது, எதுவும் மாறுவதற்கு முன் உங்களுக்கு முன்னறிவிப்பு வழங்குவோம் — உங்கள் தரவும் வாசிப்புகளும் தொடரும்."
   ),
   page_feedback_h: s("Your feedback shapes v1", "உங்கள் கருத்து v1-ஐ வடிவமைக்கிறது"),
   page_feedback_b: s(
@@ -41,8 +44,8 @@ export const BETA = {
   ),
   page_data_h:  s("Your data & privacy", "உங்கள் தரவும் தனியுரிமையும்"),
   page_data_b:  s(
-    "Your birth details are used only to generate your readings, and are encrypted at rest. You can request deletion of your account and data at any time — see our Privacy Policy.",
-    "உங்கள் பிறப்பு விவரங்கள் உங்கள் வாசிப்புகளை உருவாக்க மட்டுமே பயன்படுத்தப்படுகின்றன, மேலும் சேமிப்பில் குறியாக்கம் செய்யப்படுகின்றன. எந்த நேரத்திலும் உங்கள் கணக்கையும் தரவையும் நீக்கக் கோரலாம் — தனியுரிமைக் கொள்கையைப் பார்க்கவும்."
+    "Your birth details are used only to generate your readings. You can request deletion of your account and data at any time — see our Privacy Policy.",
+    "உங்கள் பிறப்பு விவரங்கள் உங்கள் வாசிப்புகளை உருவாக்க மட்டுமே பயன்படுத்தப்படுகின்றன. எந்த நேரத்திலும் உங்கள் கணக்கையும் தரவையும் நீக்கக் கோரலாம் — தனியுரிமைக் கொள்கையைப் பார்க்கவும்."
   ),
   page_coming_h: s("What's coming next", "அடுத்து வரப்போவது"),
   page_coming_1: s("Accounts, saved history & profiles", "கணக்குகள், சேமித்த வரலாறு & சுயவிவரங்கள்"),

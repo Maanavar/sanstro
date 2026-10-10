@@ -25,7 +25,7 @@ from app.calculations.chart_strength import (
     OWN_SIGN_RASI,
     SIGN_LORD,
 )
-from app.services.life_area_prediction_models import AstroFactor, BiText
+from app.calculations.life_area_prediction_models import AstroFactor, BiText
 
 NATURAL_MALEFICS: frozenset[str] = frozenset({"SUN", "MARS", "SATURN", "RAHU", "KETU"})
 _UNCONDITIONAL_BENEFICS: frozenset[str] = frozenset({"JUPITER", "VENUS"})

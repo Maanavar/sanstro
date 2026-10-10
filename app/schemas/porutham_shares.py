@@ -4,7 +4,7 @@ from datetime import date, datetime, time
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.schemas.birth_profiles import _validate_birth_date_bounds  # noqa: PLC2701 (shared validation)
+from app.schemas.birth_profiles import validate_birth_date_bounds
 from app.schemas.dasha import ResponseMeta
 from app.schemas.relationships import KutaResult, NadiDoshaData, RelationshipBiText
 
@@ -29,7 +29,7 @@ class PoruthamShareBirthInput(BaseModel):
     @field_validator("birth_date_local")
     @classmethod
     def validate_birth_date_local(cls, value: date) -> date:
-        return _validate_birth_date_bounds(value)
+        return validate_birth_date_bounds(value)
 
 
 class CreatePoruthamShareRequest(BaseModel):

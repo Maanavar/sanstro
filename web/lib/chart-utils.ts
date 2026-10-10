@@ -48,13 +48,56 @@ export function rasiLabel(rasi: number, lang: "ta" | "en"): string {
   return table[rasi] ?? `Rasi ${rasi}`;
 }
 
+/**
+ * Render a rasi in the reader's language, whatever shape it arrives in.
+ *
+ * The backend sends the same twelve signs three ways: a number (`rasi`), the
+ * Latin name from `RASI_NAMES` (`rasiName`, `"Mithunam"`), and an upper-case
+ * code (`rasiCode`, `"MITHUNAM"`). All three resolve to the one index, so a
+ * caller never has to know which shape its endpoint happens to use — and a
+ * Tamil reader is never shown `Mithunam` because the field it landed in was the
+ * name rather than the number.
+ *
+ * The Tamil table is matched too: a name that already arrives in Tamil script
+ * is turned back into Latin in English mode, which is the owner ruling the
+ * DXA-09 gate reads (no Tamil in English mode).
+ *
+ * An unrecognised code de-snakes to title case and stays Latin in both
+ * languages — there is no Tamil name to give for a sign we do not know, and
+ * inventing one would be worse than transliterating. Same choice, same reason,
+ * as `saniCycleName` in lib/family-flags.
+ */
+export function rasiDisplayName(rasi: number | string | null | undefined, lang: "ta" | "en"): string {
+  if (typeof rasi === "number") return rasiLabel(rasi, lang);
+  const raw = rasi?.trim() ?? "";
+  if (!raw) return "";
+  const index = rasiNumber(raw);
+  if (index !== null) return rasiLabel(index, lang);
+  return raw.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+/**
+ * The 1-12 index for a rasi in any of the shapes the backend sends — number,
+ * Latin name, upper-case code, or Tamil script. Null when unrecognised.
+ *
+ * Peyarchi events carry only `fromRasi`/`toRasi` names; anything that needs the
+ * sign's artwork or its localised label resolves the index here rather than
+ * keying an asset table on a string.
+ */
+export function rasiNumber(rasi: number | string | null | undefined): number | null {
+  if (typeof rasi === "number") return rasi >= 1 && rasi <= 12 ? rasi : null;
+  const folded = (rasi ?? "").trim().replaceAll("_", " ").toLowerCase();
+  if (!folded) return null;
+  const matches = (name: string) => name.toLowerCase() === folded;
+  const index = Math.max(D1_RASI_NAMES.findIndex(matches), D1_RASI_NAMES_TA.findIndex(matches));
+  return index > 0 ? index : null;
+}
+
 // Classical, fixed rasi→ruling-planet mapping (never changes per-chart, so it's
 // safe to hardcode client-side — same tier of fact as GRAHA_ABBR/D1_RASI_NAMES
 // above). Keyed the same way DASHA_COLORS/tPlanetLord are (SUN/MOON/MARS/...).
-export const RASI_LORDS: Record<number, string> = {
-  1: "MARS", 2: "VENUS", 3: "MERCURY", 4: "MOON", 5: "SUN", 6: "MERCURY",
-  7: "VENUS", 8: "MARS", 9: "JUPITER", 10: "SATURN", 11: "SATURN", 12: "JUPITER",
-};
+// The table lives in packages/shared/src/reading.ts (FTR-20); one copy for web and mobile.
+export { SIGN_LORD as RASI_LORDS } from "@vinaadi/shared/reading";
 
 // ── Dignity (Nilai) doctrine ─────────────────────────────────────────────────
 //
@@ -193,6 +236,15 @@ export function houseFrom(referenceRasi: number, targetRasi: number): number {
   return ((targetRasi - referenceRasi + 12) % 12) + 1;
 }
 
+/** @deprecated The server sends `lagna.d9Rasi`; read that instead.
+ *
+ *  Kept only because its unit test pins the 108-pada modality mapping, which
+ *  is worth a regression guard. It is no longer wired to any surface: it had
+ *  drifted into five call sites deriving the D9 Lagna client-side while every
+ *  planet's `d9Rasi` beside them came from the server, and this copy has no
+ *  epsilon guard, so a longitude sitting exactly on a pada boundary could round
+ *  to the neighbouring sign in one column and not the next. Do not reintroduce
+ *  it into a render path. */
 export function computeD9LagnaRasi(lagnaAbsoluteLongitude: number): number {
   const lagnaRasiIdx = Math.floor(lagnaAbsoluteLongitude / 30);
   const degreeInRasi = lagnaAbsoluteLongitude % 30;
@@ -256,7 +308,7 @@ export function buildD1CellDetail(chart: ChartCalculateResponseData, rasi: numbe
 }
 
 export function buildD9CellDetail(chart: ChartCalculateResponseData, rasi: number): RasiCellDetail {
-  const d9LagnaRasi = computeD9LagnaRasi(chart.lagna.absoluteLongitude);
+  const d9LagnaRasi = chart.lagna.d9Rasi;
   const occupants = chart.planets
     .filter((p) => p.d9Rasi === rasi)
     .map((p) => ({

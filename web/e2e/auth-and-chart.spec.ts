@@ -47,6 +47,24 @@ test.describe("Guest — public pages", () => {
     await page.goto("/admin");
     await expect(page).toHaveURL(/\/login/);
   });
+
+  test("the sign-in redirect carries the destination it interrupted", async ({ page }) => {
+    // A shared or bookmarked link to a real dashboard URL used to be thrown
+    // away at the door: you signed in and landed on Today, with nothing left
+    // saying what you had clicked.
+    await page.goto("/dashboard/settings/notifications");
+    await expect(page).toHaveURL(/\/login\?.*next=%2Fdashboard%2Fsettings%2Fnotifications/);
+  });
+
+  test("a 404 offers a way back rather than a blank default page", async ({ page }) => {
+    // Truncating a URL to reach the section above it is ordinary navigation,
+    // and `/tools` has no hub page. The response must still be a real 404 —
+    // a soft 200 here would get the dead URL indexed.
+    const response = await page.goto("/tools");
+    expect(response?.status()).toBe(404);
+    await expect(page.getByRole("navigation", { name: /main sections/i })).toBeVisible();
+    await expect(page.getByRole("link", { name: /panchangam/i }).first()).toBeVisible();
+  });
 });
 
 test.describe("Guest — widget", () => {

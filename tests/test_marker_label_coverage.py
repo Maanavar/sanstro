@@ -42,6 +42,32 @@ _NOT_MARKERS = frozenset(
         "explanation_why_ta",
         "explanation_how_en",
         "explanation_how_ta",
+        # `_ninth_lord_dignity`'s bare return values (`_yoga_detect.py`). Never
+        # appended to conditions_met/cancellation_factors on their own — they
+        # are only ever embedded inside the f-string marker
+        # `ninth_lord_{dignity}`, which `_fill` below expands to a real token
+        # ("ninth_lord_exalted") that IS covered by a MARKER_PATTERNS rule.
+        "exalted",
+        "own_sign",
+        "moolatrikona",
+        # `DoctrineOptions.o6_sevvai_cancer_leo`'s string value, compared with
+        # `==` in `_yoga_dosham.py` — a config value, not a marker.
+        "full_exemption",
+        # O-2 and O-18 option values compared in `_yoga_dosham.py`; they
+        # select branches but are never appended as rendered markers.
+        "explicit_signs",
+        "full_cancellation",
+        # O-27 / O-28 (DD-17) option values, compared the same way.
+        "kendra_functional_benefic",
+        "strong_or_benefic",
+        # DD-05 (DOCTRINE_DECISIONS v1.3): `DoshamResult.astrologer_markers` is
+        # a THIRD list, separate from conditions_met/cancellation_factors, and
+        # is never rendered by this panel by design — it is the astrologer /
+        # porutham view only (see `_yoga_dosham.detect_sevvai_dosham`'s
+        # `astrologer_markers` build). Its f-string shape is excluded here
+        # rather than given a label, because giving it one would be a standing
+        # invitation to actually render it on a consumer surface.
+        "{gender_norm}_weighted_house_{house_num}_{ref_key}",
     }
 )
 
@@ -72,11 +98,15 @@ def _emitted_markers() -> set[str]:
         if not path.exists():
             continue
         source = _without_dunder_all(path.read_text(encoding="utf-8"))
-        # The `{}` in the class is what lets f-string markers through
-        # (`rahu_house_{rahu_house}`). Without it they are skipped entirely and
-        # the whole parametrized family goes unchecked — which is precisely the
-        # bug test_scan_self_check caught on this file's first run.
-        for literal in re.findall(r'"([A-Za-z{][A-Za-z0-9_{}]{5,})"', source):
+        # A placeholder is matched as a whole `{…}` group, so f-string markers
+        # come through whether they hold a bare name (`rahu_house_{rahu_house}`)
+        # or an expression (`{planet.lower()}_in_marana_karaka_sthana`). The
+        # old character class allowed `{`/`}` but not `.`/`(`, so every
+        # expression placeholder was skipped and "mercury in marana karaka
+        # sthana" reached the card raw with this guard green (2026-10-06).
+        for literal in re.findall(r'"((?:[A-Za-z0-9_]|\{[^{}"\n]+\})+)"', source):
+            if len(literal) < 6 or not (literal[0].isalpha() or literal[0] == "{"):
+                continue
             if literal in _NOT_MARKERS:
                 continue
             # Markers are snake_case or PLANET-prefixed snake_case; yoga/dosham
@@ -100,8 +130,21 @@ def _expand_fstring_markers(source_markers: set[str]) -> set[str]:
     token that can never occur.
     """
 
+    # Expression placeholders whose values are a closed set, not a graha code.
+    # Filled with a real member so the token is one the engine can emit.
+    enum_fills = {
+        "grade.lower()": "full",  # raja_grade_{full|qualified|mixed|…}
+        "context.purity.lower()": "pure",  # adhi_purity_{pure|mixed|adverse}
+        "sub_type.lower()": "maha",  # parivartana sub_type_{maha|dainya|kahala}
+        "naga['code'].lower()": "ananta",  # Kala Sarpa variant_{naga}
+        "target_label.lower()": "lagna",  # kartari *_hemming_{target}
+        "houses": "4_9",  # {planet}_yogakaraka_owns_{kendra}_{trikona}
+    }
+
     def _fill(match: re.Match[str]) -> str:
         expr = match.group(1)
+        if expr.strip() in enum_fills:
+            return enum_fills[expr.strip()]
         # Placeholders are sometimes expressions rather than bare names
         # (`{pv.planet_a.lower()}`); an explicit .lower() tells us the engine
         # emits a lower-case graha code there.
@@ -115,6 +158,16 @@ def _expand_fstring_markers(source_markers: set[str]) -> set[str]:
         # never emit, which then failed against a correctly planet-shaped rule.
         if name in {"p", "planet", "graha"} or name.endswith("_lord"):
             return "JUPITER"
+        # DD-03 (v1.3): `rahu_ketu_axis_{axis}` — axis is "1_7" or "2_8", never
+        # a house number. Filling it with "7" produced the unmatchable
+        # "rahu_ketu_axis_7" against a rule written for the real values.
+        if name == "axis":
+            return "1_7"
+        # DD-02 (v1.3): `ninth_lord_{dignity}` — dignity is one of
+        # "exalted" / "own_sign" / "moolatrikona" (`_ninth_lord_dignity`),
+        # never a house number.
+        if name == "dignity":
+            return "exalted"
         return "7"
 
     expanded: set[str] = set()
@@ -129,14 +182,58 @@ def _expand_fstring_markers(source_markers: set[str]) -> set[str]:
     return expanded
 
 
+#: DD-17 context notes are rendered by web *and* mobile through the shared
+#: package, so their labels live there rather than in the web panel.
+_SHARED_RECKONING = _ROOT / "packages" / "shared" / "src" / "doshamReckoning.ts"
+
+
 def _panel_source() -> str:
     assert _PANEL.exists(), f"web panel not found at {_PANEL} — did the file move?"
     return _PANEL.read_text(encoding="utf-8")
 
 
+def _context_label_block() -> str:
+    source = _SHARED_RECKONING.read_text(encoding="utf-8")
+    return source.split("export const DOSHAM_CONTEXT_LABELS", 1)[1].split("\n};", 1)[0]
+
+
 def _static_labels(panel: str) -> set[str]:
     block = panel.split("const MARKER_LABELS", 1)[1].split("\n};", 1)[0]
-    return set(re.findall(r"^\s{2}([a-z][a-z0-9_]*)\s*:", block, re.M))
+    keys = set(re.findall(r"^\s{2}([a-z][a-z0-9_]*)\s*:", block, re.M))
+    return keys | set(re.findall(r"^\s{2}([a-z][a-z0-9_]*)\s*:", _context_label_block(), re.M))
+
+
+@pytest.mark.no_db
+def test_every_sevvai_and_rahu_ketu_mitigation_has_a_verdict_phrase() -> None:
+    """The L2 verdict line (plan 2026-10-06) names protections by marker from
+    `MITIGATION_PHRASE`. A marker the detectors emit without a phrase would be
+    silently left out of the sentence — the verdict would under-explain itself.
+    """
+    source = (_CALC / "_yoga_dosham.py").read_text(encoding="utf-8")
+    bodies = [
+        source.split(f"def {fn}(", 1)[1].split("\ndef ", 1)[0]
+        for fn in ("detect_sevvai_dosham", "detect_rahu_ketu_dosham")
+    ]
+    emitted = {m for body in bodies for m in re.findall(r'cancellation_factors\.append\("([a-z_]+)"\)', body)}
+    assert len(emitted) >= 15, f"only {len(emitted)} mitigation markers found — extraction broken?"
+    phrase_block = _SHARED_RECKONING.read_text(encoding="utf-8").split("export const MITIGATION_PHRASE", 1)[1].split("\n};", 1)[0]
+    phrases = set(re.findall(r"^\s{2}([a-z][a-z0-9_]*):", phrase_block, re.M))
+    missing = sorted(emitted - phrases)
+    assert not missing, f"no MITIGATION_PHRASE in packages/shared/src/doshamReckoning.ts for: {missing}"
+
+
+@pytest.mark.no_db
+def test_context_note_labels_match_backend_wording() -> None:
+    """One wording for each DD-17 context note: the backend's why-text and the
+    shared card table must not drift apart (they are hand-kept twins)."""
+    from app.calculations._yoga_helpers import _marker_explain, _marker_explain_ta
+
+    block = _context_label_block()
+    entries = re.findall(r'^\s{2}([a-z][a-z0-9_]*):\s*\{\s*ta:\s*"([^"]*)",\s*en:\s*"([^"]*)",?\s*\}', block, re.M | re.S)
+    assert len(entries) >= 4, "DOSHAM_CONTEXT_LABELS extraction looks broken"
+    for key, ta, en in entries:
+        assert _marker_explain(key) == en, key
+        assert _marker_explain_ta(key) == ta, key
 
 
 def _pattern_regexes(panel: str) -> list[re.Pattern[str]]:
@@ -156,7 +253,8 @@ def _pattern_regexes(panel: str) -> list[re.Pattern[str]]:
 
 
 _EXPLANATION_SERVICE = _ROOT / "app" / "services" / "chart_explanation_service.py"
-_EXPLANATION_PANEL = _ROOT / "web" / "components" / "dashboard-chart-explanation.tsx"
+# aspectTypeLabel moved here when the panel was split (FTR-05, 2026-10-04).
+_EXPLANATION_PANEL = _ROOT / "web" / "components" / "chart-reading" / "reading-helpers.ts"
 
 
 def _emitted_aspect_types() -> set[str]:
@@ -220,6 +318,7 @@ def test_scan_self_check() -> None:
     assert len(markers) >= 40, f"only {len(markers)} markers scanned — extraction likely broken"
     assert "mars_own_sign" in markers, "missed a plain literal marker"
     assert any("{" in m for m in markers), "missed the f-string marker family"
+    assert "{planet.lower()}_in_marana_karaka_sthana" in markers, "missed an expression placeholder"
 
     panel = _panel_source()
     assert len(_static_labels(panel)) >= 50, "MARKER_LABELS extraction looks broken"

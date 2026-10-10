@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { LocalizedLink as Link } from "@/components/localized-link";
 import { useEffect, useState } from "react";
 import { useLang } from "@/components/lang-toggle";
 import { romanNakshathiramName } from "@/lib/tamil-astro";
@@ -236,7 +236,6 @@ export function PoruthamTool() {
                     background: girlStar === i ? "var(--cl-accent-soft)" : "var(--cl-surface)",
                   }}>
                   <div style={{ fontWeight: 600, color: girlStar === i ? "var(--cl-accent)" : "var(--cl-ink)" }}>{ta ? n.ta : n.en}</div>
-                  {ta && <div style={{ fontSize: "10px", color: "var(--cl-muted)" }}>{starNameEn(i)}</div>}
                 </button>
               ))}
             </div>
@@ -335,7 +334,6 @@ export function PoruthamTool() {
                         <div style={{ fontWeight: 600, color: criticalFail ? "var(--cl-caution)" : "var(--cl-ink)" }}>
                           {ta ? NAKSHATRAS[id].ta : starNameEn(id)}
                         </div>
-                        {ta && <div style={{ fontSize: 10, color: "var(--cl-muted)" }}>{starNameEn(id)}</div>}
                         <div style={{ fontSize: 9, color: scoreColor(c.totalScore, criticalFail), fontWeight: 600, marginTop: 2 }}>
                           {c.totalScore}/10 · {verdictLabel(c.label, criticalFail, ta)}
                         </div>
@@ -531,7 +529,6 @@ export function PoruthamTool() {
                 <button key={i} onClick={() => setGirlStar(i)}
                   style={{ ...BASE_STAR_BTN }}>
                   <div style={{ fontWeight: 600, color: "var(--cl-ink)" }}>{ta ? n.ta : starNameEn(i)}</div>
-                  {ta && <div style={{ fontSize: 10, color: "var(--cl-muted)" }}>{starNameEn(i)}</div>}
                 </button>
               ))}
             </div>
@@ -609,7 +606,6 @@ export function PoruthamTool() {
                               <div style={{ fontWeight: 600, color: criticalFail ? "var(--cl-caution)" : "var(--cl-ink)", fontSize: 12 }}>
                                 {(criticalFail || c.nadiCaution) && "⚠ "}♂ {ta ? NAKSHATRAS[id].ta : starNameEn(id)}
                               </div>
-                              {ta && <div style={{ fontSize: 10, color: "var(--cl-muted)" }}>{starNameEn(id)}</div>}
                               {criticalFail && (
                                 <div style={{ fontSize: 9, color: "var(--cl-caution)", marginTop: 2 }}>
                                   {[c.rajjuDosha && (ta ? "ரஜ்ஜு தோஷம்" : "Rajju Dosha"), c.vedhaDosha && (ta ? "வேதை தோஷம்" : "Vedha Dosha")].filter(Boolean).join(", ")}

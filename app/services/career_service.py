@@ -6,7 +6,7 @@ from datetime import date
 from app.calculations.astro import house_from_reference
 from app.calculations.bhava_afflictions import assess_bhava_afflictions
 from app.calculations.dasha_activation import assess_dasha_activation
-from app.services.life_area_prediction_models import AstroFactor, BiText, LifeAreaPrediction, house_lord_for_lagna
+from app.calculations.life_area_prediction_models import AstroFactor, BiText, LifeAreaPrediction, house_lord_for_lagna
 from app.services.narrative_engine import PLANET_NAME
 
 

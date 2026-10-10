@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, ChevronDown } from "lucide-react";
 
@@ -12,6 +12,10 @@ import { scoreColor } from "@/lib/format";
  * widely-used Classic primitive library never grows variant branching —
  * these are imported only from screens rendered under [data-ui="nova"].
  */
+
+/** useLayoutEffect in the browser, useEffect on the server: the server has no
+ *  layout to measure, and React warns if useLayoutEffect runs during SSR. */
+const useIsomorphicLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 /** Explicit outcome state for transient async status messages (DASH-08).
  *  Tone is carried as data, never inferred by sniffing the message text —
@@ -82,7 +86,12 @@ export function NovaClampedText({
   const textRef = useRef<HTMLDivElement>(null);
   const textId = useId();
 
-  useEffect(() => {
+  // Layout effect, not effect (DXA-05): the overflow test decides whether the
+  // "Read more" button exists, and the button is ~28px tall. Measured after
+  // paint, that button appeared a frame late and pushed Quick Links and every
+  // row below it down — the largest single layout shift on Today's cold load.
+  // Running before paint, the browser paints the hero once, button included.
+  useIsomorphicLayoutEffect(() => {
     const el = textRef.current;
     if (!el) return;
     // Measured against the clamped box, so the check has to run while clamped.
@@ -134,7 +143,7 @@ export function NovaClampedText({
               size={14}
               strokeWidth={2.5}
               aria-hidden="true"
-              style={{ transform: "rotate(180deg)", transition: "transform 140ms ease" }}
+              style={{ transform: "rotate(180deg)", transition: "transform 140ms var(--ease-nova)" }}
             />
           ) : (
             <ArrowRight size={14} strokeWidth={2.5} aria-hidden="true" />
@@ -164,23 +173,30 @@ export function NovaReveal({ children, className, style, delay = 0 }: NovaReveal
   if (reduce) {
     return (
       <div className={className} style={style}>
-        {children}
-      </div>
-    );
+      {children}
+    </div>
+  );
   }
+  // JSDOM and a few embedded webviews do not implement IntersectionObserver.
+  // Treat that as immediately in view rather than failing to render content.
+  const canObserve = typeof IntersectionObserver !== "undefined";
   return (
     <motion.div
       className={className}
       style={style}
       initial={{ opacity: 0, y: 12 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.15 }}
+      animate={canObserve ? undefined : { opacity: 1, y: 0 }}
+      whileInView={canObserve ? { opacity: 1, y: 0 } : undefined}
+      viewport={canObserve ? { once: true, amount: 0.15 } : undefined}
       transition={{ duration: 0.42, ease: EASE_NOVA, delay }}
     >
       {children}
     </motion.div>
   );
 }
+
+/** Preferred name for new dashboard reading choreography. */
+export const Reveal = NovaReveal;
 
 /**
  * Fades its children in on mount — the settle half of a skeleton→content
@@ -353,7 +369,7 @@ export function NovaProgressBar({ value, max = 100, tone = "accent" }: NovaProgr
           width: `${pct}%`,
           borderRadius: 3,
           background: TONE_VAR[tone],
-          transition: "width 200ms ease",
+          transition: "width 200ms var(--ease-nova)",
         }}
       />
     </div>

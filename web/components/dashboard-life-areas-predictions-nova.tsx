@@ -62,7 +62,7 @@ type PredictionCardProps = {
 
 function NovaChevron({ open }: { open: boolean }) {
   return (
-    <svg viewBox="0 0 20 20" aria-hidden="true" style={{ width: "14px", height: "14px", color: "var(--color-faint)", transform: open ? "rotate(180deg)" : "none", transition: "transform 120ms ease", flexShrink: 0 }}>
+    <svg viewBox="0 0 20 20" aria-hidden="true" style={{ width: "14px", height: "14px", color: "var(--color-faint)", transform: open ? "rotate(180deg)" : "none", transition: "transform 120ms var(--ease-nova)", flexShrink: 0 }}>
       <path d="M5 8l5 5 5-5" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );

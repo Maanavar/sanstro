@@ -26,7 +26,10 @@ _VALID_EMPLOYMENT_TYPES: frozenset[str] = frozenset({
 })
 
 
-def _validate_birth_date_bounds(value: date) -> date:
+def validate_birth_date_bounds(value: date) -> date:
+    """Shared birth-date bounds. Also used by `FamilyMemberUpdate`, so a member
+    edited through the family endpoint gets the same rejection as one edited
+    through /birth-profiles rather than a quietly different rule."""
     if value.year < 1900:
         raise ValueError("Birth year must be 1900 or later.")
     if value > date.today():
@@ -44,14 +47,14 @@ class BirthProfileCreate(BaseModel):
     display_name: str = Field(alias="displayName", min_length=1)
     birth_date_local: date = Field(alias="birthDateLocal")
     birth_time_local: time | None = Field(default=None, alias="birthTimeLocal")
-    birth_place: str = Field(alias="birthPlace", min_length=1)
+    birth_place: str = Field(alias="birthPlace", min_length=1, max_length=255)
     birth_latitude: float = Field(alias="birthLatitude", ge=-90.0, le=90.0)
     birth_longitude: float = Field(alias="birthLongitude", ge=-180.0, le=180.0)
-    birth_timezone: str = Field(alias="birthTimezone", min_length=1)
-    current_place: str | None = Field(default=None, alias="currentPlace")
+    birth_timezone: str = Field(alias="birthTimezone", min_length=1, max_length=64)
+    current_place: str | None = Field(default=None, alias="currentPlace", max_length=255)
     current_latitude: float | None = Field(default=None, alias="currentLatitude", ge=-90.0, le=90.0)
     current_longitude: float | None = Field(default=None, alias="currentLongitude", ge=-180.0, le=180.0)
-    current_timezone: str | None = Field(default=None, alias="currentTimezone", min_length=1)
+    current_timezone: str | None = Field(default=None, alias="currentTimezone", min_length=1, max_length=64)
     current_location_updated_at: datetime | None = Field(default=None, alias="currentLocationUpdatedAt")
     birth_time_source: str = Field(default="unknown", alias="birthTimeSource")
     birth_time_confidence_minutes: int = Field(default=0, alias="birthTimeConfidenceMinutes", ge=0)
@@ -83,7 +86,7 @@ class BirthProfileCreate(BaseModel):
     @field_validator("birth_date_local")
     @classmethod
     def validate_birth_date_local(cls, value: date) -> date:
-        return _validate_birth_date_bounds(value)
+        return validate_birth_date_bounds(value)
 
     @field_validator("marital_status", mode="before")
     @classmethod
@@ -146,14 +149,14 @@ class BirthProfileUpdate(BaseModel):
     display_name: str | None = Field(default=None, alias="displayName", min_length=1)
     birth_date_local: date | None = Field(default=None, alias="birthDateLocal")
     birth_time_local: time | None = Field(default=None, alias="birthTimeLocal")
-    birth_place: str | None = Field(default=None, alias="birthPlace", min_length=1)
+    birth_place: str | None = Field(default=None, alias="birthPlace", min_length=1, max_length=255)
     birth_latitude: float | None = Field(default=None, alias="birthLatitude", ge=-90.0, le=90.0)
     birth_longitude: float | None = Field(default=None, alias="birthLongitude", ge=-180.0, le=180.0)
-    birth_timezone: str | None = Field(default=None, alias="birthTimezone", min_length=1)
-    current_place: str | None = Field(default=None, alias="currentPlace")
+    birth_timezone: str | None = Field(default=None, alias="birthTimezone", min_length=1, max_length=64)
+    current_place: str | None = Field(default=None, alias="currentPlace", max_length=255)
     current_latitude: float | None = Field(default=None, alias="currentLatitude", ge=-90.0, le=90.0)
     current_longitude: float | None = Field(default=None, alias="currentLongitude", ge=-180.0, le=180.0)
-    current_timezone: str | None = Field(default=None, alias="currentTimezone", min_length=1)
+    current_timezone: str | None = Field(default=None, alias="currentTimezone", min_length=1, max_length=64)
     current_location_updated_at: datetime | None = Field(default=None, alias="currentLocationUpdatedAt")
     birth_time_source: str | None = Field(default=None, alias="birthTimeSource")
     birth_time_confidence_minutes: int | None = Field(default=None, alias="birthTimeConfidenceMinutes", ge=0)
@@ -170,7 +173,7 @@ class BirthProfileUpdate(BaseModel):
     def validate_birth_date_local(cls, value: date | None) -> date | None:
         if value is None:
             return None
-        return _validate_birth_date_bounds(value)
+        return validate_birth_date_bounds(value)
 
     @field_validator("marital_status", mode="before")
     @classmethod

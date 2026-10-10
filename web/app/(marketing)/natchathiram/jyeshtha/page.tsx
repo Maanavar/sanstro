@@ -1,51 +1,19 @@
 import type { Metadata } from "next";
+import { JsonLd } from "@/lib/json-ld";
+import { natchathiramJsonLd, natchathiramMetadata } from "@/lib/natchathiram-metadata";
 import { NatchathiramPageContent } from "@/components/natchathiram-page";
 import { JYESHTHA } from "@/lib/natchathiram-data";
 
-export const metadata: Metadata = {
-  title: JYESHTHA.meta.title,
-  description: JYESHTHA.meta.description,
-  keywords: JYESHTHA.meta.keywords,
-  alternates: { canonical: "https://vinaadi.com/natchathiram/jyeshtha" },
-  openGraph: {
-    title: JYESHTHA.meta.title,
-    description: JYESHTHA.meta.description,
-    url: "https://vinaadi.com/natchathiram/jyeshtha",
-    type: "article",
-    images: [{ url: "/brand/vinaadi-og-image.png", width: 1200, height: 630, alt: "Vinaadi — Tamil Astrology" }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: JYESHTHA.meta.title,
-    description: JYESHTHA.meta.description,
-    images: ["/brand/vinaadi-og-image.png"],
-  },
-};
-
-const FAQ_JSONLD = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: JYESHTHA.faq.map((item) => ({
-    "@type": "Question",
-    name: item.q,
-    acceptedAnswer: { "@type": "Answer", text: item.a },
-  })),
-};
-
-const ARTICLE_JSONLD = {
-  "@context": "https://schema.org",
-  "@type": "Article",
-  headline: JYESHTHA.meta.title,
-  description: JYESHTHA.meta.description,
-  url: "https://vinaadi.com/natchathiram/jyeshtha",
-  publisher: { "@type": "Organization", name: "Vinaadi" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return natchathiramMetadata(JYESHTHA);
+}
 
 export default function JyeshthaPage() {
+  const { faqTa, article } = natchathiramJsonLd(JYESHTHA);
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSONLD) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ARTICLE_JSONLD) }} />
+      <JsonLd ta={faqTa} />
+      <JsonLd en={article.en} ta={article.ta} />
       <NatchathiramPageContent data={JYESHTHA} />
     </>
   );

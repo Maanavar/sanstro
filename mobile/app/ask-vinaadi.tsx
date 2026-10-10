@@ -21,12 +21,14 @@ import { TamilType, EnType } from "@/theme/typography";
 import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "@/hooks/useSession";
 import { getDailyStatus, askVinaadi } from "@/api/askVinaadi";
+import { useLifeFocus } from "@/hooks/useLifeFocus";
+import { askChipsForMode } from "@vinaadi/shared/lifeFocus";
+import { trackEvent } from "@/lib/analytics";
+import { accountKey } from "@/lib/queryKeys";
 
-const SUGGESTED_QUESTIONS = [
-  { ta: "திருமணம் எப்போது?", en: "When will I get married?" },
-  { ta: "தொழில் மாற்றம் சரியா?", en: "Is a career change right for me?" },
-  { ta: "இந்த ஆண்டு எப்படி?", en: "How is this year for me?" },
-];
+// The chips follow the reader's life focus, the same three web shows
+// (LIFE_MODE_ASK_CHIPS in @vinaadi/shared; Life focus Phase 3). Until the
+// focus loads, or with none chosen, they are the BALANCED three.
 
 interface ChatMessage {
   id: string;
@@ -42,7 +44,7 @@ export default function AskVinaadiScreen() {
   const styles = useMemo(() => makeStyles(C), [C]);
   const { lang } = useI18n();
   const isTamil = lang === "ta";
-  const { tier } = useSession();
+  const { gateTier: tier } = useSession();
   const { chartId: _chartId } = useLocalSearchParams<{ chartId?: string }>();
   const chartId = Array.isArray(_chartId) ? _chartId[0] : _chartId;
 
@@ -52,16 +54,21 @@ export default function AskVinaadiScreen() {
   const scrollRef = useRef<ScrollView>(null);
 
   const { data: statusData } = useQuery({
-    queryKey: ["ask-vinaadi-status"],
+    queryKey: accountKey("ask-vinaadi-status"),
     queryFn: getDailyStatus,
     staleTime: 1000 * 60,
     enabled: tier !== "guest",
   });
 
-  const questionsUsed = statusData?.questionsUsedToday ?? 0;
-  const dailyLimit = statusData?.dailyLimit ?? 5;
+  const { mode: focusMode } = useLifeFocus();
+  const suggestedQuestions = askChipsForMode(focusMode);
+
+  // The server's own count decides the limit. This used to compare
+  // `questionsUsedToday` — a field the status route never sends — against a
+  // fallback of 5, so `atLimit` was always false and the limit bar never showed.
+  const dailyLimit = statusData?.dailyLimit ?? statusData?.monthlyLimit ?? 0;
   const chipsLeft = statusData?.chipsRemaining;
-  const atLimit = questionsUsed >= dailyLimit;
+  const atLimit = chipsLeft !== null && chipsLeft !== undefined && chipsLeft <= 0;
 
   // Gate: guests and registered users without a chartId need to go create a chart first
   if (tier === "guest") {
@@ -283,11 +290,18 @@ export default function AskVinaadiScreen() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.chipsRow}
           >
-            {SUGGESTED_QUESTIONS.map((q, i) => (
+            {suggestedQuestions.map((q, i) => (
               <TouchableOpacity
                 key={i}
                 style={styles.suggestChip}
-                onPress={() => sendMessage(isTamil ? q.ta : q.en, true)}
+                onPress={() => {
+                  trackEvent("life_focus_ask_chip_tapped", {
+                    focus: focusMode,
+                    surface: "mobile",
+                    chip_index: i,
+                  });
+                  void sendMessage(isTamil ? q.ta : q.en, true);
+                }}
                 disabled={atLimit}
                 activeOpacity={0.85}
               >

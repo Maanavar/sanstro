@@ -24,7 +24,7 @@
  * "which stylesheets does this route actually load".
  */
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -32,6 +32,8 @@ const WEB = join(import.meta.dirname, "..");
 
 type Boundary = {
   used: { marketing: string[]; dashboard: string[]; root: string[] };
+  /** Marketing routes whose own layouts load extra route-level stylesheets. */
+  nested: { routes: string[]; loads: string[]; used: string[] }[];
   definedIn: Record<string, string[]>;
 };
 
@@ -76,22 +78,40 @@ function selectorsOf(file: string): string[] {
  * live where the classes it styles are *used*, and prefixes do not always say
  * that. The reachability tests below assert the property that actually matters.
  */
-describe("CSS surface boundary — each stylesheet has exactly one loader", () => {
-  const importersOf = (css: string) => {
-    const out: string[] = [];
-    for (const f of ["app/layout.tsx", "app/(marketing)/layout.tsx", "app/dashboard/layout.tsx"]) {
-      const src = readFileSync(join(WEB, f), "utf-8");
-      if (new RegExp(`import\\s+"[^"]*${css.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`).test(src)) out.push(f);
+/** Every layout file under app/, so a nested layout importing a sheet is seen. */
+const LAYOUTS: string[] = (() => {
+  const out: string[] = [];
+  const walk = (dir: string) => {
+    for (const e of readdirSync(join(WEB, dir), { withFileTypes: true })) {
+      const p = `${dir}/${e.name}`;
+      if (e.isDirectory()) walk(p);
+      else if (/^layout\.(tsx|ts|jsx|js)$/.test(e.name)) out.push(p);
     }
-    return out;
   };
+  walk("app");
+  return out.sort();
+})();
+
+describe("CSS surface boundary — each stylesheet has a known set of loaders", () => {
+  const importersOf = (css: string) =>
+    LAYOUTS.filter((f) =>
+      new RegExp(`import\\s+"[^"]*${css.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`).test(
+        readFileSync(join(WEB, f), "utf-8"),
+      ),
+    );
 
   it("marketing.css is loaded by the marketing route group only", () => {
     expect(importersOf("marketing.css")).toEqual(["app/(marketing)/layout.tsx"]);
   });
 
-  it("dashboard-globals.css is loaded by the dashboard layout only", () => {
-    expect(importersOf("dashboard-globals.css")).toEqual(["app/dashboard/layout.tsx"]);
+  // /notifications sits in the marketing group but renders the dashboard chrome
+  // (DashboardAuxiliaryShell), so its own layout loads the dashboard sheets too.
+  // A new loader here is a new load context: add it on purpose, not by accident.
+  it("dashboard-globals.css is loaded by the dashboard layout and the inbox layout only", () => {
+    expect(importersOf("dashboard-globals.css")).toEqual([
+      "app/(marketing)/notifications/layout.tsx",
+      "app/dashboard/layout.tsx",
+    ]);
   });
 
   it("globals.css is loaded by the root layout only", () => {
@@ -132,9 +152,32 @@ describe("CSS surface boundary — every route can reach the CSS it uses", () =>
     });
   }
 
+  // A marketing route with a layout of its own loads marketing.css plus whatever
+  // that layout imports — checked against exactly that, no more.
+  it("marketing routes with their own layout CSS only use classes they load", () => {
+    const gaps = boundary.nested.flatMap((ctx) => {
+      const loadable = [...LOADS.marketing, ...ctx.loads];
+      return ctx.used
+        .filter((cls) => {
+          const where = boundary.definedIn[cls] ?? [];
+          if (where.some(ALWAYS_AVAILABLE)) return false;
+          return !where.some((f) => loadable.includes(f));
+        })
+        .map((c) => `${ctx.routes[0]}: .${c} -> ${(boundary.definedIn[c] ?? []).join(", ")}`);
+    });
+    expect(gaps).toEqual([]);
+  });
+
   it("the analysis actually saw each surface (a zero-class surface would pass vacuously)", () => {
     expect(boundary.used.marketing.length).toBeGreaterThan(200);
     expect(boundary.used.dashboard.length).toBeGreaterThan(100);
     expect(boundary.used.root.length).toBeGreaterThan(10);
+    const inbox = boundary.nested.find((c) => c.routes.includes("app/(marketing)/notifications/page.tsx"));
+    expect(inbox?.loads).toEqual([
+      "app/dashboard/dashboard-globals.css",
+      "app/dashboard/dashboard-nova.css",
+      "app/dashboard/dashboard.css",
+    ]);
+    expect(inbox!.used.length).toBeGreaterThan(100);
   });
 });

@@ -1,9 +1,11 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
+import { JsonLd, faqPageLd } from "@/lib/json-ld";
 import type { Metadata } from "next";
 import { TEMPLE_PANCHA_BHOOTA_FAQ } from "@/lib/marketing-i18n";
 import { PanchaBhootaContent } from "./PageContent";
 
-export const metadata: Metadata = {
-  title: "Pancha Bhoota Sthalams — Five Element Temples of Shiva | Vinaadi",
+const EN_METADATA: Metadata = {
+  title: "Pancha Bhoota Sthalams — Five Element Temples of Shiva",
   description:
     "The five Shiva temples of the elements — Kanchipuram (earth), Thiruvanaikaval (water), Thiruvannamalai (fire), Srikalahasti (wind), Chidambaram (space) — and how to do the pilgrimage circuit.",
   keywords: [
@@ -33,20 +35,17 @@ export const metadata: Metadata = {
   },
 };
 
-const FAQ_JSONLD = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: TEMPLE_PANCHA_BHOOTA_FAQ.map((f) => ({
-    "@type": "Question",
-    name: f.q.en,
-    acceptedAnswer: { "@type": "Answer", text: f.a.en },
-  })),
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/temples/pancha-bhoota-sthalams");
+}
+
+const FAQ_JSONLD = faqPageLd(TEMPLE_PANCHA_BHOOTA_FAQ, "en");
+const FAQ_JSONLD_TA = faqPageLd(TEMPLE_PANCHA_BHOOTA_FAQ, "ta");
 
 export default function PanchaBhootaSthalamsPage() {
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSONLD) }} />
+      <JsonLd en={FAQ_JSONLD} ta={FAQ_JSONLD_TA} />
       <PanchaBhootaContent />
     </>
   );

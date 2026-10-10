@@ -13,6 +13,9 @@ jest.mock("@sentry/react-native", () => mockSentry);
 jest.mock("posthog-react-native", () => ({ PostHog: jest.fn(() => mockPosthog) }));
 jest.mock("@react-native-async-storage/async-storage", () => ({}));
 
+// Imports stay below the Jest factories so the optional native modules are
+// replaced before analytics is evaluated.
+// eslint-disable-next-line import/first
 import { captureError, initAnalytics, setAnalyticsConsent, setUser, trackEvent } from "@/lib/analytics";
 
 beforeEach(() => {
@@ -52,6 +55,22 @@ describe("analytics consent and payload boundary", () => {
     trackEvent("birth_chart_opened", { rasi: "mesham" });
 
     expect(mockPosthog.capture).not.toHaveBeenCalled();
+  });
+
+  it("allows the life-focus Ask tap with only aggregate-safe properties", () => {
+    setAnalyticsConsent(true);
+    trackEvent("life_focus_ask_chip_tapped", {
+      focus: "CAREER",
+      surface: "mobile",
+      chip_index: 1,
+      question: "private free text must never leave the device",
+    });
+
+    expect(mockPosthog.capture).toHaveBeenCalledWith("life_focus_ask_chip_tapped", {
+      focus: "CAREER",
+      surface: "mobile",
+      chip_index: 1,
+    });
   });
 });
 

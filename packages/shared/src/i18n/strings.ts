@@ -45,6 +45,14 @@ export const strings = {
     rahu_kalam:          { ta: "ராகு காலம்",          en: "Rahu Kalam" },
     yamagandam:          { ta: "எமகண்டம்",             en: "Yamagandam" },
     kuligai:             { ta: "குளிகை",               en: "Kuligai" },
+    durmuhurtham:        { ta: "துர்முகூர்த்தம்",      en: "Durmuhurtham" },
+    // Scope notes, kept apart from the names. A label is reused in chips,
+    // legends and aria strings where a clause does not fit; the clause is what
+    // stops a narrow electional rule (R8) or a conditional one (R7) from being
+    // read as a whole-day verdict, so every surface that shows the window shows
+    // this beside it.
+    durmuhurtham_scope:  { ta: "சுப / புதிய தொடக்கங்களுக்கு மட்டும் தவிர்க்கவும்", en: "Avoid for auspicious / new beginnings" },
+    kuligai_scope:       { ta: "மீண்டும் நிகழ, தொடர அல்லது வளர வேண்டிய செயல்களுக்கு; பொதுவான தவிர்ப்பு அல்ல", en: "For things meant to repeat, continue or grow — not a general avoid period" },
   },
   panchangam: {
     title:               { ta: "பஞ்சாங்கம்",           en: "Panchangam" },

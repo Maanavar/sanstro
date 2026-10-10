@@ -1,5 +1,6 @@
-from datetime import date
+from datetime import date, datetime
 
+from app.calculations.astro import format_clock_hhmm
 from app.calculations.panchangam import PANCHANGAM_CACHE_DATA_VERSION
 from app.calculations.tamil_calendar import format_tamil_date
 from app.db.session import SessionLocal
@@ -39,11 +40,31 @@ def test_daily_panchangam_endpoint_returns_structured_daily_data(client):
     # clients must use it (not endsAt + a guessed date) to tell whether a
     # boundary falls later today or on a future day. See the 2026-07-25
     # Kettai/Moolam regression below.
+    #
+    # The two fields agree on the INSTANT but not character-for-character:
+    # `endsAt` is `format_clock_hhmm`, nearest-minute half-up, while `endsAtIso`
+    # carries the exact instant to the microsecond and must keep doing so — that
+    # precision is the whole reason the field exists. So the ISO value is rounded
+    # the same way before comparing, rather than sliced. `ends_at_iso[11:16]`
+    # TRUNCATES, and on this date nakshatra ends at 02:49:34.9 and yoga at
+    # 10:58:35.9, so a slice reads 02:49/10:58 against a correct 02:50/10:59.
+    # The slice was not "usually right" — it was a TAUTOLOGY. Until 2026-09-29
+    # `endsAt` was `span.end.strftime("%H:%M")`, which truncates, and the slice
+    # truncates, so the assertion compared a lossy transform against the same
+    # lossy transform and could not fail for any instant. It only started failing
+    # when `endsAt` moved to the nearest-minute policy and the two transforms
+    # stopped agreeing.
+    #
+    # What the rewritten assertion DOES catch, both mutation-verified: `endsAtIso`
+    # wired to a different snapshot field from `endsAt` (the real mis-wiring risk
+    # across eight limb pairs), and `endsAt` reverting to a truncating strftime.
+    # What it CANNOT catch: both fields moving to a new rounding policy together
+    # — there is nothing to catch there, since one policy is the point.
     for limb in ("tithi", "nakshatra", "yoga", "karana"):
         ends_at = body["data"][limb]["endsAt"]
         ends_at_iso = body["data"][limb]["endsAtIso"]
         assert ends_at_iso[:10] in ("2026-05-21", "2026-05-22")
-        assert ends_at_iso[11:16] == ends_at
+        assert format_clock_hhmm(datetime.fromisoformat(ends_at_iso)) == ends_at
     chandra = body["data"]["chandrashtamamToday"]
     assert 1 <= chandra["moonRasiNumber"] <= 12
     assert 1 <= chandra["affectedJanmaRasiNumber"] <= 12

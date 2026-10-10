@@ -126,6 +126,17 @@ D9_DEBILITATED_MEANING: tuple[str, str] = (
     "can outrun what it actually delivers, so its area rewards sustained effort over assumption.",
 )
 
+# Vargottama in the debilitation sign: neecha in the Rasi AND the Navamsa. Said
+# beside VARGOTTAMA_MEANING, never instead of it — ruling 2026-10-01 keeps the
+# two facts separate, and the scorer charges both rows. D9_DEBILITATED_MEANING
+# opens "placed well in the Rasi", which is false for this graha.
+VARGOTTAMA_NEECHA_MEANING: tuple[str, str] = (
+    "ஆனால் அந்த ராசி இதன் நீச ராசி; வர்கோத்தமம் நிலைத்தன்மை தரும், நீசத்தை நீக்காது. "
+    "நவாம்ச நீசம் தனியாகவே கணக்கில் கொள்ளப்படுகிறது.",
+    "But that sign is its debilitation sign, so it is debilitated in both charts. Vargottama "
+    "makes the placement consistent; it does not lift the debility, which is counted on its own.",
+)
+
 D9_DIGNIFIED_MEANING: tuple[str, str] = (
     "நவாம்சத்தில் வலுவாக உள்ளது — ராசியில் தெரியும் பலனை நவாம்சம் உறுதிப்படுத்துகிறது.",
     "Strong in the Navamsa — the D9 chart backs up what the Rasi chart promises here, which is the "

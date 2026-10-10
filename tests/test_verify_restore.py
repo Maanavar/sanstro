@@ -137,7 +137,7 @@ def test_reports_the_newest_key_when_that_is_what_wrote_it():
 # ---------------------------------------------------------------------------
 
 def test_shape_checks_accept_what_the_column_types_actually_write():
-    """Formats come from app/services/encryption.py, not from guesswork."""
+    """Formats come from app/db/encrypted_types.py, not from guesswork."""
     assert "1990" in vr._check_date(date(1990, 4, 17).isoformat().encode())
     vr._check_time(time(6, 12).isoformat().encode())
     # str(float(x)) is exactly what EncryptedFloat.process_bind_param writes.

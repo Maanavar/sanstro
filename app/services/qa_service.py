@@ -21,11 +21,11 @@ from app.calculations.ephemeris import calculate_sidereal_planets, set_lahiri_ay
 from app.calculations.panchangam import (
     NAKSHATRA_NAMES,
     PanchangamChandrashtamamNakshatraWindow,
-    calculate_daily_panchangam,
     own_chandrashtama_windows,
 )
 from app.calculations.transits import classify_kandaka_cycle, classify_sani_cycle, is_gandanta
 from app.schemas.qa import QACaseResult, QAModuleResult, QAValidationResponse
+from app.services.panchangam_cache import calculate_daily_panchangam
 
 FORBIDDEN_TEXT_FRAGMENTS = [
     "you will die",

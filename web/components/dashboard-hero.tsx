@@ -1,24 +1,36 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { LocalizedLink as Link } from "@/components/localized-link";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
+import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import {
+  ArrowRight,
   Bell,
   Settings,
   LogOut,
   Check,
+  CheckCheck,
   X,
   ChevronDown,
   Compass,
   FlaskConical,
+  Inbox,
+  Moon,
+  SlidersHorizontal,
+  Sun,
   Wrench,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Image from "next/image";
-import { formatClockLabel } from "@/lib/format";
-import { t } from "@/lib/i18n";
+import { placeCityLabel } from "@vinaadi/shared/checkIn";
+import { rasiDisplayName } from "@/lib/chart-utils";
+import { toggleTheme } from "@/hooks/useTheme";
+import { dt, LOCATION_CHECK } from "@/lib/dashboard-i18n";
+import { formatClockLabel, formatDateLabelIn, todayIso } from "@/lib/format";
+import { t, tNakshatra } from "@/lib/i18n";
+import { notificationMeta, notificationRelativeTime } from "@/lib/notification-display";
 import { DUR, EASE_NOVA, prefersReducedMotion } from "@/lib/motion";
 import type { Lang } from "@/lib/i18n";
 import type {
@@ -28,6 +40,7 @@ import type {
 } from "@/lib/types";
 import type { Tab } from "@/lib/dashboard-tabs";
 import type { StatusMessage } from "./dashboard-ui-nova";
+import { Presence } from "./ui/presence";
 
 type LabelKey = Parameters<typeof t>[0];
 
@@ -75,7 +88,9 @@ const MORE_TAB_DEFS: TabDefinition[] = [
 
 interface DashboardHeroProps {
   lang: Lang;
-  activeTab: Tab;
+  activeTab: Tab | null;
+  /** Authenticated utility routes are part of the product but are not tabs. */
+  utilityTitle?: string;
   birthDisplayName: string;
   /** Tone travels with the message (DASH-08) — never inferred from wording. */
   status: StatusMessage | null;
@@ -101,6 +116,12 @@ interface DashboardHeroProps {
   inboxUnreadCount: number;
   onMarkAllRead: () => void;
   onMarkOneRead: (notificationId: string) => void;
+  /** Footer shortcut in the bell popover to the settings that decide what gets
+   *  sent. Omitted → no shortcut. */
+  onOpenNotificationSettings?: () => void;
+  /** Fired when the bell opens (not when it closes), so the list can be
+   *  refreshed rather than shown as the last poll left it. */
+  onInboxOpen?: () => void;
   onTabChange: (tab: Tab) => void;
   onDateChange: (date: string) => void;
   onLangToggle: () => void;
@@ -108,8 +129,15 @@ interface DashboardHeroProps {
   onUserMenuClose: () => void;
   onGoToSettings: () => void;
   onSignOut: () => void;
-  /** Nova navbar's "✦ Ask Vinaadi" button — omitted when no chart exists yet. */
+  /** Nova navbar's "✦ Ask Vinaadi" button. */
   onAskVinaadi?: () => void;
+  /** False until a chart exists: the pill still renders, disabled, so its
+   *  arrival no longer pushes the nav ~225px sideways (DXA-05). */
+  askReady?: boolean;
+  /** DXA-07: the selected day's data is still in flight and what is on screen
+   *  below belongs to the previous selection. Draws a progress hairline along
+   *  the bottom edge of the sub-bar. */
+  dayLoading?: boolean;
 }
 
 /* Nova navbar glyphs — lucide (SHD-02). `.cd-icon` controls size (18px) and
@@ -121,6 +149,22 @@ function BellIcon() {
 
 function SettingsIcon() {
   return <Settings className="cd-icon" aria-hidden="true" focusable="false" />;
+}
+
+/* Both faces are rendered and CSS picks one off [data-theme] on <html> (see
+   .cd-theme-btn in dashboard.css). Deliberately not driven from React state:
+   the pre-paint script in app/layout.tsx resolves the theme before React
+   hydrates, so a state-driven icon would either mismatch on hydration or flash
+   the wrong face for a tick. The label stays neutral for the same reason —
+   naming the target theme would reintroduce the mismatch in an attribute no
+   text probe can see. */
+function ThemeIcon() {
+  return (
+    <>
+      <Sun className="cd-icon cd-theme-btn__sun" aria-hidden="true" focusable="false" />
+      <Moon className="cd-icon cd-theme-btn__moon" aria-hidden="true" focusable="false" />
+    </>
+  );
 }
 
 function SignOutIcon() {
@@ -135,10 +179,28 @@ function CloseIcon() {
   return <X className="cd-icon" aria-hidden="true" focusable="false" />;
 }
 
+/**
+ * The top bar's backdrop filter turns it into the containing block for fixed
+ * descendants. Keep the dismiss layer at the shell instead, so it covers the
+ * page while the popover remains above it in the top bar.
+ */
+function PageDismissOverlay({ onDismiss }: { onDismiss: () => void }) {
+  const [portalHost, setPortalHost] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    setPortalHost(document.querySelector<HTMLElement>(".cd-shell"));
+  }, []);
+
+  return portalHost
+    ? createPortal(<div className="cd-overlay cd-overlay--page" onClick={onDismiss} />, portalHost)
+    : null;
+}
+
 export function DashboardHero(props: DashboardHeroProps) {
   const {
     lang,
     activeTab,
+    utilityTitle,
     birthDisplayName,
     status,
     chartSummary,
@@ -156,6 +218,8 @@ export function DashboardHero(props: DashboardHeroProps) {
     inboxUnreadCount,
     onMarkAllRead,
     onMarkOneRead,
+    onOpenNotificationSettings,
+    onInboxOpen,
     onTabChange,
     onDateChange,
     onLangToggle,
@@ -164,12 +228,32 @@ export function DashboardHero(props: DashboardHeroProps) {
     onGoToSettings,
     onSignOut,
     onAskVinaadi,
+    askReady = true,
+    dayLoading = false,
   } = props;
 
+  const errorStatus = status?.tone === "error" ? status : null;
+  const panchangamCity = placeCityLabel(panchangamPlace);
   const [showAlerts, setShowAlerts] = useState(false);
   const [showInbox, setShowInbox] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
+
+  // The badge count was visible only as pixels; the trigger's name carries it
+  // too so a screen reader hears it.
+  const bellCount = alertCount + inboxUnreadCount;
+  const bellLabel = bellCount > 0
+    ? `${t("notif_section_title", lang)}, ${lang === "ta" ? `${bellCount} புதியவை` : `${bellCount} new`}`
+    : t("notif_section_title", lang);
+  const alertsHeading = selectedDate === todayIso()
+    ? (lang === "ta" ? "இன்றைக்கு" : "For today")
+    : (lang === "ta" ? `${formatDateLabelIn(selectedDate, lang)} அன்று` : `For ${formatDateLabelIn(selectedDate, lang)}`);
+  const inboxHeading = lang === "ta" ? "அறிவிப்பு பெட்டி" : "Inbox";
+  // One instant per render, so every row is aged against the same clock.
+  const now = new Date();
   const activeTabRef = useRef<HTMLButtonElement>(null);
+  const inboxTriggerRef = useRef<HTMLButtonElement>(null);
+  const inboxPopoverRef = useRef<HTMLDivElement>(null);
+  const accountTriggerRef = useRef<HTMLButtonElement>(null);
 
   // ⌘K / Ctrl+K opens Ask Vinaadi from anywhere on the dashboard. The kbd
   // chip's label is resolved after mount (SSR can't know the platform).
@@ -178,7 +262,7 @@ export function DashboardHero(props: DashboardHeroProps) {
     setKbdLabel(/mac/i.test(navigator.platform) ? "⌘K" : "Ctrl K");
   }, []);
   useEffect(() => {
-    if (!onAskVinaadi) return;
+    if (!onAskVinaadi || !askReady) return;
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
@@ -187,7 +271,7 @@ export function DashboardHero(props: DashboardHeroProps) {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onAskVinaadi]);
+  }, [onAskVinaadi, askReady]);
 
   // Settings is reachable from the avatar menu, so it is omitted from the tab
   // strip to keep the mobile nav compact.
@@ -211,10 +295,64 @@ export function DashboardHero(props: DashboardHeroProps) {
   const moreTriggerRef = useRef<HTMLButtonElement>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
 
-  const closeMoreMenu = (returnFocus = true) => {
+  const closeMoreMenu = useCallback((returnFocus = true) => {
     setShowMoreMenu(false);
     if (returnFocus) moreTriggerRef.current?.focus();
-  };
+  }, []);
+
+  const closeInbox = useCallback((returnFocus = true) => {
+    setShowInbox(false);
+    if (returnFocus) inboxTriggerRef.current?.focus();
+  }, []);
+
+  const closeUserMenu = useCallback((returnFocus = true) => {
+    onUserMenuClose();
+    if (returnFocus) accountTriggerRef.current?.focus();
+  }, [onUserMenuClose]);
+
+  // The inbox can be opened while its trigger retains focus. Keep Escape
+  // available at the document boundary in that state; pointer dismissal is
+  // deliberately owned by the retained page layer below.
+  useEffect(() => {
+    if (!showInbox) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      closeInbox();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [showInbox, closeInbox]);
+
+  // Cap the notification panel to the viewport space below its own top edge.
+  // That edge moves with the top bar, which wraps onto two rows below 1024px,
+  // so it is measured rather than assumed. Feeds --cd-notif-max (dashboard.css).
+  useLayoutEffect(() => {
+    if (!showInbox) return;
+    const panel = inboxPopoverRef.current;
+    if (!panel) return;
+    const fit = () => {
+      const top = panel.getBoundingClientRect().top;
+      const room = Math.max(200, Math.floor(window.innerHeight - top - 16));
+      panel.style.setProperty("--cd-notif-max", `${room}px`);
+    };
+    fit();
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  }, [showInbox]);
+
+  // An avatar click can open this menu without shifting focus from the page.
+  // Keep Escape available at the document boundary in that measured state.
+  useEffect(() => {
+    if (!showUserMenu) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      closeUserMenu();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [showUserMenu, closeUserMenu]);
 
   // Focus moves into the menu on open, landing on the current destination
   // when one of them is active — so "where am I" and "where can I go" are
@@ -265,6 +403,20 @@ export function DashboardHero(props: DashboardHeroProps) {
     }
   };
 
+  const onInboxKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeInbox();
+    }
+  };
+
+  const onAccountKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeUserMenu();
+    }
+  };
+
   // Keep the active tab scrolled into view on the mobile scrollable strip so the
   // user can always see where they are, even when tabs overflow the viewport.
   useEffect(() => {
@@ -292,6 +444,9 @@ export function DashboardHero(props: DashboardHeroProps) {
   }, [activeTab]);
 
   const langToggleTitle = lang === "ta" ? "Switch to English" : "தமிழுக்கு மாறு";
+  // Neutral wording on purpose: the label cannot name the target theme without
+  // depending on state React does not have at hydration time (see ThemeIcon).
+  const themeToggleTitle = lang === "ta" ? "தோற்றத்தை மாற்று" : "Switch theme";
 
   // "05 · Jul · 2026" label for the Nova navbar's date pill. The native date
   // input stays mounted underneath (invisible, full-pill hit area) so the OS
@@ -315,6 +470,9 @@ export function DashboardHero(props: DashboardHeroProps) {
         type="button"
         ref={isActive ? activeTabRef : undefined}
         className={`cd-tab${isActive ? " cd-tab--active" : ""}`}
+        // Language-free handle: the audit's Tamil phase clicks tabs by id,
+        // because in Tamil mode the label it would match on is Tamil (W-8).
+        data-tab={tab.id}
         aria-current={isActive ? "page" : undefined}
         title={lang === "ta" ? tab.desc.ta : tab.desc.en}
         onClick={() => onTabChange(tab.id)}
@@ -402,19 +560,15 @@ export function DashboardHero(props: DashboardHeroProps) {
                   />
                 )}
               </button>
-              {showMoreMenu && (
-                <>
-                  <div className="cd-overlay cd-overlay--menu" onClick={() => closeMoreMenu(false)} />
-                  <motion.div
-                    ref={moreMenuRef}
-                    className="cd-dropdown cd-dropdown--nav"
-                    role="menu"
-                    aria-label={t("tab_more", lang)}
-                    initial={prefersReducedMotion() ? false : { opacity: 0, y: -6, scale: 0.98 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    transition={{ duration: DUR.fast, ease: EASE_NOVA }}
-                    style={{ transformOrigin: "top right" }}
-                  >
+              <Presence
+                  open={showMoreMenu}
+                  ref={moreMenuRef}
+                  className="cd-dropdown cd-dropdown--nav"
+                  role="menu"
+                  aria-label={t("tab_more", lang)}
+                  style={{ transformOrigin: "top right" }}
+                >
+                    <PageDismissOverlay onDismiss={() => closeMoreMenu(false)} />
                     {moreTabs.map((tab) => {
                       const Glyph = tab.icon;
                       const isCurrent = activeTab === tab.id;
@@ -424,6 +578,7 @@ export function DashboardHero(props: DashboardHeroProps) {
                           type="button"
                           role="menuitem"
                           className="cd-dropdown__btn cd-dropdown__btn--nav"
+                          data-tab={tab.id}
                           aria-current={isCurrent ? "page" : undefined}
                           onClick={() => {
                             onTabChange(tab.id);
@@ -449,121 +604,191 @@ export function DashboardHero(props: DashboardHeroProps) {
                         </button>
                       );
                     })}
-                  </motion.div>
-                </>
-              )}
+                </Presence>
             </div>
           </nav>
 
           <div className="cd-topbar__right">
             {onAskVinaadi && (
-              <button type="button" className="cd-ask-search" onClick={onAskVinaadi} aria-label={t("ask_panel_title", lang)}>
+              <button
+                type="button"
+                className="cd-ask-search"
+                onClick={askReady ? onAskVinaadi : undefined}
+                disabled={!askReady}
+                aria-label={t("ask_panel_title", lang)}
+              >
                 <span aria-hidden="true" className="cd-ask-search__star">✦</span>
                 <span className="cd-ask-search__hint">
                   {lang === "ta" ? "விநாடியிடம் எதையும் கேளுங்கள்…" : "Ask Vinaadi anything…"}
                 </span>
-                {kbdLabel && <kbd className="cd-ask-search__kbd" aria-hidden="true">{kbdLabel}</kbd>}
+                {/* Width reserved before the platform is known (DXA-05). */}
+                <kbd className="cd-ask-search__kbd" aria-hidden="true" style={kbdLabel ? undefined : { visibility: "hidden" }}>
+                  {kbdLabel ?? "Ctrl K"}
+                </kbd>
               </button>
             )}
 
-            <div className="cd-popover-anchor">
+            <div className="cd-popover-anchor cd-popover-anchor--notif" onKeyDown={onInboxKeyDown}>
               <button
                 type="button"
+                ref={inboxTriggerRef}
                 className="cd-icon-btn"
-                onClick={() => { setShowAlerts(false); setShowInbox((v) => !v); }}
-                aria-label={t("notif_section_title", lang)}
+                onClick={() => {
+                  const opening = !showInbox;
+                  setShowAlerts(false);
+                  setShowInbox(opening);
+                  if (opening) onInboxOpen?.();
+                }}
+                aria-label={bellLabel}
+                aria-expanded={showInbox}
+                aria-controls="cd-notif-panel"
               >
                 <BellIcon />
-                {(alertCount + inboxUnreadCount) > 0 && (
-                  <span className="cd-badge">{(alertCount + inboxUnreadCount) > 9 ? "9+" : alertCount + inboxUnreadCount}</span>
+                {bellCount > 0 && (
+                  <span className="cd-badge" aria-hidden="true">{bellCount > 9 ? "9+" : bellCount}</span>
                 )}
               </button>
-              {showInbox && (
-                <>
-                  <div className="cd-overlay cd-overlay--alerts" onClick={() => setShowInbox(false)} />
-                  <div className="cd-alerts-popover">
-                    {/* Ambient (astro) alerts */}
-                    {alertItems.length > 0 && (
-                      <>
-                        <p className="cd-alerts-head">{t("ambient_alerts_label", lang)}</p>
-                        {alertItems.map((a, i) => (
-                          <div key={`alert-${a.type}-${i}`} className="cd-alert-item">
-                            <p className="cd-alert-item__title">{a.title}</p>
-                            <p className="cd-alert-item__body">{a.body}</p>
-                          </div>
-                        ))}
-                      </>
+              {/* A header · scrolling list · footer column. The list is the only
+                  part that scrolls, capped to the viewport: the popover sits in a
+                  sticky top bar, so anything past the bottom edge used to be
+                  unreachable — page scroll never brought it into view. */}
+              <Presence
+                open={showInbox}
+                ref={inboxPopoverRef}
+                id="cd-notif-panel"
+                role="region"
+                aria-label={t("notif_section_title", lang)}
+                className="cd-alerts-popover"
+                style={{ transformOrigin: "top right" }}
+              >
+                <PageDismissOverlay onDismiss={() => closeInbox(false)} />
+                <div className="cd-notif__head">
+                  <p className="cd-notif__title">
+                    {t("notif_section_title", lang)}
+                    {inboxUnreadCount > 0 && (
+                      <span className="cd-notif__count">
+                        {lang === "ta" ? `${inboxUnreadCount} புதியவை` : `${inboxUnreadCount} new`}
+                      </span>
                     )}
+                  </p>
+                  {inboxUnreadCount > 0 && (
+                    <button type="button" className="cd-notif__action" onClick={onMarkAllRead}>
+                      <CheckCheck size={15} strokeWidth={2} aria-hidden="true" />
+                      {t("notif_mark_all_read", lang)}
+                    </button>
+                  )}
+                </div>
 
-                    {/* Sent notifications inbox */}
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
-                      <p className="cd-alerts-head" style={{ margin: 0 }}>
-                        {t("notif_sent", lang)}
-                      </p>
-                      {inboxUnreadCount > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => { onMarkAllRead(); }}
-                          style={{ fontSize: "0.7rem", color: "var(--color-accent, var(--panel-brand))", background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit" }}
-                        >
-                          {t("notif_mark_all_read", lang)}
-                        </button>
+                {/* tabIndex: a scroll region holding only text (read rows, the
+                    day's alerts) is otherwise unreachable by keyboard. */}
+                <div className="cd-notif__body" tabIndex={0} aria-label={t("notif_section_title", lang)}>
+                  {inboxItems.length === 0 && alertItems.length === 0 ? (
+                    <div className="cd-notif__empty">
+                      <span className="cd-notif__empty-disc" aria-hidden="true">
+                        <Inbox size={20} strokeWidth={1.7} />
+                      </span>
+                      <p className="cd-notif__empty-text">{t("notif_inbox_empty", lang)}</p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* The day's ambient alerts follow the selected date, not
+                          the clock, so the heading names that date. */}
+                      {alertItems.length > 0 && (
+                        <section className="cd-notif__section" aria-label={alertsHeading}>
+                          <p className="cd-notif__section-head">{alertsHeading}</p>
+                          <ul className="cd-notif__day">
+                            {alertItems.map((a, i) => (
+                              <li key={`alert-${a.type}-${i}`} className="cd-notif__day-item">
+                                <p className="cd-notif__item-title">{a.title}</p>
+                                <p className="cd-notif__item-text">{a.body}</p>
+                              </li>
+                            ))}
+                          </ul>
+                        </section>
                       )}
-                    </div>
-                    {inboxItems.length === 0 && alertItems.length === 0 ? (
-                      <p className="cd-empty-note">
-                        {t("notif_inbox_empty", lang)}
-                      </p>
-                    ) : inboxItems.length === 0 ? (
-                      <p className="cd-empty-note" style={{ fontSize: "0.75rem" }}>
-                        {t("notif_sent_empty", lang)}
-                      </p>
-                    ) : (
-                      inboxItems.map((n) => (
-                        <div key={n.notification_id} className="cd-alert-item" style={{ opacity: n.read_at ? 0.6 : 1 }}>
-                          <p className="cd-alert-item__title" style={{ display: "flex", justifyContent: "space-between", gap: "8px" }}>
-                            <span>{n.title}</span>
-                            {!n.read_at && <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "var(--color-accent, var(--panel-brand))", flexShrink: 0, marginTop: "4px" }} />}
-                          </p>
-                          <p className="cd-alert-item__body">{n.body}</p>
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
-                            <p style={{ margin: 0, fontSize: "0.65rem", color: "var(--color-faint)" }}>
-                              {new Date(n.send_at).toLocaleString()}
-                            </p>
-                            {!n.read_at && (
-                              <button
-                                type="button"
-                                onClick={() => onMarkOneRead(n.notification_id)}
-                                style={{ fontSize: "0.68rem", color: "var(--color-accent, var(--panel-brand))", background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit", flexShrink: 0 }}
-                              >
-                                {t("notif_mark_read", lang)}
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      ))
-                    )}
-                    <div style={{ paddingTop: "10px", borderTop: "1px solid var(--color-border)" }}>
-                      <Link
-                        href="/notifications"
-                        onClick={() => setShowInbox(false)}
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "6px",
-                          color: "var(--color-accent, var(--panel-brand))",
-                          fontSize: "0.78rem",
-                          fontWeight: 700,
-                          textDecoration: "none",
-                        }}
-                      >
-                        {lang === "ta" ? "முழு அறிவிப்பு பெட்டி" : "Open full inbox"}
-                      </Link>
-                    </div>
-                  </div>
-                </>
-              )}
+
+                      <section className="cd-notif__section" aria-label={inboxHeading}>
+                        {/* One group needs no label; two do. */}
+                        {alertItems.length > 0 && <p className="cd-notif__section-head">{inboxHeading}</p>}
+                        {inboxItems.length === 0 ? (
+                          <p className="cd-notif__note">{t("notif_sent_empty", lang)}</p>
+                        ) : (
+                          <ul className="cd-notif__list">
+                            {inboxItems.map((n) => {
+                              const meta = notificationMeta(n.type, lang);
+                              const Glyph = meta.icon;
+                              const unread = !n.read_at;
+                              return (
+                                <li key={n.notification_id} className={`cd-notif__row${unread ? " cd-notif__row--unread" : ""}`}>
+                                  <span className="cd-notif__glyph" data-tone={meta.tone} aria-hidden="true">
+                                    <Glyph size={16} strokeWidth={1.9} />
+                                  </span>
+                                  <div className="cd-notif__main">
+                                    <p className="cd-notif__meta">
+                                      <span>{meta.label}</span>
+                                      <span aria-hidden="true">·</span>
+                                      <time dateTime={n.send_at}>{notificationRelativeTime(n.send_at, lang, now)}</time>
+                                      {unread && (
+                                        <span className="cd-notif__dot">
+                                          <span className="cd-visually-hidden">{lang === "ta" ? "புதியது" : "New"}</span>
+                                        </span>
+                                      )}
+                                    </p>
+                                    <p className="cd-notif__item-title">{n.title}</p>
+                                    <p className="cd-notif__item-text">{n.body}</p>
+                                    {unread && (
+                                      <button
+                                        type="button"
+                                        className="cd-notif__mark"
+                                        onClick={() => onMarkOneRead(n.notification_id)}
+                                        // Every unread row carries this control, so the
+                                        // visible label alone is ambiguous in a
+                                        // screen-reader's control list.
+                                        aria-label={`${t("notif_mark_read", lang)}: ${n.title}`}
+                                      >
+                                        <Check size={14} strokeWidth={2.2} aria-hidden="true" />
+                                        {t("notif_mark_read", lang)}
+                                      </button>
+                                    )}
+                                  </div>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        )}
+                      </section>
+                    </>
+                  )}
+                </div>
+
+                <div className="cd-notif__foot">
+                  <Link href="/notifications" className="cd-notif__link" onClick={() => setShowInbox(false)}>
+                    {lang === "ta" ? "முழு அறிவிப்பு பெட்டி" : "Open full inbox"}
+                    <ArrowRight size={15} strokeWidth={2} aria-hidden="true" />
+                  </Link>
+                  {onOpenNotificationSettings && (
+                    <button
+                      type="button"
+                      className="cd-notif__action cd-notif__action--quiet"
+                      onClick={() => { closeInbox(false); onOpenNotificationSettings(); }}
+                    >
+                      <SlidersHorizontal size={15} strokeWidth={1.9} aria-hidden="true" />
+                      {lang === "ta" ? "அமைப்புகள்" : "Settings"}
+                    </button>
+                  )}
+                </div>
+              </Presence>
             </div>
+
+            <button
+              type="button"
+              className="cd-icon-btn cd-theme-btn"
+              onClick={toggleTheme}
+              aria-label={themeToggleTitle}
+              title={themeToggleTitle}
+            >
+              <ThemeIcon />
+            </button>
 
             <button
               type="button"
@@ -575,9 +800,10 @@ export function DashboardHero(props: DashboardHeroProps) {
               {lang === "ta" ? "EN" : "த"}
             </button>
 
-            <div className="cd-popover-anchor">
+            <div className="cd-popover-anchor" onKeyDown={onAccountKeyDown}>
               <button
                 type="button"
+                ref={accountTriggerRef}
                 className="cd-avatar"
                 onClick={onUserMenuToggle}
                 aria-label={t("label_account", lang)}
@@ -585,10 +811,8 @@ export function DashboardHero(props: DashboardHeroProps) {
               >
                 {userEmail ? userEmail[0].toUpperCase() : "U"}
               </button>
-              {showUserMenu && (
-                <>
-                  <div className="cd-overlay cd-overlay--menu" onClick={onUserMenuClose} />
-                  <div className="cd-dropdown">
+              <Presence open={showUserMenu} className="cd-dropdown" style={{ transformOrigin: "top right" }}>
+                    <PageDismissOverlay onDismiss={() => closeUserMenu(false)} />
                     <div className="cd-dropdown__head">
                       <p className="cd-dropdown__email-label">Signed in as</p>
                       <p className="cd-dropdown__email">{userEmail ?? "—"}</p>
@@ -602,9 +826,7 @@ export function DashboardHero(props: DashboardHeroProps) {
                       <SignOutIcon />
                       <span>Sign out</span>
                     </button>
-                  </div>
-                </>
-              )}
+                </Presence>
             </div>
           </div>
         </div>
@@ -613,6 +835,11 @@ export function DashboardHero(props: DashboardHeroProps) {
         <div className="cd-subbar">
           <div className="cd-subbar__inner">
             <div className="cd-subbar__identity">
+              {utilityTitle && (
+                <span className="cd-subbar__name" title={utilityTitle}>
+                  {utilityTitle}
+                </span>
+              )}
               {birthDisplayName && (
                 <span className="cd-subbar__name" title={birthDisplayName}>
                   {birthDisplayName}
@@ -620,11 +847,11 @@ export function DashboardHero(props: DashboardHeroProps) {
               )}
               {chartSummary && (
                 <span className="cd-subbar__chart">
-                  {chartSummary.moonRasi}
+                  {rasiDisplayName(chartSummary.moonRasi, lang)}
                   {" - "}
-                  {chartSummary.janmaNakshatra}
+                  {tNakshatra(chartSummary.janmaNakshatra, lang)}
                   {" - "}
-                  {chartSummary.lagnaRasi} {lang === "ta" ? "லக்னம்" : "Lagnam"}
+                  {rasiDisplayName(chartSummary.lagnaRasi, lang)} {lang === "ta" ? "லக்னம்" : "Lagnam"}
                 </span>
               )}
               {/* UXD-15 — birth-time uncertainty is collected but was never shown;
@@ -643,74 +870,101 @@ export function DashboardHero(props: DashboardHeroProps) {
               )}
             </div>
             <div className="cd-subbar__right">
-              {/* aria-live so async outcomes are announced; ✓/⚠ follows the
-                  message's own tone instead of always showing a check (DASH-08). */}
-              {status && (
-                <span
-                  className="cd-subbar__status"
-                  title={status.text}
-                  role="status"
-                  aria-live="polite"
-                  style={status.tone === "error" ? { color: "var(--color-low, #C0392B)" } : undefined}
-                >
-                  <span className="cd-subbar__status-check" aria-hidden="true">
-                    {status.tone === "error" ? "⚠" : "✓"}
+              {/* Only failures earn chrome space (DXA-05). Successes the user
+                  caused are already toasts; automatic "Personal data refreshed"
+                  lines arrived late, pushed the bar and said nothing new. The
+                  live region stays mounted so announcing an error moves nothing
+                  that was not already there. */}
+              <span className="cd-visually-hidden" role="status" aria-live="polite">
+                {errorStatus?.text ?? ""}
+              </span>
+              {/* Fixed slots (DXA-05). Both of these arrive with the day's
+                  data, and both used to widen this group as they landed,
+                  moving its left edge and everything in it — two of the three
+                  shifts the audit recorded inside the header. The slots are
+                  rendered from the first paint and hold their width (≥860px,
+                  where the bar is one row); what lands fills them. */}
+              <span className="cd-subbar__slot cd-subbar__slot--status">
+                {errorStatus && (
+                  <span className="cd-subbar__status" title={errorStatus.text} aria-hidden="true" style={{ color: "var(--color-low)" }}>
+                    <span className="cd-subbar__status-check">⚠</span>
+                    {errorStatus.text}
                   </span>
-                  {status.text}
-                </span>
-              )}
-              {/* Provenance note — which sunrise/place the day's panchangam was
-                  computed from. Yields the slot whenever a transient status is
-                  announcing something. New ta copy pending native review. */}
-              {!status && panchangamSunrise && (
-                <span className="cd-subbar__status" title={panchangamPlace ?? undefined}>
-                  <span className="cd-subbar__status-check" aria-hidden="true">✓</span>
-                  {lang === "ta"
-                    ? `பஞ்சாங்கம் ${formatClockLabel(panchangamSunrise)} கணக்கிடப்பட்டது`
-                    : `Panchangam computed ${formatClockLabel(panchangamSunrise)}`}
-                  {panchangamPlace ? ` · ${panchangamPlace}` : ""}
-                </span>
-              )}
-              {selectedVault && (
-                <button
-                  type="button"
-                  className="cd-subbar__vault"
-                  title={selectedVault.name}
-                  onClick={() => onTabChange("family")}
-                >
-                  {selectedVault.name}
-                  <span className="cd-subbar__vault-caret" aria-hidden="true">▾</span>
-                </button>
-              )}
+                )}
+                {/* Provenance note — which place and sunrise the day's
+                    panchangam was computed from. Yields the slot while an error
+                    is showing. New ta copy pending native review.
 
-              <label htmlFor="dashboard-date" className="cd-visually-hidden">
-                {lang === "ta" ? "தேதி தேர்வு" : "Select date"}
-              </label>
-              <div className="cd-date-field">
-                <input
-                  id="dashboard-date"
-                  className="cd-date-input"
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => onDateChange(e.target.value)}
-                  onClick={(e) => {
-                    // The input is an invisible overlay, so a click anywhere on
-                    // the pill should open the picker directly.
-                    try { e.currentTarget.showPicker?.(); } catch { /* non-gesture call — ignore */ }
-                  }}
-                  aria-label={lang === "ta" ? "தேதி தேர்வு" : "Select date"}
-                />
-                <span className="cd-date-display" aria-hidden="true">
-                  {novaDateLabel}
-                  <span className="cd-date-display__caret">▾</span>
-                </span>
-              </div>
+                    §2.4 (2026-09-23): the place leads. It used to trail the
+                    sunrise as ` · Chennai`, reading as a footnote to the time
+                    rather than as the thing the time depends on, and it printed
+                    the whole saved string ("Chennai, Tamil Nadu, India") into a
+                    sub-bar slot sized for a few words. Now it is the sentence's
+                    subject, shortened to the city, with the full string still in
+                    `title`. */}
+                {!errorStatus && panchangamSunrise && (
+                  <span className="cd-subbar__status" title={panchangamPlace ?? undefined}>
+                    <span className="cd-subbar__status-check" aria-hidden="true">✓</span>
+                    {panchangamCity
+                      ? `${dt(LOCATION_CHECK.timingsFor, lang).replace("%1$s", panchangamCity)} · `
+                      : ""}
+                    {lang === "ta"
+                      ? `சூரிய உதயம் ${formatClockLabel(panchangamSunrise, lang)}`
+                      : `sunrise ${formatClockLabel(panchangamSunrise, lang)}`}
+                  </span>
+                )}
+              </span>
+              <span className="cd-subbar__slot cd-subbar__slot--vault">
+                {selectedVault && (
+                  <button
+                    type="button"
+                    className="cd-subbar__vault"
+                    title={selectedVault.name}
+                    onClick={() => onTabChange("family")}
+                  >
+                    {selectedVault.name}
+                    <span className="cd-subbar__vault-caret" aria-hidden="true">▾</span>
+                  </button>
+                )}
+              </span>
+
+              {!utilityTitle && (
+                <>
+                  <label htmlFor="dashboard-date" className="cd-visually-hidden">
+                    {lang === "ta" ? "தேதி தேர்வு" : "Select date"}
+                  </label>
+                  <div className="cd-date-field">
+                    <input
+                      id="dashboard-date"
+                      className="cd-date-input"
+                      type="date"
+                      value={selectedDate}
+                      onChange={(e) => onDateChange(e.target.value)}
+                      onClick={(e) => {
+                        // The input is an invisible overlay, so a click anywhere on
+                        // the pill should open the picker directly.
+                        try { e.currentTarget.showPicker?.(); } catch { /* non-gesture call — ignore */ }
+                      }}
+                      aria-label={lang === "ta" ? "தேதி தேர்வு" : "Select date"}
+                    />
+                    <span className="cd-date-display" aria-hidden="true">
+                      {novaDateLabel}
+                      <span className="cd-date-display__caret">▾</span>
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
+          {/* DXA-07 — the day below is still the previous selection's while
+              this runs. Absolutely positioned on the sub-bar's bottom edge so
+              it adds no height: the bar this sits on is the one DXA-05 just
+              stopped moving, and a 2px row that appears on every date change
+              would put the shift back. */}
+          {dayLoading && <span className="cd-subbar__progress" aria-hidden="true" />}
         </div>
       </header>
 
     </>
   );
 }
-

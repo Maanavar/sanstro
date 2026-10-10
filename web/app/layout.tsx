@@ -12,6 +12,9 @@ import type { ReactNode } from "react";
 import { DeferredChrome } from "@/components/deferred-chrome";
 import { LangProvider } from "@/components/lang-toggle";
 import { getServerLang } from "@/lib/server-lang";
+import { LANG_HEADER } from "@/lib/ta-routes";
+import { SITE_DESCRIPTION_TA } from "@/lib/site-description-ta";
+import { safeJsonLd } from "@/lib/json-ld";
 
 import "@vinaadi/design-tokens/dist/web/tokens.css";
 import "./globals.css";
@@ -67,6 +70,10 @@ const ORG_JSONLD = {
   sameAs: [],
 };
 
+// No `potentialAction`: a SearchAction needs a URL template carrying the query
+// (`{search_term_string}`), and the site has no search page to point it at. The
+// one that was here targeted the porutham calculator with no placeholder, which
+// is invalid structured data (GRW-08).
 const WEBSITE_JSONLD = {
   "@context": "https://schema.org",
   "@type": "WebSite",
@@ -74,14 +81,6 @@ const WEBSITE_JSONLD = {
   url: BASE,
   description:
     "Tamil astrology assistant for daily guidance, timing, porutham, and family planning. Powered by Thirukanitham.",
-  potentialAction: {
-    "@type": "SearchAction",
-    target: {
-      "@type": "EntryPoint",
-      urlTemplate: `${BASE}/tools/marriage-porutham-calculator`,
-    },
-    "query-input": "required name=search_term_string",
-  },
 };
 
 export const metadata: Metadata = {
@@ -107,17 +106,21 @@ export const metadata: Metadata = {
   authors: [{ name: "Vinaadi" }],
   creator: "Vinaadi",
   publisher: "Vinaadi",
+  // No `url` here, and no `alternates` below: both are inherited by every page
+  // that does not set its own, and a site-wide value tells search engines and
+  // share previews that the page is the homepage. Ten public pages declared
+  // exactly that until 2026-09-26 (GRW-02). Each page sets its own through
+  // lib/page-metadata.ts; lib/seo-metadata.test.ts checks every one.
   openGraph: {
     type: "website",
     locale: "en_IN",
-    url: BASE,
     siteName: "Vinaadi",
     title: "Vinaadi - Tamil Astrology Assistant for Daily Guidance & Planning",
     description:
       "Precise Thirukanitham-based Tamil astrology for daily guidance, porutham matching, jadhagam generation, and family planning.",
     images: [
       {
-        url: "/brand/vinaadi-og-image.png",
+        url: "/brand/vinaadi-og-image.jpg",
         width: 1200,
         height: 630,
         alt: "Vinaadi - Tamil Astrology Assistant",
@@ -129,7 +132,7 @@ export const metadata: Metadata = {
     title: "Vinaadi - Tamil Astrology Assistant for Daily Guidance & Planning",
     description:
       "Thirukanitham-based Tamil astrology for daily guidance, porutham, jadhagam, and family planning.",
-    images: ["/brand/vinaadi-og-image.png"],
+    images: ["/brand/vinaadi-og-image.jpg"],
   },
   robots: {
     index: true,
@@ -142,18 +145,21 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
-  alternates: {
-    canonical: BASE,
-    languages: {
-      en: BASE,
-      ta: BASE,
-      "x-default": BASE,
-    },
-  },
+  // No site-wide hreflang: declaring `en` and `ta` at one address told crawlers
+  // the two were one page. Tamil now has its own URLs (`/ta/...`, GRW-06), and
+  // each page that has a twin declares the reciprocal pair itself through
+  // lib/localized-metadata.ts. Pages without a twin declare none.
   icons: {
     icon: [{ url: "/favicon.ico" }, { url: "/icon.png", type: "image/png" }],
     apple: [{ url: "/apple-icon.png", type: "image/png" }],
     shortcut: ["/favicon.ico"],
+  },
+  // Search Console / Bing ownership tokens, read from the server's runtime env
+  // so they can be set at deploy without a rebuild (GRW-01). A DNS TXT record
+  // verifies the whole domain too; either works. Absent env -> no tag.
+  verification: {
+    ...(process.env.GOOGLE_SITE_VERIFICATION ? { google: process.env.GOOGLE_SITE_VERIFICATION } : {}),
+    ...(process.env.BING_SITE_VERIFICATION ? { other: { "msvalidate.01": process.env.BING_SITE_VERIFICATION } } : {}),
   },
 };
 
@@ -173,7 +179,12 @@ export default async function RootLayout({
   // Reading headers() forces dynamic rendering, which costs nothing here: the
   // `getServerLang()` call above already awaits cookies(), so this layout — and
   // so every route beneath it — was dynamic before the CSP existed.
-  const nonce = (await headers()).get("x-nonce") ?? undefined;
+  const requestHeaders = await headers();
+  const nonce = requestHeaders.get("x-nonce") ?? undefined;
+  // The site-level Organization/WebSite blocks ride on every page. On a Tamil
+  // twin (the URL, not the cookie, asked for Tamil) their description is the
+  // Tamil home copy, so no English structured data sits on a Tamil page.
+  const tamilDescription = requestHeaders.get(LANG_HEADER) === "ta" ? SITE_DESCRIPTION_TA : undefined;
 
   return (
     <html
@@ -204,13 +215,13 @@ export default async function RootLayout({
           type="application/ld+json"
           suppressHydrationWarning
           nonce={nonce}
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(ORG_JSONLD) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd({ ...ORG_JSONLD, ...(tamilDescription ? { description: tamilDescription, inLanguage: "ta" } : {}) }) }}
         />
         <script
           type="application/ld+json"
           suppressHydrationWarning
           nonce={nonce}
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(WEBSITE_JSONLD) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd({ ...WEBSITE_JSONLD, ...(tamilDescription ? { description: tamilDescription, inLanguage: "ta" } : {}) }) }}
         />
       </head>
       <body>

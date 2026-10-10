@@ -1,19 +1,24 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
+import { LangContext, useLang } from "@/components/lang-context";
 import { useRouter } from "next/navigation";
 import { LANG_COOKIE_NAME, LANG_STORAGE_KEY, resolveLang, type Lang } from "@/lib/i18n";
 import { apiFetchJson } from "@/lib/api";
+import { counterpartPath, splitLangPrefix } from "@/lib/ta-routes";
 
 // ── Shared context ──────────────────────────────────────────────────────────
 
-type LangCtx = [Lang, (l: Lang) => void];
-const LangContext = createContext<LangCtx>(["en", () => {}]);
 
 function persistLangPreference(lang: Lang) {
   localStorage.setItem(LANG_STORAGE_KEY, lang);
   document.cookie = `${LANG_COOKIE_NAME}=${lang}; path=/; max-age=31536000; samesite=lax`;
   document.documentElement.lang = lang;
+}
+
+/** True when the browser is on a `/ta/...` URL. Client-only. */
+function onTamilUrl(): boolean {
+  return splitLangPrefix(window.location.pathname).lang === "ta";
 }
 
 export function LangProvider({
@@ -39,17 +44,30 @@ export function LangProvider({
   // when the two actually disagree. Re-persisting on every visit is deliberate
   // and unchanged: it rolls the cookie's expiry forward, which is what stops
   // the drift recurring.
+  //
+  // GRW-06 — on a Tamil URL (`/ta/...`) the URL *is* the language: the stored
+  // preference cannot override it, and is brought into line with it instead.
   useEffect(() => {
-    const resolved = resolveLang(localStorage.getItem(LANG_STORAGE_KEY), initialLang);
+    const resolved = onTamilUrl()
+      ? "ta"
+      : resolveLang(localStorage.getItem(LANG_STORAGE_KEY), initialLang);
     setLangState(resolved);
     persistLangPreference(resolved);
-    if (resolved !== initialLang) startTransition(() => router.refresh());
+    if (resolved !== initialLang) {
+      // A page with a twin in the other language moves to it (the server
+      // redirects a Tamil cookie on an English URL, but a client refresh does
+      // not follow that); any other page re-renders in place.
+      const twin = counterpartPath(window.location.pathname, resolved);
+      startTransition(() => (twin ? router.replace(twin) : router.refresh()));
+    }
   }, [initialLang, router]);
 
   // Sync to server-side preference once the authenticated session resolves.
   useEffect(() => {
     function onSessionLang(e: Event) {
       const serverLang = (e as CustomEvent<Lang>).detail;
+      // A Tamil URL is not overridden by an account default.
+      if (onTamilUrl() && serverLang !== "ta") return;
       if (serverLang === "ta" || serverLang === "en") {
         setLangState(serverLang);
         persistLangPreference(serverLang);
@@ -68,7 +86,9 @@ export function LangProvider({
     // transition so the current language stays interactive until the new one
     // arrives. Pages still reading `useLang()` update from the context first
     // and are unaffected by the refresh landing a moment later.
-    startTransition(() => router.refresh());
+    // A page with a URL per language changes URL; every other page re-renders.
+    const twin = counterpartPath(window.location.pathname, l);
+    startTransition(() => (twin ? router.push(twin) : router.refresh()));
   }
 
   return (
@@ -80,9 +100,8 @@ export function LangProvider({
 
 // ── Hook ────────────────────────────────────────────────────────────────────
 
-export function useLang(): LangCtx {
-  return useContext(LangContext);
-}
+// Re-exported: the hook lives in lang-context.tsx (see there for why).
+export { useLang };
 
 // ── Toggle button ───────────────────────────────────────────────────────────
 

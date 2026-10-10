@@ -2,6 +2,12 @@
 
 Items parked here are not blocking the initial release but need a product decision before implementation.
 
+## In verification — Monthly calendar redesign (2026-09-15)
+
+Owner approved the supplied visual reference, adapted to Nova's existing
+fonts and colors. Implementation and verification notes:
+[Monthly calendar redesign](CALENDAR_MONTHLY_REDESIGN_2026-09-15.md).
+
 ---
 
 ## Parked — awaiting product decision

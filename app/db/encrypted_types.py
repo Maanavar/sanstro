@@ -9,10 +9,15 @@ half-applied.
 Fernet is AES-128-CBC with an HMAC-SHA256, so ciphertext is authenticated —
 tampering raises `InvalidToken` on read rather than yielding a plausible wrong
 value.
+
+Lives in `app.db` because it is persistence infrastructure: the ORM models
+import it. It was `app.services.encryption` until A13 (2026-10-08), which made
+every model depend on the services layer that is supposed to depend on them.
 """
 from __future__ import annotations
 
-from datetime import date, time
+import json
+from datetime import date, datetime, time
 
 from sqlalchemy import LargeBinary
 from sqlalchemy.types import TypeDecorator
@@ -21,7 +26,9 @@ from app.core.encryption import decrypt_bytes, encrypt_bytes
 
 __all__ = [
     "EncryptedDate",
+    "EncryptedDateTime",
     "EncryptedFloat",
+    "EncryptedJSON",
     "EncryptedString",
     "EncryptedTime",
     "decrypt",
@@ -81,6 +88,51 @@ class EncryptedTime(TypeDecorator):
         if value is None:
             return None
         return time.fromisoformat(decrypt(bytes(value)).decode())
+
+
+class EncryptedDateTime(TypeDecorator):
+    """Stores a timezone-aware datetime as Fernet-encrypted ISO-8601 bytes.
+
+    Naive values are refused rather than guessed at: the column this replaced was
+    ``TIMESTAMPTZ``, and a naive datetime written here would read back as a
+    different instant on any host whose local zone is not UTC.
+    """
+    impl = LargeBinary
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return None
+        if isinstance(value, datetime):
+            if value.tzinfo is None:
+                raise ValueError("EncryptedDateTime requires a timezone-aware datetime")
+            return encrypt(value.isoformat().encode())
+        raise TypeError(f"EncryptedDateTime expects datetime, got {type(value)!r}")
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return None
+        return datetime.fromisoformat(decrypt(bytes(value)).decode())
+
+
+class EncryptedJSON(TypeDecorator):
+    """Stores a JSON-serialisable value as Fernet-encrypted bytes.
+
+    Unlike ``JSON``, SQLAlchemy cannot see in-place mutation of the decrypted
+    value; assign a new object to persist a change.
+    """
+    impl = LargeBinary
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return None
+        return encrypt(json.dumps(value, separators=(",", ":")).encode("utf-8"))
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return None
+        return json.loads(decrypt(bytes(value)).decode("utf-8"))
 
 
 class EncryptedFloat(TypeDecorator):

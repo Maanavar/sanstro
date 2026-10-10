@@ -3,7 +3,7 @@
  *
  * The dashboard's Today hero decides one thing for the reader — one promoted
  * window, chosen by the almanac's own Gowri ranking and never overlapping Rahu
- * Kalam / Yamagandam / Kuligai (owner ruling 2026-08-23, documented on
+ * Kalam / Yamagandam (owner ruling 2026-08-23, narrowed by R7, documented on
  * `pickRecommendedWindow` in today-windows.ts). The marketing hero showed a
  * hardcoded `bestWindow: { start: "11:53", end: "12:41" }` instead, on a page
  * whose own trust proof reads "Method, not marketing".
@@ -37,36 +37,47 @@ export const GUEST_LOCATION = { lat: 13.0827, lng: 80.2707, tz: "Asia/Kolkata", 
 /* ── avoid axis ─────────────────────────────────────────────────────────── */
 
 export interface AvoidPeriod extends TimingSpan {
-  key: "rahuKalam" | "yamagandam" | "kuligai";
+  key: "rahuKalam" | "yamagandam";
 }
 
-/** The three kalas a promoted window may never overlap, in the order a Tamil
- *  almanac prints them. Rahu Kalam leads because it is the one a reader who
- *  knows only one of the three knows. */
+/** The kalas a promoted window may never overlap, in the order a Tamil almanac
+ *  prints them. Rahu Kalam leads because it is the one a reader who knows only
+ *  one of them knows.
+ *
+ *  Kuligai was a third entry here until owner ruling R7 (2026-09-22). It is not
+ *  an avoid period: what is begun in Kuligai tends to recur, and whether that
+ *  is wanted is the activity's question. A guest supplies no activity at all,
+ *  so this surface can assert neither polarity — see `kuligaiPeriod`. */
 export function avoidPeriods(kalam: Kalam | null | undefined): AvoidPeriod[] {
   if (!kalam) return [];
   return ([
     ["rahuKalam", kalam.rahuKalam],
     ["yamagandam", kalam.yamagandam],
-    ["kuligai", kalam.kuligai],
   ] as const)
     .filter(([, slot]) => slot?.start && slot?.end)
     .map(([key, slot]) => ({ key, start: slot.start, end: slot.end }));
+}
+
+/** Kuligai as its own conditional period (R7.7): never folded into the avoid
+ *  list, never folded into the recommended one. */
+export function kuligaiPeriod(kalam: Kalam | null | undefined): TimingSpan | null {
+  const slot = kalam?.kuligai;
+  return slot?.start && slot?.end ? { start: slot.start, end: slot.end } : null;
 }
 
 /**
  * Which avoid period the hero puts beside the recommendation.
  *
  * The dashboard shows `cautionWindows[0] ?? rahuKalam`; a guest has no caution
- * windows, so this ranks the three kalas the same way the promoted window is
+ * windows, so this ranks the kalas the same way the promoted window is
  * ranked — the next one that has not ended yet, so the safety axis stays as
  * actionable as the opportunity axis as the day advances. Left un-ranked, the
  * card sat on a Rahu Kalam that finished at noon while Yamagandam was still
  * three hours ahead and unmentioned.
  *
- * Rahu Kalam is the fallback once all three are spent: it is the one of the
- * three a reader who knows only one of them knows, so "over for today" is more
- * legible against that name than against Kuligai's.
+ * Rahu Kalam is the fallback once both are spent: it is the one a reader who
+ * knows only one of them knows, so "over for today" is more legible against
+ * that name. Kuligai is not a candidate here at all (R7).
  */
 export function pickAvoidPeriod(
   kalam: Kalam | null | undefined,
@@ -162,8 +173,9 @@ function startMinutes(slot: TimingSpan): number {
  *
  * 1. Rank the day's auspicious Gowri kalas — Amirtham > Uthi > Labham > Dhanam
  *    > Sugam, earlier start breaking a tie.
- * 2. Drop any that overlap Rahu Kalam, Yamagandam or Kuligai. The reader is
- *    never told to act inside an avoid-kala, whatever its Gowri kala says.
+ * 2. Drop any that overlap Rahu Kalam or Yamagandam. The reader is never told
+ *    to act inside an avoid-kala, whatever its Gowri kala says. Kuligai is not
+ *    one of them (R7) — it neither disqualifies a window nor endorses one.
  * 3. Prefer the first that has not already ended, so the hero stays actionable
  *    as the day advances instead of pointing at 7am at 4pm.
  *
@@ -185,7 +197,7 @@ export function pickGuestWindow(
   // `gowriPanchangam` is the full 8-part grid and the richest candidate set.
   // It is optional on the type (older cached responses predate it), so fall
   // back to the two-window Nalla Neram summary, which the backend has already
-  // filtered clear of the three kalas.
+  // filtered clear of the kalas.
   const grid = (kalam.gowriPanchangam ?? []).filter((s) => s?.start && s?.end);
   const daytime = grid.length > 0
     ? grid.filter((s) => s.isGood && s.period === "DAY")

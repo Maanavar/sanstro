@@ -77,8 +77,22 @@ ENCRYPTED_COLUMNS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
             # keeps its own list of hand-encrypted columns instead of trusting
             # the scan to be complete.
             "encrypted_birth_payload",
+            "birth_datetime_utc",
+            "birth_place",
+            "birth_timezone",
+            "current_place",
+            "current_latitude",
+            "current_longitude",
+            "current_timezone",
         ),
     ),
+    ("charts", "chart_id", ("julian_day", "lagna_longitude")),
+    (
+        "chart_planets",
+        "chart_planet_id",
+        ("absolute_longitude", "degree_in_rasi", "speed_deg_per_day", "raw_payload"),
+    ),
+    ("family_members", "family_member_id", ("date_of_birth_local",)),
     ("journal_entries", "journal_id", ("note_text",)),
 )
 

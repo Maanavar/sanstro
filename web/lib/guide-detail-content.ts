@@ -1,4 +1,6 @@
 import { DOSHAM_SEVVAI, DOSHAM_SEVVAI_FAQ } from "./marketing-i18n";
+import { SITE_URL } from "@vinaadi/shared/constants";
+import { taUrl } from "./ta-routes";
 
 export type BiText = {
   en: string;
@@ -611,7 +613,7 @@ DOSHAM_DETAILS["naga-sarpa-dosham"].sections = [
     body: [
       b(
         "Tamil astrologers do not call Naga dosham from Rahu and Ketu alone. They examine the 5th house, its lord, Jupiter, putra-karaka indicators, and whether the nodal axis is truly afflicting that line from Lagna and Moon.",
-        "தமிழ் ஜோதிடர்கள் ராகு-கேதுவை மட்டும் வைத்து நாக தோஷம் என்று சொல்லமாட்டார்கள். 5-ஆம் பாவம், அதன் அதிபதி, குரு, புத்திர காரக குறிகள், லக்னம் மற்றும் சந்திரத்திலிருந்து நோடு அச்சு அந்த வரிசையை உண்மையில் அழுத்துகிறதா என்று பார்க்கிறார்கள்."
+        "தமிழ் ஜோதிடர்கள் ராகு-கேதுவை மட்டும் வைத்து நாக தோஷம் என்று சொல்லமாட்டார்கள். 5-ஆம் பாவம், அதன் அதிபதி, குரு, புத்திர காரக குறிகள், லக்னம் மற்றும் சந்திரனிலிருந்து ராகு-கேது அச்சு அந்த வரிசையை உண்மையில் அழுத்துகிறதா என்று பார்க்கிறார்கள்."
       ),
       b(
         "The running dasa matters just as much. Naga dosham reads stronger when Rahu-Ketu periods activate a weak 5th house; it reads milder when Guru is strong and benefics protect childbirth and family continuity.",
@@ -1428,6 +1430,8 @@ export const YOGAM_DETAILS: Record<string, GuideDetail> = {
  */
 export const YOGA_ENGINE_NAME_TO_GUIDE_SLUG: Record<string, string> = {
   GAJA_KESARI_YOGA: "gaja-kesari-yogam",
+  // DD-01 strict form: the full Gaja Kesari, so it keeps the same guide page.
+  GAJA_KESARI_PARASHARA: "gaja-kesari-yogam",
   DHANA_YOGA: "dhana-yogam",
   BUDHA_ADITYA_YOGA: "budha-aditya-yogam",
   NEECHA_BHANGA_RAJA_YOGA: "neecha-bhanga-raja-yogam",
@@ -2536,48 +2540,55 @@ export function getGuideVerifyNote(content: Pick<GuideDetail, "kind">): BiText {
   return GUIDE_VERIFY_NOTE[content.kind];
 }
 
-const KIND_BREADCRUMB: Record<GuideKind, { name: string; path: string }> = {
-  dosham: { name: "Dosham", path: "/dosham" },
-  yogam: { name: "Yogam", path: "/yogam" },
-  temple: { name: "Temples", path: "/temples" },
-  pariharam: { name: "Pariharam", path: "/pariharam" },
+const KIND_BREADCRUMB: Record<GuideKind, { name: BiText; path: string }> = {
+  dosham: { name: { en: "Dosham", ta: "தோஷம்" }, path: "/dosham" },
+  yogam: { name: { en: "Yogam", ta: "யோகம்" }, path: "/yogam" },
+  temple: { name: { en: "Temples", ta: "கோயில்கள்" }, path: "/temples" },
+  pariharam: { name: { en: "Pariharam", ta: "பரிகாரம்" }, path: "/pariharam" },
 };
 
 /**
  * Builds Article + BreadcrumbList JSON-LD for a guide detail page so the
  * dosham / yogam / temple / pariharam pages are eligible for rich results.
+ *
+ * One language per call (GRW-06): the Tamil twin's block is written from the
+ * page's own Tamil text and points at `/ta/...` addresses, so the structured
+ * data agrees with the `<title>` and body it sits beside. `url` is always the
+ * English address; the Tamil one is derived from it.
  */
-export function guideJsonLd(content: GuideDetail, url: string) {
+export function guideJsonLd(content: GuideDetail, url: string, lang: "en" | "ta" = "en") {
+  const pageUrl = lang === "ta" ? taUrl(url) : url;
+  const home = lang === "ta" ? taUrl(SITE_URL) : SITE_URL;
   const crumb = KIND_BREADCRUMB[content.kind];
   const sectionBody = content.sections
-    .map((section) => `${section.heading.en}. ${section.body.map((p) => p.en).join(" ")}`)
+    .map((section) => `${section.heading[lang]}. ${section.body.map((p) => p[lang]).join(" ")}`)
     .join("\n\n");
   const remedyBody = content.remedies
-    ? `\n\n${content.remedies.heading.en}. ${content.remedies.intro.en} ${content.remedies.items
-        .map((item) => item.en)
+    ? `\n\n${content.remedies.heading[lang]}. ${content.remedies.intro[lang]} ${content.remedies.items
+        .map((item) => item[lang])
         .join(" ")}`
     : "";
-  const verifyNote = getGuideVerifyNote(content).en;
+  const verifyNote = getGuideVerifyNote(content)[lang];
 
   const graph: Record<string, unknown>[] = [
     {
       "@type": "Article",
-      headline: content.title.en,
-      description: content.lead.en,
+      headline: content.title[lang],
+      description: content.lead[lang],
       articleBody: `${sectionBody}${remedyBody}\n\n${verifyNote}`,
-      about: content.title.en,
-      inLanguage: ["en", "ta"],
-      url,
-      mainEntityOfPage: url,
-      isPartOf: { "@type": "WebSite", name: "Vinaadi", url: "https://vinaadi.com" },
-      publisher: { "@type": "Organization", name: "Vinaadi", url: "https://vinaadi.com" },
+      about: content.title[lang],
+      inLanguage: lang,
+      url: pageUrl,
+      mainEntityOfPage: pageUrl,
+      isPartOf: { "@type": "WebSite", name: "Vinaadi", url: home },
+      publisher: { "@type": "Organization", name: "Vinaadi", url: SITE_URL },
     },
     {
       "@type": "BreadcrumbList",
       itemListElement: [
-        { "@type": "ListItem", position: 1, name: "Home", item: "https://vinaadi.com" },
-        { "@type": "ListItem", position: 2, name: crumb.name, item: `https://vinaadi.com${crumb.path}` },
-        { "@type": "ListItem", position: 3, name: content.title.en, item: url },
+        { "@type": "ListItem", position: 1, name: lang === "ta" ? "முகப்பு" : "Home", item: home },
+        { "@type": "ListItem", position: 2, name: crumb.name[lang], item: lang === "ta" ? taUrl(`${SITE_URL}${crumb.path}`) : `${SITE_URL}${crumb.path}` },
+        { "@type": "ListItem", position: 3, name: content.title[lang], item: pageUrl },
       ],
     },
   ];
@@ -2587,8 +2598,8 @@ export function guideJsonLd(content: GuideDetail, url: string) {
       "@type": "FAQPage",
       mainEntity: content.faq.map((item) => ({
         "@type": "Question",
-        name: item.q.en,
-        acceptedAnswer: { "@type": "Answer", text: item.a.en },
+        name: item.q[lang],
+        acceptedAnswer: { "@type": "Answer", text: item.a[lang] },
       })),
     });
   }

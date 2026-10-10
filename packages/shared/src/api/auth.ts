@@ -12,6 +12,9 @@ export interface MobileAuthResponse {
     userId: string;
     email: string;
     displayName: string | null;
+    /** Same fields as `MeResponse` — the backend sends an `AuthUserResponse` here. */
+    tier: "registered" | "premium";
+    openBeta: boolean;
   };
 }
 
@@ -23,6 +26,13 @@ export interface MeResponse {
   lang: "ta" | "en";
   /** Derived live from the subscription table — never a stored flag on the user. */
   tier: "registered" | "premium";
+  /**
+   * True while the open beta runs. The server already holds a beta account to
+   * premium's limits, so the client unlocks the same features and shows no
+   * upgrade prompt. `tier` stays the subscription fact — read both through
+   * `effectiveTier()` (constants/tiers.ts), never one alone.
+   */
+  openBeta: boolean;
   /**
    * True when the consent panel should be shown: the user has never consented,
    * or consented to a policy version older than the live one (DPDP Act 2023 §6).
@@ -120,6 +130,25 @@ export interface SubscriptionInfoResponse {
 
 export function getMySubscription(): Promise<SubscriptionInfoResponse> {
   return getApiClient().get("/users/me/subscription") as Promise<SubscriptionInfoResponse>;
+}
+
+/** GET /users/me/referral — app/api/users.py `get_own_referral` (GRW-13). */
+export interface ReferralInfo {
+  /** Minted on the first call, stable afterwards. */
+  code: string;
+  /** The site root carrying `?ref=<code>`. */
+  shareUrl: string;
+  /** Accounts whose first visit arrived through this code. */
+  referredCount: number;
+}
+
+export interface ReferralInfoResponse {
+  success: boolean;
+  data: ReferralInfo;
+}
+
+export function getMyReferral(): Promise<ReferralInfoResponse> {
+  return getApiClient().get("/users/me/referral") as Promise<ReferralInfoResponse>;
 }
 
 export interface AuthProvidersResponse {

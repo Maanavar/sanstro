@@ -1,3 +1,5 @@
+import type * as Server from "../generated/api-types";
+
 export interface ApiMeta {
   calculationVersion: string;
   generatedAt: string;
@@ -95,6 +97,15 @@ export interface LifeAreaData {
    * when the reasoning_chart_signature flag is on (plan Phase 5).
    */
   causalChain?: BiText | null;
+  /** "MAINTAIN" when the area is well supported: `remedy` then carries a light
+   *  practice, not a parikaram (owner ruling 2026-10-01). "REMEDY" when it
+   *  needs care. Absent on cached payloads and for a skipped/suppressed area. */
+  remedyKind?: "REMEDY" | "MAINTAIN" | null;
+  /** One-line reading of `score` from the shared interpretation scale and its
+   *  owner-approved copy (2026-10-01). Read from the displayed score. Absent on
+   *  cached payloads and whenever no score is claimed. */
+  scoreBand?: "EXCEPTIONAL" | "STRONG" | "GOOD" | "MIXED" | "DIFFICULT" | "VERY_WEAK" | null;
+  scoreBandText?: BiText | null;
 }
 
 /** Dominant-graha framing for the whole chart (plan Phase 5). */
@@ -142,11 +153,11 @@ export interface AskVinaadiResponseData {
  * screen claims that a named page of a named edition says this.
  */
 export interface MuhurtaCitation {
-  tradition?: string | null;
-  chapter?: string | null;
-  page?: string | null;
-  passage?: string | null;
-  edition?: string | null;
+  tradition: string | null;
+  chapter: string | null;
+  page: string | null;
+  passage: string | null;
+  edition: string | null;
 }
 
 /**
@@ -167,11 +178,11 @@ export interface MuhurtaFactor {
   contribution: number;
   reason: BiText;
   /** True only for primary-text-confirmed doctrine — never for the generic almanac layer. */
-  sourced?: boolean;
-  ruleId?: string | null;
-  citation?: MuhurtaCitation | null;
+  sourced: boolean;
+  ruleId: string | null;
+  citation: MuhurtaCitation | null;
   /** Two sourced rules matched and the text does not settle which wins. */
-  conflict?: string | null;
+  conflict: string | null;
 }
 
 /** A non-scoring family-custom note for the Tamil solar month of the slot. */
@@ -180,28 +191,49 @@ export interface TraditionalMonthNotice {
   message: BiText;
 }
 
+/**
+ * Whether a wedding date also appears on the printed almanac's own wedding list.
+ *
+ * §3 of docs/HOME_CALENDAR_CHARTS_PROPOSALS_2026-09-22.md. **A gate, not a
+ * bonus point** (astrologer): most Tamil families will not accept a date the
+ * almanac does not list, however good its computed score — so this is reported
+ * beside `score` and contributes nothing to it.
+ *
+ * Three states rather than a boolean: only years with a sourced almanac sheet
+ * are published at all, and "we have no sheet for that year" is not "the almanac
+ * rejected your date".
+ */
+export interface AlmanacMuhurtham {
+  status: "ON_LIST" | "NOT_ON_LIST" | "NO_SHEET";
+  /** The almanac's own paksha for the day. Null unless `ON_LIST`. */
+  pirai: "VALARPIRAI" | "THEIPIRAI" | null;
+}
+
 export interface MuhurtaSlot {
   date: string;
-  tamilDate?: BiText | null;
+  tamilDate: BiText | null;
   timeStart: string;
   timeEnd: string;
   score: number;
   /** False only for an explicit selected-date assessment that found a veto. */
-  recommended?: boolean;
-  band?: "BEST" | "GOOD" | "USABLE" | "NOT_RECOMMENDED";
+  recommended: boolean;
+  band: "BEST" | "GOOD" | "USABLE" | "NOT_RECOMMENDED";
   panchangamSupport: BiText;
-  dashaSupport?: BiText | null;
-  horaSupport?: BiText | null;
+  dashaSupport: BiText | null;
+  horaSupport: BiText | null;
   cautions: BiText[];
   /** Informational only; never changes the score or recommendation. */
-  traditionalMonthNotices?: TraditionalMonthNotice[];
+  traditionalMonthNotices: TraditionalMonthNotice[];
   /**
    * Every factor the engine weighed, in evaluation order. `cautions` is a lossy
    * projection of this (the PENALTY reasons only), kept for surfaces that
    * already render it — new UI should read `factors`, which also carries
    * verdicts, citations and rule conflicts.
    */
-  factors?: MuhurtaFactor[];
+  factors: MuhurtaFactor[];
+  /** MARRIAGE only. Null on every other activity: the sourced sheets are
+   *  wedding sheets, so there is no verdict to render for an exam day. */
+  almanacMuhurtham: AlmanacMuhurtham | null;
 }
 
 export interface MuhurtaActivityLocation {
@@ -274,6 +306,10 @@ export interface BirthProfileResponse {
   birthTimeConfidenceMinutes: number;
   calculationStatus: "pending" | "completed" | "failed";
   warnings: string[];
+  /** The profile's saved chart. Sent by GET /birth-profiles; null until calculated. */
+  chartId?: string | null;
+  /** "male" | "female" when given; used to preselect a wedding role, never to score. */
+  genderForTraditionalRules?: string | null;
 }
 
 export interface BirthProfileSnapshot {
@@ -329,6 +365,7 @@ export interface ChartPlanet {
   /** Cazimi — planet within 0°17' of the Sun (heart of the Sun): empowered, not burnt. */
   isCazimi?: boolean;
   d9Rasi: number;
+  d9Dignity: "EXALTED" | "OWN_SIGN" | "FRIEND_SIGN" | "NEUTRAL_SIGN" | "ENEMY_SIGN" | "DEBILITATED";
   isVargottama: boolean;
   showRetrogradeBadge: boolean;
   strengthScore?: number;
@@ -339,6 +376,13 @@ export interface ChartPlanet {
     chesta: "STRONG" | "NEUTRAL" | "WEAK";
     naisargika: "STRONG" | "NEUTRAL" | "WEAK";
     drik: "STRONG" | "NEUTRAL" | "WEAK";
+    // Avastha labels the backend has always sent (compute_strength_breakdown)
+    // but this type never declared. Language-free keys — render the chart
+    // explanation's `avastha` facet for prose, never these bare codes.
+    // Mandhi carries "NEUTRAL" for all three.
+    baladi?: "BALA" | "KUMARA" | "YUVA" | "VRIDDHA" | "MRITA" | "NEUTRAL";
+    jagradadi?: "JAGRAT" | "SWAPNA" | "SUSHUPTI" | "NEUTRAL";
+    deeptadi?: "DEEPTA" | "SWASTHA" | "MUDITA" | "DEENA" | "DUKHITA" | "KHALA" | "NEUTRAL";
   };
 }
 
@@ -362,6 +406,28 @@ export interface ChartYogaInsight {
    */
   effectTa?: string;
   effectEn?: string;
+  /**
+   * The running Antaram (Pratyantar), when its lord also formed this yoga and a
+   * Maha/Antar lord has already activated it — the sharpest sub-window
+   * (astrologer ruling 2026-09-23). Antaram never activates a yoga on its own.
+   * Null otherwise. Dates are ISO `YYYY-MM-DD`. Not rendered yet; additive.
+   */
+  peakWindow?: { start: string; end: string; antaramLord: string } | null;
+  /**
+   * DD-15 timing tier (DOCTRINE_DECISIONS v1.3): "STRONG", "MODERATE" (one
+   * forming planet, or only a secondary activator, is running) or "NONE"
+   * (present, not a dominant influence this period). Read it through
+   * `yogaActivationState`. Optional so an older payload still types.
+   */
+  activationTier?: "STRONG" | "MODERATE" | "NONE";
+  /**
+   * O-25 (2026-10-05): the forming grahas' structural reach, a Vinaadi
+   * tie-break for the Top-3 yoga lists, not classical doctrine. Lexicographic
+   * in one integer: houses ruled ×100, houses occupied ×10, +1 when the Lagna
+   * or its lord takes part. Compare it, never display it. Optional so an older
+   * payload still types (reads as 0).
+   */
+  structuralReach?: number;
 }
 
 export interface ChartDoshamInsight {
@@ -386,6 +452,32 @@ export interface ChartDoshamInsight {
   /** Optional named sub-type, e.g. the specific Kala Sarpa naga (Ananta..Sheshanaga). */
   variantTa?: string;
   variantEn?: string;
+  // DD-17 (2026-10-06). Optional so an older cached payload still types; read
+  // them through `@vinaadi/shared/doshamReckoning`, which falls back safely.
+  /** Grade before any mitigation; "" when the dosham did not form. */
+  formationStrength?: "STRONG" | "PARTIAL" | "WEAK" | "";
+  /** What remains after mitigation. Never "NONE" while `isPresent`. */
+  residual?: DoshamResidual;
+  /** Context that shapes the reading without moving the grade (language-free keys). */
+  contextNotes?: string[];
+  /** Where the dosham was counted from, one row per reference point. */
+  referenceHouses?: DoshamReferenceHouse[];
+  /** What this placement tends to bring in this chart (e.g. Ketu in the 2nd). */
+  meaningTa?: string;
+  meaningEn?: string;
+}
+
+export type DoshamResidual = "NONE" | "MILD" | "MODERATE" | "STRONG";
+
+/** DD-17: one reference point a dosham was counted from. */
+export interface DoshamReferenceHouse {
+  reference: "LAGNA" | "MOON" | "VENUS" | "D9_LAGNA";
+  /** Rasi number 1–12 — render it through the localiser, never a name field. */
+  referenceRasi: number;
+  /** Mars's house; for the nodes, the Rahu house then the Ketu house. */
+  houses: number[];
+  /** Whether the placement falls in the dosham's houses from this reference. */
+  counts: boolean;
 }
 
 /**
@@ -421,6 +513,7 @@ export interface ChartCalculateResponseData {
     nakshatra: number;
     nakshatraName: string;
     pada: number;
+    d9Rasi: number;
   };
   planets: ChartPlanet[];
   yogas: ChartYogaInsight[];
@@ -635,6 +728,97 @@ export interface DailyGuidanceData {
   /** Today's green/red light across all activity types. Optional — older
    *  cached rows predate it, so callers must handle undefined. */
   activityBoard?: DailyActivityBoard | null;
+  /** இன்றைய பலன் · உங்கள் ஜாதகப்படி (proposal §5). Null on rows cached
+   *  before it existed. */
+  personalPalan?: PersonalPalan | null;
+}
+
+export type PalanPolarity = "FAVOURABLE" | "MIXED" | "CAUTION";
+
+/** Language-free area keys; label them with `palanAreaLabel`. */
+export type PalanAreaKey =
+  | "CAREER" | "BUSINESS" | "MONEY" | "FAMILY" | "LOVE" | "HEALTH"
+  | "EDUCATION" | "TRAVEL" | "DOCUMENTS" | "FRIENDS" | "COMMUNICATION" | "MIND";
+
+export interface PersonalPalanArea {
+  area: PalanAreaKey | (string & {});
+  polarity: PalanPolarity;
+  text: { ta: string; en: string };
+  /** The season's one clause for this area (Sani / Guru / Rahu), if any. */
+  periodNote?: { ta: string; en: string } | null;
+}
+
+/** The slow layers the day is read against. Lords and the Sani cycle are
+ *  keys: render them through `tPlanetLord` / `saniCycleName`. */
+export interface PersonalPalanPeriod {
+  mahaLord: string;
+  antarLord: string;
+  saniCycle?: string | null;
+  kandakaHouse?: number | null;
+  /** Houses counted from the natal Moon. */
+  guruHouse: number;
+  saturnHouse: number;
+  rahuHouse: number;
+  /** Houses the bhukti lord rules (a node: occupies) from the lagna. */
+  antarHouses: number[];
+  antarTransitHouse: number;
+  antarTransitSupportive: boolean;
+  text: { ta: string; en: string };
+}
+
+export interface PersonalPalan {
+  contentVersion: string;
+  /** OWNER_COMMISSIONED_DRAFT until outside review is recorded. */
+  reviewStatus: string;
+  /** Read off the same response's `label`: never contradicts the hero. */
+  overallPolarity: PalanPolarity;
+  overall: { ta: string; en: string };
+  areas: PersonalPalanArea[];
+  advice: { ta: string; en: string };
+  worship: { ta: string; en: string };
+  closing: { ta: string; en: string };
+  strength?: { ta: string; en: string } | null;
+  watch?: { ta: string; en: string } | null;
+  opportunityArea?: PalanAreaKey | null;
+  cautionArea?: PalanAreaKey | null;
+  /** The hero's featured window, not a second calculation. */
+  bestWindow?: DailyGuidanceWindow | null;
+  basis: {
+    moonHouse: number;
+    tara: number;
+    taraName: { ta: string; en: string };
+    isChandrashtama: boolean;
+    text: { ta: string; en: string };
+  };
+  period?: PersonalPalanPeriod | null;
+  /** Areas the running bhukti lord brings forward; they lead the card. */
+  dashaAreas?: PalanAreaKey[];
+  /** The same palan as a TV-presenter transcript, in speaking order. The
+   *  greeting with the person's name is the client's. */
+  transcript?: PersonalPalanSegment[];
+  /** Lucky colour, number and direction (ruling R9): one graha, named with
+   *  its rules in `text`. */
+  lucky?: PersonalPalanLucky | null;
+}
+
+export interface PersonalPalanLucky {
+  /** Graha key; render with `tPlanetLord`. */
+  graha: string;
+  source: "BEST_HORA" | "WEEKDAY" | (string & {});
+  colour: { ta: string; en: string };
+  number: number;
+  /** Null when the graha's direction is the day's Soolam. */
+  direction?: string | null;
+  directionName?: { ta: string; en: string } | null;
+  soolam?: string | null;
+  soolamName?: { ta: string; en: string } | null;
+  text: { ta: string; en: string };
+}
+
+export interface PersonalPalanSegment {
+  kind: "OVERALL" | "PERIOD" | "AREA" | "TIME" | "STRENGTH" | "ADVICE" | "WORSHIP" | "CLOSING" | (string & {});
+  area?: PalanAreaKey | null;
+  text: { ta: string; en: string };
 }
 
 /** One activity and today's verdict on it. */
@@ -719,37 +903,13 @@ export interface DashaTimelineResponseData {
   timeline: DashaTimelineItem[];
 }
 
-export interface CharaDashaPeriod {
-  rasi: number;
-  rasi_name: string;
-  years: number;
-  start_date: string;
-  end_date: string;
-}
-
+// GET /charts/{id}/chara-dasha — aliases of the generated server types (A14), the
+// same ones `api/charaDasha.ts` exports. Web's direct fetch casts to these names.
 // Jaimini Chara Karakas (BPHS Ch. 32) — see app/calculations/jaimini_karakas.py
 // for the documented Rahu/tie-break conventions this project uses.
-export interface CharaKarakaMap {
-  ATMAKARAKA: string;
-  AMATYAKARAKA: string;
-  BHRATRUKARAKA: string;
-  MATRUKARAKA: string;
-  PITRUKARAKA: string;
-  PUTRAKARAKA: string;
-  GNATIKARAKA: string;
-  DAARAKARAKA: string;
-}
-
-export interface CharaDashaData {
-  chartId: string;
-  lagnaRasi: number;
-  currentPeriod: CharaDashaPeriod | null;
-  periods: CharaDashaPeriod[];
-  charKarakas: CharaKarakaMap | null;
-  atmakaraka: string | null;
-  karakamsaRasi: number | null;
-  karakamsaRasiName: string | null;
-}
+export type CharaDashaPeriod = Server.CharaDashaPeriod;
+export type CharaKarakaMap = Server.CharaKarakas;
+export type CharaDashaData = Server.CharaDashaData;
 
 export interface SolarReturnData {
   chartId: string;
@@ -826,6 +986,10 @@ export interface ChartExplanationCoreIdentity {
   currentAntardasha: string;
   currentPratyantardasha: string;
   explanation: BiText;
+  /** Set only when birth-time error (firm ±5 min, soft ±15 min) would change the Lagna sign. */
+  lagnaEdgeNote?: BiText | null;
+  /** Set only when ±5 min of birth-time error would change the Navamsa (D9) Lagna. */
+  navamsaLagnaEdgeNote?: BiText | null;
 }
 
 export interface ChartExplanationPlanet {
@@ -847,7 +1011,11 @@ export interface ChartExplanationPlanet {
   isCazimi: boolean;
   isVargottama: boolean;
   d9Rasi: number;
-  houseGroup: "KENDRA" | "TRIKONA" | "DUSTHANA" | "OTHER";
+  /** The lagna (house 1) is both a kendra and a trikona and arrives as
+   *  `KENDRA_TRIKONA` (`_house_group` in chart_explanation_service.py). Every
+   *  kendra count must include it — web uses `isKendraGroup` in
+   *  web/components/dashboard-hybrid-parts.tsx. */
+  houseGroup: "KENDRA" | "TRIKONA" | "KENDRA_TRIKONA" | "DUSTHANA" | "OTHER";
   functionalNature: string;
   /** Inside a graha yuddham (planetary war) — two tara grahas within 1°. The
    *  engine has always charged the loser -15 on `strengthScore`; these fields
@@ -887,6 +1055,7 @@ export interface ChartExplanationFacet {
     | "placement"
     | "role"
     | "strength"
+    | "avastha"
     | "lordship"
     | "condition"
     | "company"
@@ -1032,7 +1201,36 @@ export interface ChartExplanationBhava {
   bhavaBala?: number | null;
   theme: BiText;
   explanation: BiText;
+
+  /**
+   * Bhava palan (2026-09-28) — the verdict/why/conduct triple the reading panel
+   * renders. Optional: older servers omit the whole group.
+   *
+   * Do NOT render `bhavaBala`. The scale is centred at 45 with a stdev of 6, so
+   * "45/100" reads as "mediocre" on a perfectly ordinary house. Render `bandWord`
+   * (already polarity-aware — the top band on 6/8/12 reads "Quiet", not
+   * "Supported") and let `verdict` drive styling only.
+   * docs/BHAVA_PALAN_SECTION_PLAN_2026-09-28.md §9.
+   */
+  verdict?: BhavaVerdict | null;
+  polarity?: BhavaPolarity | null;
+  bandWord?: BiText | null;
+  houseLabel?: BiText | null;
+  framing?: BiText | null;
+  why?: BiText | null;
+  leanOn?: BiText[];
+  goSlowlyWith?: BiText[];
+  karakaNote?: BiText | null;
+  /** Why 6/8/12 (or 3/11) are read on a different scale. Absent on the other seven. */
+  polarityNote?: BiText | null;
+  /** Short line for the closed row, present only where the lord's own strength
+   *  chip points against this house's chip — names what carried or held it.
+   *  Absent on most rows by design. */
+  contrast?: BiText | null;
 }
+
+export type BhavaVerdict = "SUPPORTED" | "MIXED" | "NEEDS_CARE";
+export type BhavaPolarity = "DIRECT" | "UPACHAYA" | "INVERTED";
 
 export interface ChartExplanationBhavaSection {
   bhavas: ChartExplanationBhava[];
@@ -1054,6 +1252,29 @@ export interface ChartExplanationData {
   summary: ChartExplanationSummarySection;
   peyarchi: ChartExplanationPeyarchiSection;
   methodNote: BiText;
+  /** The Story view's picks (FTR-21, app/services/reading_story.py). Optional —
+   *  older servers and cached payloads omit it; clients then select locally. */
+  story?: ChartExplanationStory | null;
+}
+
+export interface ChartExplanationStoryPlanet {
+  graha: string;
+  /** Keys into this planet's `facets`, at most two, in display order. */
+  whyFacetKeys: string[];
+  activeNow: boolean;
+}
+
+export interface ChartExplanationStoryCare {
+  name: string;
+  kind: "DOSHAM" | "YOGA";
+}
+
+export interface ChartExplanationStory {
+  headline?: BiText | null;
+  planets: ChartExplanationStoryPlanet[];
+  topNatalYogas: string[];
+  topActiveYogas: string[];
+  carePatterns: ChartExplanationStoryCare[];
 }
 
 export type PanchangamFestivalCategory =
@@ -1116,6 +1337,10 @@ export interface PanchangamDailyResponseData {
     gowriPanchangam?: KalamSlot[];
     nallaNeram: KalamSlot[];
     gowriNallaNeram: KalamSlot[];
+    /** 1-2 of the fifteen equal daylight muhurtas, by weekday. Optional
+     *  because a cached response built before 2026-09-22 has no such key —
+     *  same reason `gowriPanchangam` is optional. */
+    durmuhurtham?: KalamSlot[];
   };
   abhijit: { start: string; end: string; isRestrictedByWeekday: boolean };
   subhaMuhurtham: { isSubha: boolean; reason: string; isSubhaStrict: boolean; strictReason: string };
@@ -1420,6 +1645,8 @@ export type ActivityTimingData = {
   dateResult: ActivityTimingDayResult | null;
   /** Panchangam location used to rank this month's dates. */
   dailyLocation?: { latitude: number; longitude: number; timezone: string; source: "current" | "birth" } | null;
+  /** A wedding scan for a couple. Scores are then the lower of the two charts'. */
+  partnerChartId?: string | null;
 };
 
 export type DashaStoryData = {
@@ -1458,9 +1685,20 @@ export type LifeMode =
   | "STUDY" | "CAREER" | "LOVE" | "MARRIAGE" | "FAMILY"
   | "WEALTH" | "HEALTH" | "SPIRITUALITY" | "REMEDIES" | "BALANCED";
 
+export type LifeModeUpdateIntent = "SELECT" | "SKIP" | "KEEP";
+/** Entry point of a focus write. Only FIRST_RUN_PICKER may send SKIP. */
+export type LifeModeUpdateSurface = "FIRST_RUN_PICKER" | "WEB" | "MOBILE";
+
 export interface LifeModeStatus {
   mode: LifeMode; lifeModeSetAt: string | null;
   showLifeModePicker: boolean; blockedModes?: string[];
+  /** Server-computed: offer the "Still focused on X?" strip (60-day cadence). */
+  focusNudgeDue: boolean;
+  /** Life-area code this focus pins (e.g. "CAREER"), or null for BALANCED/REMEDIES.
+   *  From the server's D1 table (app/core/life_mode.py) — never re-derive it. */
+  focusArea: string | null;
+  /** Activity types (user_goal VALID_GOAL_TYPES) this focus lifts; may be empty. */
+  focusActivities: string[];
 }
 
 export interface PredictionBundle {
@@ -1476,6 +1714,10 @@ export interface JadhagamReportBirthProfile {
 export interface JadhagamReportCoreIdentity {
   lagnaRasi: string; moonRasi: string; janmaNakshatra: string; janmaPada: number;
   currentMahadasha: string; currentAntardasha: string;
+  /** Set only when birth-time error (firm ±5 min, soft ±15 min) would change the Lagna sign. */
+  lagnaEdgeNote?: BiText | null;
+  /** Set only when ±5 min of birth-time error would change the Navamsa (D9) Lagna. */
+  navamsaLagnaEdgeNote?: BiText | null;
 }
 
 export interface JadhagamReportNavamsaSummary {
@@ -1710,25 +1952,18 @@ export interface AnnualWrappedData {
   averageScore: number; topLifeArea: string | null;
 }
 
-export interface TajakaPlanetPosition { planet: string; rasi: number; rasiName: string; house: number; longitude: number }
-
-// Matches the backend TajakaAspect schema exactly: pair is a hyphen-joined
-// "PLANET1-PLANET2" string (see tajaka.py _detect_itthasala/_detect_isarafa),
-// kind is "ITTHASALA" or "ISARAFA". No orb value is computed (Doctrine §9 —
-// this is the "Simplified" same-rasi +-5deg approximation, not real Tajika).
-export interface TajakaAspect { pair: string; kind: string }
-
-export interface VarshaphalaAreaOutlook {
-  area: string; score: number; narrativeTa: string; narrativeEn: string; favourableMonths: number[];
-}
-
-export interface VarshaphalaData {
-  year: number; solarReturnDate: string; solarReturnLagnaRasi: number;
-  solarReturnLagnaName: string; munthaRasi: number; munthaRasiName: string;
-  munthaHouseFromSrLagna: number; yearLord: string; yearLordHouse: number;
-  tajakaPlanets: TajakaPlanetPosition[]; itthasalaPairs: TajakaAspect[];
-  isarafaPairs: TajakaAspect[]; areaOutlook: VarshaphalaAreaOutlook[];
-}
+// GET /charts/{id}/varshaphala — aliases of the generated server types (A14), the
+// same ones `api/varshaphala.ts` exports. Web's direct fetch casts to these names.
+// The hand-written TajakaPlanetPosition here had `rasiName`/`house`/`longitude`,
+// none of which the route sends (it sends `degreeInRasi`); nothing read them.
+// TajakaAspect: pair is a hyphen-joined "PLANET1-PLANET2" string (see tajaka.py
+// _detect_itthasala/_detect_isarafa), kind is "ITTHASALA" or "ISARAFA". No orb
+// value is computed (Doctrine §9 — the "Simplified" same-rasi +-5deg
+// approximation, not real Tajika).
+export type TajakaPlanetPosition = Server.TajakaPlanetPosition;
+export type TajakaAspect = Server.TajakaAspect;
+export type VarshaphalaAreaOutlook = Server.VarshaphalaAreaOutlook;
+export type VarshaphalaData = Server.VarshaphalaData;
 
 export interface RemedyPlanItem {
   planet: string; priority: number; reason: string; day: string;

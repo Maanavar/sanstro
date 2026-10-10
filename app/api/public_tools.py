@@ -20,14 +20,15 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy.orm import Session
 
-from app.calculations.astro import RASI_NAME_TO_NUMBER, RASI_NAMES, nakshatra_to_rasi
+from app.calculations.astro import RASI_NAME_TO_NUMBER, RASI_NAMES, format_clock_hhmm, nakshatra_to_rasi
 from app.calculations.muhurta_engine import display_score
 from app.calculations.numerology import ScriptMismatchError, analyze_object, build_profile
 from app.calculations.numerology_naming import NamingMode, UnverifiedCanonError
 from app.calculations.porutham import compute_porutham
+from app.constants.versions import CHART_CALCULATION_VERSION
 from app.core.public_endpoint_limiter import public_endpoint_rate_limit
 from app.db.session import get_db
-from app.schemas.birth_profiles import _validate_birth_date_bounds  # noqa: PLC2701 (shared validation)
+from app.schemas.birth_profiles import validate_birth_date_bounds
 from app.schemas.charts import ChartCalculateResponseData, ChartSummaryData
 from app.schemas.dasha import DashaTimelineResponseData
 from app.schemas.muhurta import MuhurtaResponse
@@ -87,7 +88,7 @@ class PublicBirthInput(BaseModel):
     @field_validator("birth_date_local")
     @classmethod
     def validate_birth_date_local(cls, value: date) -> date:
-        return _validate_birth_date_bounds(value)
+        return validate_birth_date_bounds(value)
 
 
 class PublicChartRequest(BaseModel):
@@ -178,7 +179,7 @@ def public_chart_preview(payload: PublicChartRequest, request: Request) -> Publi
     """Calculate a transient chart plus summary and dasha without persistence."""
     profile = _EphemeralProfile(payload.birth)
     try:
-        result = _chart_response_from_profile(profile, "thirukanitham-2026-v1")
+        result = _chart_response_from_profile(profile, CHART_CALCULATION_VERSION)
     except (ValueError, HTTPException) as exc:
         msg = exc.detail if isinstance(exc, HTTPException) else str(exc)
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=msg) from exc
@@ -203,7 +204,7 @@ def public_chart(payload: PublicChartRequest, request: Request) -> PublicChartRe
     """
     profile = _EphemeralProfile(payload.birth)
     try:
-        result = _chart_response_from_profile(profile, "thirukanitham-2026-v1")
+        result = _chart_response_from_profile(profile, CHART_CALCULATION_VERSION)
     except (ValueError, HTTPException) as exc:
         msg = exc.detail if isinstance(exc, HTTPException) else str(exc)
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=msg) from exc
@@ -223,8 +224,8 @@ def public_compare(payload: PublicPoruthamRequest, request: Request) -> PublicCo
         )
 
     try:
-        chart_a = _chart_response_from_profile(_EphemeralProfile(payload.person_a), "thirukanitham-2026-v1")
-        chart_b = _chart_response_from_profile(_EphemeralProfile(payload.person_b), "thirukanitham-2026-v1")
+        chart_a = _chart_response_from_profile(_EphemeralProfile(payload.person_a), CHART_CALCULATION_VERSION)
+        chart_b = _chart_response_from_profile(_EphemeralProfile(payload.person_b), CHART_CALCULATION_VERSION)
     except (ValueError, HTTPException) as exc:
         msg = exc.detail if isinstance(exc, HTTPException) else str(exc)
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=msg) from exc
@@ -261,8 +262,8 @@ def public_compare_pdf(payload: PublicPoruthamRequest, request: Request, lang: s
         )
 
     try:
-        chart_a = _chart_response_from_profile(_EphemeralProfile(payload.person_a), "thirukanitham-2026-v1")
-        chart_b = _chart_response_from_profile(_EphemeralProfile(payload.person_b), "thirukanitham-2026-v1")
+        chart_a = _chart_response_from_profile(_EphemeralProfile(payload.person_a), CHART_CALCULATION_VERSION)
+        chart_b = _chart_response_from_profile(_EphemeralProfile(payload.person_b), CHART_CALCULATION_VERSION)
     except (ValueError, HTTPException) as exc:
         msg = exc.detail if isinstance(exc, HTTPException) else str(exc)
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=msg) from exc
@@ -307,8 +308,8 @@ def public_porutham(payload: PublicPoruthamRequest, request: Request) -> PublicP
         )
 
     try:
-        chart_a = _chart_response_from_profile(_EphemeralProfile(payload.person_a), "thirukanitham-2026-v1")
-        chart_b = _chart_response_from_profile(_EphemeralProfile(payload.person_b), "thirukanitham-2026-v1")
+        chart_a = _chart_response_from_profile(_EphemeralProfile(payload.person_a), CHART_CALCULATION_VERSION)
+        chart_b = _chart_response_from_profile(_EphemeralProfile(payload.person_b), CHART_CALCULATION_VERSION)
     except (ValueError, HTTPException) as exc:
         msg = exc.detail if isinstance(exc, HTTPException) else str(exc)
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=msg) from exc
@@ -610,8 +611,8 @@ def public_friendship_compatibility(payload: FriendshipRequest, request: Request
     from app.services.friendship_compatibility_service import get_friendship_report
 
     try:
-        chart_a = _chart_response_from_profile(_EphemeralProfile(payload.person_a), "thirukanitham-2026-v1")
-        chart_b = _chart_response_from_profile(_EphemeralProfile(payload.person_b), "thirukanitham-2026-v1")
+        chart_a = _chart_response_from_profile(_EphemeralProfile(payload.person_a), CHART_CALCULATION_VERSION)
+        chart_b = _chart_response_from_profile(_EphemeralProfile(payload.person_b), CHART_CALCULATION_VERSION)
     except (ValueError, HTTPException) as exc:
         msg = exc.detail if isinstance(exc, HTTPException) else str(exc)
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=msg) from exc
@@ -804,9 +805,26 @@ class PublicMuhurtaResponse(BaseModel):
 
 
 class PublicPersonalizedMuhurtaRequest(BaseModel):
-    """A no-save, chart-personalized muhurta request for the public tool."""
+    """A no-save, chart-personalized muhurta request for the public tool.
+
+    `birth` is the first chart and has always been required. `partner` is the
+    second — the shape a wedding date has always had, and which the tool could
+    not express until 2026-09-12. Optional, because "check for one person only"
+    is a supported answer, not a degraded one.
+
+    `subjectRole` names what `birth` is: BRIDE, GROOM, or PERSON when the reader
+    did not say. The partner's role is the complement and is not sent — two
+    fields that must disagree are two fields that will eventually agree. The
+    role is a display label everywhere except Ch. XIV p.79's Jupiter gochara
+    rule, which is stated from the bride's Janma-Rasi and is therefore only
+    answerable once a caller has said which chart is hers.
+    """
 
     birth: PublicBirthInput
+    partner: PublicBirthInput | None = None
+    subject_role: Literal["BRIDE", "GROOM", "PERSON"] = Field(
+        default="PERSON", alias="subjectRole",
+    )
     event_type: str = Field(alias="eventType")
     date_from: date = Field(alias="dateFrom")
     date_to: date = Field(alias="dateTo")
@@ -817,6 +835,15 @@ class PublicPersonalizedMuhurtaRequest(BaseModel):
     include_excluded: bool = Field(default=False, alias="includeExcluded")
 
     model_config = ConfigDict(populate_by_name=True)
+
+    @property
+    def roles(self) -> tuple[str | None, str | None]:
+        """(role of `birth`, role of `partner`), or (None, None) when unstated."""
+        if self.subject_role == "BRIDE":
+            return ("BRIDE", "GROOM")
+        if self.subject_role == "GROOM":
+            return ("GROOM", "BRIDE")
+        return (None, None)
 
 
 def _overlaps_public(start_a, end_a, start_b, end_b) -> bool:
@@ -845,7 +872,7 @@ def _quality_label(raw_score: float) -> str:
 
 def _format_clock_label(value) -> str:
     if hasattr(value, "strftime"):
-        value = value.strftime("%H:%M")
+        value = format_clock_hhmm(value)
     pieces = str(value).split(":")
     try:
         hour = int(pieces[0])
@@ -874,7 +901,13 @@ def public_personalized_muhurta(
 
     The transient chart uses the same scorer and result contract as Calendar's
     signed-in picker. Birth time is required here: without it the tool must not
-    claim a personalized Lagna, Hora, or Dasha reading.
+    claim a personalized Lagna, Hora, or Dasha reading — and that applies to the
+    partner's chart exactly as it does to the first, since both feed the same
+    personal layer.
+
+    With a `partner`, both charts are scored together: the weaker of each pair of
+    personal readings is the one that is priced and a veto from either side
+    removes the day. See `muhurta_engine._weaker_side_governs`.
     """
     from app.services.muhurta_service import find_best_muhurta_slots
 
@@ -883,11 +916,35 @@ def public_personalized_muhurta(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Birth time is required for a personalized muhurta reading.",
         )
-    try:
-        chart = _chart_response_from_profile(_EphemeralProfile(payload.birth), "thirukanitham-2026-v1")
-    except (ValueError, HTTPException) as exc:
-        msg = exc.detail if isinstance(exc, HTTPException) else str(exc)
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=msg) from exc
+    if payload.partner is not None and payload.partner.birth_time_local is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Birth time is required for the second person's chart too.",
+        )
+
+    def _chart_for(birth: PublicBirthInput, *, which: str):
+        try:
+            return _chart_response_from_profile(_EphemeralProfile(birth), CHART_CALCULATION_VERSION)
+        except (ValueError, HTTPException) as exc:
+            msg = exc.detail if isinstance(exc, HTTPException) else str(exc)
+            # Naming which of the two charts failed. Without it a couple's form
+            # shows one error for two identical-looking blocks and the reader has
+            # to guess which set of details to correct.
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=f"{which}: {msg}" if payload.partner is not None else msg,
+            ) from exc
+
+    primary_role, partner_role = payload.roles
+    # "First chart" / "Second chart" rather than "Person" / "Partner" when the
+    # roles were not given: two nouns that differ by one syllable are no help at
+    # all when the reader is looking at two identical blocks. These match the
+    # unnamed-couple labels the service prints inside the factor copy.
+    chart = _chart_for(payload.birth, which=(primary_role or "").title() or "First chart")
+    partner_chart = (
+        None if payload.partner is None
+        else _chart_for(payload.partner, which=(partner_role or "").title() or "Second chart")
+    )
 
     return find_best_muhurta_slots(
         None,
@@ -901,6 +958,11 @@ def public_personalized_muhurta(
         activity_place=payload.place,
         include_excluded=payload.include_excluded,
         chart_data=chart.data,
+        co_chart_data=None if partner_chart is None else partner_chart.data,
+        subject_role=primary_role,
+        # None without a partner. A role for a chart that was not sent is dead
+        # state, and dead state is what a later reader mistakes for a signal.
+        co_subject_role=partner_role if partner_chart is not None else None,
     )
 
 
@@ -924,8 +986,9 @@ def public_muhurta(
     Bala, Chandra Bala, dasha and hora windows.
     """
     from app.calculations.muhurta_engine import Verdict, score_day
-    from app.calculations.panchangam import best_gowri_slot, calculate_daily_panchangam_range
+    from app.calculations.panchangam import best_gowri_slot
     from app.services.muhurta_service import normalize_activity
+    from app.services.panchangam_cache import calculate_daily_panchangam_range
 
     # Same alias resolution as the signed-in picker, so a client key like
     # `baby_naming` means the same activity on both routes.
@@ -1464,7 +1527,7 @@ def public_baby_names_preview(
     _require_baby_naming_enabled()
     profile = _EphemeralProfile(payload.birth)
     try:
-        chart = _chart_response_from_profile(profile, "thirukanitham-2026-v1")
+        chart = _chart_response_from_profile(profile, CHART_CALCULATION_VERSION)
     except (ValueError, HTTPException) as exc:
         msg = exc.detail if isinstance(exc, HTTPException) else str(exc)
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=msg) from exc

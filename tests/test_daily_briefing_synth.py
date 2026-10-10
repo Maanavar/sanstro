@@ -35,7 +35,7 @@ def _inputs(**overrides) -> BriefingInputs:
         personal_score=50,
         moon_transit=BiText("MOONMARK நிலா", "MOONMARK the Moon"),
         dasha_support=BiText("DASHAMARK தசை", "DASHAMARK the dasha"),
-        gochar=BiText("GOCHARMARK கோசாரம்", "GOCHARMARK the transit"),
+        gochar=BiText("GOCHARMARK கோச்சாரம்", "GOCHARMARK the transit"),
         panchangam=BiText("PANCHMARK பஞ்சாங்கம்", "PANCHMARK the panchangam"),
         personal_caution=BiText("CAUTIONMARK எச்சரிக்கை", "CAUTIONMARK a personal caution"),
         action=BiText("ACTIONMARK செய்", "ACTIONMARK do this one thing"),

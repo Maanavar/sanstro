@@ -15,6 +15,8 @@ import { readFileSync } from "node:fs";
  * proves the reader got there.
  */
 const source = readFileSync("components/dashboard-workspace.tsx", "utf8");
+const navigationSource = readFileSync("hooks/useWorkspaceNavigation.ts", "utf8");
+const formsSource = readFileSync("components/dashboard-workspace-profile-forms.ts", "utf8");
 
 describe("dashboard-workspace — first post-calculation screen (T5)", () => {
   it("routes a freshly calculated chart to Family & Charts, not Today", () => {
@@ -23,9 +25,11 @@ describe("dashboard-workspace — first post-calculation screen (T5)", () => {
     // (dashboard-family-charts-hybrid.tsx §3, MEMBER OVERVIEW). Landing a
     // first-time reader on Today instead skips straight past the one
     // screen written to be read rather than scanned.
-    const fn = source.slice(source.indexOf("async function handleCreateProfile"));
-    const body = fn.slice(0, fn.indexOf("\n  async function handleCreateVault"));
+    const fn = formsSource.slice(formsSource.indexOf("async function handleCreateProfile"));
+    const body = fn.slice(0, fn.indexOf("\n  async function handleAddMember"));
 
+    expect(body.length).toBeGreaterThan(0);
+    expect(body).not.toMatch(/handleAddMember/);
     expect(body).toMatch(/setActiveTab\(response\.data\.chartId \? "family" : "personal"\)/);
   });
 
@@ -50,10 +54,65 @@ describe("dashboard-workspace — first post-calculation screen (T5)", () => {
   });
 });
 
+describe("dashboard-workspace — bare /dashboard is always Today (DXA-02, D1)", () => {
+  const hydration = source.slice(source.indexOf("// ── Hydration + localStorage restore"));
+  const hydrationBody = hydration.slice(0, hydration.indexOf("}, [session.hydrated]);"));
+
+  it("starts on the path's tab, else Today", () => {
+    expect(navigationSource).toMatch(/parseDashboardPath\(pathname, \{ qaEnabled: ENABLE_QA_TAB \}\)\.tab \?\? "personal"/);
+  });
+
+  it("does not restore the last tab from localStorage", () => {
+    // A stored `activeTab: "calendar"` used to swap Today out after /auth/me.
+    expect(hydrationBody.length).toBeGreaterThan(0);
+    expect(hydrationBody).not.toMatch(/parsed\.activeTab/);
+    expect(hydrationBody).not.toMatch(/sanitizeRestoredTab/);
+    // Hydration sets no tab itself; it adopts the URL's, and that is the only one set.
+    expect(hydrationBody.match(/setActiveTab\([^)]*\)/g) ?? []).toEqual([]);
+    expect(hydrationBody).toMatch(/adoptUrlDestination\(\)/);
+    const adopt = navigationSource.slice(navigationSource.indexOf("function adoptUrlDestination"));
+    const adoptBody = adopt.slice(0, adopt.indexOf("function enableUrlSync"));
+    expect(adoptBody.length).toBeGreaterThan(0);
+    expect(adoptBody.match(/setActiveTab\([^)]*\)/g)).toEqual(["setActiveTab(fromUrl)"]);
+  });
+
+  it("no longer persists the active tab", () => {
+    const persist = source.slice(source.indexOf("window.localStorage.setItem(STORAGE_KEY"));
+    const written = persist.slice(0, persist.indexOf("} as PersistedState"));
+    expect(written.length).toBeGreaterThan(0);
+    expect(written).not.toMatch(/\bactiveTab\b/);
+  });
+});
+
+describe("dashboard-workspace — onboarding banner waits for an answer (DXA-04)", () => {
+  const gate = source.slice(source.indexOf("// ── Onboarding gate"));
+  const gateBody = gate.slice(0, gate.indexOf("// ── Data trigger effects"));
+
+  it("starts undecided, not 'not done'", () => {
+    expect(source).toMatch(/useState<boolean \| null>\(null\)/);
+    expect(source).not.toMatch(/const \[onboardingDone, setOnboardingDone\] = useState\(false\)/);
+  });
+
+  it("does not read an unfetched vault list as 'no members'", () => {
+    expect(gateBody.length).toBeGreaterThan(0);
+    const readyCheck = gateBody.indexOf("!family.vaultsReady");
+    const emptyCheck = gateBody.indexOf("family.vaults.length === 0");
+    expect(readyCheck).toBeGreaterThan(-1);
+    expect(readyCheck).toBeLessThan(emptyCheck);
+    expect(gateBody).toMatch(/family\.vaultsReady, family\.vaults,/);
+  });
+
+  it("renders the banner only on a definite false", () => {
+    expect(source).toMatch(/\{onboardingDone === false && session\.hydrated && \(/);
+    expect(source).not.toMatch(/\{!onboardingDone && /);
+  });
+});
+
 describe("dashboard-workspace — family onboarding (T19)", () => {
   it("creates 'Your family' only when the first member is submitted", () => {
-    const fn = source.slice(source.indexOf("async function handleAddMember"));
+    const fn = formsSource.slice(formsSource.indexOf("async function handleAddMember"));
     const body = fn.slice(0, fn.indexOf("\n  async function handleSaveEdit"));
+    expect(body.length).toBeGreaterThan(0);
 
     expect(body).toMatch(/if \(!targetVaultId\)/);
     expect(body).toMatch(/name: lang === "ta" \? "உங்கள் குடும்பம்" : "Your family"/);
@@ -61,7 +120,9 @@ describe("dashboard-workspace — family onboarding (T19)", () => {
   });
 
   it("does not retain a separate family-creation handler", () => {
-    expect(source).not.toMatch(/async function handleCreateVault/);
-    expect(source).not.toMatch(/busyCreateVault/);
+    for (const text of [source, formsSource]) {
+      expect(text).not.toMatch(/async function handleCreateVault/);
+      expect(text).not.toMatch(/busyCreateVault/);
+    }
   });
 });

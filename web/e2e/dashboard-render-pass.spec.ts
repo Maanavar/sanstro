@@ -53,12 +53,15 @@ function log(msg: string) {
 }
 
 async function dismissBlockingDialogs(maxAttempts = 20) {
-  // Backdrop click, not a labelled button: on life-mode-picker.tsx "Skip for
-  // now" fires a real PATCH mutation that can hang under chart-calc load.
+  // The focus picker's "Skip for now" closes at once and saves BALANCED in the
+  // background (life-focus plan, Phase 0), so clicking it never waits on the
+  // PATCH and the picker does not come back. Other first-run modals: backdrop.
   for (let i = 0; i < maxAttempts; i++) {
     const dialog = page.locator('[role="dialog"][aria-modal="true"]').first();
     if (!(await dialog.isVisible().catch(() => false))) return;
-    await dialog.click({ position: { x: 3, y: 3 }, force: true }).catch(() => {});
+    const skip = dialog.getByRole("button", { name: /^(Skip for now|இப்போது தவிர்க்கவும்)$/ });
+    if (await skip.isVisible().catch(() => false)) await skip.click({ timeout: 3_000 }).catch(() => {});
+    else await dialog.click({ position: { x: 3, y: 3 }, force: true }).catch(() => {});
     await page.waitForTimeout(400);
   }
 }
@@ -218,7 +221,7 @@ test("Family & Charts: the three secondary-dasha panels render their bodies", as
    * Waiting for skeletons to clear is NOT enough here, and the first run of this
    * spec proved it by reporting all three panels "not present".
    *
-   * The panels live inside `<HySection "Full technical reading">`, which is
+   * The panels live inside `<HySection "Full chart reading">`, which is
    * gated on `readingChart` — the loaded chart object, not the chart id. Until
    * that resolves the section renders nothing: no skeleton, no placeholder, no
    * heading. So `.skel === 0` was satisfied by a page that had simply not
@@ -226,8 +229,8 @@ test("Family & Charts: the three secondary-dasha panels render their bodies", as
    * panels rather than a race. Wait for the section itself.
    */
   await expect(
-    page.getByRole("heading", { name: /Full technical reading/i }),
-    "the Full technical reading section never rendered — readingChart did not load",
+    page.getByRole("heading", { name: /Full chart reading/i }),
+    "the Full chart reading section never rendered — readingChart did not load",
   ).toBeVisible({ timeout: 60_000 });
   await page.waitForTimeout(1000);
   await dismissBlockingDialogs();

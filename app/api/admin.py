@@ -36,7 +36,15 @@ from app.models.family_daily_score import FamilyDailyScore
 from app.models.prediction_log import PredictionLog
 from app.reasoning.calibration import GradedPrediction, build_calibration_report
 from app.services.audit_service import log_admin_action
-from app.services.feature_flags import all_flags, get_flag, reset_flag, set_flag
+from app.services.feature_flags import (
+    FlagValueError,
+    UnknownFlagError,
+    all_flags,
+    doctrine_runtime_override_allowed,
+    get_flag,
+    reset_flag,
+    set_flag,
+)
 from app.services.job_registry import get_all_jobs, get_job
 from app.services.push_service import send_push_to_token
 
@@ -82,18 +90,7 @@ def elevate_admin(
     cannot pick it up for free.
     """
     client_ip = _client_ip(request)
-    allowed, retry_after = _throttler.check(
-        AuthThrottleAction.ADMIN_ELEVATION,
-        ip=client_ip,
-        account_identifier=str(admin_user.user_id),
-    )
-    if not allowed:
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Too many elevation attempts. Please try again later.",
-            headers={"Retry-After": str(retry_after)},
-        )
-
+    _throttler.enforce(AuthThrottleAction.ADMIN_ELEVATION, ip=client_ip, account_identifier=str(admin_user.user_id))
     # An admin who signed up through OAuth has no password to re-enter, so there
     # is no second factor available and elevation must be refused rather than
     # waved through. Refusing is the fail-safe direction: the alternative is that
@@ -700,10 +697,21 @@ def set_flag_value(
     body: FlagUpdate,
     admin_user: User = Depends(get_elevated_admin_user),
 ) -> FlagEntry:
+    if flag_name.startswith("doctrine_") and not doctrine_runtime_override_allowed():
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Doctrine flags cannot be overridden at runtime with more than one worker: "
+                "the change would reach one worker only and be lost on restart. Record the "
+                "ruling in docs/DOCTRINE_DECISIONS_V1.2.md §16 and change the default in code."
+            ),
+        )
     try:
         set_flag(flag_name, body.value)
-    except ValueError as exc:
+    except UnknownFlagError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except FlagValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     log_admin_action(
         "set_flag",
         target_type="flag",

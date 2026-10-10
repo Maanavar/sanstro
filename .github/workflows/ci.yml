@@ -10,9 +10,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # A15 — every job is bounded. Budgets are roughly twice the durations measured
+  # on this branch's runs of 2026-10-02 and 2026-10-07 (noted per job), so a hang
+  # costs minutes and a readable log instead of running to GitHub's 6 h default.
   backend-tests:
     name: Backend tests (pytest)
     runs-on: ubuntu-latest
+    # Measured 13–14 min.
+    timeout-minutes: 30
     services:
       postgres:
         image: postgres:16-alpine
@@ -62,6 +67,8 @@ jobs:
   backend-lint:
     name: Backend lint (ruff) + types (mypy)
     runs-on: ubuntu-latest
+    # Measured under 1 min.
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -84,9 +91,7 @@ jobs:
       - name: Mypy
         run: mypy app
       - name: Dependency audit (pip-audit)
-        # Fail on any known advisory except the ecdsa Minerva timing issue, which
-        # has no upstream fix and is off our signing path (HS256/HMAC only).
-        # See the ecdsa note in requirements.txt and REFACTOR_PLAN 1.2.
+        # Fail on any known advisory. Nothing is ignored.
         #
         # The five starlette entries (PYSEC-2026-161, -248, -249, -2280, -2281)
         # were dropped on 2026-09-02 by bumping starlette 1.0.0 → 1.3.1, which is
@@ -96,20 +101,19 @@ jobs:
         # outlive the reason it was suppressed, so if an entry below ever looks
         # permanent, re-check whether its premise still holds.
         #
-        # The two IDs below are ONE advisory, not two exposures: GHSA-wj6h-64fc-37mp,
-        # CVE-2024-23342 and PYSEC-2026-1325 are aliases of the same ecdsa finding,
-        # and each one alone suppresses it. Both are kept because which alias the
-        # advisory database reports under has changed before. With starlette
-        # cleared, this is the only vulnerability pip-audit still reports here.
+        # The ecdsa Minerva advisory (GHSA-wj6h-64fc-37mp / CVE-2024-23342) and
+        # python-jose CVE-2026-85394 (GHSA-3qf3-8w2g-rqmx) were ignored here
+        # until 2026-10-08, when python-jose and its ecdsa/rsa/pyasn1 tree were
+        # replaced by PyJWT (REFACTOR_PLAN 1.2; tests/test_jwt_library.py).
         run: |
           pip install pip-audit
-          pip-audit -r requirements.txt \
-            --ignore-vuln GHSA-wj6h-64fc-37mp \
-            --ignore-vuln CVE-2024-23342
+          pip-audit -r requirements.txt
 
   migrations:
     name: Alembic round-trip
     runs-on: ubuntu-latest
+    # Measured ~1 min.
+    timeout-minutes: 10
     services:
       postgres:
         image: postgres:16-alpine
@@ -153,6 +157,8 @@ jobs:
   web:
     name: Web (lint, test, build)
     runs-on: ubuntu-latest
+    # Measured 2–3 min.
+    timeout-minutes: 20
     # No `working-directory: web`. This is a pnpm workspace: `web` depends on
     # `@vinaadi/shared` and `@vinaadi/design-tokens` via `workspace:*`, which
     # only resolve when the install runs from the repo root. Installing inside
@@ -246,9 +252,46 @@ jobs:
           docker rm -f web
           exit 1
 
+  compose-proxy-smoke:
+    name: Compose stack (web -> api through the proxy)
+    runs-on: ubuntu-latest
+    # A01. `web-image` above proves the image builds and serves `/` — a page
+    # that needs no backend — which is exactly why a stack whose web container
+    # was handed the wrong environment variable name passed every gate while
+    # login, dashboard data and every server-rendered public page failed.
+    #
+    # This job builds api + web from the real compose file, brings up
+    # db + redis + api + web, and makes its claims THROUGH the Next proxy:
+    # /api/backend/health/ready, then a synthetic register -> login -> auth/me.
+    #
+    # Budget: web's install+build measured ~5 min on a runner, api is smaller,
+    # boot and probes are seconds. 40 leaves room for a cold cache without
+    # letting a hang run to the 6h default.
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      # pwsh, not bash: the script is the same file a developer runs on the
+      # Windows workspace, so there is one gate and not two that drift.
+      - name: Smoke the proxy route
+        shell: pwsh
+        run: ./scripts/compose-proxy-smoke.ps1
+      # NEGATIVE CONTROL, in the job itself. A gate that cannot fail proves
+      # nothing, and this one is cheap to invert because the images are already
+      # built. It points the web container at loopback — the address A01's
+      # fallback produced — and requires the readiness claim to FAIL.
+      - name: Negative control (broken BACKEND_URL must fail the smoke)
+        shell: pwsh
+        run: ./scripts/compose-proxy-smoke.ps1 -SkipBuild -BreakBackendUrl
+      - name: Compose logs on failure
+        if: failure()
+        run: docker ps -a
+
   design-tokens:
     name: Design token ratchet (no new color literals)
     runs-on: ubuntu-latest
+    # Measured ~10 s.
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -267,6 +310,10 @@ jobs:
     # Only run e2e when BASE_URL is provided (staging / preview deploy).
     # On PRs without a preview deploy the job is skipped automatically.
     if: vars.E2E_BASE_URL != ''
+    # Never measured: E2E_BASE_URL is unset, so this job has only ever been
+    # skipped. 30 is a guess to bound it, not a budget — set one from the first
+    # real run.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

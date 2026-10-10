@@ -26,13 +26,13 @@ from app.calculations.panchangam import (
     _nethiram_value,
     _special_tithi_durations_for_civil_day,
     best_gowri_slot,
-    calculate_daily_panchangam,
     chandrashtamam_janma_nakshatra_windows_for_day,
     dominant_special_tithi_for_civil_day,
     gowri_category_rank,
     own_chandrashtama_windows,
 )
 from app.schemas.panchangam import PanchangamMonthlyQuery
+from app.services.panchangam_cache import calculate_daily_panchangam
 from app.services.panchangam_service import build_monthly_panchangam
 
 pytestmark = pytest.mark.no_db
@@ -128,12 +128,14 @@ def test_snapshot_computes_pradhosha_kalam_tithi():
 def test_daily_panchangam_uses_documented_2026_05_21_reference_case():
     snapshot = calculate_daily_panchangam(date(2026, 5, 21), 9.9252, 78.1198, "Asia/Kolkata")
 
-    # WI-07 (2026-07-16): sunrise/sunset switched to Hindu sunrise (disc
-    # center, no refraction, geocentric — SE_BIT_HINDU_RISING). Both times
-    # move ~4-6 min toward solar noon versus the old refracted-upper-limb
-    # values (sunrise later, sunset earlier) — see panchangam.py v33 note.
-    expected_sunrise = datetime(2026, 5, 21, 5, 59, tzinfo=timezone(timedelta(hours=5, minutes=30)))
-    expected_sunset = datetime(2026, 5, 21, 18, 29, tzinfo=timezone(timedelta(hours=5, minutes=30)))
+    # WI-07 as re-ruled 2026-09-29: sunrise/sunset are the APPARENT upper-limb
+    # event including refraction (the modern Drik convention), not the
+    # disc-centre/no-refraction SE_BIT_HINDU_RISING that v33 had adopted.
+    # Exact values 05:55:34 / 18:32:43; v33's disc-centre pins were 05:59 /
+    # 18:29, ~3.5 min further toward solar noon at each end — see
+    # panchangam.py v47 note and SunriseConvention in ephemeris.py.
+    expected_sunrise = datetime(2026, 5, 21, 5, 55, 34, tzinfo=timezone(timedelta(hours=5, minutes=30)))
+    expected_sunset = datetime(2026, 5, 21, 18, 32, 43, tzinfo=timezone(timedelta(hours=5, minutes=30)))
 
     assert snapshot.weekday == "THURSDAY"
     assert snapshot.weekday_lord == "GURU"

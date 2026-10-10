@@ -5,7 +5,6 @@ import { useMemo, useState } from "react";
 import {
   buildD1CellDetail,
   buildD9CellDetail,
-  computeD9LagnaRasi,
   D1_RASI_NAMES,
   GRAHA_ABBR,
   GRAHA_ABBR_EN,
@@ -297,6 +296,58 @@ function ExplainPanel({
   );
 }
 
+/**
+ * The grid's own cell selection, scoped to ONE chart.
+ *
+ * It used to be `useState(chart.lagna.rasi)`, which reads its seed once. The
+ * same grid instance is handed a different chart when Family & Charts switches
+ * member, so the first chart's lagna stayed "selected" on every chart after it
+ * — on the owner's screen, Mesham lit up on members whose lagna was elsewhere,
+ * painted in a tone close enough to the lagna's to read as a second lagna.
+ * Keeping the chart identity beside the choice makes a new chart start from its
+ * own lagna without an effect or a remount.
+ */
+function useCellSelection(
+  chartIdentity: string,
+  seedRasi: number,
+  controlledRasi: number | undefined,
+  onSelectRasi: ((rasi: number) => void) | undefined,
+): [number, (rasi: number) => void] {
+  const [own, setOwn] = useState({ chartIdentity, rasi: seedRasi });
+  const ownRasi = own.chartIdentity === chartIdentity ? own.rasi : seedRasi;
+  const select = onSelectRasi ?? ((rasi: number) => setOwn({ chartIdentity, rasi }));
+  return [controlledRasi ?? ownRasi, select];
+}
+
+/** One chart, whoever renders it: the id alone is not enough for an unsaved
+ *  chart, so the lagna's exact longitude rides along. */
+function chartIdentityOf(chart: ChartCalculateResponseData): string {
+  return `${chart.chartId ?? ""}:${chart.lagna.absoluteLongitude}`;
+}
+
+/**
+ * The lagna box's corner stroke — how a printed Tamil jathagam marks the lagna,
+ * and the one mark that does not depend on telling two tints apart. Top-right
+ * rather than top-left so it never runs through the rasi name printed there.
+ */
+function LagnaCornerMark({ tone }: { tone: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      data-lagna-mark=""
+      style={{
+        position: "absolute",
+        top: 0,
+        right: 0,
+        width: "16px",
+        height: "16px",
+        pointerEvents: "none",
+        background: `linear-gradient(to bottom left, transparent calc(50% - 1px), ${tone} calc(50% - 1px), ${tone} calc(50% + 1px), transparent calc(50% + 1px))`,
+      }}
+    />
+  );
+}
+
 export function RasiChart({
   chart,
   label,
@@ -317,9 +368,10 @@ export function RasiChart({
   selectedRasi?: number;
   onSelectRasi?: (rasi: number) => void;
 }) {
-  const [ownRasi, setOwnRasi] = useState<number>(chart.lagna.rasi);
-  const selectedRasi = controlledRasi ?? ownRasi;
-  const selectRasi = onSelectRasi ?? setOwnRasi;
+  const [selectedRasi, selectRasi] = useCellSelection(chartIdentityOf(chart), chart.lagna.rasi, controlledRasi, onSelectRasi);
+  // A selection means something only where it drives a panel. Without one, a
+  // lit cell is just a second highlight beside the lagna's.
+  const showsSelection = showExplain || controlledRasi !== undefined;
   const selectedDetail = useMemo(() => buildD1CellDetail(chart, selectedRasi), [chart, selectedRasi]);
   const cellSize = 72;
   const gap = 2;
@@ -340,15 +392,16 @@ export function RasiChart({
       }}>
         {RASI_GRID.map(({ rasi, col, row }) => {
           const detail = buildD1CellDetail(chart, rasi);
-          const isSelected = selectedRasi === rasi;
+          const isSelected = showsSelection && selectedRasi === rasi;
           return (
             <button
               key={rasi}
               type="button"
               onClick={() => selectRasi(rasi)}
               aria-label={cellAccessibleName(detail, lang)}
-              aria-pressed={isSelected}
+              aria-pressed={showsSelection ? isSelected : undefined}
               style={{
+                position: "relative",
                 gridColumn: col + 1,
                 gridRow: row + 1,
                 background: detail.isLagna
@@ -370,6 +423,7 @@ export function RasiChart({
                 cursor: "pointer",
               }}
             >
+              {detail.isLagna ? <LagnaCornerMark tone="var(--chart-d1-active)" /> : null}
               {/* lineHeight 1.15 rather than 1: a Tamil sign name is longer than
                   its transliteration and can take two lines in a 72px cell, and
                   at lineHeight 1 the two lines collide. */}
@@ -455,10 +509,9 @@ export function NavamsaChart({
   selectedRasi?: number;
   onSelectRasi?: (rasi: number) => void;
 }) {
-  const d9LagnaRasi = useMemo(() => computeD9LagnaRasi(chart.lagna.absoluteLongitude), [chart.lagna.absoluteLongitude]);
-  const [ownRasi, setOwnRasi] = useState<number>(d9LagnaRasi);
-  const selectedRasi = controlledRasi ?? ownRasi;
-  const selectRasi = onSelectRasi ?? setOwnRasi;
+  const d9LagnaRasi = chart.lagna.d9Rasi;
+  const [selectedRasi, selectRasi] = useCellSelection(chartIdentityOf(chart), d9LagnaRasi, controlledRasi, onSelectRasi);
+  const showsSelection = showExplain || controlledRasi !== undefined;
   const selectedDetail = useMemo(() => buildD9CellDetail(chart, selectedRasi), [chart, selectedRasi]);
   const cellSize = 72;
   const gap = 2;
@@ -479,15 +532,16 @@ export function NavamsaChart({
       }}>
         {RASI_GRID.map(({ rasi, col, row }) => {
           const detail = buildD9CellDetail(chart, rasi);
-          const isSelected = selectedRasi === rasi;
+          const isSelected = showsSelection && selectedRasi === rasi;
           return (
             <button
               key={rasi}
               type="button"
               onClick={() => selectRasi(rasi)}
               aria-label={cellAccessibleName(detail, lang)}
-              aria-pressed={isSelected}
+              aria-pressed={showsSelection ? isSelected : undefined}
               style={{
+                position: "relative",
                 gridColumn: col + 1,
                 gridRow: row + 1,
                 background: detail.isLagna
@@ -509,6 +563,7 @@ export function NavamsaChart({
                 cursor: "pointer",
               }}
             >
+              {detail.isLagna ? <LagnaCornerMark tone="var(--chart-d9-active)" /> : null}
               {/* lineHeight 1.15 rather than 1: a Tamil sign name is longer than
                   its transliteration and can take two lines in a 72px cell, and
                   at lineHeight 1 the two lines collide. */}

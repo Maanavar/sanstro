@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import type { ReactNode } from "react";
 
 import DashboardGlossaryPage from "./page";
 import { LangProvider } from "@/components/lang-toggle";
@@ -12,6 +13,9 @@ import { GLOSSARY } from "@/lib/glossary";
 const router = { refresh: vi.fn(), push: vi.fn(), replace: vi.fn() };
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
 vi.mock("@/lib/api", () => ({ apiFetchJson: vi.fn().mockResolvedValue({}) }));
+vi.mock("@/components/dashboard-auxiliary-shell", () => ({
+  DashboardAuxiliaryShell: ({ children }: { children: ReactNode }) => <>{children}</>,
+}));
 
 function renderPage(lang: "en" | "ta" = "en") {
   // `LangProvider` reconciles `initialLang` against a stored preference, and it
@@ -46,7 +50,6 @@ describe("/dashboard/glossary", () => {
     const { container } = renderPage();
 
     expect(screen.getByRole("heading", { name: /^Glossary$/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Back to dashboard/i })).toHaveAttribute("href", "/dashboard");
     expect(container.querySelectorAll("article")).toHaveLength(Object.keys(GLOSSARY).length);
   });
 
@@ -125,26 +128,15 @@ describe("/dashboard/glossary", () => {
  * everyone the page was written for. A glossary nobody can find is a glossary
  * nobody has.
  *
- * The door is the dashboard footer, and it has to be an `<a href>`: the
- * workspace's own nav is tab state inside the `(workspace)` layout and never
- * routes, so a tab-shaped entry could not reach a route that lives outside it.
- * `dashboard-workspace.tsx` is far too heavy to mount here, so this reads the
- * source — the same cheap guard `dashboard-today-tab-nova.test.tsx` uses for
- * the `userMode` prop, and for the same reason: the regression it catches
- * (someone tidies the footer array, the link goes, nothing else notices) is
- * silent everywhere else.
+ * The door is the dashboard footer. The footer is shared by auxiliary pages,
+ * so the route stays available from both the workspace and those pages.
  */
 describe("reachable without already knowing it exists", () => {
   it("is linked from the dashboard footer", async () => {
     const { readFileSync } = await import("node:fs");
-    const source = readFileSync("components/dashboard-workspace.tsx", "utf8");
+    const source = readFileSync("components/dashboard-footer.tsx", "utf8");
 
-    const footerNav = source.slice(source.indexOf('aria-label={lang === "ta" ? "அடிக்குறிப்பு வழிசெலுத்தல்"'));
-    const navBlock = footerNav.slice(0, footerNav.indexOf("</nav>"));
-
-    expect(navBlock).toContain('href: "/dashboard/glossary"');
-    // A real navigation, rendered as one. The footer's other entries are
-    // buttons because they only change tab state; this one leaves.
-    expect(navBlock).toMatch(/<Link[^>]*href=\{link\.href\}/);
+    expect(source).toContain('href: "/dashboard/glossary"');
+    expect(source).toMatch(/<Link key=\{link\.href\} href=\{link\.href\}/);
   });
 });

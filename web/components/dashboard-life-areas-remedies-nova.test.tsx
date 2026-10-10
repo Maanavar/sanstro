@@ -54,8 +54,20 @@ describe("Remedies — gemstone register (A-038)", () => {
     ]);
 
     expect(screen.getByText("Traditionally worn for your chart")).toBeInTheDocument();
-    expect(screen.getByText("Traditionally optional — with care")).toBeInTheDocument();
-    expect(screen.getByText("Traditionally avoided")).toBeInTheDocument();
+    expect(screen.getByText("Traditional reference — consult an astrologer first")).toBeInTheDocument();
+    expect(screen.getByText("No gemstone suggested")).toBeInTheDocument();
+  });
+
+  it("shows a named stone as a reference only — the backend never prescribes (ruling 2026-10-01)", () => {
+    // What /gemstone-advice now returns for a benefic Jupiter and for Saturn.
+    renderGemstoneTab([
+      gem({ planet: "JUPITER", isGemstonePrescribed: false, gemstoneNameEn: "Yellow sapphire" }),
+      gem({ planet: "SATURN", isGemstonePrescribed: false, gemstoneNameEn: null }),
+    ]);
+
+    expect(screen.queryByText("Traditionally worn for your chart")).not.toBeInTheDocument();
+    expect(screen.getByText("Yellow sapphire")).toBeInTheDocument();
+    expect(screen.getByText(/never tells you to wear a gemstone/i)).toBeInTheDocument();
   });
 
   it("never uses prescription register anywhere on the panel", () => {

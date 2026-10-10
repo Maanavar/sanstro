@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
+import { JsonLd } from "@/lib/json-ld";
+import { calendarHubLd } from "./calendar-jsonld";
+import { withTamilTwin } from "@/lib/localized-metadata";
+import { TAMIL_CALENDAR_TA } from "@/lib/marketing-seo-ta";
 import { TamilCalendarContent, type EventSummary } from "./TamilCalendarContent";
 import { fetchCalendarCategories, type CalendarCategorySummary } from "./calendar-category-api";
+import { backendUrl } from "@/lib/backend-url";
 
-const BACKEND_URL = process.env.BACKEND_URL ?? "http://127.0.0.1:8000";
 const YEAR = 2026;
 
 interface EventsList {
@@ -13,7 +17,7 @@ interface EventsList {
 
 async function fetchEvents(): Promise<EventsList | null> {
   try {
-    const res = await fetch(`${BACKEND_URL}/api/v1/public/panchangam-events?year=${YEAR}`, {
+    const res = await fetch(`${backendUrl()}/api/v1/public/panchangam-events?year=${YEAR}`, {
       next: { revalidate: 3600 },
     });
     if (!res.ok) return null;
@@ -23,8 +27,8 @@ async function fetchEvents(): Promise<EventsList | null> {
   }
 }
 
-export const metadata: Metadata = {
-  title: "Tamil Calendar 2026 - Pournami, Amavasai, Pradosham, Ekadhasi Dates | Vinaadi",
+const EN_METADATA: Metadata = {
+  title: "Tamil Calendar 2026 - Pournami, Amavasai, Pradosham, Ekadhasi Dates",
   description:
     "Full 2026 Tamil calendar of special days - Pournami (full moon), Amavasai (new moon), Pradosham, Ekadhasi, Sankatahara Chathurthi, Karthigai, Sashti, Sivarathiri and Karinaal - with every date, weekday and Tamil date.",
   keywords: [
@@ -46,29 +50,21 @@ export const metadata: Metadata = {
   },
 };
 
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/tamil-calendar", TAMIL_CALENDAR_TA);
+}
+
 export default async function TamilCalendarHub() {
   const [data, categories] = await Promise.all([fetchEvents(), fetchCalendarCategories()]);
   const events = data?.events ?? [];
 
-  const jsonld = {
-    "@context": "https://schema.org",
-    "@type": "CollectionPage",
-    name: "Tamil Calendar 2026 - Special Days",
-    url: "https://vinaadi.com/tamil-calendar",
-    hasPart: [...categories.map((category: CalendarCategorySummary) => ({
-      "@type": "WebPage",
-      name: category.title.en,
-      url: `https://vinaadi.com/tamil-calendar/${category.slug}`,
-    })), ...events.map((event) => ({
-      "@type": "WebPage",
-      name: `${event.name.en} 2026`,
-      url: `https://vinaadi.com/tamil-calendar/${event.slug}`,
-    }))],
-  };
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonld) }} />
+      <JsonLd
+        en={calendarHubLd(categories, events, "en", "Tamil Calendar 2026 - Special Days")}
+        ta={calendarHubLd(categories, events, "ta", TAMIL_CALENDAR_TA.title)}
+      />
       <TamilCalendarContent events={events} categories={categories} />
     </>
   );

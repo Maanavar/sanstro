@@ -25,7 +25,8 @@ class TestAuthThrottler:
         email = "user@example.com"
 
         for i in range(5):  # Login allows 5 per minute
-            allowed, retry_after = throttler.check(AuthThrottleAction.LOGIN, ip=ip, account_identifier=email)
+            _d = throttler.evaluate(AuthThrottleAction.LOGIN, ip=ip, account_identifier=email)
+            allowed, retry_after = _d.allowed, _d.retry_after
             assert allowed is True, f"Request {i + 1} should be allowed"
             assert retry_after == 0
 
@@ -36,10 +37,11 @@ class TestAuthThrottler:
 
         # Exhaust IP budget
         for _ in range(5):
-            throttler.check(AuthThrottleAction.LOGIN, ip=ip, account_identifier=email)
+            throttler.evaluate(AuthThrottleAction.LOGIN, ip=ip, account_identifier=email)
 
         # 6th request should be blocked
-        allowed, retry_after = throttler.check(AuthThrottleAction.LOGIN, ip=ip, account_identifier=email)
+        _d = throttler.evaluate(AuthThrottleAction.LOGIN, ip=ip, account_identifier=email)
+        allowed, retry_after = _d.allowed, _d.retry_after
         assert allowed is False
         assert retry_after >= 1
 
@@ -50,10 +52,11 @@ class TestAuthThrottler:
         # Exhaust account budget using different IPs
         for i in range(5):
             ip = f"1.2.3.{i}"
-            throttler.check(AuthThrottleAction.LOGIN, ip=ip, account_identifier=email)
+            throttler.evaluate(AuthThrottleAction.LOGIN, ip=ip, account_identifier=email)
 
         # 6th request from yet another IP should be blocked (account budget exhausted)
-        allowed, retry_after = throttler.check(AuthThrottleAction.LOGIN, ip="1.2.3.99", account_identifier=email)
+        _d = throttler.evaluate(AuthThrottleAction.LOGIN, ip="1.2.3.99", account_identifier=email)
+        allowed, retry_after = _d.allowed, _d.retry_after
         assert allowed is False
         assert retry_after >= 1
 
@@ -63,14 +66,14 @@ class TestAuthThrottler:
 
         # Exhaust LOGIN budget (5 per minute)
         for _ in range(5):
-            throttler.check(AuthThrottleAction.LOGIN, ip=ip, account_identifier="user1@example.com")
+            throttler.evaluate(AuthThrottleAction.LOGIN, ip=ip, account_identifier="user1@example.com")
 
         # LOGIN should be blocked
-        allowed, _ = throttler.check(AuthThrottleAction.LOGIN, ip=ip, account_identifier="user2@example.com")
+        allowed = throttler.evaluate(AuthThrottleAction.LOGIN, ip=ip, account_identifier="user2@example.com").allowed
         assert allowed is False
 
         # But REGISTER should still work (separate budget)
-        allowed, _ = throttler.check(AuthThrottleAction.REGISTER, ip=ip, account_identifier="user3@example.com")
+        allowed = throttler.evaluate(AuthThrottleAction.REGISTER, ip=ip, account_identifier="user3@example.com").allowed
         assert allowed is True
 
     def test_throttler_register_has_tighter_budget_than_login(self):
@@ -79,11 +82,11 @@ class TestAuthThrottler:
 
         # Register allows 3 per minute
         for _ in range(3):
-            allowed, _ = throttler.check(AuthThrottleAction.REGISTER, ip=ip, account_identifier=f"user{_}@example.com")
+            allowed = throttler.evaluate(AuthThrottleAction.REGISTER, ip=ip, account_identifier=f"user{_}@example.com").allowed
             assert allowed is True
 
         # 4th register should be blocked
-        allowed, _ = throttler.check(AuthThrottleAction.REGISTER, ip=ip, account_identifier="user4@example.com")
+        allowed = throttler.evaluate(AuthThrottleAction.REGISTER, ip=ip, account_identifier="user4@example.com").allowed
         assert allowed is False
 
     def test_throttler_no_account_identifier_only_checks_ip(self):
@@ -92,11 +95,11 @@ class TestAuthThrottler:
 
         # Without account identifier, only IP is checked
         for _ in range(5):
-            allowed, _ = throttler.check(AuthThrottleAction.LOGIN, ip=ip)
+            allowed = throttler.evaluate(AuthThrottleAction.LOGIN, ip=ip).allowed
             assert allowed is True
 
         # 6th should be blocked (IP budget)
-        allowed, _ = throttler.check(AuthThrottleAction.LOGIN, ip=ip)
+        allowed = throttler.evaluate(AuthThrottleAction.LOGIN, ip=ip).allowed
         assert allowed is False
 
 

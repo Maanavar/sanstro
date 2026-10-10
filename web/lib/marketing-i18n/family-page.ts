@@ -18,7 +18,7 @@ export const FAMILY_PAGE = {
   benefit3_title: s("Porutham in seconds",              "விரைவாக பொருத்தம்"),
   benefit3_body:  s("Run Tamil 10-porutham and Ashtakoota compatibility between any two profiles in the vault.", "வால்ட்டில் உள்ள எந்த இரு சுயவிவரங்களுக்கும் தமிழ் 10-பொருத்தம் மற்றும் அஷ்டகூட பொருத்தம் உடனே கண்டறியுங்கள்."),
   benefit4_title: s("Private & secure",                 "தனியுரிமை & பாதுகாப்பு"),
-  benefit4_body:  s("Birth details are encrypted at rest. Only you can access your family vault.", "பிறப்பு விவரங்கள் குறியாக்கம் செய்யப்பட்டு சேமிக்கப்படுகின்றன. உங்கள் வால்ட்டை நீங்கள் மட்டுமே அணுக முடியும்."),
+  benefit4_body:  s("Birth details are used only for your readings. Only you can access your family vault.", "பிறப்பு விவரங்கள் உங்கள் பலன்களை உருவாக்க மட்டுமே பயன்படுத்தப்படுகின்றன. உங்கள் வால்ட்டை நீங்கள் மட்டுமே அணுக முடியும்."),
 
   how_h2:   s("How it works", "எப்படி வேலை செய்கிறது"),
   step1:    s("Create your account and enter your birth details — free, no subscription required.", "கணக்கு உருவாக்கி உங்கள் பிறப்பு விவரங்கள் உள்ளிடுங்கள் — இலவசம், சந்தா தேவையில்லை."),

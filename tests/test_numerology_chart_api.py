@@ -945,6 +945,36 @@ def test_marriage_dates_never_promote_into_the_recommended_set(
             assert row["numerology"]["adjustment"] <= 0
 
 
+def test_marriage_dates_for_a_couple_price_the_weaker_number(client, enabled: None) -> None:
+    """Owner ruling R1 carried into the numerology layer.
+
+    Both partners' numbers are reported for every date; the lower adjustment is
+    the one in ``adjustedScore``; and the almanac band is still the couple's.
+    """
+    bride, groom = _two_charts(client)
+    base = f"/api/v1/charts/{bride}/numerology/marriage-dates"
+    solo = client.get(base, params={"year": 2027})
+    both = client.get(base, params={"year": 2027, "partnerChartId": groom, "subjectRole": "BRIDE"})
+    assert solo.status_code == 200, solo.text
+    assert both.status_code == 200, both.text
+
+    solo_body, body = solo.json(), both.json()
+    assert solo_body["partnerChartId"] is None
+    assert all(len(row["readings"]) == 1 for row in solo_body["matches"])
+    assert body["partnerChartId"] == groom
+    assert sorted(body["partnerFavourableNumbers"]) == list(range(1, 10))
+
+    for row in body["matches"]:
+        readings = row["readings"]
+        assert [r["who"]["en"] for r in readings] == ["Bride", "Groom"]
+        assert sum(r["governs"] for r in readings) == 1
+        adjustment = row["numerology"]["adjustment"]
+        assert adjustment == min(r["numerology"]["adjustment"] for r in readings)
+        assert row["adjustedScore"] == pytest.approx(row["match"]["matchScore"] + adjustment)
+    recommended = [not row["match"]["isRecommended"] for row in body["matches"]]
+    assert recommended == sorted(recommended)
+
+
 # ── The prose gate ───────────────────────────────────────────────────────────
 def test_no_explanation_prose_ships_while_the_corpus_is_unreviewed(
     client, enabled: None

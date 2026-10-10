@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { LocalizedLink as Link } from "@/components/localized-link";
 import { useState, useEffect } from "react";
 import { readErrorMessage } from "@/lib/api";
 import { useLang } from "@/components/lang-toggle";
