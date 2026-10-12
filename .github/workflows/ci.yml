@@ -64,6 +64,98 @@ jobs:
       - name: Run pytest
         run: pytest -q
 
+  # The swisseph-ffi half of the ephemeris matrix.
+  #
+  # docs/vinaadi-fix-spec.md item 5: "Two Swiss Ephemeris backends exist ...
+  # Every ephemeris change must be tested on both", and line 127 asks for
+  # exactly this job. It had never been added. Until now every job here pinned
+  # python-version 3.12, which selects `pyswisseph` via the marker in
+  # requirements.txt, so CI exercised one binding and the other was covered only
+  # by the owner running tests on a 3.14 host venv. That stopped working when
+  # Smart App Control began blocking the unsigned swe.dll on that machine
+  # (see dev-docker.ps1), leaving the binding with no coverage anywhere.
+  #
+  # The two branches of app/calculations/ephemeris.py are separate code, not a
+  # thin shim: the fix-spec records `retflag` being discarded independently in
+  # each (item E1's return codes, and the MOSEPH fallback). A defect can live in
+  # one and not the other, which is the whole reason this leg exists.
+  #
+  # Scoped to the ephemeris-touching tests rather than the full suite: this is a
+  # binding matrix leg, not a second copy of backend-tests. Linux has no code
+  # integrity policy, so `swisseph-ffi` loads here without the Windows problem.
+  backend-tests-ffi:
+    name: Backend ephemeris tests (swisseph-ffi, Python 3.14)
+    runs-on: ubuntu-latest
+    # These five files: 72 tests, measured 2 min 37 s on 3.14 with the ffi
+    # binding, in a local python:3.14-slim container on 2026-10-11. Budget is
+    # that roughly doubled plus room for any sdist builds the installer needs.
+    # A15: every job is bounded.
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: vinaadi_test
+          POSTGRES_USER: slw_admin
+          POSTGRES_PASSWORD: slw_dev_password
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U slw_admin -d vinaadi_test"
+          --health-interval 10s --health-timeout 5s --health-retries 10
+    env:
+      PYTHONUTF8: "1"
+      PYTHONIOENCODING: "utf-8"
+      JOTHIDAM_DATABASE_URL: postgresql://slw_admin:slw_dev_password@localhost:5433/vinaadi_test
+      JOTHIDAM_TEST_DB_RESET_ACK: I_UNDERSTAND_THIS_WIPES_TEST_DB
+      # Throwaway Fernet key, test DB only — same value as backend-tests.
+      JOTHIDAM_ENCRYPTION_KEY: oIE2E5GlSD8XImPyokV8q3d27MolWWwtsbokjOvVSQA=
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+      - name: Install backend
+        # Same order as backend-tests, and for the same reason: installing the
+        # pins first stops pip resolving pyproject's ranges to whatever is
+        # newest that morning. The marker in requirements.txt selects
+        # swisseph-ffi at 3.14 — that selection IS what this job tests.
+        run: |
+          pip install -r requirements.txt
+          pip install --no-deps -e .
+          pip install "pytest>=8.0,<9.0" "pytest-cov>=5.0,<7.0"
+      - name: Confirm the ffi binding is the one loaded
+        # Without this the job could pass having silently tested pyswisseph —
+        # a marker that stopped matching, or a resolver picking the other
+        # package, would look exactly like a green matrix leg. Assert the
+        # binding before asserting anything about its output.
+        run: |
+          python - <<'PY'
+          import sys
+          import swisseph_ffi
+          from swisseph_ffi.bindings import SwissEph
+          SwissEph()
+          assert sys.version_info[:2] >= (3, 14), sys.version
+          try:
+              import swisseph  # noqa: F401
+          except ImportError:
+              print("swisseph-ffi loaded; pyswisseph absent, as the markers intend")
+          else:
+              sys.exit("both bindings installed — the marker in requirements.txt is not holding")
+          PY
+      - name: Run ephemeris tests
+        # --no-cov: pyproject's addopts carry --cov-fail-under=88, which is a
+        # whole-suite number. A focused run would exit 1 on coverage with every
+        # test passing, which reads as a failure.
+        run: |
+          pytest -q --no-cov \
+            tests/test_ephemeris.py \
+            tests/test_sunrise_failure_modes.py \
+            tests/test_charts_api.py \
+            tests/test_daily_guidance_golden.py \
+            tests/test_a14_response_contracts.py
+
   backend-lint:
     name: Backend lint (ruff) + types (mypy)
     runs-on: ubuntu-latest
