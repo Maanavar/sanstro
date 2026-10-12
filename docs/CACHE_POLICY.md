@@ -12,11 +12,20 @@ returned business value. Callers must therefore cache only JSON-serialisable
 values and must never rely on a cached write for durable state.
 
 The memory implementation is process-local and capped at **1,024 entries** by
-default. It removes every expired entry on a write, then evicts the least
-recently read or written live entry until it is back at the cap. LRU is used
-because repeated hot keys retain the computation benefit while one-off unique
-keys cannot grow the worker forever. Reads also remove the addressed entry when
-it has expired. All operations remain lock-protected.
+default. Two mechanisms, each with one job:
+
+- **Capacity bounds memory.** A write that takes the store over the cap evicts
+  the least recently read or written entry, expired or not — O(1). LRU is used
+  because repeated hot keys keep their computation benefit while one-off unique
+  keys cannot grow the worker forever.
+- **A sweep reclaims dead slots.** Expired entries that nobody reads again are
+  removed by a full scan that runs on a write **at most once per 60 seconds**
+  (`sweep_interval_seconds`). The first Phase 4 cut scanned on *every* write,
+  under the lock — an O(n) cost per `set()` that the cap had already made
+  unnecessary for the memory bound.
+
+Reads also remove the addressed entry when it has expired, so an expired value
+is never returned. All operations remain lock-protected.
 
 Redis remains shared across workers and uses Redis-native TTL plus the
 operator's Redis `maxmemory`/eviction configuration. The implementations have
@@ -91,8 +100,11 @@ A formula version does not represent mutable user input:
   the key.
 
 Regression evidence lives in `tests/test_birth_profiles_api.py` (birth and
-location edits), `tests/test_life_focus_phase1.py` (focus changes) and
-`tests/test_cache_and_rate_limit.py` (capacity, expiry and LRU order).
+location edits), `tests/test_clock_boundaries_db.py` (audience edits and the
+date-line/DST cutoffs, driven by an injected clock),
+`tests/test_life_focus_phase1.py` (focus changes) and
+`tests/test_cache_and_rate_limit.py` (capacity, unique-key growth, sweep and
+LRU order).
 
 ## Operations runbook
 

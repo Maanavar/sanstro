@@ -2,8 +2,9 @@
 
 Two implementations sit behind one ``Cache`` protocol:
 
-* ``InMemoryCache`` — a process-local dict with per-key TTL. Exact on a single
-  worker; not shared across workers. The dev/test default.
+* ``InMemoryCache`` — a bounded process-local LRU with per-key TTL. Exact on a
+  single worker; not shared across workers. The dev/test default and the
+  fallback when Redis is unreachable. Policy: ``docs/CACHE_POLICY.md``.
 * ``RedisCache`` — JSON values in Redis with native TTL, shared across workers
   and boxes. Selected with ``JOTHIDAM_CACHE_BACKEND=redis`` + ``JOTHIDAM_REDIS_URL``.
 
@@ -50,29 +51,52 @@ class Cache(Protocol):
 class InMemoryCache:
     """Bounded process-local TTL cache with least-recently-used eviction.
 
-    Expired entries are purged on every write. If live entries still exceed
-    ``max_entries``, the least recently read or written entry is discarded.
-    Eviction is an ordinary cache miss to callers, matching Redis expiry or
-    max-memory eviction: values are recomputed, never returned stale.
+    Two mechanisms, each with one job:
+
+    * **Capacity** (``max_entries``) bounds memory at all times. A write that
+      takes the store over the cap evicts the least recently read or written
+      entry, expired or not. This is O(1).
+    * **Sweep** reclaims expired entries that nobody reads again. It is a full
+      O(n) scan, so it runs on a write at most once per
+      ``sweep_interval_seconds`` rather than on every write — the cap already
+      guarantees the bound, so the sweep only shortens how long dead entries
+      hold slots.
+
+    A read of an expired key also drops it. Eviction is an ordinary miss to
+    callers, matching Redis expiry or max-memory eviction: values are
+    recomputed, never returned stale.
     """
 
     def __init__(
         self,
         *,
         max_entries: int = 1024,
+        sweep_interval_seconds: float = 60.0,
         clock: Callable[[], float] = time.monotonic,
     ) -> None:
         if max_entries < 1:
             raise ValueError("max_entries must be at least 1")
+        if sweep_interval_seconds < 0:
+            raise ValueError("sweep_interval_seconds must not be negative")
         self._max_entries = max_entries
+        self._sweep_interval = sweep_interval_seconds
         self._clock = clock
+        self._next_sweep = clock() + sweep_interval_seconds
         self._store: OrderedDict[str, tuple[float, Any]] = OrderedDict()
         self._lock = Lock()
 
-    def _purge_expired(self, now: float) -> None:
+    def __len__(self) -> int:
+        """Entries currently held, live or not yet swept."""
+        with self._lock:
+            return len(self._store)
+
+    def _sweep_if_due(self, now: float) -> None:
+        if now < self._next_sweep:
+            return
         expired = [key for key, (expires_at, _) in self._store.items() if expires_at <= now]
         for key in expired:
-            self._store.pop(key, None)
+            del self._store[key]
+        self._next_sweep = now + self._sweep_interval
 
     def get(self, key: str) -> Any | None:
         now = self._clock()
@@ -91,7 +115,7 @@ class InMemoryCache:
         now = self._clock()
         expires_at = now + max(1, ttl_seconds)
         with self._lock:
-            self._purge_expired(now)
+            self._sweep_if_due(now)
             self._store[key] = (expires_at, value)
             self._store.move_to_end(key)
             while len(self._store) > self._max_entries:

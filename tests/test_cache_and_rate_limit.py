@@ -45,7 +45,7 @@ def test_in_memory_cache_expires():
     assert cache.get("k") is None
 
 
-def test_in_memory_cache_reclaims_expired_entries_and_evicts_least_recently_used():
+def test_in_memory_cache_evicts_least_recently_used_over_capacity():
     now = [100.0]
     cache = InMemoryCache(max_entries=3, clock=lambda: now[0])
 
@@ -59,11 +59,39 @@ def test_in_memory_cache_reclaims_expired_entries_and_evicts_least_recently_used
     assert cache.get("oldest") == 1
     assert cache.get("newest") == 3
     assert cache.get("overflow") == 4
-    assert len(cache._store) == 3
+    assert len(cache) == 3
 
-    now[0] = 161.0
-    cache.set("after-expiry", 5, ttl_seconds=60)
-    assert list(cache._store) == ["after-expiry"]
+
+def test_in_memory_cache_stays_bounded_under_unique_keys_and_reclaims_expired():
+    """The Phase 4 B gate: a stream of one-off keys must not grow the worker.
+
+    Against the pre-fix cache (a plain dict, expiry only on a re-read of the
+    same key) this retained all 10,000 entries forever.
+    """
+    now = [0.0]
+    cache = InMemoryCache(max_entries=100, sweep_interval_seconds=30, clock=lambda: now[0])
+
+    for i in range(10_000):
+        cache.set(f"geo:{i}", {"lat": i}, ttl_seconds=10)
+    assert len(cache) == 100
+
+    # Expired but not yet swept: the cap still holds, nothing is returned stale.
+    now[0] = 11.0
+    cache.set("fresh-1", 1, ttl_seconds=60)
+    assert len(cache) == 100
+    assert cache.get("geo:9999") is None
+
+    # Once the sweep interval has passed, the next write reclaims every dead slot.
+    now[0] = 31.0
+    cache.set("fresh-2", 2, ttl_seconds=60)
+    assert len(cache) == 2
+    assert cache.get("fresh-1") == 1
+    assert cache.get("fresh-2") == 2
+
+
+def test_in_memory_cache_rejects_a_non_positive_capacity():
+    with pytest.raises(ValueError):
+        InMemoryCache(max_entries=0)
 
 
 def test_rate_limit_blocks_after_max_requests():
