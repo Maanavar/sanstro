@@ -2832,7 +2832,92 @@ ownership to take the right decision"); Phase 4 stays next, not started.
   drift or a future per-account timezone migration. UTC token expiry is not yet
   clock-injected. Rolling back is code-only and restores host-local quota
   boundaries; usage rows remain date-keyed and need no data rewrite.
-- [ ] **D. Run the populated-data A12 migration drill.**
+- [x] **D. Run the populated-data A12 migration drill.** It had never run
+  against populated data, so nobody could size a maintenance window or say
+  whether `downgrade()` restores what was there. `scripts/a12_migration_drill.py`
+  (wrapper `scripts/a12-migration-drill.ps1`) runs on `vinaadi_test` only, with
+  synthetic rows and a throwaway key. It seeds through the ORM, downgrades to
+  get the populated plaintext state, then times upgrade → downgrade → upgrade.
+  Each check compares fingerprints and never prints a value.
+
+  **Measured:** 1,000 users / 20,000 A12 rows: upgrade 19.3 s, downgrade
+  15.7 s, upgrade 15.1 s. 10,000 users / 200,000 rows: upgrade 152.4 s,
+  downgrade 235.6 s, upgrade 202.8 s. That is linear at ~1,000–1,300 rows/s
+  (717,824 ciphertext values checked one layer deep). The cost is dominated by
+  one `UPDATE` per row. All 14 columns were encrypted at rest and read back
+  identically through the ORM. Downgrade restored plaintext exactly, including
+  Tamil inside `raw_payload`, with identical row counts. The second upgrade did
+  not double-encrypt.
+
+  **Gate control:** with `_dec_float` mutated to round to 4 places, the drill
+  failed at the first fingerprint. With the upgrade mutated to encrypt twice,
+  it failed with "decrypts to another token". Both were reverted, and the
+  migration diff is empty.
+
+  **Runbook:** `docs/runbooks/A12_MIGRATION_WINDOW.md`. The migration is one
+  transaction holding `ACCESS EXCLUSIVE` on four tables, so the window is
+  downtime. It has a row-count query and estimate formula, procedure and rollback.
+
+  **Blind spots:** a laptop/Docker Desktop timing, not production hardware;
+  no concurrent traffic or lock-wait timeouts; no mid-run key rotation. The
+  per-row `UPDATE` could be batched for a shorter window, but that changes an
+  applied migration and is left to the owner.
+
+### Phase 4 review (2026-10-12, after Codex ran out mid-way)
+
+Codex committed A–C (`014e5e4`, `a79e040`, `049aa25`) and did not start D. A
+review against the brief found:
+
+- **A broke CI's web suite.** The two existing two-direction ratchets
+  (`rasi-display-boundary`, `astro-name-display-boundary`) still declared the
+  surfaces A fixed. The stale entries failed `vitest run` (1 of 1479 tests in
+  each). Both entries were removed.
+- **A changed a deliberate design to satisfy a gate.** It removed the
+  `:not(:has(.ui-segmented__thumb))` scoping that commit `af20604` had added on
+  purpose ("would make the slide look like a jump"). It then painted every
+  selected Segmented button. The scoping is restored. The spec now waits for
+  the JS-driven framer thumb, which `getAnimations()` cannot see, via a bounded
+  `settleSegmentedThumbs`. Evidence: two no-retry runs with the CSS restored
+  passed axe in both languages (en 2.1 m / ta 1.4 m), **with and without**
+  that wait. Codex's mid-slide failure was not reproduced; the wait guards a
+  race.
+- **A's lead, confirmed by output, not just by a call shape:**
+  `web/lib/astro-key-vocabulary-contract.test.ts` reads the backend's 27
+  nakshatra keys from `app/constants/astrology.py`. It proves `tNakshatra` and
+  `tPlanetLord` localise every key in both languages. The old Jadhagam Tamil
+  branch printed the raw uppercase key (`KARTHIGAI`), which that contract
+  rejects. Note that three ratchets now overlap (`nakshatra-`, `astro-name-`
+  and `astrology-render-boundary`). Consolidating them means deleting a test
+  file, which needs owner approval, so they are left as they are.
+- **B scanned the whole store on every write, under the lock.** It now sweeps at
+  most once per 60 s; the cap alone bounds memory. The gate drives 10,000
+  unique keys through a 100-entry cache. With the sweep removed, it fails
+  `100 == 2`.
+- **C introduced a 500 and a nightly flake.** `/daily-snapshot` computed
+  `local_date(tz)` outside every guard, so an unknown `tz` became a 500 on a
+  public endpoint; it is now a 422, with a test. `test_moving_drops_…` compared
+  against the container's UTC `date.today()` while the cutoff is Chennai's
+  date, so it failed between 18:30 and 24:00 UTC every day. C's own tests
+  covered only the helpers. `tests/test_clock_boundaries_db.py` now drives the
+  injected clock through `reserve_chip` and `apply_birth_profile_changes`.
+  Under the pre-fix host-date behaviour, 4 of 5 fail (the fifth is a no-change
+  control). Under a new-place-only cutoff, exactly the date-line case fails.
+  The commit message had no "why", and an import sat at the end of
+  `tests/test_admin_api.py`; both style issues are fixed.
+- **Open for the owner (not changed):** web and mobile tell a user who hit the
+  quota to "ask again tomorrow". Under the IST accounting day, a New York user's
+  reset arrives at 14:30 the same afternoon. Either the copy names the reset
+  time, or an account timezone is introduced (CLOCK_POLICY.md already says
+  that needs a product decision).
+- **Environment:** Docker Desktop exited after each completed e2e run,
+  including Codex's. `scripts/ux-audit-stack.ps1` recorded whatever process
+  listened on the backend port as `backendServerPid` and tree-killed it at
+  teardown. Since the backend moved into a container, that listener is Docker
+  Desktop's `com.docker.backend.exe`. It is now recorded only if it descends
+  from the process the script started. Disproven along the way: killing the
+  `wslrelay` owner of an all-interfaces port does **not** stop Docker. The
+  matching kill of `com.docker.backend` was not run, so the mechanism is
+  strongly indicated, not demonstrated.
 
 ## Agent Completion Checklist
 
