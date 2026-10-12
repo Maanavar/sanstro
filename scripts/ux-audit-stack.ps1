@@ -67,6 +67,28 @@ function Get-CommandLine([int]$ProcessId) {
     return ""
 }
 
+# True when $ProcessId is $AncestorId or one of its descendants.
+#
+# Why this exists: the e2e backend runs in a container since 2026-10-11, so the
+# process LISTENING on the backend port is Docker Desktop's port proxy
+# (com.docker.backend.exe for a 127.0.0.1-bound -p), not uvicorn. Recording that
+# listener as "backendServerPid" handed Docker Desktop's own service to
+# Stop-Tree's `taskkill /T /F` at teardown. Docker Desktop was found dead right
+# after two consecutive e2e runs on 2026-10-12 (and after Codex's run before
+# that). Killing the *wslrelay* owner of an all-interfaces port was measured
+# NOT to take Docker down; killing com.docker.backend's tree was not attempted.
+# Whatever the full mechanism, a listener this script did not start is not
+# this script's to kill.
+function Test-Descendant([int]$ProcessId, [int]$AncestorId) {
+    for ($i = 0; $i -lt 32 -and $ProcessId -gt 0; $i++) {
+        if ($ProcessId -eq $AncestorId) { return $true }
+        $p = Get-CimInstance Win32_Process -Filter "ProcessId=$ProcessId" -ErrorAction SilentlyContinue
+        if (-not $p) { return $false }
+        $ProcessId = [int]$p.ParentProcessId
+    }
+    return $false
+}
+
 function Stop-Tree([int]$ProcessId) {
     if ($ProcessId -gt 0 -and (Get-Process -Id $ProcessId -ErrorAction SilentlyContinue)) {
         # Redirected inside cmd, not by PowerShell: with ErrorActionPreference
@@ -234,10 +256,15 @@ switch ($Action) {
             Stop-Stack
             throw "isolated stack did not come up against the e2e backend"
         }
-        # Record the processes that actually hold the ports (the dev server and
-        # uvicorn run as children of the processes started above).
+        # Record the processes that actually hold the ports. The dev server is
+        # a node child of the frontend process started above. The backend port
+        # is recorded only if it descends from $backend: the containerised
+        # backend's port is held by Docker Desktop, which must never be recorded
+        # (see Test-Descendant). The container itself is stopped through
+        # $backend -- e2e-backend.ps1's `finally` runs `docker rm -f`.
         $state.frontendServerPid = (Get-Listener $FrontendPort).OwningProcess
-        $state.backendServerPid = (Get-Listener $BackendPort).OwningProcess
+        $backendListener = [int](Get-Listener $BackendPort).OwningProcess
+        if (Test-Descendant $backendListener $backend.Id) { $state.backendServerPid = $backendListener }
         $state | ConvertTo-Json | Set-Content -Encoding ascii -LiteralPath $StateFile
         Write-Output "stack up: http://localhost:$FrontendPort (proxy -> e2e backend :$BackendPort). Logs: $LogDir"
     }
