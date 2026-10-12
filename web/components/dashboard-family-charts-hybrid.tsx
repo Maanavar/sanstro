@@ -19,7 +19,7 @@ import {
   saniCycleNote,
   type CareReason,
 } from "@/lib/family-flags";
-import { t, tPlanetLord } from "@/lib/i18n";
+import { t, tNakshatra, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { tamilizeAstroEnglish } from "@/lib/tamil-astro";
 import { compareSynastry } from "@vinaadi/shared/api/relationships";
@@ -1366,7 +1366,7 @@ export function DashboardFamilyChartsHybrid({
                     {[
                       ...(readingSummary ? [
                         { label: lang === "ta" ? "ராசி" : "Rasi", value: rasiDisplayName(readingSummary.moonRasi, lang) },
-                        { label: lang === "ta" ? "நட்சத்திரம்" : "Nakshatra", value: `${astroText(readingSummary.janmaNakshatra)} · ${readingSummary.janmaPada}` },
+                        { label: lang === "ta" ? "நட்சத்திரம்" : "Nakshatra", value: `${tNakshatra(readingSummary.janmaNakshatra, lang)} · ${readingSummary.janmaPada}` },
                         { label: lang === "ta" ? "லக்னம்" : "Lagnam", value: rasiDisplayName(readingSummary.lagnaRasi, lang) },
                         { label: lang === "ta" ? "வயது" : "Age", value: String(readingSummary.currentAge) },
                       ] : []),

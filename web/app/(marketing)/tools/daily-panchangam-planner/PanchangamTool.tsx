@@ -114,8 +114,8 @@ function nowLocalMinutes(): number {
   return now.getHours() * 60 + now.getMinutes();
 }
 
-function formatRasi(number: number, fallback: string, lang: Lang): string {
-  return RASI_LABELS[number]?.[lang] ?? fallback;
+function formatRasi(number: number, lang: Lang): string {
+  return RASI_LABELS[number]?.[lang] ?? String(number);
 }
 
 function festivalTags(festival: Pick<PanchangamFestival, "category" | "tags">): string[] {
@@ -423,14 +423,10 @@ export function PanchangamTool() {
         : `${tTithi(data.tithi.name, lang)} (${piraiLabel(data.tithi.paksha)})`)
     : "";
   const chandrashtamamRasi = data
-    ? formatRasi(
-        data.chandrashtamamToday.affectedJanmaRasiNumber,
-        data.chandrashtamamToday.affectedJanmaRasiName,
-        lang,
-      )
+    ? formatRasi(data.chandrashtamamToday.affectedJanmaRasiNumber, lang)
     : "";
   const moonRasi = data
-    ? formatRasi(data.chandrashtamamToday.moonRasiNumber, data.chandrashtamamToday.moonRasiName, lang)
+    ? formatRasi(data.chandrashtamamToday.moonRasiNumber, lang)
     : "";
   const chandrashtamaWindowSummary = data
     ? formatChandrashtamaWindowSummary(data.chandrashtamamToday.janmaNakshatraWindows ?? [], data.dateLocal, lang)
@@ -622,7 +618,7 @@ export function PanchangamTool() {
                 { label: en ? "Yoga" : "யோகம்",          value: tYoga(yogaRolled ? data.yoga.nextName : data.yoga.name, lang),      sub: limbSub(yogaRolled, data.yoga.endsAt, tYoga(data.yoga.nextName, lang), yogaRolled ? "" : `${en ? "Yoga" : "யோகம்"} ${data.yoga.number} · `, data.yoga.endsAtIso) },
                 { label: en ? "Karana" : "கரணம்",        value: tKarana(karanaRolled ? data.karana.nextName : data.karana.name, lang),    sub: limbSub(karanaRolled, data.karana.endsAt, tKarana(data.karana.nextName, lang), "", data.karana.endsAtIso) },
                 { label: en ? "Moon Phase" : "சந்திர கலை", value: tMoonPhase(data.moonPhaseLabel, lang), sub: "" },
-                { label: en ? "Lagnam" : "லக்னம்",       value: formatRasi(data.lagnam.rasiNumber, data.lagnam.rasiName, lang), sub: `${en ? "Ends" : "முடிவு"} ${formatEndsAtLabel(data.lagnam.endsAt, data.sunrise, data.dateLocal, lang, data.lagnam.endsAtIso)} · ${data.lagnam.nazhigai} ${en ? "nazhigai" : "நாழிகை"} ${data.lagnam.vinadi} ${en ? "vinadi" : "விநாடி"}` },
+                { label: en ? "Lagnam" : "லக்னம்",       value: formatRasi(data.lagnam.rasiNumber, lang), sub: `${en ? "Ends" : "முடிவு"} ${formatEndsAtLabel(data.lagnam.endsAt, data.sunrise, data.dateLocal, lang, data.lagnam.endsAtIso)} · ${data.lagnam.nazhigai} ${en ? "nazhigai" : "நாழிகை"} ${data.lagnam.vinadi} ${en ? "vinadi" : "விநாடி"}` },
                 { label: en ? "Soolam" : "சூலம்",        value: tSoolamDirection(data.soolam.direction, lang), sub: `${en ? "Parigaram" : "பரிகாரம்"}: ${tParigaram(data.soolam.parigaram, lang)}` },
                 { label: en ? "Nethiram" : "நேத்திரம்",  value: tNethiram(data.nethiram, lang), sub: t("nethiram_jeevan_hint", lang) },
                 { label: en ? "Jeevan" : "ஜீவன்",        value: tJeevan(data.jeevan, lang), sub: t("nethiram_jeevan_hint", lang) },

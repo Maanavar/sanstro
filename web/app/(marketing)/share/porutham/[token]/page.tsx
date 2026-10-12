@@ -7,6 +7,7 @@ import { madhyamaLabel, madhyamaGloss, hasMadhyama } from "@/lib/kuta-grade";
 import type { PoruthamShareViewData } from "@vinaadi/shared/api/porutham-shares";
 import type { KutaGrade } from "@vinaadi/shared";
 import { backendUrl } from "@/lib/backend-url";
+import { tNakshatra } from "@/lib/i18n";
 
 async function fetchShare(token: string): Promise<PoruthamShareViewData | null> {
   try {
@@ -165,13 +166,13 @@ export default async function PoruthamSharePage({ params }: Props) {
                 <p style={{ margin: "0 0 2px", fontSize: "0.65rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--cl-muted)" }}>
                   {data.labelA || "Person A"} Nakshatra
                 </p>
-                <p style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: "var(--cl-ink)" }}>{data.boyNakshatraName}</p>
+                <p style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: "var(--cl-ink)" }}>{tNakshatra(data.boyNakshatraName, "en")}</p>
               </div>
               <div>
                 <p style={{ margin: "0 0 2px", fontSize: "0.65rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--cl-muted)" }}>
                   {data.labelB || "Person B"} Nakshatra
                 </p>
-                <p style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: "var(--cl-ink)" }}>{data.girlNakshatraName}</p>
+                <p style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: "var(--cl-ink)" }}>{tNakshatra(data.girlNakshatraName, "en")}</p>
               </div>
             </div>
 

@@ -585,11 +585,6 @@ function KattamPair({ chart, lang }: { chart: ChartCalculateResponseData; lang: 
 // ── Graha positions — the print sheet's core table, brought to the screen ─────
 function GrahaPositionsTable({ chart, lang }: { chart: ChartCalculateResponseData; lang: Lang }) {
   const isTa = lang === "ta";
-  // The API sends the nakshatra as an uppercase key ("UTHIRADAM"), which is
-  // what `tNakshatra` is keyed on. Passing it through raw printed UTHIRADAM in
-  // the middle of a Tamil table.
-  const star = (v: string) => tNakshatra(v, lang);
-
   type Row = {
     key: string; name: string; degInRasi: number; rasi: number; d9Rasi: number;
     nakshatra: number; nakshatraName: string; pada: number;
@@ -676,7 +671,7 @@ function GrahaPositionsTable({ chart, lang }: { chart: ChartCalculateResponseDat
                     {row.isVargottama ? <FlagChip text={t("flag_vargottamam", lang)} tone="vargottama" /> : null}
                   </span>
                 </td>
-                <td style={td}>{star(row.nakshatraName)}</td>
+                <td style={td}>{tNakshatra(row.nakshatraName, lang)}</td>
                 <td style={{ ...td, fontVariantNumeric: "tabular-nums" }}>{row.pada}</td>
                 <td style={{ ...td, whiteSpace: "nowrap" }}>
                   {row.isLagna ? "—" : (tPlanetLord(nakshatraLord(row.nakshatra), lang) || "—")}

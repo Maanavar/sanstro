@@ -6,7 +6,7 @@ import { Check, Minus, AlertTriangle, ArrowRight } from "lucide-react";
 
 import { apiFetchJson, readErrorMessage, toQuery } from "@/lib/api";
 import { formatClockLabel, getScoreBand } from "@/lib/format";
-import { t, tLang, tPlanetLord } from "@/lib/i18n";
+import { t, tLang, tNakshatra, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { rasiDisplayName, rasiLabel, RASI_LORDS } from "@/lib/chart-utils";
 import { RASI_TRAITS } from "@/lib/rasi-traits";
@@ -131,7 +131,7 @@ export function NovaChartIdentityCard({
             </div>
             <p className="surface__text">
               {personalChartSummary
-                ? `${rasiDisplayName(personalChartSummary.lagnaRasi, lang)} ${t("label_lagnam", lang)} · ${rasiDisplayName(personalChartSummary.moonRasi, lang)} ${t("label_janma_rasi", lang)} · ${astroText(personalChartSummary.janmaNakshatra)} ${t("label_nakshatra", lang)} ${t("label_padam", lang)} ${personalChartSummary.janmaPada}`
+                ? `${rasiDisplayName(personalChartSummary.lagnaRasi, lang)} ${t("label_lagnam", lang)} · ${rasiDisplayName(personalChartSummary.moonRasi, lang)} ${t("label_janma_rasi", lang)} · ${tNakshatra(personalChartSummary.janmaNakshatra, lang)} ${t("label_nakshatra", lang)} ${t("label_padam", lang)} ${personalChartSummary.janmaPada}`
                 : t("chart_loading", lang)}
             </p>
             <div style={{ display: "flex", gap: "var(--space-3_5)", flexWrap: "wrap", justifyContent: "center", marginTop: "14px" }}>
@@ -686,9 +686,9 @@ export function NovaPrasnaWidget({
             </div>
 
             <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap", marginBottom: "16px" }}>
-              <NovaMetaChip label={t("prasna_lagna", lang)} value={result.prasnaLagnaName} />
-              <NovaMetaChip label={t("prasna_moon", lang)} value={result.moonNakshatraName} />
-              <NovaMetaChip label={t("prasna_karaka", lang)} value={`${result.karaka} (H${result.karakaHouse})`} />
+              <NovaMetaChip label={t("prasna_lagna", lang)} value={rasiDisplayName(result.prasnaLagnaRasi, lang)} />
+              <NovaMetaChip label={t("prasna_moon", lang)} value={tNakshatra(result.moonNakshatraName, lang)} />
+              <NovaMetaChip label={t("prasna_karaka", lang)} value={`${tPlanetLord(result.karaka, lang)} (H${result.karakaHouse})`} />
             </div>
 
             {result.positiveIndicators.length > 0 && (

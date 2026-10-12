@@ -2719,6 +2719,54 @@ ownership to take the right decision"); Phase 4 stays next, not started.
   browser run, no real panes. In particular Back's behaviour after these eight
   flips has not been clicked through in a browser, only modelled.
 
+### Phase 4 — owner-independent production hardening (2026-10-12)
+
+- [x] **A. Tamil render boundary and browser accessibility audit.** The
+  Jadhagam lead was real: its inverted helper localised `nakshatraName` on the
+  English branch and passed the server's English name through on the Tamil
+  branch. Tamil readers saw English birth-star names in four places. The same
+  rendered-boundary sweep found equivalent leaks in dashboard identity and
+  family summaries, both Prasna surfaces, the public Porutham share page and a
+  Panchangam fallback. All now render language-free rasi values or astrology
+  keys through `rasiDisplayName`, `tNakshatra` or `tPlanetLord`; Jadhagam's
+  share card deliberately asks the same localiser for English.
+
+  **Static gate:** `web/lib/astrology-render-boundary.test.ts` parses rendered
+  JSX children plus `value`, `title`, `aria-label`, `label`, `hint` and `name`
+  attributes. Against the unfixed tree it failed with **18 violations** across
+  Porutham (2), Panchangam (1), Jadhagam (4), chart generation (1), family
+  charts (1), dashboard hybrid parts (2), Prasna (3) and Today deep-dive (4).
+  After the fixes: **2/2 passed**. It intentionally does not infer values hidden
+  behind arbitrary helper functions, inspect runtime object spreads, judge
+  translation quality, or cover non-TSX exports.
+
+  **Rendered gate:** `web/e2e/phase4-accessibility.spec.ts` creates only
+  clearly-synthetic data on `vinaadi_e2e`, then runs axe WCAG A/AA checks in
+  English and Tamil across Today, Calendar, Family & Charts, the five named
+  overlays, and genuine Shadbala loading and 503/retry states. Its first run
+  failed on a keyboard-inaccessible Hora scroll region and on selected
+  segmented text losing contrast while the animated thumb travelled. The Hora
+  region now has a localised name and focus stop; the selected target retains
+  its accent background for every animation frame. Clean evidence: English
+  passed in the full no-retry run; Tamil passed its corrected no-retry run in
+  **2.4 minutes**. The earlier Tamil attempt stopped on an ambiguous test
+  locator, not an axe result; scoping it to the Shadbala section fixed the test.
+  The run also exposed a local infrastructure issue: Docker Desktop exited
+  between runs, so the test container had to be restarted explicitly; no dev
+  data was used.
+
+  **Blind spots:** axe does not implement WCAG 1.4.11 non-text contrast, prove
+  reading order, assess Tamil prose, or prove screen-reader announcements. The
+  browser gate uses one desktop synthetic chart; public sub-tools, exports,
+  phone layouts and mobile Safari remain outside it. The static test covers
+  attributes that the browser text audit cannot, but not runtime-generated
+  prop bags. No API or stored-data contract changed; rollback is a normal code
+  rollback, with no operational runbook action.
+
+- [ ] **B. Bound the in-memory cache.**
+- [ ] **C. Name the clock policy and inject the clock.**
+- [ ] **D. Run the populated-data A12 migration drill.**
+
 ## Agent Completion Checklist
 
 For every task completed from this file:

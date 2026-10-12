@@ -1787,7 +1787,12 @@ export function DashboardCalendarTabNova({
                       </Card>
                     );
                   })()}
-                  <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)", maxHeight: "330px", overflowY: "auto", paddingRight: "4px" }}>
+                  <div
+                    role="region"
+                    aria-label={lang === "ta" ? "ஹோரை நேரங்கள்" : "Hora timings"}
+                    tabIndex={0}
+                    style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)", maxHeight: "330px", overflowY: "auto", paddingRight: "4px" }}
+                  >
                     {panchangam.hora.map((h) => (
                       <NovaHoraRow key={h.index} hora={h} lang={lang} nowMinutes={currentNowMinutes} />
                     ))}

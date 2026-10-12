@@ -356,7 +356,6 @@ export function HyPlanetOrbs({ lang, planets, explanationPlanets, d9LagnaRasi, d
 }) {
   const [open, setOpen] = useState<string | null>(null);
   const [view, setView] = useState<PlanetPositionView>("D1");
-  const astro = (v: string) => (lang === "en" ? tamilizeAstroEnglish(v) : v);
   const explByGraha = new Map((explanationPlanets ?? []).map((p) => [p.graha, p]));
   const rowCols = view === "D1" ? PLANET_ROW_COLS : D9_PLANET_ROW_COLS;
   // A missing dignity is not a neutral one. "Neutral sign" is a claim about the
@@ -487,7 +486,7 @@ export function HyPlanetOrbs({ lang, planets, explanationPlanets, d9LagnaRasi, d
                   <>
                     <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text)" }}>{rasiDisplayName(pl.rasi, lang)}</span>
                     <span style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>{pl.degreeInRasi.toFixed(2)}°</span>
-                    <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text)" }}>{astro(pl.nakshatraName)}</span>
+                    <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text)" }}>{tNakshatra(pl.nakshatraName, lang)}</span>
                     <span style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)", textAlign: "center" }}>{pl.houseFromLagna}</span>
                   </>
                 ) : (
@@ -633,7 +632,7 @@ function HyTechnicalDetails({ lang, pl, expl }: {
             /* Explanation still loading — show the raw facts rather than nothing. */
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "var(--space-3) var(--space-6)" }}>
               <HyFact label={t("col_house", lang)} value={`${pl.houseFromLagna} · ${rasiDisplayName(pl.rasi, lang)}`} />
-              <HyFact label={t("col_nakshatra", lang)} value={astro(pl.nakshatraName)} />
+              <HyFact label={t("col_nakshatra", lang)} value={tNakshatra(pl.nakshatraName, lang)} />
             </div>
           )}
         </div>

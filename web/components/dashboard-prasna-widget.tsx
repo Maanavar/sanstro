@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
-import { t } from "@/lib/i18n";
+import { t, tNakshatra, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
+import { rasiDisplayName } from "@/lib/chart-utils";
 import type { PrasnaResponse } from "@/lib/types";
 import { Button } from "./dashboard-ui";
 import { DrawerPanel } from "./drawer-panel";
@@ -170,9 +171,9 @@ export function PrasnaWidget({ lang, open, onClose, timezone, latitude, longitud
 
             {/* Meta row */}
             <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap", marginBottom: "var(--space-4)" }}>
-              <MetaChip label={t("prasna_lagna", lang)} value={result.prasnaLagnaName} />
-              <MetaChip label={t("prasna_moon", lang)} value={result.moonNakshatraName} />
-              <MetaChip label={t("prasna_karaka", lang)} value={`${result.karaka} (H${result.karakaHouse})`} />
+              <MetaChip label={t("prasna_lagna", lang)} value={rasiDisplayName(result.prasnaLagnaRasi, lang)} />
+              <MetaChip label={t("prasna_moon", lang)} value={tNakshatra(result.moonNakshatraName, lang)} />
+              <MetaChip label={t("prasna_karaka", lang)} value={`${tPlanetLord(result.karaka, lang)} (H${result.karakaHouse})`} />
             </div>
 
             {/* Positive indicators */}

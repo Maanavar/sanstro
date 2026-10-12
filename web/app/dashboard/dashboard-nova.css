@@ -3803,18 +3803,11 @@
   transform: scale(0.97);
 }
 [data-ui="nova"] .cd-shell .ui-segmented__btn[aria-selected="true"] {
+  /* Selection changes before the layout thumb finishes sliding. Painting the
+     target keeps on-accent text readable for every animation frame. */
+  background: var(--color-accent);
   color: var(--color-on-accent);
   font-weight: 700;
-}
-/* The thumb paints the selected fill and ships in its own chunk (it is loaded
-   through next/dynamic to keep framer-motion out of the ui barrel). `ssr: true`
-   covers the server-rendered case, but a Segmented that first mounts during a
-   client navigation can render one frame before the chunk lands. Without this
-   the label sits at 1.02:1 on cream and 1.15:1 on navy — invisible, not merely
-   low-contrast. Scoped with :not(:has()) so it never paints under the thumb,
-   which would make the slide look like a jump. */
-[data-ui="nova"] .cd-shell .ui-segmented__btn[aria-selected="true"]:not(:has(.ui-segmented__thumb)) {
-  background: var(--color-accent);
 }
 [data-ui="nova"] .cd-shell .ui-segmented__btn:focus-visible {
   outline: 2px solid var(--color-accent-strong);
