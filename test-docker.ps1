@@ -54,6 +54,8 @@ param(
     # Why slower than CI at all: Docker Desktop on Windows, coverage
     # instrumentation, and one shared core. Not a defect, just the price.
     [int]$TimeoutSeconds = 7200,
+    # Run the known-stalling test too. Off by default -- see KNOWN STALL below.
+    [switch]$IncludeStalled,
     [string[]]$PytestArgs = @()
 )
 
@@ -99,19 +101,45 @@ if ($Build -or -not $exists) {
     if ($LASTEXITCODE -ne 0) { throw "Test image build failed." }
 }
 
-# Reachability probe. A test run against nothing, or against the wrong port,
-# must not look like a pass.
-docker run --rm --network host $Image python -c @"
-import socket, sys
-s = socket.socket(); s.settimeout(5)
-try:
-    s.connect(('127.0.0.1', 5433))
-except Exception as exc:
-    sys.exit(f'127.0.0.1:5433 unreachable from the container: {exc!r}')
-finally:
-    s.close()
-"@
+# Reachability probe, before anything that could mistake silence for success.
+# The checker is a file, not a -c here-string: PS 5.1 mangles embedded double
+# quotes on the way to a native exe, which is how the dependency-drift gate
+# below came to report clean while python was dying on a SyntaxError.
+docker run --rm --network host `
+    -v "D:\sanstro\docker\check-db-reachable.py:/app/check-db-reachable.py:ro" `
+    $Image python -I /app/check-db-reachable.py 127.0.0.1 5433
 if ($LASTEXITCODE -ne 0) { throw "Test DB not reachable from the container -- is host networking enabled in Docker Desktop?" }
+
+# KNOWN STALL, DESELECTED BY DEFAULT.
+#
+# tests/test_admin_elevation.py::test_a_recompute_job_still_needs_no_elevation
+# POSTs /api/v1/admin/jobs/panchangam_prewarm/trigger, which runs the prewarm
+# cron synchronously inside the request. In THIS container it does not finish:
+# isolated it exceeds 208 s, and a full run sat 14 hours at 5% because of it.
+# Deselecting it alone takes the same 40 minutes from 5% to 49%, so it is the
+# entire blockage.
+#
+# WHAT IT IS NOT: a product defect, and not skipped anywhere that matters. CI's
+# backend-tests job runs plain `pytest -q` over testpaths = ["tests"], so it
+# runs this test, with no skip marker, and that job is green. The daily
+# run_panchangam_prewarm_cron in the production worker is fine on Linux. This
+# deselect is local-only and buys back local full-suite runs; it removes no
+# coverage from the gate that decides anything.
+#
+# Measurement killed four explanations, so do not re-derive them: ephemeris
+# file I/O over the bind mount (36,690 vs 19,878 calls/s -- irrelevant at this
+# scale), Docker Desktop's port proxy (0.28 vs 0.25 ms per round trip), a slow
+# or non-converging panchangam (all 9 prewarm locations x 45 days = 15.7 s
+# total), and lock contention (pg_blocking_pids empty throughout). The open
+# suspect is _SWISS_LOCK serialising ephemeris calls between the anyio worker
+# thread running the cron -- which opens its OWN SessionLocal(), not the test's
+# overridden session -- and the TestClient thread blocked on its future.
+# NOT localised. Pass -IncludeStalled to run it and pick the thread back up.
+$stalling = 'tests/test_admin_elevation.py::test_a_recompute_job_still_needs_no_elevation'
+if (-not $IncludeStalled -and -not (($PytestArgs -join ' ') -match [regex]::Escape($stalling))) {
+    $PytestArgs = @('--deselect', $stalling) + $PytestArgs
+    Write-Host "Deselected the known local stall (-IncludeStalled to run it; CI runs it regardless)." -ForegroundColor DarkGray
+}
 
 # COVERAGE GATE. pyproject's addopts carry `--cov=app --cov-fail-under=88`,
 # which is right for a full run and wrong for a focused one: pytest exits 1 on

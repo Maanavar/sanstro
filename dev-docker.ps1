@@ -36,13 +36,31 @@
 # never referenced, so it runs the whole script and dies on uvicorn exactly as
 # before. Review the migration before applying it to vinaadi_dev (CLAUDE.md).
 #
-# Hot reload works through the bind mount, but only with polling --
-# watchfiles' inotify path does not see host writes across a Docker Desktop
-# mount. WATCHFILES_FORCE_POLLING below is load-bearing; without it edits are
-# silently ignored and you debug a server running stale code.
+# Hot reload works through the bind mount. WATCHFILES_FORCE_POLLING below was
+# originally commented here as load-bearing -- "without it edits are silently
+# ignored" -- which was asserted and never tested. Tested: inotify alone also
+# picks up host edits on this Docker Desktop version, at the same CPU cost,
+# because watchfiles recognises the mount and polls regardless. The env var is
+# kept only to make that fallback explicit rather than version-dependent; it
+# buys nothing and costs nothing. See -NoReload for what the watcher costs.
 
 param(
     [int]$Port = 8000,
+    # Serve without the file watcher. Watching app/ across the Docker Desktop
+    # bind mount costs ~6% CPU with the server completely idle, for as long as
+    # the container is up; without the watcher it is 0.2%. Use this when you
+    # need the API up but are not editing it -- running the frontend, poking at
+    # routes, leaving it on in the background.
+    #
+    # THERE IS NO CHEAPER WAY TO WATCH, measured rather than assumed:
+    #   no watcher                     0.21%
+    #   --reload (inotify)         ~6.6%
+    #   --reload + FORCE_POLLING   ~6.7%
+    #   uvicorn --reload-delay 2   no change -- it throttles uvicorn's reload
+    #                              loop, not watchfiles' own poll thread
+    # watchfiles detects that this path is a mount and polls either way, so the
+    # cost is the mount, not the setting. Don't go looking for a flag.
+    [switch]$NoReload,
     [switch]$Build,
     [switch]$Stop
 )
@@ -80,6 +98,8 @@ if ($Build -or -not $exists) {
 
 docker rm -f $Container 2>$null | Out-Null
 
+$uvicornReload = if ($NoReload) { @() } else { @('--reload', '--reload-dir', '/app/app') }
+
 # .env first, then -e overrides: the DB URL in .env points at localhost, which
 # inside the container is the container itself.
 docker run -d --name $Container `
@@ -94,7 +114,7 @@ docker run -d --name $Container `
     -p "127.0.0.1:${Port}:8000" `
     --entrypoint tini `
     $Image `
-    -- uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/app | Out-Null
+    -- uvicorn app.main:app --host 0.0.0.0 --port 8000 @uvicornReload | Out-Null
 if ($LASTEXITCODE -ne 0) { throw "docker run failed." }
 
 # Bound the wait. A hang should cost seconds and a readable log, not a blank
@@ -141,7 +161,8 @@ if ($driftExit -eq 1) {
     Write-Host "WARNING: the dependency-drift check did not run (exit $driftExit) -- this is NOT a pass." -ForegroundColor Yellow
 }
 
-Write-Host "API ready on http://127.0.0.1:$Port (hot reload on app\)." -ForegroundColor Green
+$reloadNote = if ($NoReload) { "watcher OFF (-NoReload)" } else { "hot reload on app\" }
+Write-Host "API ready on http://127.0.0.1:$Port -- $reloadNote." -ForegroundColor Green
 Write-Host "  logs:  docker logs -f $Container" -ForegroundColor DarkGray
 Write-Host "  stop:  .\dev-docker.ps1 -Stop" -ForegroundColor DarkGray
 docker exec $Container python -c "import urllib.request,json; print('ready:', json.load(urllib.request.urlopen('http://127.0.0.1:8000/health/ready'))['status'])"
