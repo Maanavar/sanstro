@@ -27,14 +27,12 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
-/** What still reads a name field, and why that read is not a leak. */
-const DECLARED: Record<string, string> = {
-  // Passes BOTH halves to `formatRasi(number, fallback, lang)`, which prefers
-  // its own localised table and uses the name only when the number is absent.
-  // The name is an argument to a localiser here, never a render.
-  "app/(marketing)/tools/daily-panchangam-planner/PanchangamTool.tsx":
-    "name is the fallback argument to formatRasi(number, fallback, lang), not a render",
-};
+/**
+ * What still reads a name field, and why that read is not a leak. Empty since
+ * Phase 4 A (2026-10-12): PanchangamTool's `formatRasi` dropped its English
+ * name fallback, which was the last declared read.
+ */
+const DECLARED: Record<string, string> = {};
 
 const ROOTS = ["app", "components"];
 

@@ -11,7 +11,8 @@
  * reading order, or judge Tamil writing quality.  This uses one synthetic
  * chart at desktop width; exported reports, public sub-tools, mobile Safari,
  * and screen-reader announcements remain outside it.  Finite animations are
- * settled before each scan because axe measures mid-fade composited pixels.
+ * settled before each scan because axe measures mid-fade composited pixels;
+ * the JS-driven Segmented thumb is settled separately (settleSegmentedThumbs).
  */
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type BrowserContext, type Page, type Route } from "@playwright/test";
@@ -59,7 +60,34 @@ async function settle(page: Page) {
       new Promise((resolve) => setTimeout(resolve, 2_000)),
     ]);
   });
+  await settleSegmentedThumbs(page);
   await page.waitForTimeout(250);
+}
+
+/**
+ * Wait until every Segmented thumb sits exactly over its own button.
+ *
+ * The thumb is a framer-motion `layoutId` animation driven from JS, so
+ * `document.getAnimations()` above cannot see it. Scanning mid-slide measures
+ * the selected label (already on-accent) over the ground the thumb has not
+ * reached — a transition artefact, not a palette defect. Bounded at 2 s.
+ *
+ * Evidence, recorded honestly: the first Phase 4 run failed this way, but on
+ * 2026-10-12 two no-retry runs with the thumb CSS restored passed in both
+ * languages with AND without this wait. It guards a race, not a reproduced
+ * failure.
+ */
+async function settleSegmentedThumbs(page: Page) {
+  await page.waitForFunction(() => {
+    const thumbs = Array.from(document.querySelectorAll<HTMLElement>(".ui-segmented__thumb"));
+    return thumbs.every((thumb) => {
+      const button = thumb.closest(".ui-segmented__btn");
+      if (!button) return true;
+      const a = thumb.getBoundingClientRect();
+      const b = button.getBoundingClientRect();
+      return Math.abs(a.left - b.left) < 1 && Math.abs(a.width - b.width) < 1;
+    });
+  }, undefined, { timeout: 2_000 }).catch(() => {});
 }
 
 async function scan(page: Page, label: string, findings: string[], include = ".cd-shell") {

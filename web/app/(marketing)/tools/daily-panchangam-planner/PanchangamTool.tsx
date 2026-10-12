@@ -115,7 +115,7 @@ function nowLocalMinutes(): number {
 }
 
 function formatRasi(number: number, lang: Lang): string {
-  return RASI_LABELS[number]?.[lang] ?? String(number);
+  return RASI_LABELS[number]?.[lang] ?? "—";
 }
 
 function festivalTags(festival: Pick<PanchangamFestival, "category" | "tags">): string[] {

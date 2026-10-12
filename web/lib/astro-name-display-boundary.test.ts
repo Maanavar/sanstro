@@ -47,8 +47,6 @@ const DECLARED: Record<string, string> = {
     "lord: `r.signLord` is a label this file builds from rasiDisplayName() + tPlanetLord() (:604), not a response field",
   "components/marketing-visuals.tsx":
     "lord: `labels.graha` is the component's own localised label map, not a response field",
-  "app/(marketing)/share/porutham/[token]/page.tsx":
-    "nakshatra: an English-only public share page (its labels are English literals); the English name is the page's language. Localise with the page if it gains Tamil",
 };
 
 const ROOTS = ["app", "components"];
