@@ -17,6 +17,8 @@ from __future__ import annotations
 import json
 import logging
 import time
+from collections import OrderedDict
+from collections.abc import Callable
 from functools import lru_cache
 from threading import Lock
 from typing import Any, Protocol, TypeVar, runtime_checkable
@@ -46,32 +48,63 @@ class Cache(Protocol):
 
 
 class InMemoryCache:
-    """Process-local cache with per-key expiry. Thread-safe."""
+    """Bounded process-local TTL cache with least-recently-used eviction.
 
-    def __init__(self) -> None:
-        self._store: dict[str, tuple[float, Any]] = {}
+    Expired entries are purged on every write. If live entries still exceed
+    ``max_entries``, the least recently read or written entry is discarded.
+    Eviction is an ordinary cache miss to callers, matching Redis expiry or
+    max-memory eviction: values are recomputed, never returned stale.
+    """
+
+    def __init__(
+        self,
+        *,
+        max_entries: int = 1024,
+        clock: Callable[[], float] = time.monotonic,
+    ) -> None:
+        if max_entries < 1:
+            raise ValueError("max_entries must be at least 1")
+        self._max_entries = max_entries
+        self._clock = clock
+        self._store: OrderedDict[str, tuple[float, Any]] = OrderedDict()
         self._lock = Lock()
 
+    def _purge_expired(self, now: float) -> None:
+        expired = [key for key, (expires_at, _) in self._store.items() if expires_at <= now]
+        for key in expired:
+            self._store.pop(key, None)
+
     def get(self, key: str) -> Any | None:
-        now = time.monotonic()
+        now = self._clock()
         with self._lock:
             entry = self._store.get(key)
             if entry is None:
                 return None
             expires_at, value = entry
-            if expires_at < now:
+            if expires_at <= now:
                 self._store.pop(key, None)
                 return None
+            self._store.move_to_end(key)
             return value
 
     def set(self, key: str, value: Any, ttl_seconds: int) -> None:
-        expires_at = time.monotonic() + max(1, ttl_seconds)
+        now = self._clock()
+        expires_at = now + max(1, ttl_seconds)
         with self._lock:
+            self._purge_expired(now)
             self._store[key] = (expires_at, value)
+            self._store.move_to_end(key)
+            while len(self._store) > self._max_entries:
+                self._store.popitem(last=False)
 
     def delete(self, key: str) -> None:
         with self._lock:
             self._store.pop(key, None)
+
+    def clear(self) -> None:
+        """Drop all process-local entries (primarily for lifecycle/test reset)."""
+        with self._lock:
+            self._store.clear()
 
     def get_or_compute(self, key: str, compute: Any, ttl_seconds: int) -> Any:
         cached = self.get(key)

@@ -45,6 +45,27 @@ def test_in_memory_cache_expires():
     assert cache.get("k") is None
 
 
+def test_in_memory_cache_reclaims_expired_entries_and_evicts_least_recently_used():
+    now = [100.0]
+    cache = InMemoryCache(max_entries=3, clock=lambda: now[0])
+
+    cache.set("oldest", 1, ttl_seconds=60)
+    cache.set("recent", 2, ttl_seconds=60)
+    cache.set("newest", 3, ttl_seconds=60)
+    assert cache.get("oldest") == 1  # promote it ahead of `recent`
+
+    cache.set("overflow", 4, ttl_seconds=60)
+    assert cache.get("recent") is None
+    assert cache.get("oldest") == 1
+    assert cache.get("newest") == 3
+    assert cache.get("overflow") == 4
+    assert len(cache._store) == 3
+
+    now[0] = 161.0
+    cache.set("after-expiry", 5, ttl_seconds=60)
+    assert list(cache._store) == ["after-expiry"]
+
+
 def test_rate_limit_blocks_after_max_requests():
     backend = InMemoryRateLimitBackend()
     results = [backend.check("1.2.3.4", max_requests=3, window_seconds=60) for _ in range(4)]

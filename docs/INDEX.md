@@ -1,6 +1,6 @@
 # docs/ Index — Vinaadi AI
 
-Quick map to the right document for each purpose. **Last updated: 2026-10-06.**
+Quick map to the right document for each purpose. **Last updated: 2026-10-12.**
 
 > Files under [archive/](archive/) are historical and **superseded** — kept for
 > reference only, do not treat as current. Everything else is live.
@@ -85,6 +85,7 @@ and SQL DDL are design references, not generated from the running app.
 - [tamil-review-propensity-cards.md](tamil-review-propensity-cards.md) — Native-Tamil review notes: propensity cards
 
 ## Implementation & Engineering
+- [CACHE_POLICY.md](CACHE_POLICY.md) — Cache inventory, bounded-memory/LRU policy, mutable-input invalidation rules and operations runbook
 - [REFACTOR_PLAN.md](REFACTOR_PLAN.md) — Production-readiness refactor plan (phases 0–5; some DONE, some DEFERRED)
 - [error-handling.md](error-handling.md) — Centralized error-code system: backend ErrorCode enum, frontend formatters
 - [MASTER_FIX_LIST.md](MASTER_FIX_LIST.md) — Cumulative fix/issue tracking list

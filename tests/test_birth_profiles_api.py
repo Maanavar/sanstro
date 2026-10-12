@@ -445,6 +445,22 @@ def test_re_sending_the_same_city_is_a_confirmation_and_keeps_warm_rows(client):
     assert _daily_score_dates(profile_id) == [today]
 
 
+def test_correcting_birth_data_drops_all_cached_daily_guidance(client):
+    """A formula version cannot invalidate rows tied to changed user inputs."""
+    profile_id = _create_profile(client)
+    today = date.today()
+    for day in (today - timedelta(days=1), today, today + timedelta(days=1)):
+        _seed_daily_score(profile_id, day)
+
+    response = client.patch(
+        f"/api/v1/birth-profiles/{profile_id}",
+        json={"birthTimeLocal": "09:45:00", "recalculate": True},
+    )
+
+    assert response.status_code == 200, response.text
+    assert _daily_score_dates(profile_id) == []
+
+
 def test_confirm_location_refuses_a_profile_that_is_gone(client):
     # The owner check beside this one is the same two lines as the PATCH route
     # above; reassigning owner_user_id here would need a second real user row,

@@ -2763,7 +2763,41 @@ ownership to take the right decision"); Phase 4 stays next, not started.
   prop bags. No API or stored-data contract changed; rollback is a normal code
   rollback, with no operational runbook action.
 
-- [ ] **B. Bound the in-memory cache.**
+- [x] **B. Bound the in-memory cache and name every dependency.** A stream of
+  unique keys retained expired values forever unless those exact keys were read
+  again. That affected any memory-backend worker and was especially reachable
+  through the 30-day pre-auth geocoder, whose separate dictionary was unbounded
+  too. `InMemoryCache` now defaults to **1,024 entries**; writes purge all
+  expired entries and then evict least-recently read/written live entries. The
+  geocoder now uses the same implementation with an explicit **4,096-entry**
+  cap. An eviction remains an ordinary miss/recompute, so Redis and memory keep
+  the same caller-visible contract. No request coalescer or distributed lock was
+  added; concurrent misses can duplicate work but cannot strand waiters.
+
+  **Mutable-input defect found and fixed:** the guidance version tag covered
+  formula changes, not corrected natal inputs. Before the fix, changing a birth
+  time with recalculation left all three synthetic past/today/future
+  `DailyScore` rows warm. Corrected natal inputs now delete all rows for that
+  profile; a current-location or activity-audience change deletes today-forward
+  rows; focus remains keyed by `_goalTrack`, so a changed focus misses without
+  a broad delete. Re-sending the same values does not invalidate.
+
+  **Gates and controls:** before the capacity implementation, the new bound/LRU
+  test failed at construction (`unexpected keyword argument 'max_entries'`),
+  with the other 15 tests passing. Before natal invalidation, its new API test
+  failed with all 3 seeded dates still present. After: cache/rate-limit,
+  geocoder privacy, birth-profile and life-focus suites **53 passed** in the
+  Python 3.12/pyswisseph container. `docs/CACHE_POLICY.md` is the inventory and
+  operations runbook: purpose, key, owner, TTL, capacity, dependencies and
+  fallback for process, pure-calculation and PostgreSQL-backed caches.
+
+  **Blind spots / compatibility:** caps bound entries, not bytes; production
+  value-size distribution, Redis `maxmemory`, hit rates and concurrency are not
+  visible here and no capacity budget was invented. The LRU gate is
+  deterministic single-process logic and does not measure multi-worker Redis
+  eviction or duplicate concurrent computations. No API or schema changed.
+  Rollback is code-only; evicted/wiped cache data is derived and recomputable,
+  although rollback would restore the memory-growth risk.
 - [ ] **C. Name the clock policy and inject the clock.**
 - [ ] **D. Run the populated-data A12 migration drill.**
 

@@ -47,6 +47,11 @@ _CURRENT_LOCATION_FIELDS = {
     "current_longitude",
     "current_timezone",
 }
+_DAILY_GUIDANCE_AUDIENCE_FIELDS = {
+    "gender_for_traditional_rules",
+    "marital_status",
+    "employment_type",
+}
 
 # The three fields that define the birth *instant*. Latitude and longitude change
 # the chart but not the moment, so they are deliberately absent.
@@ -143,6 +148,14 @@ def apply_birth_profile_changes(
     # payload mentioned: a PATCH that re-sends the same city is a confirmation,
     # not a move, and must not throw away warm rows.
     location_before = resolve_effective_daily_location_or_none(profile)
+    birth_inputs_before = {
+        field: getattr(profile, field)
+        for field in touched.intersection(_BIRTH_RECALC_FIELDS)
+    }
+    audience_before = {
+        field: getattr(profile, field)
+        for field in touched.intersection(_DAILY_GUIDANCE_AUDIENCE_FIELDS)
+    }
     for field, value in update_data.items():
         setattr(profile, field, value)
     if touched.intersection(_CURRENT_LOCATION_FIELDS):
@@ -154,7 +167,15 @@ def apply_birth_profile_changes(
     profile.updated_at = datetime.now(tz=UTC)
     session.flush()
 
-    if resolve_effective_daily_location_or_none(profile) != location_before:
+    birth_inputs_changed = any(
+        getattr(profile, field) != value for field, value in birth_inputs_before.items()
+    )
+    audience_changed = any(
+        getattr(profile, field) != value for field, value in audience_before.items()
+    )
+    if birth_inputs_changed:
+        _drop_all_daily_scores(session, profile.birth_profile_id)
+    elif resolve_effective_daily_location_or_none(profile) != location_before or audience_changed:
         _drop_daily_scores_from_today(session, profile.birth_profile_id)
 
     _sync_linked_family_member(profile)
@@ -449,6 +470,16 @@ def _drop_daily_scores_from_today(session: Session, birth_profile_id: UUID) -> N
             DailyScore.score_date >= date.today(),
         )
     )
+
+
+def _drop_all_daily_scores(session: Session, birth_profile_id: UUID) -> None:
+    """Remove rows built from a natal input that has since been corrected.
+
+    Unlike a move or audience change, corrected birth data changes the natal
+    basis for every date. Keeping historical rows would mix two charts under
+    one profile id and one formula-version tag.
+    """
+    session.execute(delete(DailyScore).where(DailyScore.birth_profile_id == birth_profile_id))
 
 
 def confirm_current_location(
