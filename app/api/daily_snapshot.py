@@ -3,8 +3,9 @@ from __future__ import annotations
 import logging
 from typing import Any
 from uuid import UUID
+from zoneinfo import ZoneInfoNotFoundError
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -89,7 +90,12 @@ def daily_snapshot(
     """
     # This is an astrology input, not the account-quota day. Resolve it from
     # the explicit location timezone rather than the API host's calendar.
-    today = local_date(tz)
+    # The date now depends on `tz`, so a malformed one is a client error here
+    # (422, as muhurta_service does) rather than a 500 for the whole composite.
+    try:
+        today = local_date(tz)
+    except (ValueError, ZoneInfoNotFoundError) as exc:
+        raise HTTPException(status_code=422, detail=f"Invalid timezone: {tz}") from exc
     sections: dict[str, str] = dict.fromkeys(_SECTION_NAMES, SECTION_NOT_REQUESTED)
 
     # ── Panchangam ────────────────────────────────────────────────────────────

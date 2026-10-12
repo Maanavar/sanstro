@@ -4,6 +4,7 @@ from uuid import UUID, uuid4
 
 from sqlalchemy import select
 
+from app.core.clock import local_date
 from app.core.encryption import decrypt_bytes
 from app.db.session import SessionLocal
 from app.models.birth_profile import BirthProfile
@@ -395,7 +396,11 @@ def test_moving_drops_cached_daily_guidance_from_today_but_keeps_the_past(client
         currentLongitude=80.2707,
         currentTimezone="Asia/Kolkata",
     )
-    today = date.today()
+    # The cutoff is the earlier of the old and new places' civil dates
+    # (CLOCK_POLICY.md) — Chennai's here — not the host's. `date.today()` in a
+    # UTC container is a day behind Chennai from 18:30 UTC, which made this
+    # test fail every evening.
+    today = local_date("Asia/Kolkata")
     yesterday = today - timedelta(days=1)
     tomorrow = today + timedelta(days=1)
     for day in (yesterday, today, tomorrow):

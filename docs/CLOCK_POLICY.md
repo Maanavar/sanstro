@@ -79,7 +79,24 @@ rotation/expiry test boundary. It is not converted to a civil day. Future work
 may route those instants through `Clock` when deterministic token-expiry tests
 need that seam; that is not permission to turn token expiries into dates.
 
+## Invalid timezones at the edge
+
+Where a civil date is derived from a caller-supplied timezone before any other
+work (`/daily-snapshot?tz=`), an unknown zone is a **422**, not a 500. The date
+cannot be computed without it, and it is the caller's input.
+
 ## Verification and known limits
+
+`tests/test_clock_boundaries_db.py` drives a frozen clock through the real call
+sites against Postgres: an exhausted quota that resets at 18:30Z (Kolkata
+midnight), a westward-to-eastward date-line move, an audience change on the
+UTC+14 side of the date line, and an audience change just after New York's
+spring-forward. Controls run on 2026-10-12: with `local_date` replaced by the
+host's `date.today()` (the pre-fix behaviour) **4 of 5 fail**; the fifth is a
+no-change control that passes under both by design. With the move cutoff taken
+from the new place only, exactly the date-line case fails. The DST case does
+not discriminate a UTC-date implementation (UTC is already Mar 9 at that
+instant) — it guards against a fixed standard offset only.
 
 `tests/test_clock_policy.py` pins the clock immediately before and after Kolkata
 midnight/month rollover, demonstrates that two saved timezones can disagree on

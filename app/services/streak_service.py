@@ -22,6 +22,8 @@ from app.schemas.dasha import ResponseMeta
 from app.schemas.streak import StreakData, StreakResponse
 
 _CALC_VERSION = "jothidam-formula-engine-v1.0-2026"
+
+
 def _meta(*, clock: Clock = SYSTEM_CLOCK) -> ResponseMeta:
     return ResponseMeta(calculation_version=_CALC_VERSION, generated_at=utc_now(clock=clock))
 

@@ -40,7 +40,7 @@ def test_saved_location_timezone_does_not_change_the_quota_period():
     assert local_date("Pacific/Kiritimati", clock=clock).isoformat() == "2026-07-01"
     assert local_date("America/Adak", clock=clock).isoformat() == "2026-06-30"
     # Location is intentionally not an input to the stable account quota policy.
-    assert usage._quota_day(clock=clock) == datetime(2026, 7, 1, tzinfo=UTC).date()
+    assert usage._quota_day(clock=clock).isoformat() == "2026-07-01"
 
 
 def test_local_day_helper_handles_the_23_hour_dst_day():

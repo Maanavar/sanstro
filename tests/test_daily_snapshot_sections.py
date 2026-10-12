@@ -199,3 +199,17 @@ def test_one_failing_section_does_not_take_the_others_down(
     for section in ("panchangam", "rasi_palan", "guidance", "life_events"):
         assert body["sections"][section] == "ok", body["sections"]
         assert body[section] is not None
+
+
+def test_an_unknown_timezone_is_a_client_error_not_a_500(client):
+    """`today` is derived from `tz` (CLOCK_POLICY.md), before any section runs.
+
+    An unknown zone used to reach `ZoneInfo` outside every section's guard and
+    500 the whole public endpoint; it is the caller's input, so it is a 422.
+    """
+    response = client.get(
+        "/api/v1/daily-snapshot",
+        params={**CHENNAI, "tz": "Not/A_Zone"},
+    )
+
+    assert response.status_code == 422, response.text

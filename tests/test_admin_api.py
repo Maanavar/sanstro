@@ -7,6 +7,7 @@ from uuid import UUID, uuid4
 import pytest
 
 from app.core.auth import create_access_token
+from app.core.clock import accounting_date
 from app.core.config import get_settings
 from app.db.session import SessionLocal
 from app.models.ask_vinaadi_usage import AskVinaadiUsage
@@ -580,4 +581,3 @@ def test_calibration_report_aggregates_prediction_log(raw_client):
     dasha_lord = {b["key"]: b for b in body["by_dasha_lord"]}
     assert dasha_lord["JUPITER"]["n"] == 2
     assert "VENUS" not in dasha_lord
-from app.core.clock import accounting_date
