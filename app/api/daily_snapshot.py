@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from datetime import date
 from typing import Any
 from uuid import UUID
 
@@ -17,6 +16,7 @@ from app.api.public_tools import (  # type: ignore[attr-defined]
 )
 from app.calculations.astro import RASI_NAMES
 from app.core.auth import get_optional_user
+from app.core.clock import local_date
 from app.db.session import get_db
 from app.models import BirthProfile, Chart
 from app.models.user import User
@@ -87,7 +87,9 @@ def daily_snapshot(
     Chart-specific sections (guidance, life areas, life events) require both a valid
     JWT and a chart_id that belongs to the authenticated user.
     """
-    today = date.today()
+    # This is an astrology input, not the account-quota day. Resolve it from
+    # the explicit location timezone rather than the API host's calendar.
+    today = local_date(tz)
     sections: dict[str, str] = dict.fromkeys(_SECTION_NAMES, SECTION_NOT_REQUESTED)
 
     # ── Panchangam ────────────────────────────────────────────────────────────

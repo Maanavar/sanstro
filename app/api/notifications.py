@@ -1,7 +1,7 @@
 """Notification inbox: list recent due notifications for the current user."""
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
@@ -10,6 +10,7 @@ from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user
+from app.core.clock import utc_now
 from app.db.session import get_db
 from app.models.notification import Notification
 from app.models.user import User
@@ -94,7 +95,7 @@ def list_notifications(
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> NotificationListResponse:
-    now = datetime.now(UTC)
+    now = utc_now()
     rows = session.execute(
         select(Notification)
         .where(
@@ -126,12 +127,12 @@ def mark_read(
         select(Notification).where(
             Notification.notification_id == notification_id,
             Notification.user_id == current_user.user_id,
-            _due_status_filter(datetime.now(UTC)),
+            _due_status_filter(utc_now()),
         )
     ).scalar_one_or_none()
 
     if notif and notif.read_at is None:
-        notif.read_at = datetime.now(UTC)
+        notif.read_at = utc_now()
         # flush stages the write; get_db() commits the transaction on request exit
         session.flush()
 
@@ -148,7 +149,7 @@ def mark_all_read(
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> NotificationListResponse:
-    now = datetime.now(UTC)
+    now = utc_now()
     rows = session.execute(
         select(Notification).where(
             Notification.user_id == current_user.user_id,

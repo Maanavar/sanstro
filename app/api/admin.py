@@ -1,7 +1,7 @@
 """Admin operations, analytics controls, and privacy tooling."""
 from __future__ import annotations
 
-from datetime import UTC, date, datetime
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
@@ -17,6 +17,7 @@ from app.core.auth import (
     get_elevated_admin_user,
 )
 from app.core.auth_throttle import AuthThrottleAction, get_auth_throttler
+from app.core.clock import accounting_date
 from app.core.config import get_settings
 from app.db.session import get_db
 from app.middleware import resolve_client_ip
@@ -485,7 +486,7 @@ def get_user_detail(
         session.execute(
             select(func.coalesce(func.sum(AskVinaadiUsage.chip_count), 0)).where(
                 AskVinaadiUsage.user_id == user_id,
-                AskVinaadiUsage.usage_date == date.today(),
+                AskVinaadiUsage.usage_date == accounting_date(),
             )
         ).scalar_one()
     )

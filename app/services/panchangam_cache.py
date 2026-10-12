@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Collection
-from datetime import UTC, date, datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from sqlalchemy import delete, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -39,6 +39,7 @@ from app.calculations.panchangam import (
     compute_daily_panchangam_range,
     date_range,
 )
+from app.core.clock import SYSTEM_CLOCK, Clock, utc_now
 from app.models.panchangam_cache import PanchangamCache
 
 logger = logging.getLogger(__name__)
@@ -52,6 +53,7 @@ def _load_cached_snapshot(
     latitude: float,
     longitude: float,
     ayanamsa_type: str,
+    now: datetime,
 ) -> PanchangamSnapshot | None:
     row = session.execute(
         select(PanchangamCache).where(
@@ -63,7 +65,7 @@ def _load_cached_snapshot(
     ).scalar_one_or_none()
     if row is None:
         return None
-    if row.created_at < datetime.now(tz=UTC) - timedelta(hours=PANCHANGAM_CACHE_TTL_HOURS):
+    if row.created_at < now - timedelta(hours=PANCHANGAM_CACHE_TTL_HOURS):
         return None
     if int(row.data.get("schema_version", 1)) != PANCHANGAM_CACHE_DATA_VERSION:
         return None
@@ -77,6 +79,7 @@ def _load_cached_snapshots_in_range(
     latitude: float,
     longitude: float,
     ayanamsa_type: str,
+    now: datetime,
 ) -> dict[date, PanchangamSnapshot]:
     rows = session.execute(
         select(PanchangamCache).where(
@@ -89,7 +92,7 @@ def _load_cached_snapshots_in_range(
     ).scalars()
 
     snapshots: dict[date, PanchangamSnapshot] = {}
-    cutoff = datetime.now(tz=UTC) - timedelta(hours=PANCHANGAM_CACHE_TTL_HOURS)
+    cutoff = now - timedelta(hours=PANCHANGAM_CACHE_TTL_HOURS)
     for row in rows:
         if row.created_at < cutoff:
             continue
@@ -99,9 +102,17 @@ def _load_cached_snapshots_in_range(
     return snapshots
 
 
-def purge_expired_panchangam_cache(session: Session) -> int:
+def purge_expired_panchangam_cache(
+    session: Session,
+    *,
+    clock: Clock = SYSTEM_CLOCK,
+) -> int:
+    return _purge_expired_panchangam_cache_at(session, utc_now(clock=clock))
+
+
+def _purge_expired_panchangam_cache_at(session: Session, now: datetime) -> int:
     result = session.execute(
-        delete(PanchangamCache).where(PanchangamCache.expires_at < datetime.now(tz=UTC))
+        delete(PanchangamCache).where(PanchangamCache.expires_at < now)
     )
     # Avoid committing here: this helper is called from read paths and should not
     # flush or commit unrelated pending ORM changes in the caller's session.
@@ -112,6 +123,7 @@ def _store_cached_snapshot(
     session: Session,
     snapshot: PanchangamSnapshot,
     ayanamsa_type: str,
+    now: datetime,
 ) -> None:
     latitude = round(snapshot.latitude, 6)
     longitude = round(snapshot.longitude, 6)
@@ -129,8 +141,8 @@ def _store_cached_snapshot(
             constraint="uq_panchangam_cache_key",
             set_={
                 "data": payload,
-                "created_at": datetime.now(tz=UTC),
-                "expires_at": datetime.now(tz=UTC) + timedelta(days=90),
+                "created_at": now,
+                "expires_at": now + timedelta(days=90),
             },
         )
     )
@@ -144,11 +156,15 @@ def calculate_daily_panchangam(
     *,
     session: Session | None = None,
     use_cache: bool = True,
+    clock: Clock = SYSTEM_CLOCK,
 ) -> PanchangamSnapshot:
     if use_cache and session is not None:
         try:
-            purge_expired_panchangam_cache(session)
-            cached = _load_cached_snapshot(session, date_local, latitude, longitude, DEFAULT_AYANAMSA_TYPE)
+            now = utc_now(clock=clock)
+            _purge_expired_panchangam_cache_at(session, now)
+            cached = _load_cached_snapshot(
+                session, date_local, latitude, longitude, DEFAULT_AYANAMSA_TYPE, now,
+            )
             if cached is not None:
                 return cached
         except Exception as exc:
@@ -159,7 +175,9 @@ def calculate_daily_panchangam(
 
     if use_cache and session is not None:
         try:
-            _store_cached_snapshot(session, snapshot, DEFAULT_AYANAMSA_TYPE)
+            _store_cached_snapshot(
+                session, snapshot, DEFAULT_AYANAMSA_TYPE, utc_now(clock=clock),
+            )
         except Exception as exc:
             logger.warning(f"Failed to store panchangam cache for {date_local}: {exc}")
     return snapshot
@@ -174,6 +192,7 @@ def calculate_daily_panchangam_range(
     *,
     session: Session | None = None,
     only: Collection[date] | None = None,
+    clock: Clock = SYSTEM_CLOCK,
 ) -> dict[date, PanchangamSnapshot]:
     """Compute panchangam snapshots for a date range with batched cache I/O.
 
@@ -202,9 +221,10 @@ def calculate_daily_panchangam_range(
 
     wanted = None if only is None else set(only)
     try:
-        purge_expired_panchangam_cache(session)
+        now = utc_now(clock=clock)
+        _purge_expired_panchangam_cache_at(session, now)
         cached = _load_cached_snapshots_in_range(
-            session, start_date, end_date, latitude, longitude, DEFAULT_AYANAMSA_TYPE,
+            session, start_date, end_date, latitude, longitude, DEFAULT_AYANAMSA_TYPE, now,
         )
     except Exception as exc:
         logger.warning(f"Panchangam cache read/purge failed for range; computing all: {exc}")
@@ -224,7 +244,9 @@ def calculate_daily_panchangam_range(
             logger.info("Skipping %s: no sunrise/sunset at this location (polar day/night)", current)
             continue
         try:
-            _store_cached_snapshot(session, computed, DEFAULT_AYANAMSA_TYPE)
+            _store_cached_snapshot(
+                session, computed, DEFAULT_AYANAMSA_TYPE, utc_now(clock=clock),
+            )
         except Exception as exc:
             logger.warning(f"Failed to store panchangam cache for {current}: {exc}")
         snapshots[current] = computed
@@ -235,6 +257,7 @@ def with_daylight_lagna_schedule(
     snapshot: PanchangamSnapshot,
     *,
     session: Session | None = None,
+    clock: Clock = SYSTEM_CLOCK,
 ) -> PanchangamSnapshot:
     """Attach and persist the lazily calculated daylight lagna schedule."""
     if snapshot.lagna_schedule:
@@ -242,7 +265,9 @@ def with_daylight_lagna_schedule(
     enriched = attach_daylight_lagna_schedule(snapshot)
     if session is not None:
         try:
-            _store_cached_snapshot(session, enriched, DEFAULT_AYANAMSA_TYPE)
+            _store_cached_snapshot(
+                session, enriched, DEFAULT_AYANAMSA_TYPE, utc_now(clock=clock),
+            )
         except Exception as exc:
             logger.warning("Failed to cache lagna schedule for %s: %s", snapshot.date_local, exc)
     return enriched

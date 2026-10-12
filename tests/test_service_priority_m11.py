@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from types import SimpleNamespace
 from uuid import uuid4
 
@@ -144,6 +144,36 @@ def test_dispatch_notification_in_app_only_when_channel_none(monkeypatch: pytest
     assert result == "in_app_only"
     assert len(session.added) == 1
     assert session.added[0].status == "sent"
+
+
+def test_dispatch_notification_uses_injected_clock_for_due_and_expiry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fixed = datetime(2026, 3, 8, 5, 0, tzinfo=UTC)
+    clock = SimpleNamespace(now_utc=lambda: fixed)
+    pref = SimpleNamespace(
+        notification_channel="none",
+        smart_silence_enabled=True,
+        fcm_device_token=None,
+    )
+    session = _stub_dispatch_db(monkeypatch)
+    monkeypatch.setattr(nds, "get_or_create_preferences", lambda *_args, **_kwargs: pref)
+
+    nds.dispatch_notification(
+        session=session,
+        user_id=uuid4(),
+        notification_type="GENERAL",
+        title_ta="Talaipe",
+        title_en="Title",
+        body_ta="Urai",
+        body_en="Body",
+        clock=clock,
+    )
+
+    notification = session.added[0]
+    assert notification.send_at == fixed
+    assert notification.sent_at == fixed
+    assert notification.expires_at == fixed + timedelta(days=1)
 
 
 def test_dispatch_notification_defers_smart_silence_until_delivery(monkeypatch: pytest.MonkeyPatch) -> None:

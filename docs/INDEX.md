@@ -86,6 +86,7 @@ and SQL DDL are design references, not generated from the running app.
 
 ## Implementation & Engineering
 - [CACHE_POLICY.md](CACHE_POLICY.md) — Cache inventory, bounded-memory/LRU policy, mutable-input invalidation rules and operations runbook
+- [CLOCK_POLICY.md](CLOCK_POLICY.md) — Named quota timezone, UTC/local/date-only domain rules, injected clock boundary and travel/DST behavior
 - [REFACTOR_PLAN.md](REFACTOR_PLAN.md) — Production-readiness refactor plan (phases 0–5; some DONE, some DEFERRED)
 - [error-handling.md](error-handling.md) — Centralized error-code system: backend ErrorCode enum, frontend formatters
 - [MASTER_FIX_LIST.md](MASTER_FIX_LIST.md) — Cumulative fix/issue tracking list

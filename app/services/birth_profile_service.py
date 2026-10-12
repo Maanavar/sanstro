@@ -10,6 +10,14 @@ from sqlalchemy.orm import Session
 
 from app.calculations.astro import local_datetime_to_utc
 from app.constants.versions import CHART_CALCULATION_VERSION
+from app.core.clock import (
+    SYSTEM_CLOCK,
+    Clock,
+    accounting_date,
+    earliest_local_date,
+    local_date,
+    utc_now,
+)
 from app.core.error_codes import ErrorCode
 from app.core.errors import AppError
 from app.core.subscription import limits_for_user
@@ -129,6 +137,7 @@ def apply_birth_profile_changes(
     *,
     recalculate: bool,
     calculation_version: str,
+    clock: Clock = SYSTEM_CLOCK,
 ) -> None:
     """Write birth-profile fields **and everything that must ride with them**.
 
@@ -173,10 +182,30 @@ def apply_birth_profile_changes(
     audience_changed = any(
         getattr(profile, field) != value for field, value in audience_before.items()
     )
+    location_after = resolve_effective_daily_location_or_none(profile)
+    location_changed = location_after != location_before
     if birth_inputs_changed:
         _drop_all_daily_scores(session, profile.birth_profile_id)
-    elif resolve_effective_daily_location_or_none(profile) != location_before or audience_changed:
-        _drop_daily_scores_from_today(session, profile.birth_profile_id)
+    elif location_changed:
+        timezones = tuple(
+            location.timezone
+            for location in (location_before, location_after)
+            if location is not None
+        )
+        cutoff = (
+            earliest_local_date(timezones, clock=clock)
+            if timezones
+            else accounting_date(clock=clock)
+        )
+        _drop_daily_scores_from_today(session, profile.birth_profile_id, cutoff=cutoff)
+    elif audience_changed:
+        effective_location = location_after or location_before
+        cutoff = (
+            local_date(effective_location.timezone, clock=clock)
+            if effective_location is not None
+            else accounting_date(clock=clock)
+        )
+        _drop_daily_scores_from_today(session, profile.birth_profile_id, cutoff=cutoff)
 
     _sync_linked_family_member(profile)
 
@@ -249,7 +278,7 @@ def _schedule_post_chart_d1_nudge(session: Session, *, owner_user_id: UUID, char
     body_ta = "உங்கள் ஜாதகத்தில் இப்போது இயங்கும் தசை, புக்தி மற்றும் அடுத்த கால சாளரத்தைப் பாருங்கள்."
     body_en = "Explore your current maha dasha, antar dasha, and the next timing window in your chart."
 
-    due_at = datetime.now(UTC) + timedelta(days=1)
+    due_at = utc_now() + timedelta(days=1)
     dispatch_notification(
         session=session,
         user_id=owner_user_id,
@@ -449,7 +478,12 @@ def update_birth_profile(
     return get_birth_profile(session, profile.birth_profile_id, calculation_version=calculation_version)
 
 
-def _drop_daily_scores_from_today(session: Session, birth_profile_id: UUID) -> None:
+def _drop_daily_scores_from_today(
+    session: Session,
+    birth_profile_id: UUID,
+    *,
+    cutoff: date,
+) -> None:
     """Throw away this profile's cached daily guidance from today forward.
 
     `DailyScore` is keyed on (birth_profile_id, score_date) and carries no note
@@ -467,7 +501,7 @@ def _drop_daily_scores_from_today(session: Session, birth_profile_id: UUID) -> N
     session.execute(
         delete(DailyScore).where(
             DailyScore.birth_profile_id == birth_profile_id,
-            DailyScore.score_date >= date.today(),
+            DailyScore.score_date >= cutoff,
         )
     )
 

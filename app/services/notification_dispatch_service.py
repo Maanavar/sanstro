@@ -24,6 +24,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
 from app.calculations.astro import resolve_timezone
+from app.core.clock import SYSTEM_CLOCK, Clock, utc_now
 from app.models.birth_profile import BirthProfile
 from app.models.notification import Notification
 from app.models.notification_delivery import NotificationDelivery
@@ -133,12 +134,18 @@ def _resolve_user_timezone(session: Session, user_id: UUID) -> str:
     return "UTC"
 
 
-def _push_count_today(session: Session, user_id: UUID, user_tz_str: str = "UTC") -> int:
+def _push_count_today(
+    session: Session,
+    user_id: UUID,
+    user_tz_str: str = "UTC",
+    *,
+    clock: Clock = SYSTEM_CLOCK,
+) -> int:
     try:
         user_tz = resolve_timezone(user_tz_str)
     except Exception:
         user_tz = UTC
-    now_local = datetime.now(user_tz)
+    now_local = utc_now(clock=clock).astimezone(user_tz)
     today_start_local = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
     today_start = today_start_local.astimezone(UTC)
     return session.execute(
@@ -174,6 +181,7 @@ def dispatch_notification(
     send_at: datetime | None = None,
     expires_at: datetime | None = None,
     payload_extra: dict | None = None,
+    clock: Clock = SYSTEM_CLOCK,
 ) -> str:
     """Persist intent and channel work without calling an external provider.
 
@@ -181,7 +189,7 @@ def dispatch_notification(
     its channel rows have committed and a worker claims them.
     """
     del user_email  # The worker reads the current verified address from User.
-    now = datetime.now(UTC)
+    now = utc_now(clock=clock)
     due_at = send_at or now
     expiry = expires_at or (due_at + timedelta(days=1))
     if expiry <= due_at:
@@ -409,6 +417,8 @@ def _load_delivery_snapshot(
     session: Session,
     claim: _Claim,
     now: datetime,
+    *,
+    clock: Clock = SYSTEM_CLOCK,
 ) -> tuple[_DeliverySnapshot | None, str | None]:
     row = session.execute(
         select(NotificationDelivery, Notification, User, UserNotificationPreference)
@@ -442,7 +452,9 @@ def _load_delivery_snapshot(
         sani_cycle = policy.get("saniCycle") if isinstance(policy, dict) else None
         if preference.smart_silence_enabled and sani_cycle in _HEAVY_SANI_CYCLES:
             user_tz = _resolve_user_timezone(session, notification.user_id)
-            if _push_count_today(session, notification.user_id, user_tz) >= 1:
+            if _push_count_today(
+                session, notification.user_id, user_tz, clock=clock,
+            ) >= 1:
                 return None, f"smart_silence:{sani_cycle}"
         if not preference.fcm_device_token:
             return None, "missing_device_token"
@@ -530,11 +542,16 @@ def _complete_claim(
         return delivery.status
 
 
-def _deliver_claim(claim: _Claim, now: datetime) -> str:
+def _deliver_claim(
+    claim: _Claim,
+    now: datetime,
+    *,
+    clock: Clock = SYSTEM_CLOCK,
+) -> str:
     from app.db.session import SessionLocal
 
     with SessionLocal() as session:
-        snapshot, reason = _load_delivery_snapshot(session, claim, now)
+        snapshot, reason = _load_delivery_snapshot(session, claim, now, clock=clock)
     if snapshot is None:
         permanent = reason in {"missing_device_token", "missing_email"}
         outcome = "expired" if reason == "expired" else ("permanent" if permanent else "suppressed")
@@ -543,7 +560,7 @@ def _deliver_claim(claim: _Claim, now: datetime) -> str:
     # Expiry is checked again immediately before the external call. A provider
     # accepted before this point may still be ambiguous if the process dies
     # before the outcome commit; that is the documented at-least-once limit.
-    provider_started_at = datetime.now(UTC)
+    provider_started_at = utc_now(clock=clock)
     if provider_started_at >= snapshot.expires_at:
         return _complete_claim(
             claim,
@@ -580,7 +597,7 @@ def _deliver_claim(claim: _Claim, now: datetime) -> str:
         claim,
         outcome=outcome,
         error_code=error_code,
-        now=datetime.now(UTC),
+        now=utc_now(clock=clock),
         invalid_token=invalid_token,
         user_id=snapshot.user_id,
     )
@@ -591,11 +608,12 @@ def process_notification_outbox(
     *,
     batch_size: int = 100,
     worker_id: str | None = None,
+    clock: Clock = SYSTEM_CLOCK,
 ) -> dict[str, int]:
     """Claim and deliver a bounded batch with at-least-once live semantics."""
     from app.db.session import SessionLocal
 
-    now = run_at_utc or datetime.now(UTC)
+    now = run_at_utc or utc_now(clock=clock)
     owner = worker_id or f"notification-worker-{uuid4()}"
     with SessionLocal.begin() as session:
         claims, expired = _expire_and_claim_due_deliveries(
@@ -616,7 +634,7 @@ def process_notification_outbox(
     }
     for claim in claims:
         try:
-            status = _deliver_claim(claim, now)
+            status = _deliver_claim(claim, now, clock=clock)
         except Exception:
             # Leave the committed claim in place. Claim expiry makes it
             # recoverable after a crash or an outcome-write failure.

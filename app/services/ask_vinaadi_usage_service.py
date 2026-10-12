@@ -17,6 +17,7 @@ from sqlalchemy import func, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
+from app.core.clock import SYSTEM_CLOCK, Clock, accounting_date, accounting_month_start
 from app.core.subscription import is_premium, limits_for_user, open_beta_active
 from app.core.tier_limits import ask_vinaadi_limits
 from app.models.ask_vinaadi_usage import AskVinaadiUsage
@@ -26,9 +27,12 @@ def _limits(user_id: UUID, session: Session) -> tuple[int | None, int | None]:
     return ask_vinaadi_limits(limits_for_user(user_id, session))
 
 
-def _month_start() -> date:
-    today = date.today()
-    return today.replace(day=1)
+def _quota_day(*, clock: Clock = SYSTEM_CLOCK) -> date:
+    return accounting_date(clock=clock)
+
+
+def _month_start(*, clock: Clock = SYSTEM_CLOCK) -> date:
+    return accounting_month_start(clock=clock)
 
 
 def _get_usage(session: Session, user_id: UUID, on_date: date) -> AskVinaadiUsage | None:
@@ -39,17 +43,27 @@ def _get_usage(session: Session, user_id: UUID, on_date: date) -> AskVinaadiUsag
     )
 
 
-def _get_monthly_count(session: Session, user_id: UUID) -> int:
+def _get_monthly_count(
+    session: Session,
+    user_id: UUID,
+    *,
+    clock: Clock = SYSTEM_CLOCK,
+) -> int:
     total = session.execute(
         select(func.sum(AskVinaadiUsage.chip_count)).where(
             AskVinaadiUsage.user_id == user_id,
-            AskVinaadiUsage.usage_date >= _month_start(),
+            AskVinaadiUsage.usage_date >= _month_start(clock=clock),
         )
     ).scalar_one()
     return int(total or 0)
 
 
-def get_daily_status(session: Session, user_id: UUID) -> dict:
+def get_daily_status(
+    session: Session,
+    user_id: UUID,
+    *,
+    clock: Clock = SYSTEM_CLOCK,
+) -> dict:
     """Return chip usage: {chipsUsed, chipsRemaining, isPremium, openBeta, dailyLimit, monthlyLimit}.
 
     `isPremium` is the subscription fact. `openBeta` tells the client that a
@@ -61,7 +75,7 @@ def get_daily_status(session: Session, user_id: UUID) -> dict:
     daily_limit, monthly_limit = _limits(user_id, session)
 
     if monthly_limit is not None:
-        used = _get_monthly_count(session, user_id)
+        used = _get_monthly_count(session, user_id, clock=clock)
         return {
             "chipsUsed": used,
             "chipsRemaining": max(0, monthly_limit - used),
@@ -71,7 +85,7 @@ def get_daily_status(session: Session, user_id: UUID) -> dict:
             "monthlyLimit": monthly_limit,
         }
 
-    usage = _get_usage(session, user_id, date.today())
+    usage = _get_usage(session, user_id, _quota_day(clock=clock))
     used = usage.chip_count if usage else 0
     return {
         "chipsUsed": used,
@@ -83,12 +97,17 @@ def get_daily_status(session: Session, user_id: UUID) -> dict:
     }
 
 
-def assert_chip_available(session: Session, user_id: UUID) -> None:
+def assert_chip_available(
+    session: Session,
+    user_id: UUID,
+    *,
+    clock: Clock = SYSTEM_CLOCK,
+) -> None:
     """Raise 429 if the user has exhausted their quota (daily for registered, monthly for premium)."""
     daily_limit, monthly_limit = _limits(user_id, session)
 
     if monthly_limit is not None:
-        used = _get_monthly_count(session, user_id)
+        used = _get_monthly_count(session, user_id, clock=clock)
         if used >= monthly_limit:
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
@@ -96,7 +115,7 @@ def assert_chip_available(session: Session, user_id: UUID) -> None:
             )
         return
 
-    usage = _get_usage(session, user_id, date.today())
+    usage = _get_usage(session, user_id, _quota_day(clock=clock))
     used = usage.chip_count if usage else 0
     if used >= (daily_limit or 0):
         raise HTTPException(
@@ -105,7 +124,12 @@ def assert_chip_available(session: Session, user_id: UUID) -> None:
         )
 
 
-def consume_chip(session: Session, user_id: UUID) -> int | None:
+def consume_chip(
+    session: Session,
+    user_id: UUID,
+    *,
+    clock: Clock = SYSTEM_CLOCK,
+) -> int | None:
     """Increment today's chip count. Returns chips remaining.
 
     Superseded by `reserve_chip`, which is what the endpoint now calls: this
@@ -117,7 +141,7 @@ def consume_chip(session: Session, user_id: UUID) -> int | None:
     database.
     """
     daily_limit, monthly_limit = _limits(user_id, session)
-    today = date.today()
+    today = _quota_day(clock=clock)
 
     _ensure_today_row(session, user_id, today)
     session.execute(
@@ -131,7 +155,7 @@ def consume_chip(session: Session, user_id: UUID) -> int | None:
     session.flush()
 
     if monthly_limit is not None:
-        return max(0, monthly_limit - _get_monthly_count(session, user_id))
+        return max(0, monthly_limit - _get_monthly_count(session, user_id, clock=clock))
 
     usage = _get_usage(session, user_id, today)
     if usage is not None:
@@ -153,7 +177,12 @@ def _ensure_today_row(session: Session, user_id: UUID, today: date) -> None:
     )
 
 
-def reserve_chip(session: Session, user_id: UUID) -> int | None:
+def reserve_chip(
+    session: Session,
+    user_id: UUID,
+    *,
+    clock: Clock = SYSTEM_CLOCK,
+) -> int | None:
     """Claim one chip BEFORE the provider call. Raises 429 if none is left.
 
     Replaces the old check-then-act pair (assert_chip_available … answer …
@@ -173,7 +202,7 @@ def reserve_chip(session: Session, user_id: UUID) -> int | None:
     and `refund_chip` gives it back if the answer never arrives.
     """
     daily_limit, monthly_limit = _limits(user_id, session)
-    today = date.today()
+    today = _quota_day(clock=clock)
 
     _ensure_today_row(session, user_id, today)
 
@@ -192,9 +221,9 @@ def reserve_chip(session: Session, user_id: UUID) -> int | None:
             .values(chip_count=AskVinaadiUsage.chip_count + 1)
         )
         session.flush()
-        monthly_used = _get_monthly_count(session, user_id)
+        monthly_used = _get_monthly_count(session, user_id, clock=clock)
         if monthly_used > monthly_limit:
-            refund_chip(session, user_id)
+            refund_chip(session, user_id, clock=clock)
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                 detail={
@@ -236,7 +265,12 @@ def reserve_chip(session: Session, user_id: UUID) -> int | None:
     return max(0, limit - usage.chip_count)
 
 
-def refund_chip(session: Session, user_id: UUID) -> None:
+def refund_chip(
+    session: Session,
+    user_id: UUID,
+    *,
+    clock: Clock = SYSTEM_CLOCK,
+) -> None:
     """Give back a reservation whose answer never arrived.
 
     Charging for a question the user did not receive is the failure mode that
@@ -248,7 +282,7 @@ def refund_chip(session: Session, user_id: UUID) -> None:
         update(AskVinaadiUsage)
         .where(
             AskVinaadiUsage.user_id == user_id,
-            AskVinaadiUsage.usage_date == date.today(),
+            AskVinaadiUsage.usage_date == _quota_day(clock=clock),
             AskVinaadiUsage.chip_count > 0,
         )
         .values(chip_count=AskVinaadiUsage.chip_count - 1)

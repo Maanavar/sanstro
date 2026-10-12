@@ -11,26 +11,19 @@ there are no streak rewards.
 """
 from __future__ import annotations
 
-from datetime import UTC, date, datetime, timedelta
+from datetime import date, timedelta
 from uuid import UUID
-from zoneinfo import ZoneInfo
 
 from sqlalchemy.orm import Session
 
+from app.core.clock import SYSTEM_CLOCK, Clock, accounting_date, utc_now
 from app.models import UserStreak
 from app.schemas.dasha import ResponseMeta
 from app.schemas.streak import StreakData, StreakResponse
 
 _CALC_VERSION = "jothidam-formula-engine-v1.0-2026"
-_IST = ZoneInfo("Asia/Kolkata")
-
-
-def _meta() -> ResponseMeta:
-    return ResponseMeta(calculation_version=_CALC_VERSION, generated_at=datetime.now(tz=UTC))
-
-
-def _ist_today() -> date:
-    return datetime.now(tz=UTC).astimezone(_IST).date()
+def _meta(*, clock: Clock = SYSTEM_CLOCK) -> ResponseMeta:
+    return ResponseMeta(calculation_version=_CALC_VERSION, generated_at=utc_now(clock=clock))
 
 
 def _to_data(streak: UserStreak | None, today: date) -> StreakData:
@@ -44,10 +37,16 @@ def _to_data(streak: UserStreak | None, today: date) -> StreakData:
     )
 
 
-def get_streak(session: Session, user_id: UUID, today: date | None = None) -> StreakResponse:
+def get_streak(
+    session: Session,
+    user_id: UUID,
+    today: date | None = None,
+    *,
+    clock: Clock = SYSTEM_CLOCK,
+) -> StreakResponse:
     """Current streak without recording activity — a stale row reads as 0."""
-    today = today or _ist_today()
-    return StreakResponse(data=_to_data(session.get(UserStreak, user_id), today), meta=_meta())
+    today = today or accounting_date(clock=clock)
+    return StreakResponse(data=_to_data(session.get(UserStreak, user_id), today), meta=_meta(clock=clock))
 
 
 def record_ping(
@@ -55,9 +54,11 @@ def record_ping(
     user_id: UUID,
     local_days: int | None = None,
     today: date | None = None,
+    *,
+    clock: Clock = SYSTEM_CLOCK,
 ) -> StreakResponse:
     """Record activity for today and return the updated streak. Idempotent per day."""
-    today = today or _ist_today()
+    today = today or accounting_date(clock=clock)
     streak = session.get(UserStreak, user_id)
 
     if streak is None:
@@ -78,4 +79,4 @@ def record_ping(
         streak.last_active_date = today
         streak.longest_days = max(streak.longest_days, streak.current_days)
 
-    return StreakResponse(data=_to_data(streak, today), meta=_meta())
+    return StreakResponse(data=_to_data(streak, today), meta=_meta(clock=clock))

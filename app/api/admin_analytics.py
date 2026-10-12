@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.core.age_gate import compute_age, get_blocked_life_modes
 from app.core.auth import get_admin_user
+from app.core.clock import accounting_date
 from app.core.life_mode import DEFAULT_LIFE_MODE, FOCUS_TABLE
 from app.db.session import get_db
 from app.models import BirthProfile, Chart, FamilyVault
@@ -245,7 +246,7 @@ def get_feature_usage(
     ask_today = int(
         session.execute(
             select(func.coalesce(func.sum(AskVinaadiUsage.chip_count), 0)).where(
-                AskVinaadiUsage.usage_date == date.today()
+                AskVinaadiUsage.usage_date == accounting_date()
             )
         ).scalar_one()
     )

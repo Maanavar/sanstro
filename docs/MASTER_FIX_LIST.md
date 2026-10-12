@@ -2798,7 +2798,40 @@ ownership to take the right decision"); Phase 4 stays next, not started.
   eviction or duplicate concurrent computations. No API or schema changed.
   Rollback is code-only; evicted/wiped cache data is derived and recomputable,
   although rollback would restore the memory-growth risk.
-- [ ] **C. Name the clock policy and inject the clock.**
+- [x] **C. Name the clock policy and inject the clock.** Ask Vinaadi's daily
+  and monthly accounting boundary is now explicitly **Asia/Kolkata**, independent
+  of the API host, travel, mutable saved locations and DST. This is commercial
+  account state, not an astrology location: using a profile timezone would let
+  an edit or profile switch alter the reset period. `app/core/clock.py` separates
+  UTC instants, local civil days and date-only astrology inputs, rejects naive
+  injected clocks, and supplies one keyword-only clock seam. Quota enforcement,
+  matching admin counters and the app-activity streak use the accounting day;
+  notification quiet hours/local caps use the effective daily-location day,
+  while due/claim/retry/expiry remain UTC; Panchangam TTLs use UTC; profile
+  cache invalidation uses the earliest old/new local date across a move.
+
+  Chart and daily-snapshot omitted-date defaults now follow the chart or
+  requested location. Sunrise doctrine is untouched. The remaining bare
+  `date.today()` sites were classified rather than mechanically replaced: they
+  are calculation, validation, public-tool or export date defaults and need an
+  explicit owning calculation timezone before changing. Security tokens remain
+  aware UTC instants under their existing security boundary. The decision,
+  extension rule and operational limits are in `docs/CLOCK_POLICY.md`.
+
+  **Gate/control:** before implementation, all **5/5** new clock-policy tests
+  failed (missing clock helpers/arguments). The midnight and month cases expose
+  the old host-date defect. The saved-location and 23-hour New York DST cases
+  are invariant tests, not claims that old quota code used profile timezones.
+  After implementation, the focused clock/notification/cache set passed
+  **32/32**. A broader quota, concurrency, notification, Panchangam, profile,
+  admin, chart and streak run found a keyword-only wiring error after
+  **114/120** passed; the corrected streak suite then passed **8/8**. No schema
+  or response contract changed.
+
+  **Blind spots / rollback:** tests do not model host clock skew, tzdata rollout
+  drift or a future per-account timezone migration. UTC token expiry is not yet
+  clock-injected. Rolling back is code-only and restores host-local quota
+  boundaries; usage rows remain date-keyed and need no data rewrite.
 - [ ] **D. Run the populated-data A12 migration drill.**
 
 ## Agent Completion Checklist

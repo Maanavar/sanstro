@@ -151,7 +151,7 @@ def test_user_list_search_and_detail(raw_client):
         session.add(
             AskVinaadiUsage(
                 user_id=target_user_id,
-                usage_date=date.today(),
+                usage_date=accounting_date(),
                 chip_count=3,
             )
         )
@@ -246,7 +246,7 @@ def test_analytics_endpoints_return_expected_shapes(raw_client):
         chart.created_at = datetime.now(UTC) - timedelta(days=2)
         session.add(chart)
         session.add(FamilyVault(owner_user_id=target_user_id, name="Analytics Vault"))
-        session.add(AskVinaadiUsage(user_id=target_user_id, usage_date=date.today(), chip_count=4))
+        session.add(AskVinaadiUsage(user_id=target_user_id, usage_date=accounting_date(), chip_count=4))
         session.commit()
 
     headers = _admin_headers(admin_user_id, "test-admin-key")
@@ -580,3 +580,4 @@ def test_calibration_report_aggregates_prediction_log(raw_client):
     dasha_lord = {b["key"]: b for b in body["by_dasha_lord"]}
     assert dasha_lord["JUPITER"]["n"] == 2
     assert "VENUS" not in dasha_lord
+from app.core.clock import accounting_date
