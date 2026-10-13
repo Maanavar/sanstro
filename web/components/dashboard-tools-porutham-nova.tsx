@@ -25,6 +25,7 @@ import { GlossaryTerm } from "./glossary-term";
 import { DashboardLearnArticleModal } from "./dashboard-learn-article-modal";
 import { Card } from "./ui/card";
 import { Kicker } from "./ui/kicker";
+import { ShashtashtakaNoteCard } from "./shashtashtaka-note";
 
 /**
  * Nova rebuild of PoruthamPanel (see docs/DASHBOARD_UI_REVAMP_PLAN.md §6.12,
@@ -558,6 +559,8 @@ export function NovaPoruthamPanel({
                     {lang === "ta" ? porutham.contextNote.ta : porutham.contextNote.en}
                   </div>
                 )}
+                {/* F-POR-02: a disclosure beside the verdict, never part of it. */}
+                <ShashtashtakaNoteCard note={porutham.shashtashtaka} lang={lang} />
               </div>
             </div>
           </div>

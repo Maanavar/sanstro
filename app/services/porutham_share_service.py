@@ -92,6 +92,13 @@ def create_porutham_share(
         "rajjuDosha": porutham.rajju_dosha,
         "vedhaDosha": porutham.vedha_dosha,
         "nadiDosha": porutham.nadi_dosha.model_dump(by_alias=True),
+        # F-POR-02. A share is a frozen snapshot, so the note is stored with
+        # it rather than recomputed on view: the engine's reading may move, and
+        # a shared link must keep saying what it said when it was shared.
+        "shashtashtaka": (
+            porutham.shashtashtaka.model_dump(by_alias=True)
+            if porutham.shashtashtaka else None
+        ),
         "summary": porutham.summary.model_dump(),
         "compatibilityContext": porutham.compatibility_context,
         "contextNote": porutham.context_note.model_dump() if porutham.context_note else None,
@@ -159,6 +166,8 @@ def get_porutham_share_by_token(session: Session, token: str) -> PoruthamShareVi
             rajju_dosha=snapshot["rajjuDosha"],
             vedha_dosha=snapshot["vedhaDosha"],
             nadi_dosha=snapshot["nadiDosha"],
+            # .get(): snapshots frozen before F-POR-02 have no such key.
+            shashtashtaka=snapshot.get("shashtashtaka"),
             summary=snapshot["summary"],
             compatibility_context=snapshot["compatibilityContext"],
             context_note=snapshot["contextNote"],

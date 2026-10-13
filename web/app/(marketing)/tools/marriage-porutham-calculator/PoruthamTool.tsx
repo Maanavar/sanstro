@@ -3,6 +3,7 @@
 import { LocalizedLink as Link } from "@/components/localized-link";
 import { useEffect, useState } from "react";
 import { useLang } from "@/components/lang-toggle";
+import { ShashtashtakaNoteCard } from "@/components/shashtashtaka-note";
 import { romanNakshathiramName } from "@/lib/tamil-astro";
 import { readErrorMessage } from "@/lib/api";
 import { verdictPhrase } from "@/lib/verdict-lexicon";
@@ -428,6 +429,9 @@ export function PoruthamTool() {
                   }}>
                     {ta ? detailData.summary.ta : detailData.summary.en}
                   </div>
+
+                  {/* F-POR-02: a disclosure beside the verdict, never part of it. */}
+                  <ShashtashtakaNoteCard note={detailData.shashtashtaka} lang={ta ? "ta" : "en"} />
 
                   {detailData.nadiDosha.hasNadiDosha && (
                     <div style={{ background: "var(--cl-bg-2)", border: "1px solid var(--cl-border-2)", borderLeft: "4px solid var(--cl-accent)", borderRadius: "8px", padding: "10px 14px", marginBottom: "14px", fontSize: "12px", color: "var(--cl-ink-2)", lineHeight: 1.6 }}>

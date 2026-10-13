@@ -92,6 +92,26 @@ class NadiDoshaData(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class ShashtashtakaData(BaseModel):
+    """F-POR-02 — ஷஷ்டாஷ்டகம் between the two Moon signs, either orientation.
+
+    A disclosure, never a verdict: it is deliberately absent from `totalScore`,
+    `label` and the Rajju/Vedha veto, and a surface must render it as a note
+    beside the Rasi row rather than as a result. `directionalPass` is what the
+    retained Kalaprakasika directional rule said on its own — `present` with
+    `directionalPass` true is the silent pass the 2026-10-13 ruling is about.
+    """
+
+    present: bool
+    count_girl_to_boy: int = Field(alias="countGirlToBoy")
+    count_boy_to_girl: int = Field(alias="countBoyToGirl")
+    directional_pass: bool = Field(alias="directionalPass")
+    label: RelationshipBiText
+    note: RelationshipBiText
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class PorutthamData(BaseModel):
     family_vault_id: UUID = Field(alias="familyVaultId")
     member_id: UUID = Field(alias="memberId")
@@ -109,6 +129,9 @@ class PorutthamData(BaseModel):
     rajju_dosha: bool = Field(alias="rajjuDosha")
     vedha_dosha: bool = Field(alias="vedhaDosha")
     nadi_dosha: NadiDoshaData = Field(alias="nadiDosha")
+    # F-POR-02 disclosure. Optional so a payload produced before it existed
+    # still validates; a surface treats absent the same as not present.
+    shashtashtaka: ShashtashtakaData | None = None
     summary: RelationshipBiText
     compatibility_context: str = Field(default="GENERAL", alias="compatibilityContext")
     context_note: RelationshipBiText | None = Field(default=None, alias="contextNote")
@@ -231,6 +254,9 @@ class DirectPoruthamData(BaseModel):
     rajju_dosha: bool = Field(alias="rajjuDosha")
     vedha_dosha: bool = Field(alias="vedhaDosha")
     nadi_dosha: NadiDoshaData = Field(alias="nadiDosha")
+    # F-POR-02 disclosure. Optional so a payload produced before it existed
+    # still validates; a surface treats absent the same as not present.
+    shashtashtaka: ShashtashtakaData | None = None
     summary: RelationshipBiText
     compatibility_context: str = Field(default="GENERAL", alias="compatibilityContext")
     context_note: RelationshipBiText | None = Field(default=None, alias="contextNote")
@@ -403,6 +429,9 @@ class CompatibilityIntelligenceData(BaseModel):
     rajju_dosha: bool = Field(alias="rajjuDosha")
     vedha_dosha: bool = Field(alias="vedhaDosha")
     nadi_dosha: NadiDoshaData = Field(alias="nadiDosha")
+    # F-POR-02 disclosure. Optional so a payload produced before it existed
+    # still validates; a surface treats absent the same as not present.
+    shashtashtaka: ShashtashtakaData | None = None
 
     # Layer 2+3: Chart strength
     chart_a_strength: ChartMarriageStrength = Field(alias="chartAStrength")

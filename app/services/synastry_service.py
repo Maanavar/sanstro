@@ -22,6 +22,7 @@ if TYPE_CHECKING:
         SevvaiDoshamDetail as CalcSevvaiDoshamDetail,
     )
     from app.calculations.porutham import KutaResult as CalcKutaResult
+    from app.calculations.porutham import ShashtashtakaNote
 
 from app.calculations.astro import NAKSHATRA_NAMES, utc_datetime_to_julian_day
 from app.calculations.ephemeris import calculate_sidereal_planets
@@ -53,6 +54,7 @@ from app.schemas.relationships import (
     RelationshipAlertsResponse,
     RelationshipBiText,
     SevvaiDoshamDetail,
+    ShashtashtakaData,
     SynastryAspect,
     SynastryData,
     SynastryResponse,
@@ -653,6 +655,7 @@ class ContextualizedPorutham(TypedDict):
     rajju_dosha: bool
     vedha_dosha: bool
     nadi_dosha: dict[str, object]
+    shashtashtaka: ShashtashtakaNote
     summary: RelationshipBiText
 
 
@@ -713,8 +716,30 @@ def _contextualize_porutham_result(result, compatibility_context: str) -> Contex
         "rajju_dosha": rajju_dosha,
         "vedha_dosha": vedha_dosha,
         "nadi_dosha": result.nadi_dosha,
+        # F-POR-02. Carried through the shaping step unchanged: the
+        # contextualiser trims which kutas a non-marriage context shows, and a
+        # 6/8 note belongs to the Rasi row, so it rides along with it.
+        "shashtashtaka": result.shashtashtaka,
         "summary": summary,
     }
+
+
+def _shashtashtaka_data(note: Any) -> ShashtashtakaData:
+    """Engine `ShashtashtakaNote` -> the wire shape.
+
+    The two bilingual pairs collapse into `RelationshipBiText`, matching how
+    every other note on this payload is carried. Empty strings when the
+    relation is absent are preserved rather than nulled: a surface branches on
+    `present`, and a null would make it branch on the text instead.
+    """
+    return ShashtashtakaData(
+        present=note.present,
+        count_girl_to_boy=note.count_girl_to_boy,
+        count_boy_to_girl=note.count_boy_to_girl,
+        directional_pass=note.directional_pass,
+        label=RelationshipBiText(ta=note.label_ta, en=note.label_en),
+        note=RelationshipBiText(ta=note.note_ta, en=note.note_en),
+    )
 
 
 def compare_chart_snapshots_direct(
@@ -770,6 +795,7 @@ def compare_chart_snapshots_direct(
         rajju_dosha=shaped["rajju_dosha"],
         vedha_dosha=shaped["vedha_dosha"],
         nadi_dosha=NadiDoshaData(**shaped["nadi_dosha"]),
+        shashtashtaka=_shashtashtaka_data(shaped["shashtashtaka"]),
         summary=shaped["summary"],
         compatibility_context=compatibility_context,
         context_note=RelationshipBiText(ta=note_ta, en=note_en),
@@ -894,6 +920,11 @@ def build_compatibility_intelligence_from_snapshots(
         rajju_dosha=ci.rajju_dosha,
         vedha_dosha=ci.vedha_dosha,
         nadi_dosha=nadi_data,
+        # F-POR-02. Read off `porutham_result`, not `ci`: the intelligence
+        # layer re-reads the porutham result but carries no 6/8 field of its
+        # own, and the note must not be recomputed from the rasis here — one
+        # derivation, in `shashtashtaka_relation`.
+        shashtashtaka=_shashtashtaka_data(porutham_result.shashtashtaka),
         chart_a_strength=_cms_schema(ci.chart_a_strength),
         chart_b_strength=_cms_schema(ci.chart_b_strength),
         navamsa=NavamsaCompatibility(
@@ -1045,6 +1076,7 @@ def get_porutham_for_member(
         rajju_dosha=shaped["rajju_dosha"],
         vedha_dosha=shaped["vedha_dosha"],
         nadi_dosha=NadiDoshaData(**shaped["nadi_dosha"]),
+        shashtashtaka=_shashtashtaka_data(shaped["shashtashtaka"]),
         summary=shaped["summary"],
         compatibility_context=compatibility_context,
         context_note=RelationshipBiText(ta=note_ta, en=note_en),

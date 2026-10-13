@@ -820,6 +820,13 @@ def generate_porutham_pdf(
         story.append(Paragraph(_label("warning_rajju", lang), body_style))
     if porutham.vedha_dosha:
         story.append(Paragraph(_label("warning_vedha", lang), body_style))
+    # F-POR-02. A printed sheet is the copy taken to a jothidar, so it is the
+    # surface where a silent 6/8 pass is most exposed. Rendered from the
+    # payload's own bilingual pair, not re-derived, and placed after the two
+    # vetoes rather than among them — it is a disclosure, not a third veto.
+    if porutham.shashtashtaka is not None and porutham.shashtashtaka.present:
+        story.append(Paragraph(_bitext(porutham.shashtashtaka.label, lang), body_style))
+        story.append(Paragraph(_bitext(porutham.shashtashtaka.note, lang), small_style))
 
     story.extend(
         [
@@ -1009,6 +1016,10 @@ def generate_compatibility_intelligence_pdf(
         # cancellation (A-9 v2) clears has_nadi_dosha but the reason it was
         # cleared is still worth surfacing.
         story.append(Paragraph(f"Nadi Dosha notes: {', '.join(report.nadi_dosha.cancellations)}", body_style))
+    # F-POR-02 — see the porutham sheet above for why this is printed.
+    if report.shashtashtaka is not None and report.shashtashtaka.present:
+        story.append(Paragraph(_bitext(report.shashtashtaka.label, lang), body_style))
+        story.append(Paragraph(_bitext(report.shashtashtaka.note, lang), caption_style))
     porutham_rows = [["Kuta", "Score", "Max", "Label"]]
     for kuta in report.porutham_kutas:
         porutham_rows.append([kuta.name, str(kuta.score), str(kuta.max_score), kuta.label])

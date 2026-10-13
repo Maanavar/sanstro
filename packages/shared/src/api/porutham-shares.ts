@@ -1,5 +1,5 @@
 import { getApiClient } from "./client";
-import type { BiText, KutaResult, NadiDoshaResult } from "../types";
+import type { BiText, KutaResult, NadiDoshaResult, ShashtashtakaNote } from "../types";
 
 export interface PoruthamShareBirthInput {
   birthDateLocal: string;
@@ -42,6 +42,12 @@ export interface PoruthamShareViewData {
   rajjuDosha: boolean;
   vedhaDosha: boolean;
   nadiDosha: NadiDoshaResult;
+  /**
+   * F-POR-02. Optional and nullable: a share is a frozen snapshot, so links
+   * created before this field existed simply have no key, and absent is read
+   * exactly as not present.
+   */
+  shashtashtaka?: ShashtashtakaNote | null;
   summary: BiText;
   compatibilityContext: string;
   contextNote: BiText | null;

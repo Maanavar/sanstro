@@ -276,40 +276,14 @@ PANCHANGAM_EVENTS_2026: dict[str, list[dict]] = {
         {"date": "2026-08-03", "weekday": "MONDAY", "tamilMonthIndex": 3, "tamilDay": 18},
     ],
     # ---------------------------------------------------------------------------
-    "karinaal": [
-        {"date": "2026-01-15", "weekday": "THURSDAY", "tamilMonthIndex": 9, "tamilDay": 1},
-        {"date": "2026-01-16", "weekday": "FRIDAY", "tamilMonthIndex": 9, "tamilDay": 2},
-        {"date": "2026-01-17", "weekday": "SATURDAY", "tamilMonthIndex": 9, "tamilDay": 3},
-        {"date": "2026-01-25", "weekday": "SUNDAY", "tamilMonthIndex": 9, "tamilDay": 11},
-        {"date": "2026-01-31", "weekday": "SATURDAY", "tamilMonthIndex": 9, "tamilDay": 17},
-        {"date": "2026-02-27", "weekday": "FRIDAY", "tamilMonthIndex": 10, "tamilDay": 15},
-        {"date": "2026-02-28", "weekday": "SATURDAY", "tamilMonthIndex": 10, "tamilDay": 16},
-        {"date": "2026-03-01", "weekday": "SUNDAY", "tamilMonthIndex": 10, "tamilDay": 17},
-        {"date": "2026-03-20", "weekday": "FRIDAY", "tamilMonthIndex": 11, "tamilDay": 6},
-        {"date": "2026-03-29", "weekday": "SUNDAY", "tamilMonthIndex": 11, "tamilDay": 15},
-        {"date": "2026-04-02", "weekday": "THURSDAY", "tamilMonthIndex": 11, "tamilDay": 19},
-        {"date": "2026-04-19", "weekday": "SUNDAY", "tamilMonthIndex": 0, "tamilDay": 6},
-        {"date": "2026-04-28", "weekday": "TUESDAY", "tamilMonthIndex": 0, "tamilDay": 15},
-        {"date": "2026-05-21", "weekday": "THURSDAY", "tamilMonthIndex": 1, "tamilDay": 7},
-        {"date": "2026-05-30", "weekday": "SATURDAY", "tamilMonthIndex": 1, "tamilDay": 16},
-        {"date": "2026-05-31", "weekday": "SUNDAY", "tamilMonthIndex": 1, "tamilDay": 17},
-        {"date": "2026-06-15", "weekday": "MONDAY", "tamilMonthIndex": 1, "tamilDay": 32},
-        {"date": "2026-06-20", "weekday": "SATURDAY", "tamilMonthIndex": 2, "tamilDay": 5},
-        {"date": "2026-07-18", "weekday": "SATURDAY", "tamilMonthIndex": 3, "tamilDay": 2},
-        {"date": "2026-07-26", "weekday": "SUNDAY", "tamilMonthIndex": 3, "tamilDay": 10},
-        {"date": "2026-08-05", "weekday": "WEDNESDAY", "tamilMonthIndex": 3, "tamilDay": 20},
-        {"date": "2026-08-19", "weekday": "WEDNESDAY", "tamilMonthIndex": 4, "tamilDay": 3},
-        {"date": "2026-08-26", "weekday": "WEDNESDAY", "tamilMonthIndex": 4, "tamilDay": 10},
-        {"date": "2026-09-14", "weekday": "MONDAY", "tamilMonthIndex": 4, "tamilDay": 29},
-        {"date": "2026-10-03", "weekday": "SATURDAY", "tamilMonthIndex": 5, "tamilDay": 17},
-        {"date": "2026-10-16", "weekday": "FRIDAY", "tamilMonthIndex": 5, "tamilDay": 30},
-        {"date": "2026-10-23", "weekday": "FRIDAY", "tamilMonthIndex": 6, "tamilDay": 6},
-        {"date": "2026-11-06", "weekday": "FRIDAY", "tamilMonthIndex": 6, "tamilDay": 20},
-        {"date": "2026-11-17", "weekday": "TUESDAY", "tamilMonthIndex": 7, "tamilDay": 1},
-        {"date": "2026-11-23", "weekday": "MONDAY", "tamilMonthIndex": 7, "tamilDay": 7},
-        {"date": "2026-11-26", "weekday": "THURSDAY", "tamilMonthIndex": 7, "tamilDay": 10},
-        {"date": "2026-12-03", "weekday": "THURSDAY", "tamilMonthIndex": 7, "tamilDay": 17},
-        {"date": "2026-12-21", "weekday": "MONDAY", "tamilMonthIndex": 8, "tamilDay": 6},
-        {"date": "2026-12-24", "weekday": "THURSDAY", "tamilMonthIndex": 8, "tamilDay": 9},
-    ],
+    # Karinaal is NOT listed here any more (F-MUH-02, 2026-10-13).
+    #
+    # It is a fixed-Tamil-solar-date rule, so it is derived for any year by
+    # `app.calculations.karinaal` and `panchangam_events_service` reads it from
+    # there. The 34 hand-entered 2026 rows that used to sit here were dead the
+    # moment that landed — and worse than dead, they disagreed with the live
+    # answer in four places (Karthigai 7, Margazhi 11, and five Thai dates a
+    # day out), so a reader comparing them would have been misled about which
+    # was authoritative. The differences are documented at
+    # `karinaal.KARINAAL_TAMIL_DAYS`; the rows themselves are in git history.
 }

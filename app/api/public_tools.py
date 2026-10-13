@@ -49,7 +49,13 @@ from app.schemas.panchangam import (
     PanchangamMonthlyQuery,
     PanchangamMonthlyResponse,
 )
-from app.schemas.relationships import DirectPoruthamData, KutaResult, NadiDoshaData, RelationshipBiText
+from app.schemas.relationships import (
+    DirectPoruthamData,
+    KutaResult,
+    NadiDoshaData,
+    RelationshipBiText,
+    ShashtashtakaData,
+)
 from app.services.chart_service import (  # noqa: PLC2701 (internal use)
     _chart_response_from_profile,
     get_chart_summary_from_snapshot,
@@ -420,6 +426,8 @@ class PublicPoruthamStarData(BaseModel):
     rajju_dosha: bool = Field(alias="rajjuDosha")
     vedha_dosha: bool = Field(alias="vedhaDosha")
     nadi_dosha: NadiDoshaData = Field(alias="nadiDosha")
+    # F-POR-02 disclosure; optional so an older payload still validates.
+    shashtashtaka: ShashtashtakaData | None = None
     summary: RelationshipBiText
     compatibility_context: str = Field(default="MARRIAGE", alias="compatibilityContext")
 
@@ -522,6 +530,18 @@ def _compute_star_porutham(
         rajju_dosha=result.rajju_dosha,
         vedha_dosha=result.vedha_dosha,
         nadi_dosha=nadi_data,
+        shashtashtaka=ShashtashtakaData(
+            present=result.shashtashtaka.present,
+            count_girl_to_boy=result.shashtashtaka.count_girl_to_boy,
+            count_boy_to_girl=result.shashtashtaka.count_boy_to_girl,
+            directional_pass=result.shashtashtaka.directional_pass,
+            label=RelationshipBiText(
+                ta=result.shashtashtaka.label_ta, en=result.shashtashtaka.label_en
+            ),
+            note=RelationshipBiText(
+                ta=result.shashtashtaka.note_ta, en=result.shashtashtaka.note_en
+            ),
+        ),
         summary=RelationshipBiText(ta=result.summary_ta, en=result.summary_en),
         compatibility_context=compatibility_context,
     )

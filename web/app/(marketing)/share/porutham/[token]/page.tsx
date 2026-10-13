@@ -8,6 +8,7 @@ import type { PoruthamShareViewData } from "@vinaadi/shared/api/porutham-shares"
 import type { KutaGrade } from "@vinaadi/shared";
 import { backendUrl } from "@/lib/backend-url";
 import { tNakshatra } from "@/lib/i18n";
+import { ShashtashtakaNoteCard } from "@/components/shashtashtaka-note";
 
 async function fetchShare(token: string): Promise<PoruthamShareViewData | null> {
   try {
@@ -142,6 +143,8 @@ export default async function PoruthamSharePage({ params }: Props) {
                     {data.nadiDosha.hasNadiDosha && <span style={{ fontSize: "0.65rem", fontWeight: 700, padding: "4px 10px", borderRadius: "6px", background: "rgba(248,113,113,0.12)", color: "#e5484d", border: "1px solid rgba(248,113,113,0.3)" }}>⚠ Nadi Dosha</span>}
                   </div>
                 )}
+                {/* F-POR-02: a disclosure beside the verdict, never part of it. */}
+                <ShashtashtakaNoteCard note={data.shashtashtaka} lang="en" />
               </div>
               <div style={{ flex: 1, minWidth: "240px" }}>
                 <p style={{ margin: 0, fontSize: "0.92rem", color: "var(--cl-ink)", lineHeight: 1.6 }}>

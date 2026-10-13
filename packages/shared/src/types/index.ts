@@ -1809,12 +1809,36 @@ export interface SynastryData {
 export type KutaGrade = "UTTAMA" | "MADHYAMA" | "ADHAMA";
 export interface KutaResult { name: string; nameTa: string; passed: boolean; score: number; maxScore: number; label: string; grade: KutaGrade }
 
+/**
+ * F-POR-02 — ஷஷ்டாஷ்டகம் (6/8) between the two Moon signs, either orientation.
+ *
+ * A **disclosure, never a verdict**: it is deliberately absent from
+ * `totalScore`, `label` and the Rajju/Vedha veto. Render it as a note beside
+ * the Rasi row, not as a result, and never colour the headline from it.
+ *
+ * `directionalPass` is what the retained Kalaprakasika directional rule said
+ * on its own — `present && directionalPass` is the silent pass the ruling
+ * exists to surface (18 of 144 rasi pairings, measured).
+ *
+ * Optional on every payload: produced before F-POR-02 it is simply absent,
+ * and absent is treated exactly as not present.
+ */
+export interface ShashtashtakaNote {
+  present: boolean;
+  countGirlToBoy: number;
+  countBoyToGirl: number;
+  directionalPass: boolean;
+  label: BiText;
+  note: BiText;
+}
+
 export interface PorutthamData {
   familyVaultId: string; memberId: string;
   boyNakshatra: number; boyNakshatraName: string;
   girlNakshatra: number; girlNakshatraName: string;
   kutas: KutaResult[]; totalScore: number; maxScore: number; percentage: number; label: string;
   rajjuDosha: boolean; vedhaDosha: boolean; summary: BiText;
+  shashtashtaka?: ShashtashtakaNote | null;
   compatibilityContext: string; contextNote: BiText | null;
 }
 
@@ -1824,6 +1848,7 @@ export interface DirectPoruthamData {
   girlNakshatra: number; girlNakshatraName: string;
   kutas: KutaResult[]; totalScore: number; maxScore: number; percentage: number; label: string;
   rajjuDosha: boolean; vedhaDosha: boolean; summary: BiText;
+  shashtashtaka?: ShashtashtakaNote | null;
   compatibilityContext: string; contextNote: BiText | null;
 }
 
@@ -1833,6 +1858,7 @@ export interface PublicPoruthamStarData {
   boyNakshatra: number; girlNakshatra: number;
   kutas: KutaResult[]; totalScore: number; maxScore: number; percentage: number; label: string;
   rajjuDosha: boolean; vedhaDosha: boolean; nadiDosha: NadiDoshaResult;
+  shashtashtaka?: ShashtashtakaNote | null;
   summary: BiText; compatibilityContext: string;
 }
 
@@ -1910,7 +1936,9 @@ export interface CompatibilityIntelligenceData {
   personAIdentity: PersonAstroIdentity; personBIdentity: PersonAstroIdentity;
   poruthamScore: number; poruthamMax: number; poruthamPercentage: number; poruthamLabel: string;
   poruthamKutas: KutaResult[]; rajjuDosha: boolean; vedhaDosha: boolean;
-  nadiDosha: NadiDoshaResult; chartAStrength: ChartMarriageStrength; chartBStrength: ChartMarriageStrength;
+  nadiDosha: NadiDoshaResult;
+  shashtashtaka?: ShashtashtakaNote | null;
+  chartAStrength: ChartMarriageStrength; chartBStrength: ChartMarriageStrength;
   navamsa: NavamsaCompatibility; sevvaiA: SevvaiDoshamDetail; sevvaiB: SevvaiDoshamDetail;
   dashaHarmony: DashaHarmony; emotional: EmotionalCompatibility;
   synastryScore: number; overallScore: number; overallLabel: string;

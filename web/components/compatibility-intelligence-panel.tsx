@@ -14,6 +14,7 @@ import type { KutaGrade } from "@vinaadi/shared";
 import { ZodiacBadge } from "./zodiac-badge";
 import { NakshatraBadge } from "./nakshatra-badge";
 import { GlossaryTerm } from "./glossary-term";
+import { ShashtashtakaNoteCard } from "./shashtashtaka-note";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -491,6 +492,9 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
           {d.vedhaDosha && <Badge warn text={en ? "Vedha Dosha" : "வேதை தோஷம்"} color={W.rust} bg="var(--cl-rust-soft)" />}
           {d.nadiDosha.hasNadiDosha && <Badge warn text={en ? "Nadi Dosha" : "நாடி தோஷம்"} color={W.rust} bg="var(--cl-rust-soft)" />}
         </div>
+        {/* F-POR-02: a disclosure beside the verdict, never a badge in it —
+            a badge in that row would read as a fourth veto. */}
+        <ShashtashtakaNoteCard note={d.shashtashtaka} lang={en ? "en" : "ta"} />
         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
           {d.poruthamKutas.map(k => (
             <div key={k.name} style={{ display: "flex", alignItems: "center", gap: "10px" }}>

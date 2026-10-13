@@ -11,6 +11,7 @@ import { NavamsaChart, RasiChart } from "./dashboard-charts";
 import { CompatibilityIntelligencePanel } from "./compatibility-intelligence-panel";
 import { Card } from "./ui/card";
 import { Kicker } from "./ui/kicker";
+import { ShashtashtakaNoteCard } from "./shashtashtaka-note";
 import { compareSynastry, compareCharts } from "@vinaadi/shared/api/relationships";
 import type { Lang } from "@/lib/i18n";
 import type { DirectSynastryData } from "@vinaadi/shared/api/relationships";
@@ -625,6 +626,9 @@ export function SynastryPanel({
                       </p>
                     </div>
                   )}
+
+                  {/* F-POR-02: a disclosure beside the verdict, never part of it. */}
+                  <ShashtashtakaNoteCard note={porutham.shashtashtaka} lang={lang} />
 
                   <div style={{ display: "flex", justifyContent: "flex-start" }}>
                     <button
