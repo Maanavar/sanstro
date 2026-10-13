@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Source_Serif_4 } from "next/font/google";
+import localFont from "next/font/local";
 import type { ReactNode } from "react";
 import { Toaster } from "sonner";
 
@@ -48,10 +48,17 @@ export const metadata: Metadata = {
 // family from the same source. The `--font-nova-display` indirection is gone
 // rather than aliased, because an alias pointing at the variable it used to
 // shadow is the kind of thing that reads as deliberate a year later.
-const sourceSerif4 = Source_Serif_4({
-  subsets: ["latin"],
-  weight: ["400", "600"],
+//
+// Self-hosted like the root layout's faces; see the note there and
+// scripts/build-local-fonts.py. A serif, so its fallback is sized against Times
+// New Roman, as next/font/google sized it.
+const sourceSerif4 = localFont({
+  src: [
+    { path: "../fonts/source-serif-4.woff2", weight: "400", style: "normal" },
+    { path: "../fonts/source-serif-4.woff2", weight: "600", style: "normal" },
+  ],
   display: "swap",
+  adjustFontFallback: "Times New Roman",
   variable: "--font-nova-prose",
 });
 

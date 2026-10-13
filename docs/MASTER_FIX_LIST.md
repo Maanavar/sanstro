@@ -2596,6 +2596,68 @@ commit. Only the varshaphala one touches a Phase 3 test:
   **Three in four days: self-hosting (`next/font/local`) is now the next fix,
   not a someday.**
 
+  **Fixed 2026-10-13 (local, not yet observed in CI): the faces are
+  self-hosted.**
+  - What changed: both layouts load `next/font/local` from `web/app/fonts/`,
+    six woff2 files plus their OFL licences, so `next build` no longer
+    contacts Google. `web/scripts/build-local-fonts.py` builds them from
+    `google/fonts` sources pinned by commit, the same way Google serves them:
+    - only the `wght` axis is kept;
+    - every other axis is pinned at the Google axis-registry default
+      (opsz 14, not the font's own default — Fraunces 9, Source Serif 20);
+    - JetBrains Mono's wght is narrowed to 400–800;
+    - each face covers `latin` + `latin-ext` (+ `tamil` for Noto Sans Tamil)
+      in one file, because next/font/local cannot attach a unicode-range to
+      each file.
+
+    The weights stay discrete, so `font-weight: 650` still snaps to 700.
+    Rebuilds are byte-identical.
+  - **Gate 1, font parity:** `build-local-fonts.py --verify` downloads what
+    Google serves today for the same queries and checks every code point
+    both files map, at wght 400 and 700. It checks outlines and advances to
+    ≤1 font unit (worst 0.55u), axis ranges, and HarfBuzz-shaped output:
+    Tamil consonant × vowel-sign grid, conjuncts, Latin and code ligatures.
+    All 13 face×subset pairs pass.
+
+    It failed when it should have:
+    - with the axes pinned at the fonts' own defaults (Fraunces 219 letters
+      off);
+    - with GSUB/GPOS stripped (all 46 Tamil samples and the ligatures);
+    - with Fraunces' default moved to 400 (points off by up to 118u). That
+      attempt was reverted.
+  - **Gate 2, no network:** fresh-cache builds in isolated copies
+    (`artifacts/font-control-{new,old}`), with `HTTPS_PROXY` pointing at a
+    dead port. New code built, exit 0; the old `next/font/google` layouts
+    failed, `ECONNREFUSED 127.0.0.1:9`.
+    - Disproven first attempt: the same test in `web/` passed for the OLD
+      code too, because webpack's persistent cache held the old font result.
+      A no-network check needs an empty `.next/cache`.
+  - Fallback faces:
+    - Four are derived from the files and land within 0.1–3% of
+      next/font/google's size-adjust values.
+    - Fraunces is not. Its file's default instance is Black, which gave
+      126.7% against 115.5%. So `adjustFontFallback: false`, and a hand
+      "Fraunces Fallback" face in `globals.css` carries next/font/google's
+      exact values.
+  - Web: eslint clean on the changed files, `tsc` clean, vitest 146 files /
+    1,527 passed, `next build` green.
+
+  **Blind spots:**
+  - **More bytes are preloaded.** latin-ext now ships inside the preloaded
+    file instead of loading on demand: about 212 KB → 384 KB on public pages,
+    plus Source Serif 51 → 101 KB on the dashboard. Inter's latin-ext is most
+    of it. Trimming latin-ext would be a coverage decision, and user-entered
+    names can need it.
+  - Cyrillic, Greek and Vietnamese are no longer bundled; they fall to system
+    fonts. A scan of `web/` found no such text.
+  - `--verify` compares against Google's live files, which vary: one fetch
+    returned Fraunces with a 400–700 axis and 502 code points. A future
+    verify failure may be Google's drift, not the files.
+  - Shaping samples run only where one Google subset covers the whole
+    string, so the combining-mark sample was skipped.
+  - No browser pixel comparison was made; parity rests on outlines, metrics
+    and shaping.
+
 **CI on `f939b77` (2026-10-08, after the cache move, A14 steps 7–8, A15
 coverage and the first guidance extraction):** all green on the first
 attempt — pytest 6053 passed / 7 skipped (+45 = exactly the new tests: daily-

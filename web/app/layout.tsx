@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Fraunces, Inter, JetBrains_Mono, Noto_Sans_Tamil } from "next/font/google";
+import localFont from "next/font/local";
 import { headers } from "next/headers";
 import type { ReactNode } from "react";
 // F6 — what every visitor used to get here before a single pixel of content:
@@ -21,40 +21,79 @@ import "./globals.css";
 
 const BASE = "https://vinaadi.com";
 
+// Self-hosted faces. These were `next/font/google`, which fetches from Google
+// Fonts during `next build`; Google intermittently answered with a font URL that
+// had no file extension, next/font's loader crashed on it, and CI went red three
+// times in four days for no fault in the code. The files in ./fonts are what
+// Google served — same outlines, same variable `wght` axis, same OpenType
+// features — merged into one file per face; scripts/build-local-fonts.py makes
+// them and its --verify proves the match. Each file covers Google's `latin` +
+// `latin-ext` subsets (plus `tamil` for Noto Sans Tamil); latin-ext carries the
+// transliteration diacritics the UI renders (ā ū ḍ ṅ).
+//
+// Weights stay discrete, as Google declared them. A "400 700" range would draw
+// the dashboard's `font-weight: 650` at a true 650; discrete faces snap it to
+// 700, as it always rendered. Repeating one path costs nothing: it is emitted
+// and preloaded once.
+
 // The single Fraunces instance for the whole product. 700 is here because the
 // dashboard renders it (Nova declared its own 500/600/700 instance until this
 // merged them); 400 and the italics are here because marketing renders them
 // (`.cl-hero__h1 em`, `.cl-num-quote`, `/login`'s `.ca-left-headline em`). The
 // union is what each surface already used — no cut was added speculatively and
 // none was dropped, so this changes what is *declared*, not what is rendered.
-const fraunces = Fraunces({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  style: ["normal", "italic"],
+//
+// adjustFontFallback is off and "Fraunces Fallback" (globals.css) stands in:
+// next/font/local sizes the fallback from the file's default instance, which
+// for Fraunces is Black (900) and came out 126.7% against the 115.5% that
+// next/font/google used. That face carries next/font/google's exact values.
+const fraunces = localFont({
+  src: [
+    { path: "./fonts/fraunces-normal.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/fraunces-normal.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/fraunces-normal.woff2", weight: "600", style: "normal" },
+    { path: "./fonts/fraunces-normal.woff2", weight: "700", style: "normal" },
+    { path: "./fonts/fraunces-italic.woff2", weight: "400", style: "italic" },
+    { path: "./fonts/fraunces-italic.woff2", weight: "500", style: "italic" },
+    { path: "./fonts/fraunces-italic.woff2", weight: "600", style: "italic" },
+    { path: "./fonts/fraunces-italic.woff2", weight: "700", style: "italic" },
+  ],
   display: "swap",
+  adjustFontFallback: false,
+  fallback: ["Fraunces Fallback"],
   variable: "--font-display",
 });
 
-const inter = Inter({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+const inter = localFont({
+  src: [
+    { path: "./fonts/inter.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/inter.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/inter.woff2", weight: "600", style: "normal" },
+    { path: "./fonts/inter.woff2", weight: "700", style: "normal" },
+  ],
   display: "swap",
   variable: "--font-body",
 });
 
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500"],
+const jetbrainsMono = localFont({
+  src: [
+    { path: "./fonts/jetbrains-mono.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/jetbrains-mono.woff2", weight: "500", style: "normal" },
+  ],
   display: "swap",
   variable: "--font-mono",
 });
 
-const notoSansTamil = Noto_Sans_Tamil({
+const notoSansTamil = localFont({
   // SHD-04 — 700 is loaded so the UI's 700/800 Tamil headings/chips render a real
   // bold cut instead of the browser synthesising faux-bold on the script the
   // brand is named after.
-  subsets: ["tamil"],
-  weight: ["400", "500", "600", "700"],
+  src: [
+    { path: "./fonts/noto-sans-tamil.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/noto-sans-tamil.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/noto-sans-tamil.woff2", weight: "600", style: "normal" },
+    { path: "./fonts/noto-sans-tamil.woff2", weight: "700", style: "normal" },
+  ],
   display: "swap",
   variable: "--font-tamil",
 });
