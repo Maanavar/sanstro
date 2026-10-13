@@ -2,10 +2,11 @@
 
 import { useEffect, useSyncExternalStore } from "react";
 
+import { DEFAULT_THEME, THEME_STORAGE_KEY } from "../lib/theme-policy";
+
 export type Theme = "system" | "light" | "dark";
 export type ResolvedTheme = "light" | "dark";
 
-const STORAGE_KEY = "vinaadi-theme";
 const LIGHT_QUERY = "(prefers-color-scheme: light)";
 
 function systemPrefersLight(): boolean {
@@ -29,12 +30,12 @@ function resolve(theme: Theme): ResolvedTheme {
 // the same time, and two independent useState copies would drift the moment
 // either one moved. Every call site reads this one value.
 //
-// The store starts at the same value the server rendered ("system" / "dark") and
+// The store starts at the same Light value the server rendered and
 // is only reconciled with localStorage in an effect, so hydration matches. The
 // pre-paint script in app/layout.tsx has already painted the right theme by then
 // — this is React catching up to the DOM, not the other way round.
-let currentTheme: Theme = "system";
-let currentResolved: ResolvedTheme = "dark";
+let currentTheme: Theme = DEFAULT_THEME;
+let currentResolved: ResolvedTheme = DEFAULT_THEME;
 const listeners = new Set<() => void>();
 
 function emit() {
@@ -57,11 +58,11 @@ function readResolved(): ResolvedTheme {
 }
 
 function serverTheme(): Theme {
-  return "system";
+  return DEFAULT_THEME;
 }
 
 function serverResolved(): ResolvedTheme {
-  return "dark";
+  return DEFAULT_THEME;
 }
 
 function applyTheme(theme: Theme) {
@@ -80,14 +81,18 @@ function hydrateFromStorage() {
   if (typeof window === "undefined") return;
   let stored: string | null;
   try {
-    stored = localStorage.getItem(STORAGE_KEY);
+    stored = localStorage.getItem(THEME_STORAGE_KEY);
   } catch {
     // Private mode / blocked site data. Leave the store alone rather than
     // resetting it to "system" — a read that throws is not a choice of System,
     // and clobbering here would silently undo a toggle made in this session.
     return;
   }
-  applyTheme(stored === "light" || stored === "dark" || stored === "system" ? stored : "system");
+  applyTheme(
+    stored === "light" || stored === "dark" || stored === "system"
+      ? stored
+      : DEFAULT_THEME,
+  );
 }
 
 /** What is actually painted right now. The pre-paint script in app/layout.tsx
@@ -103,7 +108,7 @@ function showingNow(): ResolvedTheme {
 /** Persist and apply an explicit choice. Safe to call outside React. */
 export function setTheme(next: Theme) {
   try {
-    localStorage.setItem(STORAGE_KEY, next);
+    localStorage.setItem(THEME_STORAGE_KEY, next);
   } catch {
     // Storage is a convenience here; the in-memory store still drives the page.
   }

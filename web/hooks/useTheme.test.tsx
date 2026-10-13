@@ -9,9 +9,9 @@
  *  - Which icon face is painted is decided by CSS off [data-theme] (see
  *    .cd-theme-btn in dashboard.css). jsdom applies no stylesheet, so no test
  *    here can see it; that half is covered by asserting the attribute instead.
- *  - The pre-paint inline script in app/layout.tsx is a duplicate of `resolve()`
- *    written in plain JS inside a template string. Nothing links the two. If one
- *    changes, the other has to be changed by hand.
+ *  - jsdom does not reproduce an actual browser's pre-paint timing. The shared
+ *    theme policy prevents the default/storage keys from drifting, while the
+ *    browser remains the authority for flash-of-wrong-theme behavior.
  */
 import { act, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -47,6 +47,14 @@ afterEach(() => {
 });
 
 describe("useTheme", () => {
+  it("defaults a new visitor to Light even when the device prefers dark", () => {
+    localStorage.removeItem("vinaadi-theme");
+    render(<Consumer id="a" />);
+
+    expect(document.documentElement.getAttribute("data-theme")).toBe("light");
+    expect(screen.getByTestId("a").textContent).toBe("light/light");
+  });
+
   it("resolves the stored choice onto <html> on mount", () => {
     localStorage.setItem("vinaadi-theme", "light");
     render(<Consumer id="a" />);

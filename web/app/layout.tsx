@@ -15,6 +15,7 @@ import { getServerLang } from "@/lib/server-lang";
 import { LANG_HEADER } from "@/lib/ta-routes";
 import { SITE_DESCRIPTION_TA } from "@/lib/site-description-ta";
 import { safeJsonLd } from "@/lib/json-ld";
+import { buildPrePaintThemeScript } from "@/lib/theme-policy";
 
 import "@vinaadi/design-tokens/dist/web/tokens.css";
 import "./globals.css";
@@ -229,6 +230,7 @@ export default async function RootLayout({
     <html
       lang={initialLang}
       data-ui="nova"
+      data-theme="light"
       suppressHydrationWarning
       className={`${fraunces.variable} ${inter.variable} ${jetbrainsMono.variable} ${notoSansTamil.variable}`}
     >
@@ -242,14 +244,14 @@ export default async function RootLayout({
         {/* Apply saved theme before first paint to prevent flash of wrong theme.
             data-ui="nova" is set statically on <html> above (Nova is the only
             dashboard look now — see docs/NOVA_ONLY_MIGRATION_PLAN.md Phase 3). */}
-        {/* UXD-03 — resolve the theme before first paint. Explicit light/dark win;
-            "system" (or unset) follows the OS via prefers-color-scheme. Kept in
-            sync with hooks/useTheme.ts. */}
+        {/* Resolve the theme before first paint. Explicit light/dark win;
+            "system" follows the OS, while unset/invalid/inaccessible storage
+            keeps the Light default declared on <html>. */}
         {/* The only executable inline script in the app, and therefore the only
             one needing the CSP nonce minted in middleware.ts. The ld+json blocks
             below carry it for consistency; browsers never execute a non-JS
             script type, so CSP does not gate them. */}
-        <script suppressHydrationWarning nonce={nonce} dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem("vinaadi-theme");var r=(t==="light"||t==="dark")?t:((window.matchMedia&&window.matchMedia("(prefers-color-scheme: light)").matches)?"light":"dark");document.documentElement.setAttribute("data-theme",r);}catch(e){}})();` }} />
+        <script suppressHydrationWarning nonce={nonce} dangerouslySetInnerHTML={{ __html: buildPrePaintThemeScript() }} />
         <script
           type="application/ld+json"
           suppressHydrationWarning
