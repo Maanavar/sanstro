@@ -6,7 +6,7 @@ cache freshness/invalidation.
 """
 from __future__ import annotations
 
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, time, timedelta
 from typing import Protocol, runtime_checkable
 from zoneinfo import ZoneInfo
 
@@ -52,6 +52,27 @@ def accounting_date(*, clock: Clock = SYSTEM_CLOCK) -> date:
 
 def accounting_month_start(*, clock: Clock = SYSTEM_CLOCK) -> date:
     return accounting_date(clock=clock).replace(day=1)
+
+
+def _accounting_midnight_utc(day: date) -> datetime:
+    return datetime.combine(day, time.min, tzinfo=ZoneInfo(ACCOUNTING_TIMEZONE_NAME)).astimezone(UTC)
+
+
+def next_accounting_day_start(*, clock: Clock = SYSTEM_CLOCK) -> datetime:
+    """UTC instant the next quota day begins.
+
+    Clients show this in the reader's own timezone. "Tomorrow" is only true in
+    Kolkata: a New York reader's quota day turns over mid-afternoon.
+    """
+    return _accounting_midnight_utc(accounting_date(clock=clock) + timedelta(days=1))
+
+
+def next_accounting_month_start(*, clock: Clock = SYSTEM_CLOCK) -> datetime:
+    """UTC instant the next quota month begins."""
+    start = accounting_month_start(clock=clock)
+    if start.month == 12:
+        return _accounting_midnight_utc(date(start.year + 1, 1, 1))
+    return _accounting_midnight_utc(date(start.year, start.month + 1, 1))
 
 
 def earliest_local_date(

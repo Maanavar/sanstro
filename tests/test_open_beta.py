@@ -130,4 +130,18 @@ def test_ask_status_keys_match_the_shared_interface(raw_client) -> None:
     mobile's limit bar. This pins the keys to packages/shared/src/api/askVinaadi.ts."""
     _register_and_login(raw_client, "openbeta-keys@example.com")
     status = raw_client.get("/api/v1/ask-vinaadi/daily-status").json()
-    assert set(status) == {"chipsUsed", "chipsRemaining", "isPremium", "openBeta", "dailyLimit", "monthlyLimit"}
+    assert set(status) == {"chipsUsed", "chipsRemaining", "isPremium", "openBeta", "dailyLimit", "monthlyLimit", "resetsAt"}
+
+
+def test_ask_status_names_the_reset_instant_not_tomorrow(raw_client) -> None:
+    """Clients render `resetsAt` in the reader's own time. "Tomorrow" was only
+    true in Kolkata: a New York reader's quota day turns over at 14:30."""
+    from datetime import UTC, datetime, timedelta
+
+    _register_and_login(raw_client, "openbeta-reset@example.com")
+    status = raw_client.get("/api/v1/ask-vinaadi/daily-status").json()
+    resets_at = datetime.fromisoformat(status["resetsAt"].replace("Z", "+00:00"))
+    assert resets_at.tzinfo is not None
+    # Kolkata midnight is always 18:30 UTC, and the next one is within a day.
+    assert (resets_at.hour, resets_at.minute, resets_at.second) == (18, 30, 0)
+    assert timedelta(0) < resets_at - datetime.now(UTC) <= timedelta(days=1)

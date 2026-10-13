@@ -121,7 +121,7 @@ ERROR_MESSAGES: dict[ErrorCode, ErrorMessageDefinition] = {
     ErrorCode.PROFILE_LIMIT_REACHED: _entry(409, "உங்கள் பிறப்புத் தகவல் வரம்பை அடைந்துவிட்டீர்கள்.", "You have reached your birth-profile limit.", "Profile limit reached."),
     ErrorCode.RESOURCE_LIMIT_EXCEEDED: _entry(409, "உங்கள் திட்ட வரம்பை அடைந்துவிட்டீர்கள்.", "You have reached a plan limit.", "Resource limit exceeded."),
     ErrorCode.RATE_LIMITED: _entry(429, "மிக விரைவாக கோரிக்கைகள் வருகின்றன. சிறிது நேரம் கழித்து முயற்சிக்கவும்.", "Too many requests. Please wait a moment and try again.", "Rate limited."),
-    ErrorCode.DAILY_LIMIT_REACHED: _entry(429, "இன்றைக்கான வரம்பை அடைந்துவிட்டீர்கள். நாளை மீண்டும் முயற்சிக்கவும்.", "You have reached today's limit. Please try again tomorrow.", "Daily limit reached."),
+    ErrorCode.DAILY_LIMIT_REACHED: _entry(429, "இன்றைக்கான வரம்பை அடைந்துவிட்டீர்கள்.", "You have reached today's limit.", "Daily limit reached."),
     ErrorCode.MONTHLY_LIMIT_REACHED: _entry(429, "இந்த மாதத்திற்கான வரம்பை அடைந்துவிட்டீர்கள்.", "You have reached this month's limit.", "Monthly limit reached."),
     ErrorCode.DUPLICATE_RESOURCE: _entry(409, "இதே தகவல் ஏற்கனவே உள்ளது.", "This resource already exists.", "Duplicate resource."),
     ErrorCode.EMAIL_ALREADY_EXISTS: _entry(409, "இந்த மின்னஞ்சலுடன் ஏற்கனவே ஒரு கணக்கு உள்ளது.", "An account with this email already exists.", "Email already exists."),

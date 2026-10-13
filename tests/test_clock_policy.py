@@ -32,6 +32,23 @@ def test_quota_month_uses_the_same_accounting_day_boundary():
     assert usage._month_start(clock=_at("2026-01-31T18:30:00")).isoformat() == "2026-02-01"
 
 
+def test_reset_instant_is_the_next_kolkata_midnight_in_utc():
+    from app.core.clock import next_accounting_day_start
+
+    # The last second of a quota day and the first of the next straddle the
+    # boundary; the reset each one reports must be the boundary it is facing.
+    assert next_accounting_day_start(clock=_at("2026-01-31T18:29:59")).isoformat() == "2026-01-31T18:30:00+00:00"
+    assert next_accounting_day_start(clock=_at("2026-01-31T18:30:00")).isoformat() == "2026-02-01T18:30:00+00:00"
+
+
+def test_month_reset_instant_crosses_the_year():
+    from app.core.clock import next_accounting_month_start
+
+    # 2026-12-31T18:30Z is already January in Kolkata.
+    assert next_accounting_month_start(clock=_at("2026-12-31T18:29:59")).isoformat() == "2026-12-31T18:30:00+00:00"
+    assert next_accounting_month_start(clock=_at("2026-12-31T18:30:00")).isoformat() == "2027-01-31T18:30:00+00:00"
+
+
 def test_saved_location_timezone_does_not_change_the_quota_period():
     from app.core.clock import local_date
 

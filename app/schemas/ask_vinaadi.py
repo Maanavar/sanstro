@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.dasha import ResponseMeta
@@ -61,7 +63,8 @@ class AskVinaadiResponse(BaseModel):
 class AskVinaadiDailyStatus(BaseModel):
     """GET /ask-vinaadi/daily-status — a bare object, not a {success, data}
     envelope; deployed clients read it that way. A user on a monthly quota gets
-    `dailyLimit: null`; otherwise `monthlyLimit` is null.
+    `dailyLimit: null`; otherwise `monthlyLimit` is null. `resetsAt` is the UTC
+    instant the allowance refills (docs/CLOCK_POLICY.md).
     """
 
     chips_used: int = Field(alias="chipsUsed")
@@ -70,5 +73,6 @@ class AskVinaadiDailyStatus(BaseModel):
     open_beta: bool = Field(alias="openBeta")
     daily_limit: int | None = Field(alias="dailyLimit")
     monthly_limit: int | None = Field(alias="monthlyLimit")
+    resets_at: datetime = Field(alias="resetsAt")
 
     model_config = ConfigDict(populate_by_name=True)

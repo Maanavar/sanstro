@@ -48,6 +48,7 @@ export interface AskVinaadiDailyStatus {
   openBeta: boolean;
   dailyLimit: number | null;
   monthlyLimit: number | null;
+  resetsAt: string;
 }
 
 export interface BabyNameCandidateOut {

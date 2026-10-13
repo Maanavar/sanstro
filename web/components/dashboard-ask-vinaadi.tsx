@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertTriangle, Check, Hourglass, Scale, Sparkles } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { apiFetchJson, getApiError } from "@/lib/api";
@@ -8,6 +8,7 @@ import { track } from "@/lib/analytics";
 import type { Lang } from "@/lib/i18n";
 import type { AskVinaadiResponseData, ConfidenceTier, LifeMode } from "@/lib/types";
 import { getChipsForMode } from "@/lib/ask-vinaadi-chips";
+import { askAllowanceRefilled, askLimitMessage } from "@vinaadi/shared/askAllowance";
 import { ConfidenceBadge } from "./dashboard-ui";
 
 type GoalTrack = "CAREER" | "EXAM" | "RELATIONSHIP" | "FINANCIAL" | null;
@@ -22,6 +23,8 @@ interface DailyStatus {
   dailyLimit: number | null;
   /** Null for a daily allowance. */
   monthlyLimit: number | null;
+  /** UTC instant the allowance refills (Kolkata midnight for a daily one). */
+  resetsAt?: string;
 }
 
 interface DashboardAskVinaadiProps {
@@ -138,19 +141,6 @@ function AnswerCard({ entry, lang }: { entry: { question: string; data: AskVinaa
   );
 }
 
-/** What to say when the day's questions are spent. Exported for its test. */
-export function askLimitMessage(lang: Lang, dailyLimit: number | null, canUpgrade: boolean): string {
-  const n = dailyLimit ?? 0;
-  if (lang === "ta") {
-    const used = `இன்றைய ${n} கேள்விகளையும் பயன்படுத்திவிட்டீர்கள்.`;
-    return canUpgrade
-      ? `${used} கூடுதல் கேள்விகளுக்கு மேம்படுத்துங்கள், அல்லது நாளை மீண்டும் கேளுங்கள்.`
-      : `${used} நாளை மீண்டும் கேளுங்கள்.`;
-  }
-  const used = `You've used today's ${n} question${n === 1 ? "" : "s"}.`;
-  return canUpgrade ? `${used} Upgrade for more, or ask again tomorrow.` : `${used} Ask again tomorrow.`;
-}
-
 export function DashboardAskVinaadi({ lang, chartId, goalTrack, activeLifeMode = "BALANCED", onUpgrade, embedded = false, analyticsSurface = "web" }: DashboardAskVinaadiProps) {
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
@@ -162,17 +152,35 @@ export function DashboardAskVinaadi({ lang, chartId, goalTrack, activeLifeMode =
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Feature 3 — daily chip status (free users get a limited number per day).
+  const loadStatus = useCallback(
+    () =>
+      apiFetchJson<DailyStatus>("/api/v1/ask-vinaadi/daily-status")
+        .then(setStatus)
+        .catch(() => {}),
+    [],
+  );
   useEffect(() => {
-    apiFetchJson<DailyStatus>("/api/v1/ask-vinaadi/daily-status")
-      .then(setStatus)
-      .catch(() => {});
-  }, []);
+    void loadStatus();
+  }, [loadStatus]);
 
   const isPremium = status?.isPremium ?? false;
   const openBeta = status?.openBeta ?? false;
-  const dailyLimit = status?.dailyLimit ?? null;
   const chipsRemaining = status?.chipsRemaining ?? null;
-  const limitReached = !isPremium && chipsRemaining !== null && chipsRemaining <= 0;
+  // A count from before the reset instant no longer blocks: the server decides.
+  const limitReached = !isPremium && chipsRemaining !== null && chipsRemaining <= 0 && !askAllowanceRefilled(status?.resetsAt);
+  // While blocked, the input and chips are disabled, so nothing re-renders at
+  // the reset on its own. Re-read the status when it arrives.
+  const resetsAt = status?.resetsAt;
+  useEffect(() => {
+    if (!limitReached || !resetsAt) return;
+    const wait = Date.parse(resetsAt) - Date.now();
+    if (!(wait > 0)) return;
+    // setTimeout overflows past 2^31-1 ms (~24.8 days) and fires at once.
+    const timer = setTimeout(() => {
+      void loadStatus().then(() => setShowUpgrade(false));
+    }, Math.min(wait + 1000, 2_147_483_647));
+    return () => clearTimeout(timer);
+  }, [limitReached, resetsAt, loadStatus]);
   // An upgrade is only offered when one exists: not to a subscriber, and not
   // during the open beta, when /beta has promised every feature is unlocked.
   const canUpgrade = !isPremium && !openBeta;
@@ -216,7 +224,7 @@ export function DashboardAskVinaadi({ lang, chartId, goalTrack, activeLifeMode =
       setQuestion("");
     } catch (e) {
       const apiError = getApiError(e);
-      if (apiError?.code === "DAILY_LIMIT_REACHED") {
+      if (apiError?.code === "DAILY_LIMIT_REACHED" || apiError?.code === "MONTHLY_LIMIT_REACHED") {
         setStatus((prev) => (prev ? { ...prev, chipsRemaining: 0 } : prev));
         setShowUpgrade(true);
       } else {
@@ -289,9 +297,10 @@ export function DashboardAskVinaadi({ lang, chartId, goalTrack, activeLifeMode =
       {showUpgrade && (
         <div style={{ borderRadius: "12px", background: "var(--glow-brand)", border: "1px solid var(--underline-brand)", padding: "16px", marginBottom: "14px" }}>
           <p style={{ margin: "0 0 12px", fontSize: "14px", lineHeight: 1.5, color: "var(--color-text, var(--panel-earth))" }}>
-            {/* The number is the server's (daily-status), never prose: this line
-                once said "3" while the server allowed 7. */}
-            {askLimitMessage(lang, dailyLimit, canUpgrade)}
+            {/* The number and the reset time are the server's (daily-status),
+                never prose: this line once said "3" while the server allowed 7,
+                and "tomorrow" to a reader whose reset was that afternoon. */}
+            {status && askLimitMessage(status, lang, canUpgrade)}
           </p>
           <div style={{ display: "flex", gap: "8px" }}>
             {canUpgrade && (
@@ -300,7 +309,7 @@ export function DashboardAskVinaadi({ lang, chartId, goalTrack, activeLifeMode =
               </button>
             )}
             <button onClick={() => setShowUpgrade(false)} style={{ padding: "8px 18px", borderRadius: "8px", border: "1px solid var(--color-border, var(--panel-tan-light))", background: "transparent", color: "var(--color-muted, var(--panel-mid-earth))", fontSize: "13px", cursor: "pointer" }}>
-              {lang === "ta" ? "நாளை முயற்சிக்கவும்" : "Try again tomorrow"}
+              {lang === "ta" ? "சரி" : "Got it"}
             </button>
           </div>
         </div>

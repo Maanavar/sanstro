@@ -31,6 +31,17 @@ timezone is introduced later, migrating existing usage periods requires an
 explicit product and data-migration decision; do not silently change this
 constant.
 
+**Telling the reader when it resets.** `GET /ask-vinaadi/daily-status` carries
+`resetsAt`, the UTC instant the next quota day begins (or the next month, for
+a monthly allowance). Web and mobile name that instant in the reader's own
+clock through `packages/shared/src/askAllowance.ts`. Neither client says
+"tomorrow" on its own: under this policy, a New York reader's day turns over
+at 14:30 the same afternoon. Because the copy reads the server's instant, a
+change to this constant changes the copy too. Decided 2026-10-12: keep the
+stable Kolkata day and state the reset time, rather than introduce an account
+timezone. That remains available, through the decision described above, if a
+paying market ever needs a local-midnight reset.
+
 Admin daily quota counts use the same accounting date as enforcement. Analytics
 windows that measure elapsed time continue to use UTC instants.
 

@@ -9,7 +9,7 @@ is summed from the same daily rows, so it needs no schema of its own.
 """
 from __future__ import annotations
 
-from datetime import date
+from datetime import UTC, date, datetime
 from uuid import UUID, uuid4
 
 from fastapi import HTTPException, status
@@ -17,7 +17,14 @@ from sqlalchemy import func, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
-from app.core.clock import SYSTEM_CLOCK, Clock, accounting_date, accounting_month_start
+from app.core.clock import (
+    SYSTEM_CLOCK,
+    Clock,
+    accounting_date,
+    accounting_month_start,
+    next_accounting_day_start,
+    next_accounting_month_start,
+)
 from app.core.subscription import is_premium, limits_for_user, open_beta_active
 from app.core.tier_limits import ask_vinaadi_limits
 from app.models.ask_vinaadi_usage import AskVinaadiUsage
@@ -58,17 +65,25 @@ def _get_monthly_count(
     return int(total or 0)
 
 
+def _wire_instant(value: datetime) -> str:
+    """The UTC instant as the response model serialises it ("…Z"), so the
+    model passes the dict through unchanged (test_a14_response_contracts)."""
+    return value.astimezone(UTC).isoformat().replace("+00:00", "Z")
+
+
 def get_daily_status(
     session: Session,
     user_id: UUID,
     *,
     clock: Clock = SYSTEM_CLOCK,
 ) -> dict:
-    """Return chip usage: {chipsUsed, chipsRemaining, isPremium, openBeta, dailyLimit, monthlyLimit}.
+    """Return chip usage: {chipsUsed, chipsRemaining, isPremium, openBeta, dailyLimit, monthlyLimit, resetsAt}.
 
     `isPremium` is the subscription fact. `openBeta` tells the client that a
     spent daily allowance is a fair-use cap to wait out, not a paywall — so it
-    must not offer an upgrade.
+    must not offer an upgrade. `resetsAt` is the UTC instant the allowance
+    refills, so a client can name the reader's local time instead of
+    "tomorrow".
     """
     premium = is_premium(user_id, session)
     open_beta = open_beta_active() and not premium
@@ -83,6 +98,7 @@ def get_daily_status(
             "openBeta": open_beta,
             "dailyLimit": None,
             "monthlyLimit": monthly_limit,
+            "resetsAt": _wire_instant(next_accounting_month_start(clock=clock)),
         }
 
     usage = _get_usage(session, user_id, _quota_day(clock=clock))
@@ -94,6 +110,7 @@ def get_daily_status(
         "openBeta": open_beta,
         "dailyLimit": daily_limit,
         "monthlyLimit": None,
+        "resetsAt": _wire_instant(next_accounting_day_start(clock=clock)),
     }
 
 

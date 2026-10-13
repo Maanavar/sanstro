@@ -13,6 +13,7 @@ jest.mock("@tanstack/react-query", () => ({
   useQuery: () => ({
     data: { questionsUsedToday: 0, dailyLimit: 5, chipsRemaining: 5 },
   }),
+  useQueryClient: () => ({ invalidateQueries: jest.fn() }),
 }));
 jest.mock("@/hooks/useColors", () => ({ useColors: () => ({}) }));
 jest.mock("@/hooks/useI18n", () => ({ useI18n: () => ({ lang: "en" }) }));

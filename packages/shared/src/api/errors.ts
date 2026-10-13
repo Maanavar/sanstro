@@ -110,7 +110,7 @@ function fallbackMessage(code: ApiErrorCode): ApiErrorMessage {
     PREMIUM_REQUIRED: { ta: "இந்த வசதி பிரீமியம் திட்டத்தில் கிடைக்கும்.", en: "This feature is part of the Premium plan." },
     PROFILE_LIMIT_REACHED: { ta: "பிறப்புத் தகவல் வரம்பை அடைந்துவிட்டீர்கள்.", en: "You have reached your birth-profile limit." },
     RESOURCE_LIMIT_EXCEEDED: { ta: "உங்கள் திட்ட வரம்பை அடைந்துவிட்டீர்கள்.", en: "You have reached a plan limit." },
-    DAILY_LIMIT_REACHED: { ta: "இன்றைக்கான வரம்பை அடைந்துவிட்டீர்கள்.", en: "You have reached today's limit. Please try again tomorrow." },
+    DAILY_LIMIT_REACHED: { ta: "இன்றைக்கான வரம்பை அடைந்துவிட்டீர்கள்.", en: "You have reached today's limit." },
     DUPLICATE_RESOURCE: { ta: "இதே தகவல் ஏற்கனவே உள்ளது.", en: "This resource already exists." },
     EMAIL_ALREADY_EXISTS: { ta: "இந்த மின்னஞ்சலுடன் ஏற்கனவே ஒரு கணக்கு உள்ளது.", en: "An account with this email already exists." },
     VALIDATION_ERROR: { ta: "உள்ளிட்ட தகவலைச் சரிபார்க்கவும்.", en: "Please check the information entered and try again." },
