@@ -54,6 +54,50 @@ def test_relationship_synastry_endpoint_returns_score(
     assert isinstance(body["keyAspects"], list)
 
 
+def test_relationship_porutham_endpoint_returns_ten_poruthams(
+    client,
+    family_vault_payload_factory,
+    family_member_payload_factory,
+):
+    """The vault-member porutham route had no test at all, and F-POR-05's
+    change to `_assign_bride_groom` (which gained a third return value) missed
+    this one of its three call sites. Every request to this endpoint would
+    have raised "too many values to unpack" — 6415 passing tests did not
+    notice, and mypy caught it in CI.
+
+    Asserted on the shape a caller depends on rather than on scores: the point
+    is that the route executes end to end.
+    """
+    family_vault_id, member_id = _create_family_with_two_members(
+        client,
+        family_vault_payload_factory,
+        family_member_payload_factory,
+    )
+
+    # MARRIAGE is the context that reads all ten; GENERAL deliberately shows a
+    # smaller set, so both are exercised — a route that 500s does so either way.
+    marriage = client.get(
+        f"/api/v1/relationships/{member_id}/porutham",
+        params={"familyVaultId": family_vault_id, "compatibilityContext": "MARRIAGE"},
+    )
+    assert marriage.status_code == 200, marriage.text
+    body = marriage.json()["data"]
+    assert len(body["kutas"]) == 10
+    assert body["maxScore"] == 10
+    assert 0 <= body["totalScore"] <= 10
+    assert body["label"] in {"EXCELLENT", "GOOD", "AVERAGE", "CAUTION"}
+    assert body["contextNote"]["en"] and body["contextNote"]["ta"]
+    assert isinstance(body["rajjuDosha"], bool)
+    assert isinstance(body["vedhaDosha"], bool)
+
+    general = client.get(
+        f"/api/v1/relationships/{member_id}/porutham",
+        params={"familyVaultId": family_vault_id},
+    )
+    assert general.status_code == 200, general.text
+    assert 0 < len(general.json()["data"]["kutas"]) <= 10
+
+
 def test_relationship_alerts_endpoint_filters_unread(
     client,
     family_vault_payload_factory,

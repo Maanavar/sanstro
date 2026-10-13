@@ -65,6 +65,26 @@ _CALC_VERSION = "jothidam-formula-engine-v1.0-2026"
 _TRANSIT_ALERT_PLANETS = ("JUPITER", "SATURN", "MARS", "RAHU", "VENUS")
 
 
+# F-POR-05: the disclosure both porutham paths attach when the bride/groom
+# direction was a convention rather than a reading. Module-level because
+# there are two call sites and a second hand-copy is how they drift.
+_ASSUMED_DIRECTION_EN = (
+            "Gender was not recorded for both charts, so this was read with "
+            "the first chart as the groom and the second as the bride. Several poruthams "
+            "count from the bride's star, so add the genders if that is the wrong way round."
+)
+_ASSUMED_DIRECTION_TA = (
+            "இரு ஜாதகங்களிலும் பாலினம் "
+            "பதிவாகாததால், முதல் ஜாதகம் "
+            "மாப்பிள்ளை எனவும், இரண்டாவது "
+            "பெண் எனவும் கணக்கிடப்பட்டது. "
+            "சில பொருத்தங்கள் பெண்ணின் "
+            "நட்சத்திரத்திலிருந்து "
+            "எண்ணப்படுவதால், தவறானால் "
+            "பாலினத்தைச் சேர்க்கவும்."
+)
+
+
 def _assign_bride_groom(
     moon_a: Any, moon_b: Any, gender_a: str | None, gender_b: str | None
 ) -> tuple[Any, Any, bool]:
@@ -733,21 +753,8 @@ def compare_chart_snapshots_direct(
         # F-POR-05: Dinam, Mahendra, Sthree Deergham and Rasi all count
         # girl -> boy, so an assumed direction changes the answer. Say which
         # way round it was read rather than presenting a guess as a finding.
-        note_en = (
-            f"{note_en} Gender was not recorded for both charts, so this was read with "
-            "the first chart as the groom and the second as the bride. Several poruthams "
-            "count from the bride's star, so add the genders if that is the wrong way round."
-        )
-        note_ta = (
-            f"{note_ta} இரு ஜாதகங்களிலும் பாலினம் "
-            "பதிவாகாததால், முதல் ஜாதகம் "
-            "மாப்பிள்ளை எனவும், இரண்டாவது "
-            "பெண் எனவும் கணக்கிடப்பட்டது. "
-            "சில பொருத்தங்கள் பெண்ணின் "
-            "நட்சத்திரத்திலிருந்து "
-            "எண்ணப்படுவதால், தவறானால் "
-            "பாலினத்தைச் சேர்க்கவும்."
-        )
+        note_en = f"{note_en} {_ASSUMED_DIRECTION_EN}"
+        note_ta = f"{note_ta} {_ASSUMED_DIRECTION_TA}"
     data = DirectPoruthamData(
         chart_id_a=snap_a.data.chart_id,
         chart_id_b=snap_b.data.chart_id,
@@ -991,7 +998,7 @@ def get_porutham_for_member(
 
     gender_owner = getattr(owner_snap.data.birth_profile, "gender_for_traditional_rules", None)
     gender_member = member.gender_for_traditional_rules
-    boy_moon, girl_moon = _assign_bride_groom(owner_moon, member_moon, gender_owner, gender_member)
+    boy_moon, girl_moon, direction_assumed = _assign_bride_groom(owner_moon, member_moon, gender_owner, gender_member)
 
     result = compute_porutham(
         boy_nakshatra=boy_moon.nakshatra,
@@ -1018,6 +1025,11 @@ def get_porutham_for_member(
     ]
 
     _note_raw = _CONTEXT_NOTE.get(compatibility_context, _CONTEXT_NOTE["GENERAL"])
+    note_en, note_ta = _note_raw["en"], _note_raw["ta"]
+    if direction_assumed:
+        # F-POR-05, same disclosure as the direct-snapshot path above.
+        note_en = f"{note_en} {_ASSUMED_DIRECTION_EN}"
+        note_ta = f"{note_ta} {_ASSUMED_DIRECTION_TA}"
     data = PorutthamData(
         family_vault_id=family_vault_id,
         member_id=member_id,
@@ -1035,7 +1047,7 @@ def get_porutham_for_member(
         nadi_dosha=NadiDoshaData(**shaped["nadi_dosha"]),
         summary=shaped["summary"],
         compatibility_context=compatibility_context,
-        context_note=RelationshipBiText(ta=_note_raw["ta"], en=_note_raw["en"]),
+        context_note=RelationshipBiText(ta=note_ta, en=note_en),
     )
     return PorutthamResponse(data=data, meta=_meta())
 

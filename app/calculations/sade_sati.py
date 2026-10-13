@@ -123,12 +123,23 @@ def elapsed_month(house_from_moon: int, months_into_current_sign: float) -> int:
     return max(1, min(TOTAL_MONTHS, int(raw) + 1))
 
 
-def severity_for_month(month: int) -> SadeSatiSeverity:
-    """The traditional grade for one month of the cycle."""
+def severity_for_month(month: int) -> SadeSatiSeverity | None:
+    """The phase for one month of the cycle, or ``None`` outside it.
+
+    `_SEGMENTS` tiles 1..90 exhaustively, so the only way to miss is a month
+    that is not in the cycle at all — which is exactly what `elapsed_month`
+    returns 0 to mean. ``None`` says that; the old fallback returned a
+    `MIXED` grade, which claimed a native not in Sade Sati was in a middling
+    part of it.
+
+    The signature is Optional rather than raising because the caller can
+    legitimately hold a 0 here (F-SAT-01 left the fallback returning a member
+    this enum no longer has, and mypy caught it before any user did).
+    """
     for start, end, severity in _SEGMENTS:
         if start <= month <= end:
             return severity
-    return SadeSatiSeverity.MIXED
+    return None
 
 
 # ── A25: mitigation gates ───────────────────────────────────────────────────

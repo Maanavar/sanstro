@@ -2396,9 +2396,15 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
         # comes from the real ingress instant, so a native three months into
         # Janma Sani is not scored like one three months from its end.
         _months_into_sign = (transit.jd_ut - _ingress_jd) / 30.4375
-        sade_sati_severity = severity_for_month(
+        # `severity_for_month` is Optional: it returns None for a month
+        # outside the ninety, which `elapsed_month` signals with 0. The guard
+        # above means that cannot happen here, so None would be a bug rather
+        # than a state to render — it stays None and the score falls back to
+        # the unsegmented penalty instead of inventing a phase.
+        _phase = severity_for_month(
             elapsed_month(saturn_house_from_moon, _months_into_sign)
-        ).value
+        )
+        sade_sati_severity = _phase.value if _phase is not None else None
 
         # A25 — the stated gates. The bindu gate is included because
         # Sarvashtakavarga is already computed for this request anyway (see
