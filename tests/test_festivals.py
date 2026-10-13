@@ -51,7 +51,7 @@ independently rather than assumed:
 """
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 
 import pytest
 
@@ -259,3 +259,58 @@ def test_2027_produces_nonempty_hindu_festivals() -> None:
     ]
     any_named_festival = any(_festival_names_for(d) for d in sample_dates)
     assert any_named_festival, "2027 produced zero Hindu festivals across the sample — regression"
+
+
+# ── F-FES-01 — the Pournami AND-gate (ground-truth audit 2026-10-13) ────────
+#
+# Chitra Pournami, Maasi Magam and Panguni Uthiram each required the star and
+# the full moon to land on the same civil day. In a year where the two split
+# the festival silently disappeared — the exact bug class L-14 fixed for
+# Karthigai Deepam. Chitra Pournami had a second fault: it tested the Chitra
+# *nakshatra* and never checked the Tamil month it is named for.
+
+@pytest.mark.parametrize("year", [2026, 2027])
+@pytest.mark.parametrize(
+    ("festival", "month_window"),
+    [
+        ("Chitra Pournami", ((4, 10), (5, 20))),
+        ("Maasi Magam", ((2, 10), (3, 20))),
+        ("Panguni Uthiram", ((3, 10), (4, 20))),
+    ],
+)
+def test_pournami_anchored_festival_appears_every_year(
+    year: int, festival: str, month_window: tuple[tuple[int, int], tuple[int, int]]
+) -> None:
+    """Each must fire at least once a year. Asserted as "it happens at all"
+    rather than on a fixed date: the date moves with the ephemeris, but a
+    festival vanishing entirely is the failure this guards."""
+    (m1, d1), (m2, d2) = month_window
+    day, end = date(year, m1, d1), date(year, m2, d2)
+    found: list[date] = []
+    while day <= end:
+        if festival in _festival_names_for(day):
+            found.append(day)
+        day += timedelta(days=1)
+    assert found, f"{festival} did not occur anywhere in {year}"
+
+
+def test_chitra_pournami_is_the_chithirai_full_moon_not_the_chitra_star() -> None:
+    """The specific inversion. It is the Pournami of the Chithirai month,
+    whatever star that day carries — the old rule checked the star and never
+    the month, so it could fire in any month and miss the one it is named
+    for."""
+    from app.calculations.festivals import _MONTH_CHITHIRAI
+
+    day, end = date(2026, 4, 10), date(2026, 5, 20)
+    hits: list[date] = []
+    while day <= end:
+        if "Chitra Pournami" in _festival_names_for(day):
+            hits.append(day)
+        day += timedelta(days=1)
+
+    assert hits, "Chitra Pournami did not occur in 2026"
+    for hit in hits:
+        snap = calculate_daily_panchangam(hit, *CHENNAI)
+        month_index, _ = tamil_solar_date(hit, CHENNAI[2], CHENNAI[0], CHENNAI[1])
+        assert month_index == _MONTH_CHITHIRAI, f"{hit} is not in Chithirai"
+        assert snap.special_tithi_day_number == 15, f"{hit} is not the dominant Pournami"

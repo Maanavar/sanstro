@@ -195,12 +195,25 @@ def test_supportive_guru_adds_a_clause_without_changing_polarity():
 
 
 def test_guru_and_rahu_house_sets_agree_with_the_engine():
-    from app.services._dg_peyarchi import NODE_AXIS_RESTRUCTURING, NODE_AXIS_SUPPORTIVE
-    from app.services._dg_scoring import TRANSIT_BASE_SCORE
+    """Asserted against the gochara doctrine itself, not a score threshold.
 
-    jupiter = TRANSIT_BASE_SCORE["JUPITER"]
-    assert set(pp._GURU_SUPPORT) == {h for h, s in jupiter.items() if s >= 65}
-    assert set(pp._GURU_TESTING) == {h for h, s in jupiter.items() if s < 45}
+    This used to read the score table and cut at >= 65 / < 45. That was a
+    proxy for "favourable" and "adverse" which worked only while the table's
+    hand-typed numbers happened to straddle those cuts; F-SCO-01 replaced the
+    table with one derived from `GOCHARA_FAVOURABLE_FROM_MOON`, so the sets
+    can now be checked against the doctrine directly.
+
+    `_GURU_TESTING` is a strict subset rather than the whole adverse set: this
+    surface names only the houses it has copy for, and a house with no copy
+    must be absent, never silently recast as supportive.
+    """
+    from app.calculations.gochara_scores import GOCHARA_FAVOURABLE_FROM_MOON
+    from app.services._dg_peyarchi import NODE_AXIS_RESTRUCTURING, NODE_AXIS_SUPPORTIVE
+
+    guru_favourable = GOCHARA_FAVOURABLE_FROM_MOON["JUPITER"]
+    assert set(pp._GURU_SUPPORT) == set(guru_favourable)
+    assert set(pp._GURU_TESTING) <= {h for h in range(1, 13) if h not in guru_favourable}
+    assert not set(pp._GURU_TESTING) & set(pp._GURU_SUPPORT)
     assert set(pp._RAHU_SUPPORT) == set(NODE_AXIS_SUPPORTIVE)
     assert set(pp._RAHU_TESTING) == set(NODE_AXIS_RESTRUCTURING)
 

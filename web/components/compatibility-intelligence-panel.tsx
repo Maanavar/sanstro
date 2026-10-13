@@ -9,6 +9,7 @@ import type { Lang } from "@/lib/i18n";
 import type { CompatibilityIntelligenceData } from "@/lib/types";
 import { scoreColorPct } from "@/lib/format";
 import { madhyamaLabel, madhyamaGloss, hasMadhyama } from "@/lib/kuta-grade";
+import { verdictPhraseOrKey } from "@/lib/verdict-lexicon";
 import type { KutaGrade } from "@vinaadi/shared";
 import { ZodiacBadge } from "./zodiac-badge";
 import { NakshatraBadge } from "./nakshatra-badge";
@@ -379,7 +380,7 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
               <span style={{ fontSize: "1.1rem", fontWeight: 400, color: W.muted }}>/100</span>
             </p>
             <Badge
-              text={d.overallLabel}
+              text={verdictPhraseOrKey("porutham", d.overallLabel, en ? "en" : "ta")}
               color={overallColor(d.overallLabel)}
               bg={`${overallColor(d.overallLabel)}18`}
             />
@@ -482,7 +483,10 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
             <span style={{ fontSize: "2rem", fontWeight: 700, color: scoreColor(poruthamPct) }}>{d.poruthamScore}</span>
             <span style={{ fontSize: "0.9rem", color: W.muted }}>/{d.poruthamMax}</span>
           </div>
-          <Badge text={d.poruthamLabel} {...poruthamLabelBadge(d.poruthamLabel)} />
+          <Badge
+            text={verdictPhraseOrKey("porutham", d.poruthamLabel, en ? "en" : "ta")}
+            {...poruthamLabelBadge(d.poruthamLabel)}
+          />
           {d.rajjuDosha && <Badge warn text={en ? "Rajju Dosha" : "ரஜ்ஜு தோஷம்"} color={W.rust} bg="var(--cl-rust-soft)" />}
           {d.vedhaDosha && <Badge warn text={en ? "Vedha Dosha" : "வேதை தோஷம்"} color={W.rust} bg="var(--cl-rust-soft)" />}
           {d.nadiDosha.hasNadiDosha && <Badge warn text={en ? "Nadi Dosha" : "நாடி தோஷம்"} color={W.rust} bg="var(--cl-rust-soft)" />}
@@ -544,7 +548,7 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
       <SectionCard title={en ? "Level 4 — Navamsa (D9)" : "நிலை 4 — நவாம்சம் (D9)"}>
         <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap", marginBottom: "10px" }}>
           <Badge
-            text={d.navamsa.harmonyLabel}
+            text={verdictPhraseOrKey("harmony", d.navamsa.harmonyLabel, en ? "en" : "ta")}
             {...harmonyBadge(d.navamsa.harmonyLabel)}
           />
           <span style={{ fontSize: "0.8rem", color: W.muted }}>
@@ -570,7 +574,7 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
               <p style={{ margin: "0 0 6px", fontSize: "0.78rem", fontWeight: 700, color: W.terracotta }}>{label}</p>
               <div style={{ display: "flex", gap: "6px", marginBottom: "8px", flexWrap: "wrap" }}>
                 <Badge
-                  text={sevvai.hasDosham ? (sevvai.isCancelled ? (en ? "Cancelled" : "நீக்கப்பட்டது") : `${sevvai.severity}`) : (en ? "No Dosham" : "தோஷம் இல்லை")}
+                  text={sevvai.hasDosham ? (sevvai.isCancelled ? (en ? "Cancelled" : "நீக்கப்பட்டது") : verdictPhraseOrKey("doshamSeverity", sevvai.severity, en ? "en" : "ta")) : (en ? "No Dosham" : "தோஷம் இல்லை")}
                   color={sevvai.hasDosham && !sevvai.isCancelled ? W.rust : W.sage}
                   bg={sevvai.hasDosham && !sevvai.isCancelled ? "var(--cl-rust-soft)" : "var(--cl-sage-10)"}
                 />
@@ -587,9 +591,12 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
       </SectionCard>
 
       {/* ── Dasha Harmony ── */}
-      <SectionCard title={en ? "Level 6 — Dasa Alignment (Current Period)" : "நிலை 6 — தசை இணக்கம்"}>
+      <SectionCard title={en ? "Level 6 — Dasa Alignment (current period)" : "நிலை 6 — தசை இணக்கம் (நடப்புக் காலம்)"}>
         <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap", marginBottom: "10px" }}>
-          <Badge text={d.dashaHarmony.harmonyLabel} {...harmonyBadge(d.dashaHarmony.harmonyLabel)} />
+          <Badge
+            text={verdictPhraseOrKey("harmony", d.dashaHarmony.harmonyLabel, en ? "en" : "ta")}
+            {...harmonyBadge(d.dashaHarmony.harmonyLabel)}
+          />
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
             <span style={{ fontSize: "0.78rem", color: W.muted, background: W.surface, border: `1px solid ${W.border}`, borderRadius: "999px", padding: "2px 10px" }}>
               {d.personAName}: {tPlanetLord(d.dashaHarmony.personAMahaLord, en ? "en" : "ta")} / {tPlanetLord(d.dashaHarmony.personAantarLord, en ? "en" : "ta")} {en ? "until" : "வரை"} {d.dashaHarmony.personAMahaEnd}
@@ -603,6 +610,15 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
         <p style={{ margin: "10px 0 0", fontSize: "0.83rem", color: W.inkMid, lineHeight: 1.65 }}>
           {en ? d.dashaHarmony.noteEn : d.dashaHarmony.noteTa}
         </p>
+        {/* F-CI-04: this is the only layer that is not a property of the two
+            charts — it reads the dashas running today, so the composite moves
+            as they advance. Said plainly rather than left for a reader to
+            discover by running the same report twice. */}
+        <p style={{ margin: "8px 0 0", fontSize: "0.78rem", color: W.muted, fontStyle: "italic" }}>
+          {en
+            ? "This level reflects the periods running today, not a fixed property of the two charts — it will change as the dashas advance. The other levels do not move."
+            : "இந்த நிலை இன்று நடக்கும் தசைகளைக் குறிக்கிறது; இது ஜாதகங்களின் நிலையான பண்பு அல்ல — தசை மாறும்போது இதுவும் மாறும். மற்ற நிலைகள் மாறாது."}
+        </p>
       </SectionCard>
 
       {/* ── Emotional Compatibility ── */}
@@ -614,7 +630,10 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
               <span style={{ fontSize: "0.8rem", fontWeight: 700, color: W.inkMid }}>
                 {en ? "Emotional wavelength" : "உணர்வுத் தாளம்"}
               </span>
-              <Badge text={d.emotional.moonMoonHarmony} {...harmonyBadge(d.emotional.moonMoonHarmony)} />
+              <Badge
+                text={verdictPhraseOrKey("harmony", d.emotional.moonMoonHarmony, en ? "en" : "ta")}
+                {...harmonyBadge(d.emotional.moonMoonHarmony)}
+              />
             </div>
             <p style={{ margin: 0, fontSize: "0.78rem", color: W.muted, lineHeight: 1.55 }}>
               {en
@@ -628,7 +647,10 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
               <span style={{ fontSize: "0.8rem", fontWeight: 700, color: W.inkMid }}>
                 {en ? "Affection & romance style" : "அன்பு & காதல் பாணி"}
               </span>
-              <Badge text={d.emotional.venusMarsHarmony} {...harmonyBadge(d.emotional.venusMarsHarmony)} />
+              <Badge
+                text={verdictPhraseOrKey("harmony", d.emotional.venusMarsHarmony, en ? "en" : "ta")}
+                {...harmonyBadge(d.emotional.venusMarsHarmony)}
+              />
             </div>
             <p style={{ margin: 0, fontSize: "0.78rem", color: W.muted, lineHeight: 1.55 }}>
               {en
@@ -642,7 +664,7 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
           {en ? d.emotional.noteEn : d.emotional.noteTa}
         </p>
         <p style={{ margin: "8px 0 0", fontSize: "0.78rem", color: W.muted, fontStyle: "italic" }}>
-          {d.emotional.communicationNote}
+          {en ? d.emotional.communicationNote : (d.emotional.communicationNoteTa || d.emotional.communicationNote)}
         </p>
       </SectionCard>
 

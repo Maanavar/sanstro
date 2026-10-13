@@ -360,8 +360,15 @@ class DashaHarmony(BaseModel):
 
 class EmotionalCompatibility(BaseModel):
     moon_moon_harmony: str = Field(alias="moonMoonHarmony")
+    # `venusMarsHarmony` measures Venus A <-> Venus B (F-CI-05). The name is
+    # on the contract across four surfaces; the label every surface renders
+    # already says "Venus" alone.
     venus_mars_harmony: str = Field(alias="venusMarsHarmony")
+    # F-DSP-01: `communicationNote` stays English for existing clients;
+    # `communicationNoteTa` is the Tamil twin a Tamil reader needs. Default ""
+    # so an older payload still validates.
     communication_note: str = Field(alias="communicationNote")
+    communication_note_ta: str = Field(default="", alias="communicationNoteTa")
     note_en: str = Field(alias="noteEn")
     note_ta: str = Field(alias="noteTa")
     score: int

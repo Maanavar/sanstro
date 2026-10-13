@@ -7,12 +7,16 @@ What this replaces: a flat `-4` applied to every native for all seven and a half
 years, with no phase, no mitigation and nothing to say beyond "this is happening
 to you". Three separately-sourced corrections turn that into a reading.
 
-**A26 — the cycle is not uniform.** The traditional month-by-month division
-(p.243) segments the ninety months, and the author's own point in citing it is
-that the whole period is *not* adverse. Sixteen difficult months, then
-thirty-five comparatively favourable ones, an acute window in the closing months
-of Janma Sani, and a largely workable Pada Sani. A model that penalises all
-ninety equally is wrong about roughly half of them.
+**A26 — the cycle is not uniform.** A model that penalises all ninety months
+equally is wrong about the shape of the cycle. It is segmented by its three
+named phases — விரய (12th), ஜென்ம (1st), பாத (2nd) — with **Janma Sani the
+heaviest**, which is how every Tamil rasi-palan column reads it.
+
+A26 originally used a month-by-month division cited as "(p.243)", under which
+months 17-51 were *comparatively favourable* and therefore the lightest part of
+the cycle. Those months cover most of Janma Sani, so the model said the exact
+opposite of practice about its heaviest phase. See `_SEGMENTS` below for why
+that division was reverted rather than re-tuned (F-SAT-01).
 
 **A25 — it is gated.** Natal Saturn's own dignity and house placement, and the
 Ashtakavarga bindus of the sign being transited, are stated mitigations (p.227).
@@ -47,31 +51,52 @@ TOTAL_MONTHS = 90
 
 
 class SadeSatiSeverity(str, Enum):  # noqa: UP042 — str-mixin enum, repo convention
-    """Where in the ninety months this native currently is."""
+    """Which third of the cycle this native is in — the three named phases.
 
-    #: The opening stretch — the one the tradition warns about first.
-    DIFFICULT = "DIFFICULT"
-    #: The long middle the source explicitly calls comparatively favourable.
-    FAVOURABLE = "FAVOURABLE"
-    #: The short acute window closing Janma Sani.
-    ACUTE = "ACUTE"
-    #: Everything the division does not mark either way.
-    MIXED = "MIXED"
+    F-SAT-01 replaced a month-band enum (DIFFICULT / FAVOURABLE / ACUTE /
+    MIXED) with the phases themselves. Internal to the scoring path: the
+    severity is not on the wire and no client reads it.
+    """
+
+    #: Months 1-30, Saturn in the 12th from the natal Moon — விரய சனி.
+    VIRAYA = "VIRAYA"
+    #: Months 31-60, Saturn on the natal Moon — ஜென்ம சனி, the heaviest.
+    JANMA = "JANMA"
+    #: Months 61-90, Saturn in the 2nd — பாத சனி, the easing third.
+    PADA = "PADA"
 
 
 #: (start_month, end_month_inclusive, severity), 1-based over the ninety months.
 #:
-#: Boundaries come from the traditional division as summarised in EC-A26 — 16
-#: difficult, 35 comparatively favourable, 4 acute — with the acute window placed
-#: where the source places it, at the CLOSE of Janma Sani (months 57-60, Janma
-#: Sani running 31-60). Everything the division does not speak to is MIXED
-#: rather than silently inheriting a neighbour's grade.
+#: **F-SAT-01 — why this is the phase, not the month table.**
+#:
+#: It used to be the month division summarised in EC-A26: 16 difficult, then 35
+#: *comparatively favourable* (months 17-51), 5 mixed, 4 acute at the close of
+#: Janma Sani, 30 mixed. That made months 17-51 the lightest stretch of the
+#: cycle at a penalty of 1 — and those months cover the back half of Viraya
+#: Sani and **most of Janma Sani**, which mainstream Tamil practice holds to be
+#: the *heaviest* phase. Every Tamil rasi-palan column reads it that way.
+#:
+#: Two reasons not to keep it until the source is in hand:
+#:
+#: 1. **The citation is a bare "p. 243" with no book named.** Kalaprakasika's
+#:    Appendix also begins at printed p. 243, so two books are in play.
+#:    `docs/SOURCE_PHOTOCOPY_REQUEST_2026-08-27.md` (PN-4) and
+#:    `VINAADI_PAGE_NEEDED_REGISTER` both still carry it as unverified.
+#: 2. **The 16/35/4 figures look like the Sani Nara-Chakra**, which segments by
+#:    the **nakshatra Saturn is transiting counted from the janma star**, not
+#:    by months elapsed since the 12th-house ingress. Mapping a nakshatra-based
+#:    body chart onto a month clock moves every boundary, which would explain
+#:    how the heaviest phase ended up labelled favourable.
+#:
+#: So this reverts to the structural reading — the three named phases, Janma
+#: heaviest — which needs no unverified page. If PN-4 is produced and states
+#: the Nara-Chakra, compute it from Saturn's transit nakshatra counted from the
+#: janma nakshatra; do not re-introduce a month clock.
 _SEGMENTS: tuple[tuple[int, int, SadeSatiSeverity], ...] = (
-    (1, 16, SadeSatiSeverity.DIFFICULT),
-    (17, 51, SadeSatiSeverity.FAVOURABLE),
-    (52, 56, SadeSatiSeverity.MIXED),
-    (57, 60, SadeSatiSeverity.ACUTE),
-    (61, 90, SadeSatiSeverity.MIXED),
+    (1, 30, SadeSatiSeverity.VIRAYA),
+    (31, 60, SadeSatiSeverity.JANMA),
+    (61, 90, SadeSatiSeverity.PADA),
 )
 
 #: Saturn's house from the natal Moon -> which 30-month third of the cycle.

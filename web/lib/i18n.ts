@@ -343,7 +343,10 @@ const STRINGS = {
   },
   gowri_panchangam_details: { ta: "\u0b95\u0bcc\u0bb0\u0bbf\u0020\u0baa\u0b9e\u0bcd\u0b9a\u0bbe\u0b99\u0bcd\u0b95\u0020\u0bb5\u0bbf\u0bb5\u0bb0\u0bae\u0bcd", en: "Gowri Panchangam details" },
   label_subha_muhurtham: { ta: "சுப முஹூர்த்தம்", en: "Subha Muhurtham" },
-  label_subha_day:  { ta: "சுப தினம்",         en: "Auspicious Day" },
+  // F-PAN-01: the broad day-quality flag is not a wedding muhurtham day — it
+  // counts Poosam, which Tamil practice excludes for marriage outright. Any
+  // label driven by `isSubhaMuhurtham` says நல்ல நாள், never முகூர்த்தம்.
+  label_subha_day:  { ta: "நல்ல நாள்",          en: "Good day" },
   label_not_subha:  { ta: "சாதாரண தினம்",       en: "Ordinary Day" },
   label_festivals:  { ta: "திருவிழா / விடுமுறை", en: "Festivals & Holidays" },
   label_no_festivals: { ta: "இன்று பண்டிகை இல்லை", en: "No festivals today" },

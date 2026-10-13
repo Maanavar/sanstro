@@ -284,3 +284,84 @@ def test_compute_shadbala_retrograde_gets_full_chesta():
 def test_compute_shadbala_sun_chesta_equals_ayana():
     result = compute_shadbala(_sample_planets(), _ctx())
     assert result["SUN"].chesta == pytest.approx(result["SUN"].kala_components["ayana"])
+
+
+# ── F-STR-01 — Chesta Bala ran backwards for fast planets ──────────────────
+#
+# Ground-truth audit 2026-10-13. The old bands scored an accelerated planet
+# 15 (the weakest value in the table) and a near-stationary one 45. Classical
+# ashta-chesta is the other way round: a fast planet is Chara (45) or Atichara
+# (30) and strong; a stationary one is Vikala (15) and weak. The old
+# three-band shape also had no way to express Sama — mean speed — being the
+# weakest state of all at 7.5.
+
+def _mars_at(speed_ratio: float) -> PlanetInput:
+    from app.calculations.shadbala import _MEAN_DAILY_SPEED
+
+    return PlanetInput(
+        longitude=10.0,
+        is_retrograde=False,
+        speed_deg_per_day=_MEAN_DAILY_SPEED["MARS"] * speed_ratio,
+    )
+
+
+def test_the_eight_chesta_values_are_the_classical_ones() -> None:
+    """The Virupas, asserted against BPHS directly rather than against the
+    bands that select them — the values are classical, the bands are this
+    engine's approximation of which state applies."""
+    from app.calculations.shadbala import CHESTA_VIRUPA
+
+    assert CHESTA_VIRUPA == {
+        "VAKRA": 60.0, "ANUVAKRA": 30.0, "VIKALA": 15.0, "MANDA": 30.0,
+        "MANDATARA": 15.0, "SAMA": 7.5, "CHARA": 45.0, "ATICHARA": 30.0,
+    }
+
+
+def test_a_fast_planet_is_strong_and_a_stationary_one_is_weak() -> None:
+    """The inversion itself. This assertion fails on the old table in both
+    directions, which is what makes it a gate rather than a description."""
+    from app.calculations.shadbala import _chesta_bala
+
+    stationary = _chesta_bala("MARS", _mars_at(0.05), ayana=0.0, paksha=0.0)
+    fast = _chesta_bala("MARS", _mars_at(1.3), ayana=0.0, paksha=0.0)
+
+    assert fast > stationary
+    assert fast == 45.0    # Chara
+    assert stationary == 15.0  # Vikala
+
+
+def test_mean_speed_is_the_weakest_state() -> None:
+    """Sama at 7.5 is lower than every other state including Vikala — a
+    counterintuitive classical result the old three-band shape could not
+    produce at any setting."""
+    from app.calculations.shadbala import _chesta_bala
+
+    sama = _chesta_bala("MARS", _mars_at(1.0), ayana=0.0, paksha=0.0)
+    assert sama == 7.5
+    for ratio in (0.05, 0.3, 0.7, 1.3, 2.0):
+        assert _chesta_bala("MARS", _mars_at(ratio), ayana=0.0, paksha=0.0) > sama
+
+
+def test_retrograde_still_outranks_every_direct_state() -> None:
+    """Vakra at 60 is the strongest; the fix must not have disturbed it."""
+    from app.calculations.shadbala import _chesta_bala
+
+    vakra = _chesta_bala(
+        "MARS",
+        PlanetInput(longitude=10.0, is_retrograde=True, speed_deg_per_day=-0.2),
+        ayana=0.0, paksha=0.0,
+    )
+    assert vakra == 60.0
+    for ratio in (0.05, 0.3, 0.7, 1.0, 1.3, 2.0):
+        assert vakra > _chesta_bala("MARS", _mars_at(ratio), ayana=0.0, paksha=0.0)
+
+
+def test_every_band_returns_a_value_from_the_classical_table() -> None:
+    """No band may invent a number: whatever the speed, the result is one of
+    the eight. Guards against a future band edit reintroducing a hand-typed
+    value."""
+    from app.calculations.shadbala import CHESTA_VIRUPA, _chesta_bala
+
+    allowed = set(CHESTA_VIRUPA.values())
+    for ratio in [i / 20 for i in range(0, 61)]:
+        assert _chesta_bala("MARS", _mars_at(ratio), ayana=0.0, paksha=0.0) in allowed

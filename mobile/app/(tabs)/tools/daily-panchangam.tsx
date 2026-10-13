@@ -212,7 +212,7 @@ export default function DailyPanchangamToolScreen() {
             {p.subhaMuhurtham.isSubha && (
               <View style={styles.subhaBanner}>
                 <Text style={[styles.subhaBannerText, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
-                  {isTamil ? "✓ இன்று சுப முகூர்த்த நாள்" : "✓ Auspicious Muhurtham Day"}
+                  {isTamil ? "✓ இன்று நல்ல நாள்" : "✓ A good day for new starts"}
                 </Text>
               </View>
             )}

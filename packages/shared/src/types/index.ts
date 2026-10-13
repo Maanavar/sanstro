@@ -1876,7 +1876,17 @@ export interface PersonAstroIdentity {
 }
 
 export interface EmotionalCompatibility {
-  moonMoonHarmony: string; venusMarsHarmony: string; communicationNote: string;
+  moonMoonHarmony: string;
+  /**
+   * Measured Venus A <-> Venus B, not Venus-to-Mars (F-CI-05). The name is
+   * kept because it is on the wire across four surfaces; render it with a
+   * "Venus" label, never a "Venus-Mars" one.
+   */
+  venusMarsHarmony: string;
+  /** English. Render `communicationNoteTa` in Tamil mode (F-DSP-01). */
+  communicationNote: string;
+  /** Optional: absent from payloads produced before F-DSP-01. */
+  communicationNoteTa?: string;
   noteEn: string; noteTa: string; score: number;
 }
 

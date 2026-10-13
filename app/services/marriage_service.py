@@ -4,6 +4,7 @@ import logging
 from dataclasses import dataclass
 from datetime import date
 
+from app.calculations._yoga_helpers import NATURAL_BENEFICS, NATURAL_MALEFICS
 from app.calculations.astro import house_from_reference
 from app.calculations.bhava_afflictions import assess_bhava_afflictions
 from app.calculations.chart_strength import DEBILITATION_RASI, EXALTATION_RASI, OWN_SIGN_RASI
@@ -90,6 +91,11 @@ class MarriageAssessmentInput:
     life_stage: str = "young_adult"
     marital_status: str | None = None
     venus_combust: bool = False
+    # Presence and cancellation are two separate facts. Before F-MAR-01 only
+    # `cancelled` was carried, so a chart with *no* Sevvai dosham was
+    # indistinguishable from one with a live, uncancelled dosham and was told
+    # "செவ்வாய் தோஷம் உள்ளது" and docked 3-6 points. Callers must pass both.
+    sevvai_dosham_present: bool = False
     sevvai_dosham_cancelled: bool = False
     rahu_ketu_label: str | None = None
     d9_rasi_by_planet: dict[str, int] | None = None
@@ -413,19 +419,40 @@ def _score_marriage_prediction(
     planets_in_7th = sorted(
         name for name, rasi in payload.planets_rasi.items() if rasi == seventh_house_rasi
     )
+    # F-MAR-02: occupancy *activates* the 7th; it does not grade it. A lone
+    # Saturn, Rahu, Ketu or Mars there is a delay/friction indicator in Tamil
+    # reading (and a Chevvai-dosham house), never a plus. Benefic occupants
+    # add, malefic occupants subtract; the status follows the balance.
     if planets_in_7th:
-        score += 6
+        benefics_in_7th = [p for p in planets_in_7th if p in NATURAL_BENEFICS]
+        malefics_in_7th = [p for p in planets_in_7th if p in NATURAL_MALEFICS]
+        score += 3 * len(benefics_in_7th) - 3 * len(malefics_in_7th)
+        if benefics_in_7th and not malefics_in_7th:
+            occupancy_status = "SUPPORT"
+        elif malefics_in_7th and not benefics_in_7th:
+            occupancy_status = "CAUTION"
+        else:
+            occupancy_status = "NEUTRAL"
         factors.append(
             AstroFactor(
                 key="seventh_house_occupancy",
-                status="SUPPORT",
+                status=occupancy_status,
                 detail=BiText(
                     ta=f"7ம் வீட்டில் கிரகங்கள் உள்ளன: {', '.join(planet_ta(p) for p in planets_in_7th)}.",
                     en=f"Planets occupy the 7th house: {', '.join(planet_en(p) for p in planets_in_7th)}.",
                 ),
             )
         )
-        supports.append(BiText("7ம் வீடு செயலில் உள்ளது.", "7th house is activated."))
+        if benefics_in_7th:
+            supports.append(BiText(
+                f"7ம் வீட்டில் சுப கிரக சேர்க்கை: {', '.join(planet_ta(p) for p in benefics_in_7th)}.",
+                f"Benefic occupancy in the 7th house: {', '.join(planet_en(p) for p in benefics_in_7th)}.",
+            ))
+        if malefics_in_7th:
+            challenges.append(BiText(
+                f"7ம் வீட்டில் பாப கிரக சேர்க்கை: {', '.join(planet_ta(p) for p in malefics_in_7th)} — தாமதம்/உரசல் சாத்தியம்.",
+                f"Malefic occupancy in the 7th house: {', '.join(planet_en(p) for p in malefics_in_7th)} — can indicate delay or friction.",
+            ))
     else:
         factors.append(
             AstroFactor(
@@ -673,7 +700,12 @@ def _score_marriage_prediction(
     else:
         challenges.append(BiText("வயது கட்டம் மாறுபட்டு உள்ளது.", "Age phase is outside peak range."))
 
-    if not payload.sevvai_dosham_cancelled:
+    if not payload.sevvai_dosham_present:
+        # F-MAR-01: no dosham in the chart. Say nothing and score nothing —
+        # neither the penalty nor the "cancellation factors exist" support,
+        # which is equally false when there was never a dosham to cancel.
+        pass
+    elif not payload.sevvai_dosham_cancelled:
         if payload.age >= SEVVAI_DOSHAM_SOFTENING_AGE:
             # Traditional softening, not a cancellation — the dosham is still present,
             # but its matching-relevance is treated as naturally reduced past this age.

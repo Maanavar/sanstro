@@ -209,6 +209,12 @@ def get_marriage_prediction(
     doshams_by_name = {d.name.upper(): d for d in snapshot.data.doshams}
     sevvai = doshams_by_name.get("SEVVAI_DOSHAM")
     rahu_ketu = doshams_by_name.get("RAHU_KETU_DOSHAM")
+    # F-MAR-01: presence and cancellation are separate facts; collapsing
+    # them made every dosham-free chart read as an uncancelled dosham.
+    # The snapshot always carries a SEVVAI_DOSHAM record (label
+    # NO_SEVVAI_DOSHAM when it did not form), so presence is is_present,
+    # never `is not None`.
+    sevvai_present = bool(sevvai and sevvai.is_present)
     sevvai_cancelled = bool(sevvai and sevvai.is_cancelled)
     d9_rasi_by_planet = {p.graha: p.d9_rasi for p in snapshot.data.planets}
     planet_longitudes = {
@@ -227,6 +233,7 @@ def get_marriage_prediction(
         age=age,
         life_stage=life_stage,
         marital_status=marital_status,
+        sevvai_dosham_present=sevvai_present,
         sevvai_dosham_cancelled=sevvai_cancelled,
         rahu_ketu_label=rahu_ketu.label if rahu_ketu else None,
         d9_rasi_by_planet=d9_rasi_by_planet,

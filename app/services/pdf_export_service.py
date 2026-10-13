@@ -101,6 +101,19 @@ def _label(key: str, lang: str) -> str:
     return _LABELS[resolved].get(key) or _LABELS["en"][key]
 
 
+def _verdict(domain: str, label: str, lang: str) -> str:
+    """Engine verdict key -> the reader's language (F-DSP-01).
+
+    A Tamil compatibility PDF printed "EXCELLENT", "SUPPORTIVE" and "SEVERE"
+    verbatim, because the report object carries the enum and the writer
+    interpolated it. Falls back to the raw key for an unmapped label: a blank
+    cell in a table hides the verdict, which is worse than an English one.
+    """
+    from app.calculations.verdict_lexicon import verdict_phrase
+
+    return verdict_phrase(domain, label, _normalize_lang(lang)) or label
+
+
 def _register_pdf_fonts(lang: str) -> tuple[str, str]:
     if _normalize_lang(lang) != "ta":
         return "Helvetica", "Helvetica-Bold"
@@ -928,7 +941,7 @@ def generate_compatibility_intelligence_pdf(
         Paragraph(f"{_label('generated', lang)}: {date.today().isoformat()}", caption_style),
         Spacer(1, 0.25 * cm),
         Paragraph(f"{report.overall_score} / 100", score_style),
-        Paragraph(f"{_label('overall_rating', lang)}: {report.overall_label}", subheading_style),
+        Paragraph(f"{_label('overall_rating', lang)}: {_verdict('porutham', report.overall_label, lang)}", subheading_style),
         Spacer(1, 0.12 * cm),
         Paragraph(_bitext(report.summary, lang), body_style),
     ]
@@ -981,7 +994,7 @@ def generate_compatibility_intelligence_pdf(
     story.extend([Spacer(1, 0.3 * cm), Paragraph(_label("porutham_level", lang), heading_style)])
     story.append(
         Paragraph(
-            f"Score: {report.porutham_score}/{report.porutham_max} ({round(report.porutham_percentage)}%) - {report.porutham_label}",
+            f"Score: {report.porutham_score}/{report.porutham_max} ({round(report.porutham_percentage)}%) - {_verdict('porutham', report.porutham_label, lang)}",
             body_style,
         )
     )
@@ -1018,7 +1031,7 @@ def generate_compatibility_intelligence_pdf(
     story.extend([Spacer(1, 0.3 * cm), Paragraph(_label("navamsa_level", lang), heading_style)])
     story.append(
         Paragraph(
-            f"Harmony: {report.navamsa.harmony_label}. {report.person_a_name} Venus D9: {report.navamsa.person_a_venus_d9}; {report.person_b_name} Venus D9: {report.navamsa.person_b_venus_d9}.",
+            f"{_label('harmony', lang)}: {_verdict('harmony', report.navamsa.harmony_label, lang)}. {report.person_a_name} Venus D9: {report.navamsa.person_a_venus_d9}; {report.person_b_name} Venus D9: {report.navamsa.person_b_venus_d9}.",
             body_style,
         )
     )
@@ -1032,7 +1045,7 @@ def generate_compatibility_intelligence_pdf(
             _label("yes", lang) if detail.has_dosham else _label("no", lang),
             _label("yes", lang) if detail.is_cancelled else _label("no", lang),
             str(detail.mars_house),
-            detail.severity,
+            _verdict("dosham_severity", detail.severity, lang),
             str(detail.score),
         ])
     story.append(_pdf_text_table(dosham_rows, [(_PAGE_W - 2 * _MARGIN) * f for f in (0.22, 0.12, 0.12, 0.14, 0.18, 0.12)], lang))
@@ -1049,18 +1062,20 @@ def generate_compatibility_intelligence_pdf(
             body_style,
         )
     )
-    story.append(Paragraph(f"{_label('harmony', lang)}: {report.dasha_harmony.harmony_label}", body_style))
+    story.append(Paragraph(f"{_label('harmony', lang)}: {_verdict('harmony', report.dasha_harmony.harmony_label, lang)}", body_style))
     story.append(Paragraph(getattr(report.dasha_harmony, f'note_{note_lang}'), body_style))
 
     story.extend([Spacer(1, 0.3 * cm), Paragraph(_label("emotional_level", lang), heading_style)])
     story.append(
         Paragraph(
-            f"Moon harmony: {report.emotional.moon_moon_harmony}. Venus-Mars harmony: {report.emotional.venus_mars_harmony}.",
+            f"Moon: {_verdict('harmony', report.emotional.moon_moon_harmony, lang)}. "
+            f"Venus: {_verdict('harmony', report.emotional.venus_mars_harmony, lang)}.",
             body_style,
         )
     )
     story.append(Paragraph(getattr(report.emotional, f'note_{note_lang}'), body_style))
-    story.append(Paragraph(f"{_label('communication_note', lang)}: {report.emotional.communication_note}", body_style))
+    _comm = report.emotional.communication_note_ta if note_lang == "ta" else report.emotional.communication_note
+    story.append(Paragraph(f"{_label('communication_note', lang)}: {_comm or report.emotional.communication_note}", body_style))
 
     story.extend([Spacer(1, 0.3 * cm), Paragraph(_label("synastry_level", lang), heading_style)])
     story.append(Paragraph(f"{_label('synastry_score', lang)}: {report.synastry_score}/100", body_style))

@@ -341,11 +341,11 @@ export default async function PanchangamDatePage({ params }: Props) {
                   borderRadius: "12px", padding: "16px 20px",
                 }}>
                   <p style={{ margin: "0 0 4px", fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--cl-muted)" }}>
-                    {L("Subha Muhurtham", "சுபமுகூர்த்தம்")}
+                    {L("Day quality", "நாள் தரம்")}
                   </p>
                   <p style={{ margin: "0 0 4px", fontSize: "1rem", fontWeight: 700, color: data.subhaMuhurtham.isSubha ? "#4ade80" : "#f87171" }}>
                     {data.subhaMuhurtham.isSubha
-                      ? L("Auspicious Day", "சுபமுகூர்த்த நாள்")
+                      ? L("Good day", "நல்ல நாள்")
                       : L("Not recommended for ceremonies", "சுப நிகழ்வுகளுக்கு ஏற்ற நாள் அல்ல")}
                   </p>
                   {/* The backend's reason is an English engine string; it is not

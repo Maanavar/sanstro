@@ -208,22 +208,33 @@ describe("Day drawer — each limb prints when it ends", () => {
 });
 
 describe("Day drawer — one marking, one row", () => {
-  it("states muhurtham status on its own", () => {
+  // F-PAN-01: these rows used to read "Subha Muhurtham day" / "Not a muhurtham
+  // day". To a Tamil reader that phrase means a *wedding-muhurtham day*, and
+  // the flag behind it is the broad day-quality check — it counts Poosam, the
+  // one star Tamil practice excludes for marriage outright, and knows nothing
+  // of the no-wedding months or Karinaal. The row is now a good-day reading
+  // and never says முகூர்த்தம்.
+  it("states day quality on its own", () => {
     renderDrawer();
-    expect(screen.getByText("Subha Muhurtham day")).toBeInTheDocument();
+    expect(screen.getByText("Good day")).toBeInTheDocument();
     expect(screen.queryByText("Karinaal")).toBeNull();
   });
 
-  it("says plainly when a day carries no muhurtham marking", () => {
-    renderDrawer({ data: dayFixture({ subhaMuhurtham: { isSubha: false, reason: "", isSubhaStrict: false, strictReason: "" } }) });
-    expect(screen.getByText("Not a muhurtham day")).toBeInTheDocument();
+  it("does not call the day-quality flag a muhurtham", () => {
+    renderDrawer();
+    expect(screen.queryByText(/muhurtham day/i)).toBeNull();
   });
 
-  it("keeps Karinaal as a second row rather than overwriting the muhurtham verdict", () => {
+  it("says plainly when a day carries no good-day marking", () => {
+    renderDrawer({ data: dayFixture({ subhaMuhurtham: { isSubha: false, reason: "", isSubhaStrict: false, strictReason: "" } }) });
+    expect(screen.getByText("An ordinary day")).toBeInTheDocument();
+  });
+
+  it("keeps Karinaal as a second row rather than overwriting the day-quality verdict", () => {
     // A day can be marked both. Fusing them into one rating would have to pick a
     // winner silently, and the reader could not tell which fact produced it.
     renderDrawer({ data: dayFixture({ isKarinaal: true }) });
-    expect(screen.getByText("Subha Muhurtham day")).toBeInTheDocument();
+    expect(screen.getByText("Good day")).toBeInTheDocument();
     expect(screen.getByText("Karinaal")).toBeInTheDocument();
   });
 });

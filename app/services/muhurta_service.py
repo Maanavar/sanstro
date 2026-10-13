@@ -294,24 +294,37 @@ def _t(ta: str, en: str) -> BiText:
     return BiText(ta=ta, en=en)
 
 
-# These are widely followed family customs, not rules that veto a muhurta.
-# Keep the scope deliberately narrow: the tradition is especially established
-# for weddings, while families differ substantially for other ceremonies.
+# Notices attached to a wedding date by Tamil month.
+#
+# These are two different kinds of thing and F-MUH-01 is the correction that
+# separated them:
+#
+# * **Aadi / Purattasi / Margazhi** are not a family preference. No printed
+#   Tamil almanac lists a wedding muhurtham in them and no purohit conducts
+#   one, so the engine now DEMOTES these dates below every other month
+#   (`muhurta_engine._marriage_month_factor`). The notice says so; it used to
+#   say the opposite — "it does not change this muhurta's score or
+#   recommendation" — while the picker happily ranked an Aadi date first.
+# * **Thai** really is family-specific (the eldest child's thalai kalyanam),
+#   so that one stays an unscored advisory and keeps its original wording.
 _WEDDING_MONTH_CUSTOMS: dict[int, tuple[str, str]] = {
     3: (
-        "பல தமிழ் குடும்பங்கள் ஆடி மாதத்தில் திருமணத்தைத் திட்டமிடுவதைத் தவிர்ப்பார்கள். "
-        "இது பொதுவான குடும்ப வழக்கம் மட்டுமே; இந்த முஹூர்த்தத்தின் மதிப்பெண் அல்லது பரிந்துரையை மாற்றாது.",
-        "Many Tamil families traditionally defer weddings during Aadi. This is a general family custom only; it does not change this muhurta's score or recommendation.",
+        "ஆடி மாதத்தில் தமிழ் மரபில் திருமணம் நடத்தப்படுவதில்லை; பஞ்சாங்கங்களில் இம்மாதத்தில் "
+        "திருமண முகூர்த்தம் குறிக்கப்படுவதில்லை. எனவே இந்நாள் மற்ற மாதங்களின் நாட்களுக்குப் பின்னால் "
+        "வரிசைப்படுத்தப்படுகிறது.",
+        "Weddings are not conducted during Aadi in Tamil practice, and printed almanacs list no wedding muhurtham in this month. This date is therefore ranked below every date outside these months.",
     ),
     5: (
-        "புரட்டாசி வழிபாட்டுக் காலமாகக் கருதப்படுவதால், சில தமிழ் குடும்பங்கள் இந்த மாதத்தில் திருமணத்தைத் திட்டமிட மாட்டார்கள். "
-        "இது பொதுவான குடும்ப வழக்கம் மட்டுமே; இந்த முஹூர்த்தத்தின் மதிப்பெண் அல்லது பரிந்துரையை மாற்றாது.",
-        "As Purattasi is widely observed as a devotional month, some Tamil families do not schedule weddings then. This is a general family custom only; it does not change this muhurta's score or recommendation.",
+        "புரட்டாசி வழிபாட்டுக் காலம்; இம்மாதத்தில் திருமணம் நடத்தப்படுவதில்லை, பஞ்சாங்கங்களில் "
+        "திருமண முகூர்த்தமும் குறிக்கப்படுவதில்லை. எனவே இந்நாள் மற்ற மாதங்களின் நாட்களுக்குப் பின்னால் "
+        "வரிசைப்படுத்தப்படுகிறது.",
+        "Purattasi is a devotional month; weddings are not conducted in it and printed almanacs list no wedding muhurtham. This date is therefore ranked below every date outside these months.",
     ),
     8: (
-        "மார்கழி பக்தி மற்றும் கோவில் வழிபாட்டிற்கான மாதமாகக் கருதப்படுவதால், சில தமிழ் குடும்பங்கள் இந்த மாதத்தில் திருமணத்தைத் திட்டமிட மாட்டார்கள். "
-        "இது பொதுவான குடும்ப வழக்கம் மட்டுமே; இந்த முஹூர்த்தத்தின் மதிப்பெண் அல்லது பரிந்துரையை மாற்றாது.",
-        "As Margazhi is widely observed for devotion and temple worship, some Tamil families do not schedule weddings then. This is a general family custom only; it does not change this muhurta's score or recommendation.",
+        "மார்கழி பக்திக்கும் கோவில் வழிபாட்டிற்குமான மாதம்; இம்மாதத்தில் திருமணம் நடத்தப்படுவதில்லை, "
+        "பஞ்சாங்கங்களில் திருமண முகூர்த்தமும் குறிக்கப்படுவதில்லை. எனவே இந்நாள் மற்ற மாதங்களின் "
+        "நாட்களுக்குப் பின்னால் வரிசைப்படுத்தப்படுகிறது.",
+        "Margazhi is a month of devotion and temple worship; weddings are not conducted in it and printed almanacs list no wedding muhurtham. This date is therefore ranked below every date outside these months.",
     ),
     9: (
         "மணமகன் அல்லது மணமகள் தம் உடன்பிறப்புகளில் மூத்தவராக இருந்தால், சில தமிழ் குடும்பங்கள் தை மாதத்தில் தலைக் கல்யாணத்தைத் தவிர்ப்பார்கள். "

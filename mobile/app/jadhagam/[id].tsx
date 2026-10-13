@@ -16,7 +16,12 @@ import { JadhagamChart, type JadhagamHouseData } from "@/components/JadhagamChar
 import { ThirukanithamBadge } from "@/components/ThirukanithamBadge";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { ErrorCard } from "@/components/ErrorCard";
-import { RASI_LIST, type ChartCalculateResponseData } from "@vinaadi/shared";
+import {
+  RASI_LIST,
+  rasiDisplayName,
+  tNakshatra,
+  type ChartCalculateResponseData,
+} from "@vinaadi/shared";
 let Share: typeof import("react-native-share").default | null = null;
 // A static import would run at module load and crash Expo Go, where the
 // native bridge these JSI modules need does not exist. The require has to
@@ -219,8 +224,12 @@ export default function JadhagamDetailScreen() {
               </Text>
               <View style={styles.dataGrid}>
                 {[
-                  { label: isTamil ? "லக்னம்" : "Lagna", value: chart.lagna.rasiName },
-                  { label: isTamil ? "நட்சத்திரம்" : "Nakshatra", value: chart.lagna.nakshatraName },
+                  // F-DSP-01 / display boundary: `rasiName` and
+                  // `nakshatraName` are the server's English renderings, so
+                  // they printed "Mithunam" at a Tamil reader. The
+                  // language-free keys sit right beside them in the payload.
+                  { label: isTamil ? "லக்னம்" : "Lagna", value: rasiDisplayName(chart.lagna.rasi, lang) },
+                  { label: isTamil ? "நட்சத்திரம்" : "Nakshatra", value: tNakshatra(chart.lagna.nakshatraName, lang) },
                   { label: isTamil ? "பாதம்" : "Pada", value: String(chart.lagna.pada) },
                 ].map((item) => (
                   <View key={item.label} style={styles.datumCard}>

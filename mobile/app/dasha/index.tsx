@@ -15,6 +15,10 @@ import { useSession } from "@/hooks/useSession";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { ErrorCard } from "@/components/ErrorCard";
 import { MethodologyStrip } from "@/components/MethodologyStrip";
+// F-DSP-01 / display boundary: a dasha lord arrives as a language-free key
+// ("JUPITER"). It was rendered raw behind an `isTamil ? x : x` branch whose
+// two arms were identical, so Tamil readers saw the English key.
+import { tPlanetLord } from "@vinaadi/shared";
 import { getDashaTimeline, getCharaDasha, getYoginiDasha, getAshtottariDasha, getKalachakraDasha } from "@/api/dasha";
 import { getPrimaryChartId } from "@/lib/userPrefs";
 import type { DashaTimelineItem, CharaPeriod, YoginiDashaPeriod, AshtottariDashaPeriod, KalachakraDashaPeriod } from "@/api/dasha";
@@ -256,7 +260,7 @@ export default function DashaScreen() {
               {/* Current dasha banner */}
               <View style={styles.banner}>
                 <View style={styles.bannerMain}>
-                  <Text style={styles.bannerLord}>{isTamil ? d.current.mahadasha.lord : d.current.mahadasha.lord}</Text>
+                  <Text style={styles.bannerLord}>{tPlanetLord(d.current.mahadasha.lord, lang)}</Text>
                   <Text style={styles.bannerLabel}>{isTamil ? "மஹா தசை" : "Maha Dasha"}</Text>
                   <Text style={styles.bannerDates}>
                     {formatDate(d.current.mahadasha.startDate)} – {formatDate(d.current.mahadasha.endDate)}
@@ -278,7 +282,7 @@ export default function DashaScreen() {
                 </View>
                 <View style={styles.bannerDivider} />
                 <View style={styles.bannerSub}>
-                  <Text style={styles.bannerSubLord}>{isTamil ? d.current.antardasha.lord : d.current.antardasha.lord}</Text>
+                  <Text style={styles.bannerSubLord}>{tPlanetLord(d.current.antardasha.lord, lang)}</Text>
                   <Text style={styles.bannerSubLabel}>{isTamil ? "அந்தர் தசை" : "Antar Dasha"}</Text>
                   <Text style={styles.bannerSubDates}>
                     {formatDate(d.current.antardasha.startDate)} – {formatDate(d.current.antardasha.endDate)}
@@ -310,7 +314,7 @@ export default function DashaScreen() {
                       fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold",
                       color: isActive ? C.saffron : C.textPrimary,
                     }]}>
-                      {isTamil ? item.lord : item.lord}
+                      {tPlanetLord(item.lord, lang)}
                     </Text>
                     <Text style={[styles.periodDates, isTamil ? TamilType.caption : EnType.caption]}>
                       {formatDate(item.startDate)} – {formatDate(item.endDate)}

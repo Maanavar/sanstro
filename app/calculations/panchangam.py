@@ -1528,6 +1528,17 @@ def _compute_nalla_neram(
 # to tithi); standardized on the classical Rikta set here. Ashtami (8) is
 # deliberately excluded from this set — it's Jaya group, not Rikta.
 RIKTA_TITHIS_IN_PAKSHA = {4, 9, 14}
+
+# F-PAN-01. Rikta is Sanskrit tithi-group theory and Ashtami is not in it —
+# which is correct, and was also the wrong question. Tamil practice avoids
+# **அஷ்டமி and நவமி together** for any subha karyam and every Tamil calendar
+# marks them; Navami is already Rikta, Ashtami was not excluded anywhere, so
+# the day-quality flag called an Ashtami a good day for new work.
+#
+# Kept as its own set rather than added to RIKTA_TITHIS_IN_PAKSHA: that set is
+# cited as the classical Rikta triad in four other places, and quietly growing
+# it to four would make the citation false everywhere it is read.
+TAMIL_AVOIDED_TITHIS_IN_PAKSHA = {8}
 MUHURTHAM_BLOCKED_WEEKDAYS = {1, 5}  # Tuesday, Saturday
 
 
@@ -1541,9 +1552,25 @@ def _compute_subha_muhurtham_broad(
     nakshatra_name: str,
     weekday_index: int,
 ) -> tuple[bool, str]:
-    """Nakshatra-led Subha Muhurtham check matching how published Tamil almanacs list
-    wedding-muhurtham dates — the day's nakshatra is the deciding factor, while
-    Tuesday, Saturday, Amavasai, and the Rikta tithis (4th/9th/14th) are excluded."""
+    """A broad "good day for ordinary new work" check — **not** a wedding
+    muhurtham day.
+
+    F-PAN-01: this flag drove a badge reading "சுபமுகூர்த்த நாள்", which to a
+    Tamil reader means a *wedding-muhurtham day*. It is not that, and cannot
+    be: it counts Poosam — the one star Tamil practice excludes for marriage
+    outright, and which our own marriage engine already excludes via the
+    Kalaprakasika 11-star list — along with Chithirai, Avittam, Thiruvonam,
+    Ashwini and Punarpoosam, none of which are marriage stars. It also knows
+    nothing of the no-wedding months, Karinaal, or Krishna-paksha tithis after
+    Ashtami.
+
+    The authoritative wedding list is the almanac's `muhurtham_naals`, which
+    the muhurtham-naal service uses. Every surface rendering *this* flag says
+    "நல்ல நாள் / good day", never முகூர்த்தம்.
+
+    What it does check: the day's nakshatra decides, with Tuesday, Saturday,
+    Amavasai, the Rikta tithis (4th/9th/14th) and Ashtami excluded.
+    """
     tithi_in_paksha = tithi_number if tithi_number <= 15 else tithi_number - 15
 
     if weekday_index in MUHURTHAM_BLOCKED_WEEKDAYS:
@@ -1552,6 +1579,8 @@ def _compute_subha_muhurtham_broad(
         return False, "Inauspicious: Amavasai tithi"
     if tithi_in_paksha in RIKTA_TITHIS_IN_PAKSHA:
         return False, f"Inauspicious: {_tithi_name(tithi_number)} (Rikta tithi)"
+    if tithi_in_paksha in TAMIL_AVOIDED_TITHIS_IN_PAKSHA:
+        return False, f"Inauspicious: {_tithi_name(tithi_number)} (avoided for subha karyam)"
 
     if nakshatra_name in SUBHA_NAKSHATRAS:
         return True, f"Auspicious: {nakshatra_name} nakshatra"
@@ -1594,9 +1623,12 @@ def _compute_subha_muhurtham_strict(
     else:
         inauspicious.append("inauspicious nakshatra")
 
-    # Amavasai (30) and the classical Rikta tithis (4th/9th/14th) are always inauspicious
+    # Amavasai (30), the classical Rikta tithis (4th/9th/14th) and Ashtami are
+    # always inauspicious (F-PAN-01 for the Ashtami half).
     if tithi_in_paksha in RIKTA_TITHIS_IN_PAKSHA or tithi_number == 30:
         inauspicious.append("Rikta tithi / Amavasai")
+    if tithi_in_paksha in TAMIL_AVOIDED_TITHIS_IN_PAKSHA:
+        inauspicious.append("Ashtami")
 
     is_subha = len(inauspicious) == 0 and len(reasons) >= 2
     if is_subha:

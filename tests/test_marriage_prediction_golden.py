@@ -77,6 +77,7 @@ def _payload(chart, profile, on_date: date, variant: str):
         age=age,
         life_stage=_derive_life_stage(age, None),
         marital_status="married" if variant == "married" else None,
+        sevvai_dosham_present=bool(sevvai and sevvai.is_present),
         sevvai_dosham_cancelled=bool(sevvai and sevvai.is_cancelled),
         rahu_ketu_label=rahu_ketu.label if rahu_ketu else None,
         d9_rasi_by_planet={p.graha: p.d9_rasi for p in data.planets},

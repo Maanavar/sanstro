@@ -801,12 +801,12 @@ export function PanchangamTool() {
             <div className="cl-mobile-card-split" style={{ alignItems: "center", gap: "12px" }}>
               <div style={{ flex: "1 1 420px", minWidth: 0 }}>
                 <p style={{ margin: "0 0 4px", fontSize: "0.68rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.1em", color: data.subhaMuhurtham.isSubha ? "var(--chart-d9-active)" : "var(--planet-saturn)" }}>
-                  {en ? "Subha Muhurtham Check" : "சுப முகூர்த்தம் பரிசோதனை"}
+                  {en ? "Day quality" : "நாள் தரம்"}
                 </p>
                 <p style={{ margin: "0 0 4px", fontSize: "0.98rem", fontWeight: 700, color: "var(--cl-ink)" }}>
                   {data.subhaMuhurtham.isSubha
-                    ? (en ? "Subha Muhurtham Day" : "சுப முகூர்த்த நாள்")
-                    : (en ? "Not a Subha Muhurtham Day" : "சுப முகூர்த்த நாள் அல்ல")}
+                    ? (en ? "Good day for new starts" : "புதிய தொடக்கங்களுக்கு நல்ல நாள்")
+                    : (en ? "Not a good day for new starts" : "புதிய தொடக்கங்களுக்கு உகந்த நாள் அல்ல")}
                 </p>
                 {/* The backend's reason is an English engine string ("Auspicious:
                     REVATHI nakshatra"); it is not shown on the Tamil page rather

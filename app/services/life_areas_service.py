@@ -49,6 +49,7 @@ from app.calculations.display_names import planet_en as dn_planet_en
 from app.calculations.double_transit import score_double_transit
 from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.functional_nature import FunctionalNature, get_functional_nature
+from app.calculations.gochara_scores import GOCHARA_HOUSE_SCORE
 from app.calculations.karaka_chains import LIFE_AREA_KARAKA
 from app.calculations.maturation import maturation_multiplier
 from app.calculations.panchangam import (
@@ -151,43 +152,14 @@ def area_label(area: str) -> LifeAreaText | None:
     return _AREA_LABELS.get(area)
 
 
-# ── House quality tables (from Moon — Tamil Thirukanitham) ────────────────────
-# Score 0–100 for a planet transiting each house from the Moon.
-# Based on standard Ashtakavarga / Gochar tables used in Thirukanitham.
-
-_JUPITER_HOUSE_SCORE = {
-    1: 50, 2: 72, 3: 48, 4: 42, 5: 78, 6: 38,
-    7: 68, 8: 25, 9: 82, 10: 58, 11: 80, 12: 34,
-}
-_SATURN_HOUSE_SCORE = {
-    1: 42, 2: 40, 3: 62, 4: 34, 5: 52, 6: 64,
-    7: 50, 8: 22, 9: 36, 10: 62, 11: 76, 12: 42,
-}
-_MARS_HOUSE_SCORE = {
-    1: 38, 2: 34, 3: 50, 4: 40, 5: 46, 6: 52,
-    7: 42, 8: 28, 9: 48, 10: 44, 11: 50, 12: 32,
-}
-_MERCURY_HOUSE_SCORE = {
-    1: 55, 2: 60, 3: 52, 4: 48, 5: 65, 6: 45,
-    7: 58, 8: 30, 9: 62, 10: 55, 11: 65, 12: 36,
-}
-_VENUS_HOUSE_SCORE = {
-    1: 55, 2: 62, 3: 50, 4: 55, 5: 68, 6: 42,
-    7: 65, 8: 30, 9: 60, 10: 50, 11: 68, 12: 38,
-}
-_SUN_HOUSE_SCORE = {
-    1: 50, 2: 45, 3: 55, 4: 38, 5: 60, 6: 48,
-    7: 40, 8: 28, 9: 65, 10: 58, 11: 55, 12: 32,
-}
-
-_HOUSE_SCORE_TABLE = {
-    "JUPITER": _JUPITER_HOUSE_SCORE,
-    "SATURN":  _SATURN_HOUSE_SCORE,
-    "MARS":    _MARS_HOUSE_SCORE,
-    "MERCURY": _MERCURY_HOUSE_SCORE,
-    "VENUS":   _VENUS_HOUSE_SCORE,
-    "SUN":     _SUN_HOUSE_SCORE,
-}
+# ── House quality from the Moon ───────────────────────────────────────────────
+# F-SCO-02: these were six hand-typed tables that disagreed with the copies in
+# `whatif_service` and `_dg_scoring` (Jupiter 7th 68 here vs 74 there), so the
+# same transit was graded differently on Life Areas and What-if. One derived
+# table now; see `app/calculations/gochara_scores.py`.
+_HOUSE_SCORE_TABLE = GOCHARA_HOUSE_SCORE
+_JUPITER_HOUSE_SCORE = GOCHARA_HOUSE_SCORE["JUPITER"]
+_SATURN_HOUSE_SCORE = GOCHARA_HOUSE_SCORE["SATURN"]
 
 # ── Dasha lord scores per area ─────────────────────────────────────────────────
 # Each planet's dasha support score per life area.
@@ -285,6 +257,11 @@ _SANI_AREA_PENALTY: dict[str, dict[str, int]] = {
 # ── Karaka (significator) planets per area ─────────────────────────────────────
 # Thirukanitham tradition: primary karaka used for transit scoring
 
+# F-KAR-01: this used to disagree with `karaka_chains.LIFE_AREA_KARAKA` on
+# Property, Career and Health. That module is now the single source for which
+# grahas signify an area, and `tests/test_karaka_tables_agree.py` pins every
+# area present in both. Areas with no twin there (the finer splits this
+# service adds) keep their own entry.
 _AREA_KARAKA: dict[str, list[str]] = {
     "CAREER":         ["SATURN", "SUN"],        # 10th house: Sani primary, Suryan secondary
     "MONEY":          ["JUPITER", "VENUS"],      # 2nd/11th: Guru, Sukran
@@ -295,7 +272,7 @@ _AREA_KARAKA: dict[str, list[str]] = {
     "FAMILY_HARMONY": ["MOON", "JUPITER"],       # 4th: Chandran, Guru
     "WEALTH":         ["JUPITER", "VENUS"],
     "CHILDREN":       ["JUPITER", "MOON"],
-    "PROPERTY":       ["MARS", "VENUS"],
+    "PROPERTY":       ["MARS", "MOON"],   # 4th: Chevvai (bhumi), Chandran (bhava)
     "FOREIGN":        ["RAHU", "SATURN"],
     "LITIGATION":     ["MARS", "SATURN"],
     "SPIRITUALITY":   ["KETU", "JUPITER"],
@@ -1471,6 +1448,7 @@ def _score_area(
         double_transit_score=double_transit_score,
         is_sade_sati=sani_cycle_type in {"JANMA_SANI", "EZHARAI_SANI_PHASE_1", "EZHARAI_SANI_PHASE_2", "EZHARAI_SANI_PHASE_3"},
         is_ashtama_sani=sani_cycle_type == "ASHTAMA_SANI",
+        is_ardhashtama_sani=sani_cycle_type == "ARDHASHTAMA_SANI",
         bav_delta=bav_delta,
         sav_delta=sav_delta,
         sade_sati_severity=sade_sati_severity,

@@ -893,15 +893,20 @@ export function DayDetailDrawerNova({
     if (data.subhaMuhurtham.isSubha) {
       marks.push({
         tone: "high",
-        label: lang === "ta" ? "சுப முகூர்த்த நாள்" : "Subha Muhurtham day",
+        // F-PAN-01: this is the broad day-quality flag, NOT a wedding
+        // muhurtham day — it counts Poosam, which Tamil practice excludes
+        // for marriage outright. Saying "முகூர்த்த நாள்" here told the
+        // reader it was a wedding date. The authoritative wedding list is
+        // the almanac's muhurtham-naal, surfaced separately.
+        label: lang === "ta" ? "நல்ல நாள்" : "Good day",
         note: lang === "ta"
-          ? "சுப காரியங்கள், புதிய தொடக்கங்களுக்கு உகந்தது."
-          : "Marked auspicious for ceremonies and new starts.",
+          ? "வழக்கமான புதிய தொடக்கங்களுக்கு உகந்த நாள். திருமண முகூர்த்தம் அல்ல — அதற்கு முகூர்த்த நாள் பட்டியலைப் பார்க்கவும்."
+          : "A good day for routine new starts. Not a wedding muhurtham — see the muhurtham-naal list for those.",
       });
     } else {
       marks.push({
         tone: "soft",
-        label: lang === "ta" ? "முகூர்த்த நாள் அல்ல" : "Not a muhurtham day",
+        label: lang === "ta" ? "வழக்கமான நாள்" : "An ordinary day",
         note: lang === "ta"
           ? "வழக்கமான நாள் — கீழுள்ள நல்ல நேரங்களைப் பயன்படுத்துங்கள்."
           : "An ordinary day — plan around the windows below.",

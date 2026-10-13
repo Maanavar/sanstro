@@ -568,9 +568,23 @@ pytest tests/test_panchangam_api.py tests/test_public_tools_api.py tests/test_pa
 
 ### AST-1 Porutham Is Relabeled Ashtakoota, Not True Tamil 10-Porutham [HIGH]
 
-Status: `[ ]`
+Status: `[x]` **CLOSED 2026-10-13** — the first of the two product directions
+below was taken, months before this row was read again.
 
-Problem:
+> **F-DOC-01 (ground-truth audit 2026-10-13).** This row stood open long after
+> the work was done, and CLAUDE.md's "a stale conclusion outlives its check" is
+> exactly about that: the next reader inherits the conclusion, not the check.
+> Verified against the live engine before closing, not from memory —
+> `compute_porutham` returns **`max_score` 10** over **ten** pass/fail
+> poruthams (Dinam, Ganam, Mahendra, Stree Dirgha, Yoni, Rasi, Graha Maitri,
+> Vasya, Rajju, Vedha), each with an UTTAMA/MADHYAMA/ADHAMA grade, with Rajju
+> and Vedha as label vetoes. There is no 36-point guna sum anywhere in it.
+>
+> The madhyama half-point (2026-08-31) and the Rajju/Vedha veto both postdate
+> this row and both assume the 10-porutham form, so the row had been false for
+> longer than it had been true.
+
+Problem (as originally written, now historical):
 The current Porutham score uses Ashtakoota-style point weights totaling 36 under Tamil kuta labels. Authentic Tamil 10-porutham is generally presented as a 10-match pass/fail system, not a 36-point guna sum. This can mislead users.
 
 Primary files:

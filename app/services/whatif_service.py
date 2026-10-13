@@ -15,6 +15,7 @@ Rules (agents.md / formula spec):
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from uuid import UUID
@@ -27,6 +28,7 @@ from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.dasha_activation import assess_dasha_activation
 from app.calculations.display_names import sani_cycle_en, sani_cycle_ta
 from app.calculations.ephemeris import calculate_sidereal_planets
+from app.calculations.gochara_scores import GOCHARA_HOUSE_SCORE
 from app.calculations.panchangam import (
     PanchangamLimbSpan,
     limb_fraction,
@@ -184,55 +186,12 @@ _DASHA_SCENARIO_SCORE: dict[str, dict[str, int]] = {
 }
 
 # House transit scores for karaka planets (from Moon) ──────────────────────────
+# F-SCO-02: these were nine hand-typed tables, a near-copy of the six in
+# `life_areas_service` with four cells silently different (Jupiter 7th 74 vs
+# 68, Moon 4th 65 vs 48, Rahu 6th 58 vs 44, Ketu 12th 62 vs 38). One derived
+# table now; see `app/calculations/gochara_scores.py`.
+_PLANET_HOUSE_SCORE: Mapping[str, Mapping[int, int]] = GOCHARA_HOUSE_SCORE
 
-_JUPITER_HOUSE_SCORE = {
-    1: 50, 2: 72, 3: 48, 4: 42, 5: 78, 6: 38,
-    7: 74, 8: 25, 9: 82, 10: 58, 11: 80, 12: 34,
-}
-_SATURN_HOUSE_SCORE = {
-    1: 42, 2: 40, 3: 62, 4: 34, 5: 52, 6: 64,
-    7: 50, 8: 22, 9: 36, 10: 62, 11: 76, 12: 42,
-}
-_VENUS_HOUSE_SCORE = {
-    1: 55, 2: 62, 3: 50, 4: 55, 5: 68, 6: 42,
-    7: 65, 8: 30, 9: 60, 10: 50, 11: 68, 12: 38,
-}
-_MERCURY_HOUSE_SCORE = {
-    1: 55, 2: 60, 3: 52, 4: 48, 5: 65, 6: 45,
-    7: 58, 8: 30, 9: 62, 10: 55, 11: 65, 12: 36,
-}
-_MARS_HOUSE_SCORE = {
-    1: 38, 2: 34, 3: 50, 4: 40, 5: 46, 6: 52,
-    7: 42, 8: 28, 9: 48, 10: 44, 11: 50, 12: 32,
-}
-_MOON_HOUSE_SCORE = {
-    1: 55, 2: 60, 3: 50, 4: 65, 5: 62, 6: 40,
-    7: 55, 8: 28, 9: 68, 10: 52, 11: 65, 12: 35,
-}
-_SUN_HOUSE_SCORE = {
-    1: 50, 2: 45, 3: 55, 4: 38, 5: 60, 6: 48,
-    7: 40, 8: 28, 9: 65, 10: 58, 11: 55, 12: 32,
-}
-_RAHU_HOUSE_SCORE = {
-    1: 42, 2: 38, 3: 55, 4: 35, 5: 45, 6: 58,
-    7: 40, 8: 30, 9: 45, 10: 50, 11: 62, 12: 42,
-}
-_KETU_HOUSE_SCORE = {
-    1: 45, 2: 35, 3: 50, 4: 38, 5: 52, 6: 55,
-    7: 38, 8: 35, 9: 55, 10: 42, 11: 48, 12: 62,
-}
-
-_PLANET_HOUSE_SCORE: dict[str, dict[int, int]] = {
-    "JUPITER": _JUPITER_HOUSE_SCORE,
-    "SATURN":  _SATURN_HOUSE_SCORE,
-    "VENUS":   _VENUS_HOUSE_SCORE,
-    "MERCURY": _MERCURY_HOUSE_SCORE,
-    "MARS":    _MARS_HOUSE_SCORE,
-    "MOON":    _MOON_HOUSE_SCORE,
-    "SUN":     _SUN_HOUSE_SCORE,
-    "RAHU":    _RAHU_HOUSE_SCORE,
-    "KETU":    _KETU_HOUSE_SCORE,
-}
 
 # Tamil planet names ───────────────────────────────────────────────────────────
 

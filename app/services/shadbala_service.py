@@ -38,11 +38,20 @@ from app.models.birth_profile import BirthProfile
 from app.models.chart import Chart
 from app.models.chart_planet import ChartPlanet
 
+# F-STR-02 (ground-truth audit 2026-10-13): the note named the *omitted*
+# sub-components but not the one that is present and approximated. Drik Bala
+# starts every graha at a flat +30 Virupa (0.5 Rupa) rather than the classical
+# (benefic drishti - malefic drishti) / 4, which typically lands within +/-15.
+# Combined with the three omissions, the total is not comparable to JHora
+# planet-for-planet, so the reader is told so rather than left to infer it
+# from the word "experimental".
 EXPERIMENTAL_NOTE = (
     "Classical six-component Shadbala in Rupas (60 Virupa = 1 Rupa). "
     "Advanced/experimental: Abda, Masa and Yuddha Bala sub-components are "
-    "omitted (documented), so totals are a classical floor pending Jagannatha "
-    "Hora cross-validation. Distinct from the 0-100 product strength score."
+    "omitted, and Drik Bala uses a simplified discrete-aspect form on a flat "
+    "30-Virupa baseline rather than full graded Sputa Drishti. Totals are "
+    "therefore a classical floor and are not directly comparable with "
+    "Jagannatha Hora. Distinct from the 0-100 product strength score."
 )
 
 

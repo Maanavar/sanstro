@@ -508,9 +508,25 @@ Already compliant: §2 mean node (add JHora-divergence doc note), §7 Jeevan/Net
 
 **Compatibility Intelligence (premium report) gates — not core-launch-blocking, but required before the CI report can be called doctrine-compliant:**
 
-- [ ] §10 Moon–Moon harmony table replaced with the ratified symmetric table, symmetry test passing
-- [ ] §11 `_graha_relation` compound rule fixed (enemy-either-direction, friend-both-directions, else neutral)
-- [ ] §12 CI overall label hard-capped at CAUTION on a Rajju/Vedha veto
+- [x] §10 Moon–Moon harmony table replaced with the ratified symmetric table, symmetry test passing
+- [x] §11 `_graha_relation` compound rule fixed (enemy-either-direction, friend-both-directions, else neutral)
+- [x] §12 CI overall label hard-capped at CAUTION on a Rajju/Vedha veto
+
+> **Closed 2026-10-13 (F-DOC-01).** All three had been implemented for months
+> while the boxes stayed empty — the same stale-conclusion failure AST-1 had in
+> `MASTER_FIX_LIST.md`. Each was re-verified against the live code before being
+> ticked, not closed from memory:
+>
+> | Gate | Check run | Result |
+> |---|---|---|
+> | §10 | `_moon_harmony_label(a, b) == _moon_harmony_label(b, a)` over all 144 rasi pairs | 0 asymmetric; 5/9 EXCELLENT, 6/8 TENSE, 7th GOOD, 2/12 MIXED |
+> | §11 | `_graha_relation` on a one-way enemy (Sun–Venus), a both-ways friend (Sun–Mars) and a self-pair | enemy / friend / friend |
+> | §12 | `tests/test_compatibility_intelligence.py::test_rajju_dosha_caps_overall_label_at_caution_despite_high_score` and the Vedha twin | both pass with a pre-cap score ≥ 65 |
+>
+> The same day's ground-truth audit added a **second** cap to §12's axis that
+> was *not* implemented — a live one-sided Chevvai dosham could still read
+> EXCELLENT (F-CI-01). That is now built to the astrologer's anchor cases #4
+> and #6; see `compatibility_intelligence.sevvai_label_cap`.
 
 ---
 

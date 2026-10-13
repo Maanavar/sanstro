@@ -16,6 +16,17 @@ The named Saturn periods (Ezharai 12/1/2, Ardhashtama 4, Ashtama 8) are a
 separate axis — named alerts, not this grade. The 7th and 10th need care
 because of the gochara table, not because they belong to a named cycle.
 
+SCOPE vs `gochara_scores.py`. That module scores **all nine** grahas from the
+classical favourable sets, including Rahu and Ketu at 3/6/11, because the
+daily/life-area/what-if numbers needed a value for every transiting body and
+were inverting the nodes (F-SCO-01). This module grades only Guru and Sani
+because it is the **displayed verdict** and the nodes have no astrologer-
+approved gochara table yet — a disclosed gap, not an oversight. The two are
+pinned against each other for Guru and Sani by
+`tests/test_gochara_scores.py::test_the_two_modules_list_the_same_favourable_houses`,
+so the number and the word can never contradict on the planets both cover.
+Extending the *grade* to the nodes needs a ruling, not a code change.
+
 Mirrored for web and mobile in packages/shared/src/api/transits.ts
 (`gocharaGrade`); tests/test_gochara_grade.py pins the two to the same table.
 """

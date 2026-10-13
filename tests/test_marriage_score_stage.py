@@ -116,12 +116,26 @@ def test_transit_support_adds_eight_points() -> None:
 
 
 def test_sevvai_penalty_softens_after_twenty_eight() -> None:
-    cancelled = _score(_payload(sevvai_dosham_cancelled=True))
-    softened = _score(_payload(age=30, sevvai_dosham_cancelled=False))
-    full = _score(_payload(age=26, sevvai_dosham_cancelled=False))
+    cancelled = _score(_payload(sevvai_dosham_present=True, sevvai_dosham_cancelled=True))
+    softened = _score(_payload(age=30, sevvai_dosham_present=True, sevvai_dosham_cancelled=False))
+    full = _score(_payload(age=26, sevvai_dosham_present=True, sevvai_dosham_cancelled=False))
 
     assert cancelled.score - softened.score == 3
     assert cancelled.score - full.score == 6
+
+
+def test_absent_sevvai_dosham_costs_nothing_and_says_nothing() -> None:
+    """F-MAR-01: a chart with no Sevvai dosham used to be scored and narrated
+    as though it had an uncancelled one, because only `cancelled` was carried.
+    Absent must differ from uncancelled and must not claim a cancellation."""
+    absent = _score(_payload(age=26, sevvai_dosham_present=False, sevvai_dosham_cancelled=False))
+    live = _score(_payload(age=26, sevvai_dosham_present=True, sevvai_dosham_cancelled=False))
+    cancelled = _score(_payload(age=26, sevvai_dosham_present=True, sevvai_dosham_cancelled=True))
+
+    assert absent.score - live.score == 6
+    assert absent.score == cancelled.score
+    texts = [t.ta + t.en for t in (*absent.challenges, *absent.supports)]
+    assert not any("செவ்வாய் தோஷ" in t or "Sevvai dosham" in t for t in texts)
 
 
 def test_rahu_ketu_penalties_keep_their_two_rungs() -> None:

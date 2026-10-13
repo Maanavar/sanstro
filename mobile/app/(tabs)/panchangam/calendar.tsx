@@ -174,7 +174,7 @@ export default function PanchangamCalendarScreen() {
                 </Text>
               </View>
               <Text style={styles.sectionHint}>
-                {isTamil ? "இந்த மாதம் சுபமுகூர்த்த நாட்கள்" : "Auspicious days this month"}
+                {isTamil ? "இந்த மாதம் பஞ்சாங்கம் குறிக்கும் திருமண முகூர்த்த நாட்கள்" : "Wedding muhurtham days marked by the almanac this month"}
               </Text>
               {muhurthamDays.map((e) => (
                 <View key={`muhurtham-${e.dateLocal}`} style={[styles.festivalRow, styles.muhurthamRow]}>

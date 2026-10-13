@@ -65,19 +65,38 @@ _CALC_VERSION = "jothidam-formula-engine-v1.0-2026"
 _TRANSIT_ALERT_PLANETS = ("JUPITER", "SATURN", "MARS", "RAHU", "VENUS")
 
 
-def _assign_bride_groom(moon_a: Any, moon_b: Any, gender_a: str | None, gender_b: str | None) -> tuple[Any, Any]:
-    """Return (boy_moon, girl_moon).
+def _assign_bride_groom(
+    moon_a: Any, moon_b: Any, gender_a: str | None, gender_b: str | None
+) -> tuple[Any, Any, bool]:
+    """Return ``(boy_moon, girl_moon, direction_assumed)``.
 
-    When one person is explicitly 'female' and the other 'male', the female's
-    Moon is girl_nakshatra and the male's is boy_nakshatra.  In all other cases
-    (same gender, either unknown/not_specified) fall back to a=boy, b=girl so
-    the API behaves identically to the old default.
+    F-POR-05. Direction is not cosmetic here: Dinam, Mahendra, Sthree Deergham
+    and Rasi all count **girl -> boy**, so swapping the two computes a
+    different match, not a mirrored one.
+
+    This used to swap only when A was explicitly female *and* B explicitly
+    male. A known bride paired with a partner of unspecified gender therefore
+    stayed in the boy slot and the whole reading ran backwards — the common
+    case, because only one profile in a pair often carries a gender.
+
+    So: whenever **either** gender is known, infer the other from it. Fall back
+    to a=boy, b=girl only when both are unknown or both are the same, and say
+    so through ``direction_assumed`` — a direction that was assumed rather than
+    read must be disclosed on the card, not silently used.
     """
     a_gender = (gender_a or "not_specified").lower()
     b_gender = (gender_b or "not_specified").lower()
-    if a_gender == "female" and b_gender == "male":
-        return moon_b, moon_a  # boy=b, girl=a
-    return moon_a, moon_b
+
+    if a_gender != b_gender:
+        if a_gender == "female" or b_gender == "male":
+            # A is the bride — stated, or inferred from B being the groom.
+            return moon_b, moon_a, False
+        if a_gender == "male" or b_gender == "female":
+            return moon_a, moon_b, False
+
+    # Both unknown, or the same gender: the direction is a convention, not a
+    # finding, so it is flagged for disclosure.
+    return moon_a, moon_b, True
 
 
 @dataclass(frozen=True, slots=True)
@@ -689,7 +708,7 @@ def compare_chart_snapshots_direct(
 
     gender_a = getattr(snap_a.data.birth_profile, "gender_for_traditional_rules", None)
     gender_b = getattr(snap_b.data.birth_profile, "gender_for_traditional_rules", None)
-    boy_moon, girl_moon = _assign_bride_groom(moon_a, moon_b, gender_a, gender_b)
+    boy_moon, girl_moon, direction_assumed = _assign_bride_groom(moon_a, moon_b, gender_a, gender_b)
 
     result = compute_porutham(
         boy_nakshatra=boy_moon.nakshatra,
@@ -709,6 +728,26 @@ def compare_chart_snapshots_direct(
     ]
 
     _note_raw = _CONTEXT_NOTE.get(compatibility_context, _CONTEXT_NOTE["GENERAL"])
+    note_en, note_ta = _note_raw["en"], _note_raw["ta"]
+    if direction_assumed:
+        # F-POR-05: Dinam, Mahendra, Sthree Deergham and Rasi all count
+        # girl -> boy, so an assumed direction changes the answer. Say which
+        # way round it was read rather than presenting a guess as a finding.
+        note_en = (
+            f"{note_en} Gender was not recorded for both charts, so this was read with "
+            "the first chart as the groom and the second as the bride. Several poruthams "
+            "count from the bride's star, so add the genders if that is the wrong way round."
+        )
+        note_ta = (
+            f"{note_ta} இரு ஜாதகங்களிலும் பாலினம் "
+            "பதிவாகாததால், முதல் ஜாதகம் "
+            "மாப்பிள்ளை எனவும், இரண்டாவது "
+            "பெண் எனவும் கணக்கிடப்பட்டது. "
+            "சில பொருத்தங்கள் பெண்ணின் "
+            "நட்சத்திரத்திலிருந்து "
+            "எண்ணப்படுவதால், தவறானால் "
+            "பாலினத்தைச் சேர்க்கவும்."
+        )
     data = DirectPoruthamData(
         chart_id_a=snap_a.data.chart_id,
         chart_id_b=snap_b.data.chart_id,
@@ -726,7 +765,7 @@ def compare_chart_snapshots_direct(
         nadi_dosha=NadiDoshaData(**shaped["nadi_dosha"]),
         summary=shaped["summary"],
         compatibility_context=compatibility_context,
-        context_note=RelationshipBiText(ta=_note_raw["ta"], en=_note_raw["en"]),
+        context_note=RelationshipBiText(ta=note_ta, en=note_en),
     )
     return DirectPoruthamResponse(data=data, meta=_meta())
 
@@ -744,7 +783,7 @@ def build_compatibility_intelligence_from_snapshots(
 
     gender_a = getattr(snap_a.data.birth_profile, "gender_for_traditional_rules", None)
     gender_b = getattr(snap_b.data.birth_profile, "gender_for_traditional_rules", None)
-    boy_moon, girl_moon = _assign_bride_groom(moon_a, moon_b, gender_a, gender_b)
+    boy_moon, girl_moon, direction_assumed = _assign_bride_groom(moon_a, moon_b, gender_a, gender_b)
 
     porutham_result = compute_porutham(
         boy_nakshatra=boy_moon.nakshatra,
@@ -877,7 +916,8 @@ def build_compatibility_intelligence_from_snapshots(
         emotional=EmotionalCompatibility(
             moon_moon_harmony=ci.emotional.moon_moon_harmony,
             venus_mars_harmony=ci.emotional.venus_mars_harmony,
-            communication_note=ci.emotional.communication_note,
+            communication_note=ci.emotional.communication_note_en,
+            communication_note_ta=ci.emotional.communication_note_ta,
             note_en=ci.emotional.note_en,
             note_ta=ci.emotional.note_ta,
             score=ci.emotional.score,

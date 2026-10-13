@@ -78,6 +78,7 @@ already like; they change only with a stated reason.
 """
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, replace
 from enum import Enum
 
@@ -93,6 +94,7 @@ from app.calculations.display_names import (
     tithi_display,
 )
 from app.calculations.ephemeris import EphemerisBody
+from app.calculations.karinaal import is_karinaal
 from app.calculations.muhurta_doctrine import RuleSource
 from app.calculations.panchangam import (
     RIKTA_TITHIS_IN_PAKSHA,
@@ -102,6 +104,7 @@ from app.calculations.panchangam import (
     amirdhadhi_yogam_class,
     own_chandrashtama_windows,
 )
+from app.calculations.tamil_calendar import TAMIL_MONTHS, tamil_solar_date
 from app.calculations.tara_bala import TARA_SCORE, chandra_bala, tara_number
 from app.calculations.transits import is_cazimi, is_combust
 from app.data import marriage_muhurta_rules as marriage
@@ -110,6 +113,8 @@ from app.data.muhurta_activity_registry import (
     RULE_SOURCE_TABLES,
     ActivityRules,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class Verdict(str, Enum):  # noqa: UP042 — str-mixin enum kept; StrEnum changes str()/format() output
@@ -229,6 +234,46 @@ class _W:
     ALMANAC_SUBHA_MUHURTHAM = 20.0
     ALMANAC_ABHIJIT = 5.0
     ALMANAC_NALLA_NERAM = 5.0
+    # Karinaal (F-MUH-02). The picker consulted no Karinaal at all, so it could
+    # rank a கரிநாள் top — a day every Tamil daily sheet marks and every family
+    # checking our answer against theirs would reject on sight.
+    #
+    # Priced as a heavy PENALTY, not a VETO, and the choice is deliberate.
+    # Karinaal is a strong day-level avoidance for new undertakings, but it is
+    # not in the class of the sourced vetoes beside it (Prabalarishta, the
+    # chapter-prohibited stars, Amavasai for marriage): those each cite a text
+    # that *prohibits*, and the Karinaal rule as the app holds it is a derived
+    # fixed-solar-date list with no such citation captured. -22 puts it below
+    # Marana Yogam (-16) and above the generic star penalties, so a Karinaal
+    # cannot reach the top of a ranking while an exceptional day can still
+    # outscore it and be seen. Revisit to a veto if the source sheet is
+    # produced and states one.
+    ALMANAC_KARINAAL = -22.0
+    # The three no-wedding Tamil months — ஆடி, புரட்டாசி, மார்கழி (F-MUH-01).
+    #
+    # This is NOT a family preference, which is how `muhurta_service` carried
+    # it: a notice saying "it does not change this muhurta's score or
+    # recommendation". No printed Tamil almanac lists a single subha-muhurtham
+    # day in those three months, and no Tamil purohit will conduct a wedding
+    # in them. A "top recommended muhurtham" in Aadi is a recommendation every
+    # Tamil family rejects on sight.
+    #
+    # Sized to **demote, not veto** (the audit's option (a)): the day stays
+    # visible, keeps its full factor list and can be inspected, but it cannot
+    # out-rank a day in any other month.
+    #
+    # The magnitude is the worst case, not the likely one: it exceeds the best
+    # conceivable day (BASE + every positive weight = 192) minus the worst
+    # conceivable one (every other negative weight = -244), so the demotion
+    # holds even for weight combinations that cannot actually co-occur. Sizing
+    # it to the *measured* floor instead (the 90-day sweep's min of -9) would
+    # have worked today and quietly stopped holding the first time a penalty
+    # was added. `test_muhurta_wedding_month.py` re-derives the bound from _W
+    # so it fails if a future weight change outgrows it.
+    #
+    # MARRIAGE only. The Thai eldest-child custom genuinely is family-specific
+    # and stays an advisory notice in `muhurta_service`, unscored.
+    MARRIAGE_NO_WEDDING_MONTH = -600.0
     # Amirdhadhi Yogam — the weekday x nakshatra classification Tamil almanacs
     # print beside every date. Sized ABOVE the broad subha-star bonus (10) and
     # level with the heaviest L2 star penalty, because the almanac tradition
@@ -583,20 +628,121 @@ def _almanac_nakshatra_factor(snapshot) -> FactorResult:
 
 
 def _almanac_day_quality_factor(snapshot) -> FactorResult:
+    """The broad day-quality check — **not** the almanac's wedding list.
+
+    F-PAN-01: both strings said "the almanac marks this a subha muhurtham
+    day", and neither half was true. It is `panchangam._compute_subha_
+    muhurtham_broad`, a computed nakshatra-led check, not the almanac; and it
+    is a good-day reading, not a wedding muhurtham — it counts Poosam, which
+    Tamil practice excludes for marriage outright.
+
+    The authoritative wedding list is `muhurtham_naals`, which
+    `muhurta_service._almanac_muhurtham` reports separately and which
+    deliberately adds nothing to the score.
+    """
     if snapshot.is_subha_muhurtham:
         return FactorResult(
             factor="ALMANAC_DAY_QUALITY",
             verdict=Verdict.BONUS,
             contribution=_W.ALMANAC_SUBHA_MUHURTHAM,
-            reason_en="The almanac marks this a subha muhurtham day.",
-            reason_ta="சுப முகூர்த்த நாள்",
+            reason_en="The day's star and tithi make this a good day for new undertakings.",
+            reason_ta="இந்நாளின் நட்சத்திரமும் திதியும் புதிய காரியங்களுக்கு உகந்தது",
         )
     return FactorResult(
         factor="ALMANAC_DAY_QUALITY",
         verdict=Verdict.NEUTRAL,
         contribution=0.0,
-        reason_en="The almanac does not mark this a subha muhurtham day.",
-        reason_ta="இந்நாள் சுப முகூர்த்த நாளாகக் குறிக்கப்படவில்லை",
+        reason_en="The day's star and tithi do not make this a notably good day for new undertakings.",
+        reason_ta="இந்நாள் புதிய காரியங்களுக்கு சிறப்பான நாள் அல்ல",
+    )
+
+
+def _almanac_karinaal_factor(snapshot) -> FactorResult:
+    """Karinaal (கரிநாள்) — the day-level avoidance every Tamil sheet prints.
+
+    F-MUH-02: this engine consulted no Karinaal, so the personal muhurta
+    picker could recommend one. Derived for any year from the Tamil solar
+    calendar (`app.calculations.karinaal`), not read from a per-year list.
+
+    Reported on every day, including the clear ones: a reader checking our
+    pick against their almanac needs to see that we looked, and the silence of
+    a factor that only appears when it fires is the same silence-as-approval
+    the module docstring forbids. For the same reason, a snapshot that carries
+    no civil date says *that* rather than reading as a clear day.
+    """
+    day = getattr(snapshot, "date_local", None)
+    if day is None:
+        return FactorResult(
+            factor="ALMANAC_KARINAAL",
+            verdict=Verdict.UNSOURCED,
+            contribution=0.0,
+            reason_en="Karinaal could not be checked — this snapshot carries no civil date.",
+            reason_ta="கரிநாள் சரிபார்க்க இயலவில்லை — இந்தத் தரவில் தேதி இல்லை",
+        )
+    if is_karinaal(day):
+        return FactorResult(
+            factor="ALMANAC_KARINAAL",
+            verdict=Verdict.PENALTY,
+            contribution=_W.ALMANAC_KARINAAL,
+            reason_en="This is a Karinaal — the Tamil calendar marks it a day to avoid for new undertakings.",
+            reason_ta="இது கரிநாள் — புதிய காரியங்களுக்குத் தவிர்க்கப்படும் நாள்",
+        )
+    return FactorResult(
+        factor="ALMANAC_KARINAAL",
+        verdict=Verdict.NEUTRAL,
+        contribution=0.0,
+        reason_en="Not a Karinaal.",
+        reason_ta="கரிநாள் அல்ல",
+    )
+
+
+# Tamil month indices (0 == Chithirai) in which weddings are not conducted.
+NO_WEDDING_TAMIL_MONTHS: frozenset[int] = frozenset({
+    3,  # ஆடி     Aadi
+    5,  # புரட்டாசி Purattasi
+    8,  # மார்கழி  Margazhi
+})
+
+
+def _marriage_month_factor(snapshot, activity: str) -> FactorResult | None:
+    """Demote a wedding date in Aadi, Purattasi or Margazhi (F-MUH-01).
+
+    MARRIAGE only; ``None`` for every other activity, because these months
+    carry no such rule for a housewarming or an exam.
+
+    Silent on the clear months too (``None``, not a NEUTRAL row): unlike
+    Karinaal, "this is not Aadi" is not something a reader checks for, and
+    nine of twelve months would carry a row saying nothing.
+    """
+    if activity != "MARRIAGE":
+        return None
+    day = getattr(snapshot, "date_local", None)
+    if day is None:
+        return None
+    try:
+        month_index, _ = tamil_solar_date(
+            day, snapshot.timezone_name, snapshot.latitude, snapshot.longitude
+        )
+    except Exception:  # noqa: BLE001 — a calendar failure must not blank a valid day
+        logger.debug("Tamil month lookup failed for %s", day, exc_info=True)
+        return None
+    if month_index not in NO_WEDDING_TAMIL_MONTHS:
+        return None
+    month_ta, month_en = TAMIL_MONTHS[month_index]
+    return FactorResult(
+        factor="MARRIAGE_NO_WEDDING_MONTH",
+        verdict=Verdict.PENALTY,
+        contribution=_W.MARRIAGE_NO_WEDDING_MONTH,
+        reason_en=(
+            f"{month_en} is one of the three Tamil months in which weddings are not conducted. "
+            "Printed almanacs list no wedding muhurtham here, so this date ranks below every "
+            "date outside those months."
+        ),
+        reason_ta=(
+            f"{month_ta} மாதத்தில் திருமணம் நடத்தப்படுவதில்லை. "
+            "பஞ்சாங்கங்களில் இம்மாதத்தில் திருமண முகூர்த்தம் குறிக்கப்படுவதில்லை; "
+            "எனவே இந்நாள் மற்ற மாதங்களின் நாட்களுக்குப் பின்னால் வரிசைப்படுத்தப்படுகிறது."
+        ),
     )
 
 
@@ -2444,6 +2590,8 @@ def score_day(
             _almanac_tithi_factor(snapshot, activity),
             _almanac_nakshatra_factor(snapshot),
             _almanac_day_quality_factor(snapshot),
+            _almanac_karinaal_factor(snapshot),
+            _marriage_month_factor(snapshot, activity),
             _almanac_yoga_factor(snapshot),
             _almanac_amirdhadhi_factor(snapshot, activity),
             _almanac_windows_factor(snapshot),

@@ -73,35 +73,49 @@ def test_every_month_of_the_cycle_has_exactly_one_grade():
     assert all(isinstance(g, SadeSatiSeverity) for g in grades)
 
 
-def test_the_segmentation_matches_the_traditional_division():
-    """16 difficult, 35 comparatively favourable, 4 acute — the counts the ruling
-    states, asserted as counts so a boundary typo cannot pass."""
+def test_the_segmentation_is_the_three_named_phases():
+    """Thirty months each — asserted as counts so a boundary typo cannot pass."""
     counts: dict[SadeSatiSeverity, int] = {}
     for month in range(1, TOTAL_MONTHS + 1):
         grade = severity_for_month(month)
         counts[grade] = counts.get(grade, 0) + 1
 
-    assert counts[SadeSatiSeverity.DIFFICULT] == 16
-    assert counts[SadeSatiSeverity.FAVOURABLE] == 35
-    assert counts[SadeSatiSeverity.ACUTE] == 4
+    assert counts[SadeSatiSeverity.VIRAYA] == MONTHS_PER_PHASE
+    assert counts[SadeSatiSeverity.JANMA] == MONTHS_PER_PHASE
+    assert counts[SadeSatiSeverity.PADA] == MONTHS_PER_PHASE
     assert sum(counts.values()) == TOTAL_MONTHS
 
 
-def test_the_acute_window_closes_janma_sani():
-    """The source places the acute months at the END of Janma Sani, not at the
-    start of the cycle — putting them anywhere else would be a different claim."""
-    janma_sani_end = 2 * MONTHS_PER_PHASE
-    for month in range(janma_sani_end - 3, janma_sani_end + 1):
-        assert severity_for_month(month) is SadeSatiSeverity.ACUTE
-    assert severity_for_month(janma_sani_end + 1) is not SadeSatiSeverity.ACUTE
+def test_each_phase_covers_the_months_its_house_does():
+    """The phase and the house must not drift apart: Janma Sani is Saturn on
+    the natal Moon, which is months 31-60 by the table's own arithmetic."""
+    assert severity_for_month(1) is SadeSatiSeverity.VIRAYA
+    assert severity_for_month(MONTHS_PER_PHASE) is SadeSatiSeverity.VIRAYA
+    assert severity_for_month(MONTHS_PER_PHASE + 1) is SadeSatiSeverity.JANMA
+    assert severity_for_month(2 * MONTHS_PER_PHASE) is SadeSatiSeverity.JANMA
+    assert severity_for_month(2 * MONTHS_PER_PHASE + 1) is SadeSatiSeverity.PADA
+    assert severity_for_month(TOTAL_MONTHS) is SadeSatiSeverity.PADA
 
 
-def test_the_long_middle_is_favourable_not_penalised_like_the_opening():
-    """The correction that matters most: the old flat model charged these the
-    same as the worst months."""
-    assert severity_for_month(10) is SadeSatiSeverity.DIFFICULT
-    assert severity_for_month(30) is SadeSatiSeverity.FAVOURABLE
-    assert severity_for_month(50) is SadeSatiSeverity.FAVOURABLE
+def test_janma_sani_is_the_heaviest_phase_everywhere_in_it():
+    """F-SAT-01, the finding this segmentation exists to fix.
+
+    Under the old month division months 17-51 were FAVOURABLE and cost 1 — the
+    lightest grade in the table — while covering the back half of Viraya Sani
+    and most of Janma Sani. Mainstream Tamil practice holds ஜென்ம சனி to be the
+    *heaviest* phase; asserted across every month of it, not at a sample point,
+    because a single boundary month passing is what let the old model look
+    plausible.
+    """
+    from app.calculations.prediction_score import _sade_sati_penalty
+
+    for month in range(MONTHS_PER_PHASE + 1, 2 * MONTHS_PER_PHASE + 1):
+        assert severity_for_month(month) is SadeSatiSeverity.JANMA
+
+    janma = _sade_sati_penalty(SadeSatiSeverity.JANMA.value, 0)
+    viraya = _sade_sati_penalty(SadeSatiSeverity.VIRAYA.value, 0)
+    pada = _sade_sati_penalty(SadeSatiSeverity.PADA.value, 0)
+    assert janma > viraya > pada
 
 
 def test_elapsed_month_walks_the_phases_in_order():
@@ -187,17 +201,27 @@ def test_the_unsegmented_penalty_is_exactly_the_old_flat_value():
 
 
 def test_penalty_tracks_the_segmentation():
-    assert _sade_sati_penalty("FAVOURABLE", 0) < _sade_sati_penalty(None, 0)
-    assert _sade_sati_penalty("ACUTE", 0) > _sade_sati_penalty(None, 0)
-    assert _sade_sati_penalty("DIFFICULT", 0) > _sade_sati_penalty("FAVOURABLE", 0)
+    assert _sade_sati_penalty("PADA", 0) < _sade_sati_penalty(None, 0)
+    assert _sade_sati_penalty("JANMA", 0) > _sade_sati_penalty(None, 0)
+    assert _sade_sati_penalty("JANMA", 0) > _sade_sati_penalty("VIRAYA", 0)
+
+
+def test_no_phase_of_the_cycle_is_cheaper_than_ashtama_sani():
+    """F-SAT-01's other half. The old FAVOURABLE band cost 1 — less than
+    Ashtama Sani's 3 — so the app rated most of Janma Sani as an easier
+    transit than Saturn in the 8th. No phase may be that cheap again."""
+    from app.calculations.prediction_score import _ASHTAMA_SANI_PENALTY
+
+    for phase in ("VIRAYA", "JANMA", "PADA"):
+        assert _sade_sati_penalty(phase, 0) >= _ASHTAMA_SANI_PENALTY
 
 
 def test_mitigations_reduce_but_never_erase_the_penalty():
     """The transit is still running even at full mitigation — a reading that
     scored it as absent would be as wrong as the flat model was."""
-    assert _sade_sati_penalty("DIFFICULT", 3) < _sade_sati_penalty("DIFFICULT", 0)
-    assert _sade_sati_penalty("FAVOURABLE", 3) >= 1
-    assert _sade_sati_penalty("ACUTE", 99) >= 1
+    assert _sade_sati_penalty("VIRAYA", 3) < _sade_sati_penalty("VIRAYA", 0)
+    assert _sade_sati_penalty("PADA", 3) >= 1
+    assert _sade_sati_penalty("JANMA", 99) >= 1
 
 
 def _score_input(**overrides) -> PredictionScoreInput:
@@ -217,16 +241,16 @@ def _score_input(**overrides) -> PredictionScoreInput:
     return PredictionScoreInput(**base)
 
 
-def test_a_favourable_month_scores_better_than_an_acute_one_end_to_end():
-    favourable = compute_prediction_score(_score_input(sade_sati_severity="FAVOURABLE"))
-    acute = compute_prediction_score(_score_input(sade_sati_severity="ACUTE"))
-    assert favourable.l5_transit_support > acute.l5_transit_support
+def test_pada_sani_scores_better_than_janma_sani_end_to_end():
+    pada = compute_prediction_score(_score_input(sade_sati_severity="PADA"))
+    janma = compute_prediction_score(_score_input(sade_sati_severity="JANMA"))
+    assert pada.l5_transit_support > janma.l5_transit_support
 
 
 def test_mitigation_shows_up_in_the_end_to_end_score():
-    bare = compute_prediction_score(_score_input(sade_sati_severity="DIFFICULT"))
+    bare = compute_prediction_score(_score_input(sade_sati_severity="VIRAYA"))
     gated = compute_prediction_score(
-        _score_input(sade_sati_severity="DIFFICULT", sade_sati_mitigation_count=2)
+        _score_input(sade_sati_severity="VIRAYA", sade_sati_mitigation_count=2)
     )
     assert gated.l5_transit_support > bare.l5_transit_support
 

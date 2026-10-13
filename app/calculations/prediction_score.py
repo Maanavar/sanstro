@@ -32,6 +32,11 @@ class PredictionScoreInput:
     is_ashtama_sani: bool
     bav_delta: int
     sav_delta: int
+    # F-SAT-02: அர்த்தாஷ்டம சனி is a named, serious period to a Tamil reader,
+    # but it reached the score only through the generic `saturn_house_score`.
+    # Defaults False (and sits down here with the other defaulted fields) so an
+    # un-updated caller scores exactly as before.
+    is_ardhashtama_sani: bool = False
     # EC-RULING-05. Both default to None, meaning "the caller did not evaluate
     # this", which is deliberately NOT the same as "no segmentation applies" or
     # "no mitigation applies". A caller that supplies neither gets exactly the
@@ -63,22 +68,39 @@ class PredictionScoreResult:
 # EC-RULING-05 (A26 + A25). The cost of Sade Sati by where in the ninety months
 # the native actually is, then reduced by each stated mitigation.
 #
-# The old model charged a flat 4 for all seven and a half years. The traditional
-# division says the middle thirty-five months are *comparatively favourable*, so
-# charging them the same as the opening sixteen was wrong about roughly half the
-# cycle. FAVOURABLE is priced at 1 rather than 0 — the cycle is still running and
-# the reading should not pretend otherwise — while the short acute window closing
-# Janma Sani costs more than the old flat rate ever did.
+# The old model charged a flat 4 for all seven and a half years, which is wrong
+# about the shape of the cycle. It is now priced by the three named phases, with
+# **ஜென்ம சனி the heaviest** — F-SAT-01.
 #
-# The unsegmented value stays 4 exactly, so a caller that has not been updated
-# scores identically to before.
+# The keys this replaced (DIFFICULT / FAVOURABLE / ACUTE / MIXED) came from an
+# unverified month division under which months 17-51 scored **1**, the lightest
+# in the table — less than Ashtama Sani (3) and less than the opening of Viraya
+# Sani (5) — while covering most of Janma Sani. See `sade_sati._SEGMENTS`.
+#
+# Pada Sani is 3 rather than 1: the cycle is still running and the reading
+# should not pretend otherwise, which was the right half of the old FAVOURABLE
+# reasoning. The unsegmented value stays 4 exactly, so a caller that has not
+# been updated scores identically to before, and 4 still sits between the
+# phases rather than outside them.
 _SADE_SATI_PENALTY_BY_SEVERITY: dict[str, int] = {
-    "DIFFICULT": 5,
-    "FAVOURABLE": 1,
-    "ACUTE": 7,
-    "MIXED": 3,
+    "VIRAYA": 4,
+    "JANMA": 6,
+    "PADA": 3,
 }
 _SADE_SATI_UNSEGMENTED_PENALTY = 4
+
+#: The other two named Saturn periods. F-SAT-02: `prediction_score` deducted
+#: for Sade Sati and Ashtama only, so Ardhashtama — which Tamil readers see as
+#: a named, serious period — was priced at nothing beyond the generic
+#: `saturn_house_score` every Saturn house already gets. Named periods are now
+#: consistent: each carries an explicit cost.
+#:
+#: Ardhashtama is the lighter of the two ("half-ashtama"), so it sits below
+#: Ashtama and below every phase of Sade Sati. Kandaka (4/7/10) keeps its
+#: existing per-life-area deduction in `life_areas_service`, which is a
+#: different shape of rule and is not duplicated here.
+_ASHTAMA_SANI_PENALTY = 3
+_ARDHASHTAMA_SANI_PENALTY = 2
 
 #: Each established mitigation lifts one point off, floored so that a mitigated
 #: cycle is lighter but never free — the transit is still happening.
@@ -237,7 +259,9 @@ def compute_prediction_score(
     if inp.is_sade_sati:
         l5 -= _sade_sati_penalty(inp.sade_sati_severity, inp.sade_sati_mitigation_count)
     if inp.is_ashtama_sani:
-        l5 -= 3
+        l5 -= _ASHTAMA_SANI_PENALTY
+    if inp.is_ardhashtama_sani:
+        l5 -= _ARDHASHTAMA_SANI_PENALTY
     l5 = max(0, min(15, l5))
 
     l6 = max(0, min(5, 3 + inp.bav_delta // 2 + inp.sav_delta // 2))

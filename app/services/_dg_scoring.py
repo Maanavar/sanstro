@@ -20,6 +20,7 @@ from app.calculations.chart_strength import (
     compute_natal_planet_score,
 )
 from app.calculations.functional_nature import get_dasha_modifier, get_transit_modifier
+from app.calculations.gochara_scores import GOCHARA_HOUSE_SCORE
 from app.calculations.maturation import MATURATION_AGE
 from app.calculations.panchangam import (
     PanchangamLimbSpan,
@@ -101,14 +102,14 @@ PLANET_DAILY_WEIGHT: dict[str, float] = {
     "MOON": 0.10,
 }
 
-TRANSIT_BASE_SCORE: dict[str, dict[int, int]] = {
-    "JUPITER": {1: 50, 2: 72, 3: 48, 4: 42, 5: 78, 6: 38, 7: 68, 8: 25, 9: 82, 10: 58, 11: 80, 12: 34},
-    "SATURN": {1: 42, 2: 40, 3: 62, 4: 34, 5: 52, 6: 64, 7: 50, 8: 22, 9: 36, 10: 62, 11: 76, 12: 42},
-    "RAHU": {1: 40, 2: 45, 3: 50, 4: 42, 5: 48, 6: 44, 7: 45, 8: 30, 9: 46, 10: 40, 11: 52, 12: 36},
-    "KETU": {1: 42, 2: 40, 3: 46, 4: 48, 5: 44, 6: 42, 7: 46, 8: 34, 9: 48, 10: 44, 11: 40, 12: 38},
-    "MARS": {1: 38, 2: 34, 3: 50, 4: 40, 5: 46, 6: 52, 7: 42, 8: 28, 9: 48, 10: 44, 11: 50, 12: 32},
-    "MOON": {1: 55, 2: 58, 3: 50, 4: 48, 5: 62, 6: 46, 7: 60, 8: 30, 9: 64, 10: 52, 11: 56, 12: 36},
-}
+# F-SCO-01/02: was a hand-typed table, one of three that disagreed with each
+# other and with classical gochara. Under it Saturn in the 10th (Kandaka)
+# scored the same 62 as Saturn in the 3rd, and Rahu and Ketu scored *below*
+# neutral in 3/6/11 — their three best houses — so the Today score could rise
+# while the Transits card said the same planet needs care. Now the one derived
+# table; the alias is kept because it is re-exported from
+# `daily_guidance_service` and read by tests.
+TRANSIT_BASE_SCORE = GOCHARA_HOUSE_SCORE
 
 PLANET_PERIOD_SCORE: dict[str, int] = {
     "SUN": 55,

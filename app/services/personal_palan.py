@@ -502,8 +502,11 @@ _KANDAKA_LAYER: dict[int, tuple[frozenset[str], Bi]] = {
     ),
 }
 
-# Guru from the Moon. The house sets are the engine's own (TRANSIT_BASE_SCORE
-# ["JUPITER"] ≥ 65 supportive, < 45 testing; a test pins the agreement).
+# Guru from the Moon. `_GURU_SUPPORT` is exactly the classical favourable set
+# (`gochara_scores.GOCHARA_FAVOURABLE_FROM_MOON["JUPITER"]`); `_GURU_TESTING`
+# is the subset of the adverse houses this surface has copy for. A test pins
+# both against the doctrine — it used to pin them against a score threshold,
+# which only worked while the hand-typed table happened to straddle it.
 _GURU_SUPPORT: dict[int, frozenset[str]] = {
     2: frozenset({"MONEY", "FAMILY"}),
     5: frozenset({"EDUCATION", "FAMILY"}),
