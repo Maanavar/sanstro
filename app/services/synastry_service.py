@@ -560,11 +560,11 @@ _CONTEXT_TITLE_EN: dict[str, str] = {
 
 _CONTEXT_NOTE: dict[str, dict[str, str]] = {
     "MARRIAGE": {
-        "ta": "திருமண பொருத்தம்: ஸ்தீர கூடம் (நிலைத்த தன்மை) மற்றும் ராஜ்ஜு தோஷம் முக்கியம்.",
+        "ta": "திருமண பொருத்தம்: ஸ்தீர கூடம் (நிலைத்த தன்மை) மற்றும் ரஜ்ஜு தோஷம் முக்கியம்.",
         "en": "Marriage context: Sthira kuta (stability) and Rajju dosha are most significant.",
     },
     "FRIENDSHIP": {
-        "ta": "நட்பு பொருத்தம்: தினம், கணம், ராசி, கிரக மைத்திரி, வேதம் ஆகிய சமிக்ஞைகள் மதிப்பிடப்படுகின்றன.",
+        "ta": "நட்பு பொருத்தம்: தினம், கணம், ராசி, கிரக மைத்திரி, வேதை ஆகிய சமிக்ஞைகள் மதிப்பிடப்படுகின்றன.",
         "en": "Friendship context: Dina, Gana, Rasi, Graha Maitri, and Vedha factors are evaluated.",
     },
     "BUSINESS": {
@@ -572,7 +572,7 @@ _CONTEXT_NOTE: dict[str, dict[str, str]] = {
         "en": "Business context: Gana, Mahendra, Rasi, Graha Maitri, and Vasya factors evaluate partnership potential.",
     },
     "FAMILY": {
-        "ta": "குடும்ப பொருத்தம்: ராசி, கணம், வாஸ்யம், கிரக மைத்திரி, வேதம் மூலம் ஒற்றுமை மதிப்பிடப்படுகிறது.",
+        "ta": "குடும்ப பொருத்தம்: ராசி, கணம், வாஸ்யம், கிரக மைத்திரி, வேதை மூலம் ஒற்றுமை மதிப்பிடப்படுகிறது.",
         "en": "Family context: Rasi, Gana, Vasya, Graha Maitri, and Vedha factors evaluate harmony.",
     },
     "GENERAL": {

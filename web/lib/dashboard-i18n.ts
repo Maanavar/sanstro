@@ -355,6 +355,11 @@ export const CHART_LEGEND = {
 // `blockerTail` is concatenated onto whichever blocker line applies, so both
 // halves must end/begin with the spacing they need.
 //
+// The "an astrologer would read both full charts" line is not here: since
+// KI-01 the engine's summary (app/calculations/porutham.py), shown a few
+// lines below this paragraph, carries it on every vetoed result. The public
+// calculator and mobile show only that summary, so it is the one copy.
+//
 // New Tamil, pending native review (CLAUDE.md new-Tamil rule).
 export const PORUTHAM_VERDICT = {
   baseline: s(
@@ -363,15 +368,15 @@ export const PORUTHAM_VERDICT = {
   ),
   blockerRajju: s(
     "Rajju does not match — a traditional check on the durability of the marriage. Classical sources differ on how much weight it carries. ",
-    "ரஜ்ஜு பொருந்தவில்லை — திருமண நீட்சி குறித்த பாரம்பரியச் சோதனை. இதன் எடை குறித்து நூல்கள் வேறுபடுகின்றன. ",
+    "ரஜ்ஜு பொருத்தம் இல்லை — திருமண நீட்சி குறித்த பாரம்பரியச் சோதனை. இதன் எடை குறித்து நூல்கள் வேறுபடுகின்றன. ",
   ),
   blockerVedha: s(
     "Vedha does not match — a traditional obstruction check. ",
-    "வேதை பொருந்தவில்லை — பாரம்பரியத் தடுப்புச் சோதனை. ",
+    "வேதை பொருத்தம் இல்லை — பாரம்பரியத் தடுப்புச் சோதனை. ",
   ),
   blockerTail: s(
-    "It is one of ten checks, and this result is guidance for the conversation between families — not a gate. An astrologer would read it alongside both full charts before concluding anything.",
-    "இது பத்துச் சோதனைகளில் ஒன்று; குடும்பங்களுக்கிடையேயான உரையாடலுக்கான வழிகாட்டி — கட்டாய நிபந்தனை அல்ல. ஜோதிடர் இரு ஜாதகங்களையும் முழுமையாகப் பார்த்தே முடிவு சொல்வார்.",
+    "It is one of ten checks, and this result is guidance for the conversation between families — not a gate.",
+    "இது பத்துச் சோதனைகளில் ஒன்று; குடும்பங்களுக்கிடையேயான உரையாடலுக்கான வழிகாட்டி — கட்டாய நிபந்தனை அல்ல.",
   ),
 } as const;
 

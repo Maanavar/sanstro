@@ -484,7 +484,7 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
           </div>
           <Badge text={d.poruthamLabel} {...poruthamLabelBadge(d.poruthamLabel)} />
           {d.rajjuDosha && <Badge warn text={en ? "Rajju Dosha" : "ரஜ்ஜு தோஷம்"} color={W.rust} bg="var(--cl-rust-soft)" />}
-          {d.vedhaDosha && <Badge warn text={en ? "Vedha Dosha" : "வேத தோஷம்"} color={W.rust} bg="var(--cl-rust-soft)" />}
+          {d.vedhaDosha && <Badge warn text={en ? "Vedha Dosha" : "வேதை தோஷம்"} color={W.rust} bg="var(--cl-rust-soft)" />}
           {d.nadiDosha.hasNadiDosha && <Badge warn text={en ? "Nadi Dosha" : "நாடி தோஷம்"} color={W.rust} bg="var(--cl-rust-soft)" />}
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>

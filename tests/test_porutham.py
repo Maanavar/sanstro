@@ -390,7 +390,7 @@ def test_graha_maitri_mercury_saturn_signs_pass():
 
 
 # ---------------------------------------------------------------------------
-# Rajju (ராஜ்ஜு) — same group = FAIL (veto), different = PASS
+# Rajju (ரஜ்ஜு) — same group = FAIL (veto), different = PASS
 # ---------------------------------------------------------------------------
 
 def test_rajju_same_group():
@@ -429,7 +429,7 @@ def test_nadi_eka_nakshatra_bhinna_pada_still_cancels():
 
 
 # ---------------------------------------------------------------------------
-# Vedha (வேதம்) — vedha pair = FAIL (veto), else PASS
+# Vedha (வேதை) — vedha pair = FAIL (veto), else PASS
 # ---------------------------------------------------------------------------
 
 def test_vedha_pair():
@@ -716,7 +716,91 @@ def test_rajju_summary_states_the_objection_without_asserting_an_outcome():
 
     # And the objection is still actually stated, not quietly dropped.
     assert "Rajju" in result.summary_en
-    assert "ராஜ்ஜு" in result.summary_ta
+    assert "ரஜ்ஜு" in result.summary_ta
+
+
+# ── KI-01: a CAUTION verdict never opens by calling the match suitable ───────
+
+# The score-band sentences that reassure. A result labelled CAUTION must
+# carry none of them, in either language.
+_REASSURING = (
+    "suitable match", "highly auspicious", "Good compatibility", "Outstanding compatibility",
+    "ஏற்புடைய திருமணமாக", "மிகவும் சாதகமான திருமணமாக", "நல்ல இணக்கம்", "மிகச் சிறந்த இணக்கம்",
+)
+
+
+def _every_pairing():
+    """All 27 x 27 stars at every pada for both partners (11,664 results),
+    with the rasi each pada actually falls in."""
+    for boy in range(1, 28):
+        for girl in range(1, 28):
+            for boy_pada in range(1, 5):
+                for girl_pada in range(1, 5):
+                    yield compute_porutham(
+                        boy_nakshatra=boy, girl_nakshatra=girl,
+                        boy_rasi=nakshatra_to_rasi(boy, boy_pada),
+                        girl_rasi=nakshatra_to_rasi(girl, girl_pada),
+                        boy_pada=boy_pada, girl_pada=girl_pada,
+                    )
+
+
+def test_no_caution_result_calls_the_match_suitable():
+    """KI-01 (FRD FR-CMP-01, DOCA-08). The summary used to be chosen from the
+    score band BEFORE the Rajju/Vedha veto set the label, so an 8/10 with Rajju
+    failing was labelled CAUTION and opened "Traditionally considered a
+    suitable match" — under a calculator badge reading "Dosham - Avoid"."""
+    offenders = []
+    for r in _every_pairing():
+        if r.label != "CAUTION":
+            continue
+        for text in (r.summary_en, r.summary_ta):
+            hits = [p for p in _REASSURING if p in text]
+            if hits:
+                offenders.append(f"{r.total_score}/10 rajju={r.rajju_dosha} vedha={r.vedha_dosha}: {hits}")
+    assert not offenders, f"{len(offenders)} CAUTION summaries reassure, e.g. {offenders[:3]}"
+
+
+def test_a_vetoed_good_count_states_the_verdict_and_why():
+    """Doctrine §12: show the number, then a governing line — the count does
+    not override the dosha. Bharani(2) and Pooram(11) share a Rajju group and
+    score 8/10 on the count."""
+    r = compute_porutham(boy_nakshatra=2, girl_nakshatra=11, boy_rasi=1, girl_rasi=5)
+    assert r.rajju_dosha and not r.vedha_dosha
+    assert r.total_score >= 6.5, "the case only bites when the count alone would read GOOD"
+    assert r.label == "CAUTION"
+    assert r.summary_en.startswith(f"Tamil 10-Porutham: {format_porutham_total(r.total_score)}/10")
+    assert "needs extra care" in r.summary_en and "Rajju" in r.summary_en.split("⚠")[0]
+    assert "கூடுதல் கவனம் தேவை" in r.summary_ta and "ரஜ்ஜு பொருத்தம் இல்லை" in r.summary_ta.split("⚠")[0]
+    # Native review 2026-10-12: advice, not a "முடிவு:" label.
+    assert "முடிவு:" not in r.summary_ta
+    # The one closing line every surface carries (replaced the dashboard's
+    # PORUTHAM_VERDICT.blockerTail sentence).
+    assert "experienced astrologer" in r.summary_en
+    assert r.summary_ta.split(" ⚠")[0].endswith(
+        "திருமணம் குறித்து முடிவெடுப்பதற்கு முன், நட்சத்திரப் பொருத்தங்களுடன் இருவரின் "
+        "முழு ஜாதகங்களையும் அனுபவமுள்ள ஜோதிடரிடம் ஆராய்வது நல்லது."
+    )
+
+
+def test_locked_tamil_terms_rajju_and_vedhai():
+    """Native review 2026-10-12 (C-01, C-02): ரஜ்ஜு and வேதை are locked.
+    வேதம் is the Veda, and ராஜ்ஜு was the minority spelling."""
+    names = {k.name: k.name_ta for k in compute_porutham(
+        boy_nakshatra=1, girl_nakshatra=9, boy_rasi=1, girl_rasi=4).kutas}
+    assert names["Rajju"] == "ரஜ்ஜு"
+    assert names["Vedha"] == "வேதை"
+    for r in _every_pairing():
+        for banned in ("ராஜ்ஜு", "வேதம்", "வேத தோஷம்"):
+            assert banned not in r.summary_ta, (banned, r.summary_ta)
+
+
+def test_an_unvetoed_good_count_still_reads_as_suitable():
+    """Control: the fix must not mute the reassurance where it is true."""
+    for r in _every_pairing():
+        if r.label == "GOOD" and not (r.rajju_dosha or r.vedha_dosha):
+            assert "suitable match" in r.summary_en
+            return
+    pytest.fail("no unvetoed GOOD pairing found to check")
 
 
 # ── EC-RULING-02: Chitra Vedha is HELD, and the hold is visible ─────────────

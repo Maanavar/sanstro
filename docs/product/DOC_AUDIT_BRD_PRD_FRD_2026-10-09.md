@@ -151,7 +151,15 @@ It also omits the stated gap: **no reconciliation against RevenueCat's current s
 
 **Acceptance.** Each webhook rule in the module docstring has a matching FR.
 
-### DOCA-08 `[ ]` PRODUCT DEFECT: a CAUTION porutham result says "a suitable match"
+### DOCA-08 `[x]` PRODUCT DEFECT: a CAUTION porutham result says "a suitable match"
+
+**Fixed 2026-10-12** (see `docs/MASTER_FIX_LIST.md`, "KI-01"). The veto is now
+applied before the summary is chosen, and a vetoed GOOD/AVERAGE count gets its
+own governing sentence. The acceptance sweep is
+`tests/test_porutham.py::test_no_caution_result_calls_the_match_suitable`. It
+covers every pada, not only 27 × 27 stars, and it failed with 1,208
+contradicting summaries before the fix. The v2.0 BRD/PRD/FRD still list KI-01
+as open; the next document revision should close it.
 
 **Problem (found by running the engine).** In `compute_porutham` ([app/calculations/porutham.py:939-1016](../../app/calculations/porutham.py#L939-L1016)), the summary sentence is chosen from the score band first. The label is forced to CAUTION afterwards when Rajju or Vedha fails. For a synthetic pair (stars 4 and 13) the output is:
 

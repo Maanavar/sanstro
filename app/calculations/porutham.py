@@ -24,8 +24,8 @@ The 10 Poruthams (Tamil → calculation rule):
   6. Rasi       (ராசி)            — pass unless 6th or 8th position (Shashtashtaka) between rasis
   7. Rasiyathipathi (ராசியாதிபதி) — FAIL if either rasi lord regards the other as an enemy (one-way enmity fails)
   8. Vasya      (வாஸ்யம்)         — at least one rasi must be vasya of the other
-  9. Rajju      (ராஜ்ஜு)          — same Rajju group = VETO (see RAJJU_SOURCE_TEXT_CATEGORY)
- 10. Vedha      (வேதம்)           — Vedha nakshatra pair = VETO
+  9. Rajju      (ரஜ்ஜு)          — same Rajju group = VETO (see RAJJU_SOURCE_TEXT_CATEGORY)
+ 10. Vedha      (வேதை)           — Vedha nakshatra pair = VETO
 
 Nakshatra numbers are 1-indexed (1 = Aswini … 27 = Revathi).
 """
@@ -719,10 +719,10 @@ _NADI_CLOSING_CLAUSE_EN = (
 )
 _NADI_CLOSING_CLAUSE_TA = (
     "இது நாடி ஆட்சேபனையை மட்டுமே நீக்குகிறது. மற்ற கட்டாய பொருத்தங்கள் "
-    "(ராஜ்ஜு, வேதம், மகேந்திரம், யோனி போன்றவை) தனித்தனியாக மதிப்பிடப்படுகின்றன."
+    "(ரஜ்ஜு, வேதை, மகேந்திரம், யோனி போன்றவை) தனித்தனியாக மதிப்பிடப்படுகின்றன."
 )
 _NADI_RAJJU_WARNING_EN = "Rajju Dosha still applies regardless of the Nadi outcome above."
-_NADI_RAJJU_WARNING_TA = "மேலே உள்ள நாடி முடிவைப் பொருட்படுத்தாமல் ராஜ்ஜு தோஷம் இன்னும் பொருந்தும்."
+_NADI_RAJJU_WARNING_TA = "மேலே உள்ள நாடி முடிவைப் பொருட்படுத்தாமல் ரஜ்ஜு தோஷம் இன்னும் பொருந்தும்."
 
 
 def _rasi_lords_mutually_friendly(rasi_a: int, rasi_b: int) -> bool:
@@ -876,7 +876,7 @@ def compute_porutham(
         "Dinam": "தினம்", "Ganam": "கணம்", "Mahendra": "மகேந்திரம்",
         "Stree Dirgha": "ஸ்திரீ தீர்கம்", "Yoni": "யோனி", "Rasi": "ராசி",
         "Graha Maitri": "ராசியாதிபதி", "Vasya": "வாஸ்யம்",
-        "Rajju": "ராஜ்ஜு", "Vedha": "வேதம்",
+        "Rajju": "ரஜ்ஜு", "Vedha": "வேதை",
     }
 
     # An authored madhyama band, per porutham. Only Sthree Deergham carries one
@@ -937,7 +937,79 @@ def compute_porutham(
     )
 
     label = porutham_band_label(total)
-    if label == "EXCELLENT":
+    # A Rajju/Vedha veto is inauspicious regardless of the numeric score — the
+    # label must reflect that at the source, not rely on every consumer to
+    # re-derive it from rajju_dosha/vedha_dosha themselves (2026-07 audit A-4).
+    #
+    # KI-01: the veto is decided BEFORE the summary is chosen. The summary used
+    # to come from the score band first and the veto only relabelled it
+    # afterwards, so an 8/10 with Rajju failing read CAUTION yet opened
+    # "Traditionally considered a suitable match" — 604 of the 11,664
+    # star/pada pairings, in both languages.
+    vetoed = rajju_dosha or vedha_dosha
+    if vetoed and label != "CAUTION":
+        # Doctrine §12: the number stands, then a governing line — the count
+        # does not override the dosha. Tamil wording from the native review of
+        # 2026-10-12 (docs/TAMIL_REVIEW_SHEET_2026-10-12.md, B-01..B-03): a
+        # finding and advice, never a decision taken for the family, and no
+        # "முடிவு:" label. English says the same thing.
+        prefix_en = f"Tamil 10-Porutham: {total_str}/10 — "
+        prefix_ta = f"தமிழ் 10 பொருத்தம்: {total_str}/10 — "
+        # One closing line for every surface that shows this summary
+        # (calculator, dashboard, mobile). It replaced the dashboard's
+        # PORUTHAM_VERDICT.blockerTail sentence, so no screen says it twice.
+        closing_en = (
+            "Before deciding on the marriage, it is best to have an experienced astrologer "
+            "examine both full horoscopes alongside the star matching."
+        )
+        closing_ta = (
+            "திருமணம் குறித்து முடிவெடுப்பதற்கு முன், நட்சத்திரப் பொருத்தங்களுடன் இருவரின் "
+            "முழு ஜாதகங்களையும் அனுபவமுள்ள ஜோதிடரிடம் ஆராய்வது நல்லது."
+        )
+        if rajju_dosha and vedha_dosha:
+            # B-02, verbatim. It closes on its own advice, so no closing line.
+            summary_en = (
+                f"{prefix_en}Neither Rajju nor Vedha is met. Traditional astrology counts both as "
+                "important poruthams, so it is best to decide on the marriage only after examining "
+                "the full horoscopes."
+            )
+            summary_ta = (
+                f"{prefix_ta}ரஜ்ஜு மற்றும் வேதை ஆகிய இரண்டு பொருத்தங்களும் அமையவில்லை. பாரம்பரிய "
+                "ஜோதிடத்தில் இவை முக்கியமான பொருத்தங்களாகக் கருதப்படுகின்றன. எனவே முழு "
+                "ஜாதகத்தையும் ஆராய்ந்த பிறகே திருமணம் குறித்து முடிவெடுப்பது நல்லது."
+            )
+        else:
+            name_en = "Rajju" if rajju_dosha else "Vedha"
+            name_ta = _names_ta[name_en]
+            # வேதை takes the doubled ப் in a compound (வேதைப் பொருத்தம்);
+            # ரஜ்ஜு, ending in உ, does not.
+            lack_ta = "ரஜ்ஜு பொருத்தமின்மையை" if rajju_dosha else "வேதைப் பொருத்தமின்மையை"
+            if label == "AVERAGE":
+                # B-03.
+                summary_en = (
+                    f"{prefix_en}{name_en} is not met, and the other poruthams are met only in part, "
+                    f"so by traditional astrology this match needs extra care. {closing_en}"
+                )
+                summary_ta = (
+                    f"{prefix_ta}{name_ta} பொருத்தம் இல்லை. மற்ற பொருத்தங்களும் ஓரளவிற்கே "
+                    "அமைந்துள்ளன. எனவே பாரம்பரிய ஜோதிட அடிப்படையில் இந்தப் பொருத்தத்தில் கூடுதல் "
+                    f"கவனம் தேவை. {closing_ta}"
+                )
+            else:
+                # B-01.
+                summary_en = (
+                    f"{prefix_en}Most poruthams are met, but {name_en} is not. Traditional astrology "
+                    f"holds that the others, however many, do not make up for a missing {name_en}, "
+                    f"so this match needs extra care. {closing_en}"
+                )
+                summary_ta = (
+                    f"{prefix_ta}பெரும்பாலான பொருத்தங்கள் அமைந்துள்ளன. ஆனால் {name_ta} பொருத்தம் "
+                    f"இல்லை. மற்ற பொருத்தங்கள் அதிகமாக இருந்தாலும், {lack_ta} அவை ஈடுசெய்யாது "
+                    "என்பது பாரம்பரிய ஜோதிடக் கருத்து. எனவே இந்தப் பொருத்தத்தில் கூடுதல் கவனம் "
+                    f"தேவை. {closing_ta}"
+                )
+        label = "CAUTION"
+    elif label == "EXCELLENT":
         summary_en = (
             f"Tamil 10-Porutham: {total_str}/10 — Outstanding compatibility across all poruthams. "
             "Traditionally considered a highly auspicious match."
@@ -996,7 +1068,7 @@ def compute_porutham(
             "guidance addresses directly."
         )
         suffix_ta = (
-            " ⚠ ராஜ்ஜு பொருத்தம் இல்லை: இருவரும் ஒரே ராஜ்ஜு வகுப்பைச் சேர்ந்தவர்கள் — "
+            " ⚠ ரஜ்ஜு பொருத்தம் இல்லை: இருவரும் ஒரே ரஜ்ஜு வகுப்பைச் சேர்ந்தவர்கள் — "
             "தமிழ்ப் பொருத்தத்தில் வலிமையான ஆட்சேபனைகளுள் ஒன்று; பரிகாரத்தால் "
             "நேரடியாகக் கவனிக்கப்படுவது."
         )
@@ -1005,15 +1077,9 @@ def compute_porutham(
 
     if vedha_dosha:
         suffix_en = " ⚠ Vedha Dosha: these nakshatras form a vedha pair — traditionally considered inauspicious."
-        suffix_ta = " ⚠ வேத தோஷம்: இந்த நட்சத்திரங்கள் வேத ஜோடி — பாரம்பரியமாக சாதகமற்றதாக கருதப்படுகிறது."
+        suffix_ta = " ⚠ வேதை தோஷம்: இந்த நட்சத்திரங்கள் வேதை ஜோடி — பாரம்பரியமாக சாதகமற்றதாக கருதப்படுகிறது."
         summary_en += suffix_en
         summary_ta += suffix_ta
-
-    # A Rajju/Vedha veto is inauspicious regardless of the numeric score — the
-    # label must reflect that at the source, not rely on every consumer to
-    # re-derive it from rajju_dosha/vedha_dosha themselves (2026-07 audit A-4).
-    if (rajju_dosha or vedha_dosha) and label != "CAUTION":
-        label = "CAUTION"
 
     return PorutthamResult(
         kutas=kutas,

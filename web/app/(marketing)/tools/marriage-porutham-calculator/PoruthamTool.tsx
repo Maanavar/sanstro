@@ -109,7 +109,10 @@ function splitToPada(split: "early" | "late" | null): number | undefined {
 // the backend's own EXCELLENT/GOOD/AVERAGE/CAUTION cutoffs in app/calculations/porutham.py) ==========
 
 function verdictLabel(apiLabel: string, criticalFail: boolean, ta: boolean): string {
-  if (criticalFail) return ta ? "தோஷம் — தவிர்க்கவும்" : "Dosham - Avoid";
+  // Native review 2026-10-12 (D-01, locked): a finding that asks for care, not
+  // the imperative "avoid" — the family decides after a full-chart reading.
+  // Same words as the dashboard badge (dashboard-tools-porutham-nova.tsx).
+  if (criticalFail) return ta ? "தோஷம்: கவனம் தேவை" : "Dosham: needs care";
   // Verdict words come from the shared verdict lexicon (C-5) so Porutham matches
   // Today / compatibility. Falls back to the caution phrase for unknown labels.
   const lang = ta ? "ta" : "en";
@@ -573,7 +576,7 @@ export function PoruthamTool() {
                 label: g.label,
                 items: gridData.filter(c => !(c.rajjuDosha || c.vedhaDosha) && c.label === g.key),
               })).concat([
-                { label: ta?"⚠ தோஷம் — தவிர்க்கவும்":"⚠ Dosham - Avoid",
+                { label: ta?"⚠ தோஷம்: கவனம் தேவை":"⚠ Dosham: needs care",
                   items: gridData.filter(c => c.rajjuDosha || c.vedhaDosha) },
               ]).map(group => {
                 if (group.items.length === 0) return null;
