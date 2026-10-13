@@ -53,8 +53,12 @@ Get-ChildItem -Recurse -Filter "*.py" -ErrorAction SilentlyContinue |
 ## Database safety — never lose dev data
 
 ### DB topology
-- **Dev DB:** Docker container `slw-postgres`, port **5432**, db `vinaadi_dev` — THIS IS THE REAL DATA DB
+- **Dev DB:** Docker container `vinaadi-postgres`, port **5434** (loopback only), db `vinaadi_dev` — THIS IS THE REAL DATA DB.
+  Its volume `vinaadi_dev_pgdata` is `external`, so no `docker compose down -v` can delete it.
 - **Test DB:** Docker container `slw-postgres-test` (separate container), port **5433**, db `vinaadi_test` — wipe freely
+- **Not ours:** `slw-postgres` (:5432) and `slw-adminer` (:8081) belong to the SLW project
+  (`C:\Users\senth\Downloads\SLW`). Vinaadi's dev DB lived there until 2026-10-13; never
+  point Vinaadi at :5432 again. See `docs/ENVIRONMENT_AND_DUPLICATE_AUDIT_2026-10-13.md`.
 - **SQLite: not an option for the suite.** `tests/conftest.py` refuses any database
   not named exactly `vinaadi_test` on `localhost:5433`, and `app/db/session.py`
   passes `max_overflow`, which SQLite's dialect rejects at import time
@@ -75,7 +79,7 @@ Get-ChildItem -Recurse -Filter "*.py" -ErrorAction SilentlyContinue |
    container is not running, start it; do not reach for a different URL.
 5. **To back up dev data before risky work:**
    ```powershell
-   docker exec slw-postgres pg_dump -U slw_admin vinaadi_dev > backup_$(Get-Date -Format 'yyyyMMdd_HHmm').sql
+   docker exec vinaadi-postgres pg_dump -U slw_admin vinaadi_dev > backup_$(Get-Date -Format 'yyyyMMdd_HHmm').sql
    ```
 6. **To restore from backup** (use `restore-dev-db.ps1`):
    ```powershell

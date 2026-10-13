@@ -9,7 +9,7 @@ param(
     [string]$TestDbUser = "slw_test_runner",
     [string]$TestDbPassword = "slw_test_runner_password",
     [string]$TestDbUrl = "postgresql://slw_test_runner:slw_test_runner_password@localhost:5433/vinaadi_test",
-    [string]$DevDbContainer = "slw-postgres",
+    [string]$DevDbContainer = "vinaadi-postgres",
     [string]$DevDbUser = "slw_admin",
     [string]$DevDbName = "vinaadi_dev",
     [string]$BackupDir = "backups"

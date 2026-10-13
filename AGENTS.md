@@ -19,7 +19,7 @@ docs below before making changes.
 - Python/Tamil output: set `$env:PYTHONUTF8 = "1"` and `$env:PYTHONIOENCODING = "utf-8"`. Save Tamil files as UTF-8 **without BOM**; never `Out-File` a `.py` (it defaults to UTF-16).
 
 **Database safety**
-- Dev DB `vinaadi_dev` (port 5432) holds REAL data — never `DROP` / `drop_all` / reset it, and never point pytest at it.
+- Dev DB `vinaadi_dev` (container `vinaadi-postgres`, port 5434) holds REAL data — never `DROP` / `drop_all` / reset it, and never point pytest at it.
 - Tests use `vinaadi_test` (port 5433). **SQLite is not an option** — `tests/conftest.py` refuses any other DB and `app/db/session.py` passes `max_overflow`, which SQLite rejects at import. If the test container is down, start it; do not reach for another URL. Every migration must be reversible. Back up before risky work.
 
 **Astrology doctrine (strictly enforced)**

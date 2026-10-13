@@ -22,7 +22,7 @@ Usage:
 
     # Same, when Postgres runs in a container and psql is not on this host
     python -m scripts.verify_restore --scratch-url ... --dump backup.sql \\
-        --docker-container slw-postgres
+        --docker-container vinaadi-postgres
 
     # Verify a database somebody already restored by hand
     python -m scripts.verify_restore --scratch-url postgresql://.../vinaadi_restore_check

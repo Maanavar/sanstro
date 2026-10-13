@@ -1,7 +1,7 @@
 param(
     [Parameter(Mandatory = $true)]
     [string]$BackupFile,
-    [string]$DevDbContainer = "slw-postgres",
+    [string]$DevDbContainer = "vinaadi-postgres",
     [string]$DevDbUser = "slw_admin",
     [string]$DevDbName = "vinaadi_dev"
 )

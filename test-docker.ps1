@@ -75,7 +75,7 @@ if ($Binding -eq 'ffi') {
 # would also satisfy a sloppy check for slw-postgres and vice versa.
 $running = docker ps --filter 'name=slw-postgres-test' --filter 'status=running' --format '{{.Names}}'
 if ($running -notcontains 'slw-postgres-test') {
-    throw "Test DB (slw-postgres-test) is not running. Start it: docker compose up -d postgres-test"
+    throw "Test DB (slw-postgres-test) is not running. Start it: docker compose up -d postgres_test"
 }
 
 # Competing-run guard. CLAUDE.md: trace the parent chain before killing

@@ -28,10 +28,12 @@ docker-compose up -d
 
 | Container | Purpose | Port |
 |-----------|---------|------|
-| `slw-postgres` | Dev database (`vinaadi_dev`) | 5432 |
+| `vinaadi-postgres` | Dev database (`vinaadi_dev`, real data) | 5434 (loopback only) |
 | `slw-postgres-test` | Test database (`vinaadi_test`) | 5433 |
-| `slw-adminer` | DB browser UI | 8081 |
 | `slw-mailhog` | Local email catcher | SMTP 1025 / UI 8025 |
+
+`slw-postgres` (:5432) and `slw-adminer` (:8081), if you see them running, belong to
+a different project. They are not part of Vinaadi.
 
 Stop everything: `docker-compose down`
 
@@ -66,7 +68,6 @@ Set-Location D:\sanstro
 |-----|-----------|
 | http://localhost:8000/docs | Swagger / interactive API docs |
 | http://localhost:8000/health | Health check |
-| http://localhost:8081 | Adminer (DB browser) |
 | http://localhost:8025 | MailHog (caught dev emails) |
 
 ### Environment variables
@@ -74,7 +75,7 @@ Set-Location D:\sanstro
 All vars use the `JOTHIDAM_` prefix. Copy `.env.example` → `.env` and fill in:
 
 ```env
-JOTHIDAM_DATABASE_URL=postgresql://slw_admin:slw_dev_password@localhost:5432/vinaadi_dev
+JOTHIDAM_DATABASE_URL=postgresql://slw_admin:slw_dev_password@localhost:5434/vinaadi_dev
 JOTHIDAM_ENVIRONMENT=development
 JOTHIDAM_JWT_SECRET=<64-char random string>
 JOTHIDAM_ADMIN_API_KEY=<strong key>

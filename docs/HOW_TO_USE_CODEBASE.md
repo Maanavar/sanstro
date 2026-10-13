@@ -285,10 +285,9 @@ docker ps
 
 | Container | Port | Purpose |
 |-----------|------|---------|
-| `slw-postgres` | 5432 | Dev database (`vinaadi_dev`) |
+| `vinaadi-postgres` | 5434 (loopback only) | Dev database (`vinaadi_dev`, real data) |
 | `slw-postgres-test` | 5433 | Test database (`vinaadi_test`) |
 | `slw-mailhog` | SMTP 1025 / UI 8025 | Local email catcher |
-| `slw-adminer` | 8081 | Database browser |
 
 ### 2. First-Time Backend Setup
 
@@ -325,7 +324,7 @@ Edit `D:\sanstro\.env` with your API keys:
 
 ```env
 # Database (required)
-JOTHIDAM_DATABASE_URL=postgresql://slw_admin:slw_dev_password@localhost:5432/vinaadi_dev
+JOTHIDAM_DATABASE_URL=postgresql://slw_admin:slw_dev_password@localhost:5434/vinaadi_dev
 
 # Auth (required for production, ephemeral in dev)
 JOTHIDAM_JWT_SECRET=<generate: python -c "import secrets; print(secrets.token_urlsafe(48))">
@@ -352,7 +351,7 @@ Once `dev.ps1` is running:
 |-----|-----------|
 | **http://localhost:8000/docs** | Swagger/OpenAPI interactive docs |
 | **http://localhost:8000/health** | Health check endpoint |
-| **http://localhost:8081** | Adminer (database browser) — user: `slw_admin`, password: `slw_dev_password` |
+| `localhost:5434` | Dev database — any Postgres client; user `slw_admin`, password `slw_dev_password` |
 | **http://localhost:8025** | MailHog (captured dev emails) |
 
 ### 6. Run Backend Tests

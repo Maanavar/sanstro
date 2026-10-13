@@ -46,9 +46,9 @@
 .NOTES
     ISOLATION. Runs under its own compose project name, so the postgres volume
     is `<project>_vinaadi_db_data` and not the real stack's. It never touches
-    vinaadi_dev: that is a different container (slw-postgres), a different
+    vinaadi_dev: that is a different container (vinaadi-postgres), a different
     volume and a different database name, and this stack publishes no port on
-    5432. Secrets and the database password are generated per run and synthetic.
+    5434. Secrets and the database password are generated per run and synthetic.
 
     It passes --env-file explicitly, which REPLACES compose's automatic `.env`
     loading, so an operator's real .env cannot leak into the smoke stack.

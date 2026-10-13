@@ -80,9 +80,9 @@ if ($Stop) {
 # The dev DB is a container on the host's published port, reached from inside
 # this container as host.docker.internal. Fail early and by name if it is down,
 # rather than letting the API boot and return 503 from /health/ready.
-$pg = docker ps --filter 'name=slw-postgres' --filter 'status=running' --format '{{.Names}}'
-if ($pg -notcontains 'slw-postgres') {
-    throw "Dev Postgres (slw-postgres) is not running. Start it: docker compose up -d db"
+$pg = docker ps --filter 'name=vinaadi-postgres' --filter 'status=running' --format '{{.Names}}'
+if ($pg -notcontains 'vinaadi-postgres') {
+    throw "Dev Postgres (vinaadi-postgres) is not running. Start it: docker compose up -d postgres"
 }
 
 if (-not (Test-Path '.env')) {
@@ -104,7 +104,7 @@ $uvicornReload = if ($NoReload) { @() } else { @('--reload', '--reload-dir', '/a
 # inside the container is the container itself.
 docker run -d --name $Container `
     --env-file .env `
-    -e JOTHIDAM_DATABASE_URL="postgresql://slw_admin:slw_dev_password@host.docker.internal:5432/vinaadi_dev" `
+    -e JOTHIDAM_DATABASE_URL="postgresql://slw_admin:slw_dev_password@host.docker.internal:5434/vinaadi_dev" `
     -e JOTHIDAM_ENVIRONMENT=development `
     -e WATCHFILES_FORCE_POLLING=true `
     -e PYTHONIOENCODING=utf-8 `
