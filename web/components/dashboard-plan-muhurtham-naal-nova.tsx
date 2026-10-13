@@ -68,6 +68,10 @@ function formatDate(value: string, lang: Lang): string {
   return d.toLocaleDateString(lang === "ta" ? "ta-IN" : "en-GB", { day: "2-digit", month: "short", year: "numeric" });
 }
 
+export function defaultGregorianMonth(now = new Date()): number {
+  return now.getMonth() + 1;
+}
+
 type MergedRow = { naal: MuhurthamNaalItem; match: MuhurthamNaalMatchItem | null };
 
 /** " · Bride" / " · Bride & Groom" for a couple's Chandrashtama badge; "" for one chart. */
@@ -215,7 +219,7 @@ export function NovaMuhurthamNaal({
   const [error, setError] = useState<string | null>(null);
   const [panchangamDate, setPanchangamDate] = useState<string | null>(null);
 
-  const [filterMonth, setFilterMonth] = useState(0);
+  const [filterMonth, setFilterMonth] = useState(defaultGregorianMonth);
   // Keyed on the English month name because that is what the API sends; the
   // Tamil label is the same row's `tamilMonth.ta`, so switching language does
   // not drop the selection.

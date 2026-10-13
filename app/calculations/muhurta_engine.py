@@ -1427,7 +1427,7 @@ def limb_factors_at_window(snapshot, midpoint, activity: str) -> list[FactorResu
     entry = _rules(activity)
     if karana_span is not None and entry is not None and entry.karana_avoid:
         name_en = karana_span.name.replace("_", " ").title()
-        if karana_span.name in entry.karana_avoid:
+        if karana_avoided_at(snapshot, midpoint, activity) is not None:
             # VETO-class here, unlike the day-level factor. The distinction is
             # the source's own: it forbids the karana *at the elected moment*,
             # and this is the elected moment — no longer a transition we can
@@ -1477,6 +1477,99 @@ def limb_factors_at_window(snapshot, midpoint, activity: str) -> list[FactorResu
         ))
 
     return results
+
+
+# ── the tithi at the elected moment ─────────────────────────────────────────
+
+TITHI_FAMILY: frozenset[str] = frozenset({"ALMANAC_TITHI", "TITHI", "PAKSHA"})
+"""The factors whose verdict is a function of the tithi alone.
+
+`score_day` judges them on the sunrise tithi, which is what *names* the day
+(R-1, 2026-08-19). A muhurta is a moment, though, and the chapters' tithi lists
+rule on the moment the act is begun: a window elected after the tithi has
+changed is governed by the tithi then running, not by the one the day is called
+after. Measured at Tiruppur over 2026-10-01 + 182 days across the 30 sourced
+activities, **848 of 3,753 elected windows (22.6%) sat in a different tithi from
+the sunrise one, 598 of them with a different verdict, and 40 inside a tithi the
+activity's own text vetoes** — windows certified by a tithi that did not hold
+during them, the class D1 fixed for the hora. So the picker re-judges this
+family at the window (`tithi_factors_at`) and elects by it.
+
+PAKSHA belongs to the family because the fortnight turns at Pournami and
+Amavasai, which are tithi boundaries, and because its Krishna 1-5 exemption
+reads the in-paksha number. That exemption is a carve-out from the *fortnight*
+penalty (Ch. V p.37-38); it does not lift a tithi the chapter's own list names
+(p.39). So Krishna Prathamai is paksha-neutral and still tithi-avoided for the
+tonsure — two statements at two levels, both kept as printed.
+"""
+
+
+def tithi_factors(snapshot, activity: str) -> tuple[FactorResult, ...]:
+    """The TITHI_FAMILY factors for the snapshot's own tithi.
+
+    The same three calls `score_day` makes, so on a day with one tithi the
+    window answer is byte-identical to the day answer — which is what confines
+    every score change to days that genuinely change tithi in daylight.
+    """
+    activity = activity.upper()
+    return tuple(
+        factor
+        for factor in (
+            _almanac_tithi_factor(snapshot, activity),
+            _tithi_factor(snapshot, activity),
+            _paksha_factor(snapshot, activity),
+        )
+        if factor is not None
+    )
+
+
+def tithi_span_at(snapshot, moment):
+    """The tithi span in force at `moment`, or None when the snapshot has none
+    (a pre-v43 cache record) or the moment lies outside its solar day."""
+    return next(
+        (span for span in getattr(snapshot, "tithi_spans", ()) if span.start <= moment < span.end),
+        None,
+    )
+
+
+def tithi_factors_at(snapshot, moment, activity: str) -> tuple[FactorResult, ...] | None:
+    """The TITHI_FAMILY judged on the tithi actually running at `moment`.
+
+    Returns None — never a guess — when no span covers the moment, so a caller
+    holding a pre-v43 snapshot stays on exactly its previous, sunrise-judged
+    behaviour.
+    """
+    span = tithi_span_at(snapshot, moment)
+    if span is None:
+        return None
+    if span.number != snapshot.tithi_number:
+        # Only these three fields feed the family. `tithi_ends_at` is left
+        # stale on purpose: nothing in the family reads it, and this view never
+        # leaves the function.
+        snapshot = replace(
+            snapshot,
+            tithi_number=span.number,
+            tithi_name=span.name,
+            tithi_paksha="SHUKLA" if span.number <= 15 else "KRISHNA",
+        )
+    return tithi_factors(snapshot, activity)
+
+
+def karana_avoided_at(snapshot, moment, activity: str):
+    """The karana span at `moment` if the activity's text excludes it, else None.
+
+    One definition for both readers: the picker, which must not elect such a
+    moment while a clear one exists, and `limb_factors_at_window`, which vetoes
+    a shortlisted window that still lands in one.
+    """
+    entry = _rules(activity.upper())
+    if entry is None or not entry.karana_avoid:
+        return None
+    span = next(
+        (span for span in getattr(snapshot, "karana_spans", ()) if span.start <= moment < span.end),
+        None,
+    )
+    return span if span is not None and span.name in entry.karana_avoid else None
 
 
 def lagna_sign_factor_at_window(activity: str, rasi: int) -> FactorResult | None:

@@ -30,6 +30,7 @@ from app.services.muhurta_service import (
     _clear_good_day_kalas,
     _norm,
     _overlaps,
+    _window_candidates,
 )
 from app.services.panchangam_cache import calculate_daily_panchangam
 
@@ -162,25 +163,41 @@ def test_window_sits_inside_a_good_gowri_kala(snapshots):
 
 
 def test_lagna_lord_hora_wins_whenever_it_is_usable(snapshots):
-    """D2 — best match, not first match, wherever the day offers the choice."""
-    exercised = 0
+    """D2 — best match, not first match, wherever the day offers the choice.
+
+    Since D4 (2026-10-13) the hora is no longer the whole ranking: a window is
+    worth its hora credit *plus* the limbs in force at it, so a lagna-lord hora
+    inside an avoided tithi may rightly lose to a plain window in a favoured
+    one. What D2 protects survives in two forms, both asserted: the elected
+    window is never worth less than the best usable lagna-lord window, and
+    wherever a lagna-lord window is worth strictly more than every other, it is
+    the one elected. An exact tie in total falls to the documented tiebreak
+    (Gowri kala rank, then earliest) — 14 Jul 2026 in this sweep has a Moon hora
+    in Amirtham whose tithi is worth exactly the 5-point lagna-lord premium.
+    """
+    exercised = won = 0
     for snapshot, activity, window in _cases(snapshots):
         lagna_lord = _norm(_SIGN_LORDS[LAGNA_RASI])
         if lagna_lord not in _activity_hora_lords(activity, LAGNA_RASI):
             continue
-        usable = any(
-            min(hora.end, kala.end) - max(hora.start, kala.start) >= _MIN_WINDOW
-            for hora in snapshot.hora
-            if _norm(hora.lord) == lagna_lord
-            for kala in _clear_good_day_kalas(snapshot, activity)
-        )
-        if not usable:
+        electable = [w for w in _window_candidates(snapshot, activity, LAGNA_RASI) if not w.moment.vetoed]
+        lord_windows = [w for w in electable if w.hora_bonus == 13.0]
+        if not lord_windows:
             continue
-        assert window.hora_support is not None
-        assert "Lagna lord" in window.hora_support.en
-        assert window.hora_bonus == 13.0
+        best_lord = max(w.hora_bonus + w.moment.score for w in lord_windows)
+        best_other = max(
+            (w.hora_bonus + w.moment.score for w in electable if w.hora_bonus != 13.0),
+            default=float("-inf"),
+        )
+        assert window.hora_bonus + window.moment.score >= best_lord
+        if best_lord > best_other:
+            assert window.hora_support is not None
+            assert "Lagna lord" in window.hora_support.en
+            assert window.hora_bonus == 13.0
+            won += 1
         exercised += 1
     assert exercised > 0, "sweep never offered a usable lagna-lord hora — test is vacuous"
+    assert won > 0, "lagna-lord hora never won outright — the D2 half is vacuous"
 
 
 def test_hora_bonus_is_earned_only_by_a_window_we_can_name(snapshots):

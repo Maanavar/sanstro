@@ -21,7 +21,11 @@ Methodology (Thirukanitham), in the order the layers apply:
 - **Dasha support**: whether the running lord is relevant to the activity.
 - **Window**: a favoured hora ∩ a good Gowri day kala clear of Rahu Kalam /
   Yamagandam / Kuligai, so the clock time and the reason printed beside it
-  always agree (see `_best_time_window`).
+  always agree (see `_best_time_window`). The window is elected on the limbs in
+  force *at it* — the tithi, an excluded karana, and for the shortlist the
+  rising sign — and the day's tithi verdicts are re-judged there, because the
+  day is named by its sunrise tithi but the act is governed by the one running
+  when it begins.
 """
 from __future__ import annotations
 
@@ -43,20 +47,26 @@ from app.calculations.astro import (
     utc_datetime_to_julian_day,
 )
 from app.calculations.dasha import calculate_vimshottari_timeline
+from app.calculations.display_names import rasi_en, rasi_ta, tithi_display
 from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.muhurta_engine import (
     SOURCED_ACTIVITIES as ENGINE_SOURCED_ACTIVITIES,
 )
 from app.calculations.muhurta_engine import (
+    TITHI_FAMILY,
     DayScore,
+    FactorResult,
     Subject,
     Verdict,
     display_score,
     karaka_dignity_factors,
+    karana_avoided_at,
     lagna_sign_factor_at_window,
     limb_factors_at_window,
     marriage_jupiter_gochara_factor,
     score_day,
+    tithi_factors_at,
+    tithi_span_at,
     wealth_house_heuristic_factor,
 )
 from app.calculations.panchangam import (
@@ -70,6 +80,7 @@ from app.calculations.tara_bala import tara_number
 from app.constants.astrology import NAKSHATRA_NAMES, SIGN_LORD
 from app.data.kuligai_polarity import favours as kuligai_favours
 from app.data.kuligai_polarity import rejects as kuligai_rejects
+from app.data.muhurta_activity_registry import ACTIVITY_RULES
 from app.data.muhurtham_naals import has_sourced_sheet, muhurtham_naal_on
 from app.models import BirthProfile, Chart
 from app.schemas.charts import ChartCalculateResponseData
@@ -86,7 +97,7 @@ from app.schemas.muhurta import (
 )
 from app.services.chart_service import load_persisted_chart_response
 from app.services.location_service import resolve_effective_daily_location
-from app.services.narrative_engine import PLANET_NAME
+from app.services.narrative_engine import PLANET_NAME, format_clock_label, format_time_range
 from app.services.panchangam_cache import calculate_daily_panchangam_range, with_daylight_lagna_schedule
 
 logger = logging.getLogger(__name__)
@@ -136,6 +147,22 @@ def _score_band(score: float, *, recommended: bool) -> str:
     return "USABLE"
 
 
+class _Moment(NamedTuple):
+    """How one candidate instant judges on the limbs that change within a day.
+
+    `score` is what the moment adds on top of the day: the tithi family's
+    contributions and, once the lagna schedule is known, the rising sign's.
+    `tithi_factors` is None only for a snapshot with no spans (pre-v43), and the
+    caller then keeps the day's sunrise-judged tithi untouched.
+    """
+
+    vetoed: bool
+    score: float
+    tithi_factors: tuple[FactorResult, ...] | None
+    lagna_factor: FactorResult | None
+    lagna_rasi: int | None
+
+
 class _Window(NamedTuple):
     """The day's recommended window and the hora credit earned by it."""
 
@@ -143,6 +170,7 @@ class _Window(NamedTuple):
     end: datetime
     hora_bonus: float
     hora_support: BiText | None
+    moment: _Moment | None = None
 
 
 class _ScoredDay(NamedTuple):
@@ -414,6 +442,221 @@ def _panchangam_support(day: DayScore) -> BiText:
     )
 
 
+def _rejudged_at_window(day: DayScore, window: _Window) -> DayScore:
+    """The day's score with its tithi family judged at the window, not at sunrise.
+
+    Family members keep their places in the factor list so the card reads in
+    the same order. A member present on one side only — the generic Amavasai
+    line stands down for most activities — is dropped, or slotted in where the
+    family sat. A window judged without spans (pre-v43 snapshot) leaves the day
+    exactly as `score_day` returned it.
+
+    `vetoed` is recomputed from the result, so this cuts both ways: a day whose
+    sunrise tithi is vetoed is rescued when its window falls in a permitted
+    tithi, and a day whose only clear window lies in a vetoed one is lost.
+    """
+    window_family = window.moment.tithi_factors if window.moment is not None else None
+    if window_family is None:
+        return day
+    replacement = {factor.factor: factor for factor in window_family}
+    factors: list[FactorResult] = []
+    anchor: int | None = None
+    for factor in day.factors:
+        if factor.factor not in TITHI_FAMILY:
+            factors.append(factor)
+            continue
+        if anchor is None:
+            anchor = len(factors)
+        swapped = replacement.pop(factor.factor, None)
+        if swapped is not None:
+            factors.append(swapped)
+    if replacement:
+        at = anchor if anchor is not None else len(factors)
+        factors[at:at] = list(replacement.values())
+    before = sum(f.contribution for f in day.factors if f.factor in TITHI_FAMILY)
+    after = sum(f.contribution for f in window_family)
+    return DayScore(
+        score=day.score - before + after,
+        vetoed=any(f.verdict is Verdict.VETO for f in factors),
+        factors=tuple(factors),
+    )
+
+
+def _activity_label(activity: str) -> tuple[str, str]:
+    """(en, ta) name of the act for reason copy. The Tamil is already dative
+    ("…சடங்கிற்கு"), as every registry label is, so it reads as "for X"."""
+    if activity == COUPLE_ACTIVITY:
+        return "marriage", "திருமணத்திற்கு"
+    entry = ACTIVITY_RULES.get(activity)
+    if entry is not None:
+        return entry.label_en, entry.label_ta
+    return "this activity", "இச்செயலுக்கு"
+
+
+def _clock(moment: datetime, lang: str) -> str:
+    return format_clock_label(format_clock_hhmm(moment), lang)
+
+
+def _midpoint(window: _Window) -> datetime:
+    return window.start + (window.end - window.start) / 2
+
+
+_TITHI_VERDICT_FACTORS = frozenset({"TITHI", "ALMANAC_TITHI"})
+
+
+def _tithi_avoided(family: Sequence[FactorResult]) -> bool:
+    return any(f.factor in _TITHI_VERDICT_FACTORS and f.verdict in (Verdict.PENALTY, Verdict.VETO) for f in family)
+
+
+def _tithi_window_note(snapshot, activity: str, window: _Window, ranked: Sequence[_Window]) -> FactorResult | None:
+    """Say which tithi governs the window, and why the time was not moved off it.
+
+    The question this answers is the one a family asks the moment they see a
+    tithi penalty beside a clock time: "the Pournami ends at 9:42 — why not
+    after?" The picker has already weighed every clear window of the day, so the
+    answer is read back from that election rather than composed separately:
+
+    * the other daylight tithi is no kinder (often the next one is avoided too),
+      so moving the time gains nothing on the tithi; or
+    * it is kinder, but holds no clear good Gowri period; or
+    * it is kinder, but its best window loses once the hora, Gowri kala and
+      rising sign are counted — naming the rising sign when that is what lost.
+
+    It also discloses when the window's tithi is not the one the day is named
+    after, so the tithi on the card cannot contradict the almanac header.
+    Scored at zero: the verdicts it explains are already priced.
+    """
+    if window.moment is None or window.moment.tithi_factors is None:
+        return None
+    span = tithi_span_at(snapshot, _midpoint(window))
+    if span is None:
+        return None
+    en: list[str] = []
+    ta: list[str] = []
+    win_ta, win_en = tithi_display(span.number)
+    if span.number != snapshot.tithi_number:
+        day_ta, day_en = tithi_display(snapshot.tithi_number)
+        en.append(
+            f"The day is named for {day_en}, the tithi at sunrise, but {win_en} is the tithi "
+            "running in this window, so it is the one judged here."
+        )
+        ta.append(
+            f"இந்நாள் உதயத் திதியான {day_ta} பெயரால் அழைக்கப்படுகிறது; இந்த நேரத்தில் நடப்பது "
+            f"{win_ta} திதி, அதுவே இங்கு கணக்கிடப்பட்டது."
+        )
+
+    family = window.moment.tithi_factors
+    if _tithi_avoided(family):
+        own = sum(f.contribution for f in family)
+        label_en, label_ta = _activity_label(activity)
+        day_start = snapshot.sunrise + _SANDHYA_DURATION
+        day_end = min(
+            snapshot.sunset - _SANDHYA_DURATION,
+            datetime.combine(snapshot.date_local, _LATEST_WINDOW_END, tzinfo=snapshot.sunrise.tzinfo),
+        )
+        for other in getattr(snapshot, "tithi_spans", ()):
+            if other.number == span.number or other.end <= day_start or other.start >= day_end:
+                continue
+            probe_start, probe_end = max(other.start, day_start), min(other.end, day_end)
+            other_family = tithi_factors_at(snapshot, probe_start + (probe_end - probe_start) / 2, activity) or ()
+            other_vetoed = any(f.verdict is Verdict.VETO for f in other_family)
+            other_score = sum(f.contribution for f in other_family)
+            oth_ta, oth_en = tithi_display(other.number)
+            later = other.start >= span.end
+            if later:
+                when_en, when_ta = f"which begins at {_clock(other.start, 'en')}", f"{_clock(other.start, 'ta')} முதல் வரும்"
+                shift_en, shift_ta = "a later start", "நேரத்தைத் தள்ளி வைப்பதால்"
+            else:
+                when_en, when_ta = f"which runs until {_clock(other.end, 'en')}", f"{_clock(other.end, 'ta')} வரை நடக்கும்"
+                shift_en, shift_ta = "an earlier start", "முன்னதாகத் தொடங்குவதால்"
+
+            if other_vetoed or other_score <= own:
+                if _tithi_avoided(other_family):
+                    en.append(
+                        f"{oth_en}, {when_en}, is also a tithi to avoid for {label_en}, "
+                        f"so {shift_en} does not escape the tithi."
+                    )
+                    ta.append(
+                        f"{when_ta} {oth_ta} திதியும் {label_ta} தவிர்க்கப்படும் திதியே; "
+                        f"எனவே {shift_ta} திதிக் குறை நீங்காது."
+                    )
+                else:
+                    en.append(
+                        f"{oth_en}, {when_en}, is no better for {label_en}, "
+                        f"so {shift_en} gains nothing on the tithi."
+                    )
+                    ta.append(
+                        f"{when_ta} {oth_ta} திதி {label_ta} இதைவிடச் சிறந்ததல்ல; "
+                        f"எனவே {shift_ta} திதியில் பயன் இல்லை."
+                    )
+                continue
+
+            rival = next(
+                (
+                    candidate
+                    for candidate in ranked
+                    if candidate.moment is not None
+                    and not candidate.moment.vetoed
+                    and (rival_span := tithi_span_at(snapshot, _midpoint(candidate))) is not None
+                    and rival_span.number == other.number
+                ),
+                None,
+            )
+            if rival is None:
+                en.append(
+                    f"{oth_en}, {when_en}, would suit {label_en} better, but no clear good "
+                    "Gowri period falls inside it in daylight."
+                )
+                ta.append(
+                    f"{when_ta} {oth_ta} திதி {label_ta} மேலும் உகந்தது; ஆனால் அதற்குள் பகலில் "
+                    "தடையில்லாத நல்ல கௌரி நேரம் அமையவில்லை."
+                )
+                continue
+            range_en = format_time_range(format_clock_hhmm(rival.start), format_clock_hhmm(rival.end))
+            range_ta = format_time_range(format_clock_hhmm(rival.start), format_clock_hhmm(rival.end), "ta")
+            lagna_en = lagna_ta = ""
+            rival_moment = rival.moment
+            if (
+                rival_moment is not None
+                and rival_moment.lagna_factor is not None
+                and rival_moment.lagna_factor.verdict is Verdict.PENALTY
+                and rival_moment.lagna_rasi is not None
+            ):
+                rasi = rival_moment.lagna_rasi
+                lagna_en = f": {rasi_en(rasi) or rasi} rises then, a sign to avoid for {label_en}"
+                lagna_ta = f" அப்போது உதிக்கும் {rasi_ta(rasi) or rasi} லக்னம் {label_ta} தவிர்க்கப்படுவது."
+            en.append(
+                f"{oth_en}, {when_en}, would suit {label_en} better on the tithi, but the best "
+                f"time inside it, {range_en}, ranks lower once everything else is weighed{lagna_en}."
+            )
+            ta.append(
+                f"{when_ta} {oth_ta} திதி {label_ta} மேலும் உகந்தது; ஆனால் அதற்குள் அமையும் "
+                f"சிறந்த நேரமான {range_ta}, மற்ற அம்சங்களையும் சேர்த்துப் பார்க்கும்போது "
+                f"இதைவிடக் குறைவாகவே அமைகிறது.{lagna_ta}"
+            )
+
+    if not en:
+        return None
+    return FactorResult(
+        factor="TITHI_AT_WINDOW",
+        verdict=Verdict.NEUTRAL,
+        contribution=0.0,
+        reason_en=" ".join(en),
+        reason_ta=" ".join(ta),
+        rule_id="LIMB_AT_WINDOW_DISCLOSURE",
+    )
+
+
+def _with_tithi_note(factors: Sequence[MuhurtaFactor], note: FactorResult | None) -> list[MuhurtaFactor]:
+    """Place the note directly after the tithi verdicts it explains."""
+    out = list(factors)
+    if note is None:
+        return out
+    last = max((i for i, f in enumerate(out) if f.factor in TITHI_FAMILY), default=len(out) - 1)
+    out.insert(last + 1, MuhurtaFactor.from_engine(note))
+    return out
+
+
 def _nakshatra_to_rasi(nak_number: int, pada: int = 1) -> int:
     return nakshatra_to_rasi(nak_number, pada)
 
@@ -543,8 +786,147 @@ def _transit_factors_at(
     return factors
 
 
+def _judge_moment(snapshot, activity: str, moment: datetime, lagna_schedule=None) -> _Moment:
+    """Judge one instant on the limbs that can change inside a day.
+
+    A tithi or karana the activity's text vetoes makes the moment unelectable;
+    the tithi family's contributions — and the rising sign's, when the caller
+    has the lagna schedule — are what the moment is worth on top of the day.
+    """
+    tithi = tithi_factors_at(snapshot, moment, activity)
+    vetoed = karana_avoided_at(snapshot, moment, activity) is not None
+    score = 0.0
+    if tithi is not None:
+        vetoed = vetoed or any(f.verdict is Verdict.VETO for f in tithi)
+        score += sum(f.contribution for f in tithi)
+    lagna_factor = None
+    lagna_rasi = None
+    if lagna_schedule:
+        interval = next((i for i in lagna_schedule if i.start <= moment < i.end), None)
+        if interval is not None:
+            lagna_rasi = interval.rasi_number
+            lagna_factor = lagna_sign_factor_at_window(activity, lagna_rasi)
+            if lagna_factor is not None:
+                score += lagna_factor.contribution
+    return _Moment(vetoed, score, tithi, lagna_factor, lagna_rasi)
+
+
+def _limb_boundaries(snapshot, lagna_schedule=None) -> list[datetime]:
+    """Every instant at which a moment's judgement *could* change."""
+    edges = [span.start for span in getattr(snapshot, "tithi_spans", ())]
+    edges += [span.start for span in getattr(snapshot, "karana_spans", ())]
+    if lagna_schedule:
+        edges += [interval.start for interval in lagna_schedule]
+    return sorted(set(edges))
+
+
+def _judged_pieces(
+    snapshot, activity: str, start: datetime, end: datetime, boundaries: Sequence[datetime], lagna_schedule=None,
+) -> list[tuple[datetime, datetime, _Moment]]:
+    """Cut a fragment wherever its judgement actually changes, and judge each piece.
+
+    Cutting at every boundary would shorten windows for nothing — a karana
+    change the activity has no rule about, or two tithis the text grades alike —
+    so adjacent pieces that judge the same are merged back first. What is left
+    is one piece per distinct verdict, each judged at its own midpoint (the
+    convention the lagna and planets already use). A piece too short to act on
+    is dropped, as `_daylight_fragments` drops one.
+    """
+    edges = [start, *(b for b in boundaries if start < b < end), end]
+    # [start, end, judgement, was_merged]
+    merged: list[list] = []
+    for piece_start, piece_end in zip(edges, edges[1:], strict=False):
+        judged = _judge_moment(snapshot, activity, piece_start + (piece_end - piece_start) / 2, lagna_schedule)
+        if merged and (merged[-1][2].vetoed, merged[-1][2].score) == (judged.vetoed, judged.score):
+            merged[-1][1] = piece_end
+            merged[-1][3] = True
+        else:
+            merged.append([piece_start, piece_end, judged, False])
+    pieces: list[tuple[datetime, datetime, _Moment]] = []
+    for piece_start, piece_end, judged, was_merged in merged:
+        if piece_end - piece_start < _MIN_WINDOW:
+            continue
+        if was_merged:
+            # Same verdict throughout, but the reason copy names the limb at the
+            # midpoint, which has moved.
+            judged = _judge_moment(snapshot, activity, piece_start + (piece_end - piece_start) / 2, lagna_schedule)
+        pieces.append((piece_start, piece_end, judged))
+    return pieces
+
+
+def _window_candidates(
+    snapshot, activity: str, lagna_rasi: int | None, *, couple_mode: bool = False, lagna_schedule=None,
+) -> list[_Window]:
+    """Every electable window of the day, best first. See `_best_time_window`."""
+    candidates = _clear_good_day_kalas(snapshot, activity)
+    boundaries = _limb_boundaries(snapshot, lagna_schedule)
+
+    # Which hora lords may be credited today, and which of them (if any) is a
+    # lagna lord. Three modes:
+    #
+    # * **One chart** — the activity's generic lords plus the lords of the
+    #   activity-relevant houses for that lagna, with a lagna-lord premium.
+    # * **General** — no chart at all, so no lagna- or dasha-derived hora may be
+    #   selected or described. An empty lord set leaves only the plain kalas
+    #   below, which is the location-aware almanac answer it can honestly make.
+    # * **Couple** — two charts, so no single natal lagna owns the window (owner
+    #   ruling 2026-09-12). It keeps the activity's *own* hora lords, which are a
+    #   property of the act rather than of either chart, and forgoes only the
+    #   lagna-lord premium and the lagna-derived house lords. Dropping the
+    #   activity lords too would have handed a couple the same window a signed-out
+    #   stranger gets, which is not what having two charts should buy.
+    if lagna_rasi is not None:
+        target_lords = _activity_hora_lords(activity, lagna_rasi)
+        lagna_lord: str | None = _norm(_SIGN_LORDS[lagna_rasi])
+    elif couple_mode:
+        target_lords = set(_ACTIVITY_LORDS.get(activity, set()))
+        lagna_lord = None
+    else:
+        target_lords = set()
+        lagna_lord = None
+
+    ranked: list[tuple[tuple, _Window]] = []
+
+    def _offer(start: datetime, end: datetime, kala_name: str, bonus: float, support: BiText | None) -> None:
+        for piece_start, piece_end, moment in _judged_pieces(
+            snapshot, activity, start, end, boundaries, lagna_schedule,
+        ):
+            # An unelectable moment ranks after every electable one; then what
+            # the window is worth (hora credit + the limbs in force at it); then
+            # the Gowri kala's own rank (Amirtham > Uthi > Labham > Dhanam >
+            # Sugam); then earliest.
+            key = (moment.vetoed, -(bonus + moment.score), gowri_category_rank(kala_name), piece_start)
+            ranked.append((key, _Window(piece_start, piece_end, bonus, support, moment)))
+
+    for entry in snapshot.hora:
+        lord = _norm(entry.lord)
+        if lord not in target_lords:
+            continue
+        is_lagna_lord = lagna_lord is not None and lord == lagna_lord
+        bonus = 13.0 if is_lagna_lord else 8.0
+        for kala in candidates:
+            for start, end in _daylight_fragments(
+                snapshot,
+                max(entry.start, kala.start),
+                min(entry.end, kala.end),
+            ):
+                _offer(start, end, kala.name, bonus, _hora_support_text(lord, is_lagna_lord, entry, kala.name))
+    # The clear good kalas themselves, uncredited. They compete in the same
+    # ranking rather than serving only as a fallback: a hora is worth 8-13
+    # points, the tithi in force can be worth more than twice that, and a hora
+    # window inside an avoided tithi must not beat a plain one inside a
+    # favoured tithi. Where the limbs judge alike, any hora window still wins,
+    # exactly as before.
+    for kala in candidates:
+        for start, end in _daylight_fragments(snapshot, kala.start, kala.end):
+            _offer(start, end, kala.name, 0.0, None)
+
+    ranked.sort(key=lambda item: item[0])
+    return [window for _, window in ranked]
+
+
 def _best_time_window(
-    snapshot, activity: str, lagna_rasi: int | None, *, couple_mode: bool = False,
+    snapshot, activity: str, lagna_rasi: int | None, *, couple_mode: bool = False, lagna_schedule=None,
 ) -> _Window:
     """Pick the day's recommended window, and the hora bonus that goes with it.
 
@@ -572,83 +954,42 @@ def _best_time_window(
     windows is a product decision that needs the astrologer, and ranking a night
     window has walked us into the small hours once already (see
     `_compute_gowri_nalla_neram`).
+
+    **D4 — the window is elected on the limbs in force at it** (2026-10-13).
+    The day was scored on its sunrise tithi while the window could sit hours
+    later in another, so a slot could be recommended inside a tithi its own
+    activity's text vetoes (40 such windows in six months at Tiruppur). Every
+    candidate is now cut wherever the tithi or an excluded karana changes its
+    judgement, and ranked on hora credit *plus* what the moment itself is worth;
+    a vetoed moment is never preferred to an electable one. With
+    `lagna_schedule` — only the shortlist has one, since it is expensive — the
+    rising sign at each piece joins the same sum, so the returned window is the
+    best joint answer over hora, Gowri kala, tithi and lagna, not a window
+    chosen on one of them and then charged for the others.
     """
-    candidates = _clear_good_day_kalas(snapshot, activity)
+    ranked = _window_candidates(
+        snapshot, activity, lagna_rasi, couple_mode=couple_mode, lagna_schedule=lagna_schedule,
+    )
+    if ranked:
+        return ranked[0]
 
-    # Which hora lords may be credited today, and which of them (if any) is a
-    # lagna lord. Three modes:
-    #
-    # * **One chart** — the activity's generic lords plus the lords of the
-    #   activity-relevant houses for that lagna, with a lagna-lord premium.
-    # * **General** — no chart at all, so no lagna- or dasha-derived hora may be
-    #   selected or described. An empty lord set leaves the loop below with
-    #   nothing to match, and the day falls through to the shared fallback: the
-    #   strongest clear daytime Gowri kala, which is the location-aware almanac
-    #   answer it can honestly make.
-    # * **Couple** — two charts, so no single natal lagna owns the window (owner
-    #   ruling 2026-09-12). It keeps the activity's *own* hora lords, which are a
-    #   property of the act rather than of either chart, and forgoes only the
-    #   lagna-lord premium and the lagna-derived house lords. Dropping the
-    #   activity lords too would have handed a couple the same window a signed-out
-    #   stranger gets, which is not what having two charts should buy.
-    if lagna_rasi is not None:
-        target_lords = _activity_hora_lords(activity, lagna_rasi)
-        lagna_lord: str | None = _norm(_SIGN_LORDS[lagna_rasi])
-    elif couple_mode:
-        target_lords = set(_ACTIVITY_LORDS.get(activity, set()))
-        lagna_lord = None
-    else:
-        target_lords = set()
-        lagna_lord = None
-
-    best_key: tuple | None = None
-    best: _Window | None = None
-    for entry in snapshot.hora:
-        lord = _norm(entry.lord)
-        if lord not in target_lords:
-            continue
-        is_lagna_lord = lagna_lord is not None and lord == lagna_lord
-        bonus = 13.0 if is_lagna_lord else 8.0
-        for kala in candidates:
-            for start, end in _daylight_fragments(
-                snapshot,
-                max(entry.start, kala.start),
-                min(entry.end, kala.end),
-            ):
-                # Lagna-lord hora first, then the Gowri kala's own rank
-                # (Amirtham > Uthi > Labham > Dhanam > Sugam), then earliest.
-                key = (-bonus, gowri_category_rank(kala.name), start)
-                if best_key is None or key < best_key:
-                    best_key = key
-                    best = _Window(start, end, bonus, _hora_support_text(lord, is_lagna_lord, entry, kala.name))
-
-    if best is not None:
-        return best
-
-    # No favoured hora meets a clear good kala today: fall back to the best-ranked
-    # clear good kala and name no hora, rather than crediting one we cannot use.
-    candidate_fragments = [
-        (kala, start, end)
-        for kala in candidates
-        for start, end in _daylight_fragments(snapshot, kala.start, kala.end)
-    ]
-    if candidate_fragments:
-        kala, start, end = min(
-            candidate_fragments,
-            key=lambda item: (gowri_category_rank(item[0].name), item[1]),
-        )
-        return _Window(start, end, 0.0, None)
+    # No clear good kala survives today. These fallbacks are not ranked on the
+    # limbs — there is nothing to choose between — but they are still judged,
+    # so the day's tithi is re-read at the moment actually returned.
+    def _judged(start: datetime, end: datetime) -> _Window:
+        return _Window(start, end, 0.0, None, _judge_moment(snapshot, activity, start + (end - start) / 2, lagna_schedule))
 
     fallback = best_gowri_slot(snapshot.nalla_neram)
     if fallback is not None:
         fragment = _best_fragment(snapshot, fallback.start, fallback.end)
         if fragment is not None:
-            return _Window(*fragment, 0.0, None)
+            return _judged(*fragment)
 
     fragment = _best_fragment(snapshot, snapshot.abhijit_start, snapshot.abhijit_end)
     if fragment is not None:
-        return _Window(*fragment, 0.0, None)
-    return _Window(snapshot.sunrise + _SANDHYA_DURATION, snapshot.sunrise + _SANDHYA_DURATION, 0.0, None)
+        return _judged(*fragment)
+    start = snapshot.sunrise + _SANDHYA_DURATION
+    return _judged(start, start)
 
 
 def _overlaps(start_a: datetime, end_a: datetime, start_b: datetime, end_b: datetime) -> bool:
@@ -1098,6 +1439,168 @@ def find_best_muhurta_slots(
     # to avoid a per-day cache SELECT+DELETE (see calculate_daily_panchangam_range).
     snapshots_by_date = calculate_daily_panchangam_range(date_from, date_to, lat, lon, tz_name, session=session)
 
+    def _score_candidate(snap, on_day: date, window: _Window | None = None) -> _ScoredDay | None:
+        """One day's candidate slot, or None when the day cannot be offered.
+
+        One scorer, all layers: the generic almanac, the per-activity rules
+        sourced from the classical text (Kalaprakasika Ch. XIV for MARRIAGE),
+        and the personal Tara Bala / Chandra Bala factors when a subject exists.
+        A vetoed day is dropped outright — Chandrashtama is not compensable by
+        an excellent almanac, so it must not merely lose points and stay
+        rankable. The selected-window lagna is calculated only for the shortlist
+        below; a sunrise lagna would be cheaper but falsely claims the sign at
+        the recommended clock time.
+
+        `window` lets the shortlist rebuild a candidate around a window
+        re-elected with the lagna schedule. Every layer here reads the window —
+        hora credit, transit factors, kalam overlaps, the tithi verdicts — so
+        rebuilding is the only way none of them is left describing the old one.
+        """
+        day = score_day(snap, activity, subject, co_subject=co_subject, include_lagna_sign=False)
+        # A veto that is not about the tithi cannot be escaped by moving the
+        # clock, so such a day is dropped before any window work is spent on it.
+        if not include_excluded and any(
+            f.verdict is Verdict.VETO and f.factor not in TITHI_FAMILY for f in day.factors
+        ):
+            return None
+        # Window + hora bonus — chosen together so the returned time always
+        # falls inside the hora its own reason names (D1), and elected on the
+        # tithi in force at it (D4).
+        if window is None:
+            window = _best_time_window(snap, activity, lagna_rasi, couple_mode=co_subject is not None)
+        # The tithi verdicts follow the window, not sunrise (D4). This is what
+        # rescues a day whose sunrise tithi is vetoed but whose clear window is
+        # not, and what drops a day whose only clear window is.
+        day = _rejudged_at_window(day, window)
+        if day.vetoed and not include_excluded:
+            return None
+        day_score = day.score
+        pan_support = _panchangam_support(day)
+        cautions = [
+            _t(f.reason_ta, f.reason_en)
+            for f in day.factors
+            if f.verdict is Verdict.PENALTY
+        ]
+
+        # Dasha bonus. For a couple the same ruling governs as the rest of the
+        # personal layer — the weaker side decides — so the credit is earned
+        # only when a favourable lord is running for *both*. One partner's
+        # supportive dasha is not a reason to marry into the other's indifferent
+        # one, and crediting it would be the averaging behaviour the ruling
+        # rejected, arriving by a side door.
+        if _dasha_supports(maha_lord, antar_lord, activity) and (
+            co_subject is None or _dasha_supports(co_maha_lord, co_antar_lord, activity)
+        ):
+            day_score += 10
+        day_score += window.hora_bonus
+        slot_start, slot_end = window.start, window.end
+        t_start, t_end = format_clock_hhmm(slot_start), format_clock_hhmm(slot_end)
+        slot_cautions = list(cautions)
+        slot_factors = [MuhurtaFactor.from_engine(f) for f in day.factors]
+
+        # A5 — the wealth karakas' condition on this day. Evaluated for every
+        # candidate, not just the shortlist, because combustion runs for weeks:
+        # a range that straddles the end of சுக்ர மௌட்யம் must be able to rank
+        # the clear days above the hidden ones, which a top-N-only check could
+        # never do. Measured at 0.5 ms per call, so 60 days costs ~32 ms of a
+        # 1.5 s budget.
+        for transit_factor in _transit_factors_at(activity, slot_start, slot_end, on_day, subjects):
+            day_score += transit_factor.contribution
+            slot_factors.append(MuhurtaFactor.from_engine(transit_factor))
+            # Only a penalty is a caution. The karaka factors were all
+            # penalties when this loop was written, so the append was
+            # unconditional; the bride's Jupiter gochara also reports the clear
+            # case, and filing "Jupiter is clear of the adverse houses" under
+            # cautions would invert what it says.
+            if transit_factor.verdict is Verdict.PENALTY:
+                slot_cautions.append(_t(transit_factor.reason_ta, transit_factor.reason_en))
+        # Capped once, after every additive layer. The karaka penalties are
+        # negative-only, so moving the cap below them cannot raise a capped day
+        # — it just stops the cap being applied twice.
+        day_score = _apply_tara_display_cap(day_score, snap, subjects)
+        for band, band_ta, band_en in (
+            (snap.rahu_kalam, "ராகு காலம்", "Rahu Kalam"),
+            (snap.yamagandam, "யமகண்டம்", "Yamagandam"),
+            (snap.kuligai, "குளிகை", "Kuligai"),
+        ):
+            if band is None or not _overlaps(slot_start, slot_end, band.start, band.end):
+                continue
+            # EC-RULING-07: Kuligai is not adverse in itself — it repeats
+            # whatever is begun in it, so its sign follows the activity. An
+            # overlap is always *named* (a reader checking against a printed
+            # almanac needs to see it), but only an activity nobody wants
+            # repeated gets the penalty sentence.
+            if band is snap.kuligai and not kuligai_rejects(activity):
+                if kuligai_favours(activity):
+                    reason = _t(
+                        "குளிகை இந்த நேரத்துடன் ஒட்டுகிறது — குளிகையில் "
+                        "தொடங்கியது மீண்டும் மீண்டும் நிகழும், எனவே இச்செயலுக்கு "
+                        "இது உகந்த நேரம்",
+                        "Kuligai overlaps this slot, which favours this activity: "
+                        "what is begun in Kuligai recurs, and for this activity "
+                        "recurrence is the point.",
+                    )
+                    # Named as a bonus, not priced. The window scorer does not
+                    # yet carry a Kuligai term, and inventing a weight here
+                    # would put a number in the response that no scorer agrees
+                    # with.
+                    slot_factors.append(MuhurtaFactor(
+                        factor="WINDOW_KULIGAI_FAVOURABLE",
+                        verdict="BONUS",
+                        contribution=0.0,
+                        reason=reason,
+                    ))
+                    continue
+                reason = _t(
+                    "குளிகை இந்த நேரத்துடன் ஒட்டுகிறது — குளிகையில் தொடங்கியது "
+                    "மீண்டும் நிகழும்; இச்செயலுக்கான தரவரிசை இன்னும் "
+                    "உறுதி செய்யப்படவில்லை",
+                    "Kuligai overlaps this slot. What is begun in Kuligai recurs, "
+                    "and no ruling for this activity has been recorded yet.",
+                )
+                slot_cautions.append(reason)
+                slot_factors.append(MuhurtaFactor(
+                    factor="WINDOW_KULIGAI_OVERLAP",
+                    verdict="NEUTRAL",
+                    contribution=0.0,
+                    reason=reason,
+                ))
+                continue
+            reason = _t(
+                f"{band_ta} இந்த நேரத்துடன் ஒட்டுகிறது",
+                f"{band_en} overlaps this slot",
+            )
+            slot_cautions.append(reason)
+            # Reported as a factor too, so `factors` stays a superset of
+            # `cautions` and a UI need only render one list.
+            #
+            # Contribution is 0.0 on purpose, and that is a gap, not a judgement
+            # that it does not matter: `_best_time_window` already refuses any
+            # kala a band touches, so this can only fire on the
+            # Abhijit/Nalla-Neram fallback path — and what an overlap should
+            # cost there (§6.3 argues for a veto) is an unanswered doctrine
+            # question. It is named rather than priced until that is settled.
+            slot_factors.append(MuhurtaFactor(
+                factor="WINDOW_KALAM_OVERLAP",
+                verdict="PENALTY",
+                contribution=0.0,
+                reason=reason,
+            ))
+        return _ScoredDay(
+            score=day_score,
+            day=on_day,
+            time_start=t_start,
+            time_end=t_end,
+            panchangam_support=pan_support,
+            hora_support=window.hora_support,
+            cautions=slot_cautions,
+            factors=slot_factors,
+            snapshot=snap,
+            window_start=slot_start,
+            window_end=slot_end,
+            recommended=not day.vetoed,
+        )
+
     scored_days: list[_ScoredDay] = []
     current = date_from
     while current <= date_to:
@@ -1113,150 +1616,12 @@ def find_best_muhurta_slots(
             if almanac_only and muhurtham_naal_on(current) is None:
                 current += timedelta(days=1)
                 continue
-            # One scorer, all layers: the generic almanac, the per-activity
-            # rules sourced from the classical text (Kalaprakasika Ch. XIV for
-            # MARRIAGE today), and the personal Tara Bala / Chandra Bala factors
-            # when a subject exists. A vetoed day is dropped outright —
-            # Chandrashtama is not compensable by an excellent almanac, so it
-            # must not merely lose points and stay rankable.
-            # The selected-window lagna is calculated only for the top five
-            # candidates below.  A sunrise lagna would be cheaper but falsely
-            # claims the sign at the recommended clock time.
-            day = score_day(snap, activity, subject, co_subject=co_subject, include_lagna_sign=False)
             # A vetoed day is never a candidate. `continue` would be wrong here —
             # the loop counter advances at the bottom of the while body, outside
             # this try, so skipping the rest must not skip the increment.
-            if not day.vetoed or include_excluded:
-                day_score = day.score
-                pan_support = _panchangam_support(day)
-                cautions = [
-                    _t(f.reason_ta, f.reason_en)
-                    for f in day.factors
-                    if f.verdict is Verdict.PENALTY
-                ]
-
-                # Dasha bonus. For a couple the same ruling governs as the rest
-                # of the personal layer — the weaker side decides — so the credit
-                # is earned only when a favourable lord is running for *both*.
-                # One partner's supportive dasha is not a reason to marry into
-                # the other's indifferent one, and crediting it would be the
-                # averaging behaviour the ruling rejected, arriving by a side door.
-                if _dasha_supports(maha_lord, antar_lord, activity) and (
-                    co_subject is None or _dasha_supports(co_maha_lord, co_antar_lord, activity)
-                ):
-                    day_score += 10
-                # Window + hora bonus — the two are chosen together so the returned
-                # time always falls inside the hora its own reason names (D1).
-                window = _best_time_window(snap, activity, lagna_rasi, couple_mode=co_subject is not None)
-                day_score += window.hora_bonus
-                slot_start, slot_end = window.start, window.end
-                t_start, t_end = format_clock_hhmm(slot_start), format_clock_hhmm(slot_end)
-                slot_cautions = list(cautions)
-                slot_factors = [MuhurtaFactor.from_engine(f) for f in day.factors]
-
-                # A5 — the wealth karakas' condition on this day. Evaluated for
-                # every candidate, not just the shortlist, because combustion
-                # runs for weeks: a range that straddles the end of சுக்ர
-                # மௌட்யம் must be able to rank the clear days above the hidden
-                # ones, which a top-N-only check could never do. Measured at
-                # 0.5 ms per call, so 60 days costs ~32 ms of a 1.5 s budget.
-                for transit_factor in _transit_factors_at(activity, slot_start, slot_end, current, subjects):
-                    day_score += transit_factor.contribution
-                    slot_factors.append(MuhurtaFactor.from_engine(transit_factor))
-                    # Only a penalty is a caution. The karaka factors were all
-                    # penalties when this loop was written, so the append was
-                    # unconditional; the bride's Jupiter gochara also reports the
-                    # clear case, and filing "Jupiter is clear of the adverse
-                    # houses" under cautions would invert what it says.
-                    if transit_factor.verdict is Verdict.PENALTY:
-                        slot_cautions.append(_t(transit_factor.reason_ta, transit_factor.reason_en))
-                # Capped once, after every additive layer. The karaka penalties
-                # are negative-only, so moving the cap below them cannot raise a
-                # capped day — it just stops the cap being applied twice.
-                day_score = _apply_tara_display_cap(day_score, snap, subjects)
-                for band, band_ta, band_en in (
-                    (snap.rahu_kalam, "ராகு காலம்", "Rahu Kalam"),
-                    (snap.yamagandam, "யமகண்டம்", "Yamagandam"),
-                    (snap.kuligai, "குளிகை", "Kuligai"),
-                ):
-                    if band is None or not _overlaps(slot_start, slot_end, band.start, band.end):
-                        continue
-                    # EC-RULING-07: Kuligai is not adverse in itself — it repeats
-                    # whatever is begun in it, so its sign follows the activity.
-                    # An overlap is always *named* (a reader checking against a
-                    # printed almanac needs to see it), but only an activity
-                    # nobody wants repeated gets the penalty sentence.
-                    if band is snap.kuligai and not kuligai_rejects(activity):
-                        if kuligai_favours(activity):
-                            reason = _t(
-                                "குளிகை இந்த நேரத்துடன் ஒட்டுகிறது — குளிகையில் "
-                                "தொடங்கியது மீண்டும் மீண்டும் நிகழும், எனவே இச்செயலுக்கு "
-                                "இது உகந்த நேரம்",
-                                "Kuligai overlaps this slot, which favours this activity: "
-                                "what is begun in Kuligai recurs, and for this activity "
-                                "recurrence is the point.",
-                            )
-                            # Named as a bonus, not priced. The window scorer does
-                            # not yet carry a Kuligai term, and inventing a weight
-                            # here would put a number in the response that no
-                            # scorer agrees with.
-                            slot_factors.append(MuhurtaFactor(
-                                factor="WINDOW_KULIGAI_FAVOURABLE",
-                                verdict="BONUS",
-                                contribution=0.0,
-                                reason=reason,
-                            ))
-                            continue
-                        reason = _t(
-                            "குளிகை இந்த நேரத்துடன் ஒட்டுகிறது — குளிகையில் தொடங்கியது "
-                            "மீண்டும் நிகழும்; இச்செயலுக்கான தரவரிசை இன்னும் "
-                            "உறுதி செய்யப்படவில்லை",
-                            "Kuligai overlaps this slot. What is begun in Kuligai recurs, "
-                            "and no ruling for this activity has been recorded yet.",
-                        )
-                        slot_cautions.append(reason)
-                        slot_factors.append(MuhurtaFactor(
-                            factor="WINDOW_KULIGAI_OVERLAP",
-                            verdict="NEUTRAL",
-                            contribution=0.0,
-                            reason=reason,
-                        ))
-                        continue
-                    reason = _t(
-                        f"{band_ta} இந்த நேரத்துடன் ஒட்டுகிறது",
-                        f"{band_en} overlaps this slot",
-                    )
-                    slot_cautions.append(reason)
-                    # Reported as a factor too, so `factors` stays a superset of
-                    # `cautions` and a UI need only render one list.
-                    #
-                    # Contribution is 0.0 on purpose, and that is a gap, not a
-                    # judgement that it does not matter: `_best_time_window`
-                    # already refuses any kala a band touches, so this can only
-                    # fire on the Abhijit/Nalla-Neram fallback path — and what an
-                    # overlap should cost there (§6.3 argues for a veto) is an
-                    # unanswered doctrine question. It is named rather than
-                    # priced until that is settled.
-                    slot_factors.append(MuhurtaFactor(
-                        factor="WINDOW_KALAM_OVERLAP",
-                        verdict="PENALTY",
-                        contribution=0.0,
-                        reason=reason,
-                    ))
-                scored_days.append(_ScoredDay(
-                    score=day_score,
-                    day=current,
-                    time_start=t_start,
-                    time_end=t_end,
-                    panchangam_support=pan_support,
-                    hora_support=window.hora_support,
-                    cautions=slot_cautions,
-                    factors=slot_factors,
-                    snapshot=snap,
-                    window_start=slot_start,
-                    window_end=slot_end,
-                    recommended=not day.vetoed,
-                ))
+            candidate = _score_candidate(snap, current)
+            if candidate is not None:
+                scored_days.append(candidate)
         except Exception as exc:
             logger.debug("Muhurta score failed for %s: %s", current, exc)
         current += timedelta(days=1)
@@ -1268,6 +1633,47 @@ def find_best_muhurta_slots(
     enriched_top: list[_ScoredDay] = []
     for candidate in top:
         snapshot_with_schedule = with_daylight_lagna_schedule(candidate.snapshot, session=session)
+
+        # Re-elect with the rising sign in the sum (D4). The scan above chose
+        # this window blind to the lagna because the schedule is too expensive
+        # for every day; it is known now, so the window shown is the best joint
+        # answer over hora, Gowri kala, tithi and lagna rather than one chosen on
+        # three of them and then charged for the fourth. When the election
+        # moves, the candidate is rebuilt around the new window so no layer is
+        # left describing the old one.
+        ranked = _window_candidates(
+            snapshot_with_schedule, activity, lagna_rasi,
+            couple_mode=co_subject is not None,
+            lagna_schedule=snapshot_with_schedule.lagna_schedule,
+        )
+        if ranked and (ranked[0].start, ranked[0].end) != (candidate.window_start, candidate.window_end):
+            try:
+                rebuilt = _score_candidate(snapshot_with_schedule, candidate.day, ranked[0])
+            except Exception as exc:
+                logger.debug("Muhurta re-election failed for %s: %s", candidate.day, exc)
+                rebuilt = None
+            if rebuilt is not None:
+                candidate = rebuilt
+        elected = next(
+            (w for w in ranked if (w.start, w.end) == (candidate.window_start, candidate.window_end)),
+            None,
+        )
+        if elected is None:
+            # A fallback window (no clear good kala) is not among the ranked
+            # pieces; judge it where it stands so it still gets its note.
+            elected = _Window(
+                candidate.window_start, candidate.window_end, 0.0, None,
+                _judge_moment(
+                    snapshot_with_schedule, activity,
+                    candidate.window_start + (candidate.window_end - candidate.window_start) / 2,
+                    snapshot_with_schedule.lagna_schedule,
+                ),
+            )
+        candidate = candidate._replace(factors=_with_tithi_note(
+            candidate.factors,
+            _tithi_window_note(snapshot_with_schedule, activity, elected, ranked),
+        ))
+
         midpoint = candidate.window_start + (candidate.window_end - candidate.window_start) / 2
         lagna_window = next(
             (
