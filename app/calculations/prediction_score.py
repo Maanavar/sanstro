@@ -82,6 +82,15 @@ class PredictionScoreResult:
 # reasoning. The unsegmented value stays 4 exactly, so a caller that has not
 # been updated scores identically to before, and 4 still sits between the
 # phases rather than outside them.
+#
+# **These three numbers are Vinaadi's interpretive model, not scriptural values**
+# (ruled 2026-10-13). What tradition supplies is the *ordering* — ஜென்ம சனி is the
+# heaviest phase of ஏழரை சனி, which every Tamil rasi-palan column reads that way,
+# and which `test_sade_sati.py::test_janma_sani_is_the_heaviest_phase_everywhere_
+# in_it` pins. The magnitudes 6 / 4 / 3 are this engine's own weighting and no
+# text has been produced for them. Do not cite them as classical in copy, in docs
+# or in a future ruling request, and do not treat the ordering test as evidence
+# for the spacing: it would pass for 6/5/4 or 9/4/2 equally.
 _SADE_SATI_PENALTY_BY_SEVERITY: dict[str, int] = {
     "VIRAYA": 4,
     "JANMA": 6,

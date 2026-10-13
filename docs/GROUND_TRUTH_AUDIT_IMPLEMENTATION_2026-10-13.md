@@ -10,6 +10,18 @@ defect whose obvious fix is measurably wrong. Closing them as "done" because
 this file exists would be the exact failure CLAUDE.md records under *a stale
 conclusion outlives its check*.
 
+> **ANSWERED, same day.** All seven ruling questions in §2 — and Karinaal, the
+> Sade Sati weights, the localisation ratchet, the festival lunar month and the
+> composite rungs in §4 — were ruled on by the astrologer on 2026-10-13. Read
+> [`ASTROLOGER_RULINGS_2026-10-13.md`](ASTROLOGER_RULINGS_2026-10-13.md) **before**
+> acting on anything below it; four of this file's own conclusions were corrected
+> there, including F-ASV-01 (not a choice between two texts — a transcription
+> error, now fixed), Karthigai 7 (removal reverted) and the eka-nakshatra star
+> list (this file's list differs from the astrologer's on two stars, so neither
+> may be encoded). Most rulings approve a *mechanism* and withhold its *table*;
+> §2 below is still the right description of the code's behaviour, but it is no
+> longer the state of the question.
+
 ---
 
 ## 1. Changed

@@ -538,6 +538,96 @@ def _rasi_score(rasi_boy: int, rasi_girl: int) -> int:
     return 1
 
 
+# ── F-POR-02 — ஷஷ்டாஷ்டகம், both orientations (ruled 2026-10-13) ───────────
+#
+# The two inclusive counts between two different signs always sum to 14, so a
+# girl->boy count of 6 is a boy->girl count of 8 and vice versa. The set {6, 8}
+# is therefore closed under the swap, and testing **one** direction tests both.
+# Written down because "detect it in either orientation" reads like it needs two
+# tests, and the second one cannot fire — a future reader adding it would be
+# adding dead branch, which is how `RASI_EXCEPTION_GAP` above got its name.
+_SHASHTASHTAKA_COUNTS = frozenset({6, 8})
+
+_SHASHTASHTAKA_LABEL_EN = "Shashtashtaka (6/8) — further examination advised"
+_SHASHTASHTAKA_LABEL_TA = "ஷஷ்டாஷ்டகக் குறை — மேலாய்வு தேவை"
+
+# Tamil copy verbatim from the 2026-10-13 ruling. Do not paraphrase it: it was
+# supplied as the approved wording, and it already carries the advisory voice the
+# standing directive requires (it advises an examination, it does not decide).
+_SHASHTASHTAKA_NOTE_TA = (
+    "இருவரின் ராசிகளும் ஆறு–எட்டு (ஷஷ்டாஷ்டகம்) தொடர்பில் அமைந்துள்ளன. தமிழகத் "
+    "திருமணப் பொருத்த மரபில் இது கவனிக்க வேண்டிய அமைப்பாகக் கருதப்படுகிறது. முழு "
+    "ஜாதகத்தில் ஏழாம் பாவம், அதன் அதிபதி, சுக்கிரன், செவ்வாய் நிலை மற்றும் பிற "
+    "பொருத்தங்களையும் சேர்த்துப் பரிசீலிக்க வேண்டும்."
+)
+_SHASHTASHTAKA_NOTE_EN = (
+    "The two Moon signs stand in a six–eight (Shashtashtaka) relation. Tamil "
+    "marriage-matching practice treats this as an arrangement to be looked at "
+    "closely. It should be considered alongside the seventh house and its lord, "
+    "the positions of Venus and Mars, and the other poruthams, in both full "
+    "horoscopes."
+)
+
+
+def shashtashtaka_relation(boy_rasi: int, girl_rasi: int) -> ShashtashtakaNote:
+    """ஷஷ்டாஷ்டகம் between the Moon signs, detected in either orientation.
+
+    **This is additive disclosure and changes no number.** It does not touch
+    `_rasi_score`, the ten kuta scores, `total_score`, the band label or the
+    Rajju/Vedha veto. That restraint is the ruling, not an implementation
+    convenience; three parts of it say so:
+
+    * *"Do not silently give it a full pass."* — hence the note.
+    * *"Do not automatically equate it with complete marriage rejection."* —
+      hence not a fail and not a veto.
+    * *"Retain the existing Kalaprakasika directional result as a separately
+      identified textual interpretation until the actual page is re-examined."*
+      — hence `_rasi_score` is untouched and `directional_pass` records what it
+      said. The ruling is explicit that it *"cannot definitively overturn your
+      earlier page-74 ruling without seeing that passage itself"*, and that this
+      is *"a Tamil-practice compatibility safeguard, not a claim that
+      Kalaprakasika has been mistranslated"*. A change to `_rasi_score` here
+      would overturn EC-RULING-01 by implication.
+
+    **The silent-pass population is larger than the audit assumed.** 24 of the
+    144 rasi combinations are Shashtashtaka — 12 at count 6, 12 at count 8 — and
+    measured over all 144, **18 of the 24 still pass Rasi today**:
+
+    ====================  =========  =========  ===============================
+    girl->boy count       passes     fails      why
+    ====================  =========  =========  ===============================
+    8                     12         0          outside `_RASI_ADVERSE_COUNTS`
+    6                     6          6          adverse, but the **enumerated
+                                                exception pairs** (A-5,
+                                                p.74) lift half of them
+    ====================  =========  =========  ===============================
+
+    So the audit's framing — "the 8th passes" — understated it. Count 6 is
+    adverse *in general* and is still lifted to a full pass for six pairings by
+    `_rasi_exception_lifts`, which was approved on a different question
+    (restoring missing passes) and had no reason to consider Shashtashtaka. Both
+    halves therefore need the note, and 18/144 is the population carrying the
+    "your app says pass, my jothidar says fail" exposure.
+
+    Same-sign couples (count 1) are not Shashtashtaka and are routed out, in
+    keeping with `_rasi_score` treating count 1 as its own rule.
+    """
+    count_girl_to_boy = _inclusive_rasi_count(girl_rasi, boy_rasi)
+    count_boy_to_girl = _inclusive_rasi_count(boy_rasi, girl_rasi)
+    present = count_girl_to_boy in _SHASHTASHTAKA_COUNTS
+
+    return ShashtashtakaNote(
+        present=present,
+        count_girl_to_boy=count_girl_to_boy,
+        count_boy_to_girl=count_boy_to_girl,
+        directional_pass=_rasi_score(boy_rasi, girl_rasi) == 1,
+        label_en=_SHASHTASHTAKA_LABEL_EN if present else "",
+        label_ta=_SHASHTASHTAKA_LABEL_TA if present else "",
+        note_en=_SHASHTASHTAKA_NOTE_EN if present else "",
+        note_ta=_SHASHTASHTAKA_NOTE_TA if present else "",
+    )
+
+
 def _graha_maitri_kuta(rasi_boy: int, rasi_girl: int) -> int:
     """Rasiyathipathi: FAIL if either rasi lord considers the other an enemy."""
     lb = SIGN_LORD[rasi_boy]
@@ -630,6 +720,28 @@ class KutaResult:
 
 
 @dataclass(frozen=True, slots=True)
+class ShashtashtakaNote:
+    """ஷஷ்டாஷ்டகம் (6/8) between the two Moon signs, in **either** orientation.
+
+    A disclosure, never a verdict. `present` does not reduce a score, flip a
+    label, or add a veto — see `shashtashtaka_relation` for why the ruling draws
+    that line, and `directional_pass` for the case it exists to catch.
+    """
+
+    present: bool
+    count_girl_to_boy: int
+    count_boy_to_girl: int
+    #: What the retained Kalaprakasika directional rule said on its own. When
+    #: `present and directional_pass` the couple is being passed on Rasi while
+    #: standing in a 6/8 relation — the exposure the 2026-10-13 ruling is about.
+    directional_pass: bool
+    label_en: str
+    label_ta: str
+    note_en: str
+    note_ta: str
+
+
+@dataclass(frozen=True, slots=True)
 class PorutthamResult:
     kutas: list[KutaResult]
     total_score: float  # 0–10, in halves (a .5 can only come from a madhyama)
@@ -641,6 +753,10 @@ class PorutthamResult:
     nadi_dosha: dict[str, object]
     summary_en: str
     summary_ta: str
+    #: F-POR-02. Disclosure only — it is deliberately NOT folded into
+    #: `total_score`, `label` or the veto. A consumer that renders it must render
+    #: it as a note beside the Rasi row, not as a verdict.
+    shashtashtaka: ShashtashtakaNote
 
 
 # ---------------------------------------------------------------------------
@@ -1092,4 +1208,5 @@ def compute_porutham(
         nadi_dosha=nadi_dosha,
         summary_en=summary_en,
         summary_ta=summary_ta,
+        shashtashtaka=shashtashtaka_relation(boy_rasi, girl_rasi),
     )

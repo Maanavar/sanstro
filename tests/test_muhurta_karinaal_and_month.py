@@ -63,10 +63,18 @@ def test_every_derived_date_lands_on_its_rule_day(year: int) -> None:
 
 
 def test_the_two_2026_corrections_the_audit_found() -> None:
-    """Margazhi 11 was missing from the hand list; Karthigai 7 was on it and
-    is not on the standard rule."""
+    """Margazhi 11 was missing from the hand list, and is now present — the
+    2026-10-13 ruling confirmed it against published tables.
+
+    Karthigai 7 was the audit's other correction and the ruling **reverted it**:
+    published Karthigai lists disagree on day 7, so it must not be dropped on the
+    strength of our derived table alone. Karinaal is an avoid-day, so the
+    fail-safe direction is to keep showing it. This assertion was
+    `assert not is_karinaal(...)` until that ruling; it is flipped deliberately,
+    not relaxed, and it must not be flipped back without a printed almanac.
+    """
     assert is_karinaal(date(2026, 12, 26)), "Margazhi 11 — absent from the hand list"
-    assert not is_karinaal(date(2026, 11, 23)), "Karthigai 7 — not a standard Karinaal"
+    assert is_karinaal(date(2026, 11, 23)), "Karthigai 7 — restored, disputed, fail-safe"
 
 
 def test_karinaal_reaches_the_muhurta_picker() -> None:

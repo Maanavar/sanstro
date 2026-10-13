@@ -24,7 +24,10 @@ exactly, and the differences are the point:
 * `Margazhi 11` (2026-12-26) was **missing** from the hand list — it is on the
   standard rule and is now shown.
 * `Karthigai 7` (2026-11-23) was **in** the hand list and is **not** on the
-  standard rule — it is now absent.
+  standard rule. It was removed here, and the 2026-10-13 astrologer ruling
+  **reverted that**: published Karthigai lists disagree on day 7, so it must not
+  be dropped on the strength of this table alone. It is present, and it is the
+  one cell still disputed.
 * The five Thai rows move one civil day earlier (Thai 1 is Pongal, the Makara
   sankranti day), because the hand list's Thai dates were keyed one day late
   against this engine's month start.
@@ -55,7 +58,8 @@ KARINAAL_REFERENCE_LAT = 13.0827
 KARINAAL_REFERENCE_LON = 80.2707
 
 # month index (0 == Chithirai, matching TAMIL_MONTHS) -> Karinaal days of that
-# Tamil solar month. 34 days across the year.
+# Tamil solar month. 35 days across the year (34 before Karthigai 7 was
+# restored by the 2026-10-13 ruling — see the note on that row).
 KARINAAL_TAMIL_DAYS: dict[int, frozenset[int]] = {
     0:  frozenset({6, 15}),          # Chithirai
     1:  frozenset({7, 16, 17}),      # Vaikasi
@@ -64,7 +68,15 @@ KARINAAL_TAMIL_DAYS: dict[int, frozenset[int]] = {
     4:  frozenset({2, 9, 28}),       # Aavani
     5:  frozenset({16, 29}),         # Purattasi
     6:  frozenset({6, 20}),          # Aippasi
-    7:  frozenset({1, 10, 17}),      # Karthigai
+    # Karthigai 7 is RESTORED (ruled 2026-10-13). Deriving from the standard rule
+    # dropped it and this module removed it; the astrologer's answer is that
+    # published Karthigai lists disagree — some carry day 7, others do not — so it
+    # must not be removed on the strength of this table alone. Karinaal is an
+    # avoid-day, so the fail-safe direction is to keep showing it and let the
+    # printed almanac remove it, not the reverse. Margazhi {6, 9, 11} and
+    # Thai {1, 2, 3, 11, 17} were separately confirmed against published tables in
+    # the same ruling; this is the only cell still disputed.
+    7:  frozenset({1, 7, 10, 17}),   # Karthigai (7 disputed - see above)
     8:  frozenset({6, 9, 11}),       # Margazhi
     9:  frozenset({1, 2, 3, 11, 17}),  # Thai
     10: frozenset({15, 16, 17}),     # Maasi
