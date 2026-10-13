@@ -59,6 +59,26 @@ production database on a different network path, disk and CPU will differ in
 either direction. Run the drill on production-like hardware, or time a restored
 copy, before committing to a window.
 
+## Why the backfill is not batched (decided 2026-10-12)
+
+The per-row `UPDATE` could be batched for a shorter window. It is deliberately
+left as it is:
+
+- **No production database exists yet.** At go-live, `alembic upgrade head`
+  runs against an empty schema. This migration then backfills zero rows, and
+  the window is nil. Its only populated runs so far are dev and test, where it
+  has already been applied.
+- **The change is not free.** This migration encrypts birth data. A defect in
+  a rewritten backfill either leaves plaintext behind or writes ciphertext
+  that cannot be read back. Batching would also require re-running the drill
+  and both mutation controls, all to shorten a window nobody will sit through.
+
+**Revisit only if a populated database is upgraded across this revision**, for
+example a restored dev copy promoted to production. Run the row-count query
+above first. At the measured rate, fewer than ~300,000 rows is under 5 minutes.
+Above that, batch the backfill (one `UPDATE … FROM (VALUES …)` per 500-row
+page) before applying it, then re-run the drill and its controls.
+
 ## Verified behaviour
 
 Each run checks the following. Each check compares SHA-256 fingerprints of

@@ -2904,11 +2904,9 @@ review against the brief found:
   control). Under a new-place-only cutoff, exactly the date-line case fails.
   The commit message had no "why", and an import sat at the end of
   `tests/test_admin_api.py`; both style issues are fixed.
-- **Open for the owner (not changed):** web and mobile tell a user who hit the
-  quota to "ask again tomorrow". Under the IST accounting day, a New York user's
-  reset arrives at 14:30 the same afternoon. Either the copy names the reset
-  time, or an account timezone is introduced (CLOCK_POLICY.md already says
-  that needs a product decision).
+- **~~Open for the owner~~ Decided 2026-10-12, see below:** web and mobile
+  told a user who hit the quota to "ask again tomorrow". Under the IST
+  accounting day, a New York user's reset arrives at 14:30 the same afternoon.
 - **Environment:** Docker Desktop exited after each completed e2e run,
   including Codex's. `scripts/ux-audit-stack.ps1` recorded whatever process
   listened on the backend port as `backendServerPid` and tree-killed it at
@@ -2918,6 +2916,173 @@ review against the brief found:
   `wslrelay` owner of an all-interfaces port does **not** stop Docker. The
   matching kill of `com.docker.backend` was not run, so the mechanism is
   strongly indicated, not demonstrated.
+
+### Phase 4 owner-delegated decisions (2026-10-12)
+
+The owner delegated the three open items from the review above.
+
+- [x] **Quota reset copy: state the reset time; keep the Kolkata day.** An
+  account timezone was rejected for now. It would need an immutable column, a
+  usage-period migration and a rule against changing it to win an extra reset,
+  and no commercial need asks for one. `GET /ask-vinaadi/daily-status` now
+  carries `resetsAt` (the UTC instant of the next quota day, or month for a
+  monthly allowance), produced by `next_accounting_day_start` /
+  `next_accounting_month_start` in `app/core/clock.py`. One shared builder,
+  `packages/shared/src/askAllowance.ts`, words the limit for web and mobile in
+  the reader's own clock:
+  - Kolkata or Colombo: "Ask again tomorrow." (unchanged)
+  - New York: "Ask again from 2:30 pm today."
+  - Singapore: "from 2:30 am tomorrow". In Tamil this is "நாளை அதிகாலை 2:30
+    முதல்", because "நாளை இரவு" would read as tomorrow night.
+
+  The generic `DAILY_LIMIT_REACHED` catalogue text no longer promises
+  "tomorrow" (backend and shared). Defects found in the same bar and fixed:
+  - Mobile offered "Premium →" during the open beta, which web suppresses.
+  - Mobile told a premium user who had spent the monthly allowance "Daily
+    limit … come back tomorrow".
+  - Mobile reported every 429, including the middleware's `RATE_LIMITED`
+    burst limit, as a spent quota.
+  - Mobile never re-read the status after a 429, so the limit bar never
+    appeared.
+  - Web showed a generic error for `MONTHLY_LIMIT_REACHED`.
+  - Both clients kept blocking the reader on a count from before the reset
+    until a reload. They now step aside once `resetsAt` passes, and re-read the
+    status at that instant.
+
+  **Gates and controls:**
+  - Web: `dashboard-ask-vinaadi.limit.test.ts`, 12 cases (Kolkata, New York,
+    London, Singapore, the New York DST changeover, monthly, fallback). With
+    the builder forced back to "tomorrow", exactly the 5 non-Kolkata cases
+    fail.
+  - Mobile: `ask-vinaadi.limit.screen.test.tsx`, 4 cases. With the old
+    `tier !== "premium"` rule and the old 429 branch restored, 2 fail: the
+    open-beta link and the rate-limit message. The other 2 pass under both by
+    design.
+  - Backend: `tests/test_clock_policy.py` covers the boundary second and the
+    year rollover. `tests/test_open_beta.py` pins the key set and the
+    18:30 UTC instant. `test_a14_response_contracts` caught a `+00:00` vs `Z`
+    mismatch, so the service now returns the wire string.
+  - Totals: affected backend files 175 + 44 passed in the container; ruff
+    0.15.17 and mypy 2.3.1 (CI's pins) are clean on `app`/`tests` (370
+    files); web vitest 145 files / 1,524 passed, with `tsc` and `eslint` clean;
+    mobile `tsc` clean, Ask suites 26 passed.
+
+  **Blind spots:** the Tamil phrasing has not been read by a native reader;
+  "அதிகாலை" / "நள்ளிரவு" for 00:00–04:59 is a local choice, not the
+  2026-09-17 ruling, which did not name that span. No device run: the
+  reset-instant timers and Hermes date arithmetic are exercised only under
+  jest/vitest. `mobile/app/jadhagam/upsell.tsx` ("reset after midnight IST")
+  is a different quota and was left alone.
+- [x] **A12 backfill batching: not done, by decision.** There is no
+  production database yet, so at go-live this migration backfills zero rows.
+  Rewriting a drilled encryption migration to shorten a window nobody will sit
+  through is risk without benefit. The revisit trigger (a populated database
+  upgraded across this revision, ~300,000 rows ≈ 5 min) is in
+  `docs/runbooks/A12_MIGRATION_WINDOW.md`.
+- [x] **Three overlapping ratchets: keep all three; nothing deleted.** A
+  throwaway matrix ran eight shapes through each scanner. Each ratchet is the
+  only one to catch at least two shapes, several of them verbatim from leaks
+  that shipped:
+  - `nakshatra-` alone: a `.push(x.janmaNakshatra)` outside JSX.
+  - `astro-name-` alone: `{x.personAMahaLord}`, `tithi.name`, `alt=` and a
+    `` `${x.seventhLord}` `` template.
+  - `astrology-render-boundary` alone: `lagnaRasiName`, a multi-line
+    `value={…}` and `label=`.
+
+  Merging them would mean rewriting a regex scanner into the AST one, for no
+  coverage gain. The finding is recorded in that test's header.
+
+### KI-01: a CAUTION porutham verdict called the match suitable (2026-10-12)
+
+- [x] **Fixed at the source.** `compute_porutham` chose the summary from the
+  score band, and only afterwards did the Rajju/Vedha veto set the label to
+  CAUTION. An 8/10 Bharani × Pooram (same Rajju group) therefore read:
+  - badge: "Dosham - Avoid" (calculator);
+  - label: CAUTION;
+  - first sentence: "Good compatibility… Traditionally considered a suitable
+    match";
+  - then: Rajju is "one of the strongest objections in Tamil matching".
+
+  The Tamil twin had the same contradiction. It reached anonymous visitors
+  through the public calculator, the dashboard porutham tool and mobile. Scope,
+  measured: **604 of 11,664** star × pada pairings, each wrong in both
+  languages. The earlier "38 of 729" figure was pada 1 only.
+
+  **Fix.** The veto is decided first, and the summary is chosen from the final
+  verdict. Doctrine §12's pattern: the number stands, then a governing line
+  says the count does not override the dosha.
+  - Good count: "Most poruthams agree, but Rajju does not. Tradition does not
+    let a good count offset it, so the verdict is caution."
+  - Moderate count: "Rajju does not match, and the count alone is moderate,
+    so the traditional verdict is caution."
+  - Both close on the house line, "An astrologer would read both full charts
+    before concluding anything."
+  - Low scores keep their existing CAUTION sentence. The ⚠ Rajju/Vedha
+    warnings are unchanged, as are the EC-RULING-06 excision (no outcome
+    named) and the badge, which the August UX pass kept on purpose.
+
+  The house line used to sit only in the dashboard's
+  `PORUTHAM_VERDICT.blockerTail`. It moved into the engine, so the calculator
+  and mobile, which show only the summary, carry it too. It was removed from
+  `blockerTail` so the dashboard does not say it twice. Tamil names come from
+  the kuta table, so the new sentence and the warning beneath it spell them
+  alike. The two-check case reads "ராஜ்ஜு, வேதம் இரண்டும்"; a -வும் join
+  would have produced "வேதம்வும்".
+
+  **Gate:** `tests/test_porutham.py` gains a sweep of all 11,664 pairings: no
+  CAUTION summary may contain any of four reassuring phrases in either
+  language. It also gains a §12 wording check on the Bharani × Pooram case and
+  a control: an unvetoed GOOD result must still say "suitable match", so the
+  fix cannot mute true reassurance. **Before the fix: the sweep failed with
+  1,208 contradicting summaries,** the wording check failed, and the control
+  passed. After: porutham, Nadi and tone-compliance suites 105 passed. Web
+  porutham tests pass, with `tsc` and `eslint` clean. CI-pinned ruff and mypy
+  are clean on 370 files.
+
+  **Tamil review applied (2026-10-12/13).** The owner's rulings on
+  `docs/TAMIL_REVIEW_SHEET_2026-10-12.md` replaced the Tamil above:
+  - **Summaries:** the B-01 to B-03 text is used verbatim, with one shared
+    closing line, and the English was rewritten to match.
+  - **Spellings locked:** ரஜ்ஜு (was ராஜ்ஜு in 10 places) and வேதை (was வேதம்
+    in 13 porutham-sense places), repo-wide.
+  - **Badge:** "தோஷம்: கவனம் தேவை" / "Dosham: needs care" replaced "தோஷம் —
+    தவிர்க்கவும்" / "Dosham - Avoid", and the dashboard reason chip names the
+    failed check.
+  - **Reference:** the locked terms and voice rules are now in
+    `docs/TAMIL_TERMINOLOGY_GLOSSARY.md`.
+
+  **New gates:**
+  - `test_locked_tamil_terms_rajju_and_vedhai` (engine). With the kuta name
+    reverted to வேதம், exactly that test fails (1 of 76).
+  - `web/lib/tamil-terminology-lock.test.ts` (web, mobile and shared copy).
+    With the old badge restored in `PoruthamTool.tsx`, it names that file for
+    both the Tamil and the English form.
+
+  **Section D, finished:**
+  - When Rajju and Vedha both fail, the dashboard reason chip names both, and
+    the blocker note explains both. It used to show Rajju only.
+  - A stale comment that quoted the retired badge was reworded.
+  - "கூடுதல் ஆய்வு தேவை" was **not built, by decision**: no engine state
+    triggers it, and choosing one is a doctrine call. The candidate triggers
+    are recorded on the review sheet.
+  - The dashboard badge cannot wrap: it sits in a `flex: none` column that
+    sizes itself to its content.
+
+  **After the review edits:**
+  - Porutham, Nadi and tone suites: 106 passed.
+  - Web: vitest 145 files / 1,525 passed, with `tsc` and `eslint .` clean.
+  - Mobile: `tsc` clean, Ask suites 26 passed.
+
+  **Blind spots / follow-ups:**
+  - The review may be AI-assisted (its citations carry chatgpt.com tags); no
+    human native read is recorded.
+  - The review's full time-of-day table was not applied app-wide (see the
+    sheet, judgment call 2).
+  - No Vedha-only veto occurs in the sweep: every Vedha pair in this table is
+    also same-Rajju, so the single-Vedha sentence is reachable only through
+    the code path, not through any real pairing.
+  - The v2.0 BRD/PRD/FRD still list KI-01 as open (DOCA-08 is closed); the
+    next document revision should close it.
 
 ## Agent Completion Checklist
 

@@ -12,6 +12,13 @@
  * accessibility-tree quality need separate checks.  Bare `lord`/`graha` reads
  * are checked in title/ARIA/value attributes, plus direct JSX interpolation,
  * but this deliberately ignores comparisons, map keys and colour lookups.
+ *
+ * It overlaps `nakshatra-display-boundary` and `astro-name-display-boundary`
+ * but does not replace them; keep all three. Measured 2026-10-12, each is the
+ * only one to catch some shape: that one alone sees `push(x.janmaNakshatra)`
+ * outside JSX; `astro-name-` alone sees `{x.personAMahaLord}`, `tithi.name`,
+ * `alt=` and `` `${x.seventhLord}` ``; this file alone sees rasi names,
+ * multi-line JSX and `label=`.
  */
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
