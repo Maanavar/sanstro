@@ -3154,8 +3154,10 @@ The owner delegated the three open items from the review above.
   - No Vedha-only veto occurs in the sweep: every Vedha pair in this table is
     also same-Rajju, so the single-Vedha sentence is reachable only through
     the code path, not through any real pairing.
-  - The v2.0 BRD/PRD/FRD still list KI-01 as open (DOCA-08 is closed); the
-    next document revision should close it.
+  - ~~The v2.0 BRD/PRD/FRD still list KI-01 as open.~~ **Closed 2026-10-13:**
+    `docs/product/Vinaadi_{BRD,PRD,FRD}_v2.1` record it as fixed, and v2.0 is
+    kept unchanged. FR-CMP-01's acceptance now names the 11,664-pairing sweep;
+    the v2.0 text said 27 × 27, which understated it.
 
 ## Agent Completion Checklist
 

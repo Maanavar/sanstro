@@ -158,8 +158,10 @@ applied before the summary is chosen, and a vetoed GOOD/AVERAGE count gets its
 own governing sentence. The acceptance sweep is
 `tests/test_porutham.py::test_no_caution_result_calls_the_match_suitable`. It
 covers every pada, not only 27 × 27 stars, and it failed with 1,208
-contradicting summaries before the fix. The v2.0 BRD/PRD/FRD still list KI-01
-as open; the next document revision should close it.
+contradicting summaries before the fix. **Closed in the documents too:** the
+v2.1 BRD/PRD/FRD (2026-10-13) record KI-01 as fixed. FR-CMP-01 is Built, and its
+acceptance criterion now names this sweep and its real coverage. F-CMP-01 is
+Live (beta). R-12, M1 and R1 are updated to match.
 
 **Problem (found by running the engine).** In `compute_porutham` ([app/calculations/porutham.py:939-1016](../../app/calculations/porutham.py#L939-L1016)), the summary sentence is chosen from the score band first. The label is forced to CAUTION afterwards when Rajju or Vedha fails. For a synthetic pair (stars 4 and 13) the output is:
 
