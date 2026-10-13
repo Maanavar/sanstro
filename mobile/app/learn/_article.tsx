@@ -7,7 +7,7 @@ import { RADIUS, S } from "@/theme/spacing";
 import { TamilType, EnType } from "@/theme/typography";
 import { useI18n } from "@/hooks/useI18n";
 import { SITE_HOST } from "@vinaadi/shared";
-import { LEARN_CONTENT } from "./[slug]";
+import { LEARN_CONTENT } from "@/lib/learnContent";
 
 export function LearnArticle({ slug }: { slug: keyof typeof LEARN_CONTENT }) {
   const { lang } = useI18n();

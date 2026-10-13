@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-10-02T10:05:21.487Z",
-  "count": 333,
+  "generatedAt": "2026-10-13T04:59:57.607Z",
+  "count": 332,
   "findings": [
     {
       "key": "mobile/app.config.ts:#D4611A:color: \"#D4611A\",",
@@ -19,14 +19,14 @@
     {
       "key": "mobile/app/_layout.tsx:#7C3AED:backgroundColor: \"#7C3AED\", paddingVertical: 5,",
       "file": "mobile/app/_layout.tsx",
-      "line": 54,
+      "line": 57,
       "value": "#7C3AED",
       "source": "backgroundColor: \"#7C3AED\", paddingVertical: 5,"
     },
     {
       "key": "mobile/app/_layout.tsx:#fff:<Text style={{ color: \"#fff\", fontSize: 12, fontWeight: \"600\" }}>",
       "file": "mobile/app/_layout.tsx",
-      "line": 57,
+      "line": 60,
       "value": "#fff",
       "source": "<Text style={{ color: \"#fff\", fontSize: 12, fontWeight: \"600\" }}>"
     },
@@ -54,7 +54,7 @@
     {
       "key": "mobile/app/(tabs)/tools/dosham.tsx:#000:shadowColor: \"#000\", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3, elevation: 1,",
       "file": "mobile/app/(tabs)/tools/dosham.tsx",
-      "line": 279,
+      "line": 356,
       "value": "#000",
       "source": "shadowColor: \"#000\", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3, elevation: 1,"
     },
@@ -110,7 +110,7 @@
     {
       "key": "mobile/app/family-vault.tsx:#000:shadowColor: \"#000\",",
       "file": "mobile/app/family-vault.tsx",
-      "line": 798,
+      "line": 799,
       "value": "#000",
       "source": "shadowColor: \"#000\","
     },
@@ -122,23 +122,16 @@
       "source": "shadowColor: \"#000\", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,"
     },
     {
-      "key": "mobile/app/learn/[slug].tsx:#FFF:backBtnText: { fontFamily: \"Inter_700Bold\", fontSize: 14, color: \"#FFF\" },",
-      "file": "mobile/app/learn/[slug].tsx",
-      "line": 339,
-      "value": "#FFF",
-      "source": "backBtnText: { fontFamily: \"Inter_700Bold\", fontSize: 14, color: \"#FFF\" },"
-    },
-    {
       "key": "mobile/app/notifications/settings.tsx:#000:shadowColor: \"#000\", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3, elevation: 1,",
       "file": "mobile/app/notifications/settings.tsx",
-      "line": 271,
+      "line": 272,
       "value": "#000",
       "source": "shadowColor: \"#000\", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3, elevation: 1,"
     },
     {
       "key": "mobile/app/notifications/settings.tsx:#000:shadowColor: \"#000\", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,",
       "file": "mobile/app/notifications/settings.tsx",
-      "line": 250,
+      "line": 251,
       "value": "#000",
       "source": "shadowColor: \"#000\", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,"
     },
@@ -215,21 +208,21 @@
     {
       "key": "mobile/app/synastry/index.tsx:#fff:scoreOrbText: { fontSize: 18, fontWeight: \"800\", color: \"#fff\" },",
       "file": "mobile/app/synastry/index.tsx",
-      "line": 419,
+      "line": 420,
       "value": "#fff",
       "source": "scoreOrbText: { fontSize: 18, fontWeight: \"800\", color: \"#fff\" },"
     },
     {
       "key": "mobile/app/transits/index.tsx:#000:shadowColor: \"#000\", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3, elevation: 1,",
       "file": "mobile/app/transits/index.tsx",
-      "line": 323,
+      "line": 326,
       "value": "#000",
       "source": "shadowColor: \"#000\", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3, elevation: 1,"
     },
     {
       "key": "mobile/app/transits/index.tsx:#000:shadowColor: \"#000\", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2,",
       "file": "mobile/app/transits/index.tsx",
-      "line": 296,
+      "line": 299,
       "value": "#000",
       "source": "shadowColor: \"#000\", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2,"
     },
@@ -600,63 +593,63 @@
     {
       "key": "web/app/(marketing)/tools/marriage-porutham-calculator/PoruthamTool.tsx:#4a7041:if (score >= 7) return \"#4a7041\";",
       "file": "web/app/(marketing)/tools/marriage-porutham-calculator/PoruthamTool.tsx",
-      "line": 122,
+      "line": 125,
       "value": "#4a7041",
       "source": "if (score >= 7) return \"#4a7041\";"
     },
     {
       "key": "web/app/(marketing)/tools/marriage-porutham-calculator/PoruthamTool.tsx:rgba(184,90,44,0.05):<div className=\"cl-mobile-card-split\" style={{ background: \"rgba(184,90,44,0.05)\", border: \"1px solid rgba(184,90,44,0.2)\", borderRadius: \"14px\", padding: \"18px 22px\" }}>",
       "file": "web/app/(marketing)/tools/marriage-porutham-calculator/PoruthamTool.tsx",
-      "line": 659,
+      "line": 662,
       "value": "rgba(184,90,44,0.05)",
       "source": "<div className=\"cl-mobile-card-split\" style={{ background: \"rgba(184,90,44,0.05)\", border: \"1px solid rgba(184,90,44,0.2)\", borderRadius: \"14px\", padding: \"18px 22px\" }}>"
     },
     {
       "key": "web/app/(marketing)/tools/marriage-porutham-calculator/PoruthamTool.tsx:rgba(184,90,44,0.2):<div className=\"cl-mobile-card-split\" style={{ background: \"rgba(184,90,44,0.05)\", border: \"1px solid rgba(184,90,44,0.2)\", borderRadius: \"14px\", padding: \"18px 22px\" }}>",
       "file": "web/app/(marketing)/tools/marriage-porutham-calculator/PoruthamTool.tsx",
-      "line": 659,
+      "line": 662,
       "value": "rgba(184,90,44,0.2)",
       "source": "<div className=\"cl-mobile-card-split\" style={{ background: \"rgba(184,90,44,0.05)\", border: \"1px solid rgba(184,90,44,0.2)\", borderRadius: \"14px\", padding: \"18px 22px\" }}>"
     },
     {
       "key": "web/app/dashboard/reports/page.tsx:#2d6a4f:return { ...base, background: \"var(--color-positive, #2d6a4f)\", color: \"#fff\", opacity: 0.9 };",
       "file": "web/app/dashboard/reports/page.tsx",
-      "line": 95,
+      "line": 81,
       "value": "#2d6a4f",
       "source": "return { ...base, background: \"var(--color-positive, #2d6a4f)\", color: \"#fff\", opacity: 0.9 };"
     },
     {
       "key": "web/app/dashboard/reports/page.tsx:#9b2226:return { ...base, background: \"var(--color-alert-critical, #9b2226)\", color: \"#fff\" };",
       "file": "web/app/dashboard/reports/page.tsx",
-      "line": 98,
+      "line": 84,
       "value": "#9b2226",
       "source": "return { ...base, background: \"var(--color-alert-critical, #9b2226)\", color: \"#fff\" };"
     },
     {
       "key": "web/app/dashboard/reports/page.tsx:#d4a017:background: state === \"loading\" ? \"var(--color-surface-3)\" : \"var(--color-accent, #d4a017)\",",
       "file": "web/app/dashboard/reports/page.tsx",
-      "line": 102,
+      "line": 88,
       "value": "#d4a017",
       "source": "background: state === \"loading\" ? \"var(--color-surface-3)\" : \"var(--color-accent, #d4a017)\","
     },
     {
       "key": "web/app/dashboard/reports/page.tsx:#fff:color: \"#fff\",",
       "file": "web/app/dashboard/reports/page.tsx",
-      "line": 103,
+      "line": 89,
       "value": "#fff",
       "source": "color: \"#fff\","
     },
     {
       "key": "web/app/dashboard/reports/page.tsx:#fff:return { ...base, background: \"var(--color-alert-critical, #9b2226)\", color: \"#fff\" };",
       "file": "web/app/dashboard/reports/page.tsx",
-      "line": 98,
+      "line": 84,
       "value": "#fff",
       "source": "return { ...base, background: \"var(--color-alert-critical, #9b2226)\", color: \"#fff\" };"
     },
     {
       "key": "web/app/dashboard/reports/page.tsx:#fff:return { ...base, background: \"var(--color-positive, #2d6a4f)\", color: \"#fff\", opacity: 0.9 };",
       "file": "web/app/dashboard/reports/page.tsx",
-      "line": 95,
+      "line": 81,
       "value": "#fff",
       "source": "return { ...base, background: \"var(--color-positive, #2d6a4f)\", color: \"#fff\", opacity: 0.9 };"
     },
@@ -1265,7 +1258,7 @@
     {
       "key": "web/components/dashboard-ask-vinaadi.tsx:#5C7654:<p style={{ margin: \"3px 0 0\", fontSize: \"11.5px\", color: \"var(--color-score-high, #5C7654)\", fontWeight: 600, display: \"inline-flex\", alignItems: \"center\", gap: \"4px\" }}>",
       "file": "web/components/dashboard-ask-vinaadi.tsx",
-      "line": 241,
+      "line": 249,
       "value": "#5C7654",
       "source": "<p style={{ margin: \"3px 0 0\", fontSize: \"11.5px\", color: \"var(--color-score-high, #5C7654)\", fontWeight: 600, display: \"inline-flex\", alignItems: \"center\", gap: \"4px\" }}>"
     },
@@ -1419,77 +1412,77 @@
     {
       "key": "web/components/dashboard-life-areas-yogas-doshams-nova.tsx:rgba(...) values with no var():* default, plus several literal inline rgba(...) values with no var() at all,",
       "file": "web/components/dashboard-life-areas-yogas-doshams-nova.tsx",
-      "line": 41,
+      "line": 44,
       "value": "rgba(...) values with no var()",
       "source": "* default, plus several literal inline rgba(...) values with no var() at all,"
     },
     {
       "key": "web/components/dashboard-personal-shared.tsx:#047857:<p style={{ margin: \"0 0 var(--space-1_5)\", fontSize: \"0.625rem\", fontWeight: 700, color: \"var(--chart-d9-active-dark, #047857)\", textTransform: \"uppercase\", letterSpacing: \"0.06em\" }}>",
       "file": "web/components/dashboard-personal-shared.tsx",
-      "line": 137,
+      "line": 146,
       "value": "#047857",
       "source": "<p style={{ margin: \"0 0 var(--space-1_5)\", fontSize: \"0.625rem\", fontWeight: 700, color: \"var(--chart-d9-active-dark, #047857)\", textTransform: \"uppercase\", letterSpacing: \"0.06em\" }}>"
     },
     {
       "key": "web/components/dashboard-personal-shared.tsx:#047857:<span style={{ color: \"var(--chart-d9-active-dark, #047857)\", marginRight: \"4px\" }}>✓</span>{item}",
       "file": "web/components/dashboard-personal-shared.tsx",
-      "line": 142,
+      "line": 151,
       "value": "#047857",
       "source": "<span style={{ color: \"var(--chart-d9-active-dark, #047857)\", marginRight: \"4px\" }}>✓</span>{item}"
     },
     {
       "key": "web/components/dashboard-personal-shared.tsx:#b45309:<p style={{ margin: \"0 0 var(--space-1_5)\", fontSize: \"0.625rem\", fontWeight: 700, color: \"var(--planet-saturn, #b45309)\", textTransform: \"uppercase\", letterSpacing: \"0.06em\" }}>",
       "file": "web/components/dashboard-personal-shared.tsx",
-      "line": 127,
+      "line": 136,
       "value": "#b45309",
       "source": "<p style={{ margin: \"0 0 var(--space-1_5)\", fontSize: \"0.625rem\", fontWeight: 700, color: \"var(--planet-saturn, #b45309)\", textTransform: \"uppercase\", letterSpacing: \"0.06em\" }}>"
     },
     {
       "key": "web/components/dashboard-personal-shared.tsx:#b45309:<span style={{ color: \"var(--planet-saturn, #b45309)\", marginRight: \"4px\" }}>✕</span>{item}",
       "file": "web/components/dashboard-personal-shared.tsx",
-      "line": 132,
+      "line": 141,
       "value": "#b45309",
       "source": "<span style={{ color: \"var(--planet-saturn, #b45309)\", marginRight: \"4px\" }}>✕</span>{item}"
     },
     {
       "key": "web/components/dashboard-personal-shared.tsx:#d97706:background: \"var(--color-amber, #d97706)\", color: \"white\",",
       "file": "web/components/dashboard-personal-shared.tsx",
-      "line": 90,
+      "line": 99,
       "value": "#d97706",
       "source": "background: \"var(--color-amber, #d97706)\", color: \"white\","
     },
     {
       "key": "web/components/dashboard-personal-shared.tsx:#d97706:border: \"1px solid var(--color-amber-border, #d97706)\",",
       "file": "web/components/dashboard-personal-shared.tsx",
-      "line": 82,
+      "line": 91,
       "value": "#d97706",
       "source": "border: \"1px solid var(--color-amber-border, #d97706)\","
     },
     {
       "key": "web/components/dashboard-personal-shared.tsx:#fde68a:<div style={{ padding: \"var(--space-2_5) var(--space-4)\", borderRight: \"1px solid var(--color-amber-border, #fde68a)\" }}>",
       "file": "web/components/dashboard-personal-shared.tsx",
-      "line": 126,
+      "line": 135,
       "value": "#fde68a",
       "source": "<div style={{ padding: \"var(--space-2_5) var(--space-4)\", borderRight: \"1px solid var(--color-amber-border, #fde68a)\" }}>"
     },
     {
       "key": "web/components/dashboard-personal-shared.tsx:#fde68a:<p style={{ margin: 0, padding: \"var(--space-2_5) var(--space-4)\", fontSize: \"0.875rem\", color: \"var(--color-text-strong)\", borderBottom: \"1px solid var(--color-amber-border, #fde68a)\" }}>",
       "file": "web/components/dashboard-personal-shared.tsx",
-      "line": 119,
+      "line": 128,
       "value": "#fde68a",
       "source": "<p style={{ margin: 0, padding: \"var(--space-2_5) var(--space-4)\", fontSize: \"0.875rem\", color: \"var(--color-text-strong)\", borderBottom: \"1px solid var(--color-amber-border, #fde68a)\" }}>"
     },
     {
       "key": "web/components/dashboard-personal-shared.tsx:#fde68a:<p style={{ margin: 0, padding: \"var(--space-2) var(--space-4)\", fontSize: \"0.6875rem\", color: \"var(--panel-mid-earth)\", borderTop: \"1px solid var(--color-amber-border, #fde68a)\", fontStyle: \"italic\" }}>",
       "file": "web/components/dashboard-personal-shared.tsx",
-      "line": 148,
+      "line": 157,
       "value": "#fde68a",
       "source": "<p style={{ margin: 0, padding: \"var(--space-2) var(--space-4)\", fontSize: \"0.6875rem\", color: \"var(--panel-mid-earth)\", borderTop: \"1px solid var(--color-amber-border, #fde68a)\", fontStyle: \"italic\" }}>"
     },
     {
       "key": "web/components/dashboard-personal-shared.tsx:#fffbeb:background: \"var(--color-amber-bg, #fffbeb)\",",
       "file": "web/components/dashboard-personal-shared.tsx",
-      "line": 83,
+      "line": 92,
       "value": "#fffbeb",
       "source": "background: \"var(--color-amber-bg, #fffbeb)\","
     },
@@ -1531,21 +1524,21 @@
     {
       "key": "web/components/dashboard-prasna-widget.tsx:rgba(184,90,44,0.07):background: \"rgba(184,90,44,0.07)\",",
       "file": "web/components/dashboard-prasna-widget.tsx",
-      "line": 211,
+      "line": 212,
       "value": "rgba(184,90,44,0.07)",
       "source": "background: \"rgba(184,90,44,0.07)\","
     },
     {
       "key": "web/components/dashboard-prasna-widget.tsx:rgba(184,90,44,0.1):background: isActive ? \"rgba(184,90,44,0.1)\" : W.surface,",
       "file": "web/components/dashboard-prasna-widget.tsx",
-      "line": 130,
+      "line": 131,
       "value": "rgba(184,90,44,0.1)",
       "source": "background: isActive ? \"rgba(184,90,44,0.1)\" : W.surface,"
     },
     {
       "key": "web/components/dashboard-prasna-widget.tsx:rgba(184,90,44,0.25):border: `1px solid rgba(184,90,44,0.25)`,",
       "file": "web/components/dashboard-prasna-widget.tsx",
-      "line": 212,
+      "line": 213,
       "value": "rgba(184,90,44,0.25)",
       "source": "border: `1px solid rgba(184,90,44,0.25)`,"
     },
@@ -1580,7 +1573,7 @@
     {
       "key": "web/components/dashboard-workspace.tsx:rgba(var(--nova-shadow-ink, 26, 22, 18), 0.28):boxShadow: \"0 24px 64px rgba(var(--nova-shadow-ink, 26, 22, 18), 0.28)\",",
       "file": "web/components/dashboard-workspace.tsx",
-      "line": 126,
+      "line": 114,
       "value": "rgba(var(--nova-shadow-ink, 26, 22, 18), 0.28)",
       "source": "boxShadow: \"0 24px 64px rgba(var(--nova-shadow-ink, 26, 22, 18), 0.28)\","
     },
@@ -1685,28 +1678,28 @@
     {
       "key": "web/components/life-area-card.tsx:rgba(168,72,47,0.3):<div style={{ marginTop: \"var(--space-3)\", padding: \"var(--space-2) var(--space-3)\", borderRadius: \"var(--radius-sm)\", background: \"var(--panel-warm-tint)\", border: \"1px solid rgba(168,72,47,0.3)\" }}>",
       "file": "web/components/life-area-card.tsx",
-      "line": 270,
+      "line": 276,
       "value": "rgba(168,72,47,0.3)",
       "source": "<div style={{ marginTop: \"var(--space-3)\", padding: \"var(--space-2) var(--space-3)\", borderRadius: \"var(--radius-sm)\", background: \"var(--panel-warm-tint)\", border: \"1px solid rgba(168,72,47,0.3)\" }}>"
     },
     {
       "key": "web/components/life-area-card.tsx:rgba(184,90,44,0.25):<div style={{ marginTop: \"var(--space-2_5)\", padding: \"var(--space-2) var(--space-3)\", borderRadius: \"var(--radius-sm)\", background: \"var(--chart-d1-lagna-bg)\", border: \"1px solid rgba(184,90,44,0.25)\" }}>",
       "file": "web/components/life-area-card.tsx",
-      "line": 279,
+      "line": 285,
       "value": "rgba(184,90,44,0.25)",
       "source": "<div style={{ marginTop: \"var(--space-2_5)\", padding: \"var(--space-2) var(--space-3)\", borderRadius: \"var(--radius-sm)\", background: \"var(--chart-d1-lagna-bg)\", border: \"1px solid rgba(184,90,44,0.25)\" }}>"
     },
     {
       "key": "web/components/life-area-card.tsx:rgba(184,90,44,0.3):border: \"1px solid rgba(184,90,44,0.3)\",",
       "file": "web/components/life-area-card.tsx",
-      "line": 147,
+      "line": 153,
       "value": "rgba(184,90,44,0.3)",
       "source": "border: \"1px solid rgba(184,90,44,0.3)\","
     },
     {
       "key": "web/components/life-area-card.tsx:rgba(60,40,20,0.06):boxShadow: \"0 2px 12px rgba(60,40,20,0.06)\",",
       "file": "web/components/life-area-card.tsx",
-      "line": 129,
+      "line": 135,
       "value": "rgba(60,40,20,0.06)",
       "source": "boxShadow: \"0 2px 12px rgba(60,40,20,0.06)\","
     },

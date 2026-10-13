@@ -106,11 +106,6 @@ const GROUPS: ToolGroup[] = [
     labelTa: "கற்றுக்கொள்",
     tools: [
       {
-        Icon: BookOpen, key: "nakshatra-list", route: "/learn/nakshatra-list",
-        nameEn: "27 Nakshatras", nameTa: "27 நட்சத்திரங்கள்",
-        descEn: "Browse all lunar mansions", descTa: "அனைத்து நட்சத்திரங்களும்",
-      },
-      {
         Icon: MapPin, key: "pancha-bhoota", route: "/temples/pancha-bhoota",
         nameEn: "Pancha Bhoota Sthalams", nameTa: "பஞ்ச பூத ஸ்தலங்கள்",
         descEn: "Five element temples of Shiva", descTa: "சிவனின் ஐம்பூத கோயில்கள்",
