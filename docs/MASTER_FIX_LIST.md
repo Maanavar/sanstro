@@ -2584,6 +2584,17 @@ commit. Only the varshaphala one touches a Phase 3 test:
   failure names a `next/font` internal rather than the dependency, so the next
   reader will debug the build. Self-hosting the faces is the fix and is still
   not done.
+  **Third occurrence 2026-10-13** on run 38333700760 (the KI-01 / quota push).
+  This time it hit the "Web Docker image (build and boot)" job itself, at the
+  identical place: `nextFontGoogleFontLoader`, `TypeError: Cannot read
+  properties of null (reading '1')`.
+  - In the same run, "Web (lint, test, build)" built the same app, and the
+    compose stack built the same image. Both passed.
+  - Backend tests, ruff/mypy, Alembic, the ffi leg and Mobile CI were all
+    green on the first attempt; only this job was re-run.
+
+  **Three in four days: self-hosting (`next/font/local`) is now the next fix,
+  not a someday.**
 
 **CI on `f939b77` (2026-10-08, after the cache move, A14 steps 7–8, A15
 coverage and the first guidance extraction):** all green on the first
