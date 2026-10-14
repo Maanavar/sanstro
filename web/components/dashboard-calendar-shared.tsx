@@ -605,13 +605,6 @@ export function festivalIcon(name: string): string {
   return festivalGlyph(name);
 }
 
-export function festivalImagePath(name: string): string | null {
-  if (/chaturthi|chathurthi/i.test(name)) return "/calendar/chathurthi.png";
-  if (/sashti/i.test(name)) return "/calendar/shasti.png";
-  if (/ekadasi|ekadashi/i.test(name)) return "/calendar/ekadashi.png";
-  return null;
-}
-
 export function festivalTags(festival: Pick<PanchangamFestival, "category" | "tags">): string[] {
   const tags = festival.tags && festival.tags.length > 0 ? festival.tags : [festival.category];
   return Array.from(new Set(tags.filter(Boolean)));

@@ -57,7 +57,7 @@ export function PublicFooter() {
         <div className="cl-footer__brand">
           <div className="cl-footer__brand-lockup">
             <Image
-              src="/brand/vinaadi-symbol-icon.png"
+              src="/brand/vinaadi-symbol-icon-light.png"
               alt=""
               aria-hidden
               width={52}

@@ -316,7 +316,7 @@ export default function LoginPage() {
           <div className="ca-left-brand">
             <Link href="/" aria-label={lt("brand_home_aria", lang)} className="ca-brand-link">
               <Image
-                src="/brand/vinaadi-symbol-icon.png"
+                src="/brand/vinaadi-symbol-icon-light.png"
                 alt=""
                 aria-hidden
                 width={512}
@@ -363,7 +363,7 @@ export default function LoginPage() {
             {/* Mobile brand (hidden on desktop via CSS) */}
             <Link href="/" className="ca-card-brand" aria-label={lt("brand_home_aria", lang)}>
               <Image
-                src="/brand/vinaadi-symbol-icon.png"
+                src="/brand/vinaadi-symbol-icon-light.png"
                 alt=""
                 width={512}
                 height={512}

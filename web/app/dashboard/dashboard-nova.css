@@ -855,6 +855,10 @@
   --color-text-accent:   #7A5709; /* the amber-gold INK (kickers, links, labels) */
   --color-accent-strong: #6E4E0C; /* emphatic ink + fill-hover — now genuinely darker */
   --color-on-accent:     #FFFFFF; /* white type on the deep-gold fill */
+  /* Rasi/nakshatra gems stay dark on light (self-grounded, IMG-08 option A);
+     a bronze-gold setting makes them read as set stones, not holes. Dark Nova
+     leaves this unset and the badge falls back to --color-border. */
+  --gem-ring:            color-mix(in srgb, var(--color-accent) 60%, transparent);
 
   /* ── Alert / amber ink. Both of these used to be the design system's raw
      light tokens (--error #C0392B, --warning #B86A00), sourced deliberately so
@@ -2082,7 +2086,6 @@
   font-size: var(--text-md);
   font-style: italic;
 }
-[data-ui="nova"][data-theme="light"] .cd-shell .nova-cal-landscape { opacity: .1; }
 [data-ui="nova"] .cd-shell .nova-cal-main,
 [data-ui="nova"] .cd-shell .nova-cal-sidebar {
   min-width: 0;
@@ -2334,7 +2337,71 @@
   padding: var(--space-4) var(--space-6);
 }
 [data-ui="nova"] .cd-shell .nova-cal-closing p { margin: 0; max-width: 260px; font: italic var(--text-lg)/1.45 var(--font-display); color: var(--color-accent-strong); text-shadow: 0 1px 12px var(--color-bg); }
-[data-ui="nova"][data-theme="light"] .cd-shell .nova-cal-closing { background: var(--color-surface-soft); }
+/* Gem setting (IMG-08): the badge's own border is inline, so the ring is an
+   outline laid over it rather than a border override. */
+[data-ui="nova"][data-theme="light"] .cd-shell .vn-gem { outline: 1px solid var(--gem-ring); outline-offset: -1px; }
+
+/* Time-of-day sky (IMG-01). The scene follows the reader's clock; its ground,
+   not the theme, picks the treatment. Matching ground: feathered atmosphere,
+   as above. Opposite ground: the art cannot blend — night at 10% over cream
+   was grey fog — so it is shown whole, as a framed window, and the line on it
+   takes the page ground as ink (cream on night art, navy on day art). */
+[data-ui="nova"][data-theme="light"] .cd-shell .nova-cal-closing[data-sky-ground="light"] { background: var(--color-surface-soft); }
+[data-ui="nova"][data-theme="light"] .cd-shell .nova-cal-closing[data-sky-ground="light"] .nova-cal-landscape { opacity: .92; }
+[data-ui="nova"][data-theme="light"] .cd-shell .nova-cal-closing[data-sky-ground="dark"],
+[data-ui="nova"]:not([data-theme="light"]) .cd-shell .nova-cal-closing[data-sky-ground="light"] {
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--nova-card-shadow);
+}
+[data-ui="nova"][data-theme="light"] .cd-shell .nova-cal-closing[data-sky-ground="dark"] .nova-cal-landscape,
+[data-ui="nova"]:not([data-theme="light"]) .cd-shell .nova-cal-closing[data-sky-ground="light"] .nova-cal-landscape {
+  opacity: 1;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+[data-ui="nova"][data-theme="light"] .cd-shell .nova-cal-closing[data-sky-ground="dark"] p,
+[data-ui="nova"]:not([data-theme="light"]) .cd-shell .nova-cal-closing[data-sky-ground="light"] p {
+  color: var(--color-bg);
+  text-shadow: 0 1px 14px color-mix(in srgb, var(--color-text-strong) 60%, transparent);
+}
+/* Page header. Its headline sits on the art's quiet left third, which only
+   works on a matching ground; on the opposite ground the window moves beside
+   the copy (desktop) or above it (phone) so no line of text sits on it. */
+[data-ui="nova"][data-theme="light"] .cd-shell .nova-cal-monthly-header[data-sky-ground="light"] > .nova-cal-landscape { opacity: .92; }
+[data-ui="nova"][data-theme="light"] .cd-shell .nova-cal-monthly-header[data-sky-ground="dark"] > .nova-cal-landscape,
+[data-ui="nova"]:not([data-theme="light"]) .cd-shell .nova-cal-monthly-header[data-sky-ground="light"] > .nova-cal-landscape {
+  inset: var(--space-3) 0 var(--space-3) auto;
+  width: min(44%, 540px);
+  opacity: 1;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--nova-card-shadow);
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+[data-ui="nova"][data-theme="light"] .cd-shell .nova-cal-monthly-header[data-sky-ground="dark"] .nova-cal-monthly-header__copy,
+[data-ui="nova"]:not([data-theme="light"]) .cd-shell .nova-cal-monthly-header[data-sky-ground="light"] .nova-cal-monthly-header__copy {
+  max-width: min(620px, 54%);
+}
+@media (max-width: 720px) {
+  [data-ui="nova"][data-theme="light"] .cd-shell .nova-cal-monthly-header[data-sky-ground="dark"],
+  [data-ui="nova"]:not([data-theme="light"]) .cd-shell .nova-cal-monthly-header[data-sky-ground="light"] {
+    padding-top: calc(104px + var(--space-4));
+  }
+  [data-ui="nova"][data-theme="light"] .cd-shell .nova-cal-monthly-header[data-sky-ground="dark"] > .nova-cal-landscape,
+  [data-ui="nova"]:not([data-theme="light"]) .cd-shell .nova-cal-monthly-header[data-sky-ground="light"] > .nova-cal-landscape {
+    inset: 0 0 auto 0;
+    width: auto;
+    height: 104px;
+  }
+  [data-ui="nova"][data-theme="light"] .cd-shell .nova-cal-monthly-header[data-sky-ground="dark"] .nova-cal-monthly-header__copy,
+  [data-ui="nova"]:not([data-theme="light"]) .cd-shell .nova-cal-monthly-header[data-sky-ground="light"] .nova-cal-monthly-header__copy {
+    max-width: none;
+  }
+}
 
 [data-ui="nova"] .cd-shell .nova-cal-toolbar {
   display: flex;

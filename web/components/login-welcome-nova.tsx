@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion, type Variants } from "framer-motion";
 
+import { RASI_GLYPHS as SHARED_RASI_GLYPHS } from "@/lib/astro-symbols";
 import { EASE_NOVA } from "@/lib/motion";
 
 /**
@@ -24,7 +25,9 @@ import { EASE_NOVA } from "@/lib/motion";
  * skippable at any time (tap / Escape / Enter / Space).
  */
 
-const RASI_GLYPHS = ["♈", "♉", "♊", "♋", "♌", "♍", "♎", "♏", "♐", "♑", "♒", "♓"];
+// From the shared table, which carries the text-presentation selector — a bare
+// ♈ in SVG <text> is drawn as a purple emoji tile on Windows/Android (IMG-05).
+const RASI_GLYPHS = SHARED_RASI_GLYPHS.slice(1);
 const NAKSHATRA_COUNT = 27;
 
 // Fixed star field (percent of viewport) — fixed, not random, so it composes

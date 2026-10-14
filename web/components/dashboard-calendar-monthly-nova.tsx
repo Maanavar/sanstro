@@ -1,6 +1,6 @@
 "use client";
 
-import { Sparkles, AlertTriangle, ChevronLeft, ChevronRight, Crosshair, SlidersHorizontal } from "lucide-react";
+import { ChevronLeft, ChevronRight, Crosshair, SlidersHorizontal } from "lucide-react";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -8,14 +8,14 @@ import { dt, LIFE_FOCUS } from "@/lib/dashboard-i18n";
 import { t, tLang, tTithi } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { lunarSpecialTithiMeta, moonPhaseFromTithi } from "@/lib/lunar";
-import { festivalGlyph } from "@/lib/astro-symbols";
+import { observanceKindFor, type ObservanceKind } from "@/lib/observance-kind";
 import type { PanchangamFestival, PanchangamMonthDayEntry } from "@/lib/types";
 
 import { MiniMoonGlyph } from "./celestial-glyph-nova";
+import { ObservanceGlyph } from "./observance-glyph";
 import { GlossaryTerm } from "./glossary-term";
 import type { GlossaryKey } from "@/lib/glossary";
 import {
-  festivalImagePath,
   MONTH_LABELS_EN,
   MONTH_LABELS_TA,
   tamilMonthOnly,
@@ -25,7 +25,7 @@ import {
 } from "./dashboard-calendar-shared";
 import { Button, Card } from "./ui";
 import { PendingPlaceholder } from "./pending-placeholder-nova";
-import { MonthlyCalendarSidebar, MonthlyCalendarInsights, MonthlyCalendarLandscape } from "./dashboard-calendar-monthly-panels";
+import { MonthlyCalendarSidebar, MonthlyCalendarInsights, MonthlyCalendarClosing } from "./dashboard-calendar-monthly-panels";
 
 /** Monthly grid, selected-day summary and compact observance rail.
  * All views share one filtered agenda. Theme tokens and API-owned astronomy
@@ -57,16 +57,18 @@ const NOVA_DOT_TONE: Record<"festival" | "vratha" | "global", string> = {
   global: "var(--color-faint)",
 };
 
-const NOVA_LEGEND: Array<{ label: { en: string; ta: string }; icon: string | null; emoji: string; swatch: string; term?: GlossaryKey }> = [
-  { label: { en: "Muhurtham day", ta: "முகூர்த்த நாள்" }, icon: "/calendar/muhurtha.png", emoji: "🌟", swatch: NOVA_CAL_HILITE.muhurtham.dot },
-  { label: { en: "Pournami", ta: "பௌர்ணமி" }, icon: null, emoji: "🌕", swatch: NOVA_CAL_HILITE.pournami.dot, term: "pournami" },
-  { label: { en: "Amavasai", ta: "அமாவாசை" }, icon: null, emoji: "🌑", swatch: NOVA_CAL_HILITE.amavasai.dot },
-  { label: { en: "Chathurthi", ta: "சதுர்த்தி" }, icon: "/calendar/chathurthi.png", emoji: "🐘", swatch: NOVA_CAL_HILITE.chathurthi.dot, term: "chathurthi" },
-  { label: { en: "Sashti", ta: "சஷ்டி" }, icon: "/calendar/shasti.png", emoji: "🦚", swatch: NOVA_CAL_HILITE.sashti.dot, term: "sashti" },
-  { label: { en: "Ekadashi", ta: "ஏகாதசி" }, icon: "/calendar/ekadashi.png", emoji: "🪷", swatch: "var(--color-faint)", term: "ekadashi" },
-  { label: { en: "Pradosham", ta: "பிரதோஷம்" }, icon: null, emoji: "🪔", swatch: NOVA_CAL_HILITE.pradosham.dot, term: "pradosham" },
-  { label: { en: "Festival", ta: "திருவிழா" }, icon: null, emoji: "🎉", swatch: "var(--color-accent-strong)" },
-  { label: { en: "Karinaal (avoid)", ta: "கரிநாள் (தவிர்க்க)" }, icon: null, emoji: "🚫", swatch: "var(--color-alert-critical)" },
+// The legend shows the same emblem the cells draw (IMG-04): the old `icon` and
+// `emoji` fields here were never rendered, so a cell's mark had no key.
+const NOVA_LEGEND: Array<{ label: { en: string; ta: string }; kind: ObservanceKind; swatch: string; term?: GlossaryKey }> = [
+  { label: { en: "Muhurtham day", ta: "முகூர்த்த நாள்" }, kind: "muhurtham", swatch: NOVA_CAL_HILITE.muhurtham.dot },
+  { label: { en: "Pournami", ta: "பௌர்ணமி" }, kind: "pournami", swatch: NOVA_CAL_HILITE.pournami.dot, term: "pournami" },
+  { label: { en: "Amavasai", ta: "அமாவாசை" }, kind: "amavasai", swatch: NOVA_CAL_HILITE.amavasai.dot },
+  { label: { en: "Chathurthi", ta: "சதுர்த்தி" }, kind: "chathurthi", swatch: NOVA_CAL_HILITE.chathurthi.dot, term: "chathurthi" },
+  { label: { en: "Sashti", ta: "சஷ்டி" }, kind: "sashti", swatch: NOVA_CAL_HILITE.sashti.dot, term: "sashti" },
+  { label: { en: "Ekadashi", ta: "ஏகாதசி" }, kind: "ekadashi", swatch: "var(--color-faint)", term: "ekadashi" },
+  { label: { en: "Pradosham", ta: "பிரதோஷம்" }, kind: "pradosham", swatch: NOVA_CAL_HILITE.pradosham.dot, term: "pradosham" },
+  { label: { en: "Festival", ta: "திருவிழா" }, kind: "festival", swatch: "var(--color-accent-strong)" },
+  { label: { en: "Karinaal (avoid)", ta: "கரிநாள் (தவிர்க்க)" }, kind: "karinaal", swatch: "var(--color-alert-critical)" },
 ];
 
 // ── Filter/grid category model ──────────────────────────────────────────────
@@ -238,21 +240,14 @@ export type DashboardCalendarMonthlyNovaProps = {
   selectableDates?: ReadonlySet<string> | null;
 };
 
-function NovaFestivalIcon({ name }: { name: string }) {
-  const imgSrc = festivalImagePath(name);
-  if (!imgSrc) return <span aria-hidden="true" style={{ fontSize: "var(--text-sm)", lineHeight: 1 }}>{festivalGlyph(name)}</span>;
-  return (
-    // eslint-disable-next-line @next/next/no-img-element -- decorative festival icon with onError fallback
-    <img
-      src={imgSrc}
-      alt=""
-      aria-hidden="true"
-      width={14}
-      height={14}
-      style={{ objectFit: "contain", flexShrink: 0 }}
-      onError={(e) => { e.currentTarget.style.display = "none"; }}
-    />
-  );
+/** One emblem family for every observance in the grid. A Hindu festival with
+ *  no emblem of its own takes the thoranam (a Tamil household festoon); every
+ *  other day takes none. The emblems are a Tamil-almanac language: a festoon
+ *  on World Health Day, Eid or Christmas would say something false (glyph
+ *  brief §5b, 2026-09-21). Those days keep their name and tone dot. */
+function NovaFestivalIcon({ festival }: { festival: PanchangamFestival }) {
+  const kind = observanceKindFor(festival.name) ?? (festival.category === "hindu" ? "festival" : null);
+  return kind ? <ObservanceGlyph kind={kind} size={14} /> : <span aria-hidden="true" />;
 }
 
 export function MonthlyCalendarViewNova({
@@ -494,7 +489,7 @@ export function MonthlyCalendarViewNova({
                 onClick={handleNextMuhurtham}
                 disabled={nextMuhurthamPending || !onJumpToNextMuhurtham}
               >
-                <Sparkles size={13} strokeWidth={1.75} aria-hidden="true" />
+                <ObservanceGlyph kind="muhurtham" size={14} />
                 {nextMuhurthamPending
                   ? t("cal_monthly_searching", lang)
                   : t("cal_monthly_next_muhurtham", lang)}
@@ -699,18 +694,18 @@ export function MonthlyCalendarViewNova({
                       <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
                         {visibleFestivals.slice(0, 2).map((f: PanchangamFestival) => (
                           <span key={f.name} style={{ display: "grid", gridTemplateColumns: "auto minmax(0, 1fr)", alignItems: "center", gap: "var(--space-1)", fontSize: "var(--text-xs)", fontWeight: 500, color: "var(--color-accent-strong)", minWidth: 0 }}>
-                            <NovaFestivalIcon name={f.name} />
+                            <NovaFestivalIcon festival={f} />
                             <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{f.name}</span>
                           </span>
                         ))}
                         {showMuhurtham && (
                           <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-high)", display: "inline-flex", alignItems: "center", gap: "var(--space-1)" }}>
-                            <Sparkles size={12} strokeWidth={1.5} aria-hidden="true" />{t("cal_monthly_muhurtham", lang)}
+                            <ObservanceGlyph kind="muhurtham" size={13} />{t("cal_monthly_muhurtham", lang)}
                           </span>
                         )}
                         {showKarinaal && (
                           <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "color-mix(in srgb, var(--color-alert-critical-text, var(--color-alert-critical)) 85%, var(--color-text-strong))", display: "inline-flex", alignItems: "center", gap: "var(--space-1)" }}>
-                            <AlertTriangle size={12} strokeWidth={1.5} aria-hidden="true" />{t("cal_monthly_karinaal", lang)}
+                            <ObservanceGlyph kind="karinaal" size={13} />{t("cal_monthly_karinaal", lang)}
                           </span>
                         )}
                         {isToday && (
@@ -730,6 +725,7 @@ export function MonthlyCalendarViewNova({
               {NOVA_LEGEND.map((item) => (
                 <span key={item.label.en} style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-xs)", color: "var(--color-muted)" }}>
                   <span aria-hidden="true" style={{ width: "9px", height: "9px", borderRadius: "var(--radius-sm)", background: item.swatch, display: "inline-block" }} />
+                  <ObservanceGlyph kind={item.kind} size={14} style={{ color: "var(--color-text)" }} />
                   {item.term ? <GlossaryTerm term={item.term} lang={lang}>{lang === "ta" ? item.label.ta : item.label.en}</GlossaryTerm> : (lang === "ta" ? item.label.ta : item.label.en)}
                 </span>
               ))}
@@ -783,7 +779,7 @@ export function MonthlyCalendarViewNova({
                               <span className="nova-cal-agenda__marks">
                                 {day.muhurtham && (
                                   <span className="nova-cal-agenda__mark nova-cal-agenda__mark--muhurtham">
-                                    <Sparkles size={12} strokeWidth={1.75} aria-hidden="true" />
+                                    <ObservanceGlyph kind="muhurtham" size={13} />
                                     {day.muhurtham === "subha"
                                       ? (t("cal_monthly_subha_muhurtham", lang))
                                       : (t("cal_monthly_muhurtham", lang))}
@@ -791,7 +787,7 @@ export function MonthlyCalendarViewNova({
                                 )}
                                 {day.karinaal && (
                                   <span className="nova-cal-agenda__mark nova-cal-agenda__mark--avoid">
-                                    <AlertTriangle size={12} strokeWidth={1.75} aria-hidden="true" />
+                                    <ObservanceGlyph kind="karinaal" size={13} />
                                     {t("cal_monthly_karinaal_avoid", lang)}
                                   </span>
                                 )}
@@ -815,7 +811,7 @@ export function MonthlyCalendarViewNova({
       </div>
       {/* Full width under both columns: inside the main column it lengthened
           only that side and unbalanced the rail again. */}
-      <div className="nova-cal-closing"><MonthlyCalendarLandscape /><p>{t("cal_monthly_right_time_brighter_tomorrow", lang)}</p></div>
+      <MonthlyCalendarClosing><p>{t("cal_monthly_right_time_brighter_tomorrow", lang)}</p></MonthlyCalendarClosing>
     </div>
   );
 }

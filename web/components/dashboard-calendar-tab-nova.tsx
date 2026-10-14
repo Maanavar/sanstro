@@ -66,7 +66,7 @@ import {
 } from "./dashboard-calendar-shared";
 import type { CalendarView, DayTimelineBand } from "./dashboard-calendar-shared";
 import { MonthlyCalendarViewNova } from "./dashboard-calendar-monthly-nova";
-import { MonthlyCalendarLandscape } from "./dashboard-calendar-monthly-panels";
+import { MonthlyCalendarLandscape, useCalendarSkyArt } from "./dashboard-calendar-monthly-panels";
 import { NovaPlanMuhurtaPanel } from "./dashboard-plan-muhurta-nova";
 
 // "Best Dates & Muhurta" moved here from Goals (IA audit 2026-07-22, Phase 3):
@@ -1153,6 +1153,7 @@ export function DashboardCalendarTabNova({
   const [view, setView] = useState<CalendarViewExt>(
     focusView && (CALENDAR_VIEWS as string[]).includes(focusView) ? (focusView as CalendarViewExt) : "panchangam",
   );
+  const skyArt = useCalendarSkyArt();
   useEffect(() => {
     if (focusView && (CALENDAR_VIEWS as string[]).includes(focusView)) {
       setView(focusView as CalendarViewExt);
@@ -1468,8 +1469,8 @@ export function DashboardCalendarTabNova({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
       {/* ===== Page header ===== */}
-      <div className={view === "monthly" ? "nova-cal-monthly-header" : undefined} style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "var(--space-4)", flexWrap: "wrap" }}>
-        {view === "monthly" && <MonthlyCalendarLandscape priority />}
+      <div className={view === "monthly" ? "nova-cal-monthly-header" : undefined} data-sky-ground={view === "monthly" ? skyArt.ground : undefined} style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "var(--space-4)", flexWrap: "wrap" }}>
+        {view === "monthly" && <MonthlyCalendarLandscape art={skyArt} priority />}
         <div className={view === "monthly" ? "nova-cal-monthly-header__copy" : undefined}>
           <Kicker as="div">
             {lang === "ta" ? "கோச்சாரம் & நிகழ்வுகள்" : "Transits & Events"}

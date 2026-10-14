@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Image from "next/image";
 import { AlertTriangle, ArrowUpRight, CalendarDays, Moon, Sparkles } from "lucide-react";
 import { t, tLang, tNakshatra, tTithi, type Lang } from "@/lib/i18n";
 import { moonPhaseFromTithi } from "@/lib/lunar";
+import { skyArtFor, skyPhaseAt, type SkyArt, type SkyPhase } from "@/lib/sky-phase";
 import type { PanchangamMonthDayEntry } from "@/lib/types";
 import type { AgendaDay } from "./dashboard-calendar-monthly-nova";
 import { MiniMoonGlyph } from "./celestial-glyph-nova";
@@ -17,9 +18,44 @@ type DayActions = {
   formatDate: (date: string) => string;
 };
 
-/** Decorative, responsive artwork; the date's actual moon phase is separate. */
-export function MonthlyCalendarLandscape({ priority = false }: { priority?: boolean }) {
-  return <div className="nova-cal-landscape" aria-hidden="true"><Image src="/calendar/moonlit-temple.png" alt="" fill sizes="(max-width: 960px) 100vw, 1100px" priority={priority} /></div>;
+/**
+ * The reader's current sky, re-checked every few minutes. `null` until mounted:
+ * the server cannot know the reader's clock, so both renders start on night
+ * art and the client moves to the real phase after hydration.
+ */
+function useSkyPhase(): SkyPhase | null {
+  const [phase, setPhase] = useState<SkyPhase | null>(null);
+  useEffect(() => {
+    const tick = () => setPhase(skyPhaseAt(new Date()));
+    tick();
+    const id = window.setInterval(tick, 5 * 60 * 1000);
+    return () => window.clearInterval(id);
+  }, []);
+  return phase;
+}
+
+/** The calendar scene for the reader's current time of day. */
+export function useCalendarSkyArt(): SkyArt {
+  return skyArtFor(useSkyPhase() ?? "night");
+}
+
+/**
+ * Decorative scene; the date's actual moon phase is separate. The container
+ * must carry `data-sky-ground={art.ground}` — CSS keys the treatment (feathered
+ * atmosphere vs framed window) off the art's ground, not the theme (IMG-01).
+ */
+export function MonthlyCalendarLandscape({ art, priority = false }: { art: SkyArt; priority?: boolean }) {
+  return <div className="nova-cal-landscape" aria-hidden="true"><Image src={art.src} alt="" fill sizes="(max-width: 960px) 100vw, 1100px" priority={priority} /></div>;
+}
+
+export function MonthlyCalendarClosing({ children }: { children: ReactNode }) {
+  const art = useCalendarSkyArt();
+  return (
+    <div className="nova-cal-closing" data-sky-ground={art.ground}>
+      <MonthlyCalendarLandscape art={art} />
+      {children}
+    </div>
+  );
 }
 
 export function MonthlyCalendarSidebar({

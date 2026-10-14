@@ -93,7 +93,7 @@ export function PublicNav() {
         <div className="cl-nav__inner">
           <Link href="/" className="cl-nav__brand" aria-label={mt(NAV.home, lang)}>
             <Image
-              src="/brand/vinaadi-symbol-icon.png"
+              src="/brand/vinaadi-symbol-icon-light.png"
               alt="" aria-hidden
               width={28} height={28}
               className="cl-nav__symbol" priority

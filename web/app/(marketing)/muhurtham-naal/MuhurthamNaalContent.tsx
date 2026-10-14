@@ -5,6 +5,7 @@ import { LocalizedLink as Link } from "@/components/localized-link";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { useLang } from "@/components/lang-toggle";
+import { ObservanceGlyph } from "@/components/observance-glyph";
 import {
   MUHURTHAM_NAAL_YEARS,
   LATEST_MUHURTHAM_NAAL_YEAR,
@@ -94,16 +95,9 @@ export function MuhurthamNaalContent({ year = LATEST_MUHURTHAM_NAAL_YEAR }: { ye
             <div className="cl-pub-hero__copy">
               <p className="cl-eyebrow">{t(`${year} Almanac`, `${year} பஞ்சாங்கம்`)}</p>
               <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-                {/* eslint-disable-next-line @next/next/no-img-element -- decorative fixed-size local icon; next/image adds no benefit */}
-                <img
-                  src="/calendar/muhurtham.png"
-                  alt=""
-                  aria-hidden="true"
-                  width={56}
-                  height={56}
-                  style={{ objectFit: "contain", flexShrink: 0 }}
-                  onError={(e) => { e.currentTarget.style.display = "none"; }}
-                />
+                {/* Was /calendar/muhurtham.png, which never existed (the file is
+                    muhurtha.png) and onError hid the miss — IMG-03. */}
+                <ObservanceGlyph kind="muhurtham" size={56} style={{ color: "var(--cl-accent)" }} />
                 <h1 className="cl-pub-h1" style={{ margin: 0 }}>
                   {t(`${year} Tamil Muhurtham Naal (Wedding Dates)`, `${year} திருமண முகூர்த்த நாட்கள்`)}
                 </h1>

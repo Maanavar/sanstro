@@ -5,8 +5,12 @@
 // ── Rasi (zodiac sign) glyphs ────────────────────────────────────────────────
 // Indexed 1–12 (Mesham=1 … Meenam=12). Index 0 is an empty placeholder so the
 // 1-based rasi numbers from the engine map directly.
+// Each glyph carries U+FE0E (text presentation). These code points default to
+// emoji presentation, so without it Windows/Android draw purple tiles in place
+// of the sign and the theme cannot colour them (IMG-05).
+const TEXT = "︎";
 export const RASI_GLYPHS: string[] = [
-  "", "♈", "♉", "♊", "♋", "♌", "♍", "♎", "♏", "♐", "♑", "♒", "♓",
+  "", ...["♈", "♉", "♊", "♋", "♌", "♍", "♎", "♏", "♐", "♑", "♒", "♓"].map((g) => g + TEXT),
 ];
 
 // Accept either the 1-based rasi number, the Tamil-English name (Mesham…), or
