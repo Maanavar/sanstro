@@ -76,6 +76,32 @@ five-minute reading against the old inline computation.
 
 ### 0.2 Register scope for this module
 
+> **SUPERSEDED 2026-10-06 — owner ruling.** Every register now ships at both
+> lengths, so a family member's card shows the 2 min / 4 min switch the owner's
+> own card has. The owner found the facts-only family-member reading too thin to
+> be worth opening, and asked for "the same reading as yours".
+>
+> - **`other`** (an adult family member): the full `self` sequence, written in
+>   the third person from hand-authored twins (`_VOICE_THEM`,
+>   `_SIGNATURE_OPENING_THEM`, and the `_THEM` tables in
+>   `five_minute_reading_service.py`). It is never a pronoun rewrite of the self
+>   copy. Nothing in it may address the relative reading it as "you", and tests
+>   walk every `_THEM` table to check that. When the member's marital status is
+>   blank, the one pending question is asked about them, by name.
+> - **`parent`** (a minor, read to their parent): a seven-beat reading built for
+>   that reader. It is the 2-minute parent beats plus the running period
+>   (`_CHILD_PERIOD_TEXTURE` + bhukti) and the home house and its lord, without
+>   significations. It adds no temperament and no adult life surface, and a
+>   lint checks for both.
+> - The 2-minute `other` reading moved the same way, and its
+>   `period_now`/`third_party_close` beats and `TOPIC_THIRD_PARTY` are retired.
+>
+> The table below is kept as the record of what was ruled before, and why.
+>
+> The new Tamil, in every `_THEM` table and in `_CHILD_PERIOD_TEXTURE`, is
+> PENDING NATIVE-TAMIL REVIEW. The base tables' "review passed" markers do not
+> transfer to their twins.
+
 The 2-minute reading earns all four registers because even one minute of
 character content about a third party is worth defending. Five minutes is not
 free the same way.

@@ -4,6 +4,8 @@ Product Spec Module 18.1: Daily 6 AM local push notification per user.
 """
 from __future__ import annotations
 
+from app.services.narrative_engine import format_time_range, rahu_kalam_advice
+
 SCORE_LABEL_LINES: dict[str, dict[str, str]] = {
     "STRONG_SUPPORT": {
         "ta": "இன்று வலுவான ஆதரவு நாள். திட்டமிட்ட காரியங்களுக்கு நல்ல நேரம்.",
@@ -47,19 +49,24 @@ def build_morning_notification(
     Delivery: 6:00 AM local time in the user's birth city timezone (IANA tz from birth profile).
     Infrastructure: FCM (Firebase Cloud Messaging). All notifications are opt-in only.
 
+    Times are raw 24h "HH:MM" strings and are formatted here per language, so
+    the Tamil text carries almanac period-words (மதியம் 1:30), never "pm".
+
     Returns a dict with 'title' and 'body', each a dict with 'ta' and 'en' keys.
     """
     label = SCORE_LABEL_LINES.get(score_label, SCORE_LABEL_LINES["BALANCED"])
-    time_range = f"{nalla_neram_start}–{nalla_neram_end}"
+    time_range_ta = format_time_range(nalla_neram_start, nalla_neram_end, "ta")
+    time_range_en = format_time_range(nalla_neram_start, nalla_neram_end)
+    rahu = rahu_kalam_advice(rahu_start, rahu_end)
     title_ta = (
-        f"இன்றைய நல்ல நேரம்: {nalla_neram_category_ta} {time_range}"
+        f"இன்றைய நல்ல நேரம்: {nalla_neram_category_ta} {time_range_ta}"
         if nalla_neram_category_ta
-        else f"இன்றைய நல்ல நேரம்: {time_range}"
+        else f"இன்றைய நல்ல நேரம்: {time_range_ta}"
     )
     title_en = (
-        f"Today's Nalla Neram: {nalla_neram_category_en} {time_range}"
+        f"Today's Nalla Neram: {nalla_neram_category_en} {time_range_en}"
         if nalla_neram_category_en
-        else f"Today's Nalla Neram: {time_range}"
+        else f"Today's Nalla Neram: {time_range_en}"
     )
     purpose_ta = (
         f"{nalla_neram_category_ta}: {nalla_neram_purpose_ta}. "
@@ -81,13 +88,13 @@ def build_morning_notification(
                 f"நட்சத்திரம்: {nakshatra_name_ta}. "
                 f"{purpose_ta}"
                 f"{label['ta']} "
-                f"ராகு காலம் {rahu_start}–{rahu_end} தவிர்க்கவும்."
+                f"{rahu.ta}"
             ),
             "en": (
                 f"Star: {nakshatra_name_en}. "
                 f"{purpose_en}"
                 f"{label['en']} "
-                f"Avoid Rahu Kalam {rahu_start}–{rahu_end}."
+                f"{rahu.en}"
             ),
         },
     }

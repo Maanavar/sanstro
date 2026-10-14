@@ -10,9 +10,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # A15 — every job is bounded. Budgets are roughly twice the durations measured
+  # on this branch's runs of 2026-10-02 and 2026-10-07 (noted per job), so a hang
+  # costs minutes and a readable log instead of running to GitHub's 6 h default.
   backend-tests:
     name: Backend tests (pytest)
     runs-on: ubuntu-latest
+    # Measured 13–14 min.
+    timeout-minutes: 30
     services:
       postgres:
         image: postgres:16-alpine
@@ -59,9 +64,103 @@ jobs:
       - name: Run pytest
         run: pytest -q
 
+  # The swisseph-ffi half of the ephemeris matrix.
+  #
+  # docs/vinaadi-fix-spec.md item 5: "Two Swiss Ephemeris backends exist ...
+  # Every ephemeris change must be tested on both", and line 127 asks for
+  # exactly this job. It had never been added. Until now every job here pinned
+  # python-version 3.12, which selects `pyswisseph` via the marker in
+  # requirements.txt, so CI exercised one binding and the other was covered only
+  # by the owner running tests on a 3.14 host venv. That stopped working when
+  # Smart App Control began blocking the unsigned swe.dll on that machine
+  # (see dev-docker.ps1), leaving the binding with no coverage anywhere.
+  #
+  # The two branches of app/calculations/ephemeris.py are separate code, not a
+  # thin shim: the fix-spec records `retflag` being discarded independently in
+  # each (item E1's return codes, and the MOSEPH fallback). A defect can live in
+  # one and not the other, which is the whole reason this leg exists.
+  #
+  # Scoped to the ephemeris-touching tests rather than the full suite: this is a
+  # binding matrix leg, not a second copy of backend-tests. Linux has no code
+  # integrity policy, so `swisseph-ffi` loads here without the Windows problem.
+  backend-tests-ffi:
+    name: Backend ephemeris tests (swisseph-ffi, Python 3.14)
+    runs-on: ubuntu-latest
+    # These five files: 72 tests, measured 2 min 37 s on 3.14 with the ffi
+    # binding, in a local python:3.14-slim container on 2026-10-11. Budget is
+    # that roughly doubled plus room for any sdist builds the installer needs.
+    # A15: every job is bounded.
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: vinaadi_test
+          POSTGRES_USER: slw_admin
+          POSTGRES_PASSWORD: slw_dev_password
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U slw_admin -d vinaadi_test"
+          --health-interval 10s --health-timeout 5s --health-retries 10
+    env:
+      PYTHONUTF8: "1"
+      PYTHONIOENCODING: "utf-8"
+      JOTHIDAM_DATABASE_URL: postgresql://slw_admin:slw_dev_password@localhost:5433/vinaadi_test
+      JOTHIDAM_TEST_DB_RESET_ACK: I_UNDERSTAND_THIS_WIPES_TEST_DB
+      # Throwaway Fernet key, test DB only — same value as backend-tests.
+      JOTHIDAM_ENCRYPTION_KEY: oIE2E5GlSD8XImPyokV8q3d27MolWWwtsbokjOvVSQA=
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+      - name: Install backend
+        # Same order as backend-tests, and for the same reason: installing the
+        # pins first stops pip resolving pyproject's ranges to whatever is
+        # newest that morning. The marker in requirements.txt selects
+        # swisseph-ffi at 3.14 — that selection IS what this job tests.
+        run: |
+          pip install -r requirements.txt
+          pip install --no-deps -e .
+          pip install "pytest>=8.0,<9.0" "pytest-cov>=5.0,<7.0"
+      - name: Confirm the ffi binding is the one loaded
+        # Without this the job could pass having silently tested pyswisseph —
+        # a marker that stopped matching, or a resolver picking the other
+        # package, would look exactly like a green matrix leg. Assert the
+        # binding before asserting anything about its output.
+        run: |
+          python - <<'PY'
+          import sys
+          import swisseph_ffi
+          from swisseph_ffi.bindings import SwissEph
+          SwissEph()
+          assert sys.version_info[:2] >= (3, 14), sys.version
+          try:
+              import swisseph  # noqa: F401
+          except ImportError:
+              print("swisseph-ffi loaded; pyswisseph absent, as the markers intend")
+          else:
+              sys.exit("both bindings installed — the marker in requirements.txt is not holding")
+          PY
+      - name: Run ephemeris tests
+        # --no-cov: pyproject's addopts carry --cov-fail-under=88, which is a
+        # whole-suite number. A focused run would exit 1 on coverage with every
+        # test passing, which reads as a failure.
+        run: |
+          pytest -q --no-cov \
+            tests/test_ephemeris.py \
+            tests/test_sunrise_failure_modes.py \
+            tests/test_charts_api.py \
+            tests/test_daily_guidance_golden.py \
+            tests/test_a14_response_contracts.py
+
   backend-lint:
     name: Backend lint (ruff) + types (mypy)
     runs-on: ubuntu-latest
+    # Measured under 1 min.
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -84,9 +183,7 @@ jobs:
       - name: Mypy
         run: mypy app
       - name: Dependency audit (pip-audit)
-        # Fail on any known advisory except the ecdsa Minerva timing issue, which
-        # has no upstream fix and is off our signing path (HS256/HMAC only).
-        # See the ecdsa note in requirements.txt and REFACTOR_PLAN 1.2.
+        # Fail on any known advisory. Nothing is ignored.
         #
         # The five starlette entries (PYSEC-2026-161, -248, -249, -2280, -2281)
         # were dropped on 2026-09-02 by bumping starlette 1.0.0 → 1.3.1, which is
@@ -96,20 +193,19 @@ jobs:
         # outlive the reason it was suppressed, so if an entry below ever looks
         # permanent, re-check whether its premise still holds.
         #
-        # The two IDs below are ONE advisory, not two exposures: GHSA-wj6h-64fc-37mp,
-        # CVE-2024-23342 and PYSEC-2026-1325 are aliases of the same ecdsa finding,
-        # and each one alone suppresses it. Both are kept because which alias the
-        # advisory database reports under has changed before. With starlette
-        # cleared, this is the only vulnerability pip-audit still reports here.
+        # The ecdsa Minerva advisory (GHSA-wj6h-64fc-37mp / CVE-2024-23342) and
+        # python-jose CVE-2026-85394 (GHSA-3qf3-8w2g-rqmx) were ignored here
+        # until 2026-10-08, when python-jose and its ecdsa/rsa/pyasn1 tree were
+        # replaced by PyJWT (REFACTOR_PLAN 1.2; tests/test_jwt_library.py).
         run: |
           pip install pip-audit
-          pip-audit -r requirements.txt \
-            --ignore-vuln GHSA-wj6h-64fc-37mp \
-            --ignore-vuln CVE-2024-23342
+          pip-audit -r requirements.txt
 
   migrations:
     name: Alembic round-trip
     runs-on: ubuntu-latest
+    # Measured ~1 min.
+    timeout-minutes: 10
     services:
       postgres:
         image: postgres:16-alpine
@@ -153,6 +249,8 @@ jobs:
   web:
     name: Web (lint, test, build)
     runs-on: ubuntu-latest
+    # Measured 2–3 min.
+    timeout-minutes: 20
     # No `working-directory: web`. This is a pnpm workspace: `web` depends on
     # `@vinaadi/shared` and `@vinaadi/design-tokens` via `workspace:*`, which
     # only resolve when the install runs from the repo root. Installing inside
@@ -246,9 +344,46 @@ jobs:
           docker rm -f web
           exit 1
 
+  compose-proxy-smoke:
+    name: Compose stack (web -> api through the proxy)
+    runs-on: ubuntu-latest
+    # A01. `web-image` above proves the image builds and serves `/` — a page
+    # that needs no backend — which is exactly why a stack whose web container
+    # was handed the wrong environment variable name passed every gate while
+    # login, dashboard data and every server-rendered public page failed.
+    #
+    # This job builds api + web from the real compose file, brings up
+    # db + redis + api + web, and makes its claims THROUGH the Next proxy:
+    # /api/backend/health/ready, then a synthetic register -> login -> auth/me.
+    #
+    # Budget: web's install+build measured ~5 min on a runner, api is smaller,
+    # boot and probes are seconds. 40 leaves room for a cold cache without
+    # letting a hang run to the 6h default.
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      # pwsh, not bash: the script is the same file a developer runs on the
+      # Windows workspace, so there is one gate and not two that drift.
+      - name: Smoke the proxy route
+        shell: pwsh
+        run: ./scripts/compose-proxy-smoke.ps1
+      # NEGATIVE CONTROL, in the job itself. A gate that cannot fail proves
+      # nothing, and this one is cheap to invert because the images are already
+      # built. It points the web container at loopback — the address A01's
+      # fallback produced — and requires the readiness claim to FAIL.
+      - name: Negative control (broken BACKEND_URL must fail the smoke)
+        shell: pwsh
+        run: ./scripts/compose-proxy-smoke.ps1 -SkipBuild -BreakBackendUrl
+      - name: Compose logs on failure
+        if: failure()
+        run: docker ps -a
+
   design-tokens:
     name: Design token ratchet (no new color literals)
     runs-on: ubuntu-latest
+    # Measured ~10 s.
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -267,6 +402,10 @@ jobs:
     # Only run e2e when BASE_URL is provided (staging / preview deploy).
     # On PRs without a preview deploy the job is skipped automatically.
     if: vars.E2E_BASE_URL != ''
+    # Never measured: E2E_BASE_URL is unset, so this job has only ever been
+    # skipped. 30 is a guess to bound it, not a budget — set one from the first
+    # real run.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

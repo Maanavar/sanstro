@@ -104,7 +104,7 @@ def _gochar_summary(gochar_reasons: list[str], supported_ta: str, supported_en: 
     if gochar_reasons:
         return supported_ta, supported_en
     return (
-        "கோசார உறுதி பலமாக இல்லை; இது முக்கியமாக தசை ஆதரவின் அடிப்படையிலான கவனிக்கும் காலம்.",
+        "கோச்சார உறுதி பலமாக இல்லை; இது முக்கியமாக தசை ஆதரவின் அடிப்படையிலான கவனிக்கும் காலம்.",
         "Transit confirmation is light; this is mainly a dasha-based watch window.",
     )
 
@@ -171,7 +171,7 @@ def _marriage_windows(lagna_rasi: int, birth_jd: float, moon_lon: float, from_ye
         antar = timeline.current_antardasha.lord
         gochar_ta, gochar_en = _gochar_summary(
             gochar_reasons,
-            "கோசார உறுதி: குரு அல்லது சுக்கிரன் 7ஆம் இடத்துடன் தொடர்பு கொள்கிறது",
+            "கோச்சார உறுதி: குரு அல்லது சுக்கிரன் 7ஆம் இடத்துடன் தொடர்பு கொள்கிறது",
             "Transit confirmation: Jupiter or Venus connects with the 7th house",
         )
         results.append({
@@ -227,7 +227,7 @@ def _career_windows(lagna_rasi: int, birth_jd: float, moon_lon: float, from_year
         antar = timeline.current_antardasha.lord
         gochar_ta, gochar_en = _gochar_summary(
             gochar_reasons,
-            "கோசார உறுதி: குரு அல்லது சூரியன் 10ஆம் இடத்துடன் தொடர்பு கொள்கிறது",
+            "கோச்சார உறுதி: குரு அல்லது சூரியன் 10ஆம் இடத்துடன் தொடர்பு கொள்கிறது",
             "Transit confirmation: Jupiter or Sun connects with the 10th house",
         )
         results.append({
@@ -290,7 +290,7 @@ def _studies_windows(lagna_rasi: int, birth_jd: float, moon_lon: float, from_yea
         antar = timeline.current_antardasha.lord
         gochar_ta, gochar_en = _gochar_summary(
             gochar_reasons,
-            "கோசார உறுதி: புதன் அல்லது குரு கல்வி வீடுகளுடன் தொடர்பு கொள்கிறது",
+            "கோச்சார உறுதி: புதன் அல்லது குரு கல்வி வீடுகளுடன் தொடர்பு கொள்கிறது",
             "Transit confirmation: Mercury or Jupiter connects with education houses",
         )
         results.append({
@@ -345,7 +345,7 @@ def _relocation_windows(lagna_rasi: int, birth_jd: float, moon_lon: float, from_
         antar = timeline.current_antardasha.lord
         gochar_ta, gochar_en = _gochar_summary(
             gochar_reasons,
-            "கோசார உறுதி: சனி அல்லது ராகு இடமாற்ற வீடுகளைத் தொட்டுள்ளது",
+            "கோச்சார உறுதி: சனி அல்லது ராகு இடமாற்ற வீடுகளைத் தொட்டுள்ளது",
             "Transit confirmation: Saturn or Rahu activates relocation-sensitive houses",
         )
         results.append({
@@ -403,7 +403,7 @@ def _health_caution_windows(lagna_rasi: int, birth_jd: float, moon_lon: float, f
         antar = timeline.current_antardasha.lord
         gochar_ta, gochar_en = _gochar_summary(
             gochar_reasons,
-            "கோசார எச்சரிக்கை: சனி அல்லது செவ்வாய் 6ஆம் இடத்தைத் தொட்டுள்ளது",
+            "கோச்சார எச்சரிக்கை: சனி அல்லது செவ்வாய் 6ஆம் இடத்தைத் தொட்டுள்ளது",
             "Transit caution: Saturn or Mars activates the 6th house",
         )
         results.append({

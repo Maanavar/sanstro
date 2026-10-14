@@ -35,15 +35,29 @@ export interface MuhurthamNaalListResponse {
   naals: MuhurthamNaalItem[];
 }
 
-export interface MuhurthamNaalMatchItem {
-  naal: MuhurthamNaalItem;
+/** One chart's reading of one date. `who` is null for a single chart. */
+export interface MuhurthamNaalReading {
+  who: BiText | null;
   taraNumber: number;
   taraName: BiText;
   taraQuality: "GOOD" | "NEUTRAL" | "AVOID";
   isChandrashtama: boolean;
+  /** The reading whose tara set `matchScore`. */
+  governs: boolean;
+}
+
+export interface MuhurthamNaalMatchItem {
+  naal: MuhurthamNaalItem;
+  /** The governing reading's tara. */
+  taraNumber: number;
+  taraName: BiText;
+  taraQuality: "GOOD" | "NEUTRAL" | "AVOID";
+  /** Chandrashtama for either chart. */
+  isChandrashtama: boolean;
   isRecommended: boolean;
   matchScore: number;
   reasons: BiText[];
+  readings?: MuhurthamNaalReading[];
 }
 
 export interface MuhurthamNaalMatchContext {
@@ -55,14 +69,26 @@ export interface MuhurthamNaalMatchContext {
   source: string;
   /** The chart's effective daily location, used for the displayed Nalla Neram. */
   dailyLocation?: { latitude: number; longitude: number; timezone: string; source: "current" | "birth" } | null;
+  subjectWho?: BiText | null;
+  partner?: { who: BiText; janmaNakshatra: BiText; janmaRasiNumber: number; chandrashtamaRasiNumber: number } | null;
 }
 
 export interface MuhurthamNaalMatchResponse {
   success: boolean;
   year: number;
   chartId: string;
+  partnerChartId?: string | null;
   context: MuhurthamNaalMatchContext;
   matches: MuhurthamNaalMatchItem[];
+}
+
+export type WeddingRole = "BRIDE" | "GROOM" | "PERSON";
+
+/** A couple to rank the published dates for: the partner's saved chart and the
+ *  role of the chart the list is opened on. */
+export interface NaalCouple {
+  partnerChartId: string;
+  subjectRole: WeddingRole;
 }
 
 export interface MuhurthamNaalFilters {
@@ -84,8 +110,14 @@ export function fetchChartMuhurthamNaals(
   chartId: string,
   year: number = LATEST_MUHURTHAM_NAAL_YEAR,
   recommendedOnly = false,
+  couple: NaalCouple | null = null,
 ): Promise<MuhurthamNaalMatchResponse> {
-  const query = toQuery({ year, recommendedOnly });
+  const query = toQuery({
+    year,
+    recommendedOnly,
+    partnerChartId: couple?.partnerChartId,
+    subjectRole: couple?.subjectRole,
+  });
   return apiFetchJson<MuhurthamNaalMatchResponse>(
     `/api/v1/charts/${chartId}/muhurtham-naals${query}`,
   );

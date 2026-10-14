@@ -9,6 +9,7 @@ from datetime import date
 import pytest
 from fastapi import HTTPException
 
+from app.calculations.karinaal import KARINAAL_TAMIL_DAYS
 from app.data.panchangam_events_2026 import PANCHANGAM_EVENTS_2026
 from app.services import panchangam_events_service as svc
 
@@ -18,11 +19,23 @@ EXPECTED_COUNTS = {
     "amavasai": 12, "pournami": 13, "pradosham": 25, "karthigai": 13, "ashtami": 25,
     "navami": 24, "sashti": 12, "sankatahara-chathurthi": 13, "thiruvonam": 13,
     "maadha-sivarathiri": 12, "ekadhasi": 24, "chathurthi": 12, "chandra-darisanam": 12,
-    "karinaal": 34,
+    # Karinaal is DERIVED (F-MUH-02) and deliberately absent from the curated
+    # table, so it has no row here — see `test_karinaal_is_derived_not_curated`.
     # Major Tamil festivals (annual, one date each)
     "thai-pongal": 1, "tamil-puthandu": 1, "chithirai-vishu": 1, "panguni-uthiram": 1,
     "karthigai-deepam": 1, "vaikunta-ekadasi": 1, "aadi-perukku": 1,
 }
+
+
+def test_karinaal_is_derived_not_curated():
+    """F-MUH-02. The curated table must not carry Karinaal rows: they were
+    dead once the rule took over, and they disagreed with it in four places,
+    so a reader could not tell which was authoritative. The service reads the
+    derivation, and its count follows the rule."""
+    assert "karinaal" not in PANCHANGAM_EVENTS_2026
+    expected = sum(len(days) for days in KARINAAL_TAMIL_DAYS.values())
+    assert len(svc.karinaal_dates(2026)) == expected
+    assert len(svc.karinaal_dates(2031)) == expected, "derived, so every year works"
 
 
 def test_data_matches_expected_counts_and_is_sorted():
@@ -43,7 +56,14 @@ def test_list_events_has_all_14_with_metadata():
     for e in out["events"]:
         assert e["name"]["ta"] and e["name"]["en"]
         assert e["slug"] == f"{e['key']}-2026"
-        assert e["count"] == EXPECTED_COUNTS[e["key"]]
+        # Karinaal is derived, so its count comes from the rule rather than
+        # from the curated table EXPECTED_COUNTS mirrors.
+        expected = (
+            sum(len(days) for days in KARINAAL_TAMIL_DAYS.values())
+            if e["key"] == "karinaal"
+            else EXPECTED_COUNTS[e["key"]]
+        )
+        assert e["count"] == expected, e["key"]
 
 
 def test_next_date_logic():
@@ -82,7 +102,8 @@ def test_unknown_event_and_year_raise_404():
 
 def test_karinaal_helpers():
     kar = svc.karinaal_dates(2026)
-    assert len(kar) == 34
+    # Derived from the rule, not a literal — see test_karinaal_is_derived_not_curated.
+    assert len(kar) == sum(len(days) for days in KARINAAL_TAMIL_DAYS.values())
     assert svc.is_karinaal(date(2026, 1, 15)) is True
     assert svc.is_karinaal(date(2026, 1, 20)) is False
     # a Pournami date should not be Karinaal

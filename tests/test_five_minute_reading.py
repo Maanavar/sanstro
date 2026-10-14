@@ -153,21 +153,89 @@ def test_flag_off_answers_404_identically_for_real_and_fake_chart_ids(
     assert _stable_error_body(real) == _stable_error_body(fake)
 
 
-# ── Register gating (§0.2): only "self" ships ────────────────────────────────
+# ── Register gating: every register ships (owner ruling 2026-10-06) ──────────
+#
+# §0.2 shipped this length to `self` and `client_with_guardian` only, so the
+# length switch never appeared on a family member's card. The owner overruled
+# the scope. What the old refusals were FOR is pinned below instead: a child's
+# longer reading carries no adult life surface and no temperament verdict, and
+# an adult member's is about them, never addressed to the relative reading it.
 
 
-def test_a_minor_owning_their_own_account_gets_the_same_404_as_flag_off(client):
-    """Age 8, own chart, own account -> "parent" register, which doesn't ship yet."""
-    reset_flag("five_minute_reading")
-    set_flag("five_minute_reading", False)
-    off = client.get(f"/api/v1/charts/{uuid.uuid4()}/five-minute")
-    set_flag("five_minute_reading", True)
+# The adult-life lint from the 2-minute suite, applied to the child's longer
+# reading. Kept in step with tests/test_one_minute_reading.py's own lists.
+_ADULT_TOKENS_EN = (
+    "marriage", "marry", "married", "spouse", "husband", "wife",
+    "career", "salary", "promotion", "income", "job", "wealth", "invest",
+    "children", "money", "relationship", "longevity",
+)
+_ADULT_TOKENS_TA = (
+    "திருமண", "கல்யாண", "கணவ", "மனைவி", "சம்பள", "முதலீ",
+    "பிள்ளைகள்", "பணம்", "உறவுகள்", "ஆயுள",
+)
+_SECOND_PERSON_EN = re.compile(r"\byou\b|\byour\b|\byourself\b|\byours\b")
 
-    chart_id = _chart_id_for_age(client, age=8)
-    response = client.get(f"/api/v1/charts/{chart_id}/five-minute")
 
-    assert response.status_code == 404
-    assert _stable_error_body(response) == _stable_error_body(off)
+@pytest.mark.parametrize("age", [2, 8, 11])
+def test_a_child_gets_a_longer_reading_written_for_their_parent(client, age):
+    """Age < 13 -> "parent". The longer reading adds the running period and
+    when the next one begins — chart-derived, dated — and nothing adult-facing
+    or character-verdict-shaped. The parent's action still closes it."""
+    data = _read(client, age=age)
+
+    assert data["addressedTo"] == "parent"
+    ids = [beat["id"] for beat in data["beats"]]
+    assert ids[:4] == ["who_you_are", "what_this_rests_on", "your_age_question", "this_period"]
+    assert ids[-2:] == ["what_comes_after", "one_thing"]
+    for absent in ("core_nature", "repeating_pattern", "the_tension", "window_ahead"):
+        assert absent not in ids, f"{absent} reached a child's reading: {ids}"
+    assert data["pendingQuestion"] is None
+
+    body_en = " ".join(b["text"]["en"] for b in data["beats"]).lower()
+    body_ta = " ".join(b["text"]["ta"] for b in data["beats"])
+    for token in _ADULT_TOKENS_EN:
+        assert not re.search(rf"\b{token}", body_en), f"'{token}' reached a child: {body_en}"
+    for token in _ADULT_TOKENS_TA:
+        assert token not in body_ta, f"'{token}' reached a child: {body_ta}"
+    assert "parents can do" in body_en
+
+    max_en, max_ta = word_budget("parent")
+    assert data["wordCount"]["en"] <= max_en, data["wordCount"]
+    assert data["wordCount"]["ta"] <= max_ta, data["wordCount"]
+    assert repeated_source_clauses(_beats_of(data)) == {}
+
+
+def test_the_child_period_table_names_no_adult_life():
+    """Walked directly, so coverage does not depend on which mahadasha a
+    synthetic child happens to be in — the lesson `_MINOR_NOW_TEXTURE` taught."""
+    from app.services.five_minute_reading_service import (  # noqa: PLC0415
+        _CHILD_PERIOD_TEXTURE,  # noqa: PLC2701 (internal use)
+    )
+
+    assert set(_CHILD_PERIOD_TEXTURE) == set(_VOICE)
+    for lord, (ta, en) in _CHILD_PERIOD_TEXTURE.items():
+        for token in _ADULT_TOKENS_EN:
+            assert not re.search(rf"\b{token}", en.lower()), f"{lord}: {en}"
+        for token in _ADULT_TOKENS_TA:
+            assert token not in ta, f"{lord}: {ta}"
+        assert not _SECOND_PERSON_EN.search(en.lower()), f"{lord}: {en}"
+
+
+def test_the_third_person_tables_never_address_the_reader():
+    """Every `_THEM` table is read to a relative. A "you" in any entry is a
+    sentence talking to the person holding the phone about themselves."""
+    from app.services import five_minute_reading_service as fm  # noqa: PLC0415
+
+    for name in ("_SHADOW_ESSENCE_THEM", "_BHUKTI_FLAVOR_THEM", "_GOCHARA_SANI_THEM",
+                 "_LORD_STRENGTH_NOTE_THEM", "_TOPIC_LENS_THEM", "_LAGNA_FACE_THEM",
+                 "_MOON_MIND_THEM"):
+        table = getattr(fm, name)
+        base = getattr(fm, name.removesuffix("_THEM"))
+        assert set(table) == set(base), f"{name} does not cover its base table's keys"
+        for key, (ta, en) in table.items():
+            assert not _SECOND_PERSON_EN.search(en.lower()), f"{name}[{key}]: {en}"
+            for pronoun in ("நீங்கள்", "உங்கள்", "உங்களுக்கு", "உங்களை"):
+                assert pronoun not in ta, f"{name}[{key}]: {ta}"
 
 
 # ── client_with_guardian: the reduced 6-beat register (§0.2) ─────────────────
@@ -261,15 +329,27 @@ def test_guardian_reading_never_asks_the_marital_status_question(client):
     assert data["pendingQuestion"] is None
 
 
-def test_a_family_vault_members_chart_gets_the_same_404_as_flag_off(
-    client, family_vault_payload_factory, family_member_payload_factory
+@pytest.mark.parametrize(
+    ("age", "marital_status", "birth_time_source"),
+    [
+        (26, None, None),
+        (34, "married", "BIRTH_CERTIFICATE"),
+        (29, "single", "BIRTH_CERTIFICATE"),
+        (52, "widowed", None),
+        (66, "married", "BIRTH_CERTIFICATE"),
+    ],
+)
+def test_an_adult_family_members_chart_gets_the_full_reading_about_them(
+    client,
+    family_vault_payload_factory,
+    family_member_payload_factory,
+    age,
+    marital_status,
+    birth_time_source,
 ):
-    """A chart read off someone else's family-vault card -> "other", never ships."""
-    reset_flag("five_minute_reading")
-    set_flag("five_minute_reading", False)
-    off = client.get(f"/api/v1/charts/{uuid.uuid4()}/five-minute")
-    set_flag("five_minute_reading", True)
-
+    """A chart read off someone else's family-vault card -> "other": the self
+    sequence in the third person. No beat may address the relative reading it,
+    no content clause may print twice, and the adult budget holds."""
     from sqlalchemy import select
 
     from app.db.session import SessionLocal
@@ -280,26 +360,63 @@ def test_a_family_vault_members_chart_gets_the_same_404_as_flag_off(
     vault_id = vault.json()["data"]["familyVaultId"]
 
     payload = family_member_payload_factory(
-        display_name="Five Minute Synthetic Daughter", relationship_to_owner="child"
+        display_name=f"Meera Synthetic Member {next(_SERIAL)}", relationship_to_owner="sibling"
     )
-    payload["birthDateLocal"] = _birth_date_for_age(26)
+    payload["birthDateLocal"] = _birth_date_for_age(age)
+    if marital_status is not None:
+        payload["maritalStatus"] = marital_status
     member = client.post(f"/api/v1/family-vaults/{vault_id}/members", json=payload)
     assert member.status_code == 200, member.text
     member_id = member.json()["data"]["familyMemberId"]
 
-    with SessionLocal() as session:
-        row = session.execute(
-            select(Chart.chart_id)
-            .join(BirthProfile, BirthProfile.birth_profile_id == Chart.birth_profile_id)
-            .where(BirthProfile.family_member_id == uuid.UUID(member_id))
-            .order_by(Chart.created_at.desc())
-        ).first()
+    def _latest_chart() -> tuple:
+        with SessionLocal() as session:
+            return session.execute(
+                select(Chart.chart_id, BirthProfile.birth_profile_id)
+                .join(BirthProfile, BirthProfile.birth_profile_id == Chart.birth_profile_id)
+                .where(BirthProfile.family_member_id == uuid.UUID(member_id))
+                .order_by(Chart.created_at.desc())
+            ).first()
+
+    row = _latest_chart()
     assert row is not None, "the member's chart was not created"
+    if birth_time_source is not None:
+        # The vault endpoint takes no birth-time source — a member's lagna is
+        # unconfirmed until the owner records one on the profile, which is the
+        # path exercised here.
+        patched = client.patch(
+            f"/api/v1/birth-profiles/{row[1]}", json={"birthTimeSource": birth_time_source}
+        )
+        assert patched.status_code == 200, patched.text
+        row = _latest_chart()
 
     response = client.get(f"/api/v1/charts/{row[0]}/five-minute")
+    assert response.status_code == 200, response.text
+    data = response.json()["data"]
 
-    assert response.status_code == 404
-    assert _stable_error_body(response) == _stable_error_body(off)
+    assert data["addressedTo"] == "other"
+    ids = [beat["id"] for beat in data["beats"]]
+    for beat_id in ("core_nature", "repeating_pattern", "this_period", "window_ahead",
+                    "what_comes_after", "one_thing"):
+        assert beat_id in ids, f"{beat_id} missing: {ids}"
+    # The tension and the topic house both need a confirmed lagna, exactly as
+    # on the self path.
+    assert ("the_tension" in ids) == (birth_time_source == "BIRTH_CERTIFICATE"), ids
+
+    body_en = " ".join(b["text"]["en"] for b in data["beats"])
+    assert not _SECOND_PERSON_EN.search(body_en.lower()), body_en
+    body_ta = " ".join(b["text"]["ta"] for b in data["beats"])
+    for pronoun in ("நீங்கள்", "உங்கள்", "உங்களுக்கு", "உங்களை"):
+        assert pronoun not in body_ta, body_ta
+    assert "Meera" in body_en and "Meera" in body_ta
+
+    assert repeated_source_clauses(_beats_of(data)) == {}
+    max_en, max_ta = word_budget("other")
+    assert data["wordCount"]["en"] <= max_en, data["wordCount"]
+    assert data["wordCount"]["ta"] <= max_ta, data["wordCount"]
+    if marital_status is None:
+        assert data["pendingQuestion"] is not None
+        assert "Meera" in data["pendingQuestion"]["prompt"]["en"]
 
 
 # ── What actually ships: "self", all 8 beats (5, 6, 7 gated per §0.2/§2.5) ──

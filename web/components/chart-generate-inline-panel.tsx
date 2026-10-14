@@ -16,7 +16,6 @@ import { nakshatraLord, nakshatraLordShort } from "@vinaadi/shared/nakshatraLord
 import {
   buildD1CellDetail,
   buildD9CellDetail,
-  computeD9LagnaRasi,
   D1_RASI_NAMES_TA,
   GRAHA_ABBR,
   rasiLabel,
@@ -265,7 +264,7 @@ function JathagamPrint({ chart, dasha, fatherName, motherName, gender }: {
   chart: ChartCalculateResponseData; dasha: DashaTimelineResponseData | null;
   fatherName: string; motherName: string; gender: string;
 }) {
-  const d9LagnaRasi = computeD9LagnaRasi(chart.lagna.absoluteLongitude);
+  const d9LagnaRasi = chart.lagna.d9Rasi;
   const bp = chart.birthProfile;
   const moon = chart.planets.find((p) => p.graha === "MOON");
   const weekday = formatWeekday(bp.birthDateLocal);
@@ -342,7 +341,7 @@ function JathagamPrint({ chart, dasha, fatherName, motherName, gender }: {
             <td style={{ ...cellStyle, textAlign: "left", fontWeight: 600 }}>பிறந்த கிழமை</td>
             <td style={{ ...cellStyle, textAlign: "left" }}>: {weekday}</td>
             <td style={{ ...cellStyle, textAlign: "left", fontWeight: 600 }}>லக்னம்</td>
-            <td style={{ ...cellStyle, textAlign: "left" }}>: {RASI_NAMES_TA[chart.lagna.rasi] ?? chart.lagna.rasiName}</td>
+            <td style={{ ...cellStyle, textAlign: "left" }}>: {RASI_NAMES_TA[chart.lagna.rasi]}</td>
           </tr>
           <tr>
             <td style={{ ...cellStyle, textAlign: "left", fontWeight: 600 }}>ஜென்ம நட்சத்திரம்</td>
@@ -586,11 +585,6 @@ function KattamPair({ chart, lang }: { chart: ChartCalculateResponseData; lang: 
 // ── Graha positions — the print sheet's core table, brought to the screen ─────
 function GrahaPositionsTable({ chart, lang }: { chart: ChartCalculateResponseData; lang: Lang }) {
   const isTa = lang === "ta";
-  // The API sends the nakshatra as an uppercase key ("UTHIRADAM"), which is
-  // what `tNakshatra` is keyed on. Passing it through raw printed UTHIRADAM in
-  // the middle of a Tamil table.
-  const star = (v: string) => tNakshatra(v, lang);
-
   type Row = {
     key: string; name: string; degInRasi: number; rasi: number; d9Rasi: number;
     nakshatra: number; nakshatraName: string; pada: number;
@@ -603,7 +597,12 @@ function GrahaPositionsTable({ chart, lang }: { chart: ChartCalculateResponseDat
       name: isTa ? "லக்னம்" : "Lagna",
       degInRasi: chart.lagna.degreeInRasi,
       rasi: chart.lagna.rasi,
-      d9Rasi: computeD9LagnaRasi(chart.lagna.absoluteLongitude),
+      // The server sends `lagna.d9Rasi` and every planet's `d9Rasi` from one
+      // navamsa function. Deriving the Lagna's here instead would be a second
+      // implementation of the same rule, and the client copy has no epsilon
+      // guard, so a longitude sitting exactly on a pada boundary can round to
+      // the neighbouring sign while the planets beside it do not.
+      d9Rasi: chart.lagna.d9Rasi,
       nakshatra: chart.lagna.nakshatra,
       nakshatraName: chart.lagna.nakshatraName,
       pada: chart.lagna.pada,
@@ -672,7 +671,7 @@ function GrahaPositionsTable({ chart, lang }: { chart: ChartCalculateResponseDat
                     {row.isVargottama ? <FlagChip text={t("flag_vargottamam", lang)} tone="vargottama" /> : null}
                   </span>
                 </td>
-                <td style={td}>{star(row.nakshatraName)}</td>
+                <td style={td}>{tNakshatra(row.nakshatraName, lang)}</td>
                 <td style={{ ...td, fontVariantNumeric: "tabular-nums" }}>{row.pada}</td>
                 <td style={{ ...td, whiteSpace: "nowrap" }}>
                   {row.isLagna ? "—" : (tPlanetLord(nakshatraLord(row.nakshatra), lang) || "—")}

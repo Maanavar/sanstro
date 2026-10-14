@@ -5,6 +5,8 @@ import {
   buildD9CellDetail,
   computeD9LagnaRasi,
   houseFrom,
+  rasiDisplayName,
+  rasiNumber,
 } from "./chart-utils";
 import type { ChartCalculateResponseData } from "./types";
 
@@ -32,6 +34,11 @@ function sampleChart(): ChartCalculateResponseData {
       nakshatra: 1,
       nakshatraName: "Aswini",
       pada: 4,
+      // Server-sent, and it must agree with `absoluteLongitude` above:
+      // navamsa of 10° Mesham is Kadagam. `buildD9CellDetail` now reads this
+      // field instead of re-deriving it, so an arbitrary value here would
+      // silently move every D9 house in the fixture.
+      d9Rasi: 4,
     },
     planets: [
       {
@@ -50,6 +57,11 @@ function sampleChart(): ChartCalculateResponseData {
         d9Rasi: 2,
         isVargottama: false,
         showRetrogradeBadge: false,
+        // Rishabam is Venus's sign and Venus is the Sun's natural enemy, so
+        // this is what the server's `d9_dignity_label` returns for D9 = 2.
+        // A fixture that pairs a sign with a dignity it cannot carry teaches
+        // the next reader a rule that is not the engine's.
+        d9Dignity: "ENEMY_SIGN",
       },
       {
         graha: "SATURN",
@@ -67,6 +79,9 @@ function sampleChart(): ChartCalculateResponseData {
         d9Rasi: 6,
         isVargottama: true,
         showRetrogradeBadge: true,
+        // Kanni is Mercury's sign and Mercury is Saturn's natural friend.
+        // Saturn's own signs are Magaram and Kumbam, never Kanni.
+        d9Dignity: "FRIEND_SIGN",
       },
     ],
     yogas: [],
@@ -90,6 +105,30 @@ describe("chart utils", () => {
     expect(computeD9LagnaRasi(35)).toBe(11);
   });
 
+  it("renders string-only rasi fields in the active language without uppercase leaks", () => {
+    expect(rasiDisplayName("KANNI", "en")).toBe("Kanni");
+    expect(rasiDisplayName("KANNI", "ta")).toBe("கன்னி");
+    expect(rasiDisplayName("UNRECOGNISED_RASI", "en")).toBe("Unrecognised Rasi");
+  });
+
+  // The three shapes the backend actually sends for one sign: `rasi` (number),
+  // `rasiName` ("Mithunam", from RASI_NAMES) and `rasiCode` ("MITHUNAM"). A
+  // caller that picked the wrong one used to print English at a Tamil reader —
+  // DXA-08's own fix left nine such sites standing because only the code shape
+  // looks wrong on sight.
+  it("resolves every shape the backend sends for the same sign", () => {
+    for (const shape of [3, "MITHUNAM", "Mithunam", "மிதுனம்"] as const) {
+      expect(rasiDisplayName(shape, "ta")).toBe("மிதுனம்");
+      expect(rasiDisplayName(shape, "en")).toBe("Mithunam");
+    }
+  });
+
+  it("returns empty for an absent rasi rather than a placeholder", () => {
+    expect(rasiDisplayName(null, "ta")).toBe("");
+    expect(rasiDisplayName(undefined, "en")).toBe("");
+    expect(rasiDisplayName("  ", "en")).toBe("");
+  });
+
   it("builds D1 and D9 cell detail payloads for explain overlay", () => {
     const chart = sampleChart();
     const d1 = buildD1CellDetail(chart, 1);
@@ -100,5 +139,28 @@ describe("chart utils", () => {
     const d9 = buildD9CellDetail(chart, 4);
     expect(d9.isLagna).toBe(true);
     expect(d9.occupants[0].graha).toBe("Lagna");
+  });
+});
+
+describe("rasiNumber", () => {
+  // Peyarchi events carry only a name, in whichever casing the endpoint uses;
+  // FTR-02 resolves the index here so the artwork and Tamil label can follow.
+  it("resolves every shape the backend sends to one index", () => {
+    expect(rasiNumber(11)).toBe(11);
+    expect(rasiNumber("Kumbam")).toBe(11);
+    expect(rasiNumber("KUMBAM")).toBe(11);
+    expect(rasiNumber("கும்பம்")).toBe(11);
+  });
+
+  it("returns null for anything it cannot place", () => {
+    expect(rasiNumber(0)).toBeNull();
+    expect(rasiNumber(13)).toBeNull();
+    expect(rasiNumber("")).toBeNull();
+    expect(rasiNumber("Ophiuchus")).toBeNull();
+    expect(rasiNumber(null)).toBeNull();
+  });
+
+  it("feeds rasiDisplayName, so a peyarchi code renders in Tamil", () => {
+    expect(rasiDisplayName("MAGARAM", "ta")).toBe("மகரம்");
   });
 });

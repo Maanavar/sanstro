@@ -6,12 +6,13 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user
+from app.core.entitlements import require_feature
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.retrospective import RetrospectiveListResponse, RetrospectiveRequest, RetrospectiveResponse
 from app.services.retrospective_service import analyse_and_save_retrospective, list_retrospectives
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_feature("retrospective_enabled"))])
 
 
 @router.post("/retrospective", response_model=RetrospectiveResponse, tags=["retrospective"])

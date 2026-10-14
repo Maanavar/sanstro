@@ -8,7 +8,7 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "tsc": "tsc --noEmit",
-    "lint": "eslint \"app/**/*.{ts,tsx}\"",
+    "lint": "eslint \"app/**/*.{ts,tsx}\" \"src/**/*.{ts,tsx}\" --max-warnings 14",
     "test": "jest",
     "qa:maestro": "maestro test .maestro/flows",
     "qa:touch-targets": "node scripts/audit-touch-targets.mjs",

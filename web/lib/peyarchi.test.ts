@@ -15,10 +15,23 @@ describe("peyarchi tone classifier", () => {
     expect(classifyPeyarchiToneFromMoon("JUPITER", 8)).toBe("caution");
   });
 
-  it("keeps Saturn Sade Sati houses neutral (12/1/2)", () => {
-    expect(classifyPeyarchiToneFromMoon("SATURN", 12)).toBe("neutral");
-    expect(classifyPeyarchiToneFromMoon("SATURN", 1)).toBe("neutral");
-    expect(classifyPeyarchiToneFromMoon("SATURN", 2)).toBe("neutral");
+  // Ruling D2 (astrologer, 2026-10-04) replaced the earlier "soften Sade Sati
+  // to neutral" product rule: Saturn outside 3/6/11 always needs care.
+  it("treats Saturn Sade Sati houses (12/1/2) as caution (D2)", () => {
+    expect(classifyPeyarchiToneFromMoon("SATURN", 12)).toBe("caution");
+    expect(classifyPeyarchiToneFromMoon("SATURN", 1)).toBe("caution");
+    expect(classifyPeyarchiToneFromMoon("SATURN", 2)).toBe("caution");
+  });
+
+  it("treats Saturn 5/7/9 from Moon as caution too — not only the named cycles (D2)", () => {
+    expect(classifyPeyarchiToneFromMoon("SATURN", 5)).toBe("caution");
+    expect(classifyPeyarchiToneFromMoon("SATURN", 7)).toBe("caution");
+    expect(classifyPeyarchiToneFromMoon("SATURN", 9)).toBe("caution");
+  });
+
+  it("grades Jupiter 1/3/4/10 as neutral (Vinaadi 'Mixed', D3) and 6/8/12 as caution", () => {
+    for (const h of [1, 3, 4, 10]) expect(classifyPeyarchiToneFromMoon("JUPITER", h)).toBe("neutral");
+    for (const h of [6, 8, 12]) expect(classifyPeyarchiToneFromMoon("JUPITER", h)).toBe("caution");
   });
 
   it("treats Saturn Ashtama Sani (8th) as caution", () => {
@@ -31,7 +44,7 @@ describe("peyarchi tone classifier", () => {
     expect(classifyPeyarchiToneFromMoon("SATURN", 11)).toBe("supportive");
   });
 
-  it("keeps Saturn 10th from Moon (kandaka kendra) neutral, never supportive", () => {
-    expect(classifyPeyarchiToneFromMoon("SATURN", 10)).toBe("neutral");
+  it("treats Saturn 10th from Moon (kandaka kendra) as caution, never supportive (D2)", () => {
+    expect(classifyPeyarchiToneFromMoon("SATURN", 10)).toBe("caution");
   });
 });

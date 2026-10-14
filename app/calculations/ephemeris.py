@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
+from enum import Enum
 from functools import lru_cache
+from pathlib import Path
 from threading import RLock
 
 from app.calculations.astro import degree_in_rasi, normalize_longitude, rasi_from_degree
@@ -20,10 +23,17 @@ from app.calculations.astro import degree_in_rasi, normalize_longitude, rasi_fro
 # Declared once here rather than in each backend branch below. The two branches
 # are mutually exclusive at runtime, but a type checker reads both, so a
 # per-branch annotation is a redefinition. Not `Final` either: the fallback
-# chain for _RSMI_HINDU_RISING legitimately assigns it more than once. Both are
+# chain for _RSMI_GEOMETRIC_DISC_CENTER legitimately assigns it more than once. Both are
 # write-once-per-process in practice; nothing outside this header rebinds them.
-_RSMI_HINDU_RISING: int
+_RSMI_GEOMETRIC_DISC_CENTER: int
 SIDEREAL_FLAGS: int
+
+# No extra rsmi bits: Swiss Ephemeris's own default is apparent rise/set of the
+# Sun's UPPER LIMB including atmospheric refraction. That is Vinaadi's
+# Thirukanitham convention (see SunriseConvention.APPARENT_UPPER_LIMB) and the
+# reason it is spelled as a named zero rather than omitted — an absent flag
+# reads like an oversight, a named one records a decision.
+_RSMI_APPARENT_UPPER_LIMB = 0
 
 try:
     import swisseph as swe_module  # type: ignore[import-not-found]
@@ -56,7 +66,7 @@ except ImportError:  # pragma: no cover - exercised in this environment via swis
         SwissEph,
     )
 
-    _RSMI_HINDU_RISING = SE_BIT_HINDU_RISING
+    _RSMI_GEOMETRIC_DISC_CENTER = SE_BIT_HINDU_RISING
 
     _SWISS = SwissEph()
 
@@ -92,7 +102,7 @@ else:
     try:
         from swisseph import BIT_HINDU_RISING  # type: ignore[import-not-found]
 
-        _RSMI_HINDU_RISING = BIT_HINDU_RISING
+        _RSMI_GEOMETRIC_DISC_CENTER = BIT_HINDU_RISING
     except ImportError:
         try:
             from swisseph import (  # type: ignore[import-not-found]
@@ -101,13 +111,16 @@ else:
                 BIT_NO_REFRACTION,
             )
 
-            _RSMI_HINDU_RISING = BIT_DISC_CENTER | BIT_NO_REFRACTION | BIT_GEOCTR_NO_ECL_LAT
+            _RSMI_GEOMETRIC_DISC_CENTER = BIT_DISC_CENTER | BIT_NO_REFRACTION | BIT_GEOCTR_NO_ECL_LAT
         except ImportError:
             # Hardcoded per the Swiss Ephemeris C header (swephexp.h) — same
             # combination as swisseph_ffi's SE_BIT_HINDU_RISING: disc-center
             # (256) | no-refraction (512) | geocentric-no-ecliptic-latitude
-            # (128) = 896.
-            _RSMI_HINDU_RISING = 896
+            # (128) = 896. Note the library's name for this combination is a
+            # claim about Hindu practice, not a fact about it — Vinaadi's
+            # Thirukanitham doctrine does NOT use it as the default; see
+            # SunriseConvention below.
+            _RSMI_GEOMETRIC_DISC_CENTER = 896
 
     PLANET_IDS = {
         "SUN": SUN,
@@ -123,6 +136,38 @@ else:
 
 RETROGRADE_BADGE_EXEMPT = frozenset({"SUN", "MOON", "RAHU", "KETU"})
 _SWISS_LOCK = RLock()
+
+#: Where the Swiss Ephemeris ``.se1`` data files live (sepl_18 / semo_18 /
+#: seas_18, 1800-2399 AD). Committed under ``ephe/`` at the repo root and copied
+#: to ``/app/ephe`` in the API image, which sets the variable explicitly.
+SWISSEPH_PATH_ENV = "JOTHIDAM_SWISSEPH_PATH"
+_DEFAULT_EPHE_DIR = Path(__file__).resolve().parents[2] / "ephe"
+
+
+def _configure_ephemeris_path() -> str | None:
+    """Point Swiss Ephemeris at its data files, once, at import.
+
+    Nothing used to, so every chart and panchangam was computed on the Moshier
+    analytic fallback (owner ruling 2026-10-01 to bundle the files). Measured
+    over 15 dates 1988-2017: Moon within 0.88", Sun 0.05", Saturn 0.50",
+    sunrise 3 ms — small, but the computation is now the one the library is
+    built around, and `source_warnings` stops carrying the fallback notice.
+
+    A missing directory is left alone rather than raised: the library then
+    falls back to Moshier exactly as before and `_calc_ut` records it.
+    """
+    path = Path(os.environ.get(SWISSEPH_PATH_ENV) or _DEFAULT_EPHE_DIR)
+    if not path.is_dir():
+        return None
+    with _SWISS_LOCK:
+        if _HAS_MODULE_API:
+            swe_module.set_ephe_path(str(path))
+        else:
+            _SWISS.swe_set_ephe_path(str(path).encode("utf-8"))
+    return str(path)
+
+
+EPHEMERIS_PATH = _configure_ephemeris_path()
 
 
 @dataclass(frozen=True, slots=True)
@@ -155,19 +200,42 @@ def set_lahiri_ayanamsa() -> None:
 
 
 def get_lahiri_ayanamsa_ut(jd_ut: float) -> float:
+    """The Lahiri ayanamsa at `jd_ut`, in degrees.
+
+    Sets the mode first, because `swe_get_ayanamsa_ut` reports whatever mode is
+    currently selected and this function's NAME is a promise about which one
+    that is. Called cold it returned the library default, Fagan/Bradley — at
+    1988-06-01 that is 24.578488 against Lahiri's 23.695280, and the number
+    goes straight into `chart.ayanamsa_value_degrees` and onto the screen. Same
+    omission as `calculate_lagna_degree`; see its note.
+    """
     with _SWISS_LOCK:
+        set_lahiri_ayanamsa()
         if _HAS_MODULE_API:
             return float(swe_module.get_ayanamsa_ut(jd_ut))
         return float(_SWISS.swe_get_ayanamsa_ut(jd_ut))
 
 
+#: Recorded when Swiss Ephemeris answers from the Moshier analytic fallback
+#: because its ``.se1`` data files are not on the ephemeris path. The FFI branch
+#: gets the library's own sentence through ``serr``; pyswisseph exposes only the
+#: return flag, so this branch names the fact itself.
+MOSHIER_FALLBACK_WARNING = "Swiss Ephemeris data files not found; using Moshier ephemeris."
+
+
 def _calc_ut(jd_ut: float, planet_id: int) -> tuple[float, float, str]:
     with _SWISS_LOCK:
         if _HAS_MODULE_API:
-            xx, _retflag = swe_module.calc_ut(jd_ut, planet_id, SIDEREAL_FLAGS)
+            xx, retflag = swe_module.calc_ut(jd_ut, planet_id, SIDEREAL_FLAGS)
             longitude = normalize_longitude(float(xx[0]))
             speed = float(xx[3])
-            return longitude, speed, ""
+            # The return flag says which ephemeris actually answered. It used to
+            # be discarded, so the production image (pyswisseph) fell back to
+            # Moshier with no record, while the FFI branch below reported the
+            # same fallback through `serr`. Only a missing SWIEPH bit is read:
+            # the other bits echo the request (sidereal, speed).
+            warning = "" if int(retflag) & FLG_SWIEPH else MOSHIER_FALLBACK_WARNING
+            return longitude, speed, warning
 
         xx = (c_double * 6)()
         serr = create_string_buffer(256)
@@ -247,7 +315,24 @@ def calculate_sidereal_planets(jd_ut: float) -> EphemerisSnapshot:
 
 
 def calculate_lagna_degree(jd_ut: float, latitude: float, longitude: float) -> float:
+    """Sidereal Ascendant longitude (degrees), Lahiri.
+
+    ``set_lahiri_ayanamsa()`` is called here and not assumed. ``FLG_SIDEREAL``
+    only says "use the sidereal mode"; *which* mode is process-global state,
+    and Swiss Ephemeris's default is **Fagan/Bradley**, about 0.88° from
+    Lahiri. This function used to rely on some earlier
+    ``calculate_sidereal_planets`` in the same process having set it — true on
+    the fresh-chart path, which computes the planets first, and false for any
+    caller that reaches the Ascendant first on a cold worker. Those callers got
+    a silently Fagan/Bradley Ascendant: ~0.88° out, and a different rasi
+    whenever the true degree sits within 0.88° of a sign boundary.
+
+    Measured on a cold interpreter: an Ascendant came out 0.8832 deg lower
+    without a preceding planet call than with one — the full Fagan/Bradley
+    offset. Re-entrant lock, so the nested acquire is free.
+    """
     with _SWISS_LOCK:
+        set_lahiri_ayanamsa()
         if _HAS_MODULE_API:
             try:
                 _cusps, ascmc = swe_module.houses_ex(jd_ut, latitude, longitude, b"W", FLG_SIDEREAL)
@@ -263,8 +348,14 @@ def calculate_lagna_degree(jd_ut: float, latitude: float, longitude: float) -> f
 
 def calculate_asc_mc(jd_ut: float, latitude: float, longitude: float) -> tuple[float, float]:
     """Sidereal Ascendant and Midheaven longitudes (degrees). ascmc[0] is the
-    Ascendant, ascmc[1] the MC. Used by the Shadbala Dig Bala computation."""
+    Ascendant, ascmc[1] the MC. Used by the Shadbala Dig Bala computation.
+
+    Sets the ayanamsa for the same reason ``calculate_lagna_degree`` does —
+    ``FLG_SIDEREAL`` does not choose the mode, and the library's default is
+    Fagan/Bradley.
+    """
     with _SWISS_LOCK:
+        set_lahiri_ayanamsa()
         if _HAS_MODULE_API:
             try:
                 _cusps, ascmc = swe_module.houses_ex(jd_ut, latitude, longitude, b"W", FLG_SIDEREAL)
@@ -306,19 +397,79 @@ def _require_valid_rise_jd(jd_result: float, jd_start: float, *, rise: bool) -> 
     return jd_result
 
 
-def calculate_rise_transit_jd(jd_start: float, latitude: float, longitude: float, *, rise: bool) -> float:
-    """Hindu sunrise/sunset (Doctrine §1, WI-07): geometric rise/set of the
-    Sun's disc CENTER with NO atmospheric refraction, matching every printed
-    Tamil panchangam's definition of udaya/asthamana — not Swiss Ephemeris's
-    default (upper limb + refraction), which sits ~2-4 minutes earlier. This
-    is the single anchor every sunrise-derived field inherits (Rahu kalam,
-    Yamagandam, Kuligai, horai, udaya tithi/nakshatra, sunrise lagna, Gowri,
-    tamil_calendar's sunset cutoff) — see PANCHANGAM_CACHE_DATA_VERSION v33
-    in panchangam.py.
+class SunriseConvention(Enum):
+    """Which horizon event counts as sunrise/sunset.
+
+    Vinaadi's Thirukanitham doctrine is APPARENT_UPPER_LIMB (WI-07, re-ruled
+    2026-09-29). GEOMETRIC_DISC_CENTER is retained as a named traditional
+    variant so it can be requested deliberately; it must never become the
+    default again without a fresh owner ruling.
+    """
+
+    #: Apparent rise/set of the Sun's UPPER LIMB including atmospheric
+    #: refraction — the modern Drik convention of India's Rashtriya Panchang
+    #: and DrikPanchang's default. **Vinaadi Thirukanitham doctrine.**
+    APPARENT_UPPER_LIMB = "APPARENT_UPPER_LIMB"
+
+    #: Geometric rise/set of the Sun's disc CENTRE with NO refraction
+    #: (Swiss Ephemeris SE_BIT_HINDU_RISING). Lands ~3-6 min inside the
+    #: apparent event at both ends. Traditional/alternate variant only.
+    GEOMETRIC_DISC_CENTER = "GEOMETRIC_DISC_CENTER"
+
+
+_RSMI_BY_CONVENTION = {
+    SunriseConvention.APPARENT_UPPER_LIMB: _RSMI_APPARENT_UPPER_LIMB,
+    SunriseConvention.GEOMETRIC_DISC_CENTER: _RSMI_GEOMETRIC_DISC_CENTER,
+}
+
+#: Vinaadi Thirukanitham doctrine (WI-07, re-ruled 2026-09-29). Named so the
+#: default is auditable by grep rather than implied by a parameter default.
+THIRUKANITHAM_SUNRISE_CONVENTION = SunriseConvention.APPARENT_UPPER_LIMB
+
+
+def calculate_rise_transit_jd(
+    jd_start: float,
+    latitude: float,
+    longitude: float,
+    *,
+    rise: bool,
+    convention: SunriseConvention = THIRUKANITHAM_SUNRISE_CONVENTION,
+) -> float:
+    """Thirukanitham sunrise/sunset (Doctrine §1, WI-07 as re-ruled 2026-09-29):
+    **apparent** rise/set of the Sun's upper limb **including atmospheric
+    refraction** — the modern Drik convention followed by India's Rashtriya
+    Panchang and by DrikPanchang's default, and therefore by Vinaadi.
+
+    This replaced Swiss Ephemeris's ``SE_BIT_HINDU_RISING`` (disc centre, no
+    refraction), which had been adopted on the unsupported premise that it
+    "matches every printed Tamil panchangam". It does not: it sits ~3.5 min
+    later at sunrise and ~3.5 min earlier at sunset than every mainstream
+    published source, and no printed edition was ever checked. The library's
+    flag name is a claim about Hindu practice, not a ratified standard — do
+    not read it as one. Printed Thirukanitha parity (Vasan / Manimekalai /
+    Arcot) is a SEPARATE open validation task; this convention is ruled, not
+    publisher-verified.
+
+    This is the single anchor every sunrise-derived field inherits (Rahu
+    kalam, Yamagandam, Kuligai, horai, Gowri, Durmuhurtham, udaya
+    tithi/nakshatra, sunrise lagna, tamil_calendar's sunset cutoff) — see
+    PANCHANGAM_CACHE_DATA_VERSION v47 in panchangam.py.
+
+    Returns the exact Julian Day of the event. Callers must NOT pre-round:
+    presentation rounds to the nearest minute at the display boundary only
+    (``app/services/panchangam_service.py``), because every derived window is
+    a fraction of the sunrise→sunset span and rounding the anchor first
+    compounds into those subdivisions.
+
+    Atmospheric parameters are passed as 0.0/0.0 deliberately (see the call
+    sites): atpress=0 makes Swiss Ephemeris estimate pressure from geographic
+    altitude, and attemp=0 selects 0 °C. Moving to 15 °C shifts the event by
+    ~13 s — below the display's rounding granularity, and changing it would
+    silently move every pinned reference value.
     """
     rsmi_rise = CALC_RISE if _HAS_MODULE_API else SE_CALC_RISE
     rsmi_set = CALC_SET if _HAS_MODULE_API else SE_CALC_SET
-    rsmi = (rsmi_rise if rise else rsmi_set) | _RSMI_HINDU_RISING
+    rsmi = (rsmi_rise if rise else rsmi_set) | _RSMI_BY_CONVENTION[convention]
     with _SWISS_LOCK:
         if _HAS_MODULE_API:
             if not hasattr(swe_module, "rise_trans"):
@@ -366,7 +517,7 @@ def calculate_rise_transit_jd(jd_start: float, latitude: float, longitude: float
         geopos_buf = (c_double * 3)(longitude, latitude, 0.0)
         tret = (c_double * 10)()
         serr = create_string_buffer(256)
-        _SWISS.swe_rise_trans(
+        retflag = _SWISS.swe_rise_trans(
             jd_start,
             SE_SUN,
             None,
@@ -378,6 +529,26 @@ def calculate_rise_transit_jd(jd_start: float, latitude: float, longitude: float
             tret,
             serr,
         )
+        # The return code and `serr` used to be discarded outright — this branch
+        # called the function for `tret` alone. Circumpolar days still came out
+        # right, but only by accident: Swiss Ephemeris leaves `tret[0]` at 0.0,
+        # which `_require_valid_rise_jd` rejects as out of window. That means a
+        # genuine ERROR (-1: bad ephemeris file, unreadable data) arrived at the
+        # caller wearing "the Sun does not rise here", which is the one
+        # distinction `RiseTransitUndefinedError` exists to make. Same two
+        # documented codes the module branch above checks: -2 circumpolar,
+        # -1 error.
+        if retflag is not None and int(retflag) == -2:
+            raise RiseTransitUndefinedError(
+                f"No sun{'rise' if rise else 'set'} at this location on this date "
+                "(polar day/night) — panchangam is undefined here."
+            )
+        if retflag is not None and int(retflag) < 0:
+            message = serr.value.decode("utf-8", "ignore").strip()
+            raise RuntimeError(
+                f"Swiss Ephemeris swe_rise_trans failed (retflag={int(retflag)}): "
+                f"{message or 'no detail reported'}"
+            )
         return _require_valid_rise_jd(float(tret[0]), jd_start, rise=rise)
 
 

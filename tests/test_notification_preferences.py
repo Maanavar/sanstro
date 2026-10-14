@@ -159,7 +159,7 @@ def test_dispatch_in_app_only_when_channel_none(client):
 
 
 def test_dispatch_uses_account_language_for_push_and_persists_both_translations(client, monkeypatch):
-    """An English account must receive English-only system notification copy."""
+    """An English account queues English delivery copy and retains both translations."""
     from app.db.session import SessionLocal
     from app.models.notification import Notification
     from app.models.user_preference import UserPreference
@@ -197,12 +197,8 @@ def test_dispatch_uses_account_language_for_push_and_persists_both_translations(
             )
             stored = session.query(Notification).order_by(Notification.created_at.desc()).first()
 
-            assert result == "sent_push"
-            assert captured == {
-                "token": "english-device-token-123456",
-                "title": "English title",
-                "body": "English body",
-            }
+            assert result == "queued"
+            assert captured == {}
             assert stored is not None
             assert stored.language == "en"
             assert stored.title == "English title"
@@ -226,7 +222,8 @@ def test_dispatch_smart_silence_suppresses_during_heavy_sani(client):
             pref.smart_silence_enabled = True
 
     with patch("app.services.fcm_service._fcm_configured", return_value=False), \
-         patch("app.services.notification_dispatch_service._push_count_today", return_value=1):
+         patch("app.services.notification_dispatch_service._push_count_today", return_value=1), \
+         patch("app.services.notification_dispatch_service.get_flag", return_value=True):
         with SessionLocal() as session:
             with session.begin():
                 result = dispatch_notification(
@@ -240,7 +237,13 @@ def test_dispatch_smart_silence_suppresses_during_heavy_sani(client):
                     sani_cycle="JANMA_SANI",
                 )
 
-    assert result == "suppressed"
+    assert result == "queued"
+    from app.services.notification_dispatch_service import process_notification_outbox
+
+    with patch("app.services.notification_dispatch_service._push_count_today", return_value=1), \
+         patch("app.services.notification_dispatch_service.get_flag", return_value=True):
+        summary = process_notification_outbox()
+    assert summary["suppressed"] == 1
 
 
 def test_dispatch_no_smart_silence_outside_heavy_sani(client):
@@ -256,7 +259,8 @@ def test_dispatch_no_smart_silence_outside_heavy_sani(client):
             pref.smart_silence_enabled = True
 
     with patch("app.services.fcm_service._fcm_configured", return_value=False), \
-         patch("app.services.notification_dispatch_service._push_count_today", return_value=5):
+         patch("app.services.notification_dispatch_service._push_count_today", return_value=5), \
+         patch("app.services.notification_dispatch_service.get_flag", return_value=True):
         with SessionLocal() as session:
             with session.begin():
                 result = dispatch_notification(
@@ -270,5 +274,10 @@ def test_dispatch_no_smart_silence_outside_heavy_sani(client):
                     sani_cycle="ARDHASHTAMA_SANI",  # not in HEAVY set
                 )
 
-    # FCM not configured → stub returns True → sent_push
-    assert result == "sent_push"
+    assert result == "queued"
+    from app.services.notification_dispatch_service import process_notification_outbox
+
+    with patch("app.services.fcm_service._fcm_configured", return_value=False), \
+         patch("app.services.notification_dispatch_service.get_flag", return_value=True):
+        summary = process_notification_outbox()
+    assert summary["delivered"] == 1

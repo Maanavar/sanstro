@@ -444,9 +444,13 @@ class NamingConstraints:
 
 
 class Relaxation(StrEnum):
-    """Ordered widening steps. Every step taken is reported to the caller."""
+    """Ordered widening steps. Every step taken is reported to the caller.
 
-    NONE = "none"
+    There is no "none" member: a search that widened nothing reports an empty
+    list. One existed, was never emitted, and was missing from the client's
+    vocabulary (removed 2026-10-08, A14).
+    """
+
     ALLOW_TAMIL_COLLAPSE = "allow_tamil_collapse"
     ALLOW_SINGLE_SCRIPT = "allow_single_script"
     ALLOW_AMBIGUOUS = "allow_ambiguous"

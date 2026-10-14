@@ -102,8 +102,8 @@ export function buildContentSecurityPolicy(options: SecurityHeaderOptions): stri
     ["style-src", ["'self'", "'unsafe-inline'"]],
     // blob: covers the client-generated PDF/PNG downloads in the dashboard.
     ["img-src", ["'self'", "data:", "blob:"]],
-    // next/font/google self-hosts the font files at build time; nothing is
-    // fetched from fonts.gstatic.com at runtime.
+    // The font files live in the repo (app/fonts, via next/font/local) and are
+    // served from this origin; nothing is fetched from fonts.gstatic.com.
     ["font-src", ["'self'"]],
     ["connect-src", connectSrc],
     ["worker-src", ["'self'", "blob:"]],

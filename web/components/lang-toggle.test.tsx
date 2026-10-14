@@ -38,6 +38,11 @@ function CurrentLang() {
 
 beforeEach(() => {
   refresh.mockClear();
+  router.push.mockClear();
+  router.replace.mockClear();
+  // A page with no Tamil twin, so a language change re-renders in place. The
+  // twin cases below set their own path.
+  window.history.replaceState({}, "", "/share/panchangam");
   localStorage.clear();
   document.cookie = `${LANG_STORAGE_KEY}=; path=/; max-age=0`;
 });
@@ -128,5 +133,77 @@ describe("LangProvider / LangToggle — server-rendered copy", () => {
     });
 
     expect(refresh).not.toHaveBeenCalled();
+  });
+
+  it("moves to the other language's URL on a page that has one, instead of refreshing", async () => {
+    // GRW-06: /tamil-calendar and /ta/tamil-calendar are two URLs. A refresh
+    // would re-render the same URL in the other language, which is the very
+    // ambiguity the twin URLs remove — and a crawler-visible mismatch.
+    window.history.replaceState({}, "", "/tamil-calendar");
+    await act(async () => {
+      render(
+        <LangProvider initialLang="en">
+          <LangToggle />
+        </LangProvider>,
+      );
+    });
+    refresh.mockClear();
+
+    await act(async () => {
+      screen.getByRole("button", { name: /switch to tamil/i }).click();
+    });
+
+    expect(router.push).toHaveBeenCalledWith("/ta/tamil-calendar");
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
+  it("goes back to the English URL from a Tamil one", async () => {
+    window.history.replaceState({}, "", "/ta/tamil-calendar");
+    await act(async () => {
+      render(
+        <LangProvider initialLang="ta">
+          <LangToggle />
+        </LangProvider>,
+      );
+    });
+
+    await act(async () => {
+      screen.getByRole("button", { name: /switch to english/i }).click();
+    });
+
+    expect(router.push).toHaveBeenCalledWith("/tamil-calendar");
+  });
+
+  it("a Tamil URL is not overridden by a stored English preference", async () => {
+    // A shared /ta/... link opened by someone whose stored preference is English:
+    // the URL is the language. Without this the page would flip to English and
+    // refresh away from the URL the visitor was sent to.
+    localStorage.setItem(LANG_STORAGE_KEY, "en");
+    window.history.replaceState({}, "", "/ta/tamil-calendar");
+    await act(async () => {
+      render(
+        <LangProvider initialLang="ta">
+          <CurrentLang />
+        </LangProvider>,
+      );
+    });
+
+    expect(screen.getByTestId("lang").textContent).toBe("ta");
+    expect(refresh).not.toHaveBeenCalled();
+    expect(router.replace).not.toHaveBeenCalled();
+  });
+
+  it("replaces an English URL with its Tamil twin when the stored preference is Tamil", async () => {
+    localStorage.setItem(LANG_STORAGE_KEY, "ta");
+    window.history.replaceState({}, "", "/tamil-calendar");
+    await act(async () => {
+      render(
+        <LangProvider initialLang="en">
+          <CurrentLang />
+        </LangProvider>,
+      );
+    });
+
+    expect(router.replace).toHaveBeenCalledWith("/ta/tamil-calendar");
   });
 });

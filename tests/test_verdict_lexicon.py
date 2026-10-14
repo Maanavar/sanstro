@@ -19,12 +19,37 @@ from app.calculations.verdict_lexicon import (
 pytestmark = pytest.mark.no_db
 
 
+#: Domains whose labels are a *magnitude*, not a quality verdict, and so have
+#: no VerdictRung. The rung exists to keep colour/tone in step with the word;
+#: a magnitude's colour is driven by something else, so there is nothing to
+#: keep in step. Add to this set only with that reasoning spelled out.
+_RUNGLESS_DOMAINS = {
+    # F-DSP-01: Sevvai severity (SEVERE / MODERATE / MILD / NONE). The badge
+    # that renders it takes its colour from `hasDosham && !isCancelled`, a
+    # boolean — never from the severity word — so a rung here would govern
+    # nothing. Giving one anyway would also force a wrong mapping: "NONE"
+    # means *no dosham*, which is a good outcome, and there is no rung that
+    # says "good" without also saying "excellent verdict".
+    "dosham_severity",
+}
+
+
 def test_every_phrase_label_has_a_rung() -> None:
     # Every domain label that renders a phrase must also map to a severity rung
     # (so colour/tone parity can never disagree with the word).
     for domain, labels in VERDICT_PHRASE.items():
+        if domain in _RUNGLESS_DOMAINS:
+            continue
         for label in labels:
             assert verdict_rung(domain, label) is not None, f"{domain}/{label} has no rung"
+
+
+def test_the_rungless_exemption_is_not_a_blanket() -> None:
+    """The exemption above must stay narrow: every domain NOT in it still has
+    to satisfy the invariant, and the exempt set must only name domains that
+    actually exist. An exemption for a deleted domain silently widens."""
+    assert _RUNGLESS_DOMAINS <= set(VERDICT_PHRASE)
+    assert len(_RUNGLESS_DOMAINS) < len(VERDICT_PHRASE)
 
 
 def test_shared_root_is_consistent_across_surfaces() -> None:

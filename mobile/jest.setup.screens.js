@@ -7,6 +7,18 @@
  * the test file that needs them.
  */
 
+// Time budget for screen tests: 30 s, not Jest's 5 s default. The first test
+// in each screen file pays for React Native's lazily-required components and,
+// on a cold cache, their Babel transforms — CI has no Jest cache, so every CI
+// run is cold. Measured 2026-10-08: GitHub runner, cold — birth-details' first
+// test passed 5 s in one run of a commit and passed in the next; local cold —
+// first tests 11.5–18.4 s (birth-details 18.4, reading 13.5, ask-vinaadi 11.5)
+// while every later test in those files took 0.15–4.7 s; local warm in-band —
+// reading's first test still passed 5 s. 30 s is ~1.6x the worst measured.
+// Utility and React-context projects keep 5 s; a real hang still fails here
+// and the CI job's own timeout-minutes bounds the whole run.
+jest.setTimeout(30_000);
+
 // react-native-reanimated's own `/mock` entry point (the documented jest
 // mock for v3) does NOT work under this app's v4 + the split-out
 // `react-native-worklets` package: `mock.ts` itself imports the real

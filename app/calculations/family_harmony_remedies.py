@@ -4,7 +4,7 @@ a time.
 
 This is the "look at all our charts together and tell us what to do for family
 unity" feature. It reads the SAME per-chart signals the app already computes
-(combustion / அஸ்தமனம், retrogression / வக்ரம், node house placement, planet
+(combustion / அஸ்தங்கம், retrogression / வக்ரம், node house placement, planet
 strength) and assembles them into a small, prioritised list of shared remedies.
 
 Design rules held here on purpose:
@@ -34,7 +34,8 @@ from dataclasses import dataclass, field
 from app.calculations.display_names import planet_en, planet_ta
 from app.calculations.remedies import PLANET_REMEDY_CATALOG
 
-# Planets that can be "burnt" by proximity to the Sun (அஸ்தமனம்). The Sun
+# Planets that can be "burnt" by proximity to the Sun (அஸ்தங்கம்; அஸ்தமனம்
+# is reserved for sunset, owner ruling 2026-10-03). The Sun
 # itself causes combustion; the nodes have no disc to be eclipsed, so neither is
 # read for combustion here.
 BURNABLE_PLANETS: tuple[str, ...] = ("MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN")
@@ -161,9 +162,9 @@ def _combust_remedy(planet: str, affected: list[MemberChartInput]) -> FamilyHarm
     shared = len(affected) >= 2
 
     finding_ta = (
-        f"{names_ta} ஆகியோரின் ஜாதகத்தில் {planet_ta(planet)} அஸ்தமனமாகி (சூரியனுக்கு "
+        f"{names_ta} ஆகியோரின் ஜாதகத்தில் {planet_ta(planet)} அஸ்தங்கமாகி (சூரியனுக்கு "
         f"மிக அருகில்) உள்ளார். {planet_ta(planet)} {domain_ta} ஆகியவற்றைக் குறிக்கும் "
-        f"கிரகம்; அஸ்தமனத்தால் அதன் பலன் சற்று மங்கலாகி, இந்தப் பகுதிகளில் கூடுதல் "
+        f"கிரகம்; அஸ்தங்கத்தால் அதன் பலன் சற்று மங்கலாகி, இந்தப் பகுதிகளில் கூடுதல் "
         f"கவனம் தேவைப்படும்."
     )
     subject_en = f"In the charts of {names_en}" if shared else f"In {names_en}'s chart"
@@ -188,7 +189,7 @@ def _combust_remedy(planet: str, affected: list[MemberChartInput]) -> FamilyHarm
     return FamilyHarmonyRemedyItem(
         signal="COMBUST_SHARED",
         priority=_combust_priority(planet, shared),
-        title_ta=f"{planet_ta(planet)} அஸ்தமன நிவர்த்தி",
+        title_ta=f"{planet_ta(planet)} அஸ்தங்க நிவர்த்தி",
         title_en=f"{planet_en(planet)} combustion remedy",
         finding_ta=finding_ta,
         finding_en=finding_en,
@@ -376,7 +377,7 @@ def synthesize_family_harmony_remedies(members: list[MemberChartInput]) -> list[
     if not members:
         return items
 
-    # ── 1. Combust planets shared across the household (அஸ்தமனம்) ──
+    # ── 1. Combust planets shared across the household (அஸ்தங்கம்) ──
     for planet in BURNABLE_PLANETS:
         affected = [m for m in members if (p := m.planet(planet)) is not None and p.is_combust]
         if affected:

@@ -19,17 +19,17 @@ from app.calculations.kalachakra_dasha import (
 
 pytestmark = pytest.mark.no_db
 
-# Same T003 reference chart used by test_golden_validation.py,
-# test_jaimini_karakas.py, test_yogini_dasha.py and test_ashtottari_dasha.py
-# (1993-03-15 08:15 IST, longitudes cross-verified to within 0.1 deg against
-# a second ephemeris source). Moon at 240.01137891 deg falls in Moola
+# Same synthetic T003 reference chart as test_golden_validation.py,
+# test_jaimini_karakas.py and test_dasha.py: 1988-06-01 15:44 IST, not a
+# real person's birth. Swiss Ephemeris output pinned as a regression value.
+# Moon at 240.01252726 deg falls in Moola
 # (nakshatra 19), 1st pada -- which happens to be directly one of the rows
 # in Saravali's Kalachakra table (Aswini chakra, Savya, Paramayus 100).
-_T003_MOON_LONGITUDE = 240.01137891
+_T003_MOON_LONGITUDE = 240.01252726
 
 
 def _t003_birth_jd() -> float:
-    dt_utc = local_datetime_to_utc(datetime(1993, 3, 15, 8, 15), "Asia/Kolkata")
+    dt_utc = local_datetime_to_utc(datetime(1988, 6, 1, 15, 44), "Asia/Kolkata")
     return utc_datetime_to_julian_day(dt_utc)
 
 
@@ -71,13 +71,13 @@ def test_chakra_direction_matches_source() -> None:
 
 
 def test_opening_kalachakra_against_t003_reference_chart() -> None:
-    # Moon at 240.01137891 deg -> nakshatra 19 (Moola), 1st pada.
+    # Moon at 240.01252726 deg -> nakshatra 19 (Moola), 1st pada.
     # NAKSHATRA_GROUP[19] = ASWINI -> pada 1 sequence starts ARI(7)...,
     # Paramayus 100.
-    # fraction_into_pada = 0.01137891 / 3.33333333 = 0.0034137
-    # expired_years = 0.0034137 * 100 = 0.34137
-    # 0.34137 < 7 (Aries years) -> opening rasi is Aries, balance =
-    # 7 - 0.34137 = 6.65863
+    # fraction_into_pada = 0.01252726 / 3.33333333 = 0.0037582
+    # expired_years = 0.0037582 * 100 = 0.37582
+    # 0.37582 < 7 (Aries years) -> opening rasi is Aries, balance =
+    # 7 - 0.37582 = 6.62418
     birth_jd = _t003_birth_jd()
     chakra, pada, sequence, paramayus, opening_index, balance_years, opening_end_jd = (
         calculate_opening_kalachakra(_T003_MOON_LONGITUDE, birth_jd)
@@ -88,7 +88,7 @@ def test_opening_kalachakra_against_t003_reference_chart() -> None:
     assert paramayus == 100
     assert sequence == ("ARI", "TAU", "GEM", "CAN", "LEO", "VIR", "LIB", "SCO", "SAG")
     assert opening_index == 0
-    assert balance_years == pytest.approx(6.65863, abs=1e-3)
+    assert balance_years == pytest.approx(6.62418, abs=1e-3)
     assert opening_end_jd == pytest.approx(birth_jd + balance_years * JULIAN_YEAR_DAYS)
 
 

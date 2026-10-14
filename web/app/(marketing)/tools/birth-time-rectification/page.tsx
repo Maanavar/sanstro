@@ -1,8 +1,23 @@
-import Link from "next/link";
+import type { Metadata } from "next";
+import { withTamilTwin } from "@/lib/localized-metadata";
+import { LocalizedLink as Link } from "@/components/localized-link";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { getServerLang } from "@/lib/server-lang";
 import { TOOL_BTR, mt } from "@/lib/marketing-i18n";
+import { pageMetadata } from "@/lib/page-metadata";
+
+const EN_METADATA = pageMetadata({
+  path: "/tools/birth-time-rectification",
+  title: "Birth Time Rectification — Check the Time Your Tamil Chart Rests On",
+  description:
+    "Unsure of your exact birth time? Rectification tests candidate times against the life events you remember, so your lagna and dasa start from the right minute.",
+  keywords: ["birth time rectification", "correct birth time astrology", "lagna birth time", "Tamil jadhagam time correction"],
+});
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/tools/birth-time-rectification");
+}
 
 // F7 part two - a Server Component; see lib/server-lang.ts.
 export default async function BirthTimeRectificationPage() {
@@ -42,7 +57,7 @@ export default async function BirthTimeRectificationPage() {
             <div className="cl-hero-figure">
               <p className="cl-hero-figure__label">{lang === "en" ? "Rectification · How it works" : "திருத்தம் · எப்படி வேலை செய்கிறது"}</p>
               <div className="cl-hero-figure__art">
-                <svg viewBox="0 0 240 120" role="img" aria-label="Candidate birth times narrowing around events">
+                <svg viewBox="0 0 240 120" role="img" aria-label={lang === "en" ? "Candidate birth times narrowing around events" : "நிகழ்வுகளைச் சுற்றிச் சுருங்கும் சாத்தியமான பிறந்த நேரங்கள்"}>
                   <line x1="16" y1="64" x2="224" y2="64" stroke="var(--cl-border-2)" strokeWidth="1.4" />
                   <g stroke="var(--cl-muted-2)" strokeWidth="1.5" strokeLinecap="round">
                     <line x1="40" y1="59" x2="40" y2="69" /><line x1="120" y1="59" x2="120" y2="69" /><line x1="200" y1="59" x2="200" y2="69" />

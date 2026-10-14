@@ -20,6 +20,7 @@
  */
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import type { ReactNode } from "react";
 
 import type { PanchangamDailyResponseData } from "@/lib/types";
 
@@ -50,6 +51,7 @@ function dayFixture(overrides: Partial<PanchangamDailyResponseData> = {}): Panch
       rahuKalam: { start: "13:42", end: "15:18", slot: 6 },
       yamagandam: { start: "05:45", end: "07:20", slot: 1 },
       kuligai: { start: "08:56", end: "10:31", slot: 3 },
+      durmuhurtham: [{ start: "10:31", end: "11:18", slot: 4 }],
       gowriPanchangam: [],
       nallaNeram: [{ start: "07:20", end: "08:56", slot: 1, name: "SUGAM", period: "AM", isGood: true }],
       gowriNallaNeram: [],
@@ -82,6 +84,8 @@ type RenderOptions = {
   onStepDay?: (delta: number) => void;
   onOpenFull?: () => void;
   onClose?: () => void;
+  lead?: ReactNode;
+  stepContext?: { position: number; total: number; previousLabel: string; nextLabel: string };
 };
 
 function renderDrawer(options: RenderOptions = {}) {
@@ -103,6 +107,8 @@ function renderDrawer(options: RenderOptions = {}) {
       onClose={onClose}
       onOpenFull={onOpenFull}
       onStepDay={onStepDay}
+      lead={options.lead}
+      stepContext={options.stepContext}
     />,
   );
   return { onStepDay, onOpenFull, onClose };
@@ -202,22 +208,33 @@ describe("Day drawer — each limb prints when it ends", () => {
 });
 
 describe("Day drawer — one marking, one row", () => {
-  it("states muhurtham status on its own", () => {
+  // F-PAN-01: these rows used to read "Subha Muhurtham day" / "Not a muhurtham
+  // day". To a Tamil reader that phrase means a *wedding-muhurtham day*, and
+  // the flag behind it is the broad day-quality check — it counts Poosam, the
+  // one star Tamil practice excludes for marriage outright, and knows nothing
+  // of the no-wedding months or Karinaal. The row is now a good-day reading
+  // and never says முகூர்த்தம்.
+  it("states day quality on its own", () => {
     renderDrawer();
-    expect(screen.getByText("Subha Muhurtham day")).toBeInTheDocument();
+    expect(screen.getByText("Good day")).toBeInTheDocument();
     expect(screen.queryByText("Karinaal")).toBeNull();
   });
 
-  it("says plainly when a day carries no muhurtham marking", () => {
-    renderDrawer({ data: dayFixture({ subhaMuhurtham: { isSubha: false, reason: "", isSubhaStrict: false, strictReason: "" } }) });
-    expect(screen.getByText("Not a muhurtham day")).toBeInTheDocument();
+  it("does not call the day-quality flag a muhurtham", () => {
+    renderDrawer();
+    expect(screen.queryByText(/muhurtham day/i)).toBeNull();
   });
 
-  it("keeps Karinaal as a second row rather than overwriting the muhurtham verdict", () => {
+  it("says plainly when a day carries no good-day marking", () => {
+    renderDrawer({ data: dayFixture({ subhaMuhurtham: { isSubha: false, reason: "", isSubhaStrict: false, strictReason: "" } }) });
+    expect(screen.getByText("An ordinary day")).toBeInTheDocument();
+  });
+
+  it("keeps Karinaal as a second row rather than overwriting the day-quality verdict", () => {
     // A day can be marked both. Fusing them into one rating would have to pick a
     // winner silently, and the reader could not tell which fact produced it.
     renderDrawer({ data: dayFixture({ isKarinaal: true }) });
-    expect(screen.getByText("Subha Muhurtham day")).toBeInTheDocument();
+    expect(screen.getByText("Good day")).toBeInTheDocument();
     expect(screen.getByText("Karinaal")).toBeInTheDocument();
   });
 });
@@ -244,5 +261,37 @@ describe("Day drawer — the primary action is pinned, not buried", () => {
     expect(screen.getByRole("status")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Open full day view" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Next day" })).toBeInTheDocument();
+  });
+});
+
+describe("Day drawer - result context", () => {
+  it("steps through result dates with an explicit position and disabled endpoint", () => {
+    const { onStepDay } = renderDrawer({
+      stepContext: { position: 1, total: 3, previousLabel: "Previous result", nextLabel: "Next result" },
+    });
+
+    expect(screen.getByText("1 / 3")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Previous result" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Next result" }));
+    expect(onStepDay).toHaveBeenCalledWith(1);
+  });
+
+  it("renders context-owned evidence before the almanac facts", () => {
+    renderDrawer({ lead: <section>Detailed election score 92/100</section> });
+    expect(screen.getByText("Detailed election score 92/100")).toBeInTheDocument();
+  });
+});
+
+describe("Day drawer - Durmuhurtham doctrine", () => {
+  it("renders Durmuhurtham with its limited new-beginnings warning", () => {
+    renderDrawer();
+    expect(screen.getByText("Durmuhurtham")).toBeInTheDocument();
+    expect(screen.getByText("Avoid for auspicious / new beginnings")).toBeInTheDocument();
+  });
+
+  it("keeps Kuligai contextual instead of presenting it as a generic avoid period", () => {
+    renderDrawer();
+    expect(screen.getByText("Kuligai")).toBeInTheDocument();
+    expect(screen.getByText("Suited to activities meant to repeat, continue or grow; not a general avoid period.")).toBeInTheDocument();
   });
 });

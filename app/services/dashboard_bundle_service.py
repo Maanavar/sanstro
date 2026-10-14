@@ -14,8 +14,10 @@ from typing import TypeVar
 from uuid import UUID
 
 from fastapi import HTTPException
+from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import Session
 
+from app.db.session import SessionLocal
 from app.schemas.dasha import ResponseMeta
 from app.schemas.dashboard_bundle import (
     ChartDashboardBundleData,
@@ -32,6 +34,10 @@ from app.services.daily_guidance_service import (
 )
 from app.services.dasha_service import get_chart_dasha_from_snapshot
 from app.services.life_areas_service import get_life_areas
+from app.services.location_service import (
+    is_location_check_due,
+    resolve_effective_daily_location_or_none,
+)
 from app.services.nakshatra_content import get_nakshatra_card
 from app.services.panchangam_service import calculate_panchangam, calculate_panchangam_timings
 from app.services.peyarchi_service import get_peyarchi_summary
@@ -74,17 +80,57 @@ def get_chart_dashboard_bundle(
             errors[section] = _failure_note(exc)
             return None
 
+    def safe_db(section: str, compute: Callable[[Session], T]) -> T | None:
+        """Run one optional DB-backed section in an independent transaction.
+
+        PostgreSQL leaves a transaction unusable after a constraint or SQL
+        statement error.  A savepoint is not sufficient here: SessionLocal
+        disables autoflush while ``begin_nested()`` performs an unconditional
+        flush.  A fresh short-lived session gives every optional section a real
+        rollback boundary without changing the services' flush semantics.
+
+        A broken optional query is isolated.  A lost/invalidated database
+        connection remains a hard dependency and aborts the whole request.
+        """
+        try:
+            with SessionLocal.begin() as section_session:
+                return compute(section_session)
+        except DBAPIError as exc:
+            if exc.connection_invalidated:
+                logger.error(
+                    "dashboard-bundle: database connection lost in section %r for chart %s",
+                    section,
+                    chart_id,
+                )
+                raise
+            logger.warning(
+                "dashboard-bundle: database section %r failed for chart %s: %s",
+                section,
+                chart_id,
+                exc,
+            )
+            errors[section] = _failure_note(exc)
+            return None
+        except Exception as exc:  # noqa: BLE001 -- optional section boundary
+            logger.warning(
+                "dashboard-bundle: database section %r failed for chart %s: %s",
+                section,
+                chart_id,
+                exc,
+            )
+            errors[section] = _failure_note(exc)
+            return None
+
     # Same location choice the web client made before this endpoint existed:
-    # the saved current location when complete, else the birth location.
-    has_current = (
-        profile.current_latitude is not None
-        and profile.current_longitude is not None
-        and bool(profile.current_timezone)
-    )
-    lat = profile.current_latitude if has_current else profile.birth_latitude
-    lng = profile.current_longitude if has_current else profile.birth_longitude
-    tz = profile.current_timezone if has_current else profile.birth_timezone
-    has_location = lat is not None and lng is not None and bool(tz)
+    # the saved current location when complete, else the birth location. This
+    # block used to re-implement that rule instead of calling the resolver every
+    # other service calls; a drift between the two would show one place's
+    # timings under another place's name.
+    effective = resolve_effective_daily_location_or_none(profile)
+    has_location = effective is not None
+    lat = effective.latitude if effective else None
+    lng = effective.longitude if effective else None
+    tz = effective.timezone if effective else None
 
     moon = next((p for p in chart_snapshot.data.planets if p.graha == "MOON"), None)
 
@@ -96,16 +142,16 @@ def get_chart_dashboard_bundle(
             "summary",
             lambda: get_chart_summary_from_snapshot(chart_snapshot, language=language).data,
         ),
-        dailyGuidance=safe(
+        dailyGuidance=safe_db(
             "dailyGuidance",
-            lambda: get_daily_guidance(
-                session, chart_id, on_date, language, chart_snapshot=chart_snapshot
+            lambda section_session: get_daily_guidance(
+                section_session, chart_id, on_date, language, chart_snapshot=chart_snapshot
             ).data,
         ),
-        dailyGuidanceRange=safe(
+        dailyGuidanceRange=safe_db(
             "dailyGuidanceRange",
-            lambda: get_daily_guidance_range(
-                session,
+            lambda section_session: get_daily_guidance_range(
+                section_session,
                 profile.birth_profile_id,
                 on_date,
                 on_date + timedelta(days=2),
@@ -119,53 +165,74 @@ def get_chart_dashboard_bundle(
                 chart_snapshot, on_date, level="maha,antar,pratyantar"
             ).data,
         ),
-        transit=safe("transit", lambda: get_gochar_current(session, chart_id, on_date).data),
-        sani=safe("sani", lambda: get_sani_cycle(session, chart_id, on_date).data),
-        peyarchiUpcoming=safe(
-            "peyarchiUpcoming",
-            lambda: get_peyarchi_summary(session, chart_id, as_of=on_date, window_days=30).data,
+        transit=safe_db(
+            "transit",
+            lambda section_session: get_gochar_current(
+                section_session, chart_id, on_date
+            ).data,
         ),
-        explanation=safe(
+        sani=safe_db(
+            "sani",
+            lambda section_session: get_sani_cycle(section_session, chart_id, on_date).data,
+        ),
+        peyarchiUpcoming=safe_db(
+            "peyarchiUpcoming",
+            lambda section_session: get_peyarchi_summary(
+                section_session, chart_id, as_of=on_date, window_days=30
+            ).data,
+        ),
+        explanation=safe_db(
             "explanation",
-            lambda: build_chart_explanation(
-                session, chart_id, as_of=on_date, peyarchi_window_days=700
+            lambda section_session: build_chart_explanation(
+                section_session, chart_id, as_of=on_date, peyarchi_window_days=700
             ).data,
         ),
         panchangam=(
-            safe(
+            safe_db(
                 "panchangam",
-                lambda: calculate_panchangam(
-                    PanchangamDailyQuery(date=on_date, lat=lat, lng=lng, timezone=tz), session
+                lambda section_session: calculate_panchangam(
+                    PanchangamDailyQuery(date=on_date, lat=lat, lng=lng, timezone=tz),
+                    section_session,
                 ).data,
             )
             if has_location
             else None
         ),
         panchangamTimings=(
-            safe(
+            safe_db(
                 "panchangamTimings",
-                lambda: calculate_panchangam_timings(
-                    PanchangamDailyQuery(date=on_date, lat=lat, lng=lng, timezone=tz), session
+                lambda section_session: calculate_panchangam_timings(
+                    PanchangamDailyQuery(date=on_date, lat=lat, lng=lng, timezone=tz),
+                    section_session,
                 ).data,
             )
             if has_location
             else None
         ),
-        lifeAreas=safe(
+        lifeAreas=safe_db(
             "lifeAreas",
-            lambda: get_life_areas(session, chart_id, on_date, owner_user_id=owner_user_id).data,
+            lambda section_session: get_life_areas(
+                section_session, chart_id, on_date, owner_user_id=owner_user_id
+            ).data,
         ),
-        weekAhead=safe(
+        weekAhead=safe_db(
             "weekAhead",
-            lambda: get_week_ahead_by_chart(session, chart_id, on_date, language).data,
+            lambda section_session: get_week_ahead_by_chart(
+                section_session, chart_id, on_date, language
+            ).data,
         ),
         nakshatraCard=(
             safe("nakshatraCard", lambda: get_nakshatra_card(moon.nakshatra).data)
             if moon is not None and 1 <= moon.nakshatra <= 27
             else None
         ),
-        panchangamLocation=("current" if has_current else "birth") if has_location else None,
-        panchangamTimezone=tz if has_location else None,
+        panchangamLocation=effective.source if effective else None,
+        panchangamTimezone=effective.timezone if effective else None,
+        # §2.4: the UI cannot say "Timings for Chennai" without the name. The
+        # source alone ("current"/"birth") names the *rule*, not the place.
+        panchangamPlace=(effective.place or None) if effective else None,
+        locationConfirmedAt=profile.current_location_updated_at,
+        locationCheckDue=is_location_check_due(profile.current_location_updated_at),
         errors=errors,
     )
 

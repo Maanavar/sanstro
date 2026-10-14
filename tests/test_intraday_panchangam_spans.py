@@ -24,13 +24,13 @@ import pytest
 
 from app.calculations.panchangam import (
     PanchangamLimbSpan,
-    calculate_daily_panchangam,
     dominant_from_spans,
     dominant_span_name,
     limb_fraction,
     limb_weighted,
 )
 from app.services._dg_scoring import weighted_panchangam_score
+from app.services.panchangam_cache import calculate_daily_panchangam
 from app.services.pirantha_naal_service import next_janma_nakshatra_date
 
 CHENNAI = (13.0827, 80.2707, "Asia/Kolkata")

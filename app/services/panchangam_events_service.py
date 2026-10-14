@@ -4,6 +4,12 @@ Powers the public SEO pages under /tamil-calendar and the Karinaal flag on the
 daily panchangam. Dates are the curated 2026 almanac set
 (``app.data.panchangam_events_2026``); this module adds bilingual names + SEO
 content and computes the "next upcoming date" relative to a reference day.
+
+**Karinaal is the exception and is no longer read from that table.** It is a
+fixed-Tamil-solar-date rule, so it is derived for any year by
+``app.calculations.karinaal`` (F-MUH-02). The hand-entered rows covered 2026
+only and returned a silent ``False`` for every other year, which would have
+turned Karinaal off everywhere on 1 Jan 2027.
 """
 from __future__ import annotations
 
@@ -12,6 +18,7 @@ from datetime import date
 
 from fastapi import HTTPException, status
 
+from app.calculations.karinaal import karinaal_days_for_year, karinaal_rows_for_year
 from app.calculations.tamil_calendar import TAMIL_MONTHS
 from app.data.panchangam_events_2026 import PANCHANGAM_EVENTS_2026
 
@@ -213,6 +220,13 @@ def _next_date(dates: list[dict], reference: date) -> str | None:
     return None
 
 
+def _rows_for(rows: dict[str, list[dict]], key: str, year: int) -> list[dict]:
+    """The event's date rows — derived for Karinaal, curated for the rest."""
+    if key == "karinaal":
+        return karinaal_rows_for_year(year)
+    return rows.get(key, [])
+
+
 def available_years() -> list[int]:
     return sorted(EVENTS_BY_YEAR)
 
@@ -228,7 +242,7 @@ def list_events(year: int, *, reference: date | None = None) -> dict:
     events = []
     for key in EVENT_ORDER:
         meta = EVENT_META_BY_KEY[key]
-        dates = rows.get(key, [])
+        dates = _rows_for(rows, key, year)
         events.append({
             "key": key,
             "slug": _slug(key, year),
@@ -250,7 +264,8 @@ def get_event(event: str, year: int, *, reference: date | None = None) -> dict:
         )
     key = _resolve_key(event, year)
     meta = EVENT_META_BY_KEY[key]
-    dates = [_enrich_date(r) for r in rows.get(key, [])]
+    event_rows = _rows_for(rows, key, year)
+    dates = [_enrich_date(r) for r in event_rows]
     ref = reference or date.today()
     return {
         "year": year,
@@ -264,15 +279,19 @@ def get_event(event: str, year: int, *, reference: date | None = None) -> dict:
         "significance": _bi(meta.significance_ta, meta.significance_en),
         "keywords": list(meta.keywords),
         "count": len(dates),
-        "nextDate": _next_date(rows.get(key, []), ref),
+        "nextDate": _next_date(event_rows, ref),
         "dates": dates,
     }
 
 
 def karinaal_dates(year: int) -> set[str]:
-    rows = EVENTS_BY_YEAR.get(year, {})
-    return {r["date"] for r in rows.get("karinaal", [])}
+    return {d.isoformat() for d in karinaal_days_for_year(year)}
 
 
 def is_karinaal(d: date) -> bool:
-    return d.isoformat() in karinaal_dates(d.year)
+    """True when `d` is a Karinaal — for any year, not only a published one.
+
+    Derived (F-MUH-02); see `app.calculations.karinaal` for the rule and for
+    the three 2026 rows that derivation does not reproduce.
+    """
+    return d in karinaal_days_for_year(d.year)

@@ -64,7 +64,13 @@ export type GlossaryKey =
   | "sashti"
   | "ekadashi"
   | "pradosham"
-  | "vratham";
+  | "vratham"
+  | "antaram"
+  | "kendra"
+  | "trikona"
+  | "dusthana"
+  | "drishti"
+  | "paral";
 
 export const GLOSSARY: Record<GlossaryKey, { ta: string; en: string }> = {
   dasha: {
@@ -77,7 +83,7 @@ export const GLOSSARY: Record<GlossaryKey, { ta: string; en: string }> = {
   },
   gochar: {
     en: "Transit — where the planets are moving right now, compared against your birth chart.",
-    ta: "கிரகநகர்வு — கிரகங்கள் இப்போது எங்கு நகர்கின்றன என்பதை உங்கள் பிறப்பு ஜாதகத்துடன் ஒப்பிட்டுப் பார்ப்பது.",
+    ta: "கோச்சாரம் — கிரகங்கள் இப்போது எங்கு நகர்கின்றன என்பதை உங்கள் பிறப்பு ஜாதகத்துடன் ஒப்பிட்டுப் பார்ப்பது.",
   },
   rasi: {
     en: "Your Moon sign — the zodiac sign the Moon was in at the moment you were born. Used for general predictions, and as one of the checks in marriage matching.",
@@ -285,6 +291,32 @@ export const GLOSSARY: Record<GlossaryKey, { ta: string; en: string }> = {
     en: "The 7½-year stretch when Saturn transits the signs around your birth Moon. It reaches almost everyone about three times in a lifetime — demanding rather than disastrous, and it ends on a known date.",
     ta: "உங்கள் ஜென்ம ராசியைச் சுற்றியுள்ள ராசிகளில் சனி நகரும் 7½ ஆண்டுக் காலம். ஒரு வாழ்நாளில் கிட்டத்தட்ட எல்லோரையும் மூன்று முறை வந்தடையும் — பேரிடர் அல்ல, பொறுமை கேட்கும் காலம்; முடியும் நாள் தெரிந்ததே.",
   },
+  // Chart-reading vocabulary (FTR-16, the Story view's glossary chips).
+  // New Tamil, pending native review.
+  antaram: {
+    en: "The third and shortest layer of a dasa period, running inside the current bhukti for weeks to months. It marks when the period's themes peak; it does not start anything on its own.",
+    ta: "தசைக்குள் புக்தி, புக்திக்குள் வரும் மூன்றாவது, மிகச் சிறிய காலப் பிரிவு — சில வாரங்கள் முதல் சில மாதங்கள். நடக்கும் காலத்தின் பலன் எப்போது உச்சம் பெறும் என்பதைக் காட்டும்; தானாக எதையும் தொடங்காது.",
+  },
+  kendra: {
+    en: "The four pillar houses — the 1st, 4th, 7th and 10th from your Lagna. Planets here act visibly, through self, home, partnership and career.",
+    ta: "லக்னத்திலிருந்து 1, 4, 7, 10 ஆகிய நான்கு தூண் வீடுகள். இங்குள்ள கிரகங்கள் தன்னை, வீட்டை, உறவை, தொழிலை வெளிப்படையாக இயக்கும்.",
+  },
+  trikona: {
+    en: "The three houses of grace — the 1st, 5th and 9th from your Lagna. They hold talent, learning, children and fortune, and planets here open routes to growth.",
+    ta: "லக்னத்திலிருந்து 1, 5, 9 ஆகிய மூன்று அருள் வீடுகள் — திறமை, கல்வி, குழந்தைகள், அதிர்ஷ்டம். இங்குள்ள கிரகங்கள் வளர்ச்சிக்கு வழி திறக்கும்.",
+  },
+  dusthana: {
+    en: "The 6th, 8th and 12th houses from your Lagna — effort, change and release. Planets here ask for care and steady routine; it is a different road, not a bad chart.",
+    ta: "லக்னத்திலிருந்து 6, 8, 12 ஆகிய வீடுகள் — உழைப்பு, மாற்றம், விடுவிப்பு. இங்குள்ள கிரகங்கள் கவனமும் ஒழுங்கும் கேட்கும்; இது வேறு பாதை, கெட்ட ஜாதகம் அல்ல.",
+  },
+  drishti: {
+    en: "A planet's aspect — the houses it looks at from where it sits. Every planet looks at the 7th from itself; Mars, Jupiter and Saturn also have special aspects of their own.",
+    ta: "பார்வை — ஒரு கிரகம் தான் இருக்கும் இடத்திலிருந்து பார்க்கும் வீடுகள். எல்லா கிரகங்களுக்கும் 7-ஆம் பார்வை உண்டு; செவ்வாய், குரு, சனிக்குத் தனிச் சிறப்புப் பார்வைகளும் உண்டு.",
+  },
+  paral: {
+    en: "Ashtakavarga points, from 0 to 8, that a planet holds in each sign. A transiting planet in a sign where it holds more parals delivers its results more easily.",
+    ta: "அஷ்டகவர்க்கப் பரல்கள் — ஒவ்வொரு ராசியிலும் ஒரு கிரகம் பெறும் 0 முதல் 8 வரையிலான புள்ளிகள். பரல்கள் அதிகமுள்ள ராசியில் சஞ்சரிக்கும் கிரகம் பலனை எளிதாகத் தரும்.",
+  },
 };
 
 /**
@@ -312,7 +344,7 @@ export const GLOSSARY_LABELS: Record<GlossaryKey, { ta: string; en: string }> = 
   bhukti: { en: "Bhukti", ta: "புக்தி" },
   rasi: { en: "Rasi", ta: "ராசி" },
   nakshatra: { en: "Nakshatra", ta: "நட்சத்திரம்" },
-  gochar: { en: "Gochar", ta: "கிரகநகர்வு" },
+  gochar: { en: "Gochar", ta: "கோச்சாரம்" },
   shadbala: { en: "Shadbala", ta: "ஷட்பலம்" },
   sthanaBala: { en: "Sthana Bala", ta: "ஸ்தான பலம்" },
   digBala: { en: "Dig Bala", ta: "திக் பலம்" },
@@ -358,6 +390,12 @@ export const GLOSSARY_LABELS: Record<GlossaryKey, { ta: string; en: string }> = 
   ekadashi: { en: "Ekadashi", ta: "ஏகாதசி" },
   pradosham: { en: "Pradosham", ta: "பிரதோஷம்" },
   vratham: { en: "Vratham", ta: "விரதம்" },
+  antaram: { en: "Antaram", ta: "அந்தரம்" },
+  kendra: { en: "Kendra", ta: "கேந்திரம்" },
+  trikona: { en: "Trikona", ta: "திரிகோணம்" },
+  dusthana: { en: "Dusthana", ta: "துஷ்டானம்" },
+  drishti: { en: "Drishti", ta: "பார்வை" },
+  paral: { en: "Paral", ta: "பரல்" },
 };
 
 /** The display name for a term, in the reader's language. */

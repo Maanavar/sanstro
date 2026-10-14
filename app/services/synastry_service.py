@@ -22,6 +22,7 @@ if TYPE_CHECKING:
         SevvaiDoshamDetail as CalcSevvaiDoshamDetail,
     )
     from app.calculations.porutham import KutaResult as CalcKutaResult
+    from app.calculations.porutham import ShashtashtakaNote
 
 from app.calculations.astro import NAKSHATRA_NAMES, utc_datetime_to_julian_day
 from app.calculations.ephemeris import calculate_sidereal_planets
@@ -53,6 +54,7 @@ from app.schemas.relationships import (
     RelationshipAlertsResponse,
     RelationshipBiText,
     SevvaiDoshamDetail,
+    ShashtashtakaData,
     SynastryAspect,
     SynastryData,
     SynastryResponse,
@@ -65,19 +67,58 @@ _CALC_VERSION = "jothidam-formula-engine-v1.0-2026"
 _TRANSIT_ALERT_PLANETS = ("JUPITER", "SATURN", "MARS", "RAHU", "VENUS")
 
 
-def _assign_bride_groom(moon_a: Any, moon_b: Any, gender_a: str | None, gender_b: str | None) -> tuple[Any, Any]:
-    """Return (boy_moon, girl_moon).
+# F-POR-05: the disclosure both porutham paths attach when the bride/groom
+# direction was a convention rather than a reading. Module-level because
+# there are two call sites and a second hand-copy is how they drift.
+_ASSUMED_DIRECTION_EN = (
+            "Gender was not recorded for both charts, so this was read with "
+            "the first chart as the groom and the second as the bride. Several poruthams "
+            "count from the bride's star, so add the genders if that is the wrong way round."
+)
+_ASSUMED_DIRECTION_TA = (
+            "இரு ஜாதகங்களிலும் பாலினம் "
+            "பதிவாகாததால், முதல் ஜாதகம் "
+            "மாப்பிள்ளை எனவும், இரண்டாவது "
+            "பெண் எனவும் கணக்கிடப்பட்டது. "
+            "சில பொருத்தங்கள் பெண்ணின் "
+            "நட்சத்திரத்திலிருந்து "
+            "எண்ணப்படுவதால், தவறானால் "
+            "பாலினத்தைச் சேர்க்கவும்."
+)
 
-    When one person is explicitly 'female' and the other 'male', the female's
-    Moon is girl_nakshatra and the male's is boy_nakshatra.  In all other cases
-    (same gender, either unknown/not_specified) fall back to a=boy, b=girl so
-    the API behaves identically to the old default.
+
+def _assign_bride_groom(
+    moon_a: Any, moon_b: Any, gender_a: str | None, gender_b: str | None
+) -> tuple[Any, Any, bool]:
+    """Return ``(boy_moon, girl_moon, direction_assumed)``.
+
+    F-POR-05. Direction is not cosmetic here: Dinam, Mahendra, Sthree Deergham
+    and Rasi all count **girl -> boy**, so swapping the two computes a
+    different match, not a mirrored one.
+
+    This used to swap only when A was explicitly female *and* B explicitly
+    male. A known bride paired with a partner of unspecified gender therefore
+    stayed in the boy slot and the whole reading ran backwards — the common
+    case, because only one profile in a pair often carries a gender.
+
+    So: whenever **either** gender is known, infer the other from it. Fall back
+    to a=boy, b=girl only when both are unknown or both are the same, and say
+    so through ``direction_assumed`` — a direction that was assumed rather than
+    read must be disclosed on the card, not silently used.
     """
     a_gender = (gender_a or "not_specified").lower()
     b_gender = (gender_b or "not_specified").lower()
-    if a_gender == "female" and b_gender == "male":
-        return moon_b, moon_a  # boy=b, girl=a
-    return moon_a, moon_b
+
+    if a_gender != b_gender:
+        if a_gender == "female" or b_gender == "male":
+            # A is the bride — stated, or inferred from B being the groom.
+            return moon_b, moon_a, False
+        if a_gender == "male" or b_gender == "female":
+            return moon_a, moon_b, False
+
+    # Both unknown, or the same gender: the direction is a convention, not a
+    # finding, so it is flagged for disclosure.
+    return moon_a, moon_b, True
 
 
 @dataclass(frozen=True, slots=True)
@@ -560,11 +601,11 @@ _CONTEXT_TITLE_EN: dict[str, str] = {
 
 _CONTEXT_NOTE: dict[str, dict[str, str]] = {
     "MARRIAGE": {
-        "ta": "திருமண பொருத்தம்: ஸ்தீர கூடம் (நிலைத்த தன்மை) மற்றும் ராஜ்ஜு தோஷம் முக்கியம்.",
+        "ta": "திருமண பொருத்தம்: ஸ்தீர கூடம் (நிலைத்த தன்மை) மற்றும் ரஜ்ஜு தோஷம் முக்கியம்.",
         "en": "Marriage context: Sthira kuta (stability) and Rajju dosha are most significant.",
     },
     "FRIENDSHIP": {
-        "ta": "நட்பு பொருத்தம்: தினம், கணம், ராசி, கிரக மைத்திரி, வேதம் ஆகிய சமிக்ஞைகள் மதிப்பிடப்படுகின்றன.",
+        "ta": "நட்பு பொருத்தம்: தினம், கணம், ராசி, கிரக மைத்திரி, வேதை ஆகிய சமிக்ஞைகள் மதிப்பிடப்படுகின்றன.",
         "en": "Friendship context: Dina, Gana, Rasi, Graha Maitri, and Vedha factors are evaluated.",
     },
     "BUSINESS": {
@@ -572,7 +613,7 @@ _CONTEXT_NOTE: dict[str, dict[str, str]] = {
         "en": "Business context: Gana, Mahendra, Rasi, Graha Maitri, and Vasya factors evaluate partnership potential.",
     },
     "FAMILY": {
-        "ta": "குடும்ப பொருத்தம்: ராசி, கணம், வாஸ்யம், கிரக மைத்திரி, வேதம் மூலம் ஒற்றுமை மதிப்பிடப்படுகிறது.",
+        "ta": "குடும்ப பொருத்தம்: ராசி, கணம், வாஸ்யம், கிரக மைத்திரி, வேதை மூலம் ஒற்றுமை மதிப்பிடப்படுகிறது.",
         "en": "Family context: Rasi, Gana, Vasya, Graha Maitri, and Vedha factors evaluate harmony.",
     },
     "GENERAL": {
@@ -614,6 +655,7 @@ class ContextualizedPorutham(TypedDict):
     rajju_dosha: bool
     vedha_dosha: bool
     nadi_dosha: dict[str, object]
+    shashtashtaka: ShashtashtakaNote
     summary: RelationshipBiText
 
 
@@ -674,8 +716,30 @@ def _contextualize_porutham_result(result, compatibility_context: str) -> Contex
         "rajju_dosha": rajju_dosha,
         "vedha_dosha": vedha_dosha,
         "nadi_dosha": result.nadi_dosha,
+        # F-POR-02. Carried through the shaping step unchanged: the
+        # contextualiser trims which kutas a non-marriage context shows, and a
+        # 6/8 note belongs to the Rasi row, so it rides along with it.
+        "shashtashtaka": result.shashtashtaka,
         "summary": summary,
     }
+
+
+def _shashtashtaka_data(note: Any) -> ShashtashtakaData:
+    """Engine `ShashtashtakaNote` -> the wire shape.
+
+    The two bilingual pairs collapse into `RelationshipBiText`, matching how
+    every other note on this payload is carried. Empty strings when the
+    relation is absent are preserved rather than nulled: a surface branches on
+    `present`, and a null would make it branch on the text instead.
+    """
+    return ShashtashtakaData(
+        present=note.present,
+        count_girl_to_boy=note.count_girl_to_boy,
+        count_boy_to_girl=note.count_boy_to_girl,
+        directional_pass=note.directional_pass,
+        label=RelationshipBiText(ta=note.label_ta, en=note.label_en),
+        note=RelationshipBiText(ta=note.note_ta, en=note.note_en),
+    )
 
 
 def compare_chart_snapshots_direct(
@@ -689,7 +753,7 @@ def compare_chart_snapshots_direct(
 
     gender_a = getattr(snap_a.data.birth_profile, "gender_for_traditional_rules", None)
     gender_b = getattr(snap_b.data.birth_profile, "gender_for_traditional_rules", None)
-    boy_moon, girl_moon = _assign_bride_groom(moon_a, moon_b, gender_a, gender_b)
+    boy_moon, girl_moon, direction_assumed = _assign_bride_groom(moon_a, moon_b, gender_a, gender_b)
 
     result = compute_porutham(
         boy_nakshatra=boy_moon.nakshatra,
@@ -709,6 +773,13 @@ def compare_chart_snapshots_direct(
     ]
 
     _note_raw = _CONTEXT_NOTE.get(compatibility_context, _CONTEXT_NOTE["GENERAL"])
+    note_en, note_ta = _note_raw["en"], _note_raw["ta"]
+    if direction_assumed:
+        # F-POR-05: Dinam, Mahendra, Sthree Deergham and Rasi all count
+        # girl -> boy, so an assumed direction changes the answer. Say which
+        # way round it was read rather than presenting a guess as a finding.
+        note_en = f"{note_en} {_ASSUMED_DIRECTION_EN}"
+        note_ta = f"{note_ta} {_ASSUMED_DIRECTION_TA}"
     data = DirectPoruthamData(
         chart_id_a=snap_a.data.chart_id,
         chart_id_b=snap_b.data.chart_id,
@@ -724,9 +795,10 @@ def compare_chart_snapshots_direct(
         rajju_dosha=shaped["rajju_dosha"],
         vedha_dosha=shaped["vedha_dosha"],
         nadi_dosha=NadiDoshaData(**shaped["nadi_dosha"]),
+        shashtashtaka=_shashtashtaka_data(shaped["shashtashtaka"]),
         summary=shaped["summary"],
         compatibility_context=compatibility_context,
-        context_note=RelationshipBiText(ta=_note_raw["ta"], en=_note_raw["en"]),
+        context_note=RelationshipBiText(ta=note_ta, en=note_en),
     )
     return DirectPoruthamResponse(data=data, meta=_meta())
 
@@ -744,7 +816,7 @@ def build_compatibility_intelligence_from_snapshots(
 
     gender_a = getattr(snap_a.data.birth_profile, "gender_for_traditional_rules", None)
     gender_b = getattr(snap_b.data.birth_profile, "gender_for_traditional_rules", None)
-    boy_moon, girl_moon = _assign_bride_groom(moon_a, moon_b, gender_a, gender_b)
+    boy_moon, girl_moon, direction_assumed = _assign_bride_groom(moon_a, moon_b, gender_a, gender_b)
 
     porutham_result = compute_porutham(
         boy_nakshatra=boy_moon.nakshatra,
@@ -848,6 +920,11 @@ def build_compatibility_intelligence_from_snapshots(
         rajju_dosha=ci.rajju_dosha,
         vedha_dosha=ci.vedha_dosha,
         nadi_dosha=nadi_data,
+        # F-POR-02. Read off `porutham_result`, not `ci`: the intelligence
+        # layer re-reads the porutham result but carries no 6/8 field of its
+        # own, and the note must not be recomputed from the rasis here — one
+        # derivation, in `shashtashtaka_relation`.
+        shashtashtaka=_shashtashtaka_data(porutham_result.shashtashtaka),
         chart_a_strength=_cms_schema(ci.chart_a_strength),
         chart_b_strength=_cms_schema(ci.chart_b_strength),
         navamsa=NavamsaCompatibility(
@@ -877,7 +954,8 @@ def build_compatibility_intelligence_from_snapshots(
         emotional=EmotionalCompatibility(
             moon_moon_harmony=ci.emotional.moon_moon_harmony,
             venus_mars_harmony=ci.emotional.venus_mars_harmony,
-            communication_note=ci.emotional.communication_note,
+            communication_note=ci.emotional.communication_note_en,
+            communication_note_ta=ci.emotional.communication_note_ta,
             note_en=ci.emotional.note_en,
             note_ta=ci.emotional.note_ta,
             score=ci.emotional.score,
@@ -951,7 +1029,7 @@ def get_porutham_for_member(
 
     gender_owner = getattr(owner_snap.data.birth_profile, "gender_for_traditional_rules", None)
     gender_member = member.gender_for_traditional_rules
-    boy_moon, girl_moon = _assign_bride_groom(owner_moon, member_moon, gender_owner, gender_member)
+    boy_moon, girl_moon, direction_assumed = _assign_bride_groom(owner_moon, member_moon, gender_owner, gender_member)
 
     result = compute_porutham(
         boy_nakshatra=boy_moon.nakshatra,
@@ -978,6 +1056,11 @@ def get_porutham_for_member(
     ]
 
     _note_raw = _CONTEXT_NOTE.get(compatibility_context, _CONTEXT_NOTE["GENERAL"])
+    note_en, note_ta = _note_raw["en"], _note_raw["ta"]
+    if direction_assumed:
+        # F-POR-05, same disclosure as the direct-snapshot path above.
+        note_en = f"{note_en} {_ASSUMED_DIRECTION_EN}"
+        note_ta = f"{note_ta} {_ASSUMED_DIRECTION_TA}"
     data = PorutthamData(
         family_vault_id=family_vault_id,
         member_id=member_id,
@@ -993,9 +1076,10 @@ def get_porutham_for_member(
         rajju_dosha=shaped["rajju_dosha"],
         vedha_dosha=shaped["vedha_dosha"],
         nadi_dosha=NadiDoshaData(**shaped["nadi_dosha"]),
+        shashtashtaka=_shashtashtaka_data(shaped["shashtashtaka"]),
         summary=shaped["summary"],
         compatibility_context=compatibility_context,
-        context_note=RelationshipBiText(ta=_note_raw["ta"], en=_note_raw["en"]),
+        context_note=RelationshipBiText(ta=note_ta, en=note_en),
     )
     return PorutthamResponse(data=data, meta=_meta())
 

@@ -15,18 +15,48 @@ from __future__ import annotations
 import asyncio
 import logging
 import signal
+from datetime import UTC, datetime
+from uuid import UUID, uuid4
 
 from app.scheduler import register_all_jobs, schedule_all_jobs
 
 logger = logging.getLogger(__name__)
 
 
+def _heartbeat_cycle(lease, instance_id: UUID, started_at: datetime) -> None:
+    """Verify leadership, then publish one committed worker heartbeat."""
+    if not lease.check():
+        raise RuntimeError("scheduler leadership lost; terminating worker for supervised restart")
+
+    from app.db.session import SessionLocal
+    from app.services.scheduler_heartbeat_service import record_scheduler_heartbeat
+
+    with SessionLocal.begin() as session:
+        record_scheduler_heartbeat(
+            session,
+            instance_id=instance_id,
+            is_leader=True,
+            backend_pid=lease.backend_pid,
+            started_at=started_at,
+        )
+
+
+async def _monitor_leadership(lease, instance_id: UUID, started_at: datetime) -> None:
+    from app.core.config import get_settings
+
+    interval = get_settings().scheduler_heartbeat_interval_seconds
+    while True:
+        await asyncio.to_thread(_heartbeat_cycle, lease, instance_id, started_at)
+        await asyncio.sleep(interval)
+
+
 async def _run() -> None:
     try:
         from apscheduler.schedulers.asyncio import AsyncIOScheduler
-    except ModuleNotFoundError:
-        logger.error("APScheduler not installed; cannot run the worker. Install apscheduler.")
-        return
+    except ModuleNotFoundError as exc:
+        raise RuntimeError(
+            "APScheduler not installed; dedicated scheduler worker cannot start."
+        ) from exc
 
     register_all_jobs()
 
@@ -35,17 +65,29 @@ async def _run() -> None:
 
     lease = SchedulerLease(engine)
     if not lease.acquire():
-        logger.info("Scheduler lock held by another worker; this replica idles as a follower.")
-        # Idle so the container stays up (a leader failover can promote it on restart).
-        await _wait_forever()
-        return
+        raise RuntimeError("scheduler leadership unavailable; refusing to idle without owning scheduled work")
 
     scheduler = AsyncIOScheduler(timezone="UTC")
     schedule_all_jobs(scheduler)
     scheduler.start()
-    logger.info("worker scheduler started")
+    instance_id = uuid4()
+    started_at = datetime.now(UTC)
+    logger.info("worker scheduler started instance_id=%s", instance_id)
     try:
-        await _wait_forever()
+        stop_task = asyncio.create_task(_wait_forever(), name="scheduler-stop-wait")
+        monitor_task = asyncio.create_task(
+            _monitor_leadership(lease, instance_id, started_at),
+            name="scheduler-leadership-monitor",
+        )
+        done, pending = await asyncio.wait(
+            {stop_task, monitor_task},
+            return_when=asyncio.FIRST_COMPLETED,
+        )
+        for task in pending:
+            task.cancel()
+        await asyncio.gather(*pending, return_exceptions=True)
+        for task in done:
+            task.result()
     finally:
         if scheduler.running:
             scheduler.shutdown(wait=False)

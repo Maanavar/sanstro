@@ -6,6 +6,7 @@ import { AlertTriangle, Check, X } from "lucide-react";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import { MIN_BIRTH_DATE, maxBirthDateIso } from "@/lib/birth-date";
 import { CULTURAL_CONTEXT, dt, PORUTHAM_VERDICT } from "@/lib/dashboard-i18n";
+import { rasiDisplayName } from "@/lib/chart-utils";
 import { t, tPlanetLord, tNakshatra } from "@/lib/i18n";
 import { verdictPhrase } from "@/lib/verdict-lexicon";
 import { kutaTone, madhyamaLabel, madhyamaGloss, hasMadhyama } from "@/lib/kuta-grade";
@@ -24,6 +25,7 @@ import { GlossaryTerm } from "./glossary-term";
 import { DashboardLearnArticleModal } from "./dashboard-learn-article-modal";
 import { Card } from "./ui/card";
 import { Kicker } from "./ui/kicker";
+import { ShashtashtakaNoteCard } from "./shashtashtaka-note";
 
 /**
  * Nova rebuild of PoruthamPanel (see docs/DASHBOARD_UI_REVAMP_PLAN.md §6.12,
@@ -468,7 +470,20 @@ export function NovaPoruthamPanel({
             <div style={{ display: "flex", gap: "var(--space-7)", alignItems: "center", flexWrap: "wrap" }}>
               <div style={{ flex: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-2)" }}>
                 <div style={{ position: "relative", width: "116px", height: "116px", borderRadius: "var(--radius-pill)", background: `conic-gradient(${scoreTone} ${pct * 360}deg, var(--color-border) 0)`, display: "grid", placeItems: "center" }}>
-                  <div style={{ width: "92px", height: "92px", borderRadius: "var(--radius-pill)", background: "var(--color-surface-3)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", border: `1px solid ${scoreTone}` }}>
+                  {/* The donut's inner disc. Was --color-surface-3, which on
+                      the light theme is the palette's DEEPEST cream
+                      — and every ink here is dark, so a deeper ground costs
+                      contrast rather than adding it. "/ 10 PORUTHAMS" in
+                      --color-faint measured 4.47 and the red verdict tone
+                      4.37, both under AA, at --text-xs. Dark was unaffected,
+                      because there surface-3 is genuinely deeper than surface
+                      and the inks are light — the same token inverts meaning
+                      between themes.
+
+                      --color-surface is also the better donut: a gauge reads
+                      as a ring when its centre matches the card it sits on, and
+                      as a disc-on-a-disc when it does not. */}
+                  <div style={{ width: "92px", height: "92px", borderRadius: "var(--radius-pill)", background: "var(--color-surface)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", border: `1px solid ${scoreTone}` }}>
                     <div style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-2xl)", fontWeight: 700, lineHeight: 1, color: scoreTone }}>{porutham.totalScore}</div>
                     <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", letterSpacing: "0.08em", marginTop: "1px" }}>/ {porutham.maxScore} {lang === "ta" ? "பொருத்தம்" : "PORUTHAMS"}</div>
                   </div>
@@ -478,7 +493,7 @@ export function NovaPoruthamPanel({
                       lexicon phrase, and the marriage-critical override text
                       verbatim from PoruthamTool.tsx's verdictLabel. */}
                   {criticalFail && compatCtx === "MARRIAGE"
-                    ? (lang === "ta" ? "தோஷம் — தவிர்க்கவும்" : "Dosham - Avoid")
+                    ? (lang === "ta" ? "தோஷம்: கவனம் தேவை" : "Dosham: needs care")
                     : (verdictPhrase("porutham", porutham.label, lang) ?? porutham.label)}
                 </span>
                 {/* The number had no scale attached to it. A reader with no
@@ -498,20 +513,30 @@ export function NovaPoruthamPanel({
                   {(porutham.rajjuDosha || porutham.vedhaDosha) && (
                     <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1)", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-low)", background: "var(--color-low-bg)", border: "1px solid var(--color-low-border)", borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)" }}>
                       <AlertTriangle size={12} strokeWidth={1.5} aria-hidden="true" />
-                      {porutham.rajjuDosha ? (lang === "ta" ? "ராஜ்ஜு தோஷம்" : "Rajju Dosha") : (lang === "ta" ? "வேத தோஷம்" : "Vedha Dosha")}
+                      {/* Names the failed check(s), per the 2026-10-12 review's
+                          badge table: "ரஜ்ஜு பொருத்தம் இல்லை", not a second "தோஷம்"
+                          beside the verdict badge. Both, when both failed —
+                          the review asks that the reason be clear. */}
+                      {porutham.rajjuDosha && porutham.vedhaDosha
+                        ? (lang === "ta" ? "ரஜ்ஜு, வேதை பொருத்தம் இல்லை" : "Rajju and Vedha not met")
+                        : porutham.rajjuDosha
+                          ? (lang === "ta" ? "ரஜ்ஜு பொருத்தம் இல்லை" : "Rajju not met")
+                          : (lang === "ta" ? "வேதை பொருத்தம் இல்லை" : "Vedha not met")}
                     </span>
                   )}
                 </div>
                 {/* The de-escalation that already existed lived at the bottom of
                     the ten-porutham table — below the fold on the screen where a
-                    real couple reads a red "Dosham - Avoid" about themselves.
-                    The verdict stays exactly as the engine computed it; what
-                    changes is that the chip no longer travels alone. It names
-                    which check failed (the chip above is a noun, not a reason),
-                    and says what this result is FOR. */}
+                    real couple reads a red verdict badge about themselves (an
+                    imperative "avoid" until the 2026-10-12 Tamil review; now
+                    "Dosham: needs care"). The verdict stays exactly as the
+                    engine computed it; what changes is that the chip no longer
+                    travels alone. It names each check that failed and says what
+                    this result is FOR. */}
                 {criticalFail && (
                   <p style={{ margin: 0, fontSize: "var(--text-sm)", lineHeight: 1.6, color: "var(--color-text)", background: "var(--color-low-bg)", border: "1px solid var(--color-low-border)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-4)", maxWidth: "620px" }}>
-                    {dt(porutham.rajjuDosha ? PORUTHAM_VERDICT.blockerRajju : PORUTHAM_VERDICT.blockerVedha, lang)
+                    {(porutham.rajjuDosha ? dt(PORUTHAM_VERDICT.blockerRajju, lang) : "")
+                      + (porutham.vedhaDosha ? dt(PORUTHAM_VERDICT.blockerVedha, lang) : "")
                       + dt(PORUTHAM_VERDICT.blockerTail, lang)}
                   </p>
                 )}
@@ -534,6 +559,8 @@ export function NovaPoruthamPanel({
                     {lang === "ta" ? porutham.contextNote.ta : porutham.contextNote.en}
                   </div>
                 )}
+                {/* F-POR-02: a disclosure beside the verdict, never part of it. */}
+                <ShashtashtakaNoteCard note={porutham.shashtashtaka} lang={lang} />
               </div>
             </div>
           </div>
@@ -555,7 +582,7 @@ export function NovaPoruthamPanel({
                     <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)" }}>
                       <ZodiacBadge rasi={moon.rasi} size={32} />
                       <span style={{ fontSize: "var(--text-base)", color: "var(--color-text)" }}>
-                        {moon.rasiName}{" "}
+                        {rasiDisplayName(moon.rasi, lang)}{" "}
                         <GlossaryTerm term="rasi" lang={lang}>{t("label_janma_rasi", lang)}</GlossaryTerm>
                       </span>
                     </span>
@@ -568,7 +595,7 @@ export function NovaPoruthamPanel({
                     </span>
                   </div>
                   <div style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>
-                    {chart.lagna.rasiName} {t("label_lagnam", lang)}
+                    {rasiDisplayName(chart.lagna.rasi, lang)} {t("label_lagnam", lang)}
                   </div>
                   {dasha && (
                     <div style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>
@@ -679,7 +706,7 @@ export function NovaPoruthamPanel({
                 })}
               </Card>
 
-              <div style={{ background: "linear-gradient(120deg, var(--color-accent-muted), transparent)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-lg)", padding: "var(--space-5) var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+              <div style={{ backgroundColor: "var(--color-surface)", backgroundImage: "linear-gradient(120deg, var(--color-accent-muted), transparent)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-lg)", padding: "var(--space-5) var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
                 <Kicker color="var(--color-accent-strong)" style={{ letterSpacing: "0.1em" }}>
                   {lang === "ta" ? "தொடர்ந்தால்" : "If you go ahead"}
                 </Kicker>
@@ -744,7 +771,7 @@ export function NovaPoruthamPanel({
             <div>
               {!showCiReport ? (
                 <div style={{
-                  background: "linear-gradient(120deg, var(--color-high-bg), transparent)",
+                  backgroundColor: "var(--color-surface)", backgroundImage: "linear-gradient(120deg, var(--color-high-bg), transparent)",
                   border: "1px solid var(--color-high-border)", borderRadius: "var(--radius-lg)", padding: "var(--space-5) var(--space-5)",
                   display: "flex", gap: "var(--space-4)", alignItems: "center", flexWrap: "wrap",
                 }}>

@@ -66,7 +66,11 @@ export interface OneMinuteReadingData {
   stage: string;
   ageBand: OneMinuteText;
   focusTopic: string;
-  /** "self" | "parent" — a minor's reading is addressed to the parent. */
+  /**
+   * "self" | "client_with_guardian" | "parent" | "other". "parent" is a minor's
+   * chart read to their parent; "other" is an adult family member's chart, read
+   * in the third person. Title a non-self reading with `displayName`.
+   */
   addressedTo: string;
   beats: OneMinuteBeat[];
   pendingQuestion: OneMinutePendingQuestion | null;

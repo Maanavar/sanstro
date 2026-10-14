@@ -9,6 +9,31 @@ def test_life_areas_endpoint_exposes_score_breakdown_and_structured_remedy(clien
     assert all("structuredRemedy" in area for area in areas)
 
 
+def test_life_area_card_band_and_remedy_agree_with_the_displayed_score(client, birth_profile_payload_factory):
+    """Owner rulings 2026-10-01, as the card shows them. The band sentence and
+    the remedy kind are both read from the score the card prints, so a card can
+    never say "Mixed — plan carefully" above "this area is well supported", and
+    a well-supported area never carries a temple routine under "Remedy"."""
+    from app.calculations.prediction_score import SUPPORTIVE_SCORE_FLOOR, interpret_score
+    from app.calculations.remedies import MAINTAIN_PRACTICE_EN
+
+    for birth_date in ("1991-07-22", "1972-11-03", "1950-01-01"):
+        areas = _areas_by_key(client, birth_profile_payload_factory, birth_date=birth_date, as_of="2026-06-01")
+        kinds = set()
+        for key, area in areas.items():
+            if not area["ageRelevant"]:
+                assert area["scoreBand"] is None and area["remedyKind"] is None, key
+                continue
+            code, _ta, en = interpret_score(area["score"])
+            assert area["scoreBand"] == code, key
+            assert area["scoreBandText"]["en"] == en, key
+            expected = "MAINTAIN" if area["score"] >= SUPPORTIVE_SCORE_FLOOR else "REMEDY"
+            assert area["remedyKind"] == expected, (key, area["score"])
+            assert (area["remedy"]["en"] == MAINTAIN_PRACTICE_EN) == (expected == "MAINTAIN"), key
+            kinds.add(expected)
+        assert kinds, birth_date
+
+
 def test_life_areas_forecast_horizons_are_real_engine_scores(client, birth_profile_payload_factory):
     """score6mo / score12mo are the engine re-run at +6 / +12 months, not a
     cosmetic ± slope off the current score. Every area must expose both as valid

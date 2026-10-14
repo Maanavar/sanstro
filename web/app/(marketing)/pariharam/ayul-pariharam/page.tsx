@@ -1,9 +1,11 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
+import { JsonLd, articleTa, faqPageLd } from "@/lib/json-ld";
 import type { Metadata } from "next";
 import { PARIHARAM_AYUL_FAQ } from "@/lib/marketing-i18n";
 import { AyulPariharamContent } from "./PageContent";
 
-export const metadata: Metadata = {
-  title: "Pariharam for Health & Longevity (Ayul Pariharam) | Vinaadi",
+const EN_METADATA: Metadata = {
+  title: "Pariharam for Health & Longevity (Ayul Pariharam)",
   description:
     "Ayul pariharam: 8th house, Sun and 6th house factors in health, and the traditional remedy — Vaitheeswaran Koil, Suryanar Koil, Surya worship and the Mahamrityunjaya mantra.",
   keywords: [
@@ -33,15 +35,12 @@ export const metadata: Metadata = {
   },
 };
 
-const FAQ_JSONLD = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: PARIHARAM_AYUL_FAQ.map((f) => ({
-    "@type": "Question",
-    name: f.q.en,
-    acceptedAnswer: { "@type": "Answer", text: f.a.en },
-  })),
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/pariharam/ayul-pariharam");
+}
+
+const FAQ_JSONLD = faqPageLd(PARIHARAM_AYUL_FAQ, "en");
+const FAQ_JSONLD_TA = faqPageLd(PARIHARAM_AYUL_FAQ, "ta");
 
 const ARTICLE_JSONLD = {
   "@context": "https://schema.org",
@@ -56,8 +55,8 @@ const ARTICLE_JSONLD = {
 export default function AyulPariharamPage() {
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ARTICLE_JSONLD) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSONLD) }} />
+      <JsonLd en={ARTICLE_JSONLD} ta={articleTa(ARTICLE_JSONLD)} />
+      <JsonLd en={FAQ_JSONLD} ta={FAQ_JSONLD_TA} />
       <AyulPariharamContent />
     </>
   );

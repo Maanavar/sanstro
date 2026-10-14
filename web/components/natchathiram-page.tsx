@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { LocalizedLink as Link } from "@/components/localized-link";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { getServerLang } from "@/lib/server-lang";
@@ -65,7 +65,6 @@ export async function NatchathiramPageContent({ data }: Props) {
                 {lang === "ta" ? (
                   <>
                     <span className="cl-natch-detail-title__ta">{data.name_ta} நட்சத்திரம்</span>
-                    <span className="cl-natch-detail-title__en">{englishLabel}</span>
                   </>
                 ) : (
                   <>{englishLabel}</>
@@ -80,7 +79,7 @@ export async function NatchathiramPageContent({ data }: Props) {
                 <div style={{ marginTop: "1rem" }}>
                   <Link href={`/natchathiram/${data.slug}/visual`} className="cl-btn cl-btn--ghost"
                     style={{ fontSize: "0.82rem", padding: "0.45rem 1.1rem" }}>
-                    &#9654; View Visual Profile
+                    {"▶"} {lang === "ta" ? "காட்சிச் சுயவிவரத்தைப் பார்க்க" : "View Visual Profile"}
                   </Link>
                 </div>
               )}
@@ -236,7 +235,7 @@ export async function NatchathiramPageContent({ data }: Props) {
 
         {/* ── Prev / Next navigation ── */}
         {(prev || next) && (
-          <nav aria-label="Nakshathiram navigation" className="cl-band cl-band--alt">
+          <nav aria-label={lang === "ta" ? "நட்சத்திர வழிசெலுத்தல்" : "Nakshathiram navigation"} className="cl-band cl-band--alt">
             <div className="cl-container">
               <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", borderTop: "1px solid var(--cl-border)", paddingTop: "1.5rem" }}>
                 {prev ? (
@@ -247,7 +246,6 @@ export async function NatchathiramPageContent({ data }: Props) {
                     <span style={{ fontWeight: 600, color: "var(--cl-ink)", fontSize: "1rem" }}>
                       {lang === "en" ? romanNakshathiramName(prev.name_en) : prev.name_ta}
                     </span>
-                    {lang === "ta" && <span style={{ fontSize: "0.85rem", color: "var(--cl-muted)" }}>{romanNakshathiramLabel(prev.name_en)}</span>}
                   </Link>
                 ) : <div />}
                 {next ? (
@@ -258,7 +256,6 @@ export async function NatchathiramPageContent({ data }: Props) {
                     <span style={{ fontWeight: 600, color: "var(--cl-ink)", fontSize: "1rem" }}>
                       {lang === "en" ? romanNakshathiramName(next.name_en) : next.name_ta}
                     </span>
-                    {lang === "ta" && <span style={{ fontSize: "0.85rem", color: "var(--cl-muted)" }}>{romanNakshathiramLabel(next.name_en)}</span>}
                   </Link>
                 ) : <div />}
               </div>

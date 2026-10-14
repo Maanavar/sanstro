@@ -3,6 +3,7 @@ import os
 import secrets
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -139,10 +140,12 @@ class Settings(BaseSettings):
     # rate limiter, so a Redis that accepts connections and then stops answering
     # would hang requests rather than fall back. Seconds.
     redis_socket_timeout_seconds: float = Field(default=2.0)
-    # When true (single-box default), the API process also runs the APScheduler
-    # cron jobs (behind the advisory leader lock). Set false in a scaled deploy
-    # where a dedicated `app.worker` process owns scheduling. See REFACTOR_PLAN 3.3.
-    run_scheduler_in_web: bool = True
+    # Scheduling is worker-owned by default. Development may explicitly opt in
+    # to the in-web scheduler for a single-process box; production/staging API
+    # processes are forbidden from doing so by the validator below.
+    run_scheduler_in_web: bool = False
+    scheduler_heartbeat_interval_seconds: float = Field(default=15.0, ge=1.0, le=300.0)
+    scheduler_heartbeat_max_age_seconds: float = Field(default=60.0, ge=5.0, le=900.0)
     # Number of trusted reverse-proxy hops in front of the app. When > 0 the rate
     # limiter resolves the real client IP from the right-most-but-N entry of
     # X-Forwarded-For instead of the immediate peer. Leave 0 when there is no proxy.
@@ -158,7 +161,18 @@ class Settings(BaseSettings):
 
     # Auth
     jwt_secret: str | None = Field(default=None)
-    jwt_algorithm: str = "HS256"
+    # Rotation form: comma-separated secrets, NEWEST FIRST. The first signs; all
+    # of them verify. Takes precedence over jwt_secret when set, and is never
+    # split off jwt_secret itself, so a single secret containing a comma is
+    # safe. Unlike the encryption-key twin below, dropping a secret too early
+    # loses no data - it signs everyone out. See app/core/jwt_keys.py and
+    # docs/DATA_PROTECTION.md.
+    jwt_secrets: str = Field(default="")
+    # HMAC only, enforced: an asymmetric algorithm would put a public key on the
+    # verify path, which is the precondition of python-jose CVE-2026-85394 (the
+    # advisory CI's pip-audit step ignores on this premise —
+    # tests/test_jwt_hmac_only.py).
+    jwt_algorithm: Literal["HS256", "HS384", "HS512"] = "HS256"
     jwt_expire_minutes: int = 60 * 24  # 1 day
     admin_api_key: str | None = Field(default=None)
     # Comma-separated list of emails granted admin access via their session, so the
@@ -205,6 +219,15 @@ class Settings(BaseSettings):
     # Ask Vinaadi — Claude API key. If unset, endpoint returns 503.
     anthropic_api_key: str | None = Field(default=None)
     ask_vinaadi_daily_limit: int = Field(default=10)
+
+    # Open beta (owner ruling 2026-09-26): every signed-in account gets premium's
+    # limits until payments launch. JOTHIDAM_OPEN_BETA=false restores the
+    # registered/premium split. Read through app/core/subscription.py only.
+    open_beta: bool = Field(default=True)
+
+    # The one public address printed on share cards (GRW-04). Mirrors
+    # packages/shared/src/constants/site.ts SITE_URL; test_launch_parity pins it.
+    public_site_url: str = Field(default="https://vinaadi.com")
 
     # RevenueCat webhook — shared secret set in RevenueCat dashboard → Platform Settings → Webhooks.
     # If unset, POST /webhooks/revenuecat returns 503.
@@ -304,6 +327,18 @@ class Settings(BaseSettings):
         # made per-service secret grants impossible before.
         serves_http = role == _ROLE_API
 
+        if serves_http and app_env in real_user_envs and self.run_scheduler_in_web:
+            raise _config_error(
+                "Production API processes cannot own scheduled work; run the "
+                "dedicated worker and set JOTHIDAM_RUN_SCHEDULER_IN_WEB=false."
+            )
+
+        if self.scheduler_heartbeat_max_age_seconds <= self.scheduler_heartbeat_interval_seconds:
+            raise _config_error(
+                "JOTHIDAM_SCHEDULER_HEARTBEAT_MAX_AGE_SECONDS must be greater than "
+                "JOTHIDAM_SCHEDULER_HEARTBEAT_INTERVAL_SECONDS."
+            )
+
         # Before the early return below, so a developer running the edge locally
         # is told rather than silently mis-attributing every anonymous request.
         # Scoped to the HTTP role: the scheduler never resolves a client IP, and
@@ -314,14 +349,30 @@ class Settings(BaseSettings):
                 enforce=app_env in real_user_envs,
             )
 
+        # Deferred deliberately: app/core/jwt_keys.py imports this module at its
+        # top, and a validator runs at Settings() construction, long after both
+        # modules are loaded - so importing here breaks the cycle that an
+        # import-time import would create. The thresholds and the
+        # plural-beats-singular rule live there, with the rotation procedure.
+        from app.core.jwt_keys import (
+            MIN_SECRET_BYTES,
+            split_jwt_secrets,
+            undersized_jwt_secrets,
+        )
+
         missing: list[str] = []
-        if serves_http and not self.jwt_secret:
+        # Either form satisfies this, for the same reason the encryption key
+        # below accepts either: a deployment mid-rotation sets only the plural
+        # one, and refusing to boot on that would make rotating the secret an
+        # outage - which is what kept it unrotatable before 2026-10-10.
+        jwt_secrets_configured = split_jwt_secrets(self.jwt_secrets, self.jwt_secret)
+        if serves_http and not jwt_secrets_configured:
             missing.append("JOTHIDAM_JWT_SECRET")
         if serves_http and not self.admin_api_key:
             missing.append("JOTHIDAM_ADMIN_API_KEY")
 
         if app_env not in real_user_envs:
-            if not self.jwt_secret:
+            if not jwt_secrets_configured:
                 self.jwt_secret = secrets.token_urlsafe(48)
                 _logger.warning("ephemeral dev secret - JWT tokens won't survive restart")
             if not self.admin_api_key:
@@ -349,6 +400,30 @@ class Settings(BaseSettings):
         # .env in the image, so cookie_secure defaulted false and this raised.
         if serves_http and not self.cookie_secure:
             insecure.append("JOTHIDAM_COOKIE_SECURE must be true (JWT cookie over HTTPS only)")
+        # An HMAC secret shorter than its hash is brute-forceable offline from a
+        # single captured token, and forging one mints any session. python-jose
+        # never said so; PyJWT warns, once per process, into a log nobody reads
+        # during a deploy - so this refuses instead.
+        #
+        # It refuses rather than warns because the fix is now cheap: prepend a
+        # long secret to JOTHIDAM_JWT_SECRETS, deploy, and no reader is signed
+        # out (app/core/jwt_keys.py). Before the plural form existed, refusing
+        # here would have forced the outage it is trying to avoid.
+        if serves_http:
+            short = undersized_jwt_secrets(jwt_secrets_configured, self.jwt_algorithm)
+            if short:
+                minimum = MIN_SECRET_BYTES[self.jwt_algorithm]
+                where = (
+                    f"JOTHIDAM_JWT_SECRETS entries {short}"
+                    if self.jwt_secrets.strip()
+                    else "JOTHIDAM_JWT_SECRET"
+                )
+                insecure.append(
+                    f"{where} shorter than {minimum} bytes, which is weak for "
+                    f"{self.jwt_algorithm}. Prepend a longer secret to "
+                    "JOTHIDAM_JWT_SECRETS (newest first) and deploy - existing "
+                    "sessions keep working; see docs/DATA_PROTECTION.md section 2a."
+                )
         if self.debug:
             insecure.append("JOTHIDAM_DEBUG must be false in production")
         if insecure:

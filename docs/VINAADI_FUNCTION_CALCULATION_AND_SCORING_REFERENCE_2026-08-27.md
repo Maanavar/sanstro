@@ -282,7 +282,7 @@ House strength inside sthana: kendra (1/4/7/10) **80**, trikona (5/9) **75**,
 |---|---|---|
 | Vargottama | **+4.0** | |
 | D9 dignified | **+5.0** | *Gated on natal dignity being exactly 50* — a tie-breaker for an average graha, not a top-up for one already exalted |
-| D9 debilitated | **−5.0** | Deliberately **not** gated — the case that most needs it is rasi-exalted + navamsa-neecha. Vargottama is exempt |
+| D9 debilitated | **−5.0** | Deliberately **not** gated — the case that most needs it is rasi-exalted + navamsa-neecha. Vargottama is **not** exempt since 2026-10-01: a graha vargottama in its neecha sign takes this row *and* the +4 vargottama row |
 | Cazimi (within 0°17′ of the Sun) | **+10.0** | Overrides combustion entirely |
 | Combustion | up to **−22.0** | A **gradient**, scaled by `combustion_severity` from full at the cazimi boundary to zero at the orb edge. Per-graha orbs, separate direct and retrograde values |
 | Rasi sandhi (≤1° or ≥29° in sign) | **−8.0** | |

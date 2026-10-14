@@ -66,6 +66,17 @@ WRAPPER_DIR = REPO_ROOT / "packages" / "shared" / "src" / "api"
 #: exactly where a field goes unread longest, which is where the guard is worth
 #: the most.
 TYPES_DIR = REPO_ROOT / "packages" / "shared" / "src" / "types"
+#: Since A14 step 7 (2026-10-08) a wrapper may export an ALIAS of a type
+#: generated from the backend's OpenAPI schema — `export type ShadbalaData =
+#: Server.ShadbalaData;` — instead of a hand-written interface. This parser read
+#: only `export interface`, so an aliased wrapper's cast silently left the guard
+#: (84 casts → 77, 3611 fields → 3472, under floors that did not notice), and two
+#: casts fell back to stale same-named interfaces in `src/types` that the
+#: wrapper no longer uses. Generated interfaces are parsed under a `Server.`
+#: prefix, with their nested references qualified the same way, and an alias
+#: resolves to exactly the generated type it names.
+GENERATED_DIR = REPO_ROOT / "packages" / "shared" / "src" / "generated"
+_ALIAS_RE = re.compile(r"^export type (?P<name>\w+) = Server\.(?P<target>\w+);", re.MULTILINE)
 
 _SPEC = app.openapi()
 _SCHEMAS = _SPEC.get("components", {}).get("schemas", {})
@@ -192,6 +203,18 @@ def _cast_type_at(text: str, pos: int) -> tuple[str, str] | None:
 def _parse_interfaces() -> dict[str, list[tuple[str, str, bool]]]:
     """Interface name -> [(field, declared type, optional)] for the shared client."""
     out: dict[str, list[tuple[str, str, bool]]] = {}
+
+    generated: dict[str, list[tuple[str, str, bool]]] = {}
+    for ts_file in sorted(GENERATED_DIR.glob("*.ts")):
+        for name, body in _interface_bodies(ts_file.read_text(encoding="utf-8")):
+            generated[name] = _top_level_members(body)
+
+    def qualify(declared: str) -> str:
+        return re.sub(r"\b\w+\b", lambda m: f"Server.{m[0]}" if m[0] in generated else m[0], declared)
+
+    for name, fields in generated.items():
+        out[f"Server.{name}"] = [(field, qualify(declared), opt) for field, declared, opt in fields]
+
     # `src/api` last: a wrapper-local interface wins over a same-named shared
     # one, matching how TypeScript resolves the wrapper's own declaration.
     sources = sorted(TYPES_DIR.rglob("*.ts")) + sorted(WRAPPER_DIR.rglob("*.ts"))
@@ -203,6 +226,10 @@ def _parse_interfaces() -> dict[str, list[tuple[str, str, bool]]]:
             fields = _top_level_members(body)
             if fields:
                 out[name] = fields
+        for alias in _ALIAS_RE.finditer(text):
+            target = f"Server.{alias['target']}"
+            assert target in out, f"{ts_file.name}: `{alias['name']}` aliases {target}, which is not generated"
+            out[alias["name"]] = out[target]
     return out
 
 
@@ -219,7 +246,8 @@ def _base_type(declared: str) -> str | None:
     if len(named) != 1:
         return None
     candidate = named[0].removesuffix("[]").strip()
-    return candidate if re.fullmatch(r"\w+", candidate) else None
+    # `Server.Foo` is a generated interface (see GENERATED_DIR).
+    return candidate if re.fullmatch(r"(?:Server\.)?\w+", candidate) else None
 
 
 def _resolve(schema: dict | None, depth: int = 0) -> dict | None:
@@ -383,15 +411,17 @@ def test_interfaces_and_casts_were_discovered():
 
     Floors sit below what was actually measured — 287 interfaces and 72 typed
     casts as of 2026-08-31 (was 132/29 when written, before the parser learned
-    single-line interfaces and inline `{ success, data }` envelopes) — rather
-    than at a round number guessed at. Raise them when the reach grows; a floor
-    left at an old number is how a guard quietly loses half its coverage again.
+    single-line interfaces and inline `{ success, data }` envelopes); 346 and 84
+    on 2026-10-08, once generated types and aliases were parsed — rather than at
+    a round number guessed at. Raise them when the reach grows; a floor left at
+    an old number is how a guard quietly loses half its coverage again. The old
+    65-cast floor let seven aliased wrappers fall out unnoticed.
     """
-    assert len(INTERFACES) > 250, (
+    assert len(INTERFACES) > 330, (
         f"Only {len(INTERFACES)} shared interfaces parsed — the interface regex "
         "has probably drifted from the source style."
     )
-    assert len(WRAPPER_CASTS) >= 65, (
+    assert len(WRAPPER_CASTS) >= 82, (
         f"Only {len(WRAPPER_CASTS)} typed wrapper casts parsed — the cast regex "
         "has probably drifted from the wrapper style."
     )
@@ -409,12 +439,36 @@ def test_the_walk_actually_reaches_nested_fields():
         if schema is None:
             continue
         total += _walk(interface, schema, interface, [], set())
-    assert total > 2400, (
+    assert total > 3600, (
         f"Only {total} fields compared across every wrapper — the schema "
         "resolver is probably bailing out early and the guard is hollow. "
         "704 were compared when this was written; 2699 after the parser was "
-        "taught the two shapes it had been silently skipping (2026-08-31)."
+        "taught the two shapes it had been silently skipping (2026-08-31); "
+        "3701 once it followed aliases into the generated types (2026-10-08)."
     )
+
+
+def test_aliased_wrapper_types_stay_in_the_guard():
+    """A wrapper that aliases a generated type must still be checked.
+
+    Every cast whose type a wrapper declares as `export type X = Server.Y` must
+    be in WRAPPER_CASTS and must compare at least one field. This is the check
+    that would have caught the 2026-10-08 drop by name rather than by a floor.
+    """
+    aliased = {
+        m["name"]
+        for ts_file in WRAPPER_DIR.rglob("*.ts")
+        if not ts_file.name.endswith(".test.ts")
+        for m in _ALIAS_RE.finditer(ts_file.read_text(encoding="utf-8"))
+    }
+    cast_to_alias = {row[2] for row in _iter_wrapper_casts()} & aliased
+    assert cast_to_alias, "no wrapper casts to an aliased type — the alias regex matched nothing"
+    covered = {row[2] for row in WRAPPER_CASTS}
+    assert cast_to_alias <= covered, f"aliased casts missing from the guard: {sorted(cast_to_alias - covered)}"
+    for verb, path, interface, location, envelope in WRAPPER_CASTS:
+        if interface in cast_to_alias:
+            schema = _schema_to_walk(verb, path, envelope)
+            assert schema is not None and _walk(interface, schema, interface, [], set()) > 0, location
 
 
 @pytest.mark.parametrize(

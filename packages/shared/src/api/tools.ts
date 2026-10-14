@@ -1,3 +1,4 @@
+import type * as Server from "../generated/api-types";
 import { getApiClient } from "./client";
 import { getChartFull } from "./charts";
 import type {
@@ -82,56 +83,14 @@ export function getYogam(
 }
 
 // ─── Pariharam (remedies) ─────────────────────────────────────────────────────
-// GET /charts/{id}/remedy-plan (app/api/remedies.py). The route returns a plain
-// dict, so the rows keep the calculation layer's snake_case keys.
+// GET /charts/{id}/remedy-plan (app/api/remedies.py). The rows keep the
+// calculation layer's snake_case keys. Types are the server's own (A14 step 7),
+// generated from the route's response model (app/schemas/remedies.py);
+// `caution_ta/en` are null when the gemstone policy has no caution.
 
-export interface RemedyDisclaimer {
-  fasting_caution_ta: string;
-  fasting_caution_en: string;
-  guarantee_note_ta: string;
-  guarantee_note_en: string;
-}
-
-export interface RemedyItem {
-  planet: string;
-  day: string;
-  temple_ta: string;
-  temple_en: string;
-  mantra_seed: string;
-  mantra_full_ta: string;
-  japa_count: number;
-  daanam_items_ta: string;
-  daanam_items_en: string;
-  gemstone_ta: string | null;
-  gemstone_en: string | null;
-  metal: string;
-  finger: string;
-  fasting_rule_ta: string;
-  fasting_rule_en: string;
-  behavioural_ta: string;
-  behavioural_en: string;
-  seva_ta: string;
-  seva_en: string;
-  functional_nature: string;
-  severity: string;
-  is_gemstone_prescribed: boolean;
-  reason_ta: string;
-  reason_en: string;
-  caution_ta: string;
-  caution_en: string;
-  fasting_caution_ta: string;
-  fasting_caution_en: string;
-  priority: number;
-}
-
-export interface RemedyPlanData {
-  chartId: string;
-  currentMahaLord: string;
-  weakestPlanets: string[];
-  activeDoshamPlanet: string | null;
-  items: RemedyItem[];
-  disclaimer: RemedyDisclaimer;
-}
+export type RemedyDisclaimer = Server.RemedyDisclaimer;
+export type RemedyItem = Server.RemedyPlanItem;
+export type RemedyPlanData = Server.RemedyPlanData;
 
 export function getPariharam(
   chartId: string,
@@ -204,6 +163,22 @@ export interface MuhurtaPayload {
   paksha?: "SHUKLA" | "KRISHNA";
   /** Return the selected day's veto factors instead of silently omitting it. */
   includeExcluded?: boolean;
+  /**
+   * MARRIAGE only: restrict results to days on the sourced printed almanac's
+   * wedding list (§3). Rejected with 422 for any other activity, and rejected
+   * alongside `includeExcluded` — that flag exists to explain one chosen date,
+   * which this filter could remove. Every wedding slot carries
+   * `almanacMuhurtham` whether or not this is set.
+   */
+  almanacOnly?: boolean;
+  /**
+   * A second saved chart owned by the same user, for a couple. Requires
+   * `chartId`. Scored exactly as the public tool's `partner`: the weaker side
+   * governs each personal check and a veto from either removes the day.
+   */
+  partnerChartId?: string;
+  /** What `chartId` is. The partner takes the complement; not sent separately. */
+  subjectRole?: "BRIDE" | "GROOM" | "PERSON";
 }
 
 export function getMuhurta(
@@ -220,6 +195,9 @@ export function getMuhurta(
   if (params.place !== undefined) query.place = params.place;
   if (params.paksha !== undefined) query.paksha = params.paksha;
   if (params.includeExcluded) query.includeExcluded = "true";
+  if (params.almanacOnly) query.almanacOnly = "true";
+  if (params.partnerChartId) query.partnerChartId = params.partnerChartId;
+  if (params.subjectRole) query.subjectRole = params.subjectRole;
   return getApiClient().get(
     params.chartId ? `/charts/${encodeURIComponent(params.chartId)}/muhurta` : "/muhurta",
     query,
@@ -239,6 +217,21 @@ export interface PersonalizedMuhurtaBirthInput {
 
 export interface PersonalizedMuhurtaPayload {
   birth: PersonalizedMuhurtaBirthInput;
+  /**
+   * The second half of a couple. Optional — "check for one person only" is a
+   * supported answer, not a degraded one. When present, both charts are scored
+   * together: the weaker of each pair of personal readings is the one that is
+   * priced, and a veto from either side (Chandrashtama, a janma-tara count)
+   * removes the day. Birth time is required on this chart too.
+   */
+  partner?: PersonalizedMuhurtaBirthInput;
+  /**
+   * What `birth` is. The partner's role is the complement and is not sent.
+   * A display label everywhere except Kalaprakasika Ch. XIV p.79's Jupiter
+   * gochara rule, which is stated from the bride's Janma-Rasi and is only
+   * answerable once a caller has said which chart is hers.
+   */
+  subjectRole?: "BRIDE" | "GROOM" | "PERSON";
   eventType: string;
   dateFrom: string;
   dateTo: string;

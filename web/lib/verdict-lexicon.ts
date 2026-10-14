@@ -22,7 +22,7 @@ export const VERDICT_ROOT: Record<VerdictRung, { ta: string; en: string }> = {
   CAUTION: { ta: "கவனம் தேவை", en: "Needs care" },
 };
 
-type Domain = "daily" | "porutham" | "lifeArea";
+type Domain = "daily" | "porutham" | "lifeArea" | "harmony" | "doshamSeverity";
 
 /**
  * Composed verdict phrase shown to the user, per domain label — [ta, en].
@@ -63,6 +63,31 @@ export const VERDICT_PHRASE: Record<Domain, Record<string, [string, string]>> = 
     MIXED: ["கலப்பான காலகட்டம்", "Mixed period"],
     CAUTION: ["கவனம் தேவை", "Needs care"],
   },
+  // Compatibility Intelligence sub-layer harmony (navamsa, dasha, Moon-Moon,
+  // Venus). F-DSP-01: the panel used to put these engine keys straight into a
+  // <Badge text=...>, so a Tamil reader saw "STRONG" / "SUPPORTIVE". The noun
+  // is இணக்கம், matching the synastry row in the backend twin — the same idea
+  // one level up.
+  harmony: {
+    EXCELLENT: ["மிகச் சிறந்த இணக்கம்", "Excellent harmony"],
+    STRONG: ["வலுவான இணக்கம்", "Strong harmony"],
+    SUPPORTIVE: ["ஆதரவான இணக்கம்", "Supportive"],
+    GOOD: ["நல்ல இணக்கம்", "Good harmony"],
+    MODERATE: ["நடுத்தர இணக்கம்", "Moderate harmony"],
+    MIXED: ["கலப்பான இணக்கம்", "Mixed harmony"],
+    NEUTRAL: ["நடுநிலை", "Neutral"],
+    TENSE: ["இறுக்கமான இணக்கம்", "Tense"],
+    CHALLENGING: ["சவாலான இணக்கம்", "Challenging"],
+    WEAK: ["பலவீனமான இணக்கம்", "Weak harmony"],
+  },
+  // Dosham severity is a magnitude, not a quality verdict, so it has no
+  // VerdictRung — only display words. Rendered on the Sevvai badge.
+  doshamSeverity: {
+    SEVERE: ["தீவிரம்", "Severe"],
+    MODERATE: ["நடுத்தரம்", "Moderate"],
+    MILD: ["லேசானது", "Mild"],
+    NONE: ["இல்லை", "None"],
+  },
 };
 
 /** Composed verdict phrase for a domain label, or null if unmapped. */
@@ -74,4 +99,18 @@ export function verdictPhrase(
   const entry = VERDICT_PHRASE[domain][label];
   if (!entry) return null;
   return lang === "ta" ? entry[0] : entry[1];
+}
+
+/**
+ * Same as `verdictPhrase`, but never returns null: an unmapped label falls
+ * back to the raw key. For badges, where there is nothing sensible to render
+ * instead — a blank badge hides the verdict entirely, which is worse than an
+ * untranslated one, and leaves nothing for a Tamil-mode check to catch.
+ */
+export function verdictPhraseOrKey(
+  domain: Domain,
+  label: string,
+  lang: "ta" | "en",
+): string {
+  return verdictPhrase(domain, label, lang) ?? label;
 }

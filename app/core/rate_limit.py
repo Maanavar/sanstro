@@ -36,6 +36,19 @@ class RateLimitResult:
     allowed: bool
     remaining: int
     retry_after: int  # seconds; meaningful only when ``allowed`` is False
+    #: Whether the limit was actually evaluated.
+    #:
+    #: A06. ``allowed=True`` used to mean two different things — "within budget"
+    #: and "could not check, so I am letting this through" — and the caller had
+    #: no way to tell them apart. That is defensible for a cache-shaped control
+    #: and wrong for the shared counter behind a security rule: during a Redis
+    #: outage a five-per-minute login throttle became unlimited.
+    #:
+    #: The limiter reports; the protected operation chooses the policy. The
+    #: global IP middleware deliberately still fails open on ``available=False``
+    #: (it is an aggregate control, and locking everyone out on infrastructure
+    #: is the wrong trade there). ``AuthThrottler`` refuses instead.
+    available: bool = True
 
 
 class RateLimitBackend(Protocol):
@@ -97,9 +110,14 @@ class RedisRateLimitBackend:
             pipe.expire(key, window_seconds)
             results = pipe.execute()
             count = int(results[2])
-        except Exception as exc:  # pragma: no cover - infra dependent
-            logger.warning("redis rate-limit check failed ip=%s exc=%s; failing open", client_ip, exc)
-            return RateLimitResult(allowed=True, remaining=max_requests, retry_after=0)
+        except Exception as exc:
+            # `allowed=True` is retained so the global IP middleware behaves
+            # exactly as before; `available=False` is what lets a
+            # security-sensitive caller refuse instead (A06).
+            logger.warning("redis rate-limit check failed ip=%s exc=%s; limiter unavailable", client_ip, exc)
+            return RateLimitResult(
+                allowed=True, remaining=max_requests, retry_after=0, available=False
+            )
 
         if count > max_requests:
             # Drop the member we just added so a rejected request doesn't keep the

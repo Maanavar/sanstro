@@ -67,10 +67,25 @@ def test_chart_calculate_endpoint_uses_persisted_birth_profile(client, birth_pro
         body["data"]["lagna"]["absoluteLongitude"] % 360,
         abs=1e-9,
     )
+    assert body["data"]["lagna"]["d9Rasi"] == navamsa_rasi_from_degree(
+        body["data"]["lagna"]["absoluteLongitude"]
+    )
+    d9_dignities = {
+        "EXALTED",
+        "OWN_SIGN",
+        "FRIEND_SIGN",
+        "NEUTRAL_SIGN",
+        "ENEMY_SIGN",
+        "DEBILITATED",
+    }
     for planet in planets.values():
         assert planet["houseFromLagna"] in range(1, 13)
         assert planet["d9Rasi"] == navamsa_rasi_from_degree(planet["absoluteLongitude"])
+        assert planet["d9Dignity"] in d9_dignities
         assert "showRetrogradeBadge" in planet
+    assert planets["RAHU"]["d9Dignity"] == "NEUTRAL_SIGN"
+    assert planets["KETU"]["d9Dignity"] == "NEUTRAL_SIGN"
+    assert planets["MANDHI"]["d9Dignity"] == "NEUTRAL_SIGN"
     assert planets["KETU"]["absoluteLongitude"] == pytest.approx(
         (planets["RAHU"]["absoluteLongitude"] + 180.0) % 360.0,
         abs=1e-9,

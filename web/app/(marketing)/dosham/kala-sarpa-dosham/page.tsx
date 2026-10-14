@@ -1,9 +1,11 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
+import { JsonLd, articleTa, faqPageLd } from "@/lib/json-ld";
 import type { Metadata } from "next";
 import { DOSHAM_KALA_SARPA_FAQ } from "@/lib/marketing-i18n";
 import { KalaSarpaDoshamContent } from "./PageContent";
 
-export const metadata: Metadata = {
-  title: "Kala Sarpa Dosham — Meaning, Types, Chart Check & Pariharam | Vinaadi",
+const EN_METADATA: Metadata = {
+  title: "Kala Sarpa Dosham — Meaning, Types, Chart Check & Pariharam",
   description:
     "Kala Sarpa dosham forms when all 7 classical planets are enclosed between Rahu and Ketu. Learn the 12 types (Ananta to Sheshanaga), how to check your chart, what it means for life, when it softens, and the traditional pariharam.",
   keywords: [
@@ -32,15 +34,12 @@ export const metadata: Metadata = {
   },
 };
 
-const FAQ_JSONLD = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: DOSHAM_KALA_SARPA_FAQ.map((f) => ({
-    "@type": "Question",
-    name: f.q.en,
-    acceptedAnswer: { "@type": "Answer", text: f.a.en },
-  })),
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/dosham/kala-sarpa-dosham");
+}
+
+const FAQ_JSONLD = faqPageLd(DOSHAM_KALA_SARPA_FAQ, "en");
+const FAQ_JSONLD_TA = faqPageLd(DOSHAM_KALA_SARPA_FAQ, "ta");
 
 const ARTICLE_JSONLD = {
   "@context": "https://schema.org",
@@ -55,8 +54,8 @@ const ARTICLE_JSONLD = {
 export default function KalaSarpaDoshamPage() {
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ARTICLE_JSONLD) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSONLD) }} />
+      <JsonLd en={ARTICLE_JSONLD} ta={articleTa(ARTICLE_JSONLD)} />
+      <JsonLd en={FAQ_JSONLD} ta={FAQ_JSONLD_TA} />
       <KalaSarpaDoshamContent />
     </>
   );

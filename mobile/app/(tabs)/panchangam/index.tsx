@@ -171,6 +171,9 @@ export default function PanchangamDayScreen() {
               <TimeCard kind="rahu_kalam" start={fmt(p.kalam.rahuKalam.start)} end={fmt(p.kalam.rahuKalam.end)} />
               <TimeCard kind="yamagandam" start={fmt(p.kalam.yamagandam.start)} end={fmt(p.kalam.yamagandam.end)} />
               <TimeCard kind="kuligai" start={fmt(p.kalam.kuligai.start)} end={fmt(p.kalam.kuligai.end)} />
+              {(p.kalam.durmuhurtham ?? []).map((slot, index) => (
+                <TimeCard key={`dur-${index}`} kind="durmuhurtham" start={fmt(slot.start)} end={fmt(slot.end)} />
+              ))}
             </ScrollView>
 
             {/* Five elements */}

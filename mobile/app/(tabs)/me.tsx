@@ -6,7 +6,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, type Href } from "expo-router";
-import { ChevronRight, Gift, Clock, CreditCard } from "lucide-react-native";
+import { ChevronRight, Gift, CreditCard } from "lucide-react-native";
 import { useQuery } from "@tanstack/react-query";
 import { useColors } from "@/hooks/useColors";
 import type { ColorTokens } from "@/theme/colors";
@@ -16,11 +16,13 @@ import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "@/hooks/useSession";
 import { loadGuestPrefs, saveGuestPrefs } from "@/features/guest/guestStore";
 import { setAnalyticsConsent } from "@/lib/analytics";
-import { logout, getMySubscription } from "@/api/auth";
-import { clearTokens } from "@/lib/secureStore";
-import { clearUserPrefs, getPrimaryChartId } from "@/lib/userPrefs";
+import { getMySubscription } from "@/api/auth";
+import { endSession } from "@/state/sessionTransition";
+import { getPrimaryChartId } from "@/lib/userPrefs";
+import { FocusSettingsRow } from "@/components/LifeFocus";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { entranceDelay, spring, staggerInterval, duration } from "@/theme/motion";
+import { accountKey } from "@/lib/queryKeys";
 
 const MANAGE_SUB_URL =
   Platform.OS === "ios"
@@ -58,7 +60,7 @@ export default function MeScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const { data: subData } = useQuery({
-    queryKey: ["my-subscription"],
+    queryKey: accountKey("my-subscription"),
     queryFn: getMySubscription,
     enabled: tier === "premium",
     staleTime: 5 * 60 * 1000,
@@ -99,12 +101,13 @@ export default function MeScreen() {
   }
 
   async function handleSignOut() {
-    try {
-      await logout();
-    } catch {
-      await clearTokens();
-    }
-    await clearUserPrefs();
+    // One operation with a defined end state (A02). This was four separate
+    // actions — logout(), clearTokens() only on failure, clearUserPrefs(),
+    // clearSession() — and none of them touched the React Query cache or the
+    // persisted client, which are process-wide and mounted above the session
+    // provider. A signed out, B signed in, and B was served A's household from
+    // cache without a request being issued.
+    await endSession();
     clearSession();
     router.replace("/(tabs)/today");
   }
@@ -306,6 +309,9 @@ export default function MeScreen() {
             <Text style={styles.menuSectionHeader}>
               {isTamil ? "வழிகாட்டுதல்" : "Guidance"}
             </Text>
+            {/* Life focus (Phase 3), the mobile twin of Settings → "Your focus". */}
+            <FocusSettingsRow />
+            <View style={styles.divider} />
             {primaryChartId && (
               <>
                 <TouchableOpacity
@@ -328,19 +334,9 @@ export default function MeScreen() {
                   </Text>
                   <ChevronRight size={18} color={C.textTertiary} strokeWidth={1.5} />
                 </TouchableOpacity>
-                <View style={styles.divider} />
-                <TouchableOpacity
-                  style={styles.menuRow}
-                  onPress={() => router.push(`/rectification?chartId=${encodeURIComponent(primaryChartId)}` as Href)}
-                >
-                  <View style={{ width: 28, alignItems: 'center' }}>
-                    <Clock size={20} color={C.gold} strokeWidth={1.5} />
-                  </View>
-                  <Text style={[styles.menuLabel, { fontFamily: T.body.fontFamily }]}>
-                    {isTamil ? "Birth Time Rectification" : "Birth Time Rectification"}
-                  </Text>
-                  <ChevronRight size={18} color={C.textTertiary} strokeWidth={1.5} />
-                </TouchableOpacity>
+                {/* No Rectification row: its ranking is not chart-specific yet
+                    (capability reference §7.8). It opens from a chart with no
+                    birth time on file. */}
                 <View style={styles.divider} />
                 <TouchableOpacity style={styles.menuRow} onPress={() => router.push("/dasha" as Href)}>
                   <Text style={styles.menuIcon}>🪐</Text>

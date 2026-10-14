@@ -281,7 +281,7 @@ Two exports in the unused portion are provably broken and would fail immediately
 
 ## P2 — Small, contained fixes
 
-### WIRE-8 No UI control to mark a single notification as read `[ ]`
+### WIRE-8 No UI control to mark a single notification as read `[x]` — resolved 2026-07-05 (checkbox corrected 2026-09-15 after re-verifying both call sites in code)
 
 **Problem:** `POST /notifications/{notification_id}/read` exists (`app/api/notifications.py`) with no caller. Both consuming surfaces — `web/app/notifications/page.tsx` and the inbox widget in `web/components/dashboard-hero.tsx` — only offer "mark all read."
 

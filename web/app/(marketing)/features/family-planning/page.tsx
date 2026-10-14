@@ -1,9 +1,24 @@
-import Link from "next/link";
+import type { Metadata } from "next";
+import { withTamilTwin } from "@/lib/localized-metadata";
+import { LocalizedLink as Link } from "@/components/localized-link";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { getServerLang } from "@/lib/server-lang";
 import { FEAT_FAMILY, mt } from "@/lib/marketing-i18n";
 import { FamilyOrbitVisual } from "@/components/marketing-visuals";
+import { pageMetadata } from "@/lib/page-metadata";
+
+const EN_METADATA = pageMetadata({
+  path: "/features/family-planning",
+  title: "Family Astrology Planning — Shared Timing for Everyone You Plan With",
+  description:
+    "Keep every family member's jadhagam in one vault, read their days side by side, and find timing windows that work for the whole household.",
+  keywords: ["family astrology", "family jadhagam", "family timing", "Tamil family astrology app"],
+});
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/features/family-planning");
+}
 
 // F7 part two - a Server Component; see lib/server-lang.ts.
 export default async function FamilyPlanningPage() {
@@ -11,7 +26,7 @@ export default async function FamilyPlanningPage() {
   const d = FEAT_FAMILY;
 
   const VAULT_ITEMS = [
-    { title: mt(d.vault1, lang), body: lang === "en" ? "Each gets a full chart, dasa, transit, and panchangam reading." : "ஒவ்வொருவருக்கும் முழுமையான ஜாதகம், தசை, கிரகநகர்வு, பஞ்சாங்க வாசிப்பு." },
+    { title: mt(d.vault1, lang), body: lang === "en" ? "Each gets a full chart, dasa, transit, and panchangam reading." : "ஒவ்வொருவருக்கும் முழுமையான ஜாதகம், தசை, கோச்சாரம், பஞ்சாங்க வாசிப்பு." },
     { title: mt(d.vault2_title, lang), body: mt(d.vault2, lang) },
     { title: mt(d.vault3_title, lang), body: mt(d.vault3, lang) },
     { title: mt(d.vault4_title, lang), body: mt(d.vault4, lang) },

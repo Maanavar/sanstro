@@ -22,42 +22,62 @@ import {
 import { getDosham } from "@/api/tools";
 import { getPrimaryChartId } from "@/lib/userPrefs";
 import type { ChartDoshamInsight } from "@vinaadi/shared/types";
-import { displayName } from "@vinaadi/shared/yogaDisplay";
+import { displayName, natalStrengthWord } from "@vinaadi/shared/yogaDisplay";
+import {
+  doshamBeforeAfterLine,
+  doshamContextLines,
+  doshamMeaning,
+  doshamReferenceRows,
+  doshamResidual,
+  mitigatedStandingLabel,
+} from "@vinaadi/shared/doshamReckoning";
 
 /**
- * The chart engine reports a dosham's natal `strength` plus whether classical
- * nivarthi (cancellation) applies. A cancelled dosham is not a live concern, so
- * it reads as "none" here and is listed among the checked-and-clear entries —
- * the same treatment web gives it.
+ * Three groups, not two (DD-17, 2026-10-06). A mitigated dosham used to read
+ * as "none" and sit under "Checked and Absent"; a chart whose doshams were all
+ * mitigated was told "No doshas detected". Nivarthi lowers a dosham, it does
+ * not erase it — the mitigated group now says what remains.
  */
-type Severity = "severe" | "moderate" | "mild" | "none";
+type Group = "active" | "mitigated" | "absent";
 
-function severityOf(d: ChartDoshamInsight): Severity {
-  if (!d.isPresent || d.isCancelled) return "none";
-  if (d.strength === "STRONG") return "severe";
-  if (d.strength === "PARTIAL") return "moderate";
-  return "mild";
+function groupOf(d: ChartDoshamInsight): Group {
+  if (!d.isPresent) return "absent";
+  return d.isCancelled ? "mitigated" : "active";
 }
 
-function severityColor(s: Severity, C: ColorTokens): string {
-  if (s === "severe") return C.alert;
-  if (s === "moderate") return C.caution;
-  if (s === "mild") return C.amber;
-  return C.green;
+function doshamColor(d: ChartDoshamInsight, C: ColorTokens): string {
+  if (!d.isPresent) return C.green;
+  if (d.isCancelled) return doshamResidual(d) === "MODERATE" ? C.amber : C.green;
+  if (d.strength === "STRONG") return C.alert;
+  if (d.strength === "PARTIAL") return C.caution;
+  return C.amber;
 }
 
-function severityLabel(s: Severity, isTamil: boolean): string {
-  if (s === "severe") return isTamil ? "கடுமையானது" : "Severe";
-  if (s === "moderate") return isTamil ? "மிதமானது" : "Moderate";
-  if (s === "mild") return isTamil ? "சிறியது" : "Mild";
-  return isTamil ? "இல்லை" : "None";
+/**
+ * The engine description is shown only where it says something the card does
+ * not already. Most are a one-line version of `explanationWhat` (Pitru,
+ * Badhaka, Putra Sarpa, Marana Karaka Sthana) or of "In your chart" (Rahu–
+ * Ketu, Kala Sarpa), and the expanded card printed both, one under the other
+ * (owner report, 2026-10-06). Kalathra's names this chart's 7th lord and
+ * house, and Sevvai's adds what its effect depends on, so those two stay.
+ */
+const DESCRIPTION_ADDS = new Set(["KALATHRA_DOSHAM", "SEVVAI_DOSHAM"]);
+
+function showDescription(d: ChartDoshamInsight, what: string | null | undefined, meaning: string): boolean {
+  if (!what?.trim() && !meaning) return true;
+  return !meaning && DESCRIPTION_ADDS.has(d.name.toUpperCase());
+}
+
+function doshamChip(d: ChartDoshamInsight, lang: "ta" | "en"): string {
+  if (d.isCancelled) return mitigatedStandingLabel(d, lang);
+  return natalStrengthWord(d.strength, lang);
 }
 
 const HOW_CHECKED_ITEMS = [
   { label: "Primary position", value: "Lagna (Ascendant) — where the dosham planet sits relative to the rising sign" },
-  { label: "Moon sign check", value: "Chandran's house and its aspects — required for Kuja and Sarpa dosham" },
-  { label: "Venus position", value: "Sukran's rasi and house — mandatory for marriage-related dosham checks" },
-  { label: "Cancellation rules", value: "If the dosham lord occupies specific houses or is conjoined with a benefic, the dosham is cancelled or reduced" },
+  { label: "Moon sign check", value: "Chandran's house — Sevvai is counted from the Moon too; for Rahu–Ketu it can raise the grade, never create the dosham" },
+  { label: "Venus position", value: "Sukran's rasi — Sevvai is also counted from Venus, the lightest of the three references" },
+  { label: "Cancellation rules", value: "Protective factors (nivarthi) reduce a dosham's grade; they never erase it, so a mitigated dosham still shows what remains" },
   { label: "Method", value: "Thirukanitham — precision birth-time sunrise-adjusted chart" },
 ];
 
@@ -83,8 +103,10 @@ export default function DoshamScreen() {
   });
 
   const flags: ChartDoshamInsight[] = data?.data ?? [];
-  const detected = flags.filter((f) => severityOf(f) !== "none");
-  const absent = flags.filter((f) => severityOf(f) === "none");
+  const docLang: "ta" | "en" = isTamil ? "ta" : "en";
+  const detected = flags.filter((f) => groupOf(f) === "active");
+  const mitigated = flags.filter((f) => groupOf(f) === "mitigated");
+  const absent = flags.filter((f) => groupOf(f) === "absent");
 
   if (tier === "guest" || (!chartId && !isLoading)) {
     return (
@@ -104,7 +126,7 @@ export default function DoshamScreen() {
         {isLoading && <><SkeletonCard height={100} /><SkeletonCard height={100} /></>}
         {isError && <ErrorCard onRetry={refetch} />}
 
-        {!isLoading && !isError && detected.length === 0 && flags.length > 0 && (
+        {!isLoading && !isError && detected.length === 0 && mitigated.length === 0 && flags.length > 0 && (
           <View style={styles.clearCard}>
             <Text style={styles.clearIcon}>✓</Text>
             <Text style={[styles.clearTitle, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
@@ -123,66 +145,16 @@ export default function DoshamScreen() {
             <Text style={[styles.sectionLabel, isTamil ? TamilType.subheading : EnType.subheading]}>
               {isTamil ? "கண்டறியப்பட்ட தோஷங்கள்" : "Detected Doshas"}
             </Text>
-            {detected.map((f) => {
-              const isExpanded = expanded === f.name;
-              const severity = severityOf(f);
-              const color = severityColor(severity, C);
-              const what = isTamil ? f.explanationWhatTa : f.explanationWhatEn;
-              return (
-                <TouchableOpacity
-                  key={f.name}
-                  style={[styles.card, styles.cardDetected, { borderLeftColor: color }]}
-                  onPress={() => setExpanded(isExpanded ? null : f.name)}
-                  activeOpacity={0.85}
-                >
-                  <View style={styles.cardRow}>
-                    <View style={[styles.statusDot, { backgroundColor: color }]} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.doshaName, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
-                        {displayName(f.name, isTamil ? "ta" : "en")}
-                      </Text>
-                      <View style={[styles.severityBadge, { backgroundColor: color + "22" }]}>
-                        <Text style={[styles.severityText, { color }]}>
-                          {severityLabel(severity, isTamil)}
-                        </Text>
-                      </View>
-                    </View>
-                    <Text style={styles.chevron}>{isExpanded ? "▲" : "▼"}</Text>
-                  </View>
+            {detected.map((f) => renderCard(f))}
+          </>
+        )}
 
-                  {isExpanded && (
-                    <View style={styles.expandedBody}>
-                      <Text style={[styles.description, isTamil ? TamilType.body : EnType.body]}>
-                        {isTamil ? f.descriptionTa : f.descriptionEn}
-                      </Text>
-                      {what ? (
-                        <Text style={[styles.description, isTamil ? TamilType.body : EnType.body]}>
-                          {what}
-                        </Text>
-                      ) : null}
-                      <View style={styles.pariharamBox}>
-                        <Text style={[styles.pariharamLabel, isTamil ? TamilType.caption : EnType.caption]}>
-                          {isTamil ? "பரிகாரம்" : "Remedy overview"}
-                        </Text>
-                        <Text style={[styles.pariharamText, isTamil ? TamilType.body : EnType.body]}>
-                          {isTamil
-                            ? "இந்த ஜாதகத்திற்கான பரிகாரங்கள் தனி பக்கத்தில் முன்னுரிமை வரிசையில் தரப்படுகின்றன."
-                            : "Remedies for this chart are listed in priority order on the Pariharam page."}
-                        </Text>
-                        <TouchableOpacity
-                          style={styles.pariharamCta}
-                          onPress={() => router.push('/(tabs)/tools/pariharam' as any)}
-                        >
-                          <Text style={styles.pariharamCtaText}>
-                            {isTamil ? "முழு பரிகாரம் காண →" : "See full remedies →"}
-                          </Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  )}
-                </TouchableOpacity>
-              );
-            })}
+        {mitigated.length > 0 && (
+          <>
+            <Text style={[styles.sectionLabel, isTamil ? TamilType.subheading : EnType.subheading]}>
+              {isTamil ? "நிவர்த்தியுடன் உள்ள தோஷங்கள் — மீதத் தாக்கம் உண்டு" : "Mitigated — a residual remains"}
+            </Text>
+            {mitigated.map((f) => renderCard(f))}
           </>
         )}
 
@@ -196,8 +168,7 @@ export default function DoshamScreen() {
                 <View key={f.name} style={styles.absentChip}>
                   <View style={[styles.absentDot, { backgroundColor: C.green }]} />
                   <Text style={[styles.absentName, { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
-                    {displayName(f.name, isTamil ? "ta" : "en")}
-                    {f.isCancelled ? (isTamil ? " — நிவர்த்தி" : " — cancelled") : ""}
+                    {displayName(f.name, docLang)}
                   </Text>
                 </View>
               ))}
@@ -209,6 +180,112 @@ export default function DoshamScreen() {
       <WhyThisResultSheet ref={whyRef} items={HOW_CHECKED_ITEMS} />
     </SafeAreaView>
   );
+
+  function renderCard(f: ChartDoshamInsight) {
+    const isExpanded = expanded === f.name;
+    const color = doshamColor(f, C);
+    const what = isTamil ? f.explanationWhatTa : f.explanationWhatEn;
+    const rows = doshamReferenceRows(f, docLang);
+    const beforeAfter = doshamBeforeAfterLine(f, docLang);
+    const context = doshamContextLines(f, docLang);
+    const meaning = doshamMeaning(f, docLang);
+    const bodyType = isTamil ? TamilType.body : EnType.body;
+    const captionType = isTamil ? TamilType.caption : EnType.caption;
+    return (
+      <TouchableOpacity
+        key={f.name}
+        // A full hairline border in the dosham's tone, not an accent
+        // left border (owner ruling: no accent left-border on cards).
+        style={[styles.card, { borderWidth: 1, borderColor: color + "55" }]}
+        onPress={() => setExpanded(isExpanded ? null : f.name)}
+        activeOpacity={0.85}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: isExpanded }}
+      >
+        <View style={styles.cardRow}>
+          <View style={[styles.statusDot, { backgroundColor: color }]} />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.doshaName, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
+              {displayName(f.name, docLang)}
+            </Text>
+            <View style={[styles.severityBadge, { backgroundColor: color + "22" }]}>
+              <Text style={[styles.severityText, { color }]}>
+                {doshamChip(f, docLang)}
+              </Text>
+            </View>
+          </View>
+          <Text style={styles.chevron}>{isExpanded ? "▲" : "▼"}</Text>
+        </View>
+
+        {isExpanded && (
+          <View style={styles.expandedBody}>
+            {showDescription(f, what, meaning) ? (
+              <Text style={[styles.description, bodyType]}>
+                {isTamil ? f.descriptionTa : f.descriptionEn}
+              </Text>
+            ) : null}
+            {what ? (
+              <Text style={[styles.description, bodyType]}>
+                {what}
+              </Text>
+            ) : null}
+            {rows.length > 0 && (
+              <View style={styles.reckonBlock}>
+                <Text style={[styles.reckonLabel, captionType]}>
+                  {isTamil ? "எங்கிருந்து கணக்கிடப்பட்டது" : "Counted from"}
+                </Text>
+                {rows.map((row) => (
+                  <Text key={row.reference} style={[styles.description, captionType]}>
+                    {row.counts ? "● " : "○ "}
+                    <Text style={{ fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_600SemiBold" }}>{row.reference}</Text>
+                    {`  ${row.detail}`}
+                  </Text>
+                ))}
+              </View>
+            )}
+            {beforeAfter ? (
+              <View style={styles.reckonBlock}>
+                <Text style={[styles.reckonLabel, captionType]}>{isTamil ? "மீதமுள்ளது" : "What remains"}</Text>
+                <Text style={[styles.description, bodyType]}>{beforeAfter}</Text>
+              </View>
+            ) : null}
+            {context.length > 0 && (
+              <View style={styles.reckonBlock}>
+                <Text style={[styles.reckonLabel, captionType]}>{isTamil ? "சூழல்" : "Context"}</Text>
+                {context.map((line) => (
+                  <Text key={line} style={[styles.description, captionType]}>{`• ${line}`}</Text>
+                ))}
+              </View>
+            )}
+            {meaning ? (
+              <View style={styles.reckonBlock}>
+                <Text style={[styles.reckonLabel, captionType]}>{isTamil ? "உங்கள் ஜாதகத்தில்" : "In your chart"}</Text>
+                <Text style={[styles.description, bodyType]}>{meaning}</Text>
+              </View>
+            ) : null}
+            <View style={styles.pariharamBox}>
+              <Text style={[styles.pariharamLabel, isTamil ? TamilType.caption : EnType.caption]}>
+                {isTamil ? "பரிகாரம்" : "Remedy overview"}
+              </Text>
+              <Text style={[styles.pariharamText, isTamil ? TamilType.body : EnType.body]}>
+                {isTamil
+                  ? "இந்த ஜாதகத்திற்கான பரிகாரங்கள் தனி பக்கத்தில் முன்னுரிமை வரிசையில் தரப்படுகின்றன."
+                  : "Remedies for this chart are listed in priority order on the Pariharam page."}
+              </Text>
+              <TouchableOpacity
+                style={styles.pariharamCta}
+                onPress={() => router.push('/(tabs)/tools/pariharam' as any)}
+              >
+                <Text style={styles.pariharamCtaText}>
+                  {isTamil ? "முழு பரிகாரம் காண →" : "See full remedies →"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+      </TouchableOpacity>
+    );
+  }
 }
 
 function Header({ isTamil, onWhyPress }: { isTamil: boolean; onWhyPress: (() => void) | null }) {
@@ -278,7 +355,6 @@ function makeStyles(C: ColorTokens) {
     backgroundColor: C.surface, borderRadius: RADIUS.card, padding: S.base, gap: S.sm,
     shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3, elevation: 1,
   },
-  cardDetected: { borderLeftWidth: 3 },
   cardRow: { flexDirection: "row", alignItems: "center", gap: S.sm },
   statusDot: { width: 10, height: 10, borderRadius: 5 },
   doshaName: { fontSize: 16, lineHeight: 22, color: C.textPrimary, marginBottom: 4 },
@@ -287,9 +363,11 @@ function makeStyles(C: ColorTokens) {
   chevron: { fontFamily: "Inter_400Regular", fontSize: 12, color: C.textTertiary },
   expandedBody: { gap: S.sm, paddingLeft: S.md + S.xs },
   description: { color: C.textPrimary, lineHeight: 22 },
+  reckonBlock: { gap: S.xs },
+  reckonLabel: { color: C.textSecond, textTransform: "uppercase", letterSpacing: 0.6 },
   pariharamBox: {
     backgroundColor: C.goldMethodLight, borderRadius: RADIUS.card, padding: S.md, gap: S.sm,
-    borderLeftWidth: 2, borderLeftColor: C.amber,
+    borderWidth: 1, borderColor: C.amber + "55",
   },
   pariharamLabel: { color: C.caution },
   pariharamText: { color: C.textPrimary, lineHeight: 22 },

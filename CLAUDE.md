@@ -53,8 +53,12 @@ Get-ChildItem -Recurse -Filter "*.py" -ErrorAction SilentlyContinue |
 ## Database safety — never lose dev data
 
 ### DB topology
-- **Dev DB:** Docker container `slw-postgres`, port **5432**, db `vinaadi_dev` — THIS IS THE REAL DATA DB
+- **Dev DB:** Docker container `vinaadi-postgres`, port **5434** (loopback only), db `vinaadi_dev` — THIS IS THE REAL DATA DB.
+  Its volume `vinaadi_dev_pgdata` is `external`, so no `docker compose down -v` can delete it.
 - **Test DB:** Docker container `slw-postgres-test` (separate container), port **5433**, db `vinaadi_test` — wipe freely
+- **Not ours:** `slw-postgres` (:5432) and `slw-adminer` (:8081) belong to the SLW project
+  (`C:\Users\senth\Downloads\SLW`). Vinaadi's dev DB lived there until 2026-10-13; never
+  point Vinaadi at :5432 again. See `docs/ENVIRONMENT_AND_DUPLICATE_AUDIT_2026-10-13.md`.
 - **SQLite: not an option for the suite.** `tests/conftest.py` refuses any database
   not named exactly `vinaadi_test` on `localhost:5433`, and `app/db/session.py`
   passes `max_overflow`, which SQLite's dialect rejects at import time
@@ -75,7 +79,7 @@ Get-ChildItem -Recurse -Filter "*.py" -ErrorAction SilentlyContinue |
    container is not running, start it; do not reach for a different URL.
 5. **To back up dev data before risky work:**
    ```powershell
-   docker exec slw-postgres pg_dump -U slw_admin vinaadi_dev > backup_$(Get-Date -Format 'yyyyMMdd_HHmm').sql
+   docker exec vinaadi-postgres pg_dump -U slw_admin vinaadi_dev > backup_$(Get-Date -Format 'yyyyMMdd_HHmm').sql
    ```
 6. **To restore from backup** (use `restore-dev-db.ps1`):
    ```powershell
@@ -108,6 +112,63 @@ A change made only in the backend (e.g. renaming a param, moving a path segment 
 - When a shared wrapper already exists and is correct for what you're building, use it — don't add a second, parallel direct-fetch path to the same endpoint.
 - A wrapper's URL/method/params are unverified by the type system (they're a hand-typed string + `ApiClient.get/post/patch/put/delete` call, not generated from the FastAPI route) — when adding or touching one, actually re-read the backend route decorator and confirm the path shape (path param vs. query param) and HTTP verb before wiring it up. Two of these silently drifted wrong in the past (`getDailyGuidance` used a query param where the backend expected a path param; `registerFcmToken` sent `PATCH` where the backend only accepts `PUT`) and would have failed on first real use.
 - If a change adds a route (or ports one) that only mobile currently reaches through the shared client, that's fine — don't delete a wrapper just because `web/` doesn't call it yet; check `mobile/` for callers before deleting anything from `packages/shared/src/api/`.
+
+## Display boundary — never render a name the server chose
+
+The backend sends most astrology terms **twice**: a language-free key and a
+pre-rendered English name. For one rasi it sends three — `rasi` (number),
+`rasiName` (`"Mithunam"`) and `rasiCode` (`"MITHUNAM"`). The same doubling
+exists for `lord`/`graha`, nakshatra, tithi, yoga, karana and the Saturn-cycle
+`type`.
+
+**Render the key through the localiser. Never render the name field.**
+
+| Read this | Not this | Through |
+|---|---|---|
+| `rasi` (number) | `rasiName`, `rasiCode`, `lagnaRasiName`, `munthaRasiName` | `rasiDisplayName(rasi, lang)` — `lib/chart-utils` |
+| `graha`, `lord` | the bare string | `tPlanetLord(key, lang)` — `lib/i18n` |
+| `nakshatraName`, tithi, yoga, karana | the bare string | `tNakshatra` / `tTithi` / `tYoga` / `tKarana` |
+| Saturn-cycle `type` | the bare tag | `saniCycleName(tag, lang)` — `lib/family-flags` |
+
+**Why:** a name field is English-only, so rendering it prints `Mithunam` at a
+Tamil reader; a code field prints `MITHUNAM` at everybody. DXA-08 fixed the
+code half, was gated PASS, and left **nine** surfaces rendering the name half —
+the gate greps for `UPPER_CASE` and a correctly-cased English word trips no
+regex. `web/lib/rasi-display-boundary.test.ts` now ratchets the rasi case in CI.
+Nothing ratchets the others: a raw `period.lord` was still sitting in a dasha
+tooltip months later, two files from a twin that localised it correctly.
+
+**How to apply:**
+- Writing a component: if a field name ends in `Name` or `Code`, it is the wrong
+  field. Look for its key twin in `packages/shared/src/types/index.ts` — it is
+  almost always right beside it.
+- Reviewing: grep the diff for `.rasiName`, `.rasiCode`, `.lord`, `.graha`.
+- `title=` and `aria-label=` count as rendering. They carry the same leak and
+  **no** browser text probe can see them — `innerText` does not include
+  attributes.
+- Tamil-mode checks are not optional for this class: every harness phase except
+  `ta` runs the audit account in English, so an English-only pass proves nothing
+  about it. The `ta` phase reads visible text only — it cannot see `title=` or
+  `aria-label=` either.
+
+## A gate proves its own check, not the item
+
+A `Gate:` line in an audit is a *measurement*, not the item's definition of done.
+Before recording a PASS, state what the check cannot see, and look there by hand.
+
+**Why:** three separate items here have now been recorded green by a gate that
+could not fail — DXA-05's pending hero stands at the loaded height, so DXA-07's
+"hero ≥ 90%" passed with and without the fix; DXA-08's regex could not see the
+casing that was actually wrong; and `web/scripts/ux-audit-core.mjs` once walked
+only top-level tab panes in English. It has since gained an `overlays` phase
+(five named overlays) and a `ta` phase (top-level tabs in Tamil, desktop and
+phone), but sub-tools, reports, overlays in Tamil and every attribute are still
+outside it by construction.
+
+**How to apply:** run each new gate once with the fix **removed** and confirm it
+fails (see [Suspect your own inputs](#debugging-discipline--suspect-your-own-inputs-before-the-environment)).
+Then write the blind spot down beside the PASS. A tick whose scope is not
+recorded is inherited as "this item is clean" by the next reader.
 
 ## Test & fixture data
 

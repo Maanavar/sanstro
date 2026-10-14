@@ -1,3 +1,5 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
+import { JsonLd } from "@/lib/json-ld";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { GuideDetailPage } from "@/components/guide-detail-page";
@@ -16,17 +18,17 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const content = getGuideDetail("pariharam", slug);
   if (!content) return {};
 
-  return {
-    title: `${content.title.en} - Reason, Chart Connection & Remedies | Vinaadi`,
+  return withTamilTwin({
+    title: `${content.title.en} - Reason, Chart Connection & Remedies`,
     description: content.lead.en,
     alternates: { canonical: `https://vinaadi.com/pariharam/${slug}` },
     openGraph: {
-      title: `${content.title.en} | Vinaadi`,
+      title: `${content.title.en}`,
       description: content.lead.en,
       url: `https://vinaadi.com/pariharam/${slug}`,
       type: "article",
     },
-  };
+  }, `/pariharam/${slug}`);
 }
 
 export default async function PariharamDetailPage({ params }: PageProps) {
@@ -34,11 +36,11 @@ export default async function PariharamDetailPage({ params }: PageProps) {
   const content = getGuideDetail("pariharam", slug);
   if (!content) notFound();
 
-  const jsonLd = guideJsonLd(content, `https://vinaadi.com/pariharam/${slug}`);
+  const url = `https://vinaadi.com/pariharam/${slug}`;
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <JsonLd en={guideJsonLd(content, url, "en")} ta={guideJsonLd(content, url, "ta")} />
       <GuideDetailPage content={content} />
     </>
   );

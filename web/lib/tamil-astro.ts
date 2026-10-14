@@ -96,7 +96,10 @@ const TAMIL_ASTRO_REPLACEMENTS: Array<[string, string]> = [
   ["ஜன்ம விவரங்கள்", "பிறப்பு விவரங்கள்"],
   ["ஜன்ம விவரம்", "பிறப்பு விவரம்"],
   ["ஜன்ம", "பிறப்பு"],
-  ["கோசாரம்", "கிரகநகர்வு"],
+  // The transit term is கோச்சாரம் (reviewer ruling 2026-10-01, reversing the
+  // earlier கோசாரம் → கிரகநகர்வு rewrite). The prefix form keeps every
+  // inflection intact: கோசார ஆதரவு → கோச்சார ஆதரவு, கோசாரத்தில் → கோச்சாரத்தில்.
+  ["கோசார", "கோச்சார"],
 ];
 
 const ENGLISH_NAME_KEYS = Object.keys(ROMAN_NAKSHATHIRAM_MAP)

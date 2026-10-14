@@ -11,6 +11,7 @@ import { NavamsaChart, RasiChart } from "./dashboard-charts";
 import { CompatibilityIntelligencePanel } from "./compatibility-intelligence-panel";
 import { Card } from "./ui/card";
 import { Kicker } from "./ui/kicker";
+import { ShashtashtakaNoteCard } from "./shashtashtaka-note";
 import { compareSynastry, compareCharts } from "@vinaadi/shared/api/relationships";
 import type { Lang } from "@/lib/i18n";
 import type { DirectSynastryData } from "@vinaadi/shared/api/relationships";
@@ -86,7 +87,7 @@ const PORUTHAM_META: Record<string, PoruthamMeta> = {
   "Yoni":         { labelEn: "Yoni",                        labelTa: "யோனி",                       checksEn: "Physical and emotional intimacy compatibility",      checksTa: "உடல்/உணர்வு நெருக்கம் பொருத்தம்",                        weight: "Medium" },
   "Rasi":         { labelEn: "Rasi",                        labelTa: "ராசி",                       checksEn: "General sign-level compatibility",                   checksTa: "பொதுவான ராசி அடிப்படையிலான பொருத்தம்",                   weight: "High" },
   "Graha Maitri": { labelEn: "Rasiyathipam (Graha Maitri)", labelTa: "ராசியதிபதி (கிரக மைத்திரி)", checksEn: "Rasi-lord friendship and mutual support",           checksTa: "ராசி அதிபதிகளின் நட்பு மற்றும் ஒத்துழைப்பு",              weight: "Medium" },
-  "Vedha":        { labelEn: "Vedha",                       labelTa: "வேதம்",                      checksEn: "Traditional obstruction pair check",                 checksTa: "பாரம்பரிய தடுப்பு ஜோடி சோதனை",                           weight: "Critical" },
+  "Vedha":        { labelEn: "Vedha",                       labelTa: "வேதை",               checksEn: "Traditional obstruction pair check",                 checksTa: "பாரம்பரிய தடுப்பு ஜோடி சோதனை",                           weight: "Critical" },
   "Vasya":        { labelEn: "Vasya",                       labelTa: "வாஸ்யம்",                    checksEn: "Mutual attraction/influence dynamics",               checksTa: "பரஸ்பர ஈர்ப்பு/செல்வாக்கு இயக்கம்",                     weight: "Low" },
   "Rajju":        { labelEn: "Rajju",                       labelTa: "ரஜ்ஜு",                      checksEn: "Traditional marital longevity risk marker",          checksTa: "பாரம்பரிய திருமண நீட்சி ஆபத்து குறியீடு",                weight: "Critical" },
 };
@@ -179,7 +180,7 @@ function Pill({ active, onClick, children }: { active: boolean; onClick: () => v
         background: active ? "var(--color-text-strong)" : "transparent",
         color: active ? "var(--color-on-accent)" : "var(--color-faint)",
         fontSize: "var(--text-base)", fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
-        transition: "all 150ms ease",
+        transition: "all 150ms var(--ease-nova)",
       }}
     >
       {children}
@@ -626,6 +627,9 @@ export function SynastryPanel({
                     </div>
                   )}
 
+                  {/* F-POR-02: a disclosure beside the verdict, never part of it. */}
+                  <ShashtashtakaNoteCard note={porutham.shashtashtaka} lang={lang} />
+
                   <div style={{ display: "flex", justifyContent: "flex-start" }}>
                     <button
                       type="button"
@@ -664,7 +668,7 @@ export function SynastryPanel({
                           {porutham.rajjuDosha && (
                             <span style={{ fontSize: "var(--text-2xs)", fontWeight: 700, padding: "var(--space-0_5) var(--space-2)", borderRadius: "var(--radius-pill)", background: "var(--color-low-bg)", color: "var(--planet-saturn)", border: "1px solid var(--color-low-border)" }}>
                               <svg viewBox="0 0 24 24" fill="none" width="10" height="10" aria-hidden="true" style={{ flexShrink: 0 }}><path d="M12 3L21 20H3L12 3Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/><path d="M12 9V13.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg>
-                              {lang === "ta" ? "ராஜ்ஜு தோஷம்" : "Rajju Dosha"}
+                              {lang === "ta" ? "ரஜ்ஜு தோஷம்" : "Rajju Dosha"}
                             </span>
                           )}
                           {porutham.vedhaDosha && (
@@ -738,14 +742,14 @@ export function SynastryPanel({
 
                           {/* Progress bar */}
                           <div style={{ width: "100%", height: "5px", borderRadius: "var(--radius-sm)", background: "var(--color-border)", overflow: "hidden" }}>
-                            <div style={{ height: "100%", borderRadius: "var(--radius-sm)", width: `${barPct}%`, background: stTone.color, transition: "width 400ms ease" }} />
+                            <div style={{ height: "100%", borderRadius: "var(--radius-sm)", width: `${barPct}%`, background: stTone.color, transition: "width 400ms var(--ease-nova)" }} />
                           </div>
 
                           {isCriticalFail && (
                             <p style={{ margin: "var(--space-2) 0 0", fontSize: "var(--text-sm)", color: "var(--planet-saturn)", lineHeight: 1.4 }}>
                               {k.name === "Rajju"
                                 ? (lang === "ta" ? "ரஜ்ஜு தோஷம் கண்டறியப்பட்டுள்ளது. பாரம்பரியமாக இது முக்கிய கவனிக்க வேண்டிய குறியீடு." : "Rajju dosha is active. Traditionally this is treated as a critical caution signal.")
-                                : (lang === "ta" ? "வேத தோஷம் கண்டறியப்பட்டுள்ளது. பாரம்பரியமாக இது தடுப்பு ஜோடி குறியீடாக கருதப்படுகிறது." : "Vedha dosha is active. Traditionally this indicates an obstruction-pair caution.")}
+                                : (lang === "ta" ? "வேதை தோஷம் கண்டறியப்பட்டுள்ளது. பாரம்பரியமாக இது தடுப்பு ஜோடி குறியீடாக கருதப்படுகிறது." : "Vedha dosha is active. Traditionally this indicates an obstruction-pair caution.")}
                             </p>
                           )}
                         </div>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { apiFetchJson } from "@/lib/api";
+import { rasiDisplayName } from "@/lib/chart-utils";
 import type { Lang } from "@/lib/i18n";
 
 interface RectificationEvent {
@@ -204,7 +205,7 @@ export function RectificationWizard({ lang, birthProfileId, onApply, onClose }: 
                 >
                   <span className="rectification-candidate-time">{c.timeLocal}</span>
                   <span className="rectification-candidate-lagna">
-                    {lang === "ta" ? `லக்னம்: ${c.lagnaRasiName}` : `Lagna: ${c.lagnaRasiName}`}
+                    {lang === "ta" ? `லக்னம்: ${rasiDisplayName(c.lagnaRasi, lang)}` : `Lagna: ${rasiDisplayName(c.lagnaRasi, lang)}`}
                   </span>
                   <span className="rectification-candidate-score">
                     {c.matchingEvents} {lang === "ta" ? "நிகழ்வு பொருத்தம்" : "event match(es)"}

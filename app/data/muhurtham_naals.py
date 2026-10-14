@@ -219,3 +219,30 @@ def available_years() -> list[int]:
 def get_muhurtham_naals(year: int) -> tuple[MuhurthamNaal, ...]:
     """Curated muhurtham naals for a year, or empty tuple if no sheet sourced."""
     return MUHURTHAM_NAALS_BY_YEAR.get(year, ())
+
+
+_BY_DATE: dict[date, MuhurthamNaal] = {
+    naal.date: naal
+    for naals in MUHURTHAM_NAALS_BY_YEAR.values()
+    for naal in naals
+}
+
+
+def has_sourced_sheet(year: int) -> bool:
+    """Whether an almanac sheet has been sourced for this year at all.
+
+    The distinction matters to any caller that reports almanac membership: a day
+    in 2028 is not "absent from the wedding list", it is a day we have published
+    no list for. Reporting the two as one answer would tell a family a perfectly
+    good date was rejected by an almanac that was never consulted.
+    """
+    return year in MUHURTHAM_NAALS_BY_YEAR
+
+
+def muhurtham_naal_on(day: date) -> MuhurthamNaal | None:
+    """The curated entry for this exact day, or None.
+
+    None is ambiguous on its own — pair it with `has_sourced_sheet(day.year)` to
+    tell "not on the list" from "no list published".
+    """
+    return _BY_DATE.get(day)

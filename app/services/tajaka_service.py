@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.calculations.astro import house_from_reference, julian_day_to_utc_datetime, resolve_rasi
 from app.calculations.display_names import planet_en, planet_ta
 from app.calculations.tajaka import calculate_tajaka_chart
+from app.constants.versions import API_RESPONSE_VERSION
 from app.models import BirthProfile, Chart
 from app.models.chart_planet import ChartPlanet
 from app.schemas.varshaphala import (
@@ -175,7 +176,7 @@ def get_varshaphala(
         success=True,
         data=data,
         meta={
-            "calculationVersion": "thirukanitham-2026-v1",
+            "calculationVersion": API_RESPONSE_VERSION,
             "generatedAt": datetime.now(tz=UTC),
         },
     )

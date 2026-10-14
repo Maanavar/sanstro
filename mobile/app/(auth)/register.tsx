@@ -55,7 +55,8 @@ export default function RegisterScreen() {
       await setTokens({ accessToken: loginRes.accessToken, refreshToken: loginRes.refreshToken });
       setSession(
         { userId: loginRes.user.userId, email: loginRes.user.email, displayName: loginRes.user.displayName },
-        "registered"
+        "registered",
+        loginRes.user.openBeta
       );
       router.replace("/(onboarding)/birth-details");
     } catch (err) {

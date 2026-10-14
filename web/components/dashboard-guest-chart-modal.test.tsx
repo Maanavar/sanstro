@@ -44,14 +44,18 @@ function sampleChart(birthTimeLocal: string | null): ChartCalculateResponseData 
     julianDay: 2447892.5,
     ayanamsa: { type: "LAHIRI", valueDegrees: 23.5 },
     lagna: {
-      rasi: 1, rasiName: "Mesham", absoluteLongitude: 10, degreeInRasi: 10,
+      // Server-sent, and it must match the longitude beside it: navamsa of
+      // 10° Mesham is Kadagam. The D9 grid reads this field, so leaving it
+      // out lights no lagna cell at all rather than failing.
+      rasi: 1, rasiName: "Mesham", absoluteLongitude: 10, degreeInRasi: 10, d9Rasi: 4,
       nakshatra: 1, nakshatraName: "Aswini", pada: 4,
     },
     planets: [
       {
         graha: "SUN", rasiName: "Mesham", absoluteLongitude: 20, rasi: 1, degreeInRasi: 20,
         nakshatra: 2, nakshatraName: "Bharani", pada: 2, houseFromLagna: 1, speedDegPerDay: 1,
-        isRetrograde: false, isCombust: false, d9Rasi: 2, isVargottama: false, showRetrogradeBadge: false,
+        // Rishabam is Venus's sign; Venus is the Sun's natural enemy.
+        isRetrograde: false, isCombust: false, d9Rasi: 2, d9Dignity: "ENEMY_SIGN", isVargottama: false, showRetrogradeBadge: false,
       },
     ],
     yogas: [],

@@ -43,8 +43,44 @@ describe("CollapsibleSection", () => {
     expect(trigger).toHaveAttribute("aria-expanded", "true");
 
     fireEvent.click(trigger);
-    expect(screen.queryByText("Toggle content")).not.toBeInTheDocument();
+    // DXA-15 keeps an already-open body mounted so its close animation can run.
+    expect(screen.getByText("Toggle content")).toBeInTheDocument();
     expect(trigger).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("takes focusable content out of the tab order while collapsed", () => {
+    render(
+      <CollapsibleSection title="Focusable content">
+        <a href="/example">Hidden link</a>
+      </CollapsibleSection>,
+    );
+    const trigger = screen.getByRole("button");
+    fireEvent.click(trigger);
+    fireEvent.click(trigger);
+
+    const body = screen.getByText("Hidden link").closest(".collapsible__body");
+    expect(body).toHaveAttribute("inert");
+    expect(body).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("restores focusable content after an open-close-open round trip", () => {
+    render(
+      <CollapsibleSection title="Round trip">
+        <a href="/example">Reachable link</a>
+      </CollapsibleSection>,
+    );
+    const trigger = screen.getByRole("button");
+
+    fireEvent.click(trigger);
+    let body = screen.getByRole("link", { name: "Reachable link" }).closest(".collapsible__body");
+    expect(body).not.toHaveAttribute("inert");
+    expect(body).toHaveAttribute("aria-hidden", "false");
+
+    fireEvent.click(trigger);
+    fireEvent.click(trigger);
+    body = screen.getByRole("link", { name: "Reachable link" }).closest(".collapsible__body");
+    expect(body).not.toHaveAttribute("inert");
+    expect(body).toHaveAttribute("aria-hidden", "false");
   });
 
   it("renders the title in the button", () => {

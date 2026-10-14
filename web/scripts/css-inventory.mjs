@@ -474,18 +474,59 @@ function sourceClassSets() {
   return sets;
 }
 
+/**
+ * Route-level stylesheets a marketing route loads beyond marketing.css, through
+ * a layout of its own inside app/(marketing)/. /notifications is the case: it
+ * renders the dashboard chrome, so its layout imports the three dashboard files.
+ * Such a route is a load context of its own. Checking it against marketing alone
+ * reports every dashboard class as a false gap; counting its CSS as "marketing"
+ * would hide a real gap on every other public route.
+ */
+const MARKETING_ROOT = join(WEB, "app", "(marketing)");
+function ownLayoutCss(entry) {
+  const out = new Set();
+  for (let d = dirname(entry); d.startsWith(MARKETING_ROOT + sep); d = dirname(d)) {
+    for (const ext of ["tsx", "ts", "jsx", "js"]) {
+      for (const css of CSS_IMPORTS.get(join(d, `layout.${ext}`)) ?? []) {
+        const r = rel(css);
+        if (r.startsWith("app/")) out.add(r);
+      }
+    }
+  }
+  return [...out].sort();
+}
+
 if (args.includes("--emit-boundary")) {
   // Per load-context: the classes that context's own module tree references, and
   // where every class is defined. The guard test joins the two.
-  const used = {};
-  for (const [name, files] of Object.entries(REACH_OWN)) {
+  const classesReachedBy = (files) => {
     const set = new Set();
     for (const c of ALL_CLASSES) for (const f of USED_BY.get(c)) if (files.has(f)) { set.add(c); break; }
-    used[name] = [...set].sort();
+    return [...set].sort();
+  };
+  const used = {};
+  for (const [name, files] of Object.entries(REACH_OWN)) used[name] = classesReachedBy(files);
+
+  // Marketing routes split by the extra stylesheets their own layouts load.
+  const groups = new Map();
+  for (const e of entries.marketing) {
+    const key = ownLayoutCss(e).join("|");
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(e);
   }
+  used.marketing = classesReachedBy(reachable(groups.get("") ?? []));
+  const nested = [...groups]
+    .filter(([key]) => key !== "")
+    .map(([key, es]) => ({
+      routes: es.map(rel).sort(),
+      loads: key.split("|"),
+      used: classesReachedBy(reachable(es)),
+    }));
+
   process.stdout.write(
     JSON.stringify({
       used,
+      nested,
       definedIn: Object.fromEntries([...DEFINED_IN].map(([c, s]) => [c, [...s]])),
     }),
   );

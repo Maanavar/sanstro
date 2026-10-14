@@ -35,7 +35,7 @@ export const TOOL_PORUTHAM = {
   rajju_h2:   s("Rajju and Nadi — the critical checks", "ரஜ்ஜு மற்றும் நாடி — முக்கியமான சரிபார்ப்புகள்"),
   rajju_body: s(
     "In Tamil tradition, Rajju, Vedha, Rasi, and Nadi cautions are not treated as small footnotes. This public page flags the caution; the signed-in report checks the full chart before giving a final recommendation.",
-    "தமிழ் பாரம்பரியத்தில் ரஜ்ஜு, வேதம், ராசி, நாடி கவனங்கள் சிறிய குறிப்புகளாகப் பார்க்கப்படுவதில்லை. இந்த public பக்கம் கவனத்தை மட்டும் காட்டும்; இறுதி பரிந்துரைக்கு முன் உள்நுழைந்த அறிக்கை முழு ஜாதகத்தைப் பார்க்கும்."
+    "தமிழ் பாரம்பரியத்தில் ரஜ்ஜு, வேதை, ராசி, நாடி கவனங்கள் சிறிய குறிப்புகளாகப் பார்க்கப்படுவதில்லை. இந்த public பக்கம் கவனத்தை மட்டும் காட்டும்; இறுதி பரிந்துரைக்கு முன் உள்நுழைந்த அறிக்கை முழு ஜாதகத்தைப் பார்க்கும்."
   ),
 
   related_h2: s("Related", "தொடர்புடையவை"),

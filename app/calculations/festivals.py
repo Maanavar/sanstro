@@ -87,7 +87,12 @@ _YEARLY_FESTIVALS: dict[int, list[FestivalEntry]] = {
         ("01-15", "Pongal", "tamilnadu_govt"),
         ("01-15", "Mattu Pongal", "hindu"),
         ("01-16", "Thiruvalluvar Day", "tamilnadu_govt"),
-        ("01-16", "Kaanum Pongal / Uzhavar Thirunal", "hindu"),
+        # 2026-09-15: was "Kaanum Pongal / Uzhavar Thirunal" — Uzhavar
+        # Thirunal already has its own row below on 01-17, so the combined
+        # name here just duplicated it under a different spelling on the
+        # wrong day. Plain "Kaanum Pongal" also matches the canonical name in
+        # app/data/calendar_categories_2026.py for the same date.
+        ("01-16", "Kaanum Pongal", "hindu"),
         ("01-17", "Uzhavar Thirunal", "tamilnadu_govt"),
         ("02-01", "Thai Poosam", "tamilnadu_govt"),
         ("04-14", "Tamil New Year (Puthandu) / Ambedkar Jayanti", "tamilnadu_govt"),
@@ -387,13 +392,29 @@ def _recurring_tithi_festivals(
     # Festivals anchored to the dominant Pournami (15) / Amavasai (30) day —
     # gated on special_tithi_day_number so they fire only on the civil day
     # where that tithi actually dominates, not on adjacent spillover days.
-    if special_tithi_day_number == 15:
-        if nk_upper == "CHITHIRAI":
-            results.append({"name": "Chitra Pournami", "category": "hindu"})
-        if tamil_month_index == _MONTH_MAASI and nk_upper == "MAGAM":
-            results.append({"name": "Maasi Magam", "category": "hindu"})
-        if tamil_month_index == _MONTH_PANGUNI and nk_upper == "UTHIRAM":
-            results.append({"name": "Panguni Uthiram", "category": "hindu"})
+    #
+    # F-FES-01 — these three were all AND-gated on "the star AND the full moon
+    # fall on the same civil day", which is the exact bug class L-14 fixed for
+    # Karthigai Deepam below: in a year where the two split across two days the
+    # festival silently disappeared. Each is now keyed on its own rule.
+    #
+    # **Chitra Pournami is the Chithirai-month Pournami, whatever the star.**
+    # It used to test `nk_upper == "CHITHIRAI"` — the Chitra *nakshatra* — and
+    # never checked the Tamil month at all, so it could fire on a Chitra-star
+    # full moon in any month and miss the Chithirai full moon it is named for.
+    if special_tithi_day_number == 15 and tamil_month_index == _MONTH_CHITHIRAI:
+        results.append({"name": "Chitra Pournami", "category": "hindu"})
+
+    # Maasi Magam and Panguni Uthiram are **star-anchored within their month**,
+    # like Karthigai Deepam: Magam in Maasi, Uthiram in Panguni. Both fall near
+    # the full moon, which is descriptive rather than a condition — so the
+    # Pournami requirement is dropped and the month + star rule stands alone.
+    # Same accepted edge case as Karthigai Deepam: where the star's span covers
+    # two consecutive sunrises, both days carry the label.
+    if tamil_month_index == _MONTH_MAASI and nk_upper == "MAGAM":
+        results.append({"name": "Maasi Magam", "category": "hindu"})
+    if tamil_month_index == _MONTH_PANGUNI and nk_upper == "UTHIRAM":
+        results.append({"name": "Panguni Uthiram", "category": "hindu"})
 
     # Karthigai Deepam — nakshatra-anchored (L-14): the classical rule is the
     # Krittika day of the Karthigai month, with full-moon proximity merely

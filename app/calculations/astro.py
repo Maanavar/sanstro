@@ -236,6 +236,45 @@ def utc_datetime_to_local_datetime(utc_datetime: datetime, timezone_name: str) -
     return utc_datetime.astimezone(resolve_timezone(timezone_name))
 
 
+def round_to_nearest_minute(moment: datetime) -> datetime:
+    """Round a clock instant half-up to the nearest minute.
+
+    The display policy for every panchangam clock value (WI-07 follow-up,
+    owner ruling 2026-09-29). Calculations keep exact instants; only the
+    presentation boundary rounds, because every derived window is a fraction
+    of the sunrise->sunset span and rounding the anchor first compounds into
+    the subdivisions.
+
+    Previously these were rendered with a bare ``strftime("%H:%M")``, which
+    TRUNCATES: a 06:09:58 sunrise printed as "06:09", up to 59 s early, and
+    always in the same direction.
+
+    Rounding is a pure function of the instant, so a boundary two windows
+    share (Rahu Kalam's end and the next kalam's start are the same instant)
+    still renders as one time on both sides.
+
+    **Midnight is clamped, not crossed.** 23:59:45 rounds to 23:59, not
+    "00:00" — these go out as clock-only strings beside a date, and a solar
+    day runs sunrise to sunrise, so a string that rolls past midnight reads
+    as ~24 h earlier to anyone without the ISO twin. Capping the error at
+    45 s in that one case beats naming the wrong day (the tithi-rollover trap
+    this repo already hit once).
+    """
+    rounded = (moment + timedelta(seconds=30)).replace(second=0, microsecond=0)
+    if rounded.date() != moment.date():
+        return moment.replace(hour=23, minute=59, second=0, microsecond=0)
+    return rounded
+
+
+def format_clock_hhmm(moment: datetime) -> str:
+    """Render a clock instant as "HH:MM" under the nearest-minute policy.
+
+    Use this instead of ``moment.strftime("%H:%M")`` for anything a reader
+    sees. See round_to_nearest_minute for why, and for the midnight clamp.
+    """
+    return round_to_nearest_minute(moment).strftime("%H:%M")
+
+
 def navamsa_rasi_from_degree(degree: float) -> int:
     normalized = normalize_longitude(degree)
     natal_rasi = rasi_from_degree(normalized)

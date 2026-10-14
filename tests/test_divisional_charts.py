@@ -151,10 +151,31 @@ def test_d60_odd_sign_wraps_forward():
     assert out["P"] == 7
 
 
-def test_d60_even_sign_counts_backward_from_own_rasi():
-    # 2.1° Taurus (even sign) => index 4 => Taurus - 4 signs = Capricorn (10)
-    out = compute_d60({"P": 32.1})
-    assert out["P"] == 10
+def test_d60_counts_forward_from_its_own_rasi_in_even_signs_too():
+    """F-VAR-01. This asserted the opposite until 2026-10-13: even signs
+    counted *backward*, so every even-sign D60 placement was wrong.
+
+    BPHS: degrees x 2, divided by 12, the remainder counted **forward from the
+    sign itself**, for every sign. The odd/even reversal in the text orders the
+    sixty shashtiamsa deity names (Ghora, Rakshasa, Deva...); it does not
+    reverse the sign mapping.
+
+    2.1 deg Taurus (even sign) => index 4 => Taurus + 4 signs = Virgo (6).
+    """
+    assert compute_d60({"P": 32.1})["P"] == 6
+
+
+def test_d60_matches_the_bphs_formula_across_the_zodiac():
+    """Checked against `(deg x 2) % 12` counted forward, independently of the
+    engine's amsa helper, at three probes inside every one of the 720
+    shashtiamsas — a direction error in one parity cannot hide."""
+    for rasi in range(1, 13):
+        for amsa_index in range(60):
+            degree_in_rasi = amsa_index * 0.5
+            for offset in (0.0, 0.25, 0.49):
+                longitude = 30 * (rasi - 1) + degree_in_rasi + offset
+                expected = ((rasi - 1 + int((degree_in_rasi + offset) * 2)) % 12) + 1
+                assert compute_d60({"P": longitude})["P"] == expected, (rasi, longitude)
 
 
 def test_d60_depends_on_natal_rasi_not_just_degree_in_sign():

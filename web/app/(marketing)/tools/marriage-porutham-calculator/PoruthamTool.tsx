@@ -1,8 +1,9 @@
 "use client";
 
-import Link from "next/link";
+import { LocalizedLink as Link } from "@/components/localized-link";
 import { useEffect, useState } from "react";
 import { useLang } from "@/components/lang-toggle";
+import { ShashtashtakaNoteCard } from "@/components/shashtashtaka-note";
 import { romanNakshathiramName } from "@/lib/tamil-astro";
 import { readErrorMessage } from "@/lib/api";
 import { verdictPhrase } from "@/lib/verdict-lexicon";
@@ -109,7 +110,10 @@ function splitToPada(split: "early" | "late" | null): number | undefined {
 // the backend's own EXCELLENT/GOOD/AVERAGE/CAUTION cutoffs in app/calculations/porutham.py) ==========
 
 function verdictLabel(apiLabel: string, criticalFail: boolean, ta: boolean): string {
-  if (criticalFail) return ta ? "தோஷம் — தவிர்க்கவும்" : "Dosham - Avoid";
+  // Native review 2026-10-12 (D-01, locked): a finding that asks for care, not
+  // the imperative "avoid" — the family decides after a full-chart reading.
+  // Same words as the dashboard badge (dashboard-tools-porutham-nova.tsx).
+  if (criticalFail) return ta ? "தோஷம்: கவனம் தேவை" : "Dosham: needs care";
   // Verdict words come from the shared verdict lexicon (C-5) so Porutham matches
   // Today / compatibility. Falls back to the caution phrase for unknown labels.
   const lang = ta ? "ta" : "en";
@@ -236,7 +240,6 @@ export function PoruthamTool() {
                     background: girlStar === i ? "var(--cl-accent-soft)" : "var(--cl-surface)",
                   }}>
                   <div style={{ fontWeight: 600, color: girlStar === i ? "var(--cl-accent)" : "var(--cl-ink)" }}>{ta ? n.ta : n.en}</div>
-                  {ta && <div style={{ fontSize: "10px", color: "var(--cl-muted)" }}>{starNameEn(i)}</div>}
                 </button>
               ))}
             </div>
@@ -335,7 +338,6 @@ export function PoruthamTool() {
                         <div style={{ fontWeight: 600, color: criticalFail ? "var(--cl-caution)" : "var(--cl-ink)" }}>
                           {ta ? NAKSHATRAS[id].ta : starNameEn(id)}
                         </div>
-                        {ta && <div style={{ fontSize: 10, color: "var(--cl-muted)" }}>{starNameEn(id)}</div>}
                         <div style={{ fontSize: 9, color: scoreColor(c.totalScore, criticalFail), fontWeight: 600, marginTop: 2 }}>
                           {c.totalScore}/10 · {verdictLabel(c.label, criticalFail, ta)}
                         </div>
@@ -427,6 +429,9 @@ export function PoruthamTool() {
                   }}>
                     {ta ? detailData.summary.ta : detailData.summary.en}
                   </div>
+
+                  {/* F-POR-02: a disclosure beside the verdict, never part of it. */}
+                  <ShashtashtakaNoteCard note={detailData.shashtashtaka} lang={ta ? "ta" : "en"} />
 
                   {detailData.nadiDosha.hasNadiDosha && (
                     <div style={{ background: "var(--cl-bg-2)", border: "1px solid var(--cl-border-2)", borderLeft: "4px solid var(--cl-accent)", borderRadius: "8px", padding: "10px 14px", marginBottom: "14px", fontSize: "12px", color: "var(--cl-ink-2)", lineHeight: 1.6 }}>
@@ -531,7 +536,6 @@ export function PoruthamTool() {
                 <button key={i} onClick={() => setGirlStar(i)}
                   style={{ ...BASE_STAR_BTN }}>
                   <div style={{ fontWeight: 600, color: "var(--cl-ink)" }}>{ta ? n.ta : starNameEn(i)}</div>
-                  {ta && <div style={{ fontSize: 10, color: "var(--cl-muted)" }}>{starNameEn(i)}</div>}
                 </button>
               ))}
             </div>
@@ -576,7 +580,7 @@ export function PoruthamTool() {
                 label: g.label,
                 items: gridData.filter(c => !(c.rajjuDosha || c.vedhaDosha) && c.label === g.key),
               })).concat([
-                { label: ta?"⚠ தோஷம் — தவிர்க்கவும்":"⚠ Dosham - Avoid",
+                { label: ta?"⚠ தோஷம்: கவனம் தேவை":"⚠ Dosham: needs care",
                   items: gridData.filter(c => c.rajjuDosha || c.vedhaDosha) },
               ]).map(group => {
                 if (group.items.length === 0) return null;
@@ -609,7 +613,6 @@ export function PoruthamTool() {
                               <div style={{ fontWeight: 600, color: criticalFail ? "var(--cl-caution)" : "var(--cl-ink)", fontSize: 12 }}>
                                 {(criticalFail || c.nadiCaution) && "⚠ "}♂ {ta ? NAKSHATRAS[id].ta : starNameEn(id)}
                               </div>
-                              {ta && <div style={{ fontSize: 10, color: "var(--cl-muted)" }}>{starNameEn(id)}</div>}
                               {criticalFail && (
                                 <div style={{ fontSize: 9, color: "var(--cl-caution)", marginTop: 2 }}>
                                   {[c.rajjuDosha && (ta ? "ரஜ்ஜு தோஷம்" : "Rajju Dosha"), c.vedhaDosha && (ta ? "வேதை தோஷம்" : "Vedha Dosha")].filter(Boolean).join(", ")}

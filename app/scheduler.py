@@ -16,6 +16,7 @@ from typing import Any
 from app.services.daily_push_cron import run_daily_push_cron
 from app.services.job_registry import register_job
 from app.services.journal_purge import run_journal_purge_cron
+from app.services.notification_dispatch_service import run_notification_outbox
 from app.services.panchangam_prewarm import run_panchangam_prewarm_cron
 from app.services.peyarchi_alert_service import daily_peyarchi_refresh
 from app.services.synastry_service import daily_relationship_alert_refresh
@@ -30,7 +31,7 @@ class ScheduledJob:
     description: str
     func: Callable[[], Any]
     # APScheduler cron trigger kwargs (e.g. hour=2, minute=0).
-    trigger: dict[str, int] = field(default_factory=dict)
+    trigger: dict[str, Any] = field(default_factory=dict)
     # Deletes data, or sends something outward. Admin `jobs/{id}/trigger`
     # requires a short-lived elevation for these; an idempotent recompute needs
     # only the admin session. See P1-4 step 2 in docs/AUDIT_TRIAGE_2026-08-31.md,
@@ -60,6 +61,15 @@ SCHEDULED_JOBS: tuple[ScheduledJob, ...] = (
         "Send morning guidance push (hourly, per-user timezone window)",
         run_daily_push_cron,
         {"minute": 0},  # every hour on the hour; per-user window checked inside
+        destructive=True,
+    ),
+    ScheduledJob(
+        "notification_outbox",
+        "Notification Delivery Outbox",
+        "Claim and deliver durable push/email intents (every minute)",
+        run_notification_outbox,
+        {"minute": "*"},
+        destructive=True,
     ),
     ScheduledJob(
         "panchangam_prewarm",

@@ -18,7 +18,7 @@ review pass — not a substitute for it.
 from __future__ import annotations
 
 from app.calculations.dasha import NAK_LORD
-from app.calculations.display_names import planet_en, planet_ta
+from app.calculations.display_names import nakshatra_en, nakshatra_ta, planet_en, planet_ta
 
 # What the star lord's own house placement contributes to the planet sitting in
 # its nakshatra. Keyed by the lord's house from Lagna.
@@ -50,15 +50,19 @@ def nakshatra_lord(nakshatra: int) -> str:
 def nakshatra_lord_note(
     graha: str,
     nakshatra: int,
-    nakshatra_name: str,
     lord_house_from_lagna: int | None,
 ) -> tuple[str, str]:
     """Bilingual one-liner on how the star lord colours this planet.
 
     ``lord_house_from_lagna`` may be None when the lord is not among the plotted
     bodies; the note then states the linkage without claiming a direction.
+
+    The star is named from its number in each language. This used to take the
+    chart's ``nakshatra_name`` — an UPPER_CASE code — and put it in both
+    sentences, so Tamil readers met "POOSAM" mid-sentence (FTR-01).
     """
     lord = NAK_LORD[nakshatra]
+    star_ta, star_en = nakshatra_ta(nakshatra), nakshatra_en(nakshatra)
     lord_ta, lord_en = planet_ta(lord), planet_en(lord)
     graha_ta, graha_en = planet_ta(graha), planet_en(graha)
 
@@ -66,17 +70,17 @@ def nakshatra_lord_note(
     # so plainly rather than producing a sentence that reads like a link.
     if lord == graha:
         return (
-            f"{graha_ta} தன் சொந்த நட்சத்திரமான {nakshatra_name}-ல் உள்ளது — "
+            f"{graha_ta} தன் சொந்த நட்சத்திரமான {star_ta}-ல் உள்ளது — "
             f"இதன் பலன் வேறு கிரகத்தால் திசைதிருப்பப்படாமல் நேரடியாக வெளிப்படும்.",
-            f"{graha_en} sits in {nakshatra_name}, its own nakshatra — its results come through "
+            f"{graha_en} sits in {star_en}, its own nakshatra — its results come through "
             f"directly rather than being coloured by another planet.",
         )
 
     if lord_house_from_lagna is None:
         return (
-            f"{graha_ta} {nakshatra_name} நட்சத்திரத்தில் உள்ளது; இதன் அதிபதி {lord_ta}. "
+            f"{graha_ta} {star_ta} நட்சத்திரத்தில் உள்ளது; இதன் அதிபதி {lord_ta}. "
             f"{lord_ta}-வின் நிலை இந்தக் கிரகத்தின் பலனைச் சாயமிடுகிறது.",
-            f"{graha_en} sits in {nakshatra_name}, a nakshatra ruled by {lord_en}. "
+            f"{graha_en} sits in {star_en}, a nakshatra ruled by {lord_en}. "
             f"{lord_en}'s own condition colours how {graha_en} delivers.",
         )
 
@@ -92,10 +96,10 @@ def nakshatra_lord_note(
         else ""
     )
     return (
-        f"{graha_ta} {nakshatra_name} நட்சத்திரத்தில் உள்ளது; இதன் அதிபதி {lord_ta}, "
+        f"{graha_ta} {star_ta} நட்சத்திரத்தில் உள்ளது; இதன் அதிபதி {lord_ta}, "
         f"{lord_house_from_lagna}ஆம் வீட்டில் அமர்ந்துள்ளார். அதனால் {graha_ta}-வின் பலன் "
         f"{colour_ta} வெளிப்படும்.{care_ta}",
-        f"{graha_en} sits in {nakshatra_name}, a nakshatra ruled by {lord_en} — and {lord_en} "
+        f"{graha_en} sits in {star_en}, a nakshatra ruled by {lord_en} — and {lord_en} "
         f"is placed in house {lord_house_from_lagna}. So {graha_en}'s results tend to arrive "
         f"{colour_en}.{care_en}",
     )

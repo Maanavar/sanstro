@@ -549,6 +549,8 @@ export const CONFIDENCE_LABEL: Record<MatchConfidence, BiText> = {
   tamil_only: { en: "Tamil spelling matches", ta: "தமிழ் எழுத்தில் பொருந்துகிறது" },
   latin_only: { en: "English spelling matches", ta: "ஆங்கில எழுத்தில் பொருந்துகிறது" },
   ambiguous: { en: "Close match", ta: "ஏறத்தாழப் பொருந்துகிறது" },
+  // A parent's own name whose opening letter is none of the 108 paadham letters.
+  no_match: { en: "Opening letter is not a paadham letter", ta: "தொடக்க எழுத்து பாத எழுத்துக்களில் இல்லை" },
 };
 
 /**
@@ -565,6 +567,7 @@ export const CONFIDENCE_CHIP: Record<MatchConfidence, BiText> = {
   tamil_only: { en: "Tamil spelling only", ta: "தமிழ் எழுத்தில் மட்டும்" },
   latin_only: { en: "English spelling only", ta: "ஆங்கில எழுத்தில் மட்டும்" },
   ambiguous: { en: "Approx. spelling", ta: "தோராயமான எழுத்து" },
+  no_match: { en: "No paadham letter", ta: "பாத எழுத்து இல்லை" },
 };
 
 export const CONFIDENCE_TONE: Record<MatchConfidence, "high" | "mid" | "neutral"> = {
@@ -572,6 +575,7 @@ export const CONFIDENCE_TONE: Record<MatchConfidence, "high" | "mid" | "neutral"
   tamil_only: "mid",
   latin_only: "mid",
   ambiguous: "neutral",
+  no_match: "neutral",
 };
 
 export const GENDER_LABEL: Record<BabyNameGender, BiText> = {

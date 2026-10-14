@@ -246,10 +246,25 @@ beginnings — ongoing work is unaffected), one action, and a Why trail. Pairs w
 - **T14.** Disambiguate the three false-familiarity terms in English mode on first
   use per screen: **Yoga** (reads as exercise), **House**, **Transit**. Glossary
   entries exist for two. (B-012/13/14)
-- **T15.** Calendar: finish A-033 (the remaining terms outside the day panel) and
+- **T15.** [x] Calendar: finish A-033 (the remaining terms outside the day panel) and
   add a plain-English day summary line ("A generally favourable day. Avoid
   10:30–12:00.") so the screen has value without the vocabulary. Then make
   interpretation first, facts progressive. (B-026)
+  *Closed 2026-09-15.* The summary line (`calendar-day-summary`) had shipped
+  as a verdict only — it never carried the clock window the item's own example
+  asks for. It now appends the day's Rahu Kalam ("Avoid Rahu Kalam, 1:42 pm–3:18 pm.");
+  Rahu Kalam alone because it is the strongest of the three avoid-kalas, and the
+  Avoid card directly below still lists all three. Test:
+  `dashboard-calendar-tab-nova.test.tsx` (T15 cases).
+  *Tamil native-reviewed 2026-09-17:* no em-dash, advisory voice
+  (`ராகு காலம் மதியம் 1:42 – மதியம் 3:18 நேரத்தில் புதிய செயல்களைத் தவிர்ப்பது நல்லது.`),
+  and times as almanac period-words (காலை 5–11:59 / மதியம் 12–15:59 /
+  மாலை 16–18:59 / இரவு 19+) via `formatClockLabel(value, "ta")` in
+  `packages/shared/src/utils/format.ts`. The panchangam planner's subha-day
+  sentence now uses the same catalog string. **Open:** the other ~100
+  `formatClockLabel` call sites still print "pm" in Tamil, and the backend's
+  Rahu Kalam lines (`notification_service.py:84`, `narrative_engine.py:1017-1033`)
+  still use the imperative தவிர்க்கவும்.
 - **T16.** Planet table: `col_house` "House (L)" → "House (from Lagna)"
   (`web/lib/i18n.ts:289`, A-020); tooltip the dignity chips
   Combust/Vargottama/Cazimi (A-021); give Pada a plain rendering, "quarter of the

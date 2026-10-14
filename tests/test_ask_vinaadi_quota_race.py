@@ -17,12 +17,12 @@ rowcount is the verdict, and refunds it if the answer never arrives.
 """
 from __future__ import annotations
 
-from datetime import date
 from uuid import uuid4
 
 import pytest
 from fastapi import HTTPException
 
+from app.core.clock import accounting_date
 from app.core.tier_limits import ask_vinaadi_limit_for_tier
 from app.db.session import SessionLocal
 from app.models.ask_vinaadi_usage import AskVinaadiUsage
@@ -55,14 +55,14 @@ def _set_count(uid, count: int) -> None:
         session.query(AskVinaadiUsage).filter(AskVinaadiUsage.user_id == uid).delete()
         session.add(
             AskVinaadiUsage(
-                id=uuid4(), user_id=uid, usage_date=date.today(), chip_count=count
+                id=uuid4(), user_id=uid, usage_date=accounting_date(), chip_count=count
             )
         )
 
 
 def _count(uid) -> int:
     with SessionLocal() as session:
-        usage = _get_usage(session, uid, date.today())
+        usage = _get_usage(session, uid, accounting_date())
         return usage.chip_count if usage else 0
 
 

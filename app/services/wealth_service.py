@@ -6,7 +6,7 @@ from datetime import date
 from app.calculations.ashtakavarga import compute_bhinnashtakavarga, get_av_bindu
 from app.calculations.astro import house_from_reference
 from app.calculations.dasha_activation import assess_dasha_activation
-from app.services.life_area_prediction_models import AstroFactor, BiText, LifeAreaPrediction, house_lord_for_lagna
+from app.calculations.life_area_prediction_models import AstroFactor, BiText, LifeAreaPrediction, house_lord_for_lagna
 
 
 @dataclass(frozen=True, slots=True)
@@ -182,9 +182,9 @@ def assess_wealth_prediction(payload: WealthAssessmentInput) -> LifeAreaPredicti
     if payload.transit_jupiter_rasi in {second_house_rasi, eleventh_house_rasi}:
         score += 8
         transit_support = "STRONG"
-        supports.append(BiText("குரு கோசாரம் வருமான வீடுகளை தொடுகிறது.", "Jupiter transit supports wealth houses."))
+        supports.append(BiText("குரு கோச்சாரம் வருமான வீடுகளை தொடுகிறது.", "Jupiter transit supports wealth houses."))
     else:
-        challenges.append(BiText("குரு கோசாரம் நேரடி ஆதரவு குறைவு.", "Direct Jupiter transit support is limited."))
+        challenges.append(BiText("குரு கோச்சாரம் நேரடி ஆதரவு குறைவு.", "Direct Jupiter transit support is limited."))
 
     av11 = _derived_11th_bindu(payload, eleventh_house_rasi)
     if av11 >= 4:

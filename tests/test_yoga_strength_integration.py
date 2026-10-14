@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import pytest
 
+from app.calculations.chart_strength import d9_dignity_label
 from app.calculations.yogas import detect_yogas_and_doshams
 from app.schemas.charts import PlanetPosition
 from app.services._chart_build import _build_yoga_dosham_insights
@@ -36,7 +37,11 @@ _PLANETS_RASI: dict[str, int] = {
     "MOON": _MOON_RASI,
     "MARS": 1,      # lagna lord in house 1
     "MERCURY": 6,
-    "JUPITER": 9,   # 9th lord in its own trikona house (house 9 from lagna)
+    # 9th lord exalted in Kadagam, the 4th — a kendra. DD-02 (v1.3) requires a
+    # kendra and dignity; it sat in its own Dhanusu (a trikona) until then.
+    # Lakshmi now depends on scores through the lagna lord's strength: Sevvai
+    # at 72 less 6 for Sani's company is 66, over the O-8 threshold of 60.
+    "JUPITER": 4,
     "VENUS": 7,
     "SATURN": 1,    # badhaka lord occupying house 1 -> badhaka active
     "RAHU": 3,
@@ -141,6 +146,7 @@ def _planet(graha: str, rasi: int, score: int) -> PlanetPosition:
         isRetrograde=False,
         isCombust=False,
         d9Rasi=rasi,
+        d9Dignity=d9_dignity_label(graha, rasi),
         isVargottama=False,
         showRetrogradeBadge=False,
         strengthScore=score,

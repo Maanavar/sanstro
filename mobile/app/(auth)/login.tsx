@@ -13,7 +13,7 @@ import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "@/hooks/useSession";
 import { login } from "@/api/auth";
 import { ApiError } from "@/api/client";
-import { setUser } from "@/lib/analytics";
+import { beginAuthenticatedSession } from "@/state/sessionTransition";
 
 export default function LoginScreen() {
   const { t, strings, lang } = useI18n();
@@ -36,11 +36,17 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       const res = await login(trimmedEmail, password);
+      // Before React session state, not after. This screen used to update
+      // `setSession` and the analytics identity and nothing else, so signing in
+      // as B inside a process that had held A left A's query cache in place for
+      // B to read (A02). The coordinator owns that transition — including the
+      // analytics identity, which is why `setUser` is no longer called here.
+      await beginAuthenticatedSession(res.user.userId);
       setSession(
         { userId: res.user.userId, email: res.user.email, displayName: res.user.displayName },
-        "registered"
+        res.user.tier ?? "registered",
+        res.user.openBeta
       );
-      setUser(res.user.userId);
       router.replace("/(tabs)/today");
     } catch (err) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);

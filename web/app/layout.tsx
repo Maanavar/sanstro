@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Fraunces, Inter, JetBrains_Mono, Noto_Sans_Tamil } from "next/font/google";
+import localFont from "next/font/local";
 import { headers } from "next/headers";
 import type { ReactNode } from "react";
 // F6 — what every visitor used to get here before a single pixel of content:
@@ -12,11 +12,30 @@ import type { ReactNode } from "react";
 import { DeferredChrome } from "@/components/deferred-chrome";
 import { LangProvider } from "@/components/lang-toggle";
 import { getServerLang } from "@/lib/server-lang";
+import { LANG_HEADER } from "@/lib/ta-routes";
+import { SITE_DESCRIPTION_TA } from "@/lib/site-description-ta";
+import { safeJsonLd } from "@/lib/json-ld";
+import { buildPrePaintThemeScript } from "@/lib/theme-policy";
 
 import "@vinaadi/design-tokens/dist/web/tokens.css";
 import "./globals.css";
 
 const BASE = "https://vinaadi.com";
+
+// Self-hosted faces. These were `next/font/google`, which fetches from Google
+// Fonts during `next build`; Google intermittently answered with a font URL that
+// had no file extension, next/font's loader crashed on it, and CI went red three
+// times in four days for no fault in the code. The files in ./fonts are what
+// Google served — same outlines, same variable `wght` axis, same OpenType
+// features — merged into one file per face; scripts/build-local-fonts.py makes
+// them and its --verify proves the match. Each file covers Google's `latin` +
+// `latin-ext` subsets (plus `tamil` for Noto Sans Tamil); latin-ext carries the
+// transliteration diacritics the UI renders (ā ū ḍ ṅ).
+//
+// Weights stay discrete, as Google declared them. A "400 700" range would draw
+// the dashboard's `font-weight: 650` at a true 650; discrete faces snap it to
+// 700, as it always rendered. Repeating one path costs nothing: it is emitted
+// and preloaded once.
 
 // The single Fraunces instance for the whole product. 700 is here because the
 // dashboard renders it (Nova declared its own 500/600/700 instance until this
@@ -24,34 +43,58 @@ const BASE = "https://vinaadi.com";
 // (`.cl-hero__h1 em`, `.cl-num-quote`, `/login`'s `.ca-left-headline em`). The
 // union is what each surface already used — no cut was added speculatively and
 // none was dropped, so this changes what is *declared*, not what is rendered.
-const fraunces = Fraunces({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  style: ["normal", "italic"],
+//
+// adjustFontFallback is off and "Fraunces Fallback" (globals.css) stands in:
+// next/font/local sizes the fallback from the file's default instance, which
+// for Fraunces is Black (900) and came out 126.7% against the 115.5% that
+// next/font/google used. That face carries next/font/google's exact values.
+const fraunces = localFont({
+  src: [
+    { path: "./fonts/fraunces-normal.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/fraunces-normal.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/fraunces-normal.woff2", weight: "600", style: "normal" },
+    { path: "./fonts/fraunces-normal.woff2", weight: "700", style: "normal" },
+    { path: "./fonts/fraunces-italic.woff2", weight: "400", style: "italic" },
+    { path: "./fonts/fraunces-italic.woff2", weight: "500", style: "italic" },
+    { path: "./fonts/fraunces-italic.woff2", weight: "600", style: "italic" },
+    { path: "./fonts/fraunces-italic.woff2", weight: "700", style: "italic" },
+  ],
   display: "swap",
+  adjustFontFallback: false,
+  fallback: ["Fraunces Fallback"],
   variable: "--font-display",
 });
 
-const inter = Inter({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+const inter = localFont({
+  src: [
+    { path: "./fonts/inter.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/inter.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/inter.woff2", weight: "600", style: "normal" },
+    { path: "./fonts/inter.woff2", weight: "700", style: "normal" },
+  ],
   display: "swap",
   variable: "--font-body",
 });
 
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500"],
+const jetbrainsMono = localFont({
+  src: [
+    { path: "./fonts/jetbrains-mono.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/jetbrains-mono.woff2", weight: "500", style: "normal" },
+  ],
   display: "swap",
   variable: "--font-mono",
 });
 
-const notoSansTamil = Noto_Sans_Tamil({
+const notoSansTamil = localFont({
   // SHD-04 — 700 is loaded so the UI's 700/800 Tamil headings/chips render a real
   // bold cut instead of the browser synthesising faux-bold on the script the
   // brand is named after.
-  subsets: ["tamil"],
-  weight: ["400", "500", "600", "700"],
+  src: [
+    { path: "./fonts/noto-sans-tamil.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/noto-sans-tamil.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/noto-sans-tamil.woff2", weight: "600", style: "normal" },
+    { path: "./fonts/noto-sans-tamil.woff2", weight: "700", style: "normal" },
+  ],
   display: "swap",
   variable: "--font-tamil",
 });
@@ -67,6 +110,10 @@ const ORG_JSONLD = {
   sameAs: [],
 };
 
+// No `potentialAction`: a SearchAction needs a URL template carrying the query
+// (`{search_term_string}`), and the site has no search page to point it at. The
+// one that was here targeted the porutham calculator with no placeholder, which
+// is invalid structured data (GRW-08).
 const WEBSITE_JSONLD = {
   "@context": "https://schema.org",
   "@type": "WebSite",
@@ -74,14 +121,6 @@ const WEBSITE_JSONLD = {
   url: BASE,
   description:
     "Tamil astrology assistant for daily guidance, timing, porutham, and family planning. Powered by Thirukanitham.",
-  potentialAction: {
-    "@type": "SearchAction",
-    target: {
-      "@type": "EntryPoint",
-      urlTemplate: `${BASE}/tools/marriage-porutham-calculator`,
-    },
-    "query-input": "required name=search_term_string",
-  },
 };
 
 export const metadata: Metadata = {
@@ -107,17 +146,21 @@ export const metadata: Metadata = {
   authors: [{ name: "Vinaadi" }],
   creator: "Vinaadi",
   publisher: "Vinaadi",
+  // No `url` here, and no `alternates` below: both are inherited by every page
+  // that does not set its own, and a site-wide value tells search engines and
+  // share previews that the page is the homepage. Ten public pages declared
+  // exactly that until 2026-09-26 (GRW-02). Each page sets its own through
+  // lib/page-metadata.ts; lib/seo-metadata.test.ts checks every one.
   openGraph: {
     type: "website",
     locale: "en_IN",
-    url: BASE,
     siteName: "Vinaadi",
     title: "Vinaadi - Tamil Astrology Assistant for Daily Guidance & Planning",
     description:
       "Precise Thirukanitham-based Tamil astrology for daily guidance, porutham matching, jadhagam generation, and family planning.",
     images: [
       {
-        url: "/brand/vinaadi-og-image.png",
+        url: "/brand/vinaadi-og-image.jpg",
         width: 1200,
         height: 630,
         alt: "Vinaadi - Tamil Astrology Assistant",
@@ -129,7 +172,7 @@ export const metadata: Metadata = {
     title: "Vinaadi - Tamil Astrology Assistant for Daily Guidance & Planning",
     description:
       "Thirukanitham-based Tamil astrology for daily guidance, porutham, jadhagam, and family planning.",
-    images: ["/brand/vinaadi-og-image.png"],
+    images: ["/brand/vinaadi-og-image.jpg"],
   },
   robots: {
     index: true,
@@ -142,18 +185,21 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
-  alternates: {
-    canonical: BASE,
-    languages: {
-      en: BASE,
-      ta: BASE,
-      "x-default": BASE,
-    },
-  },
+  // No site-wide hreflang: declaring `en` and `ta` at one address told crawlers
+  // the two were one page. Tamil now has its own URLs (`/ta/...`, GRW-06), and
+  // each page that has a twin declares the reciprocal pair itself through
+  // lib/localized-metadata.ts. Pages without a twin declare none.
   icons: {
     icon: [{ url: "/favicon.ico" }, { url: "/icon.png", type: "image/png" }],
     apple: [{ url: "/apple-icon.png", type: "image/png" }],
     shortcut: ["/favicon.ico"],
+  },
+  // Search Console / Bing ownership tokens, read from the server's runtime env
+  // so they can be set at deploy without a rebuild (GRW-01). A DNS TXT record
+  // verifies the whole domain too; either works. Absent env -> no tag.
+  verification: {
+    ...(process.env.GOOGLE_SITE_VERIFICATION ? { google: process.env.GOOGLE_SITE_VERIFICATION } : {}),
+    ...(process.env.BING_SITE_VERIFICATION ? { other: { "msvalidate.01": process.env.BING_SITE_VERIFICATION } } : {}),
   },
 };
 
@@ -173,12 +219,18 @@ export default async function RootLayout({
   // Reading headers() forces dynamic rendering, which costs nothing here: the
   // `getServerLang()` call above already awaits cookies(), so this layout — and
   // so every route beneath it — was dynamic before the CSP existed.
-  const nonce = (await headers()).get("x-nonce") ?? undefined;
+  const requestHeaders = await headers();
+  const nonce = requestHeaders.get("x-nonce") ?? undefined;
+  // The site-level Organization/WebSite blocks ride on every page. On a Tamil
+  // twin (the URL, not the cookie, asked for Tamil) their description is the
+  // Tamil home copy, so no English structured data sits on a Tamil page.
+  const tamilDescription = requestHeaders.get(LANG_HEADER) === "ta" ? SITE_DESCRIPTION_TA : undefined;
 
   return (
     <html
       lang={initialLang}
       data-ui="nova"
+      data-theme="light"
       suppressHydrationWarning
       className={`${fraunces.variable} ${inter.variable} ${jetbrainsMono.variable} ${notoSansTamil.variable}`}
     >
@@ -192,25 +244,25 @@ export default async function RootLayout({
         {/* Apply saved theme before first paint to prevent flash of wrong theme.
             data-ui="nova" is set statically on <html> above (Nova is the only
             dashboard look now — see docs/NOVA_ONLY_MIGRATION_PLAN.md Phase 3). */}
-        {/* UXD-03 — resolve the theme before first paint. Explicit light/dark win;
-            "system" (or unset) follows the OS via prefers-color-scheme. Kept in
-            sync with hooks/useTheme.ts. */}
+        {/* Resolve the theme before first paint. Explicit light/dark win;
+            "system" follows the OS, while unset/invalid/inaccessible storage
+            keeps the Light default declared on <html>. */}
         {/* The only executable inline script in the app, and therefore the only
             one needing the CSP nonce minted in middleware.ts. The ld+json blocks
             below carry it for consistency; browsers never execute a non-JS
             script type, so CSP does not gate them. */}
-        <script suppressHydrationWarning nonce={nonce} dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem("vinaadi-theme");var r=(t==="light"||t==="dark")?t:((window.matchMedia&&window.matchMedia("(prefers-color-scheme: light)").matches)?"light":"dark");document.documentElement.setAttribute("data-theme",r);}catch(e){}})();` }} />
+        <script suppressHydrationWarning nonce={nonce} dangerouslySetInnerHTML={{ __html: buildPrePaintThemeScript() }} />
         <script
           type="application/ld+json"
           suppressHydrationWarning
           nonce={nonce}
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(ORG_JSONLD) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd({ ...ORG_JSONLD, ...(tamilDescription ? { description: tamilDescription, inLanguage: "ta" } : {}) }) }}
         />
         <script
           type="application/ld+json"
           suppressHydrationWarning
           nonce={nonce}
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(WEBSITE_JSONLD) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd({ ...WEBSITE_JSONLD, ...(tamilDescription ? { description: tamilDescription, inLanguage: "ta" } : {}) }) }}
         />
       </head>
       <body>

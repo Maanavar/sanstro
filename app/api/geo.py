@@ -7,12 +7,12 @@ memory for 30 days — same place name always maps to the same coordinates.
 from __future__ import annotations
 
 import logging
-import time
-from threading import Lock
 
 import httpx
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
+
+from app.core.cache import InMemoryCache
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/geo", tags=["geo"])
@@ -20,10 +20,12 @@ router = APIRouter(prefix="/geo", tags=["geo"])
 _NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
 _NOMINATIM_HEADERS = {"User-Agent": "VinaadiAI/1.0 (mobile@vinaadi.app)"}
 _CACHE_TTL_SECONDS = 30 * 24 * 3600  # 30 days
+_CACHE_MAX_ENTRIES = 4096
 
-# Simple in-memory cache: query → (result_dict, expiry_epoch)
-_cache: dict[str, tuple[dict, float]] = {}
-_cache_lock = Lock()
+# Nominatim results are process-local because onboarding may run before a user
+# exists. Bound unique spellings/queries so the long TTL cannot retain an
+# unbounded amount of user-supplied input.
+_cache = InMemoryCache(max_entries=_CACHE_MAX_ENTRIES)
 
 # US state code → IANA timezone (covers all 50 states + DC).
 # Source: IANA tzdb / NIST — major TZ per state (border counties use primary TZ).
@@ -131,18 +133,12 @@ class GeocodeResponse(BaseModel):
 
 
 def _cache_get(key: str) -> dict | None:
-    with _cache_lock:
-        entry = _cache.get(key)
-        if entry and entry[1] > time.time():
-            return entry[0]
-        if entry:
-            del _cache[key]
-    return None
+    value = _cache.get(key)
+    return value if isinstance(value, dict) else None
 
 
 def _cache_set(key: str, value: dict) -> None:
-    with _cache_lock:
-        _cache[key] = (value, time.time() + _CACHE_TTL_SECONDS)
+    _cache.set(key, value, _CACHE_TTL_SECONDS)
 
 
 @router.post(

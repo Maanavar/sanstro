@@ -1,0 +1,5165 @@
+[
+ {
+  "step": "cold /dashboard",
+  "url": "/dashboard",
+  "history": "1/1",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "today"
+  ],
+  "activeTab": "personal",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "ask": {
+    "open": false
+   }
+  },
+  "effects": [
+   [
+    "api",
+    "GET",
+    "/api/v1/settings/ui",
+    null
+   ],
+   [
+    "journal.loadJournalSettings"
+   ],
+   [
+    "getLifeMode"
+   ],
+   [
+    "journal.loadJournalEntries",
+    "chart-owner"
+   ],
+   [
+    "journal.loadContextData",
+    "chart-owner"
+   ],
+   [
+    "personal.refreshPersonalBundle",
+    "bp-owner-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.refreshFamilyBundle",
+    "vault-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.loadRelationshipAlerts",
+    "vault-synthetic"
+   ],
+   [
+    "personal.setJadhagamReport",
+    null
+   ],
+   [
+    "personal.setLifeAreas",
+    null
+   ],
+   [
+    "family.loadVaults",
+    "user-synthetic"
+   ]
+  ]
+ },
+ {
+  "step": "cold /dashboard/today",
+  "url": "/dashboard",
+  "history": "1/1",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "today"
+  ],
+  "activeTab": "personal",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "ask": {
+    "open": false
+   }
+  },
+  "effects": [
+   [
+    "api",
+    "GET",
+    "/api/v1/settings/ui",
+    null
+   ],
+   [
+    "journal.loadJournalSettings"
+   ],
+   [
+    "getLifeMode"
+   ],
+   [
+    "journal.loadJournalEntries",
+    "chart-owner"
+   ],
+   [
+    "journal.loadContextData",
+    "chart-owner"
+   ],
+   [
+    "personal.refreshPersonalBundle",
+    "bp-owner-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.refreshFamilyBundle",
+    "vault-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.loadRelationshipAlerts",
+    "vault-synthetic"
+   ],
+   [
+    "personal.setJadhagamReport",
+    null
+   ],
+   [
+    "personal.setLifeAreas",
+    null
+   ],
+   [
+    "router.replace",
+    "/dashboard",
+    {
+     "scroll": false
+    }
+   ],
+   [
+    "family.loadVaults",
+    "user-synthetic"
+   ]
+  ]
+ },
+ {
+  "step": "cold /dashboard/calendar",
+  "url": "/dashboard/calendar",
+  "history": "1/1",
+  "shown": [
+   "ambient",
+   "ask",
+   "calendar",
+   "footerMorning",
+   "hero"
+  ],
+  "activeTab": "calendar",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "calendar": {
+    "focusView": null,
+    "chartId": "chart-owner",
+    "selectedMemberId": null
+   },
+   "ask": {
+    "open": false
+   }
+  },
+  "effects": [
+   [
+    "api",
+    "GET",
+    "/api/v1/settings/ui",
+    null
+   ],
+   [
+    "journal.loadJournalSettings"
+   ],
+   [
+    "getLifeMode"
+   ],
+   [
+    "journal.loadJournalEntries",
+    "chart-owner"
+   ],
+   [
+    "journal.loadContextData",
+    "chart-owner"
+   ],
+   [
+    "personal.refreshPersonalBundle",
+    "bp-owner-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.refreshFamilyBundle",
+    "vault-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.loadRelationshipAlerts",
+    "vault-synthetic"
+   ],
+   [
+    "personal.setJadhagamReport",
+    null
+   ],
+   [
+    "personal.setLifeAreas",
+    null
+   ],
+   [
+    "family.loadVaults",
+    "user-synthetic"
+   ]
+  ]
+ },
+ {
+  "step": "cold /dashboard/goals",
+  "url": "/dashboard/goals",
+  "history": "1/1",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "plan"
+  ],
+  "activeTab": "plan",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "ask": {
+    "open": false
+   }
+  },
+  "effects": [
+   [
+    "api",
+    "GET",
+    "/api/v1/settings/ui",
+    null
+   ],
+   [
+    "journal.loadJournalSettings"
+   ],
+   [
+    "getLifeMode"
+   ],
+   [
+    "journal.loadJournalEntries",
+    "chart-owner"
+   ],
+   [
+    "journal.loadContextData",
+    "chart-owner"
+   ],
+   [
+    "personal.refreshPersonalBundle",
+    "bp-owner-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.refreshFamilyBundle",
+    "vault-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.loadRelationshipAlerts",
+    "vault-synthetic"
+   ],
+   [
+    "personal.setJadhagamReport",
+    null
+   ],
+   [
+    "personal.setLifeAreas",
+    null
+   ],
+   [
+    "family.loadVaults",
+    "user-synthetic"
+   ]
+  ]
+ },
+ {
+  "step": "cold /dashboard/life-areas",
+  "url": "/dashboard/life-areas",
+  "history": "1/1",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "lifeAreas"
+  ],
+  "activeTab": "life-areas",
+  "exploreBack": false,
+  "predictionsEnabled": true,
+  "focus": {
+   "lifeAreas": {
+    "focusSubTab": null,
+    "active": true,
+    "chartId": "chart-owner"
+   },
+   "ask": {
+    "open": false
+   }
+  },
+  "effects": [
+   [
+    "api",
+    "GET",
+    "/api/v1/settings/ui",
+    null
+   ],
+   [
+    "journal.loadJournalSettings"
+   ],
+   [
+    "getLifeMode"
+   ],
+   [
+    "journal.loadJournalEntries",
+    "chart-owner"
+   ],
+   [
+    "journal.loadContextData",
+    "chart-owner"
+   ],
+   [
+    "personal.refreshPersonalBundle",
+    "bp-owner-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.refreshFamilyBundle",
+    "vault-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.loadRelationshipAlerts",
+    "vault-synthetic"
+   ],
+   [
+    "personal.setJadhagamReport",
+    null
+   ],
+   [
+    "personal.setLifeAreas",
+    null
+   ],
+   [
+    "family.loadVaults",
+    "user-synthetic"
+   ]
+  ]
+ },
+ {
+  "step": "cold /dashboard/family",
+  "url": "/dashboard/family",
+  "history": "1/1",
+  "shown": [
+   "ambient",
+   "ask",
+   "family",
+   "footerMorning",
+   "hero"
+  ],
+  "activeTab": "family",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "family": {
+    "focusSection": null
+   },
+   "ask": {
+    "open": false
+   }
+  },
+  "effects": [
+   [
+    "api",
+    "GET",
+    "/api/v1/settings/ui",
+    null
+   ],
+   [
+    "journal.loadJournalSettings"
+   ],
+   [
+    "getLifeMode"
+   ],
+   [
+    "journal.loadJournalEntries",
+    "chart-owner"
+   ],
+   [
+    "journal.loadContextData",
+    "chart-owner"
+   ],
+   [
+    "personal.refreshPersonalBundle",
+    "bp-owner-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.refreshFamilyBundle",
+    "vault-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.loadRelationshipAlerts",
+    "vault-synthetic"
+   ],
+   [
+    "personal.setJadhagamReport",
+    null
+   ],
+   [
+    "personal.setLifeAreas",
+    null
+   ],
+   [
+    "family.loadVaults",
+    "user-synthetic"
+   ]
+  ]
+ },
+ {
+  "step": "cold /dashboard/journal",
+  "url": "/dashboard/journal",
+  "history": "1/1",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "journal"
+  ],
+  "activeTab": "journal",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "ask": {
+    "open": false
+   }
+  },
+  "effects": [
+   [
+    "api",
+    "GET",
+    "/api/v1/settings/ui",
+    null
+   ],
+   [
+    "journal.loadJournalSettings"
+   ],
+   [
+    "getLifeMode"
+   ],
+   [
+    "journal.loadJournalEntries",
+    "chart-owner"
+   ],
+   [
+    "journal.loadContextData",
+    "chart-owner"
+   ],
+   [
+    "personal.refreshPersonalBundle",
+    "bp-owner-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.refreshFamilyBundle",
+    "vault-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.loadRelationshipAlerts",
+    "vault-synthetic"
+   ],
+   [
+    "personal.setJadhagamReport",
+    null
+   ],
+   [
+    "personal.setLifeAreas",
+    null
+   ],
+   [
+    "family.loadVaults",
+    "user-synthetic"
+   ]
+  ]
+ },
+ {
+  "step": "cold /dashboard/explore",
+  "url": "/dashboard/explore",
+  "history": "1/1",
+  "shown": [
+   "ambient",
+   "ask",
+   "explore",
+   "footerMorning",
+   "hero"
+  ],
+  "activeTab": "explore",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "ask": {
+    "open": false
+   }
+  },
+  "effects": [
+   [
+    "api",
+    "GET",
+    "/api/v1/settings/ui",
+    null
+   ],
+   [
+    "journal.loadJournalSettings"
+   ],
+   [
+    "getLifeMode"
+   ],
+   [
+    "journal.loadJournalEntries",
+    "chart-owner"
+   ],
+   [
+    "journal.loadContextData",
+    "chart-owner"
+   ],
+   [
+    "personal.refreshPersonalBundle",
+    "bp-owner-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.refreshFamilyBundle",
+    "vault-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.loadRelationshipAlerts",
+    "vault-synthetic"
+   ],
+   [
+    "personal.setJadhagamReport",
+    null
+   ],
+   [
+    "personal.setLifeAreas",
+    null
+   ],
+   [
+    "family.loadVaults",
+    "user-synthetic"
+   ]
+  ]
+ },
+ {
+  "step": "cold /dashboard/tools",
+  "url": "/dashboard/tools",
+  "history": "1/1",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "tools",
+   "viewSwap"
+  ],
+  "activeTab": "tools",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "tools": {
+    "activeTool": null
+   },
+   "ask": {
+    "open": false
+   },
+   "viewSwap": {
+    "viewKey": "tools-hub"
+   }
+  },
+  "effects": [
+   [
+    "api",
+    "GET",
+    "/api/v1/settings/ui",
+    null
+   ],
+   [
+    "journal.loadJournalSettings"
+   ],
+   [
+    "getLifeMode"
+   ],
+   [
+    "journal.loadJournalEntries",
+    "chart-owner"
+   ],
+   [
+    "journal.loadContextData",
+    "chart-owner"
+   ],
+   [
+    "personal.refreshPersonalBundle",
+    "bp-owner-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.refreshFamilyBundle",
+    "vault-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.loadRelationshipAlerts",
+    "vault-synthetic"
+   ],
+   [
+    "personal.setJadhagamReport",
+    null
+   ],
+   [
+    "personal.setLifeAreas",
+    null
+   ],
+   [
+    "family.loadVaults",
+    "user-synthetic"
+   ]
+  ]
+ },
+ {
+  "step": "cold /dashboard/tools/numerology",
+  "url": "/dashboard/tools/numerology",
+  "history": "1/1",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "tools",
+   "viewSwap"
+  ],
+  "activeTab": "tools",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "tools": {
+    "activeTool": "numerology"
+   },
+   "ask": {
+    "open": false
+   },
+   "viewSwap": {
+    "viewKey": "numerology"
+   }
+  },
+  "effects": [
+   [
+    "api",
+    "GET",
+    "/api/v1/settings/ui",
+    null
+   ],
+   [
+    "journal.loadJournalSettings"
+   ],
+   [
+    "getLifeMode"
+   ],
+   [
+    "journal.loadJournalEntries",
+    "chart-owner"
+   ],
+   [
+    "journal.loadContextData",
+    "chart-owner"
+   ],
+   [
+    "personal.refreshPersonalBundle",
+    "bp-owner-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.refreshFamilyBundle",
+    "vault-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.loadRelationshipAlerts",
+    "vault-synthetic"
+   ],
+   [
+    "personal.setJadhagamReport",
+    null
+   ],
+   [
+    "personal.setLifeAreas",
+    null
+   ],
+   [
+    "family.loadVaults",
+    "user-synthetic"
+   ]
+  ]
+ },
+ {
+  "step": "cold /dashboard/tools/compatibility",
+  "url": "/dashboard/tools/compatibility",
+  "history": "1/1",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "tools",
+   "viewSwap"
+  ],
+  "activeTab": "tools",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "tools": {
+    "activeTool": "synastry"
+   },
+   "ask": {
+    "open": false
+   },
+   "viewSwap": {
+    "viewKey": "synastry"
+   }
+  },
+  "effects": [
+   [
+    "api",
+    "GET",
+    "/api/v1/settings/ui",
+    null
+   ],
+   [
+    "journal.loadJournalSettings"
+   ],
+   [
+    "getLifeMode"
+   ],
+   [
+    "journal.loadJournalEntries",
+    "chart-owner"
+   ],
+   [
+    "journal.loadContextData",
+    "chart-owner"
+   ],
+   [
+    "personal.refreshPersonalBundle",
+    "bp-owner-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.refreshFamilyBundle",
+    "vault-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.loadRelationshipAlerts",
+    "vault-synthetic"
+   ],
+   [
+    "personal.setJadhagamReport",
+    null
+   ],
+   [
+    "personal.setLifeAreas",
+    null
+   ],
+   [
+    "family.loadVaults",
+    "user-synthetic"
+   ]
+  ]
+ },
+ {
+  "step": "cold /dashboard/tools/not-a-tool",
+  "url": "/dashboard/tools",
+  "history": "1/1",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "tools",
+   "viewSwap"
+  ],
+  "activeTab": "tools",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "tools": {
+    "activeTool": null
+   },
+   "ask": {
+    "open": false
+   },
+   "viewSwap": {
+    "viewKey": "tools-hub"
+   }
+  },
+  "effects": [
+   [
+    "api",
+    "GET",
+    "/api/v1/settings/ui",
+    null
+   ],
+   [
+    "journal.loadJournalSettings"
+   ],
+   [
+    "getLifeMode"
+   ],
+   [
+    "journal.loadJournalEntries",
+    "chart-owner"
+   ],
+   [
+    "journal.loadContextData",
+    "chart-owner"
+   ],
+   [
+    "personal.refreshPersonalBundle",
+    "bp-owner-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.refreshFamilyBundle",
+    "vault-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.loadRelationshipAlerts",
+    "vault-synthetic"
+   ],
+   [
+    "personal.setJadhagamReport",
+    null
+   ],
+   [
+    "personal.setLifeAreas",
+    null
+   ],
+   [
+    "router.replace",
+    "/dashboard/tools",
+    {
+     "scroll": false
+    }
+   ],
+   [
+    "family.loadVaults",
+    "user-synthetic"
+   ]
+  ]
+ },
+ {
+  "step": "cold /dashboard/settings",
+  "url": "/dashboard/settings/setup",
+  "history": "1/1",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "setup"
+  ],
+  "activeTab": "settings",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "ask": {
+    "open": false
+   }
+  },
+  "effects": [
+   [
+    "api",
+    "GET",
+    "/api/v1/settings/ui",
+    null
+   ],
+   [
+    "journal.loadJournalSettings"
+   ],
+   [
+    "getLifeMode"
+   ],
+   [
+    "journal.loadJournalEntries",
+    "chart-owner"
+   ],
+   [
+    "journal.loadContextData",
+    "chart-owner"
+   ],
+   [
+    "personal.refreshPersonalBundle",
+    "bp-owner-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.refreshFamilyBundle",
+    "vault-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.loadRelationshipAlerts",
+    "vault-synthetic"
+   ],
+   [
+    "personal.setJadhagamReport",
+    null
+   ],
+   [
+    "personal.setLifeAreas",
+    null
+   ],
+   [
+    "router.replace",
+    "/dashboard/settings/setup",
+    {
+     "scroll": false
+    }
+   ],
+   [
+    "family.loadVaults",
+    "user-synthetic"
+   ]
+  ]
+ },
+ {
+  "step": "cold /dashboard/settings/setup",
+  "url": "/dashboard/settings/setup",
+  "history": "1/1",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "setup"
+  ],
+  "activeTab": "settings",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "ask": {
+    "open": false
+   }
+  },
+  "effects": [
+   [
+    "api",
+    "GET",
+    "/api/v1/settings/ui",
+    null
+   ],
+   [
+    "journal.loadJournalSettings"
+   ],
+   [
+    "getLifeMode"
+   ],
+   [
+    "journal.loadJournalEntries",
+    "chart-owner"
+   ],
+   [
+    "journal.loadContextData",
+    "chart-owner"
+   ],
+   [
+    "personal.refreshPersonalBundle",
+    "bp-owner-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.refreshFamilyBundle",
+    "vault-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.loadRelationshipAlerts",
+    "vault-synthetic"
+   ],
+   [
+    "personal.setJadhagamReport",
+    null
+   ],
+   [
+    "personal.setLifeAreas",
+    null
+   ],
+   [
+    "family.loadVaults",
+    "user-synthetic"
+   ]
+  ]
+ },
+ {
+  "step": "cold /dashboard/settings/notifications",
+  "url": "/dashboard/settings/notifications",
+  "history": "1/1",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "settingsSession"
+  ],
+  "activeTab": "settings",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "ask": {
+    "open": false
+   },
+   "settingsSession": {
+    "section": "notifications"
+   }
+  },
+  "effects": [
+   [
+    "api",
+    "GET",
+    "/api/v1/settings/ui",
+    null
+   ],
+   [
+    "journal.loadJournalSettings"
+   ],
+   [
+    "getLifeMode"
+   ],
+   [
+    "journal.loadJournalEntries",
+    "chart-owner"
+   ],
+   [
+    "journal.loadContextData",
+    "chart-owner"
+   ],
+   [
+    "personal.refreshPersonalBundle",
+    "bp-owner-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.refreshFamilyBundle",
+    "vault-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.loadRelationshipAlerts",
+    "vault-synthetic"
+   ],
+   [
+    "personal.setJadhagamReport",
+    null
+   ],
+   [
+    "personal.setLifeAreas",
+    null
+   ],
+   [
+    "family.loadVaults",
+    "user-synthetic"
+   ]
+  ]
+ },
+ {
+  "step": "cold /dashboard/settings/danger-zone",
+  "url": "/dashboard/settings/danger-zone",
+  "history": "1/1",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "settingsSession"
+  ],
+  "activeTab": "settings",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "ask": {
+    "open": false
+   },
+   "settingsSession": {
+    "section": "danger"
+   }
+  },
+  "effects": [
+   [
+    "api",
+    "GET",
+    "/api/v1/settings/ui",
+    null
+   ],
+   [
+    "journal.loadJournalSettings"
+   ],
+   [
+    "getLifeMode"
+   ],
+   [
+    "journal.loadJournalEntries",
+    "chart-owner"
+   ],
+   [
+    "journal.loadContextData",
+    "chart-owner"
+   ],
+   [
+    "personal.refreshPersonalBundle",
+    "bp-owner-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.refreshFamilyBundle",
+    "vault-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.loadRelationshipAlerts",
+    "vault-synthetic"
+   ],
+   [
+    "personal.setJadhagamReport",
+    null
+   ],
+   [
+    "personal.setLifeAreas",
+    null
+   ],
+   [
+    "family.loadVaults",
+    "user-synthetic"
+   ]
+  ]
+ },
+ {
+  "step": "cold /dashboard/settings/nope",
+  "url": "/dashboard/settings/setup",
+  "history": "1/1",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "setup"
+  ],
+  "activeTab": "settings",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "ask": {
+    "open": false
+   }
+  },
+  "effects": [
+   [
+    "api",
+    "GET",
+    "/api/v1/settings/ui",
+    null
+   ],
+   [
+    "journal.loadJournalSettings"
+   ],
+   [
+    "getLifeMode"
+   ],
+   [
+    "journal.loadJournalEntries",
+    "chart-owner"
+   ],
+   [
+    "journal.loadContextData",
+    "chart-owner"
+   ],
+   [
+    "personal.refreshPersonalBundle",
+    "bp-owner-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.refreshFamilyBundle",
+    "vault-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.loadRelationshipAlerts",
+    "vault-synthetic"
+   ],
+   [
+    "personal.setJadhagamReport",
+    null
+   ],
+   [
+    "personal.setLifeAreas",
+    null
+   ],
+   [
+    "router.replace",
+    "/dashboard/settings/setup",
+    {
+     "scroll": false
+    }
+   ],
+   [
+    "family.loadVaults",
+    "user-synthetic"
+   ]
+  ]
+ },
+ {
+  "step": "cold /dashboard/nonsense",
+  "url": "/dashboard",
+  "history": "1/1",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "today"
+  ],
+  "activeTab": "personal",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "ask": {
+    "open": false
+   }
+  },
+  "effects": [
+   [
+    "api",
+    "GET",
+    "/api/v1/settings/ui",
+    null
+   ],
+   [
+    "journal.loadJournalSettings"
+   ],
+   [
+    "getLifeMode"
+   ],
+   [
+    "journal.loadJournalEntries",
+    "chart-owner"
+   ],
+   [
+    "journal.loadContextData",
+    "chart-owner"
+   ],
+   [
+    "personal.refreshPersonalBundle",
+    "bp-owner-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.refreshFamilyBundle",
+    "vault-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.loadRelationshipAlerts",
+    "vault-synthetic"
+   ],
+   [
+    "personal.setJadhagamReport",
+    null
+   ],
+   [
+    "personal.setLifeAreas",
+    null
+   ],
+   [
+    "router.replace",
+    "/dashboard",
+    {
+     "scroll": false
+    }
+   ],
+   [
+    "family.loadVaults",
+    "user-synthetic"
+   ]
+  ]
+ },
+ {
+  "step": "cold /dashboard/qa",
+  "url": "/dashboard/qa",
+  "history": "1/1",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "qa"
+  ],
+  "activeTab": "qa",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "ask": {
+    "open": false
+   }
+  },
+  "effects": [
+   [
+    "api",
+    "GET",
+    "/api/v1/settings/ui",
+    null
+   ],
+   [
+    "journal.loadJournalSettings"
+   ],
+   [
+    "getLifeMode"
+   ],
+   [
+    "journal.loadJournalEntries",
+    "chart-owner"
+   ],
+   [
+    "journal.loadContextData",
+    "chart-owner"
+   ],
+   [
+    "personal.refreshPersonalBundle",
+    "bp-owner-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.refreshFamilyBundle",
+    "vault-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.loadRelationshipAlerts",
+    "vault-synthetic"
+   ],
+   [
+    "personal.setJadhagamReport",
+    null
+   ],
+   [
+    "personal.setLifeAreas",
+    null
+   ],
+   [
+    "family.loadVaults",
+    "user-synthetic"
+   ]
+  ]
+ },
+ {
+  "step": "cold /dashboard?tab=journal",
+  "url": "/dashboard/journal",
+  "history": "1/1",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "journal"
+  ],
+  "activeTab": "journal",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "ask": {
+    "open": false
+   }
+  },
+  "effects": [
+   [
+    "api",
+    "GET",
+    "/api/v1/settings/ui",
+    null
+   ],
+   [
+    "journal.loadJournalSettings"
+   ],
+   [
+    "getLifeMode"
+   ],
+   [
+    "journal.loadJournalEntries",
+    "chart-owner"
+   ],
+   [
+    "journal.loadContextData",
+    "chart-owner"
+   ],
+   [
+    "personal.refreshPersonalBundle",
+    "bp-owner-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.refreshFamilyBundle",
+    "vault-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.loadRelationshipAlerts",
+    "vault-synthetic"
+   ],
+   [
+    "personal.setJadhagamReport",
+    null
+   ],
+   [
+    "personal.setLifeAreas",
+    null
+   ],
+   [
+    "window.scrollTo",
+    {
+     "behavior": "auto",
+     "top": 0
+    }
+   ],
+   [
+    "router.replace",
+    "/dashboard/journal",
+    {
+     "scroll": false
+    }
+   ],
+   [
+    "family.loadVaults",
+    "user-synthetic"
+   ]
+  ]
+ },
+ {
+  "step": "cold /dashboard?tab=settings",
+  "url": "/dashboard/settings/setup",
+  "history": "1/1",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "setup"
+  ],
+  "activeTab": "settings",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "ask": {
+    "open": false
+   }
+  },
+  "effects": [
+   [
+    "api",
+    "GET",
+    "/api/v1/settings/ui",
+    null
+   ],
+   [
+    "journal.loadJournalSettings"
+   ],
+   [
+    "getLifeMode"
+   ],
+   [
+    "journal.loadJournalEntries",
+    "chart-owner"
+   ],
+   [
+    "journal.loadContextData",
+    "chart-owner"
+   ],
+   [
+    "personal.refreshPersonalBundle",
+    "bp-owner-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.refreshFamilyBundle",
+    "vault-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.loadRelationshipAlerts",
+    "vault-synthetic"
+   ],
+   [
+    "personal.setJadhagamReport",
+    null
+   ],
+   [
+    "personal.setLifeAreas",
+    null
+   ],
+   [
+    "window.scrollTo",
+    {
+     "behavior": "auto",
+     "top": 0
+    }
+   ],
+   [
+    "router.replace",
+    "/dashboard/settings/setup",
+    {
+     "scroll": false
+    }
+   ],
+   [
+    "family.loadVaults",
+    "user-synthetic"
+   ]
+  ]
+ },
+ {
+  "step": "cold /dashboard?tab=bogus&keep=1",
+  "url": "/dashboard?keep=1",
+  "history": "1/1",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "today"
+  ],
+  "activeTab": "personal",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "ask": {
+    "open": false
+   }
+  },
+  "effects": [
+   [
+    "api",
+    "GET",
+    "/api/v1/settings/ui",
+    null
+   ],
+   [
+    "journal.loadJournalSettings"
+   ],
+   [
+    "getLifeMode"
+   ],
+   [
+    "journal.loadJournalEntries",
+    "chart-owner"
+   ],
+   [
+    "journal.loadContextData",
+    "chart-owner"
+   ],
+   [
+    "personal.refreshPersonalBundle",
+    "bp-owner-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.refreshFamilyBundle",
+    "vault-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.loadRelationshipAlerts",
+    "vault-synthetic"
+   ],
+   [
+    "personal.setJadhagamReport",
+    null
+   ],
+   [
+    "personal.setLifeAreas",
+    null
+   ],
+   [
+    "router.replace",
+    "/dashboard?keep=1",
+    {
+     "scroll": false
+    }
+   ],
+   [
+    "family.loadVaults",
+    "user-synthetic"
+   ]
+  ]
+ },
+ {
+  "step": "cold /dashboard/calendar?tab=journal&x=2",
+  "url": "/dashboard/calendar?x=2",
+  "history": "1/1",
+  "shown": [
+   "ambient",
+   "ask",
+   "calendar",
+   "footerMorning",
+   "hero"
+  ],
+  "activeTab": "calendar",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "calendar": {
+    "focusView": null,
+    "chartId": "chart-owner",
+    "selectedMemberId": null
+   },
+   "ask": {
+    "open": false
+   }
+  },
+  "effects": [
+   [
+    "api",
+    "GET",
+    "/api/v1/settings/ui",
+    null
+   ],
+   [
+    "journal.loadJournalSettings"
+   ],
+   [
+    "getLifeMode"
+   ],
+   [
+    "journal.loadJournalEntries",
+    "chart-owner"
+   ],
+   [
+    "journal.loadContextData",
+    "chart-owner"
+   ],
+   [
+    "personal.refreshPersonalBundle",
+    "bp-owner-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.refreshFamilyBundle",
+    "vault-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.loadRelationshipAlerts",
+    "vault-synthetic"
+   ],
+   [
+    "personal.setJadhagamReport",
+    null
+   ],
+   [
+    "personal.setLifeAreas",
+    null
+   ],
+   [
+    "router.replace",
+    "/dashboard/calendar?x=2",
+    {
+     "scroll": false
+    }
+   ],
+   [
+    "family.loadVaults",
+    "user-synthetic"
+   ]
+  ]
+ },
+ {
+  "step": "before /auth/me: calendar, with Today behind it",
+  "url": "/dashboard/calendar",
+  "history": "2/2",
+  "shown": [
+   "ambient",
+   "ask",
+   "calendar",
+   "footerMorning",
+   "hero"
+  ],
+  "activeTab": "calendar",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "calendar": {
+    "focusView": null,
+    "chartId": "chart-owner",
+    "selectedMemberId": null
+   },
+   "ask": {
+    "open": false
+   }
+  },
+  "effects": []
+ },
+ {
+  "step": "before /auth/me: Back to bare /dashboard",
+  "url": "/dashboard",
+  "history": "1/2",
+  "shown": [
+   "ambient",
+   "ask",
+   "calendar",
+   "footerMorning",
+   "hero"
+  ],
+  "activeTab": "calendar",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "calendar": {
+    "focusView": null,
+    "chartId": "chart-owner",
+    "selectedMemberId": null
+   },
+   "ask": {
+    "open": false
+   }
+  },
+  "effects": [
+   [
+    "→",
+    "browser.back"
+   ]
+  ]
+ },
+ {
+  "step": "after /auth/me, following a Back to bare /dashboard",
+  "url": "/dashboard",
+  "history": "1/2",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "today"
+  ],
+  "activeTab": "personal",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "calendar": {
+    "focusView": null,
+    "chartId": "chart-owner",
+    "selectedMemberId": null
+   },
+   "ask": {
+    "open": false
+   }
+  },
+  "effects": [
+   [
+    "api",
+    "GET",
+    "/api/v1/settings/ui",
+    null
+   ],
+   [
+    "journal.loadJournalSettings"
+   ],
+   [
+    "getLifeMode"
+   ],
+   [
+    "journal.loadJournalEntries",
+    "chart-owner"
+   ],
+   [
+    "journal.loadContextData",
+    "chart-owner"
+   ],
+   [
+    "personal.refreshPersonalBundle",
+    "bp-owner-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.refreshFamilyBundle",
+    "vault-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.loadRelationshipAlerts",
+    "vault-synthetic"
+   ],
+   [
+    "personal.setJadhagamReport",
+    null
+   ],
+   [
+    "personal.setLifeAreas",
+    null
+   ],
+   [
+    "family.loadVaults",
+    "user-synthetic"
+   ],
+   [
+    "window.scrollTo",
+    {
+     "behavior": "auto",
+     "top": 0
+    }
+   ]
+  ]
+ },
+ {
+  "step": "before /auth/me: a Journal click on bare /dashboard",
+  "url": "/dashboard",
+  "history": "1/1",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "journal"
+  ],
+  "activeTab": "journal",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "ask": {
+    "open": false
+   }
+  },
+  "effects": [
+   [
+    "→",
+    "hero.onTabChange",
+    "journal"
+   ],
+   [
+    "window.scrollTo",
+    {
+     "behavior": "auto",
+     "top": 0
+    }
+   ]
+  ]
+ },
+ {
+  "step": "after /auth/me, following a Journal click",
+  "url": "/dashboard/journal",
+  "history": "2/2",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "journal"
+  ],
+  "activeTab": "journal",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "ask": {
+    "open": false
+   }
+  },
+  "effects": [
+   [
+    "api",
+    "GET",
+    "/api/v1/settings/ui",
+    null
+   ],
+   [
+    "journal.loadJournalSettings"
+   ],
+   [
+    "getLifeMode"
+   ],
+   [
+    "journal.loadJournalEntries",
+    "chart-owner"
+   ],
+   [
+    "journal.loadContextData",
+    "chart-owner"
+   ],
+   [
+    "personal.refreshPersonalBundle",
+    "bp-owner-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.refreshFamilyBundle",
+    "vault-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.loadRelationshipAlerts",
+    "vault-synthetic"
+   ],
+   [
+    "personal.setJadhagamReport",
+    null
+   ],
+   [
+    "personal.setLifeAreas",
+    null
+   ],
+   [
+    "router.push",
+    "/dashboard/journal",
+    {
+     "scroll": false
+    }
+   ],
+   [
+    "family.loadVaults",
+    "user-synthetic"
+   ]
+  ]
+ },
+ {
+  "step": "before /auth/me: /dashboard/settings/notifications",
+  "url": "/dashboard/settings/notifications",
+  "history": "1/1",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "settingsSession"
+  ],
+  "activeTab": "settings",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "ask": {
+    "open": false
+   },
+   "settingsSession": {
+    "section": "notifications"
+   }
+  },
+  "effects": []
+ },
+ {
+  "step": "after /auth/me: /dashboard/settings/notifications",
+  "url": "/dashboard/settings/notifications",
+  "history": "1/1",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "settingsSession"
+  ],
+  "activeTab": "settings",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "ask": {
+    "open": false
+   },
+   "settingsSession": {
+    "section": "notifications"
+   }
+  },
+  "effects": [
+   [
+    "api",
+    "GET",
+    "/api/v1/settings/ui",
+    null
+   ],
+   [
+    "journal.loadJournalSettings"
+   ],
+   [
+    "getLifeMode"
+   ],
+   [
+    "journal.loadJournalEntries",
+    "chart-owner"
+   ],
+   [
+    "journal.loadContextData",
+    "chart-owner"
+   ],
+   [
+    "personal.refreshPersonalBundle",
+    "bp-owner-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.refreshFamilyBundle",
+    "vault-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.loadRelationshipAlerts",
+    "vault-synthetic"
+   ],
+   [
+    "personal.setJadhagamReport",
+    null
+   ],
+   [
+    "personal.setLifeAreas",
+    null
+   ],
+   [
+    "family.loadVaults",
+    "user-synthetic"
+   ]
+  ]
+ },
+ {
+  "step": "before /auth/me: /dashboard/tools/numerology",
+  "url": "/dashboard/tools/numerology",
+  "history": "1/1",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "tools",
+   "viewSwap"
+  ],
+  "activeTab": "tools",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "tools": {
+    "activeTool": "numerology"
+   },
+   "ask": {
+    "open": false
+   },
+   "viewSwap": {
+    "viewKey": "numerology"
+   }
+  },
+  "effects": []
+ },
+ {
+  "step": "after /auth/me: /dashboard/tools/numerology",
+  "url": "/dashboard/tools/numerology",
+  "history": "1/1",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "tools",
+   "viewSwap"
+  ],
+  "activeTab": "tools",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "tools": {
+    "activeTool": "numerology"
+   },
+   "ask": {
+    "open": false
+   },
+   "viewSwap": {
+    "viewKey": "numerology"
+   }
+  },
+  "effects": [
+   [
+    "api",
+    "GET",
+    "/api/v1/settings/ui",
+    null
+   ],
+   [
+    "journal.loadJournalSettings"
+   ],
+   [
+    "getLifeMode"
+   ],
+   [
+    "journal.loadJournalEntries",
+    "chart-owner"
+   ],
+   [
+    "journal.loadContextData",
+    "chart-owner"
+   ],
+   [
+    "personal.refreshPersonalBundle",
+    "bp-owner-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.refreshFamilyBundle",
+    "vault-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.loadRelationshipAlerts",
+    "vault-synthetic"
+   ],
+   [
+    "personal.setJadhagamReport",
+    null
+   ],
+   [
+    "personal.setLifeAreas",
+    null
+   ],
+   [
+    "family.loadVaults",
+    "user-synthetic"
+   ]
+  ]
+ },
+ {
+  "step": "before /auth/me: /dashboard/calendar",
+  "url": "/dashboard/calendar",
+  "history": "1/1",
+  "shown": [
+   "ambient",
+   "ask",
+   "calendar",
+   "footerMorning",
+   "hero"
+  ],
+  "activeTab": "calendar",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "calendar": {
+    "focusView": null,
+    "chartId": "chart-owner",
+    "selectedMemberId": null
+   },
+   "ask": {
+    "open": false
+   }
+  },
+  "effects": []
+ },
+ {
+  "step": "after /auth/me: /dashboard/calendar",
+  "url": "/dashboard/calendar",
+  "history": "1/1",
+  "shown": [
+   "ambient",
+   "ask",
+   "calendar",
+   "footerMorning",
+   "hero"
+  ],
+  "activeTab": "calendar",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "calendar": {
+    "focusView": null,
+    "chartId": "chart-owner",
+    "selectedMemberId": null
+   },
+   "ask": {
+    "open": false
+   }
+  },
+  "effects": [
+   [
+    "api",
+    "GET",
+    "/api/v1/settings/ui",
+    null
+   ],
+   [
+    "journal.loadJournalSettings"
+   ],
+   [
+    "getLifeMode"
+   ],
+   [
+    "journal.loadJournalEntries",
+    "chart-owner"
+   ],
+   [
+    "journal.loadContextData",
+    "chart-owner"
+   ],
+   [
+    "personal.refreshPersonalBundle",
+    "bp-owner-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.refreshFamilyBundle",
+    "vault-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.loadRelationshipAlerts",
+    "vault-synthetic"
+   ],
+   [
+    "personal.setJadhagamReport",
+    null
+   ],
+   [
+    "personal.setLifeAreas",
+    null
+   ],
+   [
+    "family.loadVaults",
+    "user-synthetic"
+   ]
+  ]
+ },
+ {
+  "step": "before /auth/me: /dashboard?tab=journal",
+  "url": "/dashboard?tab=journal",
+  "history": "1/1",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "today"
+  ],
+  "activeTab": "personal",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "ask": {
+    "open": false
+   }
+  },
+  "effects": []
+ },
+ {
+  "step": "after /auth/me: /dashboard?tab=journal",
+  "url": "/dashboard/journal",
+  "history": "1/1",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "journal"
+  ],
+  "activeTab": "journal",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "ask": {
+    "open": false
+   }
+  },
+  "effects": [
+   [
+    "api",
+    "GET",
+    "/api/v1/settings/ui",
+    null
+   ],
+   [
+    "journal.loadJournalSettings"
+   ],
+   [
+    "getLifeMode"
+   ],
+   [
+    "journal.loadJournalEntries",
+    "chart-owner"
+   ],
+   [
+    "journal.loadContextData",
+    "chart-owner"
+   ],
+   [
+    "personal.refreshPersonalBundle",
+    "bp-owner-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.refreshFamilyBundle",
+    "vault-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.loadRelationshipAlerts",
+    "vault-synthetic"
+   ],
+   [
+    "personal.setJadhagamReport",
+    null
+   ],
+   [
+    "personal.setLifeAreas",
+    null
+   ],
+   [
+    "window.scrollTo",
+    {
+     "behavior": "auto",
+     "top": 0
+    }
+   ],
+   [
+    "router.replace",
+    "/dashboard/journal",
+    {
+     "scroll": false
+    }
+   ],
+   [
+    "family.loadVaults",
+    "user-synthetic"
+   ]
+  ]
+ },
+ {
+  "step": "cold calendar",
+  "url": "/dashboard/calendar",
+  "history": "1/1",
+  "shown": [
+   "ambient",
+   "ask",
+   "calendar",
+   "footerMorning",
+   "hero"
+  ],
+  "activeTab": "calendar",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "calendar": {
+    "focusView": null,
+    "chartId": "chart-owner",
+    "selectedMemberId": null
+   },
+   "ask": {
+    "open": false
+   }
+  },
+  "effects": [
+   [
+    "api",
+    "GET",
+    "/api/v1/settings/ui",
+    null
+   ],
+   [
+    "journal.loadJournalSettings"
+   ],
+   [
+    "getLifeMode"
+   ],
+   [
+    "journal.loadJournalEntries",
+    "chart-owner"
+   ],
+   [
+    "journal.loadContextData",
+    "chart-owner"
+   ],
+   [
+    "personal.refreshPersonalBundle",
+    "bp-owner-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.refreshFamilyBundle",
+    "vault-synthetic",
+    "2026-10-09"
+   ],
+   [
+    "family.loadRelationshipAlerts",
+    "vault-synthetic"
+   ],
+   [
+    "personal.setJadhagamReport",
+    null
+   ],
+   [
+    "personal.setLifeAreas",
+    null
+   ],
+   [
+    "family.loadVaults",
+    "user-synthetic"
+   ]
+  ]
+ },
+ {
+  "step": "tab click pushes",
+  "url": "/dashboard/journal",
+  "history": "2/2",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "journal"
+  ],
+  "activeTab": "journal",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "calendar": {
+    "focusView": null,
+    "chartId": "chart-owner",
+    "selectedMemberId": null
+   },
+   "ask": {
+    "open": false
+   }
+  },
+  "effects": [
+   [
+    "→",
+    "hero.onTabChange",
+    "journal"
+   ],
+   [
+    "window.scrollTo",
+    {
+     "behavior": "auto",
+     "top": 0
+    }
+   ],
+   [
+    "router.push",
+    "/dashboard/journal",
+    {
+     "scroll": false
+    }
+   ]
+  ]
+ },
+ {
+  "step": "tool opened",
+  "url": "/dashboard/tools/varshaphala",
+  "history": "4/4",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "tools",
+   "viewSwap"
+  ],
+  "activeTab": "tools",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "calendar": {
+    "focusView": null,
+    "chartId": "chart-owner",
+    "selectedMemberId": null
+   },
+   "tools": {
+    "activeTool": "varshaphala"
+   },
+   "ask": {
+    "open": false
+   },
+   "viewSwap": {
+    "viewKey": "varshaphala"
+   }
+  },
+  "effects": [
+   [
+    "→",
+    "hero.onTabChange",
+    "tools"
+   ],
+   [
+    "window.scrollTo",
+    {
+     "behavior": "auto",
+     "top": 0
+    }
+   ],
+   [
+    "router.push",
+    "/dashboard/tools",
+    {
+     "scroll": false
+    }
+   ],
+   [
+    "→",
+    "tools.onOpenTool",
+    "varshaphala"
+   ],
+   [
+    "window.scrollTo",
+    {
+     "behavior": "auto",
+     "top": 0
+    }
+   ],
+   [
+    "router.push",
+    "/dashboard/tools/varshaphala",
+    {
+     "scroll": false
+    }
+   ]
+  ]
+ },
+ {
+  "step": "varshaphala loaded",
+  "url": "/dashboard/tools/varshaphala",
+  "history": 4,
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "tools",
+   "viewSwap"
+  ],
+  "dom": {
+   "htmlLang": "en",
+   "dataLang": "en",
+   "activeTab": "tools",
+   "onboarding": null,
+   "exploreBack": null,
+   "printTag": "Thirukanitham Jothidam",
+   "feedbackLabel": "Feedback",
+   "footer": {
+    "legal": "Astrology is a traditional belief system, not a scientific fact. For medical, legal, or financial decisions, consult a qualified professional.",
+    "navLabel": "Footer navigation",
+    "links": [
+     [
+      "Understand",
+      "BUTTON:Today:",
+      "BUTTON:Calendar:",
+      "BUTTON:Life Areas:",
+      "A:Glossary:/dashboard/glossary"
+     ],
+     [
+      "Personal",
+      "BUTTON:Family & Charts:",
+      "BUTTON:Journal:",
+      "BUTTON:Settings:"
+     ]
+    ]
+   }
+  },
+  "hooks": {
+   "useFamilyData": {
+    "onStatus": "ƒ",
+    "ownerUserId": "user-synthetic",
+    "selectedDate": "2026-10-09"
+   },
+   "useJournalData": {
+    "lang": "en",
+    "onError": "ƒ",
+    "onStatus": "ƒ"
+   },
+   "useNotificationInbox": {
+    "lang": "en",
+    "onError": "ƒ"
+   },
+   "usePersonalData": {
+    "onStatus": "ƒ",
+    "predictionsEnabled": false,
+    "selectedDate": "2026-10-09"
+   },
+   "usePlanData": {
+    "chartId": "chart-owner",
+    "onError": "ƒ",
+    "onGoalAdded": "ƒ",
+    "onGoalRemoved": "ƒ"
+   },
+   "useSession": {
+    "onSetupRedirect": "ƒ"
+   }
+  },
+  "props": {
+   "ambient": {
+    "moon": {
+     "cyclePosition": 0.5,
+     "fraction": 1,
+     "waxing": true
+    }
+   },
+   "ask": {
+    "activeLifeMode": "CAREER",
+    "chartId": "chart-owner",
+    "goalTrack": null,
+    "hideLauncher": true,
+    "lang": "en",
+    "onOpenChange": "ƒ",
+    "open": false
+   },
+   "calendar": {
+    "chartId": "chart-owner",
+    "focusView": null,
+    "lang": "en",
+    "locationLabel": "Synthetic Nagar, IN",
+    "memberCharts": [
+     {
+      "displayName": "Bala Synthetic",
+      "memberId": "member-spouse"
+     },
+     {
+      "displayName": "Chitra Synthetic",
+      "memberId": "member-child"
+     },
+     {
+      "displayName": "Akila Duplicate",
+      "memberId": "member-selfrow"
+     }
+    ],
+    "monthFocus": {
+     "activities": [
+      "job_change",
+      "business_start"
+     ],
+     "chartId": "chart-owner",
+     "label": "label:CAREER:en"
+    },
+    "muhurtaFocusActivities": [
+     "job_change",
+     "business_start"
+    ],
+    "onFocusConsumed": "ƒ",
+    "onSelectDate": "ƒ",
+    "onSelectMember": "ƒ",
+    "panchangam": {
+     "sunrise": "06:01",
+     "tithi": {
+      "number": 15,
+      "paksha": "SHUKLA"
+     }
+    },
+    "panchangamTimezone": "Asia/Kolkata",
+    "panchangamTimings": {
+     "tag": "timings"
+    },
+    "pending": false,
+    "selectedDate": "2026-10-09",
+    "selectedMemberId": null,
+    "todayDate": "2026-10-09"
+   },
+   "footerMorning": {
+    "lang": "en",
+    "onOpenSettings": "ƒ"
+   },
+   "hero": {
+    "activeTab": "tools",
+    "alertCount": 1,
+    "alertItems": [
+     {
+      "body": "Synthetic message",
+      "title": "Synthetic alert",
+      "type": "transit"
+     }
+    ],
+    "askReady": true,
+    "birthDisplayName": "Akila Synthetic",
+    "birthTimeConfidenceMinutes": 5,
+    "birthTimeLocal": "06:30",
+    "chartSummary": {
+     "chartId": "chart-owner",
+     "janmaNakshatra": "ASHWINI",
+     "lagnaRasi": 6,
+     "moonRasi": 1
+    },
+    "dayLoading": false,
+    "inboxItems": [
+     {
+      "tag": "inbox-item"
+     }
+    ],
+    "inboxUnreadCount": 1,
+    "lang": "en",
+    "onAskVinaadi": "ƒ",
+    "onDateChange": "ƒ",
+    "onGoToSettings": "ƒ",
+    "onInboxOpen": "ƒ",
+    "onLangToggle": "ƒ",
+    "onMarkAllRead": "ƒ",
+    "onMarkOneRead": "ƒ",
+    "onOpenNotificationSettings": "ƒ",
+    "onSignOut": "ƒ",
+    "onTabChange": "ƒ",
+    "onUserMenuClose": "ƒ",
+    "onUserMenuToggle": "ƒ",
+    "panchangamPlace": "Synthetic Nagar",
+    "panchangamSunrise": "06:01",
+    "selectedDate": "2026-10-09",
+    "selectedVault": {
+     "familyVaultId": "vault-synthetic",
+     "memberCount": 2,
+     "name": "Synthetic household",
+     "ownerUserId": "user-synthetic"
+    },
+    "selectedVaultId": "vault-synthetic",
+    "showUserMenu": false,
+    "status": null,
+    "userEmail": "synthetic@example.test"
+   },
+   "journal": {
+    "chartId": "chart-owner",
+    "chartSummary": {
+     "chartId": "chart-owner",
+     "janmaNakshatra": "ASHWINI",
+     "lagnaRasi": 6,
+     "moonRasi": 1
+    },
+    "contextData": {
+     "tag": "context"
+    },
+    "hasBirthProfile": true,
+    "journalCorrelations": {
+     "tag": "correlations"
+    },
+    "journalEntries": [
+     {
+      "tag": "entry"
+     }
+    ],
+    "journalTotal": 1,
+    "lang": "en",
+    "mode": "BALANCED",
+    "onEntryArchived": "ƒ",
+    "onEntrySaved": "ƒ",
+    "onGoToChart": "ƒ",
+    "onManageContext": "ƒ",
+    "selectedDate": "2026-10-09"
+   },
+   "tools": {
+    "activeTool": "varshaphala",
+    "familyMembersForPorutham": [
+     {
+      "birthDateLocal": "1990-01-15",
+      "birthLatitude": 11.5,
+      "birthLongitude": 78.25,
+      "birthPlace": "Synthetic Nagar",
+      "birthTimeLocal": "06:30",
+      "birthTimezone": "Asia/Kolkata",
+      "displayName": "Akila Synthetic",
+      "memberId": "owner:bp-owner-synthetic"
+     },
+     {
+      "birthDateLocal": "1992-03-03",
+      "birthLatitude": 11.5,
+      "birthLongitude": 78.25,
+      "birthPlace": "Synthetic Nagar",
+      "birthTimeLocal": "06:30",
+      "birthTimezone": "Asia/Kolkata",
+      "displayName": "Bala Synthetic",
+      "memberId": "member-spouse"
+     },
+     {
+      "birthDateLocal": "1992-03-03",
+      "birthLatitude": 11.5,
+      "birthLongitude": 78.25,
+      "birthPlace": "Synthetic Nagar",
+      "birthTimeLocal": "06:30",
+      "birthTimezone": "Asia/Kolkata",
+      "displayName": "Chitra Synthetic",
+      "memberId": "member-child"
+     },
+     {
+      "birthDateLocal": "1992-03-03",
+      "birthLatitude": 11.5,
+      "birthLongitude": 78.25,
+      "birthPlace": "Synthetic Nagar",
+      "birthTimeLocal": "06:30",
+      "birthTimezone": "Asia/Kolkata",
+      "displayName": "Akila Duplicate",
+      "memberId": "member-selfrow"
+     }
+    ],
+    "familyVaultId": "vault-synthetic",
+    "lang": "en",
+    "needsProfile": false,
+    "numerologyMembers": [
+     {
+      "chartId": "chart-member-spouse",
+      "displayName": "Bala Synthetic",
+      "memberId": "member-spouse"
+     },
+     {
+      "chartId": "chart-member-child",
+      "displayName": "Chitra Synthetic",
+      "memberId": "member-child"
+     },
+     {
+      "chartId": "chart-member-selfrow",
+      "displayName": "Akila Duplicate",
+      "memberId": "member-selfrow"
+     }
+    ],
+    "onCloseTool": "ƒ",
+    "onDateChange": "ƒ",
+    "onGoToCalendar": "ƒ",
+    "onGoToPlan": "ƒ",
+    "onLoadVarshaphala": "ƒ",
+    "onOpenAskVinaadi": "ƒ",
+    "onOpenTool": "ƒ",
+    "ownerChart": {
+     "birthProfile": {
+      "birthDateLocal": "1990-01-15",
+      "birthLatitude": 11.5,
+      "birthLongitude": 78.25,
+      "birthPlace": "Synthetic Nagar",
+      "birthProfileId": "bp-owner-synthetic",
+      "birthTimeConfidenceMinutes": 5,
+      "birthTimeLocal": "06:30",
+      "birthTimezone": "Asia/Kolkata",
+      "children": "1",
+      "currentLatitude": null,
+      "currentLongitude": null,
+      "currentPlace": null,
+      "currentTimezone": null,
+      "displayName": "Akila Synthetic",
+      "employmentType": "salaried",
+      "maritalStatus": "single",
+      "relationshipToOwner": "self"
+     },
+     "chartId": "chart-owner",
+     "doshams": [
+      {
+       "code": "DOSHAM-chart-owner"
+      }
+     ],
+     "yogas": [
+      {
+       "code": "YOGA-chart-owner"
+      }
+     ]
+    },
+    "personalChartId": "chart-owner",
+    "relationshipAlerts": [
+     {
+      "tag": "alert"
+     }
+    ],
+    "relationshipAlertsLoading": false,
+    "selectedDate": "2026-10-09",
+    "showActivityTiming": false,
+    "showBabyNames": false,
+    "showChartGenerate": false,
+    "showNumerology": false,
+    "showPorutham": false,
+    "showRasipalan": false,
+    "showRetrospective": false,
+    "showSynastry": false,
+    "showVarshaphala": true,
+    "showWrapped": false,
+    "synastryMemberCharts": [
+     {
+      "chart": {
+       "birthProfile": {
+        "birthDateLocal": "1992-03-03",
+        "birthLatitude": 11.5,
+        "birthLongitude": 78.25,
+        "birthPlace": "Synthetic Nagar",
+        "birthProfileId": "bp-member-spouse",
+        "birthTimeConfidenceMinutes": 5,
+        "birthTimeLocal": "06:30",
+        "birthTimezone": "Asia/Kolkata",
+        "children": "1",
+        "currentLatitude": null,
+        "currentLongitude": null,
+        "currentPlace": null,
+        "currentTimezone": null,
+        "displayName": "Bala Synthetic",
+        "employmentType": "salaried",
+        "maritalStatus": "married",
+        "relationshipToOwner": "spouse"
+       },
+       "chartId": "chart-member-spouse",
+       "doshams": [
+        {
+         "code": "DOSHAM-chart-member-spouse"
+        }
+       ],
+       "yogas": [
+        {
+         "code": "YOGA-chart-member-spouse"
+        }
+       ]
+      },
+      "dailyGuidance": {
+       "score": 61
+      },
+      "dasha": {
+       "tag": "dasha-member-spouse"
+      },
+      "dashaAntar": [
+       {
+        "tag": "antar-member-spouse"
+       }
+      ],
+      "dashaMaha": {
+       "tag": "maha-member-spouse"
+      },
+      "displayName": "Bala Synthetic",
+      "explanation": {
+       "tag": "explanation-member-spouse"
+      },
+      "memberId": "member-spouse",
+      "nakshatraCard": {
+       "tag": "nak-member-spouse"
+      },
+      "peyarchiUpcoming": [
+       {
+        "tag": "peyarchi-member-spouse"
+       }
+      ],
+      "sani": {
+       "tag": "sani-member-spouse"
+      },
+      "summary": {
+       "chartId": "chart-member-spouse",
+       "janmaNakshatra": "PUSHYA",
+       "lagnaRasi": 9,
+       "moonRasi": 4
+      },
+      "transit": {
+       "tag": "transit-member-spouse"
+      },
+      "weekAhead": {
+       "tag": "week-member-spouse"
+      }
+     },
+     {
+      "chart": {
+       "birthProfile": {
+        "birthDateLocal": "1992-03-03",
+        "birthLatitude": 11.5,
+        "birthLongitude": 78.25,
+        "birthPlace": "Synthetic Nagar",
+        "birthProfileId": "bp-member-child",
+        "birthTimeConfidenceMinutes": 5,
+        "birthTimeLocal": "06:30",
+        "birthTimezone": "Asia/Kolkata",
+        "children": "1",
+        "currentLatitude": null,
+        "currentLongitude": null,
+        "currentPlace": null,
+        "currentTimezone": null,
+        "displayName": "Chitra Synthetic",
+        "employmentType": "salaried",
+        "maritalStatus": "married",
+        "relationshipToOwner": "child"
+       },
+       "chartId": "chart-member-child",
+       "doshams": [
+        {
+         "code": "DOSHAM-chart-member-child"
+        }
+       ],
+       "yogas": [
+        {
+         "code": "YOGA-chart-member-child"
+        }
+       ]
+      },
+      "dailyGuidance": {
+       "score": 58
+      },
+      "dasha": {
+       "tag": "dasha-member-child"
+      },
+      "dashaAntar": [
+       {
+        "tag": "antar-member-child"
+       }
+      ],
+      "dashaMaha": {
+       "tag": "maha-member-child"
+      },
+      "displayName": "Chitra Synthetic",
+      "explanation": {
+       "tag": "explanation-member-child"
+      },
+      "memberId": "member-child",
+      "nakshatraCard": {
+       "tag": "nak-member-child"
+      },
+      "peyarchiUpcoming": [
+       {
+        "tag": "peyarchi-member-child"
+       }
+      ],
+      "sani": {
+       "tag": "sani-member-child"
+      },
+      "summary": {
+       "chartId": "chart-member-child",
+       "janmaNakshatra": "PUSHYA",
+       "lagnaRasi": 9,
+       "moonRasi": 4
+      },
+      "transit": {
+       "tag": "transit-member-child"
+      },
+      "weekAhead": {
+       "tag": "week-member-child"
+      }
+     },
+     {
+      "chart": {
+       "birthProfile": {
+        "birthDateLocal": "1992-03-03",
+        "birthLatitude": 11.5,
+        "birthLongitude": 78.25,
+        "birthPlace": "Synthetic Nagar",
+        "birthProfileId": "bp-member-selfrow",
+        "birthTimeConfidenceMinutes": 5,
+        "birthTimeLocal": "06:30",
+        "birthTimezone": "Asia/Kolkata",
+        "children": "1",
+        "currentLatitude": null,
+        "currentLongitude": null,
+        "currentPlace": null,
+        "currentTimezone": null,
+        "displayName": "Akila Duplicate",
+        "employmentType": "salaried",
+        "maritalStatus": "married",
+        "relationshipToOwner": "self"
+       },
+       "chartId": "chart-member-selfrow",
+       "doshams": [
+        {
+         "code": "DOSHAM-chart-member-selfrow"
+        }
+       ],
+       "yogas": [
+        {
+         "code": "YOGA-chart-member-selfrow"
+        }
+       ]
+      },
+      "dailyGuidance": {
+       "score": 70
+      },
+      "dasha": {
+       "tag": "dasha-member-selfrow"
+      },
+      "dashaAntar": [
+       {
+        "tag": "antar-member-selfrow"
+       }
+      ],
+      "dashaMaha": {
+       "tag": "maha-member-selfrow"
+      },
+      "displayName": "Akila Duplicate",
+      "explanation": {
+       "tag": "explanation-member-selfrow"
+      },
+      "memberId": "member-selfrow",
+      "nakshatraCard": {
+       "tag": "nak-member-selfrow"
+      },
+      "peyarchiUpcoming": [
+       {
+        "tag": "peyarchi-member-selfrow"
+       }
+      ],
+      "sani": {
+       "tag": "sani-member-selfrow"
+      },
+      "summary": {
+       "chartId": "chart-member-selfrow",
+       "janmaNakshatra": "PUSHYA",
+       "lagnaRasi": 9,
+       "moonRasi": 4
+      },
+      "transit": {
+       "tag": "transit-member-selfrow"
+      },
+      "weekAhead": {
+       "tag": "week-member-selfrow"
+      }
+     }
+    ],
+    "synastryMemberOptions": [
+     {
+      "displayName": "Bala Synthetic",
+      "memberId": "member-spouse",
+      "relationshipToOwner": "spouse"
+     },
+     {
+      "displayName": "Chitra Synthetic",
+      "memberId": "member-child",
+      "relationshipToOwner": "child"
+     },
+     {
+      "displayName": "Akila Duplicate",
+      "memberId": "member-selfrow",
+      "relationshipToOwner": "self"
+     }
+    ],
+    "varshaphalaData": {
+     "year": 2027
+    },
+    "varshaphalaLoading": false
+   },
+   "viewSwap": {
+    "children": "‹element›",
+    "viewKey": "varshaphala"
+   }
+  },
+  "effects": [
+   [
+    "→",
+    "tools.onLoadVarshaphala",
+    2027
+   ],
+   [
+    "api",
+    "GET",
+    "/api/v1/charts/chart-owner/varshaphala?year=2027",
+    null
+   ]
+  ]
+ },
+ {
+  "step": "unknown tool id closes",
+  "url": "/dashboard/tools",
+  "history": "5/5",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "tools",
+   "viewSwap"
+  ],
+  "activeTab": "tools",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "calendar": {
+    "focusView": null,
+    "chartId": "chart-owner",
+    "selectedMemberId": null
+   },
+   "tools": {
+    "activeTool": null
+   },
+   "ask": {
+    "open": false
+   },
+   "viewSwap": {
+    "viewKey": "tools-hub"
+   }
+  },
+  "effects": [
+   [
+    "→",
+    "tools.onOpenTool",
+    "muhurta-finder-is-not-an-id"
+   ],
+   [
+    "window.scrollTo",
+    {
+     "behavior": "auto",
+     "top": 0
+    }
+   ],
+   [
+    "router.push",
+    "/dashboard/tools",
+    {
+     "scroll": false
+    }
+   ]
+  ]
+ },
+ {
+  "step": "tool closed",
+  "url": "/dashboard/tools",
+  "history": "7/7",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "tools",
+   "viewSwap"
+  ],
+  "activeTab": "tools",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "calendar": {
+    "focusView": null,
+    "chartId": "chart-owner",
+    "selectedMemberId": null
+   },
+   "tools": {
+    "activeTool": null
+   },
+   "ask": {
+    "open": false
+   },
+   "viewSwap": {
+    "viewKey": "tools-hub"
+   }
+  },
+  "effects": [
+   [
+    "→",
+    "tools.onOpenTool",
+    "babynames"
+   ],
+   [
+    "window.scrollTo",
+    {
+     "behavior": "auto",
+     "top": 0
+    }
+   ],
+   [
+    "router.push",
+    "/dashboard/tools/baby-name-finder",
+    {
+     "scroll": false
+    }
+   ],
+   [
+    "→",
+    "tools.onCloseTool"
+   ],
+   [
+    "window.scrollTo",
+    {
+     "behavior": "auto",
+     "top": 0
+    }
+   ],
+   [
+    "router.push",
+    "/dashboard/tools",
+    {
+     "scroll": false
+    }
+   ]
+  ]
+ },
+ {
+  "step": "tools.onGoToPlan",
+  "url": "/dashboard/goals",
+  "history": "8/8",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "plan"
+  ],
+  "activeTab": "plan",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "calendar": {
+    "focusView": null,
+    "chartId": "chart-owner",
+    "selectedMemberId": null
+   },
+   "tools": {
+    "activeTool": null
+   },
+   "ask": {
+    "open": false
+   },
+   "viewSwap": {
+    "viewKey": "tools-hub"
+   }
+  },
+  "effects": [
+   [
+    "→",
+    "tools.onGoToPlan"
+   ],
+   [
+    "window.scrollTo",
+    {
+     "behavior": "auto",
+     "top": 0
+    }
+   ],
+   [
+    "router.push",
+    "/dashboard/goals",
+    {
+     "scroll": false
+    }
+   ]
+  ]
+ },
+ {
+  "step": "tools.onGoToCalendar",
+  "url": "/dashboard/calendar",
+  "history": "10/10",
+  "shown": [
+   "ambient",
+   "ask",
+   "calendar",
+   "footerMorning",
+   "hero"
+  ],
+  "activeTab": "calendar",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "calendar": {
+    "focusView": null,
+    "chartId": "chart-owner",
+    "selectedMemberId": null
+   },
+   "tools": {
+    "activeTool": null
+   },
+   "ask": {
+    "open": false
+   },
+   "viewSwap": {
+    "viewKey": "tools-hub"
+   }
+  },
+  "effects": [
+   [
+    "→",
+    "hero.onTabChange",
+    "tools"
+   ],
+   [
+    "window.scrollTo",
+    {
+     "behavior": "auto",
+     "top": 0
+    }
+   ],
+   [
+    "router.push",
+    "/dashboard/tools",
+    {
+     "scroll": false
+    }
+   ],
+   [
+    "→",
+    "tools.onGoToCalendar"
+   ],
+   [
+    "window.scrollTo",
+    {
+     "behavior": "auto",
+     "top": 0
+    }
+   ],
+   [
+    "router.push",
+    "/dashboard/calendar",
+    {
+     "scroll": false
+    }
+   ]
+  ]
+ },
+ {
+  "step": "tools: ask + date",
+  "url": "/dashboard/calendar",
+  "history": "10/10",
+  "shown": [
+   "ambient",
+   "ask",
+   "calendar",
+   "footerMorning",
+   "hero"
+  ],
+  "activeTab": "calendar",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "calendar": {
+    "focusView": null,
+    "chartId": "chart-owner",
+    "selectedMemberId": null
+   },
+   "tools": {
+    "activeTool": null
+   },
+   "ask": {
+    "open": true
+   },
+   "viewSwap": {
+    "viewKey": "tools-hub"
+   }
+  },
+  "effects": [
+   [
+    "→",
+    "tools.onOpenAskVinaadi"
+   ],
+   [
+    "→",
+    "tools.onDateChange",
+    "2026-11-01"
+   ],
+   [
+    "personal.refreshPersonalBundle",
+    "bp-owner-synthetic",
+    "2026-11-01"
+   ],
+   [
+    "family.refreshFamilyBundle",
+    "vault-synthetic",
+    "2026-11-01"
+   ],
+   [
+    "personal.setJadhagamReport",
+    null
+   ],
+   [
+    "personal.setLifeAreas",
+    null
+   ]
+  ]
+ },
+ {
+  "step": "back ×1",
+  "url": "/dashboard/tools",
+  "history": "9/10",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "tools",
+   "viewSwap"
+  ],
+  "activeTab": "tools",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "calendar": {
+    "focusView": null,
+    "chartId": "chart-owner",
+    "selectedMemberId": null
+   },
+   "tools": {
+    "activeTool": null
+   },
+   "ask": {
+    "open": true
+   },
+   "viewSwap": {
+    "viewKey": "tools-hub"
+   }
+  },
+  "effects": [
+   [
+    "→",
+    "browser.back"
+   ],
+   [
+    "window.scrollTo",
+    {
+     "behavior": "auto",
+     "top": 0
+    }
+   ]
+  ]
+ },
+ {
+  "step": "back ×2",
+  "url": "/dashboard/goals",
+  "history": "8/10",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "plan"
+  ],
+  "activeTab": "plan",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "calendar": {
+    "focusView": null,
+    "chartId": "chart-owner",
+    "selectedMemberId": null
+   },
+   "tools": {
+    "activeTool": null
+   },
+   "ask": {
+    "open": true
+   },
+   "viewSwap": {
+    "viewKey": "tools-hub"
+   }
+  },
+  "effects": [
+   [
+    "→",
+    "browser.back"
+   ],
+   [
+    "window.scrollTo",
+    {
+     "behavior": "auto",
+     "top": 0
+    }
+   ]
+  ]
+ },
+ {
+  "step": "back ×3",
+  "url": "/dashboard/tools",
+  "history": "7/10",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "tools",
+   "viewSwap"
+  ],
+  "activeTab": "tools",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "calendar": {
+    "focusView": null,
+    "chartId": "chart-owner",
+    "selectedMemberId": null
+   },
+   "tools": {
+    "activeTool": null
+   },
+   "ask": {
+    "open": true
+   },
+   "viewSwap": {
+    "viewKey": "tools-hub"
+   }
+  },
+  "effects": [
+   [
+    "→",
+    "browser.back"
+   ],
+   [
+    "window.scrollTo",
+    {
+     "behavior": "auto",
+     "top": 0
+    }
+   ]
+  ]
+ },
+ {
+  "step": "back ×4",
+  "url": "/dashboard/tools/baby-name-finder",
+  "history": "6/10",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "tools",
+   "viewSwap"
+  ],
+  "activeTab": "tools",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "calendar": {
+    "focusView": null,
+    "chartId": "chart-owner",
+    "selectedMemberId": null
+   },
+   "tools": {
+    "activeTool": "babynames"
+   },
+   "ask": {
+    "open": true
+   },
+   "viewSwap": {
+    "viewKey": "babynames"
+   }
+  },
+  "effects": [
+   [
+    "→",
+    "browser.back"
+   ],
+   [
+    "window.scrollTo",
+    {
+     "behavior": "auto",
+     "top": 0
+    }
+   ]
+  ]
+ },
+ {
+  "step": "forward",
+  "url": "/dashboard/tools",
+  "history": "7/10",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "tools",
+   "viewSwap"
+  ],
+  "activeTab": "tools",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "calendar": {
+    "focusView": null,
+    "chartId": "chart-owner",
+    "selectedMemberId": null
+   },
+   "tools": {
+    "activeTool": null
+   },
+   "ask": {
+    "open": true
+   },
+   "viewSwap": {
+    "viewKey": "tools-hub"
+   }
+  },
+  "effects": [
+   [
+    "→",
+    "browser.forward"
+   ],
+   [
+    "window.scrollTo",
+    {
+     "behavior": "auto",
+     "top": 0
+    }
+   ]
+  ]
+ },
+ {
+  "step": "explore → calendar: way back offered",
+  "url": "/dashboard/calendar",
+  "history": "9/9",
+  "shown": [
+   "ambient",
+   "ask",
+   "calendar",
+   "footerMorning",
+   "hero"
+  ],
+  "activeTab": "calendar",
+  "exploreBack": true,
+  "predictionsEnabled": false,
+  "focus": {
+   "calendar": {
+    "focusView": null,
+    "chartId": "chart-owner",
+    "selectedMemberId": null
+   },
+   "tools": {
+    "activeTool": null
+   },
+   "ask": {
+    "open": true
+   },
+   "viewSwap": {
+    "viewKey": "tools-hub"
+   }
+  },
+  "effects": [
+   [
+    "→",
+    "hero.onTabChange",
+    "explore"
+   ],
+   [
+    "window.scrollTo",
+    {
+     "behavior": "auto",
+     "top": 0
+    }
+   ],
+   [
+    "router.push",
+    "/dashboard/explore",
+    {
+     "scroll": false
+    }
+   ],
+   [
+    "→",
+    "explore.onNavigate",
+    "calendar"
+   ],
+   [
+    "window.scrollTo",
+    {
+     "behavior": "auto",
+     "top": 0
+    }
+   ],
+   [
+    "router.push",
+    "/dashboard/calendar",
+    {
+     "scroll": false
+    }
+   ]
+  ]
+ },
+ {
+  "step": "back and forward again: a history move drops the way back",
+  "url": "/dashboard/calendar",
+  "history": "9/9",
+  "shown": [
+   "ambient",
+   "ask",
+   "calendar",
+   "footerMorning",
+   "hero"
+  ],
+  "activeTab": "calendar",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "calendar": {
+    "focusView": null,
+    "chartId": "chart-owner",
+    "selectedMemberId": null
+   },
+   "tools": {
+    "activeTool": null
+   },
+   "ask": {
+    "open": true
+   },
+   "viewSwap": {
+    "viewKey": "tools-hub"
+   }
+  },
+  "effects": [
+   [
+    "→",
+    "browser.back"
+   ],
+   [
+    "window.scrollTo",
+    {
+     "behavior": "auto",
+     "top": 0
+    }
+   ],
+   [
+    "→",
+    "browser.forward"
+   ],
+   [
+    "window.scrollTo",
+    {
+     "behavior": "auto",
+     "top": 0
+    }
+   ]
+  ]
+ },
+ {
+  "step": "settings via hero",
+  "url": "/dashboard/settings/account",
+  "history": "10/10",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "settingsSession"
+  ],
+  "activeTab": "settings",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "calendar": {
+    "focusView": null,
+    "chartId": "chart-owner",
+    "selectedMemberId": null
+   },
+   "tools": {
+    "activeTool": null
+   },
+   "ask": {
+    "open": true
+   },
+   "settingsSession": {
+    "section": "account"
+   },
+   "viewSwap": {
+    "viewKey": "tools-hub"
+   }
+  },
+  "effects": [
+   [
+    "→",
+    "hero.onGoToSettings"
+   ],
+   [
+    "session.setShowUserMenu",
+    false
+   ],
+   [
+    "window.scrollTo",
+    {
+     "behavior": "auto",
+     "top": 0
+    }
+   ],
+   [
+    "router.push",
+    "/dashboard/settings/account",
+    {
+     "scroll": false
+    }
+   ]
+  ]
+ },
+ {
+  "step": "a no-op jump does not leave the next move pushing",
+  "url": "/dashboard/settings/appearance",
+  "history": "10/10",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "settingsSession"
+  ],
+  "activeTab": "settings",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "calendar": {
+    "focusView": null,
+    "chartId": "chart-owner",
+    "selectedMemberId": null
+   },
+   "tools": {
+    "activeTool": null
+   },
+   "ask": {
+    "open": true
+   },
+   "settingsSession": {
+    "section": "appearance"
+   },
+   "viewSwap": {
+    "viewKey": "tools-hub"
+   }
+  },
+  "effects": [
+   [
+    "→",
+    "hero.onTabChange",
+    "settings"
+   ],
+   [
+    "→",
+    "settingsSession.onNavigate",
+    "appearance"
+   ],
+   [
+    "router.replace",
+    "/dashboard/settings/appearance",
+    {
+     "scroll": false
+    }
+   ]
+  ]
+ },
+ {
+  "step": "settings → notifications",
+  "url": "/dashboard/settings/notifications",
+  "history": "10/10",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "settingsSession"
+  ],
+  "activeTab": "settings",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "calendar": {
+    "focusView": null,
+    "chartId": "chart-owner",
+    "selectedMemberId": null
+   },
+   "tools": {
+    "activeTool": null
+   },
+   "ask": {
+    "open": true
+   },
+   "settingsSession": {
+    "section": "notifications"
+   },
+   "viewSwap": {
+    "viewKey": "tools-hub"
+   }
+  },
+  "effects": [
+   [
+    "→",
+    "settingsSession.onNavigate",
+    "notifications"
+   ],
+   [
+    "router.replace",
+    "/dashboard/settings/notifications",
+    {
+     "scroll": false
+    }
+   ]
+  ]
+ },
+ {
+  "step": "settings → setup",
+  "url": "/dashboard/settings/setup",
+  "history": "10/10",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "setup"
+  ],
+  "activeTab": "settings",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "calendar": {
+    "focusView": null,
+    "chartId": "chart-owner",
+    "selectedMemberId": null
+   },
+   "tools": {
+    "activeTool": null
+   },
+   "ask": {
+    "open": true
+   },
+   "settingsSession": {
+    "section": "notifications"
+   },
+   "viewSwap": {
+    "viewKey": "tools-hub"
+   }
+  },
+  "effects": [
+   [
+    "→",
+    "settingsSession.onNavigate",
+    "setup"
+   ],
+   [
+    "window.scrollTo",
+    {
+     "behavior": "auto",
+     "top": 0
+    }
+   ],
+   [
+    "router.replace",
+    "/dashboard/settings/setup",
+    {
+     "scroll": false
+    }
+   ]
+  ]
+ },
+ {
+  "step": "settings → privacy",
+  "url": "/dashboard/settings/privacy",
+  "history": "10/10",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "settingsSession"
+  ],
+  "activeTab": "settings",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "calendar": {
+    "focusView": null,
+    "chartId": "chart-owner",
+    "selectedMemberId": null
+   },
+   "tools": {
+    "activeTool": null
+   },
+   "ask": {
+    "open": true
+   },
+   "settingsSession": {
+    "section": "privacy"
+   },
+   "viewSwap": {
+    "viewKey": "tools-hub"
+   }
+  },
+  "effects": [
+   [
+    "→",
+    "setup.onNavigate",
+    "privacy"
+   ],
+   [
+    "window.scrollTo",
+    {
+     "behavior": "auto",
+     "top": 0
+    }
+   ],
+   [
+    "router.replace",
+    "/dashboard/settings/privacy",
+    {
+     "scroll": false
+    }
+   ]
+  ]
+ },
+ {
+  "step": "settings → context",
+  "url": "/dashboard/settings/life-context",
+  "history": "10/10",
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "settingsSession"
+  ],
+  "activeTab": "settings",
+  "exploreBack": false,
+  "predictionsEnabled": false,
+  "focus": {
+   "calendar": {
+    "focusView": null,
+    "chartId": "chart-owner",
+    "selectedMemberId": null
+   },
+   "tools": {
+    "activeTool": null
+   },
+   "ask": {
+    "open": true
+   },
+   "settingsSession": {
+    "section": "context"
+   },
+   "viewSwap": {
+    "viewKey": "tools-hub"
+   }
+  },
+  "effects": [
+   [
+    "→",
+    "settingsSession.onNavigate",
+    "context"
+   ],
+   [
+    "router.replace",
+    "/dashboard/settings/life-context",
+    {
+     "scroll": false
+    }
+   ]
+  ]
+ },
+ {
+  "step": "settings pane in Tamil",
+  "url": "/dashboard/settings/life-context",
+  "history": 10,
+  "shown": [
+   "ambient",
+   "ask",
+   "footerMorning",
+   "hero",
+   "settingsSession"
+  ],
+  "dom": {
+   "htmlLang": "ta",
+   "dataLang": "ta",
+   "activeTab": "settings",
+   "onboarding": null,
+   "exploreBack": null,
+   "printTag": "திருக்கணித ஜோதிடம்",
+   "feedbackLabel": "கருத்து",
+   "footer": {
+    "legal": "ஜோதிடம் ஒரு பாரம்பரிய நம்பிக்கை அமைப்பு — அறிவியல் உண்மை அல்ல. மருத்துவ, சட்ட, நிதி முடிவுகளுக்கு தகுதிவாய்ந்த நிபுணரை அணுகுங்கள்.",
+    "navLabel": "அடிக்குறிப்பு வழிசெலுத்தல்",
+    "links": [
+     [
+      "ஆராயுங்கள்",
+      "BUTTON:இன்று:",
+      "BUTTON:நாட்காட்டி:",
+      "BUTTON:வாழ்க்கைத் துறைகள்:",
+      "A:சொற்களஞ்சியம்:/dashboard/glossary"
+     ],
+     [
+      "தனிப்பட்ட",
+      "BUTTON:குடும்பம் & ஜாதகம்:",
+      "BUTTON:குறிப்பேடு:",
+      "BUTTON:அமைப்புகள்:"
+     ]
+    ]
+   }
+  },
+  "hooks": {
+   "useFamilyData": {
+    "onStatus": "ƒ",
+    "ownerUserId": "user-synthetic",
+    "selectedDate": "2026-11-01"
+   },
+   "useJournalData": {
+    "lang": "ta",
+    "onError": "ƒ",
+    "onStatus": "ƒ"
+   },
+   "useNotificationInbox": {
+    "lang": "ta",
+    "onError": "ƒ"
+   },
+   "usePersonalData": {
+    "onStatus": "ƒ",
+    "predictionsEnabled": false,
+    "selectedDate": "2026-11-01"
+   },
+   "usePlanData": {
+    "chartId": "chart-owner",
+    "onError": "ƒ",
+    "onGoalAdded": "ƒ",
+    "onGoalRemoved": "ƒ"
+   },
+   "useSession": {
+    "onSetupRedirect": "ƒ"
+   }
+  },
+  "props": {
+   "ambient": {
+    "moon": {
+     "cyclePosition": 0.5,
+     "fraction": 1,
+     "waxing": true
+    }
+   },
+   "ask": {
+    "activeLifeMode": "CAREER",
+    "chartId": "chart-owner",
+    "goalTrack": null,
+    "hideLauncher": true,
+    "lang": "ta",
+    "onOpenChange": "ƒ",
+    "open": true
+   },
+   "calendar": {
+    "chartId": "chart-owner",
+    "focusView": null,
+    "lang": "ta",
+    "locationLabel": "Synthetic Nagar, IN",
+    "memberCharts": [
+     {
+      "displayName": "Bala Synthetic",
+      "memberId": "member-spouse"
+     },
+     {
+      "displayName": "Chitra Synthetic",
+      "memberId": "member-child"
+     },
+     {
+      "displayName": "Akila Duplicate",
+      "memberId": "member-selfrow"
+     }
+    ],
+    "monthFocus": {
+     "activities": [
+      "job_change",
+      "business_start"
+     ],
+     "chartId": "chart-owner",
+     "label": "label:CAREER:ta"
+    },
+    "muhurtaFocusActivities": [
+     "job_change",
+     "business_start"
+    ],
+    "onFocusConsumed": "ƒ",
+    "onSelectDate": "ƒ",
+    "onSelectMember": "ƒ",
+    "panchangam": {
+     "sunrise": "06:01",
+     "tithi": {
+      "number": 15,
+      "paksha": "SHUKLA"
+     }
+    },
+    "panchangamTimezone": "Asia/Kolkata",
+    "panchangamTimings": {
+     "tag": "timings"
+    },
+    "pending": false,
+    "selectedDate": "2026-11-01",
+    "selectedMemberId": null,
+    "todayDate": "2026-10-09"
+   },
+   "explore": {
+    "lang": "ta",
+    "memberCharts": [
+     {
+      "chart": {
+       "birthProfile": {
+        "birthDateLocal": "1992-03-03",
+        "birthLatitude": 11.5,
+        "birthLongitude": 78.25,
+        "birthPlace": "Synthetic Nagar",
+        "birthProfileId": "bp-member-spouse",
+        "birthTimeConfidenceMinutes": 5,
+        "birthTimeLocal": "06:30",
+        "birthTimezone": "Asia/Kolkata",
+        "children": "1",
+        "currentLatitude": null,
+        "currentLongitude": null,
+        "currentPlace": null,
+        "currentTimezone": null,
+        "displayName": "Bala Synthetic",
+        "employmentType": "salaried",
+        "maritalStatus": "married",
+        "relationshipToOwner": "spouse"
+       },
+       "chartId": "chart-member-spouse",
+       "doshams": [
+        {
+         "code": "DOSHAM-chart-member-spouse"
+        }
+       ],
+       "yogas": [
+        {
+         "code": "YOGA-chart-member-spouse"
+        }
+       ]
+      },
+      "dailyGuidance": {
+       "score": 61
+      },
+      "dasha": {
+       "tag": "dasha-member-spouse"
+      },
+      "dashaAntar": [
+       {
+        "tag": "antar-member-spouse"
+       }
+      ],
+      "dashaMaha": {
+       "tag": "maha-member-spouse"
+      },
+      "displayName": "Bala Synthetic",
+      "explanation": {
+       "tag": "explanation-member-spouse"
+      },
+      "memberId": "member-spouse",
+      "nakshatraCard": {
+       "tag": "nak-member-spouse"
+      },
+      "peyarchiUpcoming": [
+       {
+        "tag": "peyarchi-member-spouse"
+       }
+      ],
+      "sani": {
+       "tag": "sani-member-spouse"
+      },
+      "summary": {
+       "chartId": "chart-member-spouse",
+       "janmaNakshatra": "PUSHYA",
+       "lagnaRasi": 9,
+       "moonRasi": 4
+      },
+      "transit": {
+       "tag": "transit-member-spouse"
+      },
+      "weekAhead": {
+       "tag": "week-member-spouse"
+      }
+     },
+     {
+      "chart": {
+       "birthProfile": {
+        "birthDateLocal": "1992-03-03",
+        "birthLatitude": 11.5,
+        "birthLongitude": 78.25,
+        "birthPlace": "Synthetic Nagar",
+        "birthProfileId": "bp-member-child",
+        "birthTimeConfidenceMinutes": 5,
+        "birthTimeLocal": "06:30",
+        "birthTimezone": "Asia/Kolkata",
+        "children": "1",
+        "currentLatitude": null,
+        "currentLongitude": null,
+        "currentPlace": null,
+        "currentTimezone": null,
+        "displayName": "Chitra Synthetic",
+        "employmentType": "salaried",
+        "maritalStatus": "married",
+        "relationshipToOwner": "child"
+       },
+       "chartId": "chart-member-child",
+       "doshams": [
+        {
+         "code": "DOSHAM-chart-member-child"
+        }
+       ],
+       "yogas": [
+        {
+         "code": "YOGA-chart-member-child"
+        }
+       ]
+      },
+      "dailyGuidance": {
+       "score": 58
+      },
+      "dasha": {
+       "tag": "dasha-member-child"
+      },
+      "dashaAntar": [
+       {
+        "tag": "antar-member-child"
+       }
+      ],
+      "dashaMaha": {
+       "tag": "maha-member-child"
+      },
+      "displayName": "Chitra Synthetic",
+      "explanation": {
+       "tag": "explanation-member-child"
+      },
+      "memberId": "member-child",
+      "nakshatraCard": {
+       "tag": "nak-member-child"
+      },
+      "peyarchiUpcoming": [
+       {
+        "tag": "peyarchi-member-child"
+       }
+      ],
+      "sani": {
+       "tag": "sani-member-child"
+      },
+      "summary": {
+       "chartId": "chart-member-child",
+       "janmaNakshatra": "PUSHYA",
+       "lagnaRasi": 9,
+       "moonRasi": 4
+      },
+      "transit": {
+       "tag": "transit-member-child"
+      },
+      "weekAhead": {
+       "tag": "week-member-child"
+      }
+     },
+     {
+      "chart": {
+       "birthProfile": {
+        "birthDateLocal": "1992-03-03",
+        "birthLatitude": 11.5,
+        "birthLongitude": 78.25,
+        "birthPlace": "Synthetic Nagar",
+        "birthProfileId": "bp-member-selfrow",
+        "birthTimeConfidenceMinutes": 5,
+        "birthTimeLocal": "06:30",
+        "birthTimezone": "Asia/Kolkata",
+        "children": "1",
+        "currentLatitude": null,
+        "currentLongitude": null,
+        "currentPlace": null,
+        "currentTimezone": null,
+        "displayName": "Akila Duplicate",
+        "employmentType": "salaried",
+        "maritalStatus": "married",
+        "relationshipToOwner": "self"
+       },
+       "chartId": "chart-member-selfrow",
+       "doshams": [
+        {
+         "code": "DOSHAM-chart-member-selfrow"
+        }
+       ],
+       "yogas": [
+        {
+         "code": "YOGA-chart-member-selfrow"
+        }
+       ]
+      },
+      "dailyGuidance": {
+       "score": 70
+      },
+      "dasha": {
+       "tag": "dasha-member-selfrow"
+      },
+      "dashaAntar": [
+       {
+        "tag": "antar-member-selfrow"
+       }
+      ],
+      "dashaMaha": {
+       "tag": "maha-member-selfrow"
+      },
+      "displayName": "Akila Duplicate",
+      "explanation": {
+       "tag": "explanation-member-selfrow"
+      },
+      "memberId": "member-selfrow",
+      "nakshatraCard": {
+       "tag": "nak-member-selfrow"
+      },
+      "peyarchiUpcoming": [
+       {
+        "tag": "peyarchi-member-selfrow"
+       }
+      ],
+      "sani": {
+       "tag": "sani-member-selfrow"
+      },
+      "summary": {
+       "chartId": "chart-member-selfrow",
+       "janmaNakshatra": "PUSHYA",
+       "lagnaRasi": 9,
+       "moonRasi": 4
+      },
+      "transit": {
+       "tag": "transit-member-selfrow"
+      },
+      "weekAhead": {
+       "tag": "week-member-selfrow"
+      }
+     }
+    ],
+    "nakshatraCard": {
+     "tag": "nak-owner"
+    },
+    "onNavigate": "ƒ",
+    "onOpenAskVinaadi": "ƒ",
+    "pending": false,
+    "personalChart": {
+     "birthProfile": {
+      "birthDateLocal": "1990-01-15",
+      "birthLatitude": 11.5,
+      "birthLongitude": 78.25,
+      "birthPlace": "Synthetic Nagar",
+      "birthProfileId": "bp-owner-synthetic",
+      "birthTimeConfidenceMinutes": 5,
+      "birthTimeLocal": "06:30",
+      "birthTimezone": "Asia/Kolkata",
+      "children": "1",
+      "currentLatitude": null,
+      "currentLongitude": null,
+      "currentPlace": null,
+      "currentTimezone": null,
+      "displayName": "Akila Synthetic",
+      "employmentType": "salaried",
+      "maritalStatus": "single",
+      "relationshipToOwner": "self"
+     },
+     "chartId": "chart-owner",
+     "doshams": [
+      {
+       "code": "DOSHAM-chart-owner"
+      }
+     ],
+     "yogas": [
+      {
+       "code": "YOGA-chart-owner"
+      }
+     ]
+    },
+    "personalChartSummary": {
+     "chartId": "chart-owner",
+     "janmaNakshatra": "ASHWINI",
+     "lagnaRasi": 6,
+     "moonRasi": 1
+    },
+    "personalDailyGuidance": {
+     "score": 74
+    }
+   },
+   "footerMorning": {
+    "lang": "ta",
+    "onOpenSettings": "ƒ"
+   },
+   "hero": {
+    "activeTab": "settings",
+    "alertCount": 1,
+    "alertItems": [
+     {
+      "body": "செய்தி",
+      "title": "தலைப்பு",
+      "type": "transit"
+     }
+    ],
+    "askReady": true,
+    "birthDisplayName": "Akila Synthetic",
+    "birthTimeConfidenceMinutes": 5,
+    "birthTimeLocal": "06:30",
+    "chartSummary": {
+     "chartId": "chart-owner",
+     "janmaNakshatra": "ASHWINI",
+     "lagnaRasi": 6,
+     "moonRasi": 1
+    },
+    "dayLoading": false,
+    "inboxItems": [
+     {
+      "tag": "inbox-item"
+     }
+    ],
+    "inboxUnreadCount": 1,
+    "lang": "ta",
+    "onAskVinaadi": "ƒ",
+    "onDateChange": "ƒ",
+    "onGoToSettings": "ƒ",
+    "onInboxOpen": "ƒ",
+    "onLangToggle": "ƒ",
+    "onMarkAllRead": "ƒ",
+    "onMarkOneRead": "ƒ",
+    "onOpenNotificationSettings": "ƒ",
+    "onSignOut": "ƒ",
+    "onTabChange": "ƒ",
+    "onUserMenuClose": "ƒ",
+    "onUserMenuToggle": "ƒ",
+    "panchangamPlace": "Synthetic Nagar",
+    "panchangamSunrise": "06:01",
+    "selectedDate": "2026-11-01",
+    "selectedVault": {
+     "familyVaultId": "vault-synthetic",
+     "memberCount": 2,
+     "name": "Synthetic household",
+     "ownerUserId": "user-synthetic"
+    },
+    "selectedVaultId": "vault-synthetic",
+    "showUserMenu": false,
+    "status": null,
+    "userEmail": "synthetic@example.test"
+   },
+   "journal": {
+    "chartId": "chart-owner",
+    "chartSummary": {
+     "chartId": "chart-owner",
+     "janmaNakshatra": "ASHWINI",
+     "lagnaRasi": 6,
+     "moonRasi": 1
+    },
+    "contextData": {
+     "tag": "context"
+    },
+    "hasBirthProfile": true,
+    "journalCorrelations": {
+     "tag": "correlations"
+    },
+    "journalEntries": [
+     {
+      "tag": "entry"
+     }
+    ],
+    "journalTotal": 1,
+    "lang": "ta",
+    "mode": "BALANCED",
+    "onEntryArchived": "ƒ",
+    "onEntrySaved": "ƒ",
+    "onGoToChart": "ƒ",
+    "onManageContext": "ƒ",
+    "selectedDate": "2026-11-01"
+   },
+   "plan": {
+    "addingGoalType": "",
+    "chartId": "chart-owner",
+    "focusActivities": [
+     "job_change",
+     "business_start"
+    ],
+    "goals": [
+     {
+      "goalId": "goal-1",
+      "goalType": "job_change"
+     }
+    ],
+    "goalsBusy": false,
+    "hasBirthProfile": true,
+    "lang": "ta",
+    "mode": "BALANCED",
+    "onAddGoal": "ƒ",
+    "onAddingGoalTypeChange": "ƒ",
+    "onGoToCalendar": "ƒ",
+    "onGoToChart": "ƒ",
+    "onGoToJournal": "ƒ",
+    "onGoToLifeAreas": "ƒ",
+    "onGoToMuhurta": "ƒ",
+    "onRemoveGoal": "ƒ",
+    "onRunWhatIf": "ƒ",
+    "onWhatIfDateChange": "ƒ",
+    "onWhatIfScenarioChange": "ƒ",
+    "removingGoalId": "",
+    "whatIfBusy": false,
+    "whatIfDate": "",
+    "whatIfError": null,
+    "whatIfResult": null,
+    "whatIfScenario": "job_change"
+   },
+   "settingsSession": {
+    "birthProfileId": "bp-owner-synthetic",
+    "blockedLifeModes": [
+     "MARRIAGE"
+    ],
+    "busyFamily": false,
+    "busyJournalSettings": false,
+    "busyPersonal": false,
+    "busyRetentionApply": false,
+    "chartId": "chart-owner",
+    "contextData": {
+     "tag": "context"
+    },
+    "janmaNakshatra": "ASHWINI",
+    "journalLastRetentionReviewedAt": null,
+    "journalLastUpdatedAt": "2026-09-01T00:00:00Z",
+    "journalNextRecommendedReviewDate": "2027-01-01",
+    "journalRetentionDays": 180,
+    "lagnaRasi": 6,
+    "lang": "ta",
+    "lifeMode": "CAREER",
+    "moonRasi": 1,
+    "notificationPrefs": {
+     "tag": "prefs"
+    },
+    "onAcknowledgeJournalReminder": "ƒ",
+    "onApplyRetention": "ƒ",
+    "onContextUpdated": "ƒ",
+    "onLangChange": "ƒ",
+    "onNavigate": "ƒ",
+    "onNotificationPrefsSaved": "ƒ",
+    "onRefreshFamily": "ƒ",
+    "onRefreshPersonal": "ƒ",
+    "onSaveJournalRetentionDays": "ƒ",
+    "onSaveLifeMode": "ƒ",
+    "onSaveUserSettings": "ƒ",
+    "onSelectedDateChange": "ƒ",
+    "onSignOut": "ƒ",
+    "ownerUserId": "user-synthetic",
+    "section": "context",
+    "selectedDate": "2026-11-01",
+    "selectedVaultId": "vault-synthetic",
+    "userDisplayName": "Akila Synthetic",
+    "userMode": "BALANCED",
+    "vaultName": "Synthetic household"
+   },
+   "setup": {
+    "birthForm": {
+     "birthDateLocal": "1990-01-15",
+     "birthLatitude": "11.5",
+     "birthLongitude": "78.25",
+     "birthPlace": "Synthetic Nagar",
+     "birthTimeConfidenceMinutes": "0",
+     "birthTimeLocal": "06:30",
+     "birthTimeSource": "unknown",
+     "birthTimezone": "Asia/Kolkata",
+     "calculateNow": true,
+     "children": "1",
+     "currentLatitude": "",
+     "currentLongitude": "",
+     "currentPlace": "",
+     "currentTimezone": "",
+     "displayName": "Akila Synthetic",
+     "employmentType": "salaried",
+     "maritalStatus": "single",
+     "ownerUserId": "user-synthetic",
+     "relationshipToOwner": "self"
+    },
+    "birthProfileId": "bp-owner-synthetic",
+    "birthProfilesReloadToken": 0,
+    "busy": {
+     "addMember": false,
+     "createProfile": false
+    },
+    "formErrors": {},
+    "lang": "ta",
+    "memberForm": {
+     "birthDateLocal": "",
+     "birthLatitude": "",
+     "birthLongitude": "",
+     "birthPlace": "",
+     "birthTimeConfidenceMinutes": "0",
+     "birthTimeLocal": "",
+     "birthTimeSource": "unknown",
+     "birthTimezone": "",
+     "calculateNow": true,
+     "currentLatitude": "",
+     "currentLongitude": "",
+     "currentPlace": "",
+     "currentTimezone": "",
+     "displayName": "",
+     "memberWeight": "1.00",
+     "relationshipToOwner": "spouse"
+    },
+    "onAddMember": "ƒ",
+    "onBirthFormChange": "ƒ",
+    "onCreateProfile": "ƒ",
+    "onEditBirthProfile": "ƒ",
+    "onFormErrorChange": "ƒ",
+    "onGoToPersonal": "ƒ",
+    "onMemberFormChange": "ƒ",
+    "onModeChange": "ƒ",
+    "onNavigate": "ƒ",
+    "onShowEditProfile": "ƒ",
+    "selectedVault": {
+     "familyVaultId": "vault-synthetic",
+     "memberCount": 2,
+     "name": "Synthetic household",
+     "ownerUserId": "user-synthetic"
+    },
+    "selectedVaultId": "vault-synthetic",
+    "userMode": "BALANCED"
+   },
+   "tools": {
+    "activeTool": null,
+    "familyMembersForPorutham": [
+     {
+      "birthDateLocal": "1990-01-15",
+      "birthLatitude": 11.5,
+      "birthLongitude": 78.25,
+      "birthPlace": "Synthetic Nagar",
+      "birthTimeLocal": "06:30",
+      "birthTimezone": "Asia/Kolkata",
+      "displayName": "Akila Synthetic",
+      "memberId": "owner:bp-owner-synthetic"
+     },
+     {
+      "birthDateLocal": "1992-03-03",
+      "birthLatitude": 11.5,
+      "birthLongitude": 78.25,
+      "birthPlace": "Synthetic Nagar",
+      "birthTimeLocal": "06:30",
+      "birthTimezone": "Asia/Kolkata",
+      "displayName": "Bala Synthetic",
+      "memberId": "member-spouse"
+     },
+     {
+      "birthDateLocal": "1992-03-03",
+      "birthLatitude": 11.5,
+      "birthLongitude": 78.25,
+      "birthPlace": "Synthetic Nagar",
+      "birthTimeLocal": "06:30",
+      "birthTimezone": "Asia/Kolkata",
+      "displayName": "Chitra Synthetic",
+      "memberId": "member-child"
+     },
+     {
+      "birthDateLocal": "1992-03-03",
+      "birthLatitude": 11.5,
+      "birthLongitude": 78.25,
+      "birthPlace": "Synthetic Nagar",
+      "birthTimeLocal": "06:30",
+      "birthTimezone": "Asia/Kolkata",
+      "displayName": "Akila Duplicate",
+      "memberId": "member-selfrow"
+     }
+    ],
+    "familyVaultId": "vault-synthetic",
+    "lang": "ta",
+    "needsProfile": false,
+    "numerologyMembers": [
+     {
+      "chartId": "chart-member-spouse",
+      "displayName": "Bala Synthetic",
+      "memberId": "member-spouse"
+     },
+     {
+      "chartId": "chart-member-child",
+      "displayName": "Chitra Synthetic",
+      "memberId": "member-child"
+     },
+     {
+      "chartId": "chart-member-selfrow",
+      "displayName": "Akila Duplicate",
+      "memberId": "member-selfrow"
+     }
+    ],
+    "onCloseTool": "ƒ",
+    "onDateChange": "ƒ",
+    "onGoToCalendar": "ƒ",
+    "onGoToPlan": "ƒ",
+    "onLoadVarshaphala": "ƒ",
+    "onOpenAskVinaadi": "ƒ",
+    "onOpenTool": "ƒ",
+    "ownerChart": {
+     "birthProfile": {
+      "birthDateLocal": "1990-01-15",
+      "birthLatitude": 11.5,
+      "birthLongitude": 78.25,
+      "birthPlace": "Synthetic Nagar",
+      "birthProfileId": "bp-owner-synthetic",
+      "birthTimeConfidenceMinutes": 5,
+      "birthTimeLocal": "06:30",
+      "birthTimezone": "Asia/Kolkata",
+      "children": "1",
+      "currentLatitude": null,
+      "currentLongitude": null,
+      "currentPlace": null,
+      "currentTimezone": null,
+      "displayName": "Akila Synthetic",
+      "employmentType": "salaried",
+      "maritalStatus": "single",
+      "relationshipToOwner": "self"
+     },
+     "chartId": "chart-owner",
+     "doshams": [
+      {
+       "code": "DOSHAM-chart-owner"
+      }
+     ],
+     "yogas": [
+      {
+       "code": "YOGA-chart-owner"
+      }
+     ]
+    },
+    "personalChartId": "chart-owner",
+    "relationshipAlerts": [
+     {
+      "tag": "alert"
+     }
+    ],
+    "relationshipAlertsLoading": false,
+    "selectedDate": "2026-11-01",
+    "showActivityTiming": false,
+    "showBabyNames": false,
+    "showChartGenerate": false,
+    "showNumerology": false,
+    "showPorutham": false,
+    "showRasipalan": false,
+    "showRetrospective": false,
+    "showSynastry": false,
+    "showVarshaphala": false,
+    "showWrapped": false,
+    "synastryMemberCharts": [
+     {
+      "chart": {
+       "birthProfile": {
+        "birthDateLocal": "1992-03-03",
+        "birthLatitude": 11.5,
+        "birthLongitude": 78.25,
+        "birthPlace": "Synthetic Nagar",
+        "birthProfileId": "bp-member-spouse",
+        "birthTimeConfidenceMinutes": 5,
+        "birthTimeLocal": "06:30",
+        "birthTimezone": "Asia/Kolkata",
+        "children": "1",
+        "currentLatitude": null,
+        "currentLongitude": null,
+        "currentPlace": null,
+        "currentTimezone": null,
+        "displayName": "Bala Synthetic",
+        "employmentType": "salaried",
+        "maritalStatus": "married",
+        "relationshipToOwner": "spouse"
+       },
+       "chartId": "chart-member-spouse",
+       "doshams": [
+        {
+         "code": "DOSHAM-chart-member-spouse"
+        }
+       ],
+       "yogas": [
+        {
+         "code": "YOGA-chart-member-spouse"
+        }
+       ]
+      },
+      "dailyGuidance": {
+       "score": 61
+      },
+      "dasha": {
+       "tag": "dasha-member-spouse"
+      },
+      "dashaAntar": [
+       {
+        "tag": "antar-member-spouse"
+       }
+      ],
+      "dashaMaha": {
+       "tag": "maha-member-spouse"
+      },
+      "displayName": "Bala Synthetic",
+      "explanation": {
+       "tag": "explanation-member-spouse"
+      },
+      "memberId": "member-spouse",
+      "nakshatraCard": {
+       "tag": "nak-member-spouse"
+      },
+      "peyarchiUpcoming": [
+       {
+        "tag": "peyarchi-member-spouse"
+       }
+      ],
+      "sani": {
+       "tag": "sani-member-spouse"
+      },
+      "summary": {
+       "chartId": "chart-member-spouse",
+       "janmaNakshatra": "PUSHYA",
+       "lagnaRasi": 9,
+       "moonRasi": 4
+      },
+      "transit": {
+       "tag": "transit-member-spouse"
+      },
+      "weekAhead": {
+       "tag": "week-member-spouse"
+      }
+     },
+     {
+      "chart": {
+       "birthProfile": {
+        "birthDateLocal": "1992-03-03",
+        "birthLatitude": 11.5,
+        "birthLongitude": 78.25,
+        "birthPlace": "Synthetic Nagar",
+        "birthProfileId": "bp-member-child",
+        "birthTimeConfidenceMinutes": 5,
+        "birthTimeLocal": "06:30",
+        "birthTimezone": "Asia/Kolkata",
+        "children": "1",
+        "currentLatitude": null,
+        "currentLongitude": null,
+        "currentPlace": null,
+        "currentTimezone": null,
+        "displayName": "Chitra Synthetic",
+        "employmentType": "salaried",
+        "maritalStatus": "married",
+        "relationshipToOwner": "child"
+       },
+       "chartId": "chart-member-child",
+       "doshams": [
+        {
+         "code": "DOSHAM-chart-member-child"
+        }
+       ],
+       "yogas": [
+        {
+         "code": "YOGA-chart-member-child"
+        }
+       ]
+      },
+      "dailyGuidance": {
+       "score": 58
+      },
+      "dasha": {
+       "tag": "dasha-member-child"
+      },
+      "dashaAntar": [
+       {
+        "tag": "antar-member-child"
+       }
+      ],
+      "dashaMaha": {
+       "tag": "maha-member-child"
+      },
+      "displayName": "Chitra Synthetic",
+      "explanation": {
+       "tag": "explanation-member-child"
+      },
+      "memberId": "member-child",
+      "nakshatraCard": {
+       "tag": "nak-member-child"
+      },
+      "peyarchiUpcoming": [
+       {
+        "tag": "peyarchi-member-child"
+       }
+      ],
+      "sani": {
+       "tag": "sani-member-child"
+      },
+      "summary": {
+       "chartId": "chart-member-child",
+       "janmaNakshatra": "PUSHYA",
+       "lagnaRasi": 9,
+       "moonRasi": 4
+      },
+      "transit": {
+       "tag": "transit-member-child"
+      },
+      "weekAhead": {
+       "tag": "week-member-child"
+      }
+     },
+     {
+      "chart": {
+       "birthProfile": {
+        "birthDateLocal": "1992-03-03",
+        "birthLatitude": 11.5,
+        "birthLongitude": 78.25,
+        "birthPlace": "Synthetic Nagar",
+        "birthProfileId": "bp-member-selfrow",
+        "birthTimeConfidenceMinutes": 5,
+        "birthTimeLocal": "06:30",
+        "birthTimezone": "Asia/Kolkata",
+        "children": "1",
+        "currentLatitude": null,
+        "currentLongitude": null,
+        "currentPlace": null,
+        "currentTimezone": null,
+        "displayName": "Akila Duplicate",
+        "employmentType": "salaried",
+        "maritalStatus": "married",
+        "relationshipToOwner": "self"
+       },
+       "chartId": "chart-member-selfrow",
+       "doshams": [
+        {
+         "code": "DOSHAM-chart-member-selfrow"
+        }
+       ],
+       "yogas": [
+        {
+         "code": "YOGA-chart-member-selfrow"
+        }
+       ]
+      },
+      "dailyGuidance": {
+       "score": 70
+      },
+      "dasha": {
+       "tag": "dasha-member-selfrow"
+      },
+      "dashaAntar": [
+       {
+        "tag": "antar-member-selfrow"
+       }
+      ],
+      "dashaMaha": {
+       "tag": "maha-member-selfrow"
+      },
+      "displayName": "Akila Duplicate",
+      "explanation": {
+       "tag": "explanation-member-selfrow"
+      },
+      "memberId": "member-selfrow",
+      "nakshatraCard": {
+       "tag": "nak-member-selfrow"
+      },
+      "peyarchiUpcoming": [
+       {
+        "tag": "peyarchi-member-selfrow"
+       }
+      ],
+      "sani": {
+       "tag": "sani-member-selfrow"
+      },
+      "summary": {
+       "chartId": "chart-member-selfrow",
+       "janmaNakshatra": "PUSHYA",
+       "lagnaRasi": 9,
+       "moonRasi": 4
+      },
+      "transit": {
+       "tag": "transit-member-selfrow"
+      },
+      "weekAhead": {
+       "tag": "week-member-selfrow"
+      }
+     }
+    ],
+    "synastryMemberOptions": [
+     {
+      "displayName": "Bala Synthetic",
+      "memberId": "member-spouse",
+      "relationshipToOwner": "spouse"
+     },
+     {
+      "displayName": "Chitra Synthetic",
+      "memberId": "member-child",
+      "relationshipToOwner": "child"
+     },
+     {
+      "displayName": "Akila Duplicate",
+      "memberId": "member-selfrow",
+      "relationshipToOwner": "self"
+     }
+    ],
+    "varshaphalaData": {
+     "year": 2027
+    },
+    "varshaphalaLoading": false
+   },
+   "viewSwap": {
+    "children": "‹element›",
+    "viewKey": "tools-hub"
+   }
+  },
+  "effects": [
+   [
+    "→",
+    "settingsSession.onLangChange",
+    "ta"
+   ],
+   [
+    "api",
+    "PATCH",
+    "/api/v1/settings/ui",
+    {
+     "lang": "ta"
+    }
+   ]
+  ]
+ }
+]

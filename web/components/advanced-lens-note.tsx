@@ -54,7 +54,7 @@ export function AdvancedLensNote({
         <p style={{ margin: 0, fontSize: 12, color: "var(--color-faint)", lineHeight: 1.5 }}>
           <strong>{isTamil ? "துல்லியம்: " : "Precision: "}</strong>
           {isTamil
-            ? "மதிப்பெண்களும் பார்வைகளும் வெறும் ராசி நிலையை மட்டும் அல்ல — கிரகங்களின் சரியான பாகை (degree) அடிப்படையிலேயே கணக்கிடப்படுகின்றன (உச்சம்/நீசம், அஸ்தமனம், தசை மீதி, திக்/சேஷ்ட பலம் அனைத்தும் பாகை சார்ந்தவை)."
+            ? "மதிப்பெண்களும் பார்வைகளும் வெறும் ராசி நிலையை மட்டும் அல்ல — கிரகங்களின் சரியான பாகை (degree) அடிப்படையிலேயே கணக்கிடப்படுகின்றன (உச்சம்/நீசம், அஸ்தங்கம், தசை மீதி, திக்/சேஷ்ட பலம் அனைத்தும் பாகை சார்ந்தவை)."
             : "Scores and aspects are computed from each planet's exact degree — not just its sign. Exaltation/debilitation, combustion, dasha balance, and Dig/Chesta strength all use precise sidereal longitudes."}
         </p>
       )}

@@ -6,9 +6,9 @@ from datetime import date, timedelta
 import pytest
 
 from app.calculations.muhurta_engine import Subject, score_day
-from app.calculations.panchangam import calculate_daily_panchangam
 from app.calculations.tara_bala import tara_number
 from app.services.muhurta_service import _apply_tara_display_cap
+from app.services.panchangam_cache import calculate_daily_panchangam
 
 pytestmark = pytest.mark.no_db
 
@@ -33,7 +33,7 @@ def test_adverse_taras_cannot_cross_the_owner_approved_display_bands(snapshots):
         day = score_day(snapshot, "MARRIAGE", subject)
         # A deliberately large addition stands in for every later non-veto layer
         # (dasha + hora): it proves the cap, rather than a weak day, enforces it.
-        displayed_raw = _apply_tara_display_cap(day.score + 100.0, snapshot, subject)
+        displayed_raw = _apply_tara_display_cap(day.score + 100.0, snapshot, (subject,))
         tara = tara_number(subject.janma_nakshatra, snapshot.nakshatra_number)
         if tara == 7:
             assert displayed_raw < 55.0

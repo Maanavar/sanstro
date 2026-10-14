@@ -1,3 +1,4 @@
+import type * as Server from "../generated/api-types";
 import { getApiClient } from "./client";
 
 /**
@@ -9,36 +10,13 @@ import { getApiClient } from "./client";
  * worked example. Experimental / display only — not used in any scoring
  * path. Backend: GET /charts/{id}/kalachakra-dasha
  * (app/services/kalachakra_dasha_service.py).
+ *
+ * Types are the server's own (A14 step 7), generated from the response model.
+ * Render `rasi` through the localiser, never `rasiName`/`rasiCode` (CLAUDE.md,
+ * display boundary).
  */
-export interface KalachakraDashaPeriod {
-  level: "maha" | "antar";
-  rasi: number;
-  rasiCode: string;
-  rasiName: string | null;
-  years: number;
-  startDate: string;
-  endDate: string;
-}
-
-export interface KalachakraDashaData {
-  chartId: string;
-  openingInfo: {
-    chakra: string;
-    direction: string;
-    pada: number;
-    paramayus: number;
-    rasi: number;
-    rasiCode: string;
-    rasiName: string | null;
-    balanceYearsAtBirth: number;
-  };
-  current: {
-    mahadasha: KalachakraDashaPeriod;
-    antardasha: KalachakraDashaPeriod;
-  };
-  mahadashas: KalachakraDashaPeriod[];
-  antardashas: KalachakraDashaPeriod[];
-}
+export type KalachakraDashaPeriod = Server.KalachakraDashaPeriod;
+export type KalachakraDashaData = Server.KalachakraDashaData;
 
 export const kalachakraDashaKeys = {
   timeline: (chartId: string, asOf?: string) =>

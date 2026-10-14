@@ -10,6 +10,7 @@ from app.calculations.panchangam import PanchangamSlot, _durmuhurtham_windows
 from app.data.durmuhurtham_rules import DURMUHURTHAM_DAYLIGHT_INDICES
 from app.data.muhurta_activity_registry import ACTIVITY_RULES
 from app.services.muhurta_service import _daylight_fragments
+from app.services.panchangam_service import _build_kalam
 
 pytestmark = pytest.mark.no_db
 
@@ -59,6 +60,39 @@ def test_window_exclusion_splits_a_candidate_without_losing_the_other_safe_piece
         (sunrise + timedelta(minutes=24), sunrise + timedelta(hours=2)),
         (sunrise + timedelta(hours=3), snapshot.sunset - timedelta(minutes=24)),
     ]
+
+
+def test_durmuhurtham_reaches_the_daily_panchangam_response():
+    """The rule has been computed and cached since 2026-08-16, but every client
+    surface was blind to it because `_build_kalam` dropped it on the floor."""
+    base = datetime(2026, 6, 1, 6, 0)
+    empty = PanchangamSlot(base, base + timedelta(minutes=90), 1)
+    snapshot = SimpleNamespace(
+        rahu_kalam=empty,
+        yamagandam=empty,
+        kuligai=empty,
+        gowri_panchangam=[],
+        nalla_neram=[],
+        gowri_nalla_neram=[],
+        durmuhurtham=[
+            PanchangamSlot(
+                base + timedelta(hours=2),
+                base + timedelta(hours=2, minutes=48),
+                4,
+                name="DURMUHURTHAM",
+                period="DAY",
+                is_good=False,
+            ),
+        ],
+    )
+
+    kalam = _build_kalam(snapshot)
+
+    assert [(s.start, s.end, s.slot) for s in kalam.durmuhurtham] == [("08:00", "08:48", 4)]
+    assert kalam.durmuhurtham[0].is_good is False
+    # camelCase is the wire contract for every other list on this model; a
+    # single-word field has no alias, so this asserts the key clients read.
+    assert "durmuhurtham" in kalam.model_dump(by_alias=True)
 
 
 def test_all_activities_default_to_day_only_until_the_owner_signs_an_exception():

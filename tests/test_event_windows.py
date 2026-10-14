@@ -39,7 +39,7 @@ def test_find_marriage_windows_requires_dasha_and_transit_support(monkeypatch):
     monkeypatch.setattr("app.calculations.event_windows.calculate_vimshottari_timeline", fake_timeline)
     monkeypatch.setattr("app.calculations.event_windows.calculate_sidereal_planets", fake_snapshot)
 
-    chart = ChartData(lagna_rasi=1, moon_longitude=240.0, birth_jd=2449061.6145833335)
+    chart = ChartData(lagna_rasi=1, moon_longitude=240.0, birth_jd=2447313.926388889)
     windows = find_marriage_windows(chart, 2025, 2027)
     assert len(windows) == 1
     assert windows[0].start_date.year == 2027
@@ -56,6 +56,6 @@ def test_find_marriage_windows_empty_when_no_support(monkeypatch):
     monkeypatch.setattr("app.calculations.event_windows.calculate_vimshottari_timeline", fake_timeline)
     monkeypatch.setattr("app.calculations.event_windows.calculate_sidereal_planets", fake_snapshot)
 
-    chart = ChartData(lagna_rasi=1, moon_longitude=240.0, birth_jd=2449061.6145833335)
+    chart = ChartData(lagna_rasi=1, moon_longitude=240.0, birth_jd=2447313.926388889)
     windows = find_marriage_windows(chart, 2026, 2028)
     assert windows == []

@@ -411,3 +411,177 @@ def test_delete_family_vault_soft_deletes_row(client, family_vault_payload_facto
         row = session.get(FamilyVault, vault_id)
         assert row is not None
         assert row.deleted_at is not None
+
+
+# ── Member edit: the three things the PATCH used to drop on the floor ────────
+#
+# `update_family_member` wrote the birth-profile columns by hand and stopped
+# there, so a member edit skipped everything that has to ride with a birth-data
+# change. Each test below fails against that implementation.
+
+
+def _member_with_chart(client, vault_payload_factory, member_payload_factory, **kwargs):
+    vault = client.post("/api/v1/family-vaults", json=vault_payload_factory()).json()["data"]
+    vault_id = vault["familyVaultId"]
+    member = client.post(
+        f"/api/v1/family-vaults/{vault_id}/members",
+        json=member_payload_factory(display_name="Test Subject", **kwargs),
+    ).json()["data"]
+    return vault_id, member
+
+
+
+def _latest_chart_id_for_profile(birth_profile_id: str) -> str:
+    """The newest Chart row for a profile — what every family surface resolves to
+    via `_latest_chart`. A recalculation writes a NEW row rather than mutating the
+    old one, so the previously-held chart id keeps answering with the old Lagna."""
+    from sqlalchemy import select
+
+    from app.models.chart import Chart
+
+    with SessionLocal() as session:
+        chart = session.execute(
+            select(Chart)
+            .where(Chart.birth_profile_id == birth_profile_id, Chart.status == "completed")
+            .order_by(Chart.created_at.desc())
+            .limit(1)
+        ).scalars().first()
+        return str(chart.chart_id) if chart is not None else ""
+
+
+def test_member_patch_applies_birth_date(client, family_vault_payload_factory, family_member_payload_factory):
+    """birthDateLocal was absent from FamilyMemberUpdate, so pydantic dropped it
+    and the endpoint answered 200 with the old date still stored."""
+    vault_id, member = _member_with_chart(client, family_vault_payload_factory, family_member_payload_factory)
+
+    resp = client.patch(
+        f"/api/v1/family-vaults/{vault_id}/members/{member['familyMemberId']}",
+        json={"birthDateLocal": "1988-03-14"},
+    )
+    assert resp.status_code == 200
+
+    profiles = client.get("/api/v1/birth-profiles").json()["data"]
+    profile = next(p for p in profiles if p["birthProfileId"] == member["birthProfileId"])
+    assert profile["birthDateLocal"] == "1988-03-14"
+
+
+def test_member_patch_rejects_impossible_birth_date(client, family_vault_payload_factory, family_member_payload_factory):
+    """Same bounds as /birth-profiles — the two doors must not disagree."""
+    vault_id, member = _member_with_chart(client, family_vault_payload_factory, family_member_payload_factory)
+
+    resp = client.patch(
+        f"/api/v1/family-vaults/{vault_id}/members/{member['familyMemberId']}",
+        json={"birthDateLocal": "1823-01-01"},
+    )
+    assert resp.status_code == 422
+
+
+def test_member_patch_recalculates_chart_after_birth_time_change(
+    client, family_vault_payload_factory, family_member_payload_factory
+):
+    """A birth time moved by nine hours must move the Lagna. Without a
+    recalculation the member kept pointing at a chart cast from the old minute
+    while the profile beside it showed the new one.
+
+    Asserted against the member's CURRENT chartId, not the one captured before
+    the edit: `force_recalculate` writes a new Chart row rather than mutating
+    the old one (`_chart_persist.calculate_chart_for_persisted_profile`), and
+    the old row keeps answering with the old Lagna forever. Reading the stale id
+    made this test fail against a working fix — the chart response embeds the
+    live birth profile, so `birthTimeLocal` showed the new time on a chart whose
+    positions were the old ones, which is exactly what the pre-fix bug looked
+    like from the outside."""
+    vault_id, member = _member_with_chart(client, family_vault_payload_factory, family_member_payload_factory)
+    old_chart_id = member["chartId"]
+    before = client.get(f"/api/v1/charts/{old_chart_id}").json()["data"]["lagna"]["rasi"]
+
+    resp = client.patch(
+        f"/api/v1/family-vaults/{vault_id}/members/{member['familyMemberId']}",
+        json={"birthTimeLocal": "15:30:00"},
+    )
+    assert resp.status_code == 200
+
+    # Read the profile's current chart from the DB: FamilyMemberData carries no
+    # chartId, and GET /birth-profiles leaves its `chartId` null (it is never
+    # populated by `list_birth_profiles_for_owner`, despite the field's docstring).
+    new_chart_id = _latest_chart_id_for_profile(member["birthProfileId"])
+    assert new_chart_id != old_chart_id, "no recalculation happened"
+
+    after = client.get(f"/api/v1/charts/{new_chart_id}").json()["data"]
+    assert after["birthProfile"]["birthTimeLocal"].startswith("15:30")
+    assert after["lagna"]["rasi"] != before
+
+
+def test_member_patch_syncs_name_onto_the_family_member_row(
+    client, family_vault_payload_factory, family_member_payload_factory
+):
+    """FamilyMember mirrors display_name and date_of_birth_local from the
+    profile; the family surfaces read the mirror, so it must not drift."""
+    vault_id, member = _member_with_chart(client, family_vault_payload_factory, family_member_payload_factory)
+
+    client.patch(
+        f"/api/v1/family-vaults/{vault_id}/members/{member['familyMemberId']}",
+        json={"birthDateLocal": "1990-02-02"},
+    )
+
+    listed = client.get(f"/api/v1/family-vaults/{vault_id}/members").json()["data"]["items"][0]
+    assert listed["dateOfBirthLocal"] == "1990-02-02"
+
+
+def test_member_patch_can_set_and_then_clear_a_current_location(
+    client, family_vault_payload_factory, family_member_payload_factory
+):
+    """An empty currentPlace is the only way to say "they moved back". It has to
+    take the coordinates with it — a named place with stale coordinates would
+    still win over the birth place in `resolve_effective_daily_location`."""
+    vault_id, member = _member_with_chart(client, family_vault_payload_factory, family_member_payload_factory)
+    member_id = member["familyMemberId"]
+    url = f"/api/v1/family-vaults/{vault_id}/members/{member_id}"
+
+    assert client.patch(url, json={
+        "currentPlace": "Singapore",
+        "currentLatitude": 1.3521,
+        "currentLongitude": 103.8198,
+        "currentTimezone": "Asia/Singapore",
+    }).status_code == 200
+
+    profiles = client.get("/api/v1/birth-profiles").json()["data"]
+    profile = next(p for p in profiles if p["birthProfileId"] == member["birthProfileId"])
+    assert profile["currentPlace"] == "Singapore"
+    assert profile["currentTimezone"] == "Asia/Singapore"
+
+    assert client.patch(url, json={"currentPlace": ""}).status_code == 200
+
+    profiles = client.get("/api/v1/birth-profiles").json()["data"]
+    profile = next(p for p in profiles if p["birthProfileId"] == member["birthProfileId"])
+    assert profile["currentPlace"] is None
+    assert profile["currentLatitude"] is None
+    assert profile["currentLongitude"] is None
+    assert profile["currentTimezone"] is None
+
+
+def test_editing_a_family_linked_profile_from_the_profiles_list_syncs_the_family_row(
+    client, family_vault_payload_factory, family_member_payload_factory
+):
+    """Setup -> all birth profiles -> Edit writes through /birth-profiles, not
+    through the member endpoint.
+
+    That is deliberate: the profiles list edits birth DATA, while relationship
+    and weight are membership facts belonging to the Family surface. It only
+    holds up because `FamilyMember`'s duplicated `display_name` and
+    `date_of_birth_local` are mirrored back from the profile — the family
+    switcher, aggregate rows and age buckets all read the mirror, so without the
+    sync a rename in Setup would leave the Family tab showing the old name with
+    nothing on screen to say which one was current.
+    """
+    vault_id, member = _member_with_chart(client, family_vault_payload_factory, family_member_payload_factory)
+
+    resp = client.patch(
+        f"/api/v1/birth-profiles/{member['birthProfileId']}",
+        json={"displayName": "Renamed In Settings", "birthDateLocal": "1989-11-05"},
+    )
+    assert resp.status_code == 200
+
+    listed = client.get(f"/api/v1/family-vaults/{vault_id}/members").json()["data"]["items"][0]
+    assert listed["displayName"] == "Renamed In Settings"
+    assert listed["dateOfBirthLocal"] == "1989-11-05"

@@ -86,6 +86,52 @@ describe("setReady", () => {
   });
 });
 
+describe("open beta gating", () => {
+  it("unlocks premium features for a registered account while the beta runs", () => {
+    const { result } = renderHook(() => useSession(), { wrapper });
+    act(() => {
+      result.current.setSession(MOCK_USER, "registered", true);
+    });
+    expect(result.current.gateTier).toBe("premium");
+  });
+
+  it("keeps tier as the subscription fact, so no one is shown a plan they did not buy", () => {
+    const { result } = renderHook(() => useSession(), { wrapper });
+    act(() => {
+      result.current.setSession(MOCK_USER, "registered", true);
+    });
+    expect(result.current.tier).toBe("registered");
+  });
+
+  it("gates on the real tier once the beta ends", () => {
+    const { result } = renderHook(() => useSession(), { wrapper });
+    act(() => {
+      result.current.setSession(MOCK_USER, "registered", false);
+    });
+    expect(result.current.gateTier).toBe("registered");
+  });
+
+  it("never lifts a guest — the beta is for accounts", () => {
+    const { result } = renderHook(() => useSession(), { wrapper });
+    act(() => {
+      result.current.setSession(MOCK_USER, "guest", true);
+    });
+    expect(result.current.gateTier).toBe("guest");
+  });
+
+  it("drops the beta flag on logout", () => {
+    const { result } = renderHook(() => useSession(), { wrapper });
+    act(() => {
+      result.current.setSession(MOCK_USER, "registered", true);
+    });
+    act(() => {
+      result.current.clearSession();
+    });
+    expect(result.current.openBeta).toBe(false);
+    expect(result.current.gateTier).toBe("guest");
+  });
+});
+
 describe("clearSession (logout)", () => {
   it("resets tier to guest", () => {
     const { result } = renderHook(() => useSession(), { wrapper });

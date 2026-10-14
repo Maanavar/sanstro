@@ -1,9 +1,11 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
+import { JsonLd, articleTa, faqPageLd } from "@/lib/json-ld";
 import type { Metadata } from "next";
 import { TEMPLE_THIRUNALLAR_FAQ } from "@/lib/marketing-i18n";
 import { ThirunallarContent } from "./PageContent";
 
-export const metadata: Metadata = {
-  title: "Thirunallar Saniswaran Temple — Power, Sani Peyarchi & Worship | Vinaadi",
+const EN_METADATA: Metadata = {
+  title: "Thirunallar Saniswaran Temple — Power, Sani Peyarchi & Worship",
   description:
     "Thirunallar near Karaikal is the foremost Navagraha temple for Saturn (Saniswaran). Learn what it is known for, why devotees visit during Sani peyarchi and Ezharai Sani, how to worship, and the Sani slokam.",
   keywords: [
@@ -32,6 +34,10 @@ export const metadata: Metadata = {
   },
 };
 
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/temples/thirunallar");
+}
+
 const PLACE_JSONLD = {
   "@context": "https://schema.org",
   "@type": "Place",
@@ -46,15 +52,8 @@ const PLACE_JSONLD = {
   },
 };
 
-const FAQ_JSONLD = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: TEMPLE_THIRUNALLAR_FAQ.map((f) => ({
-    "@type": "Question",
-    name: f.q.en,
-    acceptedAnswer: { "@type": "Answer", text: f.a.en },
-  })),
-};
+const FAQ_JSONLD = faqPageLd(TEMPLE_THIRUNALLAR_FAQ, "en");
+const FAQ_JSONLD_TA = faqPageLd(TEMPLE_THIRUNALLAR_FAQ, "ta");
 
 const ARTICLE_JSONLD = {
   "@context": "https://schema.org",
@@ -69,9 +68,9 @@ const ARTICLE_JSONLD = {
 export default function ThirunallarPage() {
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ARTICLE_JSONLD) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(PLACE_JSONLD) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSONLD) }} />
+      <JsonLd en={ARTICLE_JSONLD} ta={articleTa(ARTICLE_JSONLD)} />
+      <JsonLd en={PLACE_JSONLD} />
+      <JsonLd en={FAQ_JSONLD} ta={FAQ_JSONLD_TA} />
       <ThirunallarContent />
     </>
   );

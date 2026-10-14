@@ -1,3 +1,4 @@
+import type * as Server from "../generated/api-types";
 import { getApiClient } from "./client";
 
 /**
@@ -5,30 +6,11 @@ import { getApiClient } from "./client";
  * Muhurta Chintamani tradition). See app/calculations/yogini_dasha.py for
  * the documented starting-offset convention this project uses. Backend:
  * GET /charts/{id}/yogini-dasha (app/services/yogini_dasha_service.py).
+ *
+ * Types are the server's own (A14 step 7), generated from the response model.
  */
-export interface YoginiDashaPeriod {
-  level: "maha" | "antar";
-  yogini: string;
-  rulingPlanet: string;
-  years: number;
-  startDate: string;
-  endDate: string;
-}
-
-export interface YoginiDashaData {
-  chartId: string;
-  openingYogini: {
-    yogini: string;
-    rulingPlanet: string;
-    balanceYearsAtBirth: number;
-  };
-  current: {
-    mahadasha: YoginiDashaPeriod;
-    antardasha: YoginiDashaPeriod;
-  };
-  mahadashas: YoginiDashaPeriod[];
-  antardashas: YoginiDashaPeriod[];
-}
+export type YoginiDashaPeriod = Server.YoginiDashaPeriod;
+export type YoginiDashaData = Server.YoginiDashaData;
 
 export const yoginiDashaKeys = {
   timeline: (chartId: string, asOf?: string) =>

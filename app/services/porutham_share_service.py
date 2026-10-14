@@ -8,6 +8,7 @@ from uuid import UUID, uuid4
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.constants.versions import CHART_CALCULATION_VERSION
 from app.core.config import get_settings
 from app.models.porutham_share import PoruthamShare
 from app.schemas.dasha import ResponseMeta
@@ -70,8 +71,8 @@ def create_porutham_share(
         )
 
     try:
-        chart_a = _chart_response_from_profile(_ShareSourceProfile(person_a), "thirukanitham-2026-v1")
-        chart_b = _chart_response_from_profile(_ShareSourceProfile(person_b), "thirukanitham-2026-v1")
+        chart_a = _chart_response_from_profile(_ShareSourceProfile(person_a), CHART_CALCULATION_VERSION)
+        chart_b = _chart_response_from_profile(_ShareSourceProfile(person_b), CHART_CALCULATION_VERSION)
     except (ValueError, HTTPException) as exc:
         msg = exc.detail if isinstance(exc, HTTPException) else str(exc)
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=msg) from exc
@@ -91,6 +92,13 @@ def create_porutham_share(
         "rajjuDosha": porutham.rajju_dosha,
         "vedhaDosha": porutham.vedha_dosha,
         "nadiDosha": porutham.nadi_dosha.model_dump(by_alias=True),
+        # F-POR-02. A share is a frozen snapshot, so the note is stored with
+        # it rather than recomputed on view: the engine's reading may move, and
+        # a shared link must keep saying what it said when it was shared.
+        "shashtashtaka": (
+            porutham.shashtashtaka.model_dump(by_alias=True)
+            if porutham.shashtashtaka else None
+        ),
         "summary": porutham.summary.model_dump(),
         "compatibilityContext": porutham.compatibility_context,
         "contextNote": porutham.context_note.model_dump() if porutham.context_note else None,
@@ -122,7 +130,7 @@ def create_porutham_share(
             label_a=share.label_a,
             label_b=share.label_b,
         ),
-        meta=ResponseMeta(calculation_version="thirukanitham-2026-v1", generated_at=now),
+        meta=ResponseMeta(calculation_version=CHART_CALCULATION_VERSION, generated_at=now),
     )
 
 
@@ -158,6 +166,8 @@ def get_porutham_share_by_token(session: Session, token: str) -> PoruthamShareVi
             rajju_dosha=snapshot["rajjuDosha"],
             vedha_dosha=snapshot["vedhaDosha"],
             nadi_dosha=snapshot["nadiDosha"],
+            # .get(): snapshots frozen before F-POR-02 have no such key.
+            shashtashtaka=snapshot.get("shashtashtaka"),
             summary=snapshot["summary"],
             compatibility_context=snapshot["compatibilityContext"],
             context_note=snapshot["contextNote"],

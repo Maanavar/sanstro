@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { SUBSCRIPTION_PLANS } from "@vinaadi/shared/constants";
+import { LocalizedLink as Link } from "@/components/localized-link";
+import { useLang } from "@/components/lang-context";
+import { OPEN_BETA, SUBSCRIPTION_PLANS } from "@vinaadi/shared/constants";
 
 /** ₹ with Indian digit grouping; "Free" for zero (MKT-14). */
-function formatINR(amount: number): string {
-  if (amount <= 0) return "Free";
+function formatINR(amount: number, free = "Free"): string {
+  if (amount <= 0) return free;
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
@@ -35,6 +36,9 @@ const eyebrowStyle: React.CSSProperties = {
 
 export function PricingPlans() {
   const [billing, setBilling] = useState<"monthly" | "annual">("annual");
+  const [lang] = useLang();
+  const L = (en: string, ta: string) => (lang === "ta" ? ta : en);
+  const free = L("Free", "இலவசம்");
 
   const monthly = SUBSCRIPTION_PLANS.monthly;
   const annual = SUBSCRIPTION_PLANS.annual;
@@ -46,7 +50,7 @@ export function PricingPlans() {
       {/* Billing toggle */}
       <div
         role="group"
-        aria-label="Billing period"
+        aria-label={L("Billing period", "கட்டணக் காலம்")}
         style={{
           display: "inline-flex",
           alignSelf: "start",
@@ -79,10 +83,10 @@ export function PricingPlans() {
                 transition: "background 150ms ease, color 150ms ease",
               }}
             >
-              {option === "monthly" ? "Monthly" : "Annual"}
+              {option === "monthly" ? L("Monthly", "மாதந்தோறும்") : L("Annual", "ஆண்டுதோறும்")}
               {option === "annual" && annual.savingsPercent ? (
                 <span style={{ marginLeft: "6px", fontSize: "0.72rem", opacity: 0.85 }}>
-                  save {annual.savingsPercent}%
+                  {L(`save ${annual.savingsPercent}%`, `${annual.savingsPercent}% சேமிப்பு`)}
                 </span>
               ) : null}
             </button>
@@ -93,34 +97,34 @@ export function PricingPlans() {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px" }}>
         {/* Guest */}
         <div style={cardBase}>
-          <p style={eyebrowStyle}>Guest</p>
-          <h2 style={{ margin: 0, fontSize: "1.5rem", color: "var(--cl-ink)" }}>Free to explore</h2>
+          <p style={eyebrowStyle}>{L("Guest", "விருந்தினர்")}</p>
+          <h2 style={{ margin: 0, fontSize: "1.5rem", color: "var(--cl-ink)" }}>{L("Free to explore", "ஆராய இலவசம்")}</h2>
           <p style={{ margin: 0, color: "var(--cl-muted)", lineHeight: 1.6 }}>
-            See today&apos;s public value before creating an account.
+            {L("See today's public value before creating an account.", "கணக்கு உருவாக்கும் முன் இன்றைய பொதுப் பலன்களைப் பாருங்கள்.")}
           </p>
           <p style={{ margin: "4px 0 0", fontSize: "1.9rem", fontWeight: 800, color: "var(--cl-ink)" }}>
-            {formatINR(0)}
+            {formatINR(0, free)}
           </p>
           <div style={{ marginTop: "auto", paddingTop: "12px" }}>
             <Link href="/tools/indraiya-rasipalan" className="cl-btn cl-btn--ghost" style={{ width: "100%" }}>
-              Try guest mode
+              {L("Try guest mode", "விருந்தினராக முயலுங்கள்")}
             </Link>
           </div>
         </div>
 
         {/* Registered */}
         <div style={cardBase}>
-          <p style={eyebrowStyle}>Registered</p>
-          <h2 style={{ margin: 0, fontSize: "1.5rem", color: "var(--cl-ink)" }}>Free account</h2>
+          <p style={eyebrowStyle}>{L("Registered", "பதிவுசெய்தவர்")}</p>
+          <h2 style={{ margin: 0, fontSize: "1.5rem", color: "var(--cl-ink)" }}>{L("Free account", "இலவசக் கணக்கு")}</h2>
           <p style={{ margin: 0, color: "var(--cl-muted)", lineHeight: 1.6 }}>
-            Unlock saved charts, journal tracking, and current dasha context.
+            {L("Unlock saved charts, journal tracking, and current dasha context.", "சேமித்த ஜாதகங்கள், நாட்குறிப்புக் கண்காணிப்பு, நடப்பு தசைச் சூழலைத் திறக்கவும்.")}
           </p>
           <p style={{ margin: "4px 0 0", fontSize: "1.9rem", fontWeight: 800, color: "var(--cl-ink)" }}>
-            {formatINR(0)}
+            {formatINR(0, free)}
           </p>
           <div style={{ marginTop: "auto", paddingTop: "12px" }}>
             <Link href="/login" className="cl-btn cl-btn--solid" style={{ width: "100%" }}>
-              Create free account
+              {L("Create free account", "இலவசக் கணக்கை உருவாக்குங்கள்")}
             </Link>
           </div>
         </div>
@@ -149,32 +153,48 @@ export function PricingPlans() {
               textTransform: "uppercase",
             }}
           >
-            Recommended
+            {L("Recommended", "பரிந்துரை")}
           </span>
-          <p style={{ ...eyebrowStyle, color: "var(--cl-accent)" }}>Premium</p>
-          <h2 style={{ margin: 0, fontSize: "1.5rem", color: "var(--cl-ink)" }}>Full depth</h2>
+          <p style={{ ...eyebrowStyle, color: "var(--cl-accent)" }}>{L("Premium", "பிரீமியம்")}</p>
+          <h2 style={{ margin: 0, fontSize: "1.5rem", color: "var(--cl-ink)" }}>{L("Full depth", "முழு ஆழம்")}</h2>
           <p style={{ margin: 0, color: "var(--cl-ink-2)", lineHeight: 1.6 }}>
-            For families who want unlimited chart work, richer timing tools, and deeper reports.
+            {L("For families who want unlimited chart work, richer timing tools, and deeper reports.", "வரம்பற்ற ஜாதகப் பணி, செழுமையான நேரக் கருவிகள், ஆழமான அறிக்கைகளை விரும்பும் குடும்பங்களுக்கு.")}
           </p>
           <p style={{ margin: "4px 0 0", fontSize: "1.9rem", fontWeight: 800, color: "var(--cl-ink)" }}>
-            {formatINR(premiumPlan.priceINR)}
+            {formatINR(premiumPlan.priceINR, free)}
             <span style={{ fontSize: "1rem", fontWeight: 600, color: "var(--cl-muted)" }}>
-              {billing === "monthly" ? " / month" : " / year"}
+              {billing === "monthly" ? L(" / month", " / மாதம்") : L(" / year", " / ஆண்டு")}
             </span>
           </p>
           <p style={{ margin: 0, color: "var(--cl-muted)", fontSize: "0.9rem", minHeight: "1.2em" }}>
             {billing === "annual"
-              ? `≈ ${formatINR(monthlyEquivalent)} / month, billed annually`
-              : "Switch to annual to save"}
+              ? L(`≈ ${formatINR(monthlyEquivalent)} / month, billed annually`, `≈ ${formatINR(monthlyEquivalent)} / மாதம், ஆண்டுக்கொருமுறை வசூல்`)
+              : L("Switch to annual to save", "சேமிக்க ஆண்டுத் திட்டத்துக்கு மாறுங்கள்")}
           </p>
           <div style={{ marginTop: "auto", paddingTop: "12px" }}>
-            <Link href="/login" className="cl-btn cl-btn--solid" style={{ width: "100%" }}>
-              Start {monthly.trialDays}-day free trial
-            </Link>
-            <p style={{ margin: "8px 0 0", color: "var(--cl-muted)", fontSize: "0.8rem", textAlign: "center" }}>
-              {monthly.trialDays} days free, then {formatINR(premiumPlan.priceINR)}
-              {billing === "monthly" ? " / month" : " / year"}. Cancel anytime.
-            </p>
+            {OPEN_BETA ? (
+              <>
+                {/* No trial to start: the beta already unlocks all of this. */}
+                <Link href="/login" className="cl-btn cl-btn--solid" style={{ width: "100%" }}>
+                  {L("Free during the beta", "பீட்டாவில் இலவசம்")}
+                </Link>
+                <p style={{ margin: "8px 0 0", color: "var(--cl-muted)", fontSize: "0.8rem", textAlign: "center" }}>
+                  {L("Included with a free account while the beta runs. Price after launch.", "பீட்டா நடக்கும் வரை இலவசக் கணக்குடன் உள்ளடங்கும். அறிமுகத்திற்குப் பிறகு இதுவே விலை.")}
+                </p>
+              </>
+            ) : (
+              <>
+                <Link href="/login" className="cl-btn cl-btn--solid" style={{ width: "100%" }}>
+                  {L(`Start ${monthly.trialDays}-day free trial`, `${monthly.trialDays} நாள் இலவச சோதனையைத் தொடங்குங்கள்`)}
+                </Link>
+                <p style={{ margin: "8px 0 0", color: "var(--cl-muted)", fontSize: "0.8rem", textAlign: "center" }}>
+                  {L(
+                    `${monthly.trialDays} days free, then ${formatINR(premiumPlan.priceINR)}${billing === "monthly" ? " / month" : " / year"}. Cancel anytime.`,
+                    `${monthly.trialDays} நாள் இலவசம், பிறகு ${formatINR(premiumPlan.priceINR)}${billing === "monthly" ? " / மாதம்" : " / ஆண்டு"}. எப்போது வேண்டுமானாலும் ரத்து செய்யலாம்.`,
+                  )}
+                </p>
+              </>
+            )}
           </div>
         </div>
       </div>

@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user
+from app.core.entitlements import require_feature
 from app.db.session import get_db
 from app.models.birth_profile import BirthProfile
 from app.models.user import User
@@ -18,7 +19,7 @@ from app.schemas.rectification import (
 )
 from app.services.rectification_service import apply_rectified_time, estimate_birth_time
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_feature("birth_time_rectification_enabled"))])
 
 
 @router.post(

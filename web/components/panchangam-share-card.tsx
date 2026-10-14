@@ -5,6 +5,9 @@ import { apiFetchJson, toQuery } from "@/lib/api";
 import type { Lang } from "@/lib/i18n";
 import { tNakshatra, tTithi } from "@/lib/i18n";
 import { todayIso } from "@/lib/format";
+import { track } from "@/lib/analytics";
+import { whatsappHref } from "@/lib/share";
+import { SITE_URL } from "@vinaadi/shared/constants";
 
 // ── Card data (mirrors app/services/panchangam_card_service.get_card_data) ─────
 export interface PanchangamCardData {
@@ -374,7 +377,7 @@ export function PanchangamShareCard({ lang, date, city = "Chennai", lat = 13.082
       const blob = await (await fetch(preview)).blob();
       const file = new File([blob], "vinaadi-panchangam.png", { type: "image/png" });
       if (typeof navigator !== "undefined" && navigator.share && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: "Vinaadi AI · Panchangam" });
+        await navigator.share({ files: [file], title: "Vinaadi · Panchangam" });
         return;
       }
     } catch { /* fall through to download */ }
@@ -432,10 +435,25 @@ export function PanchangamShareCard({ lang, date, city = "Chennai", lat = 13.082
                   </>
                 )}
 
-                <div style={{ display: "flex", gap: "10px" }}>
-                  <button type="button" onClick={() => void share()} style={{ padding: "10px 22px", borderRadius: "10px", background: "var(--panel-golden)", color: "#3A2A12", fontWeight: 800, border: "none", cursor: "pointer" }}>
+                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", justifyContent: "center" }}>
+                  <button type="button" onClick={() => { track("share_clicked", { surface: "panchangam_card", channel: "image" }); void share(); }} style={{ padding: "10px 22px", borderRadius: "10px", background: "var(--panel-golden)", color: "#3A2A12", fontWeight: 800, border: "none", cursor: "pointer" }}>
                     {lang === "ta" ? "பகிர் / பதிவிறக்கம்" : "Share / Download"}
                   </button>
+                  {/* The link to the day's page, for the family group. A browser
+                      cannot attach the image to a wa.me message, so this sends
+                      the page, whose own preview carries the day (GRW-10/11). */}
+                  <a
+                    href={whatsappHref(
+                      lang === "ta" ? `இன்றைய பஞ்சாங்கம் — ${data.date}` : `Today's panchangam — ${data.date}`,
+                      `${SITE_URL}/panchangam/${data.date}?utm_source=whatsapp&utm_medium=share&utm_campaign=panchangam_card`,
+                    )}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => track("share_clicked", { surface: "panchangam_card", channel: "whatsapp" })}
+                    style={{ padding: "10px 22px", borderRadius: "10px", background: "transparent", border: "1px solid var(--panel-golden)", color: "var(--panel-warm-gold)", fontWeight: 800, textDecoration: "none" }}
+                  >
+                    WhatsApp
+                  </a>
                   <button type="button" onClick={() => setOpen(false)} style={{ padding: "10px 22px", borderRadius: "10px", background: "transparent", border: "1px solid rgba(255,255,255,0.3)", color: "var(--panel-warm-gold)", cursor: "pointer" }}>
                     {lang === "ta" ? "மூடு" : "Close"}
                   </button>

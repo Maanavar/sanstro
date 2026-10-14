@@ -57,6 +57,11 @@ services:
       # which secret. The failure moves from `compose up` to a container that
       # exits immediately with a named error.
       JOTHIDAM_JWT_SECRET: ${JOTHIDAM_JWT_SECRET:-}
+      # Set during a rotation only: comma-separated, newest first. Without this
+      # passthrough the rotation form would exist in the app and be unreachable
+      # in the deployed stack, which is how the secret became unrotatable in the
+      # first place. docs/DATA_PROTECTION.md section 2a.
+      JOTHIDAM_JWT_SECRETS: ${JOTHIDAM_JWT_SECRETS:-}
       JOTHIDAM_ADMIN_API_KEY: ${JOTHIDAM_ADMIN_API_KEY:-}
       JOTHIDAM_ENCRYPTION_KEY: ${JOTHIDAM_ENCRYPTION_KEY:-}
       JOTHIDAM_ANTHROPIC_API_KEY: ${JOTHIDAM_ANTHROPIC_API_KEY:-}
@@ -80,10 +85,10 @@ services:
       TRUSTED_PROXY_HOPS_BEFORE_WEB: ${TRUSTED_PROXY_HOPS_BEFORE_WEB:-0}
       JOTHIDAM_CORS_ALLOW_ORIGINS: ${JOTHIDAM_CORS_ALLOW_ORIGINS:-}
       WEB_CONCURRENCY: ${WEB_CONCURRENCY:-2}
-      # Single-box default: the API also runs the cron scheduler (behind the
-      # advisory leader lock). Set false and start the `worker` service (compose
-      # profile `scaled`) to move scheduling to a dedicated process.
-      JOTHIDAM_RUN_SCHEDULER_IN_WEB: ${JOTHIDAM_RUN_SCHEDULER_IN_WEB:-true}
+      # Production ownership is intentionally unambiguous: only the dedicated
+      # worker below schedules jobs. app/core/config.py also refuses a production
+      # API start if an overlay attempts to turn this back on.
+      JOTHIDAM_RUN_SCHEDULER_IN_WEB: "false"
       # Shared state. The rate limiter MUST NOT be "memory" while
       # WEB_CONCURRENCY > 1 — each worker would keep its own counters and every
       # limit would be multiplied by the worker count. app.main refuses to boot
@@ -109,17 +114,17 @@ services:
       retries: 5
       start_period: 60s
 
-  # Dedicated scheduler process for scaled deploys. Not started by default; bring
-  # it up with `--profile scaled` and set JOTHIDAM_RUN_SCHEDULER_IN_WEB=false on
-  # the api so exactly one process owns cron. Reuses the api image; skips the
-  # uvicorn entrypoint and runs the scheduler directly.
+  # Sole production scheduler. The process exits if leadership is unavailable
+  # or later lost; supervision restarts it. A durable DB heartbeat makes lack of
+  # progress observable independently of the API health endpoint.
   worker:
     build:
       context: .
       dockerfile: Dockerfile
-    profiles: ["scaled"]
     depends_on:
       db:
+        condition: service_healthy
+      api:
         condition: service_healthy
     environment:
       JOTHIDAM_ENVIRONMENT: production
@@ -136,8 +141,16 @@ services:
       # file. app/core/config.py still refuses to boot without it, for both roles.
       JOTHIDAM_ENCRYPTION_KEY: ${JOTHIDAM_ENCRYPTION_KEY:-}
       JOTHIDAM_REDIS_URL: ${JOTHIDAM_REDIS_URL:-redis://redis:6379/0}
+      JOTHIDAM_RUN_SCHEDULER_IN_WEB: "false"
     # Migrations are owned by the api container; the worker just runs the scheduler.
     entrypoint: ["tini", "--", "python", "-m", "app.worker"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-m", "app.worker_health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   web:
     build:
@@ -151,7 +164,18 @@ services:
     environment:
       NODE_ENV: production
       # Server-to-server base URL the Next proxy uses to reach the API.
-      API_BASE_URL: ${API_BASE_URL:-http://api:8000}
+      #
+      # THE NAME MATTERS. This was `API_BASE_URL`, which nothing in web/ reads
+      # (that is the *mobile* app's variable). Every server-side reader goes
+      # through web/lib/backend-url.ts, which reads BACKEND_URL and falls back
+      # to http://127.0.0.1:8000 — loopback inside THIS container, where no
+      # FastAPI is listening. The stack came up, the homepage returned 200, and
+      # login, dashboard data and every server-rendered public page failed
+      # against a backend that was healthy the whole time (A01).
+      #
+      # web/lib/backend-url.test.ts asserts this key against what web actually
+      # reads; scripts/compose-proxy-smoke.ps1 proves the route end to end.
+      BACKEND_URL: ${BACKEND_URL:-http://api:8000}
       # Hops in front of *Next*. 0 without the `edge` profile, 1 with it, 2 for
       # an edge behind a CDN. Must equal the api service's
       # JOTHIDAM_TRUSTED_PROXY_COUNT, which now refuses to boot in production if

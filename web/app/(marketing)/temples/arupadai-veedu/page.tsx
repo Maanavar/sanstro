@@ -1,9 +1,11 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
+import { JsonLd, faqPageLd } from "@/lib/json-ld";
 import type { Metadata } from "next";
 import { TEMPLE_ARUPADAI_VEEDU_FAQ } from "@/lib/marketing-i18n";
 import { ArupadaiVeeduContent } from "./PageContent";
 
-export const metadata: Metadata = {
-  title: "Arupadai Veedu — Six Sacred Abodes of Lord Murugan | Vinaadi",
+const EN_METADATA: Metadata = {
+  title: "Arupadai Veedu — Six Sacred Abodes of Lord Murugan",
   description:
     "The six sacred Murugan temples — Thiruparankundram, Thiruchendur, Palani, Swamimalai, Pazhamudircholai, Thiruthani — and the pilgrimage circuit for Sevvai dosham, Mars energy and courage.",
   keywords: [
@@ -34,20 +36,17 @@ export const metadata: Metadata = {
   },
 };
 
-const FAQ_JSONLD = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: TEMPLE_ARUPADAI_VEEDU_FAQ.map((f) => ({
-    "@type": "Question",
-    name: f.q.en,
-    acceptedAnswer: { "@type": "Answer", text: f.a.en },
-  })),
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/temples/arupadai-veedu");
+}
+
+const FAQ_JSONLD = faqPageLd(TEMPLE_ARUPADAI_VEEDU_FAQ, "en");
+const FAQ_JSONLD_TA = faqPageLd(TEMPLE_ARUPADAI_VEEDU_FAQ, "ta");
 
 export default function ArupadaiVeeduPage() {
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSONLD) }} />
+      <JsonLd en={FAQ_JSONLD} ta={FAQ_JSONLD_TA} />
       <ArupadaiVeeduContent />
     </>
   );

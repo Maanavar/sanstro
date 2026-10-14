@@ -240,17 +240,28 @@ def compute_d45(planet_longitudes: dict[str, float]) -> dict[str, int]:
 
 
 def compute_d60(planet_longitudes: dict[str, float]) -> dict[str, int]:
-    # Shashtiamsa: spec section 3.13. 60 divisions of 0 deg 30' each. Odd signs
-    # count forward from their own rasi; even signs count backward. Previous
-    # implementation ignored the natal rasi and always counted from Aries.
+    """Shashtiamsa (D60) — 60 divisions of 0 deg 30' each, spec section 3.13.
+
+    BPHS: multiply the degrees in the sign by 2, divide by 12, and count the
+    remainder **forward from the sign itself** — for every sign, odd and even
+    alike.
+
+    F-VAR-01: this counted **backward** for even signs, so every even-sign D60
+    placement was wrong. The odd/even reversal in the text is real but applies
+    to the *names* of the sixty shashtiamsa deities (Ghora, Rakshasa, Deva …),
+    which are listed in reverse order for an even sign — not to the sign the
+    planet lands in. JHora and BPHS both count forward throughout.
+
+    Note the two formulations agree: ``int(deg * 2) % 12`` is the same index
+    as the 0-based amsa of a 0.5-degree step taken mod 12, and `_amsa` is used
+    for its boundary handling.
+    """
     step = 0.5
 
     def _d60(lon: float) -> int:
         rasi, deg = _norm(lon)
         index = _amsa(deg, step, 60)
-        if rasi % 2 == 1:
-            return _add_signs(rasi, index)
-        return _add_signs(rasi, -index)
+        return _add_signs(rasi, index)
     return _map_divisional(planet_longitudes, _d60)
 
 

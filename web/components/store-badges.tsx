@@ -6,10 +6,14 @@
  * tokenised — this component is the single home for them so page-level styling
  * stays on the `--cl-*` design tokens.
  */
+import { PLAY_STORE_URL } from "@vinaadi/shared/constants";
+
+/** Renders nothing until the Play listing exists (`PLAY_STORE_URL`). */
 export function GooglePlayBadge({ onClick }: { onClick?: () => void }) {
+  if (!PLAY_STORE_URL) return null;
   return (
     <a
-      href="https://play.google.com/store/apps/details?id=ai.vinaadi.app"
+      href={PLAY_STORE_URL}
       onClick={onClick}
       aria-label="Get Vinaadi on Google Play"
       style={{

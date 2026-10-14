@@ -1,5 +1,6 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { LANG_COOKIE_NAME, resolveLang, type Lang } from "./i18n";
+import { LANG_HEADER } from "./ta-routes";
 
 /**
  * The active language, resolved on the server from the request cookie.
@@ -18,11 +19,21 @@ import { LANG_COOKIE_NAME, resolveLang, type Lang } from "./i18n";
  * Nothing else may resolve the language on the server: use this helper, so
  * there is one answer per request.
  *
+ * **A Tamil URL outranks the cookie** (GRW-06): `/ta/...` is Tamil whatever the
+ * cookie says, and the English URL of a Tamil-ready page redirects a Tamil
+ * cookie to `/ta/...` in the middleware, so the two never disagree.
+ *
  * Note this does not make a route dynamic that was static before — the root
  * layout already awaits `cookies()` for `<html lang>`, so 46 of 52 route rows
  * were already `ƒ` Dynamic before F7.
  */
 export async function getServerLang(): Promise<Lang> {
+  // GRW-06 — a Tamil URL (`/ta/...`) outranks the cookie. The middleware sets
+  // `x-lang` from the path and clears any the client sent, so this header is
+  // only ever present when the URL itself asked for Tamil. A crawler sends no
+  // cookie; the URL is how it reaches the Tamil page.
+  const fromUrl = (await headers()).get(LANG_HEADER);
+  if (fromUrl === "ta") return "ta";
   const store = await cookies();
   return resolveLang(store.get(LANG_COOKIE_NAME)?.value);
 }

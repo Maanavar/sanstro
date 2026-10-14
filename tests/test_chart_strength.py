@@ -1,4 +1,5 @@
 import pytest
+from pydantic import ValidationError
 
 from app.calculations.chart_strength import (
     _AVASTHA_MULTIPLIER_EVEN,
@@ -13,11 +14,63 @@ from app.calculations.chart_strength import (
     compute_bhava_bala,
     compute_natal_planet_score,
     compute_strength_breakdown,
+    d9_dignity_label,
     detect_planetary_wars,
 )
 from app.calculations.shadbala import ShadbalaContext, _nathonnatha_bala
+from app.schemas.charts import PlanetPosition
 
 pytestmark = pytest.mark.no_db
+
+
+@pytest.mark.parametrize(
+    ("planet", "d9_rasi", "expected"),
+    [
+        ("SUN", 1, "EXALTED"),
+        ("VENUS", 7, "OWN_SIGN"),
+        ("JUPITER", 1, "FRIEND_SIGN"),
+        ("MERCURY", 4, "ENEMY_SIGN"),
+        ("JUPITER", 11, "NEUTRAL_SIGN"),
+        ("SATURN", 1, "DEBILITATED"),
+        ("RAHU", 1, "NEUTRAL_SIGN"),
+        ("MANDHI", 5, "NEUTRAL_SIGN"),
+    ],
+)
+def test_d9_dignity_label_is_sign_level_and_keeps_nodes_neutral(planet, d9_rasi, expected):
+    assert d9_dignity_label(planet, d9_rasi) == expected
+
+
+def test_planet_position_refuses_to_default_a_navamsa_dignity():
+    """`d9_dignity` must be supplied, never defaulted.
+
+    "NEUTRAL_SIGN" is a claim about a graha, not an "unset" marker. With a
+    default, a construction site that forgot the field would ship a wrong
+    dignity to the chart table silently; without one, it cannot be written at
+    all. Every caller derives it with `d9_dignity_label`.
+    """
+    fields = dict(
+        graha="JUPITER",
+        rasiName="Meenam",
+        absoluteLongitude=345.0,
+        rasi=12,
+        degreeInRasi=15.0,
+        nakshatra=26,
+        nakshatraName="Uthirattathi",
+        pada=2,
+        houseFromLagna=12,
+        speedDegPerDay=0.1,
+        isRetrograde=False,
+        isCombust=False,
+        d9Rasi=12,
+        isVargottama=True,
+        showRetrogradeBadge=False,
+    )
+
+    with pytest.raises(ValidationError):
+        PlanetPosition(**fields)
+
+    supplied = PlanetPosition(**fields, d9Dignity=d9_dignity_label("JUPITER", 12))
+    assert supplied.d9_dignity == "OWN_SIGN"
 
 
 def test_detect_planetary_war_marks_lower_degree_as_loser():

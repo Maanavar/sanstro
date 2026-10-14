@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import { withTamilTwin } from "@/lib/localized-metadata";
+import { natchathiramVisualTa } from "@/lib/marketing-seo-ta";
 import { PURVA_PHALGUNI } from "@/lib/natchathiram-data";
 import { NatchathiramVisualContent, type NatchathiramVisualData } from "@/components/natchathiram-visual";
 
-export const metadata: Metadata = {
-  title: "Pooram Nakshathiram — Visual Profile | Vinaadi",
+const EN_METADATA: Metadata = {
+  title: "Pooram Nakshathiram — Visual Profile",
   description: "Visual profile of Pooram Nakshathiram: personality traits, career strengths, dasa timeline, compatible nakshathirams, and spiritual guidance.",
   alternates: { canonical: "https://vinaadi.com/natchathiram/purva-phalguni/visual" },
   openGraph: {
@@ -13,6 +15,10 @@ export const metadata: Metadata = {
     type: "article",
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/natchathiram/purva-phalguni/visual", natchathiramVisualTa("purva-phalguni")!);
+}
 
 const PURVA_PHALGUNI_VISUAL: NatchathiramVisualData = {
   atAGlance: [

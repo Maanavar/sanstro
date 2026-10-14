@@ -59,6 +59,7 @@ const ERROR_META: Record<ApiErrorCode, ErrorMeta> = {
   SESSION_INVALID: { title: { ta: "அமர்வு செல்லுபடியாக இல்லை", en: "Session Invalid" } },
   TOKEN_EXPIRED: { title: { ta: "அமர்வு முடிந்துவிட்டது", en: "Session Expired" } },
   TOKEN_INVALID: { title: { ta: "அமர்வு செல்லுபடியாக இல்லை", en: "Session Invalid" } },
+  PREMIUM_REQUIRED: { title: { ta: "பிரீமியம் வசதி", en: "Premium Feature" } },
   PROFILE_LIMIT_REACHED: { title: { ta: "பிறப்புத் தகவல் வரம்பு முடிந்தது", en: "Profile Limit Reached" } },
   RESOURCE_LIMIT_EXCEEDED: { title: { ta: "திட்ட வரம்பு முடிந்தது", en: "Plan Limit Reached" } },
   DAILY_LIMIT_REACHED: { title: { ta: "இன்றைய வரம்பு முடிந்தது", en: "Daily Limit Reached" } },

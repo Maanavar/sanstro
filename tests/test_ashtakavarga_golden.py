@@ -68,13 +68,18 @@ GOLDEN_BAV: dict[str, tuple[int, ...]] = {
     "SUN":     (4, 7, 2, 4, 3, 4, 5, 5, 5, 3, 4, 2),
     "MOON":    (4, 3, 4, 5, 3, 6, 4, 3, 6, 4, 3, 4),
     "MARS":    (1, 6, 3, 1, 4, 6, 4, 4, 3, 3, 3, 1),
-    "MERCURY": (4, 6, 3, 4, 6, 5, 6, 3, 5, 3, 6, 3),
+    # Mercury's row moved on 2026-10-13 with the F-ASV-01 fix to the
+    # Mercury-from-Lagna table row. Was (4, 6, 3, 4, 6, 5, 6, 3, 5, 3, 6, 3);
+    # six of twelve rasis changed and the row total stayed 54.
+    "MERCURY": (3, 6, 3, 4, 6, 6, 5, 4, 4, 3, 6, 4),
     "JUPITER": (4, 5, 6, 4, 4, 4, 4, 5, 4, 6, 6, 4),
     "VENUS":   (5, 2, 4, 5, 4, 7, 7, 4, 2, 3, 4, 5),
     "SATURN":  (6, 5, 2, 2, 2, 2, 5, 4, 3, 4, 2, 2),
 }
 
-GOLDEN_SAV: tuple[int, ...] = (28, 34, 24, 25, 26, 34, 35, 28, 28, 26, 28, 21)
+# Moved with Mercury above (F-ASV-01): six rasis, grand total still 337.
+# Was (28, 34, 24, 25, 26, 34, 35, 28, 28, 26, 28, 21).
+GOLDEN_SAV: tuple[int, ...] = (27, 34, 24, 25, 26, 35, 34, 29, 27, 26, 28, 22)
 
 # The published classical totals. External to this repository — that is the
 # whole point of citing them here.
@@ -138,13 +143,147 @@ def test_sarvashtakavarga_grand_total_is_337() -> None:
 
 
 def test_mars_from_lagna_row_stays_at_the_corrected_five_houses() -> None:
-    """The one row this repository knowingly departs from its own spec document
+    """The first row this repository knowingly departed from its own spec document
     on: the spec's verbatim table duplicated Mars-from-Mars into Mars-from-Lagna,
     which put Mars at 41 bindus and Sarva at 339. Pinned by value, because
     "restore the spec table" is a plausible-looking future edit that would
-    reintroduce a two-bindu error in every chart."""
+    reintroduce a two-bindu error in every chart.
+
+    Kept as its own test for the history it records. It is **not** the gate for
+    this class of defect — see
+    `test_every_contributor_row_matches_the_classical_table` below, and the note
+    there on why a one-off per discovered row was the wrong shape.
+    """
     assert BAV_TABLE["MARS"]["LAGNA"] == [1, 3, 6, 10, 11]
     assert BAV_TABLE["MARS"]["LAGNA"] != BAV_TABLE["MARS"]["MARS"]
+
+
+# The classical Parashari / BPHS benefic places, all 56 rows. External to this
+# repository, which is the point of transcribing them here rather than deriving
+# them: this is the only check in the file that can see a row whose *values* are
+# wrong while its *length* is right.
+#
+# **Why this exists, and what the two gates above could not see.** F-ASV-01
+# (2026-10-13) found Mercury-from-Lagna holding the Mercury-from-Mercury row with
+# the 12 dropped — the identical duplicated-row error as the Mars case above, one
+# block down in the same literal. Dropping one element from an eight-house row
+# leaves seven, so Mercury still distributed 54 and Sarva still totalled 337:
+# `test_table_row_totals_match_the_published_classical_values` and
+# `test_sarvashtakavarga_grand_total_is_337` both passed, and could not have
+# failed. The Mars fix had been gated as a one-off assertion about Mars, so the
+# *class* stayed open for the next row to be found by hand. Six of twelve rasis
+# carried a wrong Mercury bindu, and three of them sat on the wrong side of the
+# `>= 4` threshold that `_dg_scoring` reads as a supportive transit.
+#
+# **Blind spot, recorded per CLAUDE.md.** This pins our table against *this
+# transcription* of the classical one. It cannot prove the transcription. Both
+# halves were entered from the same published source the 2026-10-13 ruling
+# quotes, which that ruling itself flags as "a secondary technical reference, not
+# a primary Sanskrit edition" — so a shared error in a Sanskrit edition would
+# pass. What it does prove is that no row drifts from the reference again
+# silently, and that a future edit to the table must edit this literal too and
+# say why.
+CLASSICAL_BAV_TABLE: dict[str, dict[str, list[int]]] = {
+    "SUN": {
+        "SUN": [1, 2, 4, 7, 8, 9, 10, 11],
+        "MOON": [3, 6, 10, 11],
+        "MARS": [1, 2, 4, 7, 8, 9, 10, 11],
+        "MERCURY": [3, 5, 6, 9, 10, 11, 12],
+        "JUPITER": [5, 6, 9, 11],
+        "VENUS": [6, 7, 12],
+        "SATURN": [1, 2, 4, 7, 8, 9, 10, 11],
+        "LAGNA": [3, 4, 6, 10, 11, 12],
+    },
+    "MOON": {
+        "SUN": [3, 6, 7, 8, 10, 11],
+        "MOON": [1, 3, 6, 7, 10, 11],
+        "MARS": [2, 3, 5, 6, 9, 10, 11],
+        "MERCURY": [1, 3, 4, 5, 7, 8, 10, 11],
+        "JUPITER": [1, 4, 7, 8, 10, 11, 12],
+        "VENUS": [3, 4, 5, 7, 9, 10, 11],
+        "SATURN": [3, 5, 6, 11],
+        "LAGNA": [3, 6, 10, 11],
+    },
+    "MARS": {
+        "SUN": [3, 5, 6, 10, 11],
+        "MOON": [3, 6, 11],
+        "MARS": [1, 2, 4, 7, 8, 10, 11],
+        "MERCURY": [3, 5, 6, 11],
+        "JUPITER": [6, 10, 11, 12],
+        "VENUS": [6, 8, 11, 12],
+        "SATURN": [1, 4, 7, 8, 9, 10, 11],
+        "LAGNA": [1, 3, 6, 10, 11],
+    },
+    "MERCURY": {
+        "SUN": [5, 6, 9, 11, 12],
+        "MOON": [2, 4, 6, 8, 10, 11],
+        "MARS": [1, 2, 4, 7, 8, 9, 10, 11],
+        "MERCURY": [1, 3, 5, 6, 9, 10, 11, 12],
+        "JUPITER": [6, 8, 11, 12],
+        "VENUS": [1, 2, 3, 4, 5, 8, 9, 11],
+        "SATURN": [1, 2, 4, 7, 8, 9, 10, 11],
+        "LAGNA": [1, 2, 4, 6, 8, 10, 11],
+    },
+    "JUPITER": {
+        "SUN": [1, 2, 3, 4, 7, 8, 9, 10, 11],
+        "MOON": [2, 5, 7, 9, 11],
+        "MARS": [1, 2, 4, 7, 8, 10, 11],
+        "MERCURY": [1, 2, 4, 5, 6, 9, 10, 11],
+        "JUPITER": [1, 2, 3, 4, 7, 8, 10, 11],
+        "VENUS": [2, 5, 6, 9, 10, 11],
+        "SATURN": [3, 5, 6, 12],
+        "LAGNA": [1, 2, 4, 5, 6, 7, 9, 10, 11],
+    },
+    "VENUS": {
+        "SUN": [8, 11, 12],
+        "MOON": [1, 2, 3, 4, 5, 8, 9, 11, 12],
+        "MARS": [3, 4, 6, 9, 11, 12],
+        "MERCURY": [3, 5, 6, 9, 11],
+        "JUPITER": [5, 8, 9, 10, 11],
+        "VENUS": [1, 2, 3, 4, 5, 8, 9, 10, 11],
+        "SATURN": [3, 4, 5, 8, 9, 10, 11],
+        "LAGNA": [1, 2, 3, 4, 5, 8, 9, 11],
+    },
+    "SATURN": {
+        "SUN": [1, 2, 4, 7, 8, 10, 11],
+        "MOON": [3, 6, 11],
+        "MARS": [3, 5, 6, 10, 11, 12],
+        "MERCURY": [6, 8, 9, 10, 11, 12],
+        "JUPITER": [5, 6, 11, 12],
+        "VENUS": [6, 11, 12],
+        "SATURN": [3, 5, 6, 11],
+        "LAGNA": [1, 3, 4, 6, 10, 11],
+    },
+}
+
+
+@pytest.mark.parametrize("planet", BAV_PLANETS)
+def test_every_contributor_row_matches_the_classical_table(planet: str) -> None:
+    """All eight rows of one planet's BAV, by value. The class gate for a row
+    whose length is right and whose houses are wrong."""
+    for contributor in REFERENCE_POINTS:
+        ours = BAV_TABLE[planet][contributor]
+        classical = CLASSICAL_BAV_TABLE[planet][contributor]
+        assert ours == classical, (
+            f"{planet} BAV, {contributor} contributor: table has {ours}, the "
+            f"classical row is {classical}. Extra here {sorted(set(ours) - set(classical))}, "
+            f"missing {sorted(set(classical) - set(ours))}. If this row is a "
+            f"deliberate lineage departure, say so in BAV_TABLE and update "
+            f"CLASSICAL_BAV_TABLE's note — do not change one side alone."
+        )
+
+
+# A second gate was drafted here and **deleted before it shipped**: "no
+# contributor row duplicates another row in its own block", on the theory that
+# both known defects were a paste. Run against the pre-fix table per CLAUDE.md,
+# it PASSED — the pre-fix Mercury-from-Lagna row was the Mercury-from-Mercury row
+# with the 12 dropped, which is a *truncated* copy and not equal to anything. It
+# would have been a green tick that could not fail, on the exact defect it named.
+#
+# It is not worth repairing. `test_every_contributor_row_matches_the_classical_
+# table` above compares all 56 rows by value against an external reference, so it
+# already fails on a paste, a truncated paste, a typo and a dropped house alike.
+# A duplicate check adds no reachable failure and would read as extra coverage.
 
 
 # ── table well-formedness ───────────────────────────────────────────────────

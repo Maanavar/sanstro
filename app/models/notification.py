@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, Integer, String, Text, text
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -16,6 +16,7 @@ class Notification(TimestampMixin, Base):
         CheckConstraint("priority BETWEEN 0 AND 100", name="ck_notifications_priority_range"),
         Index("idx_notifications_user_send", "user_id", "send_at"),
         Index("idx_notifications_status", "status"),
+        UniqueConstraint("logical_key", name="uq_notifications_logical_key"),
     )
 
     notification_id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
@@ -35,3 +36,7 @@ class Notification(TimestampMixin, Base):
     payload: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Nullable only for rows created before the A10 outbox rollout. Every new
+    # notification intent receives a deterministic logical key and expiry.
+    logical_key: Mapped[str | None] = mapped_column(Text, nullable=True)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

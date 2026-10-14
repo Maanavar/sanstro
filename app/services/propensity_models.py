@@ -30,7 +30,7 @@ from enum import StrEnum
 
 # BiText / AstroFactor are shared with the existing prediction models so the
 # web layer can reuse its bilingual rendering unchanged.
-from app.services.life_area_prediction_models import AstroFactor, BiText
+from app.calculations.life_area_prediction_models import AstroFactor, BiText
 
 
 class PropensityCategory(StrEnum):
