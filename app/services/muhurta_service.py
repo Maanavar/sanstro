@@ -1469,7 +1469,7 @@ def find_best_muhurta_slots(
         hora credit, transit factors, kalam overlaps, the tithi verdicts — so
         rebuilding is the only way none of them is left describing the old one.
         """
-        day = score_day(snap, activity, subject, co_subject=co_subject, include_lagna_sign=False)
+        day = score_day(snap, activity, subject, co_subject=co_subject)
         # A veto that is not about the tithi cannot be escaped by moving the
         # clock, so such a day is dropped before any window work is spent on it.
         if not include_excluded and any(

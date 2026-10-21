@@ -56,7 +56,7 @@ def snapshots() -> list:
 def _cells(snapshots):
     for snapshot in snapshots:
         for activity in ACTIVITIES:
-            day = eng.score_day(snapshot, activity, None, include_lagna_sign=False)
+            day = eng.score_day(snapshot, activity, None)
             yield snapshot, activity, day, _best_time_window(snapshot, activity, LAGNA_RASI)
 
 
@@ -75,7 +75,7 @@ def test_tithi_factors_is_exactly_what_score_day_emits(snapshots):
     day answer by the tithi, never by a second copy of the rules drifting."""
     for snapshot in snapshots:
         for activity in ACTIVITIES:
-            day = eng.score_day(snapshot, activity, None, include_lagna_sign=False)
+            day = eng.score_day(snapshot, activity, None)
             listed = [f for f in day.factors if f.factor in TITHI_FAMILY]
             assert _shape(listed) == _shape(eng.tithi_factors(snapshot, activity))
 
@@ -98,7 +98,7 @@ def test_no_span_means_no_guess(snapshots):
 
     bare = replace(snapshots[0], tithi_spans=())
     assert eng.tithi_factors_at(bare, bare.sunrise, "TONSURE") is None
-    day = eng.score_day(bare, "TONSURE", None, include_lagna_sign=False)
+    day = eng.score_day(bare, "TONSURE", None)
     window = _Window(bare.sunrise, bare.sunrise, 0.0, None, _judge_moment(bare, "TONSURE", bare.sunrise))
     assert _rejudged_at_window(day, window) is day
 
@@ -170,7 +170,7 @@ def test_a_day_vetoed_only_by_its_sunrise_tithi_can_be_rescued():
     for i in range(120):
         snapshot = calculate_daily_panchangam(SWEEP_START + timedelta(days=i), LAT, LON, TZ)
         for activity in ("EAR_BORING", "NEW_ORNAMENT", "TONSURE", "NAMING_CEREMONY"):
-            day = eng.score_day(snapshot, activity, None, include_lagna_sign=False)
+            day = eng.score_day(snapshot, activity, None)
             vetoes = [f for f in day.factors if f.verdict is Verdict.VETO]
             if not vetoes or any(f.factor not in TITHI_FAMILY for f in vetoes):
                 continue

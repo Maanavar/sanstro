@@ -138,9 +138,9 @@ def test_couple_mode_never_scores_above_either_chart_alone(snapshots):
     summing — the two failure modes the ruling names by hand.
     """
     for snapshot in snapshots:
-        solo_bride = score_day(snapshot, "MARRIAGE", _BRIDE, include_lagna_sign=False)
-        solo_groom = score_day(snapshot, "MARRIAGE", _GROOM, include_lagna_sign=False)
-        couple = score_day(snapshot, "MARRIAGE", _BRIDE, co_subject=_GROOM, include_lagna_sign=False)
+        solo_bride = score_day(snapshot, "MARRIAGE", _BRIDE)
+        solo_groom = score_day(snapshot, "MARRIAGE", _GROOM)
+        couple = score_day(snapshot, "MARRIAGE", _BRIDE, co_subject=_GROOM)
         assert couple.score <= min(solo_bride.score, solo_groom.score) + 1e-9
         assert couple.vetoed == (solo_bride.vetoed or solo_groom.vetoed)
 
@@ -159,8 +159,8 @@ def test_couple_mode_does_not_double_the_personal_layer(snapshots):
         return sum(f.contribution for f in day.factors if f.factor not in personal)
 
     for snapshot in snapshots:
-        couple = score_day(snapshot, "MARRIAGE", _BRIDE, co_subject=_GROOM, include_lagna_sign=False)
-        bride_only = score_day(snapshot, "MARRIAGE", _BRIDE, include_lagna_sign=False)
+        couple = score_day(snapshot, "MARRIAGE", _BRIDE, co_subject=_GROOM)
+        bride_only = score_day(snapshot, "MARRIAGE", _BRIDE)
         priced_families = [
             f.factor for f in couple.factors
             if f.factor in personal and f.contribution != 0.0
@@ -174,7 +174,7 @@ def test_couple_mode_does_not_double_the_personal_layer(snapshots):
 def test_reported_contributions_still_sum_to_the_score(snapshots):
     """`factors` remains a complete, honest account of the number beside it."""
     for snapshot in snapshots[:5]:
-        couple = score_day(snapshot, "MARRIAGE", _BRIDE, co_subject=_GROOM, include_lagna_sign=False)
+        couple = score_day(snapshot, "MARRIAGE", _BRIDE, co_subject=_GROOM)
         assert couple.score == pytest.approx(50.0 + sum(f.contribution for f in couple.factors))
 
 
@@ -187,7 +187,7 @@ def test_a_co_subject_without_a_subject_is_refused(snapshots):
 
 def test_general_mode_is_untouched_by_the_couple_path(snapshots):
     for snapshot in snapshots[:5]:
-        general = score_day(snapshot, "MARRIAGE", None, include_lagna_sign=False)
+        general = score_day(snapshot, "MARRIAGE", None)
         assert not any(
             f.factor in {"CHANDRA_BALA", "TARA_BALA", "JANMA_TARA_COUNT"} for f in general.factors
         )
@@ -199,7 +199,7 @@ def test_both_subjects_are_named_in_their_own_language(snapshots):
     A personal name has no translation and falls back to `label` in both, which
     is the behaviour that existed before roles did.
     """
-    couple = score_day(snapshots[0], "MARRIAGE", _BRIDE, co_subject=_GROOM, include_lagna_sign=False)
+    couple = score_day(snapshots[0], "MARRIAGE", _BRIDE, co_subject=_GROOM)
     chandra = [f for f in couple.factors if f.factor == "CHANDRA_BALA"]
     assert len(chandra) == 2
     assert any("the bride" in f.reason_en for f in chandra)
@@ -226,7 +226,7 @@ def test_personal_factors_helper_matches_single_chart_mode(snapshots):
     """The extraction that made the fold possible did not change single-chart
     scoring — the §9.4 concern, in miniature."""
     for snapshot in snapshots[:5]:
-        solo = score_day(snapshot, "MARRIAGE", _BRIDE, include_lagna_sign=False)
+        solo = score_day(snapshot, "MARRIAGE", _BRIDE)
         helper = _personal_factors(snapshot, "MARRIAGE", _BRIDE)
         # The personal factors are appended last and in this order, so the
         # helper's output is exactly the tail of a single-chart day.

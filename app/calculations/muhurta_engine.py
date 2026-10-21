@@ -41,7 +41,8 @@ Two layers, in evaluation order (`docs/MUHURTA_MASTER_REMEDIATION_2026-08-14.md`
   `ALMANAC_` and carry no `rule_id`: they are almanac convention, not cited
   doctrine.
 * **L2 activity doctrine** (`_nakshatra_factor`, `_tithi_factor`,
-  `_vara_factor`, `_lagna_sign_factor`) — the per-activity rules from the
+  `_vara_factor`; the lagna sign only at the elected moment, via
+  `lagna_sign_factor_at_window`) — the per-activity rules from the
   classical text, cited. Deliberately named without the prefix and kept separate
   from L1 so a UI can tell "Poosam is on the general auspicious list" apart from
   "Kalaprakasika names Poosam best for this activity" — the second is a much
@@ -1504,47 +1505,6 @@ def _vara_factor(snapshot, activity: str) -> FactorResult | None:
     )
 
 
-def _lagna_sign_factor(snapshot, activity: str) -> FactorResult | None:
-    """Sunrise lagna only. A full-day lagna schedule (A3) does not exist yet, so
-    this judges the day's rising sign, not the rising sign at the candidate
-    minute — the reason text says so rather than implying a precision we lack."""
-    if activity not in _SOURCED_ACTIVITIES:
-        return None
-    if activity != _MARRIAGE:
-        return _registry_lagna_sign_factor(snapshot, activity)
-
-    rasi = snapshot.lagna_rasi_number
-    fallback = str(snapshot.lagna_rasi_name)
-    name_en = rasi_en(rasi) or fallback
-    name_ta = rasi_ta(rasi) or fallback
-    if rasi in marriage.MARRIAGE_LAGNA_BEST:
-        return FactorResult(
-            factor="LAGNA_SIGN_AT_SUNRISE",
-            verdict=Verdict.BONUS,
-            contribution=_W.LAGNA_BEST,
-            reason_en=f"{name_en} rises at sunrise — among the best marriage lagnas.",
-            reason_ta=f"சூரிய உதயத்தில் {name_ta} லக்னம் — திருமணத்திற்குச் சிறந்த லக்னங்களுள் ஒன்று.",
-            rule_id="MARRIAGE_LAGNA_SIGN_PREFERENCE",
-        )
-    if rasi in marriage.MARRIAGE_LAGNA_AVOID:
-        return FactorResult(
-            factor="LAGNA_SIGN_AT_SUNRISE",
-            verdict=Verdict.PENALTY,
-            contribution=_W.LAGNA_AVOID,
-            reason_en=f"{name_en} rises at sunrise — a marriage lagna the text says to avoid.",
-            reason_ta=f"சூரிய உதயத்தில் {name_ta} லக்னம் — திருமணத்தில் தவிர்க்கச் சொல்லப்பட்ட லக்னம்.",
-            rule_id="MARRIAGE_LAGNA_SIGN_PREFERENCE",
-        )
-    return FactorResult(
-        factor="LAGNA_SIGN_AT_SUNRISE",
-        verdict=Verdict.NEUTRAL,
-        contribution=0.0,
-        reason_en=f"{name_en} rises at sunrise — middling influence for marriage.",
-        reason_ta=f"சூரிய உதயத்தில் {name_ta} லக்னம் — திருமணத்திற்கு நடுத்தரமான பலன்.",
-        rule_id="MARRIAGE_LAGNA_SIGN_PREFERENCE",
-    )
-
-
 def limb_factors_at_window(snapshot, midpoint, activity: str) -> list[FactorResult]:
     """Judge the selected window on the limbs actually in force *during it*.
 
@@ -1721,8 +1681,22 @@ def karana_avoided_at(snapshot, moment, activity: str):
 def lagna_sign_factor_at_window(activity: str, rasi: int) -> FactorResult | None:
     """Apply a sourced lagna-sign rule to the selected window's actual lagna.
 
-    The all-day engine deliberately does not call this: the expensive lagna
-    schedule is calculated only after the picker has shortlisted its dates.
+    This is the **only** lagna-sign factor. The all-day engine used to score the
+    sign rising at sunrise as well, but at sunrise the rising point is the Sun's
+    own longitude, so that sign is the Sun's rasi — the Tamil solar month, not a
+    lagna (equal on 350/365 days of 2026 in Chennai). It docked every Thai and
+    Chithirai wedding date and credited Purattasi as a "best marriage lagna".
+    Removed by owner ruling, 2026-10-21 (FSA-01,
+    docs/FULL_SYSTEM_AUDIT_2026-10-21.md). A month preference, if one is ever
+    wanted, must be built as a labelled Tamil-month custom, never as a lagna.
+
+    The all-day engine does not call this: the expensive lagna schedule is
+    calculated only after the picker has shortlisted its dates.
+
+    Signs a chapter approves only *conditionally* (Namakarana's and Snaana's
+    common signs, good only "when occupied by a benefic") score NEUTRAL with the
+    condition spelled out. Crediting them would claim a benefic placement nobody
+    computed. This case lived only on the sunrise path until that was removed.
     """
     entry = _rules(activity)
     # Declared before the branch: the marriage arm binds a bare frozenset() and
@@ -1732,18 +1706,24 @@ def lagna_sign_factor_at_window(activity: str, rasi: int) -> FactorResult | None
     best: frozenset[int]
     middling: frozenset[int]
     avoid: frozenset[int]
+    conditional: frozenset[int]
     rule_id: str | None
+    condition_en: str | None = None
+    condition_ta: str | None = None
     if activity == _MARRIAGE:
         best, middling, avoid = marriage.MARRIAGE_LAGNA_BEST, frozenset(), marriage.MARRIAGE_LAGNA_AVOID
+        conditional = frozenset()
         rule_id = "MARRIAGE_LAGNA_SIGN_PREFERENCE"
         label_en, label_ta = "marriage", "திருமணம்"
     elif entry is not None:
         best, middling, avoid = entry.lagna_best, entry.lagna_middling, entry.lagna_avoid
+        conditional = entry.lagna_conditional
+        condition_en, condition_ta = entry.lagna_conditional_en, entry.lagna_conditional_ta
         rule_id = entry.lagna_rule_id
         label_en, label_ta = entry.label_en, entry.label_ta
     else:
         return None
-    if not (best or middling or avoid):
+    if not (best or middling or avoid or conditional):
         return None
 
     name_en = rasi_en(rasi) or str(rasi)
@@ -1756,6 +1736,13 @@ def lagna_sign_factor_at_window(activity: str, rasi: int) -> FactorResult | None
         verdict, contribution = Verdict.BONUS, _W.LAGNA_BEST
         reason_en = f"{name_en} rises during the selected window — among the signs named best for {label_en}."
         reason_ta = f"தேர்ந்தெடுத்த நேரத்தில் {name_ta} லக்னம் — {label_ta} சிறந்ததெனக் கூறப்பட்ட ராசிகளுள் ஒன்று."
+    elif rasi in conditional:
+        verdict, contribution = Verdict.NEUTRAL, 0.0
+        reason_en = f"{name_en} rises during the selected window — {condition_en or 'approved only conditionally'}."
+        reason_ta = (
+            f"தேர்ந்தெடுத்த நேரத்தில் {name_ta} லக்னம் — "
+            f"{condition_ta or 'நிபந்தனையுடன் மட்டுமே ஏற்கப்படும்'}."
+        )
     elif rasi in middling:
         verdict, contribution = Verdict.NEUTRAL, 0.0
         reason_en = f"{name_en} rises during the selected window — of middling quality for {label_en}."
@@ -2021,77 +2008,6 @@ def marriage_jupiter_gochara_factor(
             "உகந்ததல்ல என கலப்பிரகாசிகை கூறுகிறது."
         ),
         rule_id="MARRIAGE_JUPITER_GOCHARA_FROM_MOON",
-    )
-
-
-def _registry_lagna_sign_factor(snapshot, activity: str) -> FactorResult | None:
-    """The activity's own sourced lagna-sign preference.
-
-    Graded PENALTY rather than VETO for the avoid set, following the precedent
-    `MARRIAGE_LAGNA_SIGN_PREFERENCE` already set: "should be avoided" is a
-    strong penalty, not automatically a hard veto.
-
-    Signs the chapter approves *conditionally* (Namakarana's common signs, good
-    only "when occupied by a benefic") score NEUTRAL with the condition spelled
-    out. Crediting them would claim a benefic placement nobody computed.
-    """
-    entry = _rules(activity)
-    if entry is None or not (entry.lagna_best or entry.lagna_avoid or entry.lagna_conditional):
-        return None
-
-    rasi = snapshot.lagna_rasi_number
-    fallback = str(snapshot.lagna_rasi_name)
-    name_en = rasi_en(rasi) or fallback
-    name_ta = rasi_ta(rasi) or fallback
-
-    if rasi in entry.lagna_avoid:
-        return FactorResult(
-            factor="LAGNA_SIGN_AT_SUNRISE",
-            verdict=Verdict.PENALTY,
-            contribution=_W.LAGNA_AVOID,
-            reason_en=f"{name_en} rises at sunrise — a sign the text says to avoid for {entry.label_en}.",
-            reason_ta=f"சூரிய உதயத்தில் {name_ta} லக்னம் — {entry.label_ta} தவிர்க்கச் சொல்லப்பட்ட ராசி.",
-            rule_id=entry.lagna_rule_id,
-        )
-    if rasi in entry.lagna_best:
-        return FactorResult(
-            factor="LAGNA_SIGN_AT_SUNRISE",
-            verdict=Verdict.BONUS,
-            contribution=_W.LAGNA_BEST,
-            reason_en=f"{name_en} rises at sunrise — among the signs named best for {entry.label_en}.",
-            reason_ta=f"சூரிய உதயத்தில் {name_ta} லக்னம் — {entry.label_ta} சிறந்ததெனக் கூறப்பட்ட ராசிகளுள் ஒன்று.",
-            rule_id=entry.lagna_rule_id,
-        )
-    if rasi in entry.lagna_conditional:
-        return FactorResult(
-            factor="LAGNA_SIGN_AT_SUNRISE",
-            verdict=Verdict.NEUTRAL,
-            contribution=0.0,
-            reason_en=(
-                f"{name_en} rises at sunrise — {entry.lagna_conditional_en or 'approved only conditionally'}."
-            ),
-            reason_ta=(
-                f"சூரிய உதயத்தில் {name_ta} லக்னம் — "
-                f"{entry.lagna_conditional_ta or 'நிபந்தனையுடன் மட்டுமே ஏற்கப்படும்'}."
-            ),
-            rule_id=entry.lagna_rule_id,
-        )
-    if rasi in entry.lagna_middling:
-        return FactorResult(
-            factor="LAGNA_SIGN_AT_SUNRISE",
-            verdict=Verdict.NEUTRAL,
-            contribution=0.0,
-            reason_en=f"{name_en} rises at sunrise — of middling quality for {entry.label_en}.",
-            reason_ta=f"சூரிய உதயத்தில் {name_ta} லக்னம் — {entry.label_ta} நடுத்தரமான பலன்.",
-            rule_id=entry.lagna_rule_id,
-        )
-    return FactorResult(
-        factor="LAGNA_SIGN_AT_SUNRISE",
-        verdict=Verdict.NEUTRAL,
-        contribution=0.0,
-        reason_en=f"{name_en} rises at sunrise — the text names it neither way for {entry.label_en}.",
-        reason_ta=f"சூரிய உதயத்தில் {name_ta} லக்னம் — {entry.label_ta} நூல் இதைக் குறிப்பிடவில்லை.",
-        rule_id=entry.lagna_rule_id,
     )
 
 
@@ -2559,13 +2475,17 @@ def score_day(
     subject: Subject | None = None,
     *,
     co_subject: Subject | None = None,
-    include_lagna_sign: bool = True,
 ) -> DayScore:
     """Score one day for one activity, optionally for one person or a couple.
 
     `subject=None` is general mode: the personal factors are not computed, not
     scored, and not mentioned. A general result can never be vetoed by a
     personal factor — that is the definition of the mode.
+
+    No lagna is scored here. A day has no lagna — one rises every two hours —
+    and the sign rising at sunrise is the Sun's own rasi, i.e. the Tamil month.
+    The lagna is judged at the elected moment by `lagna_sign_factor_at_window`
+    (FSA-01, owner ruling 2026-10-21).
 
     `co_subject` adds the second half of a couple — the case a wedding date has
     always been, and which this engine could not express until 2026-09-12. Both
@@ -2612,10 +2532,6 @@ def score_day(
     ):
         if optional is not None:
             factors.append(optional)
-    if include_lagna_sign:
-        lagna_factor = _lagna_sign_factor(snapshot, activity)
-        if lagna_factor is not None:
-            factors.append(lagna_factor)
 
     if subject is None:
         if co_subject is not None:
