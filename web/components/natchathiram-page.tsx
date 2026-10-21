@@ -9,6 +9,7 @@ import { normalizeTamilAstroText, romanNakshathiramLabel, romanNakshathiramName,
 import { NatchathiramFactVisual, RasiGlyph } from "@/components/astro-symbols";
 import { DASA_TIMING_NOTE, DasaSummaryTables } from "@/components/natchathiram-dasa-timing";
 import { dasaTimingsFor } from "@/lib/natchathiram-dasa-timings";
+import { nakshatraDisplayName } from "@/lib/nakshatra-display-name";
 
 interface Props {
   data: NatchathiramEntry;
@@ -64,12 +65,11 @@ export async function NatchathiramPageContent({ data }: Props) {
             <div className="cl-pub-hero__copy">
               <p className="cl-eyebrow">{mt(d.eyebrow_prefix, lang)} · {data.number}/27</p>
               <h1 className="cl-pub-h1 cl-natch-detail-title">
+                {/* §8.4 Option A: Tamil name first, Sanskrit in brackets, page's script. */}
                 {lang === "ta" ? (
-                  <>
-                    <span className="cl-natch-detail-title__ta">{data.name_ta} நட்சத்திரம்</span>
-                  </>
+                  <span className="cl-natch-detail-title__ta">{nakshatraDisplayName(data.number, "ta")}</span>
                 ) : (
-                  <>{englishLabel}</>
+                  <>{nakshatraDisplayName(data.number, "en")}</>
                 )}
               </h1>
               <p className="cl-pub-lead">

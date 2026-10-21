@@ -2,16 +2,17 @@ import type { Metadata } from "next";
 import { withTamilTwin } from "@/lib/localized-metadata";
 import { withDasaTimingHold } from "@/lib/natchathiram-dasa-hold";
 import { dasaTimingsFor } from "@/lib/natchathiram-dasa-timings";
+import { nakshatraDisplayName } from "@/lib/nakshatra-display-name";
 import { natchathiramVisualTa } from "@/lib/marketing-seo-ta";
 import { PUNARVASU } from "@/lib/natchathiram-data";
 import { NatchathiramVisualContent, type NatchathiramVisualData } from "@/components/natchathiram-visual";
 
 const EN_METADATA: Metadata = {
-  title: "Punarpoosam Nakshathiram — Visual Profile",
+  title: `${nakshatraDisplayName(PUNARVASU.number, "en")} — Visual Profile`,
   description: "Visual profile of Punarpoosam Nakshathiram: personality traits, career strengths, dasa timeline, compatible nakshathirams, and spiritual guidance.",
   alternates: { canonical: "https://vinaadi.com/natchathiram/punarvasu/visual" },
   openGraph: {
-    title: "Punarpoosam Nakshathiram — Visual Profile",
+    title: `${nakshatraDisplayName(PUNARVASU.number, "en")} — Visual Profile`,
     description: "Visual profile of Punarpoosam Nakshathiram: personality traits, career strengths, dasa timeline, and spiritual guidance.",
     url: "https://vinaadi.com/natchathiram/punarvasu/visual",
     type: "article",

@@ -2,16 +2,17 @@ import type { Metadata } from "next";
 import { withTamilTwin } from "@/lib/localized-metadata";
 import { withDasaTimingHold } from "@/lib/natchathiram-dasa-hold";
 import { dasaTimingsFor } from "@/lib/natchathiram-dasa-timings";
+import { nakshatraDisplayName } from "@/lib/nakshatra-display-name";
 import { natchathiramVisualTa } from "@/lib/marketing-seo-ta";
 import { THIRUVONAM } from "@/lib/natchathiram-data";
 import { NatchathiramVisualContent, type NatchathiramVisualData } from "@/components/natchathiram-visual";
 
 const EN_METADATA: Metadata = {
-  title: "Thiruvonam Nakshathiram — Visual Profile",
+  title: `${nakshatraDisplayName(THIRUVONAM.number, "en")} — Visual Profile`,
   description: "Visual profile of Thiruvonam Nakshathiram: personality traits, career strengths, dasa timeline, compatible nakshathirams, and spiritual guidance.",
   alternates: { canonical: "https://vinaadi.com/natchathiram/shravana/visual" },
   openGraph: {
-    title: "Thiruvonam Nakshathiram — Visual Profile",
+    title: `${nakshatraDisplayName(THIRUVONAM.number, "en")} — Visual Profile`,
     description: "Visual profile of Thiruvonam Nakshathiram: personality traits, career strengths, dasa timeline, and spiritual guidance.",
     url: "https://vinaadi.com/natchathiram/shravana/visual",
     type: "article",

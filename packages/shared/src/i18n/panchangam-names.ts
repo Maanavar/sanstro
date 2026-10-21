@@ -64,6 +64,46 @@ export const NAKSHATRA_NAMES: PanchangamNameMap = {
   REVATHI:        { ta: "ரேவதி",           en: "Revathi" },
 };
 
+/**
+ * The Sanskrit name of each nakshatra, keyed like NAKSHATRA_NAMES (§8.4,
+ * owner ruling 2026-10-21, Option A): a page leads with the Tamil name and
+ * carries the Sanskrit one in brackets, in the page's own script —
+ * "Anusham Nakshathiram (Anuradha)" / "அனுஷம் நட்சத்திரம் (அனுராதா)".
+ *
+ * `null` where the Sanskrit name is the Tamil one, so a bracket would only
+ * echo it ("Rohini Nakshathiram (Rohini)"). The Tamil-script forms are
+ * transliterations awaiting the native Tamil review the same ruling requires.
+ */
+export const NAKSHATRA_SANSKRIT_NAMES: Readonly<Record<string, { ta: string; en: string } | null>> = {
+  ASWINI:         null,
+  BHARANI:        null,
+  KARTHIGAI:      { ta: "க்ருத்திகா",        en: "Krittika" },
+  ROHINI:         null,
+  MIRUGASEERIDAM: { ta: "ம்ருகசிரா",         en: "Mrigashira" },
+  THIRUVATHIRAI:  { ta: "ஆர்த்ரா",           en: "Ardra" },
+  PUNARPOOSAM:    { ta: "புனர்வசு",          en: "Punarvasu" },
+  POOSAM:         { ta: "புஷ்யா",            en: "Pushya" },
+  AYILYAM:        { ta: "ஆஷ்லேஷா",          en: "Ashlesha" },
+  MAGAM:          { ta: "மகா",               en: "Magha" },
+  POORAM:         { ta: "பூர்வ பல்குனி",     en: "Purva Phalguni" },
+  UTHIRAM:        { ta: "உத்தர பல்குனி",     en: "Uttara Phalguni" },
+  HASTHAM:        { ta: "ஹஸ்தா",             en: "Hasta" },
+  CHITHIRAI:      { ta: "சித்ரா",            en: "Chitra" },
+  SWATHI:         null,
+  VISAKAM:        { ta: "விசாகா",            en: "Vishakha" },
+  ANUSHAM:        { ta: "அனுராதா",           en: "Anuradha" },
+  KETTAI:         { ta: "ஜ்யேஷ்டா",          en: "Jyeshtha" },
+  MOOLAM:         { ta: "மூலா",              en: "Mula" },
+  POORADAM:       { ta: "பூர்வாஷாடா",        en: "Purva Ashadha" },
+  UTHIRADAM:      { ta: "உத்தராஷாடா",        en: "Uttara Ashadha" },
+  THIRUVONAM:     { ta: "ஷ்ரவணா",            en: "Shravana" },
+  AVITTAM:        { ta: "தனிஷ்டா",           en: "Dhanishtha" },
+  SADAYAM:        { ta: "ஷதபிஷா",            en: "Shatabhisha" },
+  POORATTATHI:    { ta: "பூர்வ பாத்ரபதா",    en: "Purva Bhadrapada" },
+  UTHIRATTATHI:   { ta: "உத்தர பாத்ரபதா",    en: "Uttara Bhadrapada" },
+  REVATHI:        null,
+};
+
 export const YOGA_NAMES: PanchangamNameMap = {
   VISHKAMBHA: { ta: "விஷ்கம்பம்", en: "Vishkambha" },
   PRITI:      { ta: "பிரீதி",     en: "Priti" },

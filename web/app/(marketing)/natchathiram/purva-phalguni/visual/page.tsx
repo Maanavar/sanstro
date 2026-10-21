@@ -2,16 +2,17 @@ import type { Metadata } from "next";
 import { withTamilTwin } from "@/lib/localized-metadata";
 import { withDasaTimingHold } from "@/lib/natchathiram-dasa-hold";
 import { dasaTimingsFor } from "@/lib/natchathiram-dasa-timings";
+import { nakshatraDisplayName } from "@/lib/nakshatra-display-name";
 import { natchathiramVisualTa } from "@/lib/marketing-seo-ta";
 import { PURVA_PHALGUNI } from "@/lib/natchathiram-data";
 import { NatchathiramVisualContent, type NatchathiramVisualData } from "@/components/natchathiram-visual";
 
 const EN_METADATA: Metadata = {
-  title: "Pooram Nakshathiram — Visual Profile",
+  title: `${nakshatraDisplayName(PURVA_PHALGUNI.number, "en")} — Visual Profile`,
   description: "Visual profile of Pooram Nakshathiram: personality traits, career strengths, dasa timeline, compatible nakshathirams, and spiritual guidance.",
   alternates: { canonical: "https://vinaadi.com/natchathiram/purva-phalguni/visual" },
   openGraph: {
-    title: "Pooram Nakshathiram — Visual Profile",
+    title: `${nakshatraDisplayName(PURVA_PHALGUNI.number, "en")} — Visual Profile`,
     description: "Visual profile of Pooram Nakshathiram: personality traits, career strengths, dasa timeline, and spiritual guidance.",
     url: "https://vinaadi.com/natchathiram/purva-phalguni/visual",
     type: "article",

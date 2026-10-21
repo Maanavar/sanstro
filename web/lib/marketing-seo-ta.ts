@@ -15,6 +15,7 @@ import { SITE_DESCRIPTION_TA } from "./site-description-ta";
 import type { MetaCopy } from "./localized-metadata";
 import { getGuideDetail, type GuideKind } from "./guide-detail-content";
 import { NATCHATHIRAM_LIST } from "./natchathiram-data";
+import { nakshatraDisplayName } from "./nakshatra-display-name";
 
 export const RASIPALAN_TA: MetaCopy = {
   title: "இன்றைய ராசிபலன் — 12 ராசிகளுக்கும் இன்றைய பலன்",
@@ -88,7 +89,8 @@ export function natchathiramVisualTa(slug: string): MetaCopy | null {
   const star = NATCHATHIRAM_LIST.find((n) => n.slug === slug);
   if (!star) return null;
   return {
-    title: `${star.name_ta} நட்சத்திரம் — காட்சி விவரம்`,
+    // §8.4 Option A: the Sanskrit name in brackets, in Tamil script.
+    title: `${nakshatraDisplayName(star.number, "ta")} — காட்சி விவரம்`,
     description: `${star.name_ta} நட்சத்திரத்தின் காட்சி விவரம்: குண நலன்கள், தொழில் பலம், தசை காலவரிசை, பொருந்தும் நட்சத்திரங்கள் மற்றும் ஆன்மீக வழிகாட்டுதல்.`,
   };
 }

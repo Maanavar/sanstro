@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { NatchathiramEntry } from "./natchathiram-data";
 import { withTamilTwin } from "./localized-metadata";
 import { faqPageFromPairs, type Ld } from "./json-ld";
+import { nakshatraDisplayName } from "./nakshatra-display-name";
 
 const OG_IMAGE = { url: "/brand/vinaadi-og-image.jpg", width: 1200, height: 630, alt: "Vinaadi — Tamil Astrology" };
 
@@ -11,12 +12,19 @@ const OG_IMAGE = { url: "/brand/vinaadi-og-image.jpg", width: 1200, height: 630,
  * `entry.meta` is the Tamil copy — the data files were written Tamil-first, and
  * until now the English URL carried it too, so an English searcher saw a Tamil
  * title. The English copy is built from the entry's English name.
+ *
+ * Both titles lead with `nakshatraDisplayName` (§8.4, Option A): the Tamil
+ * name, Sanskrit in brackets, each in its page's script.
  */
 function englishCopy(entry: NatchathiramEntry) {
   return {
-    title: `${entry.name_en} Nakshatra: Personality, Career & Dasha Predictions`,
+    title: `${nakshatraDisplayName(entry.number, "en")}: Personality, Career & Dasha Predictions`,
     description: `${entry.name_en} (${entry.rasi_en}) nakshatra: personality traits, career strengths, family life, dasha results and spiritual guidance, based on Thirukanitham.`,
   };
+}
+
+function tamilTitle(entry: NatchathiramEntry): string {
+  return `${nakshatraDisplayName(entry.number, "ta")} — குண நலன்கள், தொழில், தசை பலன்கள்`;
 }
 
 export async function natchathiramMetadata(entry: NatchathiramEntry): Promise<Metadata> {
@@ -34,7 +42,7 @@ export async function natchathiramMetadata(entry: NatchathiramEntry): Promise<Me
       twitter: { card: "summary_large_image", title, description, images: [OG_IMAGE.url] },
     },
     path,
-    { title: entry.meta.title, description: entry.meta.description, keywords: entry.meta.keywords },
+    { title: tamilTitle(entry), description: entry.meta.description, keywords: entry.meta.keywords },
   );
 }
 
@@ -64,7 +72,7 @@ export function natchathiramJsonLd(entry: NatchathiramEntry): { faqTa: Ld; artic
     faqTa: faqPageFromPairs(entry.faq),
     article: {
       en: article(en.title, en.description, "en"),
-      ta: article(entry.meta.title, entry.meta.description, "ta"),
+      ta: article(tamilTitle(entry), entry.meta.description, "ta"),
     },
   };
 }

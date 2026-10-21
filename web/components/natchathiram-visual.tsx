@@ -15,6 +15,7 @@ import { JYOTISH_TERM_EN, NATCHATHIRAM_EN_FACTS } from "@/lib/natchathiram-data-
 import { romanNakshathiramLabel, romanNakshathiramName, tamilizeAstroEnglish } from "@/lib/tamil-astro";
 import type { MahadashaTiming, NakshatraDasaTimings } from "@/lib/generated/natchathiram-dasa-timings";
 import { BhuktiTable, DASA_TIMING_NOTE, mahadashaSpanLabel } from "@/components/natchathiram-dasa-timing";
+import { nakshatraDisplayName } from "@/lib/nakshatra-display-name";
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -471,17 +472,11 @@ export function NatchathiramVisualContent({ data, visual, timings }: Props) {
 
               {/* Left — title + at-a-glance */}
               <div className="cl-pub-hero__copy">
+                {/* §8.4 Option A: Tamil name first, Sanskrit in brackets, page's script.
+                    The English H1 used to repeat itself in capitals underneath; a
+                    screen reader read the name twice. */}
                 <h1 className="cl-pub-h1">
-                  {lang === "ta" ? (
-                    <>{data.name_ta} நட்சத்திரம்</>
-                  ) : (
-                    <>
-                      {englishLabel}
-                      <span style={{ display:"block", fontSize:"clamp(0.95rem,2vw,1.25rem)", color:"var(--cl-muted)", fontFamily:"var(--cl-font-sans)", fontWeight:500, letterSpacing:"0.14em", textTransform:"uppercase", marginTop:"0.4rem" }}>
-                        {englishLabel.toUpperCase()}
-                      </span>
-                    </>
-                  )}
+                  {nakshatraDisplayName(data.number, lang === "ta" ? "ta" : "en")}
                 </h1>
                 <p className="cl-pub-lead">
                   {lang === "ta"
