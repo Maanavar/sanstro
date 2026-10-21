@@ -385,10 +385,19 @@ nakshatra set.
 - **IMG-01:** `web/lib/sky-phase.ts`: phase from the local clock (fixed
   Tamil Nadu civil bands) → art slot with a declared ground; empty slots fall
   back (dawn→day→night, dusk→night). Header and closing scene both key their
-  CSS off `data-sky-ground`. Light theme now shows the moonlit scene whole: as
-  a framed window beside the headline (desktop), a strip above it (≤ 720 px),
-  and a framed closing card with page-ground ink. The `opacity: .1` rule is
-  gone. **Remaining:** day/dawn/dusk art (owner, via the prompts doc).
+  CSS off `data-sky-ground`. The `opacity: .1` rule is gone. On the opposite
+  ground the scene is a framed 3:1 window placed **beside** text, never under
+  text or a control: in the header it sits in flow under the view switch, at
+  the switch's width (desktop; hidden ≤ 720 px so the calendar isn't pushed
+  down); the closing becomes a postcard (line beside the window, stacked on
+  phones). **Remaining:** day/dawn/dusk art (owner, via the prompts doc).
+  - *Correction, same day:* the first version absolutely positioned the header
+    window at the header's right edge, under the Panchangam/Monthly/Best Dates
+    switch. The owner's screenshot caught it. The static harness had omitted
+    the switch, so it could not see the collision: **a harness that leaves out
+    a sibling cannot test that sibling's overlap.** The harness now mirrors the
+    real header DOM, and `sky-phase.test.ts` pins the in-flow placement and
+    source order (both checks confirmed to fail on the old code).
 - **IMG-02/03/04:** `<ObservanceGlyph>` (9 emblems, 1.75 stroke, `currentColor`)
   in month cells, legend, agenda rail, the "Next muhurtham" button and the
   public Muhurtham Naal hero (which was 404ing). Hindu festivals without their

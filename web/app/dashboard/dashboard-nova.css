@@ -2071,7 +2071,7 @@
   mask-composite: intersect;
 }
 [data-ui="nova"] .cd-shell .nova-cal-landscape img { object-fit: cover; object-position: center 48%; }
-[data-ui="nova"] .cd-shell .nova-cal-monthly-header > .nova-cal-landscape { inset: -24px -24px 0; }
+[data-ui="nova"] .cd-shell .nova-cal-monthly-header .nova-cal-landscape { inset: -24px -24px 0; }
 [data-ui="nova"] .cd-shell .nova-cal-monthly-header__copy {
   max-width: 620px;
 }
@@ -2342,64 +2342,136 @@
 [data-ui="nova"][data-theme="light"] .cd-shell .vn-gem { outline: 1px solid var(--gem-ring); outline-offset: -1px; }
 
 /* Time-of-day sky (IMG-01). The scene follows the reader's clock; its ground,
-   not the theme, picks the treatment. Matching ground: feathered atmosphere,
-   as above. Opposite ground: the art cannot blend — night at 10% over cream
-   was grey fog — so it is shown whole, as a framed window, and the line on it
-   takes the page ground as ink (cream on night art, navy on day art). */
-[data-ui="nova"][data-theme="light"] .cd-shell .nova-cal-closing[data-sky-ground="light"] { background: var(--color-surface-soft); }
+   not the theme, picks the treatment.
+   - Matching ground: feathered atmosphere behind the copy, as above.
+   - Opposite ground: the art cannot blend (night at 10% over cream was grey
+     fog), so it becomes a framed window, placed BESIDE text and never under
+     text or a control. Header: in flow under the view switch, at the
+     switch's width. Closing: a postcard beside its line. 3:1 is the art's own
+     proportion, so the frame never crops the moon or the gopuram away. */
+[data-ui="nova"] .cd-shell .nova-cal-header-aside {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-3);
+}
+[data-ui="nova"][data-theme="light"] .cd-shell .nova-cal-monthly-header[data-sky-ground="light"] .nova-cal-landscape,
 [data-ui="nova"][data-theme="light"] .cd-shell .nova-cal-closing[data-sky-ground="light"] .nova-cal-landscape { opacity: .92; }
-[data-ui="nova"][data-theme="light"] .cd-shell .nova-cal-closing[data-sky-ground="dark"],
-[data-ui="nova"]:not([data-theme="light"]) .cd-shell .nova-cal-closing[data-sky-ground="light"] {
+[data-ui="nova"][data-theme="light"] .cd-shell .nova-cal-closing[data-sky-ground="light"] { background: var(--color-surface-soft); }
+
+[data-ui="nova"][data-theme="light"] .cd-shell .nova-cal-monthly-header[data-sky-ground="dark"] .nova-cal-landscape,
+[data-ui="nova"]:not([data-theme="light"]) .cd-shell .nova-cal-monthly-header[data-sky-ground="light"] .nova-cal-landscape,
+[data-ui="nova"][data-theme="light"] .cd-shell .nova-cal-closing[data-sky-ground="dark"] .nova-cal-landscape,
+[data-ui="nova"]:not([data-theme="light"]) .cd-shell .nova-cal-closing[data-sky-ground="light"] .nova-cal-landscape {
+  position: relative;
+  inset: auto;
+  z-index: auto;
+  aspect-ratio: 3 / 1;
+  opacity: 1;
   overflow: hidden;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--nova-card-shadow);
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+[data-ui="nova"][data-theme="light"] .cd-shell .nova-cal-monthly-header[data-sky-ground="dark"] .nova-cal-landscape,
+[data-ui="nova"]:not([data-theme="light"]) .cd-shell .nova-cal-monthly-header[data-sky-ground="light"] .nova-cal-landscape {
+  width: 100%;
+}
+[data-ui="nova"][data-theme="light"] .cd-shell .nova-cal-closing[data-sky-ground="dark"],
+[data-ui="nova"]:not([data-theme="light"]) .cd-shell .nova-cal-closing[data-sky-ground="light"] {
+  justify-content: flex-end;
+  gap: var(--space-6);
+  padding-inline: 0;
+  text-align: end;
 }
 [data-ui="nova"][data-theme="light"] .cd-shell .nova-cal-closing[data-sky-ground="dark"] .nova-cal-landscape,
 [data-ui="nova"]:not([data-theme="light"]) .cd-shell .nova-cal-closing[data-sky-ground="light"] .nova-cal-landscape {
-  opacity: 1;
-  -webkit-mask-image: none;
-  mask-image: none;
+  order: 2;
+  flex: 0 1 460px;
 }
-[data-ui="nova"][data-theme="light"] .cd-shell .nova-cal-closing[data-sky-ground="dark"] p,
-[data-ui="nova"]:not([data-theme="light"]) .cd-shell .nova-cal-closing[data-sky-ground="light"] p {
-  color: var(--color-bg);
-  text-shadow: 0 1px 14px color-mix(in srgb, var(--color-text-strong) 60%, transparent);
+@media (max-width: 720px) {
+  /* Phone: the calendar is the content. A framed window under the switch
+     would push it ~120px down and repeat the closing's art, so it steps
+     aside; the closing postcard carries the scene alone. */
+  [data-ui="nova"][data-theme="light"] .cd-shell .nova-cal-monthly-header[data-sky-ground="dark"] .nova-cal-landscape,
+  [data-ui="nova"]:not([data-theme="light"]) .cd-shell .nova-cal-monthly-header[data-sky-ground="light"] .nova-cal-landscape {
+    display: none;
+  }
+  [data-ui="nova"][data-theme="light"] .cd-shell .nova-cal-closing[data-sky-ground="dark"],
+  [data-ui="nova"]:not([data-theme="light"]) .cd-shell .nova-cal-closing[data-sky-ground="light"] {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+    text-align: start;
+  }
+  [data-ui="nova"][data-theme="light"] .cd-shell .nova-cal-closing[data-sky-ground="dark"] .nova-cal-landscape,
+  [data-ui="nova"]:not([data-theme="light"]) .cd-shell .nova-cal-closing[data-sky-ground="light"] .nova-cal-landscape {
+    flex-basis: auto;
+    width: 100%;
+  }
 }
-/* Page header. Its headline sits on the art's quiet left third, which only
-   works on a matching ground; on the opposite ground the window moves beside
-   the copy (desktop) or above it (phone) so no line of text sits on it. */
-[data-ui="nova"][data-theme="light"] .cd-shell .nova-cal-monthly-header[data-sky-ground="light"] > .nova-cal-landscape { opacity: .92; }
-[data-ui="nova"][data-theme="light"] .cd-shell .nova-cal-monthly-header[data-sky-ground="dark"] > .nova-cal-landscape,
-[data-ui="nova"]:not([data-theme="light"]) .cd-shell .nova-cal-monthly-header[data-sky-ground="light"] > .nova-cal-landscape {
-  inset: var(--space-3) 0 var(--space-3) auto;
-  width: min(44%, 540px);
-  opacity: 1;
+
+/* An opposite-ground scene needs a single, deliberate placement. A small
+   second copy beneath the view selector reads as a stray thumbnail on light
+   cream; the closing panorama has room for the full temple composition. */
+[data-ui="nova"][data-theme="light"] .cd-shell .nova-cal-monthly-header[data-sky-ground="dark"] .nova-cal-landscape,
+[data-ui="nova"]:not([data-theme="light"]) .cd-shell .nova-cal-monthly-header[data-sky-ground="light"] .nova-cal-landscape {
+  display: none;
+}
+[data-ui="nova"][data-theme="light"] .cd-shell .nova-cal-closing[data-sky-ground="dark"],
+[data-ui="nova"]:not([data-theme="light"]) .cd-shell .nova-cal-closing[data-sky-ground="light"] {
+  min-height: clamp(180px, 20vw, 300px);
+  align-items: center;
+  justify-content: flex-start;
   overflow: hidden;
+  padding: clamp(var(--space-5), 5vw, var(--space-8));
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--nova-card-shadow);
+  text-align: start;
+}
+[data-ui="nova"][data-theme="light"] .cd-shell .nova-cal-closing[data-sky-ground="dark"]::before,
+[data-ui="nova"]:not([data-theme="light"]) .cd-shell .nova-cal-closing[data-sky-ground="light"]::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(4, 5, 14, .86), rgba(4, 5, 14, .58) 43%, transparent 72%);
+  pointer-events: none;
+}
+[data-ui="nova"][data-theme="light"] .cd-shell .nova-cal-closing[data-sky-ground="dark"] .nova-cal-landscape,
+[data-ui="nova"]:not([data-theme="light"]) .cd-shell .nova-cal-closing[data-sky-ground="light"] .nova-cal-landscape {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  width: auto;
+  height: auto;
+  opacity: 1;
   -webkit-mask-image: none;
   mask-image: none;
 }
-[data-ui="nova"][data-theme="light"] .cd-shell .nova-cal-monthly-header[data-sky-ground="dark"] .nova-cal-monthly-header__copy,
-[data-ui="nova"]:not([data-theme="light"]) .cd-shell .nova-cal-monthly-header[data-sky-ground="light"] .nova-cal-monthly-header__copy {
-  max-width: min(620px, 54%);
+[data-ui="nova"][data-theme="light"] .cd-shell .nova-cal-closing[data-sky-ground="dark"] .nova-cal-landscape img,
+[data-ui="nova"]:not([data-theme="light"]) .cd-shell .nova-cal-closing[data-sky-ground="light"] .nova-cal-landscape img {
+  object-position: center 50%;
+}
+[data-ui="nova"][data-theme="light"] .cd-shell .nova-cal-closing[data-sky-ground="dark"] p,
+[data-ui="nova"]:not([data-theme="light"]) .cd-shell .nova-cal-closing[data-sky-ground="light"] p {
+  max-width: min(31rem, 58%);
+  color: #fff;
+  text-shadow: 0 1px 10px rgba(4, 5, 14, .72);
 }
 @media (max-width: 720px) {
-  [data-ui="nova"][data-theme="light"] .cd-shell .nova-cal-monthly-header[data-sky-ground="dark"],
-  [data-ui="nova"]:not([data-theme="light"]) .cd-shell .nova-cal-monthly-header[data-sky-ground="light"] {
-    padding-top: calc(104px + var(--space-4));
+  [data-ui="nova"][data-theme="light"] .cd-shell .nova-cal-closing[data-sky-ground="dark"],
+  [data-ui="nova"]:not([data-theme="light"]) .cd-shell .nova-cal-closing[data-sky-ground="light"] {
+    min-height: 150px;
+    flex-direction: row;
+    align-items: center;
   }
-  [data-ui="nova"][data-theme="light"] .cd-shell .nova-cal-monthly-header[data-sky-ground="dark"] > .nova-cal-landscape,
-  [data-ui="nova"]:not([data-theme="light"]) .cd-shell .nova-cal-monthly-header[data-sky-ground="light"] > .nova-cal-landscape {
-    inset: 0 0 auto 0;
-    width: auto;
-    height: 104px;
-  }
-  [data-ui="nova"][data-theme="light"] .cd-shell .nova-cal-monthly-header[data-sky-ground="dark"] .nova-cal-monthly-header__copy,
-  [data-ui="nova"]:not([data-theme="light"]) .cd-shell .nova-cal-monthly-header[data-sky-ground="light"] .nova-cal-monthly-header__copy {
-    max-width: none;
+  [data-ui="nova"][data-theme="light"] .cd-shell .nova-cal-closing[data-sky-ground="dark"] p,
+  [data-ui="nova"]:not([data-theme="light"]) .cd-shell .nova-cal-closing[data-sky-ground="light"] p {
+    max-width: min(18rem, 78%);
   }
 }
 
@@ -2604,13 +2676,13 @@
   /* The header art bleeds 24px past the gutter on wide screens; below this the
      shell's own gutter is narrower than that, so the bleed became page overflow. */
   [data-ui="nova"] .cd-shell .nova-cal-monthly-header::before,
-  [data-ui="nova"] .cd-shell .nova-cal-monthly-header > .nova-cal-landscape { inset-inline: 0; }
+  [data-ui="nova"] .cd-shell .nova-cal-monthly-header .nova-cal-landscape { inset-inline: 0; }
   [data-ui="nova"] .cd-shell .nova-cal-toolbar__actions { margin-left: 0; }
 }
 @media (max-width: 600px) {
   [data-ui="nova"] .cd-shell .nova-cal-monthly-header { min-height: 220px; }
   [data-ui="nova"] .cd-shell .nova-cal-monthly-header::before { inset-inline: -12px; }
-  [data-ui="nova"] .cd-shell .nova-cal-monthly-header > .nova-cal-landscape { inset-inline: -12px; }
+  [data-ui="nova"] .cd-shell .nova-cal-monthly-header .nova-cal-landscape { inset-inline: -12px; }
   [data-ui="nova"] .cd-shell .nova-cal-sidebar { display: flex; align-items: stretch; }
   [data-ui="nova"] .cd-shell .nova-cal-grid-panel { padding: var(--space-2); }
   [data-ui="nova"] .cd-shell .nova-cal-toolbar__actions { margin-left: 0; width: 100%; }

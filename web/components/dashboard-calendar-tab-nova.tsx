@@ -1470,7 +1470,6 @@ export function DashboardCalendarTabNova({
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
       {/* ===== Page header ===== */}
       <div className={view === "monthly" ? "nova-cal-monthly-header" : undefined} data-sky-ground={view === "monthly" ? skyArt.ground : undefined} style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "var(--space-4)", flexWrap: "wrap" }}>
-        {view === "monthly" && <MonthlyCalendarLandscape art={skyArt} priority />}
         <div className={view === "monthly" ? "nova-cal-monthly-header__copy" : undefined}>
           <Kicker as="div">
             {lang === "ta" ? "கோச்சாரம் & நிகழ்வுகள்" : "Transits & Events"}
@@ -1501,6 +1500,11 @@ export function DashboardCalendarTabNova({
           {view === "monthly" && <p className="nova-cal-monthly-header__motto">{t("cal_monthly_plan_with_time_live_with_awareness", lang)}</p>}
         </div>
 
+        {/* The aside holds the view switch and, on Monthly, the scene. The scene
+            is absolute against the header when its ground matches the theme
+            (feathered atmosphere), and in flow under the switch, at the
+            switch's width, when it does not (framed window) — IMG-01. */}
+        <div className="nova-cal-header-aside">
         {/* View switch — the segmented-toggle pattern, now the shared <Segmented>
             (audit A-1/B-7): one nav look across every tab, arrow-key + 44px touch. */}
         <Segmented<CalendarViewExt>
@@ -1513,6 +1517,8 @@ export function DashboardCalendarTabNova({
             { key: "muhurta", label: lang === "ta" ? "சிறந்த நாள் & முஹூர்த்தம்" : "Best Dates & Muhurta" },
           ]}
         />
+        {view === "monthly" && <MonthlyCalendarLandscape art={skyArt} priority />}
+        </div>
       </div>
 
       <ViewSwap viewKey={view}>
