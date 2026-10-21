@@ -629,3 +629,93 @@ exist); பிறப்பில் நடப்பது · தசா இரு
 dasa running at birth, not a life span); பதின்வயது (check naturalness in
 context); இந்த தசையில் (right for dasa themes, not a universal replacement for
 age language).
+
+## 9. Fourth round: astrologer's answers to the review requests (same day)
+
+Answers to A1, A2 and T2 of `REVIEW_REQUESTS_2026-10-21.md`. Net for A2: one
+deletion, one replacement with A1, four rewordings, none kept as is.
+
+### 9.1 A1 — the marriage sentence, built
+
+> EN: Where marriage falls within this dasa, it is read from the seventh house
+> and its lord, with Venus and Jupiter as the natural significators, and judged
+> from the individual horoscope as a tendency rather than a fixed time.
+>
+> TA: இந்தத் தசைக்குள் திருமணம் அமைந்தால், அது ஜாதகத்தின் ஏழாம் வீட்டையும்
+> அதன் அதிபதியையும் கொண்டு பார்க்கப்படுகிறது; சுக்கிரனும் குருவும் அதன் இயல்பான
+> காரகர்கள். அது ஒரு நிலையான காலம் அல்ல, ஒரு போக்கே.
+
+Same sentence for all three slots; no pada variants. **Why:** the opening clause
+is conditional, so the sentence makes no claim about *whether* this dasa is the
+marriage period, which is the thing that changes by pada. A sentence with no
+timing cannot be pada-dependent. Two changes from our reference form: "the
+seventh house **and its lord**" (the lord does most of the work in a real
+reading), and "as a tendency rather than a fixed time" in place of "rather than
+from one fixed bhukti" (the old phrase denied a fixed bhukti but left the reader
+free to infer a fixed age).
+
+**Built:** inserted verbatim in the `expect` text, EN and TA, of Bharani Moon,
+Purva Ashadha Moon and Ashwini Venus. That is where the deleted marriage
+placement used to sit. The slot comments now say "verbatim, do not reword".
+
+### 9.2 A2 — the six existing sentences, built
+
+| Page, dasa | Ruling | Done |
+|---|---|---|
+| Ashwini, Venus (remedies) | **Delete; do not substitute A1.** Venus dasa spans roughly the single-digit years to the mid-twenties; "do not defer marriage … most supportive ground" reads on a public page as advice to marry in adolescence. A remedies block advises on conduct, not on whether to marry now | Sentence removed, EN + TA |
+| Magha, Venus | **Replace with A1.** "Toward the end of Venus dasa" resolves to a narrow age band that moves with the Ketu balance, so it is a timing claim in softer clothes | Clause replaced, EN + TA |
+| Shravana, Rahu | **Reword.** "I would not make that claim." The overlap with marriage years is an artifact of Vimshottari order, not doctrine; Rahu is not a significator of marriage. Keep the overlap, drop the causation | Ruled wording, EN + TA |
+| Uttara Ashadha, Rahu | **Reword**, as Shravana with "family formation" / குடும்ப அமைவும் | Ruled wording, EN + TA |
+| Ashlesha, Venus | **Reword lightly.** Here the dasa lord *is* the significator; only "commonly falls" → "may fall" | EN "may fall"; TA பொதுவாக … வரும் → … வரலாம் |
+| Bharani, Venus | **Reword by deletion.** Keep the first clause; "marriage itself is typically not yet required" is a negative timing claim and an odd thing to tell a reader | Second clause removed, EN + TA |
+
+Ruled Shravana wording:
+
+> EN: Marriage and first professional establishment may fall within this dasa;
+> where they do, they are read from Venus, Jupiter and the seventh house and its
+> lord, not from this dasa's own nature.
+>
+> TA: திருமணமும் முதல் தொழில் நிறுவலும் இந்தத் தசைக்குள் அமையலாம்; அவ்வாறு
+> அமைந்தால், அவை இந்தத் தசையின் இயல்பால் அல்ல, சுக்கிரன், குரு, ஏழாம் வீடு
+> மற்றும் அதன் அதிபதியைக் கொண்டு பார்க்கப்படுகின்றன.
+
+**Two judgement calls, for the Tamil reviewer:**
+- *Bharani:* the ruling quoted the kept clause in Tamil as "ஒரு மனிதனை மாற்றும்
+  வலுவான உறவு …". The page's existing clause is "ஆளையே மாற்றும் ஒரு தீவிர உறவு …".
+  It was kept, because the instruction was to keep the clause and stop, and
+  மனிதனை is masculine where ஆளையே is not.
+- *Ashlesha TA:* the ruling gave English only. The Tamil hedge (வரலாம்) is ours.
+
+### 9.3 T2 — star names, built by table
+
+> The inflection problem is real but it is not 90 hand edits. … suffix-aware
+> replacement, not base-word replacement. … Run the table first, then hand over
+> only the remainder.
+
+Oblique stems: names in -ம் take -த்த- (அனுஷம் → அனுஷத்தின் / அனுஷத்துக்கு /
+அனுஷத்தில் / அனுஷத்தால் / அனுஷத்தை). கேட்டை takes a -ய்- glide and a direct
+dative (கேட்டையின், கேட்டைக்கு, கேட்டையில், கேட்டையால், கேட்டையை). Attributive
+use takes the bare stem (அனுஷ நட்சத்திரம்).
+
+**Built:** 88 of 90 uses replaced across Anuradha (16), Hasta (18), Punarvasu
+(16), Jyeshtha (14), Purva Ashadha (13 of 14) and Uttara Ashadha (11 of 12).
+Before the run, every bare use was read in context. Three were attributive and
+got the stem: ஹஸ்த வெளிப்பாடு, ஹஸ்த குழந்தைக்கு, பூராட வாழ்க்கையின். The rest
+are nominative subjects and got the base name.
+
+**Left for the reviewer (the remainder):**
+- The two etymology lines, "பூர்வ ஆஷாடா என்றால் 'ஆரம்ப வெற்றி'" and
+  "உத்தர ஆஷாடா என்றால் 'பிற்கால வெற்றி'". They explain the *Sanskrit* name, so
+  the almanac name would make them false. Either keep them, or write
+  "பூராடம் (பூர்வ ஆஷாடா) என்றால் …".
+- Agreement: whether any sentence's surrounding words were written to agree
+  with the Sanskrit form. The table cannot see this.
+
+**ஆஸ்தா:** confirmed a typo for ஹஸ்தா (the Sanskrit-form map in
+`panchangam-names.ts` spells it ஹஸ்தா). It occurs nowhere in code outside
+Hasta's page. The one other Sanskrit form still in code is deliberate:
+`natchathiram-data.ts` says "சமஸ்கிருதத்தில் இது 'புனர்வசு' என்று அழைக்கப்படுகிறது".
+
+**Gate:** `natchathiram-dasa-prose.test.ts` and `nakshatra-display-name.test.ts`
+pass (181). Neither can see Tamil grammar or case agreement, so the T2 output
+is still part of condition 1, not a substitute for it.

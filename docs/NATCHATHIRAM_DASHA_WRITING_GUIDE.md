@@ -1,5 +1,7 @@
 # Natchathiram Visual Page — Dasha Writing Guide
 
+> **SUPERSEDED in part (2026-10-21, FSA-03).** Sections 2, 3, 5 (the "name the age" rule), 6, 7b, 8 and 13 below tell the writer to type ages, periods and "Nth sub-period" placements into the prose. **Do not.** On the engine's arithmetic most of those typed placements were wrong, and `web/lib/natchathiram-dasa-prose.test.ts` now fails any released page whose dasa prose contains a digit, decade word, spelled duration or ordinal sub-period. Timings come from `web/lib/generated/natchathiram-dasa-timings.ts` and are rendered beside the prose; the prose points at the bhukti table ("the table below gives when it begins and how long it lasts") and words every life stage conditionally on the pada / birth balance. The `period` and `ageRange` fields no longer exist. The voice (§5), the rasi-lord declaration (§7a), remedies and temples stay as written. The method is recorded in `docs/OWNER_RULINGS_FSA_2026-10-21.md` §7.1 and `docs/DASA_PROSE_REVIEW_PACKET_2026-10-21.md`.
+
 This document captures every rule, pattern, and principle established while writing the **Ashwini** nakshathiram visual page dasha content. Use this as the complete reference when writing dasha content for any of the remaining 26 nakshatrams. Follow every rule here without deviation.
 
 ---
