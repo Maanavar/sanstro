@@ -998,7 +998,7 @@ export const NATCHATHIRAM_EN: Record<string, NatchathiramEnSections> = {
     dasha: [
       "Shatabhisha natives are born in Rahu dasha. Rahu's wide-ranging, boundary-crossing energy characterizes the early life — an unusual environment, unconventional early experiences, or early immersion in multiple worlds.",
       "Jupiter dasha brings philosophical depth and a search for the meaning behind the unusual experiences of the Rahu years. Many Shatabhisha natives arrive at their true calling during Jupiter's period.",
-      "Saturn, Mercury, Ketu, Venus, Sun, Moon, and Mars dashas follow in their sequence — each bringing their characteristic textures to the wide-ranging Shatabhisha life.",
+      "Saturn dasha follows Jupiter dasha. Saturn, lord of Kumbha rasi, is associated with responsibility, discipline, patience and long-term effort; in this dasha, career growth, family responsibilities and decisions about property may come to the fore. Its results vary with the individual horoscope and Saturn's placement in it. Mercury, Ketu, Venus, Sun, Moon, and Mars dashas follow in their sequence.",
     ],
     spiritual: [
       "Varuna worship — the deity of cosmic law, vast waters, and divine healing — is the core spiritual practice for Shatabhisha. Offering prayer facing the ocean or a vast body of water, maintaining personal integrity (Varuna's primary requirement), and engaging in genuine healing practice are the living forms of this worship.",
