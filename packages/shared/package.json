@@ -20,6 +20,7 @@
     "./doshamReckoning": "./src/doshamReckoning.ts",
     "./reading": "./src/reading.ts",
     "./nakshatraLord": "./src/nakshatraLord.ts",
+    "./nakshatraRasi": "./src/nakshatraRasi.ts",
     "./utils/score": "./src/utils/score.ts",
     "./utils/panchangamLimb": "./src/utils/panchangamLimb.ts",
     "./utils/format": "./src/utils/format.ts",
