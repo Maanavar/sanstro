@@ -1,0 +1,489 @@
+# Owner Rulings on the Full System Audit — 2026-10-21
+
+Rulings on [`FULL_SYSTEM_AUDIT_2026-10-21.md`](FULL_SYSTEM_AUDIT_2026-10-21.md),
+given the same day. This file records each ruling **verbatim** where it
+constrains future work (CLAUDE.md: *record the constraint verbatim*), what was
+built against it, what was measured, and two points that need confirmation
+before the next step.
+
+---
+
+## The governing principle (verbatim)
+
+> **One question, one rule engine, one answer.** The same birth details or the
+> same muhurta time must produce the same result whether it surfaces in the
+> public tool, the signed-in dashboard, the PDF export, or a push notification.
+> A rule may legitimately differ by purpose (marriage versus a shop opening) or
+> by parampara (one lineage's custom versus another's) — but then that is one
+> engine with a declared parameter, not two engines disagreeing by accident.
+
+Standing requirements:
+
+1. **Every rule names its source in the output.** Which grantham, which parampara, which classical table.
+2. **Every number names its datum.** From birth, or from the start of the mahadasha. From janma rasi, or from janma nakshatra.
+3. **Where paramparas differ, the difference is a setting, not a silent choice.** Make the profile explicit and show the user which one they are reading.
+
+---
+
+## Status
+
+| Item | Ruling | State |
+|---|---|---|
+| FSA-03 | Noindex now; classify the 87 by datum vs arithmetic; regenerate from the engine | Hold (all 27) and classification done; **engine timings built and rendered on all 27 + base pages; base-page prose cleaned; Rohini prose cleaned as pilot; 26 visual pages' prose open** (§7.1) |
+| FSA-03b | (found 2026-10-21) the live, indexed base pages carried the same bare-age errors | **Done** (§7.2) |
+| FSA-04 | Correct the 12-sign table; ~~split~~ (withdrawn, §2.1); D11 recorded | **Done** — table corrected + gated, 8th row labelled, D11 recorded as a reasoned choice |
+| FSA-01 | Remove the sunrise-lagna factor; do not repair | **Done** — removed from both paths, gated; 1216-test muhurta suite green |
+| §8.3 / FSA-17 | Hide months now (P0); disclose per component on the paid page; name it Varuda Palan | **Done** (§4) |
+| FSA-02 | Per-karya star lists + tradition profile | Approved (§7.4); not built; three tables and the gandanta reading await the astrologer |
+| §8.4 URLs | Keep Sanskrit URLs; Tamil name first in title and H1 | Ruled (§7.5); one conflict with the no-echo ruling to confirm; not built |
+| Year lord | Five-candidate architecture; weekday lord rejected | Ruled (§7.3); **blocked** on the astrologer naming the text |
+| Mobile 6/8 | Add the note to the mobile porutham screen as a disclosure | **Done** (§7.6) |
+
+Nothing here is committed.
+
+---
+
+## 1. FSA-03 — dasa timings
+
+> Ruling: noindex the 21 pages now. Then establish the datum before assuming all
+> 87 errors are arithmetic. Republish only what the engine computes.
+>
+> State the datum in every published timing. Write "12 yr 6 mo from the start of
+> Saturn dasha", never a bare number a reader will read as his age.
+>
+> Republish a page only when its arithmetic can be re-derived on demand.
+
+### 1.1 The hold — 27 pages, not 21
+
+`web/lib/natchathiram-dasa-hold.ts` holds every `/natchathiram/<slug>/visual`
+page: `robots: { index: false, follow: true }` on both the English and `/ta/`
+twins, and none of them in the sitemap.
+
+**Why 27, when the ruling said 21.** 21 was the number of pages the audit's
+parser could read, and the audit called it a floor. The other six (Ashwini,
+Bharani, Krittika, Rohini, Mrigashira, Ardra) phrase the same claims differently
+and carry 42 timing figures between them, with the same errors. For example:
+
+- Bharani: "Venus–Rahu antardasa (approximately years 12–14 of the dasa)". Vimshottari puts it at years 7.2–10.2.
+- Rohini: "Moon–Rahu antardasa (approximately ages 8–9)". For a Rohini native it ends by age 2.9 at the latest, whatever the balance.
+
+By the ruling's own test ("republish only what the engine computes") none of
+the 27 qualifies. **If you want only the 21 held,** filter `DASA_TIMING_HOLD`
+in that file down to them; the sitemap and tests follow automatically.
+
+Gate: `web/lib/natchathiram-dasa-hold.test.ts` — evaluates each page's real
+`generateMetadata` on both twins, and the sitemap. Run once with the hold
+emptied: **28 of 30 fail**. Blind spot: it proves the pages ask not to be
+indexed, nothing about their content. Already-indexed URLs leave Google's index
+only as it recrawls them; Search Console removal can speed that up once the
+domain is live.
+
+### 1.2 Classification of the claims
+
+Every "X–Y antardasa (~yr N of X[, ~age(s) A–B])" claim on the 21 parseable
+pages, against Vimshottari. Bhukti = MD years × AD years ÷ 120, in the fixed
+order starting from the dasa lord. The pages state their own datum for N
+("of Saturn" = from the start of Saturn dasa). The ages are from birth; for a
+native of that star the dasa starts at an age set by the birth balance, so
+each age is checked against the full range of possible balances.
+
+| Class | Meaning | Count |
+|---|---|---|
+| ARITH_OK | N is right, from the start of the dasa | 59 |
+| AGE_AS_YR | N is wrong from the dasa start, but is a *possible age* for that bhukti — a right number under the wrong datum label | 20 |
+| ROW_SHIFT | N lands in the neighbouring bhukti — a table row slipped | 7 |
+| WRONG | none of the above | 60 |
+
+The stated **ages are a second, independent defect**: 65 of 146 cannot occur
+for any birth balance. That includes 16 of the 59 claims whose "yr N" is right.
+**No page has every claim right on both counts.** One of the 87 sits within
+0.15 yr of a bhukti edge (Ashlesha, Ketu–Mercury at 6.0), so it is
+convention-sensitive rather than wrong.
+
+**What this means for the fix.** At most 20 of the 87 could be repaired by
+relabelling, and 13 of those 20 also carry impossible ages. The job is a
+**regeneration**, not a relabelling — which is what the ruling's step 3 already
+requires. The size is all timing text on 27 pages, not 87 numbers.
+
+### 1.3 Open (steps 3–6)
+
+- Generate each page's timing text from `app/calculations/dasha.py` arithmetic,
+  with the datum in the sentence. A fixed age cannot be stated for a star; state
+  "from the start of Saturn dasa", or a range over the balance.
+- Conversion convention: 365.25-day years is already the single convention in
+  all six dasa engines (verified in the audit). Use the same for page text.
+- Lift each page from the hold only when a test re-derives its numbers. The
+  classification script is the seed of that test.
+
+---
+
+## 2. FSA-04 — Chandrashtama tool
+
+> Correct the public 12-sign table to 1, 3, 6, 7, 10, 11 favourable; 2, 4, 5, 8,
+> 9, 12 adverse. The backend's classical table stands as the source.
+>
+> Separate the tools. Chandrashtama = the 8th star from janma nakshatra. Gochara
+> = the 12-sign Moon transit. Two tools, two labels, no overlap.
+>
+> Keep Tarabalam distinct from both — it is a third reckoning.
+
+### Built
+
+`web/app/(marketing)/tools/chandrashtama/page.tsx`:
+- every row carries `favourable`, equal to {1, 3, 6, 7, 10, 11}, and its text says favourable or adverse;
+- the table is headed **சந்திர கோச்சாரம் / Chandra gochara** and names its source (Phaladeepika, the source `gochara_scores.py` cites);
+- the bilingual echo under the result is removed, and so is the ⚠ emoji;
+- three Tamil strings that mixed in "Vinaadi", "Dashboard", "Chandrashtama" and "Janma Rasi" are now all Tamil. **Unreviewed by a native reader.**
+
+Gate: `tests/test_public_moon_gochara_table.py` compares the page's flags with
+`GOCHARA_FAVOURABLE_FROM_MOON["MOON"]`. It fails when the 9th is flipped back.
+Blind spot: it checks the flag, not the wording beside it.
+
+### 2.1 Resolved: 8th rasi, and no split (follow-up ruling, same day)
+
+> Chandrashtama — yes, I meant the 8th rasi. I was wrong, and D11 is right. My
+> sentence said 8th nakshatra from janma nakshatra. That was a straight error,
+> not loose phrasing. Do not follow it.
+>
+> And do not split the tool. My split recommendation rested on the bad premise.
+> Chandrashtama is the 8th position of the same twelve-rasi gochara table the
+> panchangam already uses — one table serves both … Fix those [the 5th and 9th],
+> label the 8th row as the Chandrashtama position, keep Tarabalam separate.
+>
+> Record D11 as a reasoned choice so no one reopens it in a year.
+
+Done: the 8th row reads "the Chandrashtama position", the page notes that one
+table serves both, and the reasoned-choice record is §17 of
+`CHANDRASHTAMA_SURFACE_DIVERGENCE_2026-09-09.md`. That record includes the
+owner's qualification: some lineages reckon from the nakshatra; if that is ever
+wanted, it arrives as a tradition-profile parameter, never as a change to D11.
+
+The question as it was put, kept for the record:
+
+The ruling defines Chandrashtama as **"the 8th nakshatra from janma nakshatra"**.
+The standing rule in this repo (D11/§16, ruled 2026-09-10,
+`docs/CHANDRASHTAMA_SURFACE_DIVERGENCE_2026-09-09.md`) is the Moon in the
+**8th rasi** from the janma rasi — a 210° offset — resolved to the janma star
+for the day's prohibition. The two are not the same:
+
+- the 8th *nakshatra* is +7 stars, about 93°;
+- the 8th *rasi* is about +16 stars, 210°.
+
+The 8th star from the janma star is a **Tarabalam** position (the 8th tara,
+Mitra), and the ruling itself keeps Tarabalam separate. Implementing the
+sentence literally would move every user's Chandrashtama day by roughly a
+week, onto a day Tarabalam counts as friendly.
+
+**Question:** is the intended rule the existing one — the day the Moon
+transits the 8th rasi, named for the janma star (D11) — so that "8th" in the
+ruling means the 8th *rasi*? Until answered, the split is not started and D11
+stands.
+
+---
+
+## 3. FSA-01 — sunrise lagna
+
+> Ruling: remove the factor. Do not repair it.
+>
+> If a month factor is still wanted, build it honestly: correct Tamil months,
+> labelled Tamil month custom, user-visible, and switchable by tradition profile.
+>
+> Chithirai … some lineages do avoid Chithirai for kalyanam. But that is a
+> community custom, and it must be labelled and switchable as one.
+
+### Built
+
+- `muhurta_engine._lagna_sign_factor`, `_registry_lagna_sign_factor` and the `include_lagna_sign` switch are deleted. No path scores a lagna off a day.
+- The **conditional-sign** case (Namakarana and Snaana signs approved "only when a benefic occupies the sign") lived only on the sunrise path. It was moved into `lagna_sign_factor_at_window`, not dropped. Otherwise those signs would have read "the text names it neither way".
+- The signed-in picker's `include_lagna_sign=False` is gone, so the public and signed-in tools now score a day identically.
+
+Gates:
+- `tests/test_muhurta_no_sunrise_lagna.py`: a day's score must not change when only its sunrise lagna changes. It runs over all twelve sunrise signs and every sourced activity plus marriage. Against the unmodified engine (a `HEAD` worktree): **50 failed**.
+- `test_muhurta_sourced_activities_e2e.py`: the conditional-sign test now checks every conditional sign at the window, and the Tamil-copy test covers the window factor.
+
+Blind spot: the public `/muhurta` route still does not judge the lagna at the slot it returns (FSA-10).
+
+**Not built:** a Tamil-month custom factor. The no-wedding months (Aadi,
+Purattasi, Margazhi) are already scored by `_marriage_month_factor` (F-MUH-01).
+A Chithirai-avoidance custom would belong to the tradition profile in §5.
+
+---
+
+## 4. §8.3 — Tajaka / Varshaphala code review
+
+> Audit the code first, then label. Varshaphala engine present (muntha, sahams,
+> year-lord) → sell it as Varshaphala, openly. North Indian chart layout only →
+> rename the feature, do not call it Tajaka. Either way it comes off the page as
+> Tamil astrology.
+
+What `app/calculations/tajaka.py` and `app/services/tajaka_service.py` compute:
+
+| Element | Present? |
+|---|---|
+| Solar-return (varsha pravesha) moment and chart, sidereal Lahiri | **Yes** |
+| Varsha lagna, at the birthplace | **Yes** |
+| Muntha (natal lagna + completed years) | **Yes** |
+| Year lord | **Substitute.** The weekday lord of the solar-return day (`_TAJAKA_YEAR_LORD_BY_WEEKDAY`). The Tajaka varsheshwara is chosen from the five office-holders (pancha-adhikari) by strength and aspect to the varsha lagna |
+| Sahams | No |
+| Mudda / Patyayini dasa | No |
+| Tajaka yogas | Itthasala and Isarafa only, as a same-rasi ±5° approximation labelled "Simplified" (Doctrine §9) |
+| Area outlook | House placement of a karaka, the year lord and muntha from the varsha lagna — a product heuristic |
+| "Favourable months" | **Not computed — new defect FSA-17.** A constant per score band: every area scoring ≥ 70 on every chart gets months [2, 4, 6, 9, 11]; 50–69 gets [3, 5, 8, 10]; below gets [1, 7, 12]. Shown on web (`dashboard-varshaphala-panel.tsx:161`, mapped onto Jan–Dec although a Tajaka year starts at the solar return) and mobile (`varshaphala/index.tsx:161`) |
+
+**Answer to the ruling's test:** more than a chart layout, less than a
+Varshaphala engine. The solar-return chart and muntha are real; the year lord
+is a substitute; sahams and the Tajaka dasas are absent.
+
+### 4.1 Ruling (follow-up, same day)
+
+> Hide the favourable months today. FSA-17 is the serious finding here, well
+> above the missing sahams … This goes at P0 beside the dasha pages, ahead of
+> the renaming.
+>
+> Put this on the paid page itself, not in a help article. And when the months
+> eventually return, derive them from the individual's chart with the method
+> written down first — do not swap the fixed bands for a second
+> plausible-looking formula.
+>
+> "North Indian" describes a chart format, not a calculation system … What
+> you've built is a partial Varshaphala … Varuda Palan (வருடப்பலன்) —
+> simplified annual chart. If the pricing page needs English first, Simplified
+> Annual Chart (Varuda Palan). Mention "North Indian" only if you're describing
+> the chart format on screen.
+
+(This supersedes the name this file first recommended, which wrongly used
+"North Indian".)
+
+### 4.2 Built
+
+- **Months hidden at the source.** `tajaka_service` always sends `favourableMonths: []`. The field stays because it's a wire contract on four surfaces. Web and mobile also stopped rendering it, so a backend regression can't bring the months back alone.
+- **The disclosure on the paid feature itself.** `packages/shared/src/constants/varuda-palan.ts` holds the component table, which the web panel and mobile screen render from the same rows:
+
+  | Component | Status |
+  |---|---|
+  | Annual solar-return chart | Computed |
+  | Muntha | Computed |
+  | Year lord | Approximate — weekday stand-in, not a panchadhikari determination |
+  | Favourable months | Hidden |
+  | Sahams | Not implemented, not claimed |
+  | Tajaka dasa | Not implemented, not claimed |
+
+- **Renamed** to Simplified Annual Chart (Varuda Palan) / வருடப்பலன் — எளிமைப்படுத்தப்பட்ட ஆண்டு ஜாதகம் on the web panel, tools tab, pricing, setup tab, family view, the mobile screen, tools list, Me tab and premium page, and the shared tier copy. Internal identifiers (`varshaphala` route, module, i18n keys) are unchanged.
+- **Two promises removed.** The panel and the tools tab both described "a month-by-month outlook for any year", which is exactly the fabricated output.
+- **Fixed while there:**
+  - *Mobile score scale.* It printed "72/10" and coloured on 7/4 thresholds against a 20–90 score, so every area was green.
+  - *Display boundary.* Mobile rendered `solarReturnLagnaName`, `munthaRasiName`, the bare `yearLord` and the area wire code; web rendered the area code. Both now go through `rasiDisplayName`, `tPlanetLord` and a shared area-label map.
+
+Gates:
+- `tests/test_charts_api.py::test_varshaphala_never_sends_favourable_months_fsa17` — fails on the unmodified service (HEAD worktree).
+- `web/components/dashboard-varshaphala-panel.test.tsx`, in both languages — feeds the old months in and asserts they never render; fails when the render is restored.
+
+Blind spots: no mobile render test (mobile was type-checked only), and the new Tamil copy is unreviewed by a native reader.
+
+**Still open:** a real varsheshwara (panchadhikari) selection. Until it exists,
+the year lord stays labelled approximate. Months come back only with a written,
+ruled method.
+
+---
+
+## 5. FSA-02 — per-karya star lists (design, not built)
+
+> Replace the single global good-star flag with per-karya star lists. Magam and
+> Moolam become caution stars for general beginnings while remaining permitted
+> for marriage.
+>
+> Some Tamil lineages avoid Magam for marriage as well, on the pitru ground. Do
+> not hard-code one lineage's view as the shastra. Make it a tradition profile
+> the user selects, and show which profile the answer follows.
+>
+> Magam — accepted for marriage; avoided for new ventures (gandanta).
+
+Shape proposed for review before any code:
+
+- **One table, keyed by karya:** `VIVAHAM`, `AARAMBAM`, `GRIHA_PRAVESAM`, `PRAYANAM`, plus the existing Kalaprakasika activities. Each entry gives `permitted`, `caution` (with a reason code such as `GANDANTA` or `PITRU`), and a source line.
+- **Tradition profile:** a named, user-visible setting (default plus at least one "avoid Magam for marriage" lineage) that overrides specific cells. Every answer carries the profile it followed.
+- **One reader:** the calendar badge, the muhurta almanac factor (`muhurta_engine.py:613`), the PDF (`pdf_export_service.py:704`) and push (`daily_push_cron.py:293`) all call one function `(star, karya, profile) → verdict + reason + source`. `SUBHA_NAKSHATRAS` and `AUSPICIOUS/CAUTION_DAILY_NAKSHATRAS` are retired into it.
+- **Daily view:** never one verdict for the day. Show per-purpose lines, e.g. "Magam — accepted for marriage; avoided for new ventures (gandanta)".
+- **Gate:** for every (karya, profile), `permitted ∩ caution = ∅`, and the four surfaces return the same verdict for the same star.
+
+Open for the astrologer: the per-karya lists themselves beyond Magam and
+Moolam. The existing activity tables (`MARRIAGE_NAKSHATRA_ALLOWED` and the
+Kalaprakasika registry) cover the sourced activities, but `AARAMBAM`,
+`GRIHA_PRAVESAM` and `PRAYANAM` need their tables named.
+
+---
+
+## 6. §8.4 — nakshatra URLs (not started)
+
+> Keep the Sanskrit URLs; change the display names. Tamil name first in title and
+> H1, Sanskrit in brackets. Add Tamil-spelling URLs only as 301s to the canonical
+> ones.
+
+Current state, for whoever picks this up: the visual pages' titles already lead
+with the Tamil name ("Anusham Nakshathiram — Visual Profile") but carry no
+Sanskrit in brackets. The H1s and the base `/natchathiram/<slug>` pages were not
+checked.
+
+---
+
+## 7. Second round of rulings (same day) and what was built
+
+### 7.1 FSA-03 — rebuild all 27 from the engine
+
+> Decision: rebuild all 27 pages from the engine. Keep all 27 on noindex and out
+> of the sitemap. Generate every timing from dasha.py, using the 365.25-day year.
+> There is no second implementation of Vimshottari arithmetic in the frontend.
+> Every sentence names its starting point … Bare year numbers are banned. Ages
+> from birth appear only when calculated from an actual birth balance. A range
+> across possible birth balances must be labelled as a range. … A page leaves
+> the hold only when its tests pass, and each release is a deliberate decision.
+
+**Correction to the ruling's example.** It reads "Venus–Rahu antardasha begins
+12 years 6 months after the start of Venus mahadasha". The engine says **7 yr
+2 mo** (Venus 3 yr 4 mo + Sun 1 yr + Moon 1 yr 8 mo + Mars 1 yr 2 mo). The
+example is pinned at the right value in both test suites so nobody copies it.
+
+**Built:**
+
+- `scripts/generate_natchathiram_dasa_timings.py` calls the engine itself
+  (`calculate_vimshottari_timeline`, `_build_subperiods`, `calculate_opening_dasha`)
+  at both balance extremes and writes `web/lib/generated/natchathiram-dasa-timings.ts`:
+  per star, the balance by pada, and per mahadasha its length, start/end age
+  range, and every bhukti's offset from the dasa start, duration and start-age
+  range. The frontend formats only. `[y, m, d]` is the book convention (twelve
+  30-day months to a year) for writing the same 365.25-day number.
+- Visual pages: `period` and `ageRange` are gone from the type and from all 27
+  pages (216 hand-typed fields). The timeline label, the new bhukti table in each
+  dasa's panel (datum in the column header: "After Venus dasha begins") and the
+  footnote all render engine data. "At This Age" is now "What to Expect" — it
+  was itself an age claim. Each page passes only its own star's timings, so the
+  ~800 KB table never reaches a client bundle.
+- **Rohini prose rewritten as the pilot** (EN + TA, 60 edits). The arithmetic
+  showed wrong *placements*, not just wrong numbers: "marriage in Rahu–Jupiter
+  (28–30)" — Rahu–Jupiter is Rahu's second bhukti, starting at 9–20;
+  "Rahu–Venus, the 2nd sub-period" — it is the 6th; "Mercury–Venus, the 1st
+  sub-period, 11 months 27 days" — it is the 3rd and lasts 2 yr 10 mo;
+  "Mars–Venus lasting 20 months" — 14 months. Every timing now points to the
+  bhukti table. Life-stage words were kept only where they hold over Rohini's
+  whole range. **Rohini stays on hold** — release is your decision.
+
+**Gates:**
+
+- `tests/test_natchathiram_dasa_timings.py` (12) — committed file is current;
+  lord sequences; bhukti boundaries tile each dasa; birth-balance bounds; ages
+  checked against the engine's own calendar dates for a synthetic birth;
+  pada balances; y-m-d round-trip. Fix removed (one number changed in the
+  committed file): fails.
+- `web/lib/natchathiram-dasa-prose.test.ts` — no visual page declares a timing
+  field; each lists its dasas in engine order; **any page outside the hold must
+  have zero timing claims in its dasa prose.** Fix removed (Rohini lifted before
+  its rewrite): fails. After the rewrite: passes.
+- `web/components/natchathiram-dasa-timing.test.tsx` — the tables print the
+  engine's values column by column, in both languages.
+
+**Blind spots, by construction:** the prose detector (`web/lib/dasa-prose-timing.ts`)
+bans every digit, decade word, spelled duration and ordinal sub-period in dasa
+prose — but cannot see a *life stage standing in for an age* ("lands in
+adolescence", "around marriage age"). Those are reviewed by hand against the
+star's range, as done for Rohini. It also reads the visual pages' dasa regions
+only, not their other sections.
+
+**Open:** the other 26 visual pages' prose (24–71 flagged phrases each, ~1,200
+in all). Same method as Rohini: remove the timing, re-anchor to the table, check
+each life stage against the star's range.
+
+### 7.2 FSA-03b — the live base pages (found while doing 7.1)
+
+The indexed `/natchathiram/<slug>` pages — **not** on the hold — carried the
+same defect: 65 sentences across 24 stars (Tamil) and 7 (English). Examples:
+Krittika "Mars dasha 13–20" (really starts 10–16); Bharani "Jupiter 56–72"
+(41–61); Purva Phalguni "Venus can last 5 to 20 years" (0–20); Swati "Rahu 5,
+10 or 15 years" (0–18); Jyeshtha "padas 3–4: one or two years" (0 to 8 yr 6 mo);
+Shatabhisha "Saturn until 70" (ends 35–53). Two were sequence errors:
+**Hasta's Tamil skipped Mars dasa** (Moon → Rahu; correct is Moon → Mars → Rahu),
+and **Anuradha's said life starts "after Ketu dasa or directly in Saturn"**
+(Anuradha opens in Saturn; Ketu comes after Mercury). Shravana's English put a
+professional start in Mars dasa, which begins between birth and age ten.
+
+**Built:** the base page now renders the engine's balance-by-pada and
+mahadasha tables above the prose; 81 edits remove every number from paragraphs
+that mention a dasa, in any section (three were in the family/career sections).
+Gate: the same test file — every Tamil and English paragraph that mentions a
+dasa, all 27 stars, zero claims. Fix removed: 31 failures. It once passed
+vacuously by reading the wrong English map behind a `?? []`; that fallback is
+gone, and a missing entry now fails.
+
+**Still for review:** Shatabhisha's Saturn paragraph still speaks of
+"children's marriage, retirement planning" in a dasa that ends at 35–53 — the
+number was removed, the life stage needs the author's rewrite.
+
+### 7.3 Varuda Palan year lord — blocked on the text
+
+> Decision: approve the five-candidate architecture. Reject the weekday lord as
+> the year lord. Keep the "Approximate" disclosure on the paid page until the
+> real method ships. … Eligibility first … Tajaka aspects … Strength. The
+> provisional method is panchavargiya bala … No invented weights … Ties and
+> fallback. If the source gives no tie-break or no-aspect rule, document that
+> gap. … Status: blocked. The astrologer must name the governing text, probably
+> Tajaka Neelakanthi … Do not write code until this is done.
+
+Questions to send with it: (1) do inimical aspects (1/7, 4/10) qualify, or only
+friendly (3/11, 5/9)? (2) whole-sign or degree-based with deeptamsha orbs?
+(3) which hadda table? (4) the text's rule when no candidate aspects the varsha
+lagna. Note: the tri-rashi and dina-ratri lords depend on whether the **solar
+return** falls by day or night, not the birth.
+
+### 7.4 FSA-02 — approved, with two points for the astrologer
+
+> Decision: approve one table keyed by purpose, a tradition profile, and one
+> shared function. … For new starts (AARAMBAM), the caution set is all six
+> gandanta stars … Missing tables … show "no sourced ruling for this purpose."
+> Do not copy a general auspicious list, and do not treat unlisted stars as
+> permitted.
+
+- **Whole star or junction pada?** Gandanta strictly is the last pada of
+  Revati/Ashlesha/Jyeshta and the first of Ashwini/Magha/Moola. Whole-star
+  caution would mark Ashwini (kshipra) and Revati (mridu) — among the best stars
+  for beginnings in muhurta texts — as caution. Ask which, and from which source.
+- **Retire, not merge,** for `SUBHA_NAKSHATRAS`: an entry survives only where it
+  names a purpose and a source; otherwise merging would carry a general list into
+  the purposes the ruling says must read "no sourced ruling".
+- The profile is a new DB column and an API change on all four surfaces; PDF and
+  push must read the user's profile, not the default.
+
+### 7.5 §8.4 — display names: one conflict to confirm
+
+> Title and H1: அனுஷம் நட்சத்திரம் (Anuradha). This applies to both
+> /natchathiram/<slug> and /natchathiram/<slug>/visual. It also applies to the
+> English pages. … The title, H1, canonical URL and page language must agree.
+
+Tamil script on an English page conflicts with the standing ruling "active
+language only, no bilingual echo", and with this ruling's own condition that
+title and page language agree. Proposed: English pages *Anusham Nakshatram
+(Anuradha)*; Tamil pages *அனுஷம் நட்சத்திரம் (அனுராதா)*; names taken from
+`tNakshatra`, not typed. Not built until confirmed.
+
+### 7.6 Mobile 6/8 note — done, and one defect it exposed
+
+`mobile/app/(tabs)/tools/porutham.tsx` renders the server's verbatim note under
+the score, caution tint, outside the score and veto row.
+
+The 6/8 relation is between Moon **signs**, and nine stars straddle two signs.
+Mobile sent no pada, so the backend assumed the majority half. Measured: of
+the 405 pairings involving a split star, **144 change their 6/8 answer with the
+pada** — and the Rasi kuta with them. Mobile now asks which half (as rasi chips)
+for the nine split stars before it will calculate, via a new shared
+`@vinaadi/shared/nakshatraRasi`, pinned against the backend's
+`nakshatra_to_rasi` for all 108 padas (`web/lib/nakshatra-rasi.test.ts`; fix
+removed — pada ignored — 3 of 5 fail). The web calculator already asked; it does
+not *require* the answer, so an unanswered split star there still gets the
+majority half.
+
+Blind spot: no mobile render test (type-checked only).
+
+### 7.7 Native Tamil read — still owed
+
+Unreviewed by a native reader: the Varuda Palan copy (§4), the Chandrashtama
+strings (§2), and from this round — the dasa table labels and footnote
+(`web/components/natchathiram-dasa-timing.tsx`), the 81 base-page edits, the
+Rohini Tamil edits, and the mobile half-of-star prompt.
