@@ -41,14 +41,14 @@ function token(source: string, name: string) {
   return match[1].trim();
 }
 
-function rgb(value: string) {
+function colourOf(value: string) {
   const parsed = parseColor(value);
   if (!parsed) throw new Error(`Could not parse CSS colour ${value}`);
   return parsed;
 }
 
 function tokenRgb(name: string) {
-  return rgb(token(globalsCss, name));
+  return colourOf(token(globalsCss, name));
 }
 
 function expectAa(foreground: number[], background: number[]) {
@@ -90,7 +90,7 @@ describe("beta launch UI on the light marketing site", () => {
       expectAa(foreground, surface);
     }
 
-    const eyebrowGround = over(rgb(token(betaCss, "--beta-gold-dark-bg")), surface);
-    expectAa(rgb(token(betaCss, "--beta-gold-dark-text")), eyebrowGround);
+    const eyebrowGround = over(colourOf(token(betaCss, "--beta-gold-dark-bg")), surface);
+    expectAa(colourOf(token(betaCss, "--beta-gold-dark-text")), eyebrowGround);
   });
 });

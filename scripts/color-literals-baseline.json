@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-10-13T04:59:57.607Z",
-  "count": 332,
+  "generatedAt": "2026-10-21T06:58:04.472Z",
+  "count": 333,
   "findings": [
     {
       "key": "mobile/app.config.ts:#D4611A:color: \"#D4611A\",",
@@ -103,7 +103,7 @@
     {
       "key": "mobile/app/dasha/index.tsx:#000:shadowColor: \"#000\", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3, elevation: 1,",
       "file": "mobile/app/dasha/index.tsx",
-      "line": 847,
+      "line": 851,
       "value": "#000",
       "source": "shadowColor: \"#000\", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3, elevation: 1,"
     },
@@ -271,14 +271,14 @@
     {
       "key": "mobile/app/varshaphala/index.tsx:#000:shadowColor: \"#000\", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.03, shadowRadius: 2, elevation: 1,",
       "file": "mobile/app/varshaphala/index.tsx",
-      "line": 221,
+      "line": 241,
       "value": "#000",
       "source": "shadowColor: \"#000\", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.03, shadowRadius: 2, elevation: 1,"
     },
     {
       "key": "mobile/app/varshaphala/index.tsx:#000:shadowColor: \"#000\", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3, elevation: 1,",
       "file": "mobile/app/varshaphala/index.tsx",
-      "line": 212,
+      "line": 232,
       "value": "#000",
       "source": "shadowColor: \"#000\", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3, elevation: 1,"
     },
@@ -348,7 +348,7 @@
     {
       "key": "web/app/(marketing)/muhurtham-naal/MuhurthamNaalContent.tsx:#b00020:<p style={{ color: \"#b00020\" }}>",
       "file": "web/app/(marketing)/muhurtham-naal/MuhurthamNaalContent.tsx",
-      "line": 168,
+      "line": 162,
       "value": "#b00020",
       "source": "<p style={{ color: \"#b00020\" }}>"
     },
@@ -453,126 +453,126 @@
     {
       "key": "web/app/(marketing)/share/porutham/[token]/page.tsx:#22a55a:color: madhyama ? \"#a16207\" : passed ? \"#22a55a\" : \"#e5484d\",",
       "file": "web/app/(marketing)/share/porutham/[token]/page.tsx",
-      "line": 67,
+      "line": 68,
       "value": "#22a55a",
       "source": "color: madhyama ? \"#a16207\" : passed ? \"#22a55a\" : \"#e5484d\","
     },
     {
       "key": "web/app/(marketing)/share/porutham/[token]/page.tsx:#a16207:color: madhyama ? \"#a16207\" : passed ? \"#22a55a\" : \"#e5484d\",",
       "file": "web/app/(marketing)/share/porutham/[token]/page.tsx",
-      "line": 67,
+      "line": 68,
       "value": "#a16207",
       "source": "color: madhyama ? \"#a16207\" : passed ? \"#22a55a\" : \"#e5484d\","
     },
     {
       "key": "web/app/(marketing)/share/porutham/[token]/page.tsx:#e5484d:{data.nadiDosha.hasNadiDosha && <span style={{ fontSize: \"0.65rem\", fontWeight: 700, padding: \"4px 10px\", borderRadius: \"6px\", background: \"rgba(248,113,113,0.12)\", color: \"#e5484d\", border: \"1px solid rgba(248,113,113,0.3)\" }}>⚠ Nadi Dosha</span>}",
       "file": "web/app/(marketing)/share/porutham/[token]/page.tsx",
-      "line": 142,
+      "line": 143,
       "value": "#e5484d",
       "source": "{data.nadiDosha.hasNadiDosha && <span style={{ fontSize: \"0.65rem\", fontWeight: 700, padding: \"4px 10px\", borderRadius: \"6px\", background: \"rgba(248,113,113,0.12)\", color: \"#e5484d\", border: \"1px solid rgba(248,113,113,0.3)\" }}>⚠ Nadi Dosha</span>}"
     },
     {
       "key": "web/app/(marketing)/share/porutham/[token]/page.tsx:#e5484d:{data.rajjuDosha && <span style={{ fontSize: \"0.65rem\", fontWeight: 700, padding: \"4px 10px\", borderRadius: \"6px\", background: \"rgba(248,113,113,0.12)\", color: \"#e5484d\", border: \"1px solid rgba(248,113,113,0.3)\" }}>⚠ Rajju Dosha</span>}",
       "file": "web/app/(marketing)/share/porutham/[token]/page.tsx",
-      "line": 140,
+      "line": 141,
       "value": "#e5484d",
       "source": "{data.rajjuDosha && <span style={{ fontSize: \"0.65rem\", fontWeight: 700, padding: \"4px 10px\", borderRadius: \"6px\", background: \"rgba(248,113,113,0.12)\", color: \"#e5484d\", border: \"1px solid rgba(248,113,113,0.3)\" }}>⚠ Rajju Dosha</span>}"
     },
     {
       "key": "web/app/(marketing)/share/porutham/[token]/page.tsx:#e5484d:{data.vedhaDosha && <span style={{ fontSize: \"0.65rem\", fontWeight: 700, padding: \"4px 10px\", borderRadius: \"6px\", background: \"rgba(248,113,113,0.12)\", color: \"#e5484d\", border: \"1px solid rgba(248,113,113,0.3)\" }}>⚠ Vedha Dosha</span>}",
       "file": "web/app/(marketing)/share/porutham/[token]/page.tsx",
-      "line": 141,
+      "line": 142,
       "value": "#e5484d",
       "source": "{data.vedhaDosha && <span style={{ fontSize: \"0.65rem\", fontWeight: 700, padding: \"4px 10px\", borderRadius: \"6px\", background: \"rgba(248,113,113,0.12)\", color: \"#e5484d\", border: \"1px solid rgba(248,113,113,0.3)\" }}>⚠ Vedha Dosha</span>}"
     },
     {
       "key": "web/app/(marketing)/share/porutham/[token]/page.tsx:#e5484d:color: madhyama ? \"#a16207\" : passed ? \"#22a55a\" : \"#e5484d\",",
       "file": "web/app/(marketing)/share/porutham/[token]/page.tsx",
-      "line": 67,
+      "line": 68,
       "value": "#e5484d",
       "source": "color: madhyama ? \"#a16207\" : passed ? \"#22a55a\" : \"#e5484d\","
     },
     {
       "key": "web/app/(marketing)/share/porutham/[token]/page.tsx:rgba(234,179,8,0.12):background: madhyama ? \"rgba(234,179,8,0.12)\" : passed ? \"rgba(74,222,128,0.12)\" : \"rgba(248,113,113,0.12)\",",
       "file": "web/app/(marketing)/share/porutham/[token]/page.tsx",
-      "line": 66,
+      "line": 67,
       "value": "rgba(234,179,8,0.12)",
       "source": "background: madhyama ? \"rgba(234,179,8,0.12)\" : passed ? \"rgba(74,222,128,0.12)\" : \"rgba(248,113,113,0.12)\","
     },
     {
       "key": "web/app/(marketing)/share/porutham/[token]/page.tsx:rgba(234,179,8,0.35):border: `1px solid ${madhyama ? \"rgba(234,179,8,0.35)\" : passed ? \"rgba(74,222,128,0.35)\" : \"rgba(248,113,113,0.35)\"}`,",
       "file": "web/app/(marketing)/share/porutham/[token]/page.tsx",
-      "line": 68,
+      "line": 69,
       "value": "rgba(234,179,8,0.35)",
       "source": "border: `1px solid ${madhyama ? \"rgba(234,179,8,0.35)\" : passed ? \"rgba(74,222,128,0.35)\" : \"rgba(248,113,113,0.35)\"}`,"
     },
     {
       "key": "web/app/(marketing)/share/porutham/[token]/page.tsx:rgba(248,113,113,0.12):{data.nadiDosha.hasNadiDosha && <span style={{ fontSize: \"0.65rem\", fontWeight: 700, padding: \"4px 10px\", borderRadius: \"6px\", background: \"rgba(248,113,113,0.12)\", color: \"#e5484d\", border: \"1px solid rgba(248,113,113,0.3)\" }}>⚠ Nadi Dosha</span>}",
       "file": "web/app/(marketing)/share/porutham/[token]/page.tsx",
-      "line": 142,
+      "line": 143,
       "value": "rgba(248,113,113,0.12)",
       "source": "{data.nadiDosha.hasNadiDosha && <span style={{ fontSize: \"0.65rem\", fontWeight: 700, padding: \"4px 10px\", borderRadius: \"6px\", background: \"rgba(248,113,113,0.12)\", color: \"#e5484d\", border: \"1px solid rgba(248,113,113,0.3)\" }}>⚠ Nadi Dosha</span>}"
     },
     {
       "key": "web/app/(marketing)/share/porutham/[token]/page.tsx:rgba(248,113,113,0.12):{data.rajjuDosha && <span style={{ fontSize: \"0.65rem\", fontWeight: 700, padding: \"4px 10px\", borderRadius: \"6px\", background: \"rgba(248,113,113,0.12)\", color: \"#e5484d\", border: \"1px solid rgba(248,113,113,0.3)\" }}>⚠ Rajju Dosha</span>}",
       "file": "web/app/(marketing)/share/porutham/[token]/page.tsx",
-      "line": 140,
+      "line": 141,
       "value": "rgba(248,113,113,0.12)",
       "source": "{data.rajjuDosha && <span style={{ fontSize: \"0.65rem\", fontWeight: 700, padding: \"4px 10px\", borderRadius: \"6px\", background: \"rgba(248,113,113,0.12)\", color: \"#e5484d\", border: \"1px solid rgba(248,113,113,0.3)\" }}>⚠ Rajju Dosha</span>}"
     },
     {
       "key": "web/app/(marketing)/share/porutham/[token]/page.tsx:rgba(248,113,113,0.12):{data.vedhaDosha && <span style={{ fontSize: \"0.65rem\", fontWeight: 700, padding: \"4px 10px\", borderRadius: \"6px\", background: \"rgba(248,113,113,0.12)\", color: \"#e5484d\", border: \"1px solid rgba(248,113,113,0.3)\" }}>⚠ Vedha Dosha</span>}",
       "file": "web/app/(marketing)/share/porutham/[token]/page.tsx",
-      "line": 141,
+      "line": 142,
       "value": "rgba(248,113,113,0.12)",
       "source": "{data.vedhaDosha && <span style={{ fontSize: \"0.65rem\", fontWeight: 700, padding: \"4px 10px\", borderRadius: \"6px\", background: \"rgba(248,113,113,0.12)\", color: \"#e5484d\", border: \"1px solid rgba(248,113,113,0.3)\" }}>⚠ Vedha Dosha</span>}"
     },
     {
       "key": "web/app/(marketing)/share/porutham/[token]/page.tsx:rgba(248,113,113,0.12):background: madhyama ? \"rgba(234,179,8,0.12)\" : passed ? \"rgba(74,222,128,0.12)\" : \"rgba(248,113,113,0.12)\",",
       "file": "web/app/(marketing)/share/porutham/[token]/page.tsx",
-      "line": 66,
+      "line": 67,
       "value": "rgba(248,113,113,0.12)",
       "source": "background: madhyama ? \"rgba(234,179,8,0.12)\" : passed ? \"rgba(74,222,128,0.12)\" : \"rgba(248,113,113,0.12)\","
     },
     {
       "key": "web/app/(marketing)/share/porutham/[token]/page.tsx:rgba(248,113,113,0.3):{data.nadiDosha.hasNadiDosha && <span style={{ fontSize: \"0.65rem\", fontWeight: 700, padding: \"4px 10px\", borderRadius: \"6px\", background: \"rgba(248,113,113,0.12)\", color: \"#e5484d\", border: \"1px solid rgba(248,113,113,0.3)\" }}>⚠ Nadi Dosha</span>}",
       "file": "web/app/(marketing)/share/porutham/[token]/page.tsx",
-      "line": 142,
+      "line": 143,
       "value": "rgba(248,113,113,0.3)",
       "source": "{data.nadiDosha.hasNadiDosha && <span style={{ fontSize: \"0.65rem\", fontWeight: 700, padding: \"4px 10px\", borderRadius: \"6px\", background: \"rgba(248,113,113,0.12)\", color: \"#e5484d\", border: \"1px solid rgba(248,113,113,0.3)\" }}>⚠ Nadi Dosha</span>}"
     },
     {
       "key": "web/app/(marketing)/share/porutham/[token]/page.tsx:rgba(248,113,113,0.3):{data.rajjuDosha && <span style={{ fontSize: \"0.65rem\", fontWeight: 700, padding: \"4px 10px\", borderRadius: \"6px\", background: \"rgba(248,113,113,0.12)\", color: \"#e5484d\", border: \"1px solid rgba(248,113,113,0.3)\" }}>⚠ Rajju Dosha</span>}",
       "file": "web/app/(marketing)/share/porutham/[token]/page.tsx",
-      "line": 140,
+      "line": 141,
       "value": "rgba(248,113,113,0.3)",
       "source": "{data.rajjuDosha && <span style={{ fontSize: \"0.65rem\", fontWeight: 700, padding: \"4px 10px\", borderRadius: \"6px\", background: \"rgba(248,113,113,0.12)\", color: \"#e5484d\", border: \"1px solid rgba(248,113,113,0.3)\" }}>⚠ Rajju Dosha</span>}"
     },
     {
       "key": "web/app/(marketing)/share/porutham/[token]/page.tsx:rgba(248,113,113,0.3):{data.vedhaDosha && <span style={{ fontSize: \"0.65rem\", fontWeight: 700, padding: \"4px 10px\", borderRadius: \"6px\", background: \"rgba(248,113,113,0.12)\", color: \"#e5484d\", border: \"1px solid rgba(248,113,113,0.3)\" }}>⚠ Vedha Dosha</span>}",
       "file": "web/app/(marketing)/share/porutham/[token]/page.tsx",
-      "line": 141,
+      "line": 142,
       "value": "rgba(248,113,113,0.3)",
       "source": "{data.vedhaDosha && <span style={{ fontSize: \"0.65rem\", fontWeight: 700, padding: \"4px 10px\", borderRadius: \"6px\", background: \"rgba(248,113,113,0.12)\", color: \"#e5484d\", border: \"1px solid rgba(248,113,113,0.3)\" }}>⚠ Vedha Dosha</span>}"
     },
     {
       "key": "web/app/(marketing)/share/porutham/[token]/page.tsx:rgba(248,113,113,0.35):border: `1px solid ${madhyama ? \"rgba(234,179,8,0.35)\" : passed ? \"rgba(74,222,128,0.35)\" : \"rgba(248,113,113,0.35)\"}`,",
       "file": "web/app/(marketing)/share/porutham/[token]/page.tsx",
-      "line": 68,
+      "line": 69,
       "value": "rgba(248,113,113,0.35)",
       "source": "border: `1px solid ${madhyama ? \"rgba(234,179,8,0.35)\" : passed ? \"rgba(74,222,128,0.35)\" : \"rgba(248,113,113,0.35)\"}`,"
     },
     {
       "key": "web/app/(marketing)/share/porutham/[token]/page.tsx:rgba(74,222,128,0.12):background: madhyama ? \"rgba(234,179,8,0.12)\" : passed ? \"rgba(74,222,128,0.12)\" : \"rgba(248,113,113,0.12)\",",
       "file": "web/app/(marketing)/share/porutham/[token]/page.tsx",
-      "line": 66,
+      "line": 67,
       "value": "rgba(74,222,128,0.12)",
       "source": "background: madhyama ? \"rgba(234,179,8,0.12)\" : passed ? \"rgba(74,222,128,0.12)\" : \"rgba(248,113,113,0.12)\","
     },
     {
       "key": "web/app/(marketing)/share/porutham/[token]/page.tsx:rgba(74,222,128,0.35):border: `1px solid ${madhyama ? \"rgba(234,179,8,0.35)\" : passed ? \"rgba(74,222,128,0.35)\" : \"rgba(248,113,113,0.35)\"}`,",
       "file": "web/app/(marketing)/share/porutham/[token]/page.tsx",
-      "line": 68,
+      "line": 69,
       "value": "rgba(74,222,128,0.35)",
       "source": "border: `1px solid ${madhyama ? \"rgba(234,179,8,0.35)\" : passed ? \"rgba(74,222,128,0.35)\" : \"rgba(248,113,113,0.35)\"}`,"
     },
@@ -593,21 +593,21 @@
     {
       "key": "web/app/(marketing)/tools/marriage-porutham-calculator/PoruthamTool.tsx:#4a7041:if (score >= 7) return \"#4a7041\";",
       "file": "web/app/(marketing)/tools/marriage-porutham-calculator/PoruthamTool.tsx",
-      "line": 125,
+      "line": 126,
       "value": "#4a7041",
       "source": "if (score >= 7) return \"#4a7041\";"
     },
     {
       "key": "web/app/(marketing)/tools/marriage-porutham-calculator/PoruthamTool.tsx:rgba(184,90,44,0.05):<div className=\"cl-mobile-card-split\" style={{ background: \"rgba(184,90,44,0.05)\", border: \"1px solid rgba(184,90,44,0.2)\", borderRadius: \"14px\", padding: \"18px 22px\" }}>",
       "file": "web/app/(marketing)/tools/marriage-porutham-calculator/PoruthamTool.tsx",
-      "line": 662,
+      "line": 666,
       "value": "rgba(184,90,44,0.05)",
       "source": "<div className=\"cl-mobile-card-split\" style={{ background: \"rgba(184,90,44,0.05)\", border: \"1px solid rgba(184,90,44,0.2)\", borderRadius: \"14px\", padding: \"18px 22px\" }}>"
     },
     {
       "key": "web/app/(marketing)/tools/marriage-porutham-calculator/PoruthamTool.tsx:rgba(184,90,44,0.2):<div className=\"cl-mobile-card-split\" style={{ background: \"rgba(184,90,44,0.05)\", border: \"1px solid rgba(184,90,44,0.2)\", borderRadius: \"14px\", padding: \"18px 22px\" }}>",
       "file": "web/app/(marketing)/tools/marriage-porutham-calculator/PoruthamTool.tsx",
-      "line": 662,
+      "line": 666,
       "value": "rgba(184,90,44,0.2)",
       "source": "<div className=\"cl-mobile-card-split\" style={{ background: \"rgba(184,90,44,0.05)\", border: \"1px solid rgba(184,90,44,0.2)\", borderRadius: \"14px\", padding: \"18px 22px\" }}>"
     },
@@ -1559,14 +1559,14 @@
     {
       "key": "web/components/dashboard-varshaphala-panel.tsx:rgba(122,111,94,0.07):<p style={{ fontSize: \"0.72rem\", color: W.muted, lineHeight: 1.5, marginBottom: \"var(--space-2_5)\", padding: \"var(--space-1_5) var(--space-2_5)\", borderRadius: \"8px\", background: \"rgba(122,111,94,0.07)\", border: \"1px solid rgba(122,111,94,0.15)\" }}>",
       "file": "web/components/dashboard-varshaphala-panel.tsx",
-      "line": 140,
+      "line": 147,
       "value": "rgba(122,111,94,0.07)",
       "source": "<p style={{ fontSize: \"0.72rem\", color: W.muted, lineHeight: 1.5, marginBottom: \"var(--space-2_5)\", padding: \"var(--space-1_5) var(--space-2_5)\", borderRadius: \"8px\", background: \"rgba(122,111,94,0.07)\", border: \"1px solid rgba(122,111,94,0.15)\" }}>"
     },
     {
       "key": "web/components/dashboard-varshaphala-panel.tsx:rgba(122,111,94,0.15):<p style={{ fontSize: \"0.72rem\", color: W.muted, lineHeight: 1.5, marginBottom: \"var(--space-2_5)\", padding: \"var(--space-1_5) var(--space-2_5)\", borderRadius: \"8px\", background: \"rgba(122,111,94,0.07)\", border: \"1px solid rgba(122,111,94,0.15)\" }}>",
       "file": "web/components/dashboard-varshaphala-panel.tsx",
-      "line": 140,
+      "line": 147,
       "value": "rgba(122,111,94,0.15)",
       "source": "<p style={{ fontSize: \"0.72rem\", color: W.muted, lineHeight: 1.5, marginBottom: \"var(--space-2_5)\", padding: \"var(--space-1_5) var(--space-2_5)\", borderRadius: \"8px\", background: \"rgba(122,111,94,0.07)\", border: \"1px solid rgba(122,111,94,0.15)\" }}>"
     },
@@ -1727,168 +1727,168 @@
     {
       "key": "web/components/login-welcome-nova.tsx:#0d0a1c:\"radial-gradient(130% 100% at 50% 16%, rgba(36,31,66,0.74) 0%, rgba(23,19,44,0.85) 58%, rgba(13,10,28,0.95) 100%), url(/assets/opt/nebula-indigo.jpg) center/cover no-repeat, #0d0a1c\",",
       "file": "web/components/login-welcome-nova.tsx",
-      "line": 218,
+      "line": 221,
       "value": "#0d0a1c",
       "source": "\"radial-gradient(130% 100% at 50% 16%, rgba(36,31,66,0.74) 0%, rgba(23,19,44,0.85) 58%, rgba(13,10,28,0.95) 100%), url(/assets/opt/nebula-indigo.jpg) center/cover no-repeat, #0d0a1c\","
     },
     {
       "key": "web/components/login-welcome-nova.tsx:#17132c:<circle cx={CX + 6} cy={CY - 3} r={13} fill=\"#17132c\" opacity={0.9} />",
       "file": "web/components/login-welcome-nova.tsx",
-      "line": 445,
+      "line": 448,
       "value": "#17132c",
       "source": "<circle cx={CX + 6} cy={CY - 3} r={13} fill=\"#17132c\" opacity={0.9} />"
     },
     {
       "key": "web/components/login-welcome-nova.tsx:#c7c1e0:<stop offset=\"100%\" stopColor=\"#c7c1e0\" />",
       "file": "web/components/login-welcome-nova.tsx",
-      "line": 323,
+      "line": 326,
       "value": "#c7c1e0",
       "source": "<stop offset=\"100%\" stopColor=\"#c7c1e0\" />"
     },
     {
       "key": "web/components/login-welcome-nova.tsx:#c9caff:const accent = isNight ? \"#c9caff\" : \"#ffd68c\";",
       "file": "web/components/login-welcome-nova.tsx",
-      "line": 130,
+      "line": 133,
       "value": "#c9caff",
       "source": "const accent = isNight ? \"#c9caff\" : \"#ffd68c\";"
     },
     {
       "key": "web/components/login-welcome-nova.tsx:#e7e2f4:<stop offset=\"70%\" stopColor=\"#e7e2f4\" />",
       "file": "web/components/login-welcome-nova.tsx",
-      "line": 322,
+      "line": 325,
       "value": "#e7e2f4",
       "source": "<stop offset=\"70%\" stopColor=\"#e7e2f4\" />"
     },
     {
       "key": "web/components/login-welcome-nova.tsx:#e9eaff:const glyphFill = isNight ? \"#e9eaff\" : \"#ffedcb\";",
       "file": "web/components/login-welcome-nova.tsx",
-      "line": 131,
+      "line": 134,
       "value": "#e9eaff",
       "source": "const glyphFill = isNight ? \"#e9eaff\" : \"#ffedcb\";"
     },
     {
       "key": "web/components/login-welcome-nova.tsx:#efeaff:color: \"#efeaff\",",
       "file": "web/components/login-welcome-nova.tsx",
-      "line": 488,
+      "line": 491,
       "value": "#efeaff",
       "source": "color: \"#efeaff\","
     },
     {
       "key": "web/components/login-welcome-nova.tsx:#f3ecff:.lwn-star { position:absolute; border-radius:50%; background:#f3ecff;",
       "file": "web/components/login-welcome-nova.tsx",
-      "line": 227,
+      "line": 230,
       "value": "#f3ecff",
       "source": ".lwn-star { position:absolute; border-radius:50%; background:#f3ecff;"
     },
     {
       "key": "web/components/login-welcome-nova.tsx:#f4f1ff:color: \"#f4f1ff\",",
       "file": "web/components/login-welcome-nova.tsx",
-      "line": 219,
+      "line": 222,
       "value": "#f4f1ff",
       "source": "color: \"#f4f1ff\","
     },
     {
       "key": "web/components/login-welcome-nova.tsx:#fdfbff:<stop offset=\"0%\" stopColor=\"#fdfbff\" />",
       "file": "web/components/login-welcome-nova.tsx",
-      "line": 321,
+      "line": 324,
       "value": "#fdfbff",
       "source": "<stop offset=\"0%\" stopColor=\"#fdfbff\" />"
     },
     {
       "key": "web/components/login-welcome-nova.tsx:#ff9f43:<stop offset=\"100%\" stopColor=\"#ff9f43\" />",
       "file": "web/components/login-welcome-nova.tsx",
-      "line": 329,
+      "line": 332,
       "value": "#ff9f43",
       "source": "<stop offset=\"100%\" stopColor=\"#ff9f43\" />"
     },
     {
       "key": "web/components/login-welcome-nova.tsx:#ffd68c:const accent = isNight ? \"#c9caff\" : \"#ffd68c\";",
       "file": "web/components/login-welcome-nova.tsx",
-      "line": 130,
+      "line": 133,
       "value": "#ffd68c",
       "source": "const accent = isNight ? \"#c9caff\" : \"#ffd68c\";"
     },
     {
       "key": "web/components/login-welcome-nova.tsx:#ffd873:<stop offset=\"55%\" stopColor=\"#ffd873\" />",
       "file": "web/components/login-welcome-nova.tsx",
-      "line": 328,
+      "line": 331,
       "value": "#ffd873",
       "source": "<stop offset=\"55%\" stopColor=\"#ffd873\" />"
     },
     {
       "key": "web/components/login-welcome-nova.tsx:#ffdf95:<line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke=\"#ffdf95\" strokeWidth={1.6} strokeLinecap=\"round\" opacity={0.85} />",
       "file": "web/components/login-welcome-nova.tsx",
-      "line": 453,
+      "line": 456,
       "value": "#ffdf95",
       "source": "<line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke=\"#ffdf95\" strokeWidth={1.6} strokeLinecap=\"round\" opacity={0.85} />"
     },
     {
       "key": "web/components/login-welcome-nova.tsx:#ffedcb:const glyphFill = isNight ? \"#e9eaff\" : \"#ffedcb\";",
       "file": "web/components/login-welcome-nova.tsx",
-      "line": 131,
+      "line": 134,
       "value": "#ffedcb",
       "source": "const glyphFill = isNight ? \"#e9eaff\" : \"#ffedcb\";"
     },
     {
       "key": "web/components/login-welcome-nova.tsx:#fff6dc:<stop offset=\"0%\" stopColor=\"#fff6dc\" />",
       "file": "web/components/login-welcome-nova.tsx",
-      "line": 327,
+      "line": 330,
       "value": "#fff6dc",
       "source": "<stop offset=\"0%\" stopColor=\"#fff6dc\" />"
     },
     {
       "key": "web/components/login-welcome-nova.tsx:rgba(0,0,0,0.35):textShadow: \"0 2px 24px rgba(0,0,0,0.35)\",",
       "file": "web/components/login-welcome-nova.tsx",
-      "line": 477,
+      "line": 480,
       "value": "rgba(0,0,0,0.35)",
       "source": "textShadow: \"0 2px 24px rgba(0,0,0,0.35)\","
     },
     {
       "key": "web/components/login-welcome-nova.tsx:rgba(201,202,255,0.78):const ringStroke = isNight ? \"rgba(201,202,255,0.78)\" : \"rgba(255,214,140,0.82)\";",
       "file": "web/components/login-welcome-nova.tsx",
-      "line": 132,
+      "line": 135,
       "value": "rgba(201,202,255,0.78)",
       "source": "const ringStroke = isNight ? \"rgba(201,202,255,0.78)\" : \"rgba(255,214,140,0.82)\";"
     },
     {
       "key": "web/components/login-welcome-nova.tsx:rgba(233,234,255,.8):box-shadow:0 0 6px rgba(233,234,255,.8); animation: lwn-twinkle 3.4s ease-in-out infinite; }",
       "file": "web/components/login-welcome-nova.tsx",
-      "line": 228,
+      "line": 231,
       "value": "rgba(233,234,255,.8)",
       "source": "box-shadow:0 0 6px rgba(233,234,255,.8); animation: lwn-twinkle 3.4s ease-in-out infinite; }"
     },
     {
       "key": "web/components/login-welcome-nova.tsx:rgba(233,234,255,0.55):color: \"rgba(233,234,255,0.55)\",",
       "file": "web/components/login-welcome-nova.tsx",
-      "line": 539,
+      "line": 542,
       "value": "rgba(233,234,255,0.55)",
       "source": "color: \"rgba(233,234,255,0.55)\","
     },
     {
       "key": "web/components/login-welcome-nova.tsx:rgba(233,234,255,0.62):color: \"rgba(233,234,255,0.62)\",",
       "file": "web/components/login-welcome-nova.tsx",
-      "line": 498,
+      "line": 501,
       "value": "rgba(233,234,255,0.62)",
       "source": "color: \"rgba(233,234,255,0.62)\","
     },
     {
       "key": "web/components/login-welcome-nova.tsx:rgba(255,214,140,0.82):const ringStroke = isNight ? \"rgba(201,202,255,0.78)\" : \"rgba(255,214,140,0.82)\";",
       "file": "web/components/login-welcome-nova.tsx",
-      "line": 132,
+      "line": 135,
       "value": "rgba(255,214,140,0.82)",
       "source": "const ringStroke = isNight ? \"rgba(201,202,255,0.78)\" : \"rgba(255,214,140,0.82)\";"
     },
     {
       "key": "web/components/login-welcome-nova.tsx:rgba(255,255,255,0.06):background: \"rgba(255,255,255,0.06)\",",
       "file": "web/components/login-welcome-nova.tsx",
-      "line": 519,
+      "line": 522,
       "value": "rgba(255,255,255,0.06)",
       "source": "background: \"rgba(255,255,255,0.06)\","
     },
     {
       "key": "web/components/login-welcome-nova.tsx:rgba(36,31,66,0.74) 0%, rgba(23,19,44,0.85) 58%, rgba(13,10,28,0.95) 100%), url(/assets/opt/nebula-indigo.jpg):\"radial-gradient(130% 100% at 50% 16%, rgba(36,31,66,0.74) 0%, rgba(23,19,44,0.85) 58%, rgba(13,10,28,0.95) 100%), url(/assets/opt/nebula-indigo.jpg) center/cover no-repeat, #0d0a1c\",",
       "file": "web/components/login-welcome-nova.tsx",
-      "line": 218,
+      "line": 221,
       "value": "rgba(36,31,66,0.74) 0%, rgba(23,19,44,0.85) 58%, rgba(13,10,28,0.95) 100%), url(/assets/opt/nebula-indigo.jpg)",
       "source": "\"radial-gradient(130% 100% at 50% 16%, rgba(36,31,66,0.74) 0%, rgba(23,19,44,0.85) 58%, rgba(13,10,28,0.95) 100%), url(/assets/opt/nebula-indigo.jpg) center/cover no-repeat, #0d0a1c\","
     },
@@ -1923,28 +1923,28 @@
     {
       "key": "web/components/nakshatra-badge.tsx:#0e0b1c:background: \"#0e0b1c\",",
       "file": "web/components/nakshatra-badge.tsx",
-      "line": 48,
+      "line": 51,
       "value": "#0e0b1c",
       "source": "background: \"#0e0b1c\","
     },
     {
       "key": "web/components/nakshatra-badge.tsx:rgba(15, 12, 30, 0.22):boxShadow: \"0 1px 3px rgba(15, 12, 30, 0.22)\",",
       "file": "web/components/nakshatra-badge.tsx",
-      "line": 49,
+      "line": 52,
       "value": "rgba(15, 12, 30, 0.22)",
       "source": "boxShadow: \"0 1px 3px rgba(15, 12, 30, 0.22)\","
     },
     {
       "key": "web/components/nakshatra-badge.tsx:rgba(20, 16, 40, 0.14))):border: \"1px solid var(--cl-border, var(--color-border, rgba(20, 16, 40, 0.14)))\",",
       "file": "web/components/nakshatra-badge.tsx",
-      "line": 47,
+      "line": 50,
       "value": "rgba(20, 16, 40, 0.14)))",
       "source": "border: \"1px solid var(--cl-border, var(--color-border, rgba(20, 16, 40, 0.14)))\","
     },
     {
       "key": "web/components/natchathiram-page.tsx:#fff:color: \"#fff\",",
       "file": "web/components/natchathiram-page.tsx",
-      "line": 185,
+      "line": 192,
       "value": "#fff",
       "source": "color: \"#fff\","
     },
@@ -2175,21 +2175,21 @@
     {
       "key": "web/components/zodiac-badge.tsx:#0e0b1c:background: \"#0e0b1c\",",
       "file": "web/components/zodiac-badge.tsx",
-      "line": 53,
+      "line": 56,
       "value": "#0e0b1c",
       "source": "background: \"#0e0b1c\","
     },
     {
       "key": "web/components/zodiac-badge.tsx:rgba(15, 12, 30, 0.22):boxShadow: \"0 1px 3px rgba(15, 12, 30, 0.22)\",",
       "file": "web/components/zodiac-badge.tsx",
-      "line": 54,
+      "line": 57,
       "value": "rgba(15, 12, 30, 0.22)",
       "source": "boxShadow: \"0 1px 3px rgba(15, 12, 30, 0.22)\","
     },
     {
       "key": "web/components/zodiac-badge.tsx:rgba(20, 16, 40, 0.14))):border: \"1px solid var(--cl-border, var(--color-border, rgba(20, 16, 40, 0.14)))\",",
       "file": "web/components/zodiac-badge.tsx",
-      "line": 52,
+      "line": 55,
       "value": "rgba(20, 16, 40, 0.14)))",
       "source": "border: \"1px solid var(--cl-border, var(--color-border, rgba(20, 16, 40, 0.14)))\","
     },
@@ -2325,6 +2325,13 @@
       "line": 62,
       "value": "rgba(255,255,255,0.30)",
       "source": "export function drawBranding(ctx: CanvasRenderingContext2D, w: number, color = \"rgba(255,255,255,0.30)\"): void {"
+    },
+    {
+      "key": "web/lib/sky-phase.test.ts:#fff:expect(css).toMatch(/\\.nova-cal-closing\\[data-sky-ground=\"dark\"\\] p[^{]*\\{[^}]*color:\\s*#fff;/);",
+      "file": "web/lib/sky-phase.test.ts",
+      "line": 85,
+      "value": "#fff",
+      "source": "expect(css).toMatch(/\\.nova-cal-closing\\[data-sky-ground=\"dark\"\\] p[^{]*\\{[^}]*color:\\s*#fff;/);"
     }
   ]
 }
