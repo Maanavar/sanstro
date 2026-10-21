@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { withTamilTwin } from "@/lib/localized-metadata";
+import { withDasaTimingHold } from "@/lib/natchathiram-dasa-hold";
+import { dasaTimingsFor } from "@/lib/natchathiram-dasa-timings";
 import { natchathiramVisualTa } from "@/lib/marketing-seo-ta";
 import { ARDRA } from "@/lib/natchathiram-data";
 import { NatchathiramVisualContent, type NatchathiramVisualData } from "@/components/natchathiram-visual";
@@ -17,7 +19,7 @@ const EN_METADATA: Metadata = {
 };
 
 export async function generateMetadata(): Promise<Metadata> {
-  return withTamilTwin(EN_METADATA, "/natchathiram/ardra/visual", natchathiramVisualTa("ardra")!);
+  return withDasaTimingHold(await withTamilTwin(EN_METADATA, "/natchathiram/ardra/visual", natchathiramVisualTa("ardra")!), "ardra");
 }
 
 const ARDRA_VISUAL: NatchathiramVisualData = {
@@ -72,7 +74,7 @@ const ARDRA_VISUAL: NatchathiramVisualData = {
 
   dashaTimeline: [
     {
-      planet: "Rahu", period: "18 yrs", ageRange: "Age 0–18", theme: "Born into the Storm",
+      planet: "Rahu", theme: "Born into the Storm",
       detail: {
         expect: "Ardra is born into Rahu dasa — a turbulent but potent opening for a nakshathiram whose nature is itself the embodiment of Rudra's storm. Early childhood (0–7) often includes unusual circumstances: a family disruption, a dramatic relocation, a health challenge that resolves but leaves a mark, or an unusual intellectual precocity that adults cannot easily place. School years (7–14) see Ardra's analytical intelligence beginning to distinguish itself — mathematics, science, and language all attract, but the tendency to question rather than accept is already visible. Adolescence (14–18) brings the first serious confrontation with the world's imperfections, and often the first sustained passion for a subject, cause, or technology.",
         navigate: "Rahu's 18-year opening means Ardra arrives at adulthood without the stable childhood that other nakshatrams' slower dasas provide. The lack of a settled emotional foundation in early life can produce volatility, distrust of authority, or a compensatory intellectual arrogance. Health: Rahu dasa children are particularly vulnerable to skin conditions, unexplained fevers, and nervous system hypersensitivity. Rahu–Saturn antardasa (approximately ages 14–16) is the most demanding sub-period; existential questioning, academic pressure, and family conflict can peak simultaneously.",
@@ -80,7 +82,7 @@ const ARDRA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Jupiter", period: "16 yrs", ageRange: "Age 18–34", theme: "The Analytical Mind Finds Its Work",
+      planet: "Jupiter", theme: "The Analytical Mind Finds Its Work",
       detail: {
         expect: "Jupiter dasa from 18 to 34 is when Ardra's storm-forged intelligence finds its proper professional application. Higher education or vocational training establishes — sciences, technology, medicine, law, or social research are the most natural domains. Career launches with unusual analytical capability, and early recognition — a research publication, a technology breakthrough, an investigative piece that matters — may arrive between ages 22 and 28. Marriage may enter the picture in Jupiter–Venus antardasa (approximately ages 28–30) or Jupiter–Mars (approximately ages 25–27). Children, if sought, may come. The first stable home and professional identity consolidate.",
         navigate: "Jupiter's generosity can amplify Ardra's natural intensity into intellectual arrogance — the belief that analytical superiority justifies dismissiveness toward those whose thinking is less rigorous. Relationships outside the intellectual or professional domain can feel unfamiliar; the emotional intelligence that Ardra carries from Rahu dasa's turbulence needs conscious cultivation, not avoidance. Liver health and overwork accumulation deserve attention by the early thirties.",
@@ -88,7 +90,7 @@ const ARDRA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Saturn", period: "19 yrs", ageRange: "Age 34–53", theme: "The Reformer's Long Work",
+      planet: "Saturn", theme: "The Reformer's Long Work",
       detail: {
         expect: "Saturn dasa from 34 to 53 tests every system Ardra has built — and rewards those built on genuine rigor. Career reaches institutional depth; leadership roles, research leadership, senior editorial positions, or advanced medical or legal practice become the terrain. Family life stabilises fully; children enter school and adolescence. Property acquisition and financial consolidation typically occur in the early forties. The social reformer in Ardra — always present but sometimes submerged by pragmatism — re-emerges with force in Saturn dasa, often producing Ardra's most enduring contribution to a field or a community.",
         navigate: "Saturn's primary physical concerns for Ardra between 34 and 53 are musculoskeletal, respiratory, and cardiovascular. Chronic overwork — Ardra's constitutional tendency — accumulates in Saturn dasa and must be managed with deliberate rest. Saturn–Rahu antardasa (approximately ages 46–48) is the most turbulent sub-period; career pressures, family obligations, and health can converge acutely. Relationships that survived Rahu and Jupiter dasas must now survive Saturn's demand for sustained depth rather than intellectual excitement.",
@@ -96,7 +98,7 @@ const ARDRA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Mercury", period: "17 yrs", ageRange: "Age 53–70", theme: "Rasi Lord — The Great Analysis",
+      planet: "Mercury", theme: "Rasi Lord — The Great Analysis",
       detail: {
         expect: "Mercury dasa from 53 to 70 is the rasi lord's arrival for Ardra. Mercury is the lord of your rasi, Mithuna — this makes his dasa doubly charged for Ardra natives. Where other nakshathirams experience Mercury dasa as one planetary period among many, for Ardra it is the rasi lord himself taking the wheel in the final active professional decades. Analytical writing, intellectual legacy-building, teaching, and communicative mastery reach their lifetime peak. The accumulated research, the years of systematic investigation, the disciplined thinking — all of it crystallises into work that will outlast its author. For those in teaching, science, or writing, the most significant works of a lifetime land here.",
         navigate: "Mercury's primary health concerns at this age are nervous system and respiratory. Mental agility, maintained through active analytical engagement, outlasts physical agility. The intensity that has characterised Ardra's entire intellectual life must now be channelled into transmission rather than perpetual investigation — the storm has produced its rain; now let the earth use it.",
@@ -104,7 +106,7 @@ const ARDRA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Ketu", period: "7 yrs", ageRange: "Age 70–77", theme: "After the Storm — Stillness",
+      planet: "Ketu", theme: "After the Storm — Stillness",
       detail: {
         expect: "Ketu dasa from 70 to 77 calls Ardra into the deep interior — the storm that has raged for a lifetime finally grows quiet, and in the silence, Shiva's true nature emerges. Spiritual depth that has been deferred by the urgency of analytical work surfaces with unusual force. Grandchildren and great-grandchildren receive a quality of loving attention that the professional years could not always provide. Creative or contemplative work — writing that is not analysis but poetry, practice that is not investigation but devotion — becomes possible for the first time.",
         navigate: "Ketu's natural withdrawal tendency is amplified by age; avoid the extreme of complete social isolation which can accelerate decline. Physical needs are specific: warmth, regular nourishment, gentle movement, and the company of those who understand depth. Spiritual companions are more important in Ketu dasa than most other support.",
@@ -112,7 +114,7 @@ const ARDRA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Venus", period: "20 yrs", ageRange: "Age 77–97", theme: "Unexpected Beauty",
+      planet: "Venus", theme: "Unexpected Beauty",
       detail: {
         expect: "Venus dasa from 77 to 97 brings an unexpected softening to Ardra's lifelong storm. Beauty — music, art, relationship, the sensory richness of life — arrives with a gentleness that the analytical intellect could not previously access. Family bonds deepen. Grandchildren and great-grandchildren become the primary joy. Creative work in this period, if pursued, has a quality of serene completion that contrasts beautifully with the intensity of everything that preceded it.",
         navigate: "At this age, physical care is primary: warmth, adequate nourishment, gentle movement, and steady companionship. The nervous system and respiratory system deserve particular attention through the eighties. Venus's natural affinity with comfort and beauty should be actively supported in the living environment.",
@@ -120,7 +122,7 @@ const ARDRA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Sun", period: "6 yrs", ageRange: "Age 97–103", theme: "Final Solar Clarity",
+      planet: "Sun", theme: "Final Solar Clarity",
       detail: {
         expect: "Sun dasa from 97 to 103 is reached by very few. For those who arrive here, the Sun brings a final gift of radiant clarity — the analytical intelligence that has pierced problems for seven decades now simply rests in its own luminous awareness. Identity is settled; the storm has long since passed; what remains is pure solar presence.",
         navigate: "Physical care at this age is complete and tender. Warmth, light, familiar sounds, and the presence of those who understand the depth of this person's life — these are everything.",
@@ -128,7 +130,7 @@ const ARDRA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Moon", period: "10 yrs", ageRange: "Age 103–113", theme: "Oceanic Rest",
+      planet: "Moon", theme: "Oceanic Rest",
       detail: {
         expect: "Moon dasa at this extreme age is reached by virtually none. For those rare souls who persist here, the Moon brings the tidal completeness — the full emotional ocean that Ardra's storm always promised. The analytical fire is long quiet; what remains is the cool, vast feeling of water after rain.",
         navigate: "Complete physical care and gentle emotional presence from caregivers who appreciate the depth of this rare person's life are everything. The body's requirements are simple.",
@@ -246,5 +248,5 @@ const ARDRA_VISUAL: NatchathiramVisualData = {
 };
 
 export default function ArdraVisualPage() {
-  return <NatchathiramVisualContent data={ARDRA} visual={ARDRA_VISUAL} />;
+  return <NatchathiramVisualContent data={ARDRA} visual={ARDRA_VISUAL} timings={dasaTimingsFor(ARDRA.number)} />;
 }

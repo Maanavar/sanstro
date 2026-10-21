@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { withTamilTwin } from "@/lib/localized-metadata";
+import { withDasaTimingHold } from "@/lib/natchathiram-dasa-hold";
+import { dasaTimingsFor } from "@/lib/natchathiram-dasa-timings";
 import { natchathiramVisualTa } from "@/lib/marketing-seo-ta";
 import { CHITRA } from "@/lib/natchathiram-data";
 import { NatchathiramVisualContent, type NatchathiramVisualData } from "@/components/natchathiram-visual";
@@ -17,7 +19,7 @@ const EN_METADATA: Metadata = {
 };
 
 export async function generateMetadata(): Promise<Metadata> {
-  return withTamilTwin(EN_METADATA, "/natchathiram/chitra/visual", natchathiramVisualTa("chitra")!);
+  return withDasaTimingHold(await withTamilTwin(EN_METADATA, "/natchathiram/chitra/visual", natchathiramVisualTa("chitra")!), "chitra");
 }
 
 const CHITRA_VISUAL: NatchathiramVisualData = {
@@ -72,7 +74,7 @@ const CHITRA_VISUAL: NatchathiramVisualData = {
 
   dashaTimeline: [
     {
-      planet: "Mars", period: "7 yrs", ageRange: "Age 0–7", theme: "Born in the Maker's Fire",
+      planet: "Mars", theme: "Born in the Maker's Fire",
       detail: {
         expect: "Chitra opens in Mars dasa — a fiery, purposeful beginning that establishes the creative drive from the very first years. Infancy and earliest childhood show the hallmarks: the child who insists on arranging, the one who is unsatisfied with approximation, the young person whose attention to the visual and spatial detail of their environment is noticed by everyone around them. Mars gives Chitra an early confidence in making that plants the root of a lifetime's creative ambition. The family environment in these seven years — its aesthetic quality, the access to creative materials, the degree to which the child's visual intelligence is recognised and nurtured — shapes the entire life.",
         navigate: "Mars dasa in infancy and early childhood for Chitra can produce frustration when the making capacity exceeds the motor control — the inner vision outpacing the hands' current ability. Physical concerns in Mars dasa childhood: accidents, inflammatory conditions, and the high-energy vulnerability of Mars's impulsive physicality. Mars–Saturn antardasa (~yr 5 of Mars, ~age 5) can bring a brief but noticeable period of constraint.",
@@ -80,7 +82,7 @@ const CHITRA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Rahu", period: "18 yrs", ageRange: "Age 7–25", theme: "The Vision Expands",
+      planet: "Rahu", theme: "The Vision Expands",
       detail: {
         expect: "Rahu dasa from 7 to 25 is the great expansion of Chitra's creative world. School (7–14) establishes artistic and design interests formally; Chitra distinguishes themselves in visual art, geometry, and any subject with a spatial or aesthetic dimension. Adolescence (14–18) brings the first serious creative ambition and often a passionate identification with a specific aesthetic domain — architecture, fashion, design, or performance. Higher education or professional training (18–25) launches the career and gives Chitra the technical vocabulary to match the vision. The magnetic quality that defines Chitra's adult presence begins to be noticed by peers and teachers in Rahu dasa.",
         navigate: "Rahu's expansion through adolescence and early adulthood can produce aesthetic absolutism in Chitra — the belief that their vision is correct and others' is inferior. This is both a creative strength (it maintains standard) and a social vulnerability (it alienates collaborators). Rahu–Saturn antardasa (~yr 12 of Rahu, ~ages 19–21) is the most demanding sub-period — career uncertainty and relationship tension can peak. Physical concerns: skin conditions, nervous system sensitivity, and eye strain.",
@@ -88,7 +90,7 @@ const CHITRA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Jupiter", period: "16 yrs", ageRange: "Age 25–41", theme: "The Work Finds Its Scale",
+      planet: "Jupiter", theme: "The Work Finds Its Scale",
       detail: {
         expect: "Jupiter dasa from 25 to 41 is when Chitra's creative work finds the scale it deserves. Professional establishment, first significant commissions or collections, career recognition, and the building of a creative reputation all consolidate in Jupiter's opening decade. Marriage enters in Jupiter–Venus antardasa (~yr 4, ~ages 29–30) for most; children arrive; a home that expresses Chitra's aesthetic intelligence fully becomes possible. By the mid-thirties, Chitra's work is known — within a field, within a city, or more broadly — and the question shifts from establishing to deepening.",
         navigate: "Jupiter's generosity can produce over-ambition — Chitra taking on creative projects that exceed the current capacity for execution, driven by the vision that Jupiter amplifies. The gap between what Chitra sees and what currently exists is both the creative engine and a source of perpetual mild dissatisfaction. Jupiter–Saturn antardasa (~yr 13 of Jupiter, ~ages 38–40) requires disciplined reduction of scope.",
@@ -96,7 +98,7 @@ const CHITRA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Saturn", period: "19 yrs", ageRange: "Age 41–60", theme: "The Architect's Long Work",
+      planet: "Saturn", theme: "The Architect's Long Work",
       detail: {
         expect: "Saturn dasa from 41 to 60 brings Chitra into the long, sustained, reputation-defining work of the mature creative. The designs, buildings, collections, or performances of Saturn dasa tend to be Chitra's most enduring contributions — not the most exciting, but the most structurally sound, the most carefully considered, the most professionally complete. Institutional recognition and legacy-building work arrive. Teaching and mentoring younger designers, architects, or artists becomes an increasingly significant part of the creative life.",
         navigate: "Saturn's discipline can feel constraining to Chitra's natural aesthetic freedom — the requirement to complete, to deliver within constraints, to serve a client rather than a pure vision. This tension is productive if managed: the best creative work typically emerges from disciplined constraint rather than unlimited freedom. Physical concerns: spine, joints, eyes, and cardiovascular. Saturn–Rahu antardasa (~yr 12, ~ages 53–55) is the most turbulent sub-period.",
@@ -104,7 +106,7 @@ const CHITRA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Mercury", period: "17 yrs", ageRange: "Age 60–77", theme: "Rasi Lord for Kanya-born — The Great Design",
+      planet: "Mercury", theme: "Rasi Lord for Kanya-born — The Great Design",
       detail: {
         expect: "Mercury dasa from 60 to 77 is the rasi lord's arrival for Kanya-pada Chitra. Mercury is the lord of your rasi, Kanya — this makes his dasa doubly charged for Kanya-born Chitra natives. The analytical precision, communicative mastery, and systematic intelligence that Mercury brings amplify exactly the capacities that have made Chitra's creative work distinctive — the ability to understand why a design works, to articulate aesthetic principle, to teach the logic of beauty. Writing about design, teaching the design process, or producing analytical work that interprets Chitra's field reach their lifetime peak. For Tula-pada Chitra, Mercury dasa is a late-life gift of precision and articulate wisdom.",
         navigate: "Mercury's health concerns at this age are nervous system and respiratory. The perfectionism that has driven Chitra's entire creative life requires calibration at this age — the standard should be as high as ever, but the physical energy available is finite. Mercury–Rahu antardasa (~yr 2 of Mercury, ~ages 62–63) can bring unusual late-career opportunities or disruptions.",
@@ -112,7 +114,7 @@ const CHITRA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Ketu", period: "7 yrs", ageRange: "Age 77–84", theme: "The Vision Turns Inward",
+      planet: "Ketu", theme: "The Vision Turns Inward",
       detail: {
         expect: "Ketu dasa from 77 to 84 turns Chitra's lifelong outward creative vision inward. The making impulse does not cease — but the scale simplifies, the audience narrows to the essential, and the purpose clarifies from reputation to expression. Spiritual depth that has always underlain Chitra's aesthetic sense now surfaces directly: the recognition that Tvashta's creative act and the divine's self-expression are ultimately the same thing.",
         navigate: "Ketu's withdrawal from social and professional engagement is appropriate; ensure it does not become complete isolation. The aesthetic intelligence of a lifetime is still fully present and still valuable; small-scale creative acts — a drawing, a garden arrangement, a piece of jewellery made for a grandchild — maintain the hands' intelligence without requiring the full professional apparatus.",
@@ -120,7 +122,7 @@ const CHITRA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Venus", period: "20 yrs", ageRange: "Age 84–104", theme: "Rasi Lord for Tula-born — The Beautiful Completion",
+      planet: "Venus", theme: "Rasi Lord for Tula-born — The Beautiful Completion",
       detail: {
         expect: "Venus dasa from 84 to 104 is the rasi lord's arrival for Tula-pada Chitra. Venus is the lord of your rasi, Tula — this makes her dasa doubly charged for Tula-born Chitra natives. Beauty, love, aesthetic refinement, and the warmth of creative connection reach their most freely expressed form at this age. The decades of discipline — Saturn's long constraint, Mercury's analytical rigour — have produced a capacity for pure aesthetic joy that is now fully available. For Kanya-pada Chitra, Venus dasa at this extreme age brings the final flourishing of sensory beauty.",
         navigate: "At this age, physical care is primary: warmth, music, beauty in the immediate environment, and the presence of those who understand and appreciate Chitra's life's work. The nervous system and cardiovascular system need gentle, consistent support.",
@@ -128,7 +130,7 @@ const CHITRA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Sun", period: "6 yrs", ageRange: "Age 104–110", theme: "Final Solar Light",
+      planet: "Sun", theme: "Final Solar Light",
       detail: {
         expect: "Sun dasa from 104 to 110 is reached by almost none. For those transcendent Chitra souls who arrive, the Sun brings the final quality of radiant clarity — the creative vision and its source recognised as one. The bright jewel (Chitra's symbol) is indistinguishable from the light it reflects.",
         navigate: "Complete, tender care. The person at this age has completed one of the richest creative lives possible; what they need is warmth, light, and loving presence.",
@@ -245,5 +247,5 @@ const CHITRA_VISUAL: NatchathiramVisualData = {
 };
 
 export default function ChitraVisualPage() {
-  return <NatchathiramVisualContent data={CHITRA} visual={CHITRA_VISUAL} />;
+  return <NatchathiramVisualContent data={CHITRA} visual={CHITRA_VISUAL} timings={dasaTimingsFor(CHITRA.number)} />;
 }

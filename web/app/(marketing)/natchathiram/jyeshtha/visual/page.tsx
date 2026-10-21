@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { withTamilTwin } from "@/lib/localized-metadata";
+import { withDasaTimingHold } from "@/lib/natchathiram-dasa-hold";
+import { dasaTimingsFor } from "@/lib/natchathiram-dasa-timings";
 import { natchathiramVisualTa } from "@/lib/marketing-seo-ta";
 import { JYESHTHA } from "@/lib/natchathiram-data";
 import { NatchathiramVisualContent, type NatchathiramVisualData } from "@/components/natchathiram-visual";
@@ -17,7 +19,7 @@ const EN_METADATA: Metadata = {
 };
 
 export async function generateMetadata(): Promise<Metadata> {
-  return withTamilTwin(EN_METADATA, "/natchathiram/jyeshtha/visual", natchathiramVisualTa("jyeshtha")!);
+  return withDasaTimingHold(await withTamilTwin(EN_METADATA, "/natchathiram/jyeshtha/visual", natchathiramVisualTa("jyeshtha")!), "jyeshtha");
 }
 
 const JYESHTHA_VISUAL: NatchathiramVisualData = {
@@ -72,7 +74,7 @@ const JYESHTHA_VISUAL: NatchathiramVisualData = {
 
   dashaTimeline: [
     {
-      planet: "Mercury", period: "17 yrs", ageRange: "Age 0–17", theme: "Born with the Elder's Intelligence",
+      planet: "Mercury", theme: "Born with the Elder's Intelligence",
       detail: {
         expect: "Jyeshtha opens in Mercury dasa — a beginning charged with the peculiar intelligence of Vrischika and the precision of Mercury. Early childhood (0–7) often shows an unusual observational capacity: the Jyeshtha child watches, processes, and understands adult dynamics before they have the words to describe them. The awareness of power — who has it, how it works, where it can be trusted — develops in Mercury's first years with a sophistication that surprises caregivers. School years (7–14) produce a student of depth and precision: not necessarily the fastest or the most spontaneous, but consistently the most penetrating. The first significant intellectual passion — mathematics, language, psychology, or any domain where the hidden structure of things is revealed — establishes in Mercury dasa.",
         navigate: "Mercury's primary shadow for the young Jyeshtha is the gap between perception and expression — seeing deeply into situations that cannot yet be articulated, knowing truths that the social environment will not accept. This can produce either precocious confidence or a strategic withholding that becomes habitual. Physical concerns: nervous system hypersensitivity, respiratory function, and digestive sensitivity. Mercury–Rahu antardasa (~yr 2 of Mercury, ~age 2) can produce an unsettled early period.",
@@ -80,7 +82,7 @@ const JYESHTHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Ketu", period: "7 yrs", ageRange: "Age 17–24", theme: "The Inward Forge",
+      planet: "Ketu", theme: "The Inward Forge",
       detail: {
         expect: "Ketu dasa from 17 to 24 is the inward forge — the period in which Jyeshtha's unusual intelligence and perceptual depth are tested in the fire of real-world experience and stripped of the naivety that Mercury's analytical confidence can sometimes carry. Higher secondary education, the first career steps, and the initial encounters with adult authority — professional, institutional, and familial — all run through Ketu's seven years. For many Jyeshtha, Ketu dasa is the period of the first real disillusionment: the discovery that authority is not always legitimate, that intelligence is not always rewarded, that depth is sometimes more burden than advantage.",
         navigate: "Ketu's primary challenge in this period is the risk of bitterness — the perceptive young person who sees too clearly and responds with cynicism rather than the wisdom that understanding also makes possible. The disillusionment of Ketu dasa is not a mistake; it is the fire that burns away sentimentality and produces the unsentimental courage that defines Jyeshtha's mature intelligence. Physical concerns: nervous system, autoimmune function, and the physical cost of intensity.",
@@ -88,7 +90,7 @@ const JYESHTHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Venus", period: "20 yrs", ageRange: "Age 24–44", theme: "Authority Meets Abundance",
+      planet: "Venus", theme: "Authority Meets Abundance",
       detail: {
         expect: "Venus dasa from 24 to 44 brings Jyeshtha's intelligence and depth into the most abundant and expansive professional and relational context of the early life. Career foundations build rapidly; the combination of Jyeshtha's perceptual accuracy, strategic intelligence, and unsentimental courage distinguishes them in almost any professional domain they choose to enter seriously. Marriage may enter in Venus–Jupiter antardasa (~yr 3 of Venus, ~ages 27–28) or Venus–Saturn (~yr 10 of Venus, ~ages 34–35). Children may arrive; the family unit that Jyeshtha will protect and provide for through decades may form. Financial progress is often notable in Venus dasa — the intelligence applied to resources tends to produce results.",
         navigate: "Venus's abundance can produce in Jyeshtha a certain professional over-confidence — the intelligence that has correctly assessed most situations developing a blind spot around the situations it cannot. The perceptive person who believes their perception is complete is more dangerous than the one who knows its limits. Venus–Saturn antardasa (~yr 10 of Venus, ~ages 34–35) can bring a significant reality check and recalibration.",
@@ -96,7 +98,7 @@ const JYESHTHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Sun", period: "6 yrs", ageRange: "Age 44–50", theme: "The Elder Rises",
+      planet: "Sun", theme: "The Elder Rises",
       detail: {
         expect: "Sun dasa from 44 to 50 is the formal ascent of Jyeshtha's authority. The intelligence that has been accumulating since Mercury opened the life, tested in Ketu, and built through Venus, now takes its place in full solar visibility. Senior leadership positions — head of department, principal investigator, senior partner, authority figure in a community or institution — are the natural terrain. The name 'Jyeshtha' — the eldest — finds its expression in Sun dasa; others begin to defer, seek guidance, and position Jyeshtha as the senior voice.",
         navigate: "The authority of Sun dasa can produce the authoritarian shadow of Jyeshtha's nature — the protective elder who begins to control rather than guide. The difference between authority that serves and authority that dominates is the ongoing test of Sun dasa. Physical concerns: heart, eyes, and the accumulated tension of decades of intense engagement. Sun–Rahu antardasa (~yr 3 of Sun, ~ages 46–47) can bring disruption or challenge to the newly established authority.",
@@ -104,7 +106,7 @@ const JYESHTHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Moon", period: "10 yrs", ageRange: "Age 50–60", theme: "Depth Emotion",
+      planet: "Moon", theme: "Depth Emotion",
       detail: {
         expect: "Moon dasa from 50 to 60 brings the emotional ocean to Jyeshtha's surface. The intelligence and authority of Mercury, Ketu, Venus, and Sun have been primarily outward expressions; Moon dasa insists on the interior. Family relationships deepen significantly. Children are entering adulthood; the relationship between Jyeshtha as parent and these young adults requires the emotional intelligence that Moon dasa develops. For some Jyeshtha, the experience of being genuinely emotionally known by another person — not just intellectually respected — is most fully available in Moon dasa.",
         navigate: "Moon's primary challenge for Jyeshtha is the discomfort of emotional vulnerability. The protective elder who has been the strong one for decades may find the emotional depth of Moon dasa genuinely unfamiliar. Physical concerns: fluid balance, memory changes, and the emotional body's longstanding accumulated tension. Moon–Rahu antardasa (~yr 7 of Moon, ~ages 56–57) can bring turbulence.",
@@ -112,7 +114,7 @@ const JYESHTHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Mars", period: "7 yrs", ageRange: "Age 60–67", theme: "Rasi Lord — The Great Transformation",
+      planet: "Mars", theme: "Rasi Lord — The Great Transformation",
       detail: {
         expect: "Mars dasa from 60 to 67 is the rasi lord's arrival for Jyeshtha. Mars is the lord of your rasi, Vrischika — this makes his dasa doubly charged for Jyeshtha natives. The Vrischika transformation that has characterised this person's entire life — the capacity to enter the deepest waters and emerge changed — now reaches its most concentrated and deliberately chosen expression. The authority accumulated in Sun dasa and the emotional depth opened in Moon dasa converge in Mars's transformative fire. For those in spiritual or investigative work, the most penetrating and enduring contributions of a lifetime typically fall in Mars dasa. For those in leadership, this is the period of the legacy decision — the single most important contribution to the institution, community, or domain they have built.",
         navigate: "Mars's primary shadow in this period is the temptation toward the absolute — the transformed elder who believes their understanding is now complete and becomes closed to further development. The greatest Jyeshtha are those who remain open to transformation even in the dasa of the rasi lord, understanding that Vrischika's depths have no final floor. Physical concerns: cardiovascular, musculoskeletal, and the accumulated intensity of six decades of deep engagement require deliberate care.",
@@ -120,7 +122,7 @@ const JYESHTHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Rahu", period: "18 yrs", ageRange: "Age 67–85", theme: "The Elder Dissolves",
+      planet: "Rahu", theme: "The Elder Dissolves",
       detail: {
         expect: "Rahu dasa from 67 to 85 brings the great dissolution of the identity that Jyeshtha has built. The authority, the intelligence, the protective function — all the things that have defined this person from Mercury's opening — gradually give way to the recognition that these were instruments, not the self. Grandchildren and great-grandchildren receive an elder of unusual depth. For those who navigate the transition from identity to essence with Jyeshtha's characteristic unsentimental intelligence, Rahu dasa produces the most spacious and genuinely wise period of the entire life.",
         navigate: "Rahu's expansiveness in old age can manifest as either wisdom or grandiosity — the elder who has seen everything either shares it as light or wields it as control. The physical demands of Rahu dasa at this age require deliberate, consistent care: nervous system, musculoskeletal, and cardiovascular. Rahu–Saturn antardasa (~yr 10 of Rahu, ~ages 77–79) is the most demanding sub-period.",
@@ -128,7 +130,7 @@ const JYESHTHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Jupiter", period: "16 yrs", ageRange: "Age 85–101", theme: "Final Wisdom",
+      planet: "Jupiter", theme: "Final Wisdom",
       detail: {
         expect: "Jupiter dasa from 85 to 101 is reached by very few Jyeshtha souls. For those who arrive, Jupiter brings the closing gift of wisdom — the full-circle return to the quality of understanding that Indra's protection was always serving. The disillusionment of Ketu, the authority of Sun, the transformation of Mars, the dissolution of Rahu: all of it lands, in Jupiter's dasa, as the wholeness that it always was.",
         navigate: "Complete and gentle physical care. Jupiter at this extreme age is a gift of presence — a warmth and luminosity in the person that others find nourishing simply to be near.",
@@ -245,5 +247,5 @@ const JYESHTHA_VISUAL: NatchathiramVisualData = {
 };
 
 export default function JyeshthaVisualPage() {
-  return <NatchathiramVisualContent data={JYESHTHA} visual={JYESHTHA_VISUAL} />;
+  return <NatchathiramVisualContent data={JYESHTHA} visual={JYESHTHA_VISUAL} timings={dasaTimingsFor(JYESHTHA.number)} />;
 }

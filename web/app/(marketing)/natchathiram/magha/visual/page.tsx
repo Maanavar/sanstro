@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { withTamilTwin } from "@/lib/localized-metadata";
+import { withDasaTimingHold } from "@/lib/natchathiram-dasa-hold";
+import { dasaTimingsFor } from "@/lib/natchathiram-dasa-timings";
 import { natchathiramVisualTa } from "@/lib/marketing-seo-ta";
 import { MAGHA } from "@/lib/natchathiram-data";
 import { NatchathiramVisualContent, type NatchathiramVisualData } from "@/components/natchathiram-visual";
@@ -17,7 +19,7 @@ const EN_METADATA: Metadata = {
 };
 
 export async function generateMetadata(): Promise<Metadata> {
-  return withTamilTwin(EN_METADATA, "/natchathiram/magha/visual", natchathiramVisualTa("magha")!);
+  return withDasaTimingHold(await withTamilTwin(EN_METADATA, "/natchathiram/magha/visual", natchathiramVisualTa("magha")!), "magha");
 }
 
 const MAGHA_VISUAL: NatchathiramVisualData = {
@@ -72,7 +74,7 @@ const MAGHA_VISUAL: NatchathiramVisualData = {
 
   dashaTimeline: [
     {
-      planet: "Ketu", period: "7 yrs", ageRange: "Age 0–7", theme: "Born to the Ancestors",
+      planet: "Ketu", theme: "Born to the Ancestors",
       detail: {
         expect: "Magha opens life in Ketu dasa — a fitting beginning for the nakshathiram of the ancestral throne. Childhood under Ketu's influence is often marked by an unusual awareness of lineage: the child who is particularly attached to grandparents, who shows an instinctive respect for elders, who seems to carry the family's stories as personal memory. In many Magha families, the birth itself is accompanied by a significant ancestral event — the death or illness of an elder, a family gathering, or a moment that marks the arrival of a new lineage-carrier. The child may be precociously serious, bearing a quality of gravity that sets them apart from their peers.",
         navigate: "Ketu dasa's challenge for young Magha is the weight it carries from birth. The child who takes on ancestral responsibility before they understand it can become prematurely burdened. Parents who notice this pattern should ensure the child also experiences the full lightness of childhood — play, spontaneity, and freedom from inherited expectation. Ketu–Venus antardasa (approximately ages 2–3) brings a welcome interval of warmth and sensory pleasure. Ketu–Mercury (approximately ages 5–6) awakens the first analytical intelligence.",
@@ -80,7 +82,7 @@ const MAGHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Venus", period: "20 yrs", ageRange: "Age 7–27", theme: "The Young Regent",
+      planet: "Venus", theme: "The Young Regent",
       detail: {
         expect: "Venus dasa from 7 to 27 is Magha's formation — twenty years of education, creative development, and the first flowering of the personal authority that is the nakshathiram's birthright. School years produce a student who naturally takes leadership roles: the class representative, the sports captain, the one whose opinion carries weight. The instinct to stand at the front is not arrogance but constitutional — Magha simply orients toward the head of any gathering. Higher education or professional training follows, typically in a field that carries some form of authority or public service. Love relationships begin in Venus–Mars antardasa (approximately ages 15–17) and deepen; marriage may arrive toward the end of Venus dasa, in Venus–Saturn (approximately ages 25–27) or Venus–Mercury (approximately ages 21–23).",
         navigate: "Venus dasa's challenge for Magha is managing the gap between the authority they feel entitled to and the experience they have actually accumulated. The young regent who acts as king before coronation invites resistance that patient development would avoid. Venus–Rahu antardasa (~yr 8, ~ages 15–16) is the most volatile sub-period; the temptation toward shortcuts, sudden reversals, or reckless expressions of independence must be consciously managed. Physical concerns: skin, kidneys, sweet consumption and metabolic health.",
@@ -88,7 +90,7 @@ const MAGHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Sun", period: "6 yrs", ageRange: "Age 27–33", theme: "The Coronation",
+      planet: "Sun", theme: "The Coronation",
       detail: {
         expect: "Sun dasa from 27 to 33 is Magha's coronation — the most naturally aligned dasa for this Leo nakshathiram. Sun is the ruler of Leo and the natural king of the planetary cabinet; in Sun dasa, Magha's authority, presence, and institutional standing reach their first peak. Career establishes its trajectory; leadership positions arrive or are consolidated; the name that will define the professional identity for the next thirty years is being written. Government connections, official recognition, and institutional trust all increase. Relationships that were established in Venus dasa clarify: serious commitments deepen, unsuitable ones resolve. Children may arrive, beginning the lineage that Magha will guard with ancestral gravity.",
         navigate: "Sun dasa's primary challenge for Magha is the temptation toward pride. The Leo king, newly crowned, can mistake the authority that was given (by lineage, by Ketu's karma, by Venus's development) for authority that was self-created. Genuine leadership is always in service of something beyond the self; Sun dasa tests whether Magha has learned this. Sun–Saturn antardasa (~yr 4 of Sun, ~ages 30–31) is the most demanding sub-period: the planet of authority encounters the planet of accountability, and the result is either a disciplined deepening or a painful correction. Physical care: heart, eyes, circulatory health.",
@@ -96,7 +98,7 @@ const MAGHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Moon", period: "10 yrs", ageRange: "Age 33–43", theme: "The King's Heart",
+      planet: "Moon", theme: "The King's Heart",
       detail: {
         expect: "Moon dasa from 33 to 43 introduces the emotional dimension of authority that Sun dasa's solar clarity can overshadow. The ruler who has been defined by command and presence now discovers that the most effective leadership is rooted in genuine care for those being led. Family life deepens: the children born in Sun dasa grow; the domestic sphere, which Magha has sometimes treated as secondary to the public role, demands and rewards genuine emotional presence. For many Magha natives, Moon dasa brings the recognition that the lineage they are building requires not only achievement but warmth — a legacy that others will want to carry forward.",
         navigate: "Moon dasa's health concerns in this age band are digestive, emotional, and related to fluid balance. The Ketu influence that opened life now re-emerges in Moon dasa through Ketu's opposite relationship with Moon — emotional restlessness, difficulty settling, or a recurring sense of existential incompleteness may surface and must be addressed through practice rather than suppressed. Moon–Ketu antardasa (~yr 8 of Moon, ~ages 40–41) is the most internally turbulent sub-period; ancestral karma and pitru issues may resurface for resolution.",
@@ -104,7 +106,7 @@ const MAGHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Mars", period: "7 yrs", ageRange: "Age 43–50", theme: "The Warrior Phase",
+      planet: "Mars", theme: "The Warrior Phase",
       detail: {
         expect: "Mars dasa from 43 to 50 brings Magha's midlife authority into its most direct and decisive expression. The administrator becomes the commander; the corporate leader makes the defining strategic moves; the public official acts with the boldness that their position now warrants. Career reaches a peak of decisive action: major deals, significant hires or restructurings, institutional contests that will define the legacy. Physical vitality, which may have shown signs of stress in Moon dasa, is restored under Mars's energising influence. The ancestral warrior dimension of Magha — the lineage that defended its territory, the family that held its position against competition — finds its contemporary expression.",
         navigate: "Mars dasa's primary challenge is the management of pride and combativeness that can accompany this period of peak authority. Magha's Leo intensity, amplified by Mars, can make this a period of unnecessary battles — the king who fights wars that need not be fought depletes the treasury needed for the legacy. Mars–Rahu antardasa (~yr 2 of Mars, ~ages 45–46) is the most volatile sub-period; significant risks should be evaluated with unusual care in this window. Physical care: blood pressure, accident prevention, cardiac monitoring.",
@@ -112,7 +114,7 @@ const MAGHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Rahu", period: "18 yrs", ageRange: "Age 50–68", theme: "The Expanding Kingdom",
+      planet: "Rahu", theme: "The Expanding Kingdom",
       detail: {
         expect: "Rahu dasa from 50 to 68 is Magha's most expansive and potentially most consequential period. Rahu disrupts the established order — which for Magha, whose identity is rooted in tradition and lineage, can feel destabilising. But Rahu's expansion is necessary: the kingdom that has been built over five decades must evolve or calcify, and Rahu provides the disruption that forces evolution. International connections, unexpected alliances, technological adaptation, or a late-career pivot into an entirely new domain may arrive. The Pitru inheritance that Ketu brought at birth now encounters Rahu's shadowy opposite — the question of which traditions deserve to be carried forward and which must be released is faced directly.",
         navigate: "Rahu's 18-year span spans the most consequential chapter of Magha's public life. Rahu–Ketu antardasa (~yr 9 of Rahu, ~age 59) is a significant eclipse point — a full cycle of karmic reckoning in which the entire lineage inheritance and the entire public life are held in balance simultaneously. Health concerns in this age band are primarily cardiovascular, orthopedic, and metabolic; Rahu's intensity requires deliberate physical management.",
@@ -120,7 +122,7 @@ const MAGHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Jupiter", period: "16 yrs", ageRange: "Age 68–84", theme: "The Elder King",
+      planet: "Jupiter", theme: "The Elder King",
       detail: {
         expect: "Jupiter dasa from 68 to 84 is Magha's most naturally wise and generous period. Jupiter, the guru of the gods, brings an expansive benediction to the life of one who has carried authority with discipline and honoured the ancestors with care. These sixteen years are characterised by a quality of regal generosity: the giving away of what has been accumulated, the mentoring of successors, the transmission of lineage wisdom. Grandchildren receive an extraordinary quality of ancestral attention. For those in spiritual or institutional roles, Jupiter dasa produces the most authoritative and grace-filled work of the entire life.",
         navigate: "Physical care in this age band is primarily orthopedic, circulatory, and metabolic. Jupiter's expansive optimism can occasionally push the body beyond its reduced capacity; deliberate and gentle management of energy reserves is essential. Jupiter–Saturn antardasa (~yr 9 of Jupiter, ~ages 77–79) demands a careful reduction in scope.",
@@ -128,7 +130,7 @@ const MAGHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Saturn", period: "19 yrs", ageRange: "Age 84–103", theme: "The Final Accountability",
+      planet: "Saturn", theme: "The Final Accountability",
       detail: {
         expect: "Saturn dasa from 84 to 103 is reached by very few. For those Magha souls who arrive here — having carried the throne through a full lifetime of authority and ancestral service — Saturn brings the final reckoning: the king who governed well is seen clearly; the inheritance that was protected is complete. Saturn in Leo, the sign of solar authority, is in a complex relationship; but for Magha, who has learned through long experience that genuine authority serves rather than commands, Saturn's accountability is ultimately vindicating.",
         navigate: "Complete physical care and a willingness to receive rather than give — the throne that has given its entire life to others now allows others to give. This is the final teaching of the Pitrus: authority that has truly served completes its cycle and returns to the source.",
@@ -245,5 +247,5 @@ const MAGHA_VISUAL: NatchathiramVisualData = {
 };
 
 export default function MaghaVisualPage() {
-  return <NatchathiramVisualContent data={MAGHA} visual={MAGHA_VISUAL} />;
+  return <NatchathiramVisualContent data={MAGHA} visual={MAGHA_VISUAL} timings={dasaTimingsFor(MAGHA.number)} />;
 }

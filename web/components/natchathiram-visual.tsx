@@ -13,6 +13,8 @@ import { NakshatraSigil, RasiGlyph } from "@/components/astro-symbols";
 import type { NatchathiramEntry } from "@/lib/natchathiram-data";
 import { JYOTISH_TERM_EN, NATCHATHIRAM_EN_FACTS } from "@/lib/natchathiram-data-en";
 import { romanNakshathiramLabel, romanNakshathiramName, tamilizeAstroEnglish } from "@/lib/tamil-astro";
+import type { MahadashaTiming, NakshatraDasaTimings } from "@/lib/generated/natchathiram-dasa-timings";
+import { BhuktiTable, DASA_TIMING_NOTE, mahadashaSpanLabel } from "@/components/natchathiram-dasa-timing";
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -30,7 +32,12 @@ export interface NatchathiramVisualData {
   careerAbilities: { label: string; score: number }[];
   careerClusters: { symbol: string; title: string; desc: string }[];
   modernApps: { symbol: string; title: string; desc: string }[];
-  dashaTimeline: { planet: string; period: string; ageRange?: string; theme: string; detail?: DashaDetail }[];
+  /**
+   * Prose only, in the engine's mahadasha order. No timing field: every length,
+   * age and bhukti time is rendered from the generated engine timings (FSA-03),
+   * and `planet` must equal the engine's lord at the same index.
+   */
+  dashaTimeline: { planet: string; theme: string; detail?: DashaDetail }[];
   spirituality: { title: string; desc: string }[];
   guidance: string;
   compatibleEn: string[];
@@ -268,15 +275,17 @@ function IconCircle({
 
 // ── Dasha detail panel ────────────────────────────────────────────────────
 
+// "At This Age" was itself an age claim — the age a dasha arrives at is a range.
 const DASHA_SECTION_LABELS = {
-  en: { expect: "At This Age", navigate: "Be Alert", focus: "Remedy & Opportunity" },
-  ta: { expect: "இந்த வயதில்", navigate: "கவனம் தேவை", focus: "நிவாரணம் & வாய்ப்பு" },
+  en: { expect: "What to Expect", navigate: "Be Alert", focus: "Remedy & Opportunity" },
+  ta: { expect: "இந்த தசையில்", navigate: "கவனம் தேவை", focus: "நிவாரணம் & வாய்ப்பு" },
 } as const;
 
 function DashaDetailPanel({
-  entry, color, lang, onClose,
+  entry, timing, color, lang, onClose,
 }: {
-  entry: { planet: string; period: string; ageRange?: string; theme: string; detail: DashaDetail };
+  entry: { planet: string; theme: string; detail: DashaDetail };
+  timing: MahadashaTiming;
   color: string;
   lang: "en" | "ta";
   onClose: () => void;
@@ -318,7 +327,7 @@ function DashaDetailPanel({
         <div>
           <p style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700, color: T.ink }}>{lang === "ta" ? `${tPlanetLord(entry.planet, lang)} தசை` : `${entry.planet} Dasha`}</p>
           <p style={{ margin: 0, fontSize: "0.8rem", color, fontWeight: 600 }}>
-            {entry.period}{entry.ageRange ? ` · ${entry.ageRange}` : ""} &mdash; {entry.theme}
+            {mahadashaSpanLabel(timing, lang)} &mdash; {entry.theme}
           </p>
         </div>
       </div>
@@ -342,6 +351,8 @@ function DashaDetailPanel({
           </div>
         ))}
       </div>
+
+      <BhuktiTable md={timing} lang={lang} color={color} />
     </div>
   );
 }
@@ -351,9 +362,12 @@ function DashaDetailPanel({
 interface Props {
   data: NatchathiramEntry;
   visual: NatchathiramVisualData;
+  /** This star's engine timings — passed in by the server page, so the client
+   *  bundle carries one star's numbers rather than all 27. */
+  timings: NakshatraDasaTimings;
 }
 
-export function NatchathiramVisualContent({ data, visual }: Props) {
+export function NatchathiramVisualContent({ data, visual, timings }: Props) {
   const [lang] = useLang();
   const d = NATCHATHIRAM_DETAIL;
   const v = NATCHATHIRAM_VISUAL;
@@ -721,9 +735,7 @@ export function NatchathiramVisualContent({ data, visual }: Props) {
               <SectionHeading>{mtv(d.sec_dasha)}</SectionHeading>
               <p className="cl-band__lead" style={{ marginTop:"-0.5rem" }}>{mtv(v.dasha_lead)}</p>
               <p style={{ fontSize:"0.74rem", color:T.muted, margin:"-0.25rem 0 1.5rem", fontStyle:"italic", lineHeight:1.5 }}>
-                {lang === "ta"
-                  ? "* முதல் தசை கால அளவு பிறந்த நேரத்தைப் பொறுத்து குறையலாம் — இது அனைவருக்கும் பொதுவானது."
-                  : "* First dasha duration varies by birth position — most are born mid-cycle with fewer years remaining."}
+                {DASA_TIMING_NOTE[lang === "ta" ? "ta" : "en"]}
               </p>
             </div>
             <div style={{ overflowX:"auto", paddingBottom:"0.5rem", paddingTop:"0.75rem" }}>
@@ -760,8 +772,9 @@ export function NatchathiramVisualContent({ data, visual }: Props) {
                         {glyph}
                       </button>
                       <p style={{ fontSize:"0.82rem", fontWeight:700, color: isSelected ? col : T.ink, margin:"0 0 0.15rem", transition:"color 0.18s" }}>{lang === "ta" ? tPlanetLord(entry.planet, lang) : entry.planet}</p>
-                      <p style={{ fontSize:"0.7rem", color:T.accent, margin:"0 0 0.1rem", fontWeight:700 }}>{entry.period}</p>
-                      {entry.ageRange && <p style={{ fontSize:"0.62rem", color:T.muted, margin:"0 0 0.2rem", fontWeight:500 }}>{entry.ageRange}</p>}
+                      <p style={{ fontSize:"0.66rem", color:T.accent, margin:"0 0 0.2rem", fontWeight:600, lineHeight:1.35 }}>
+                        {mahadashaSpanLabel(timings.mahadashas[i], lang === "ta" ? "ta" : "en")}
+                      </p>
                       <p style={{ fontSize:"0.66rem", color:T.muted, margin:0, lineHeight:1.4, padding:"0 0.2rem" }}>{entry.theme}</p>
                       {hasDetail && (
                         <p style={{ fontSize:"0.6rem", color: isSelected ? col : T.muted, margin:"0.3rem 0 0", fontWeight:600, letterSpacing:"0.04em", transition:"color 0.18s" }}>
@@ -785,6 +798,7 @@ export function NatchathiramVisualContent({ data, visual }: Props) {
               return (
                 <DashaDetailPanel
                   entry={{ ...entry, detail }}
+                  timing={timings.mahadashas[selectedDasha]}
                   color={col}
                   lang={lang as "en" | "ta"}
                   onClose={() => setSelectedDasha(null)}

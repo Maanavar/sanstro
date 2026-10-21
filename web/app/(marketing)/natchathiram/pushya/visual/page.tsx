@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { withTamilTwin } from "@/lib/localized-metadata";
+import { withDasaTimingHold } from "@/lib/natchathiram-dasa-hold";
+import { dasaTimingsFor } from "@/lib/natchathiram-dasa-timings";
 import { natchathiramVisualTa } from "@/lib/marketing-seo-ta";
 import { PUSHYA } from "@/lib/natchathiram-data";
 import { NatchathiramVisualContent, type NatchathiramVisualData } from "@/components/natchathiram-visual";
@@ -17,7 +19,7 @@ const EN_METADATA: Metadata = {
 };
 
 export async function generateMetadata(): Promise<Metadata> {
-  return withTamilTwin(EN_METADATA, "/natchathiram/pushya/visual", natchathiramVisualTa("pushya")!);
+  return withDasaTimingHold(await withTamilTwin(EN_METADATA, "/natchathiram/pushya/visual", natchathiramVisualTa("pushya")!), "pushya");
 }
 
 const PUSHYA_VISUAL: NatchathiramVisualData = {
@@ -72,7 +74,7 @@ const PUSHYA_VISUAL: NatchathiramVisualData = {
 
   dashaTimeline: [
     {
-      planet: "Saturn", period: "19 yrs", ageRange: "Age 0–19", theme: "Born into Discipline",
+      planet: "Saturn", theme: "Born into Discipline",
       detail: {
         expect: "Pushya opens life in Saturn dasa — a serious, formative beginning that belies the warmth at this nakshathiram's core. Childhood (0–8) often involves early responsibility: a household that requires the child's maturity, a family circumstance that cultivates patience before its time, or an environment where spiritual observance is taught as seriously as schoolwork. Brihaspati's flower grows steadily in Saturn's structured soil. School years (8–16) produce a diligent student who may not be the most spontaneous but is consistently reliable, well-liked by teachers, and trusted by peers. The instinct to care for others — to share the lunch box, to include the left-out child, to take responsibility — emerges naturally and early.",
         navigate: "Saturn's 19-year opening gives Pushya an early seriousness that can shade into a tendency to carry too much too early. The child who takes on parental emotional burdens, the teenager who works to support family finances, the young adult who delays personal joy for others' stability — these patterns establish in Saturn dasa and must be consciously redressed in later periods. Physical concerns in Saturn dasa's childhood and adolescence: spine, joints, skin, and the cold-related illnesses Saturn governs. Saturn–Rahu antardasa (approximately ages 14–16) is the most turbulent sub-period; authority conflicts, academic pressure, and family instability can peak.",
@@ -80,7 +82,7 @@ const PUSHYA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Mercury", period: "17 yrs", ageRange: "Age 19–36", theme: "The Mind Finds Its Service",
+      planet: "Mercury", theme: "The Mind Finds Its Service",
       detail: {
         expect: "Mercury dasa from 19 to 36 brings Pushya's analytical and communicative intelligence into full flower. Higher education or professional training establishes; medicine, education, social work, theology, or agriculture naturally attract. Career foundations are laid with unusual purposefulness — Pushya at this age tends to choose work that matters, not merely work that pays. Marriage enters in Mercury–Venus antardasa (approximately ages 27–29) or Mercury–Jupiter (approximately ages 23–25). Children arrive; the family that Pushya will nurture for life takes shape. Community roles and responsibilities beyond the household begin to accumulate — neighbourhood association, temple committee, school parent council.",
         navigate: "Mercury dasa's primary challenge for Pushya is not finding meaningful work but maintaining sustainable boundaries around it. The natural servant tendency can produce over-commitment, professional boundary erosion, and a gradual neglect of personal needs in service of others'. Mercury–Rahu antardasa (~yr 2 of Mercury, ~ages 21–22) can bring unusual professional opportunities or disruptions; navigate thoughtfully without overcommitting. Physical concerns: nervous system, respiratory function, digestive sensitivities.",
@@ -88,7 +90,7 @@ const PUSHYA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Ketu", period: "7 yrs", ageRange: "Age 36–43", theme: "Inward Nourishment",
+      planet: "Ketu", theme: "Inward Nourishment",
       detail: {
         expect: "Ketu dasa from 36 to 43 interrupts the outward service momentum of Mercury dasa with a necessary inward turn. Brihaspati's wisdom calls Pushya to nourish the inner life with the same diligence they have applied to nourishing others. Spiritual practice deepens with unusual intensity — temple routines, scripture study, or meditation practice that previously fitted around the schedule now begins to organise it. Children are in school; career is established; this is the season for the roots to go deeper before the tree grows taller. Ancestral connections, pitru karma, and the lineage's spiritual heritage come into focus.",
         navigate: "Ketu's detachment can create a sense of disconnection from the social warmth that is Pushya's natural element — this is appropriate, not pathological. The person who has been giving generously for 36 years needs the renewing emptiness that Ketu provides. Physical concerns: autoimmune vulnerabilities, digestive function, and nervous system sensitivity. Ketu–Venus antardasa (~yr 3 of Ketu, ~age 39) brings a period of creative warmth and relational depth that provides welcome counterpoint to Ketu's asceticism.",
@@ -96,7 +98,7 @@ const PUSHYA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Venus", period: "20 yrs", ageRange: "Age 43–63", theme: "The Flowering",
+      planet: "Venus", theme: "The Flowering",
       detail: {
         expect: "Venus dasa from 43 to 63 is Pushya's grand flowering — twenty years of outward abundance, creative expression, and deeply satisfying relationships. Career reaches its fullest professional expression; leadership roles in service, healthcare, education, or spiritual communities become the natural terrain. Children are growing and achieving; grandchildren may arrive toward the end of this period. Financial comfort consolidates; the home becomes a place of genuine beauty and hospitality. Creative expression that was deferred by earlier service obligations — music, art, gardening, writing — re-emerges with surprising vitality. Venus–Jupiter antardasa (~yr 4 of Venus, ~ages 47–48) is an exceptional peak; Pushya's two most naturally aligned planetary energies combine in a period of extraordinary abundance, recognition, and joy.",
         navigate: "Venus dasa's primary health concerns for Pushya in this age band are cardiovascular, kidney function, and hormonal. The generous expenditure of energy that Venus enables must be balanced with deliberate rest. Venus–Saturn antardasa (~yr 15 of Venus, ~ages 58–60) demands a careful reduction in pace; do not resist the slowing.",
@@ -104,7 +106,7 @@ const PUSHYA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Sun", period: "6 yrs", ageRange: "Age 63–69", theme: "Solar Benediction",
+      planet: "Sun", theme: "Solar Benediction",
       detail: {
         expect: "Sun dasa from 63 to 69 brings a golden quality of solar recognition to the decades of quiet, consistent service Pushya has rendered. Professional honours, community recognition, or simply the deep regard of those who have been touched by Pushya's care arrive with unusual visibility in these six years. The authority that Brihaspati confers on his devotees finds its solar expression — Pushya speaks, and the community listens, not because they demand authority but because they have earned trust.",
         navigate: "Physical care focuses on heart, eyes, and general vitality. Sun dasa's intensity can occasionally revive old ambitions or competitive impulses that have been dormant — Pushya should monitor for this and return to the service orientation that is most authentic. Sun–Saturn antardasa (~yr 4 of Sun, ~ages 66–67) requires deliberate pacing.",
@@ -112,7 +114,7 @@ const PUSHYA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Moon", period: "10 yrs", ageRange: "Age 69–79", theme: "Rasi Lord — The Deep Nourishing",
+      planet: "Moon", theme: "Rasi Lord — The Deep Nourishing",
       detail: {
         expect: "Moon dasa from 69 to 79 is the rasi lord's arrival for Pushya. Moon is the lord of your rasi, Kadagam — this makes her dasa doubly charged for Pushya natives. The emotional depth, nurturing completeness, and tidal presence that are Pushya's core nature reach their most concentrated and fully expressed form. Grandchildren receive a quality of loving attention of unusual depth. The capacity to simply be with another person — without agenda, without urgency, with complete emotional presence — is this dasa's supreme gift. For those in spiritual or pastoral roles, Moon dasa produces the most profound accompaniment work of the entire lifetime.",
         navigate: "Moon dasa's health concerns in this age band are primarily fluid balance, memory, and emotional sensitivity. The deep feeling that Moon amplifies can occasionally overwhelm; Pushya in Moon dasa benefits from daily structured practice — prayer, morning ritual, gentle physical care — that provides continuity through the tidal variations. Moon–Saturn antardasa (~yr 6 of Moon, ~ages 74–76) is the most physically demanding sub-period; rest and reduced obligation are essential.",
@@ -120,7 +122,7 @@ const PUSHYA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Mars", period: "7 yrs", ageRange: "Age 79–86", theme: "Resolve at Twilight",
+      planet: "Mars", theme: "Resolve at Twilight",
       detail: {
         expect: "Mars dasa from 79 to 86 brings a final quality of resolve and directness to Pushya's late life. The patience that Saturn instilled at the opening of life, and the nourishment that every subsequent dasa expressed, now meets Mars's clarity of will. Pushya in this period often surprises younger family members with the sharpness of their conviction — there is no time now for diplomatic circumlocution; what is true is said directly and with warmth.",
         navigate: "Physical care at this age is primary. Mars's energy manifests as mental clarity and willful presence rather than physical vigour; do not confuse them and push the body beyond its capacity. Mars–Rahu antardasa (~yr 2 of Mars, ~age 81) can bring a brief period of unusual restlessness or family friction; navigate with Pushya's characteristic patience.",
@@ -128,7 +130,7 @@ const PUSHYA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Rahu", period: "18 yrs", ageRange: "Age 86–104", theme: "Dissolution into Mystery",
+      planet: "Rahu", theme: "Dissolution into Mystery",
       detail: {
         expect: "Rahu dasa from 86 to 104 is reached by very few. For those Pushya souls who arrive here — and Pushya's constitutional patience and careful living give them every statistical advantage — Rahu brings the final dissolution of the boundaries between the self and the world that Pushya has nourished for nearly a century. What was always felt intuitively — that the separation between self and other is ultimately illusory — becomes a lived experience.",
         navigate: "Complete, gentle physical care. Rahu at this age dissolves rather than disrupts; the unusual circumstances that Rahu brings in youth become, at this age, the unusual grace of a consciousness that has completed its work and rests in the mystery.",
@@ -245,5 +247,5 @@ const PUSHYA_VISUAL: NatchathiramVisualData = {
 };
 
 export default function PushyaVisualPage() {
-  return <NatchathiramVisualContent data={PUSHYA} visual={PUSHYA_VISUAL} />;
+  return <NatchathiramVisualContent data={PUSHYA} visual={PUSHYA_VISUAL} timings={dasaTimingsFor(PUSHYA.number)} />;
 }

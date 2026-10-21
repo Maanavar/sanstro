@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { withTamilTwin } from "@/lib/localized-metadata";
+import { withDasaTimingHold } from "@/lib/natchathiram-dasa-hold";
+import { dasaTimingsFor } from "@/lib/natchathiram-dasa-timings";
 import { natchathiramVisualTa } from "@/lib/marketing-seo-ta";
 import { ANURADHA } from "@/lib/natchathiram-data";
 import { NatchathiramVisualContent, type NatchathiramVisualData } from "@/components/natchathiram-visual";
@@ -17,7 +19,7 @@ const EN_METADATA: Metadata = {
 };
 
 export async function generateMetadata(): Promise<Metadata> {
-  return withTamilTwin(EN_METADATA, "/natchathiram/anuradha/visual", natchathiramVisualTa("anuradha")!);
+  return withDasaTimingHold(await withTamilTwin(EN_METADATA, "/natchathiram/anuradha/visual", natchathiramVisualTa("anuradha")!), "anuradha");
 }
 
 const ANURADHA_VISUAL: NatchathiramVisualData = {
@@ -72,7 +74,7 @@ const ANURADHA_VISUAL: NatchathiramVisualData = {
 
   dashaTimeline: [
     {
-      planet: "Saturn", period: "19 yrs", ageRange: "Age 0–19", theme: "Born into the Covenant",
+      planet: "Saturn", theme: "Born into the Covenant",
       detail: {
         expect: "Anuradha opens in Saturn dasa — a formative, serious, and character-building beginning for the nakshathiram of Mitra, whose gift is the covenant of friendship and devotion. Childhood (0–8) often involves early exposure to responsibility, community obligation, or the seriousness of care — a family environment that expects maturity, a household where service and loyalty are not merely values but lived practice. Brihaspati's lotus and Mitra's bond are planted together in Saturn's disciplined soil. School years (8–16) produce a student of unusual depth of friendship — the person who remembers birthdays, who checks on the quiet child, who maintains relationships across years when others lose touch. Adolescence (16–19) brings the first serious tests of loyalty and the formation of the deepest early friendships.",
         navigate: "Saturn's 19-year opening can produce in Anuradha an early gravity — the child who feels the weight of relationship more keenly than their years justify, who carries others' pain with a thoroughness that is as depleting as it is beautiful. The capacity for devotion that Saturn develops is Anuradha's supreme gift and also its primary vulnerability: the person who gives devotion so completely that they are left depleted when it is not reciprocated. Physical concerns: spine, joints, cold-related conditions, and skin. Saturn–Rahu antardasa (~yr 12 of Saturn, ~ages 12–14) is the most turbulent sub-period.",
@@ -80,7 +82,7 @@ const ANURADHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Mercury", period: "17 yrs", ageRange: "Age 19–36", theme: "The Covenant Finds Its Voice",
+      planet: "Mercury", theme: "The Covenant Finds Its Voice",
       detail: {
         expect: "Mercury dasa from 19 to 36 brings Anuradha's relational intelligence into communicative and analytical expression. Higher education establishes in psychology, medicine, international relations, counselling, social work, or research — all domains where Anuradha's depth of human understanding finds professional application. Career foundations are laid with the characteristic combination of analytical precision and relational warmth. Marriage may enter in Mercury–Venus antardasa (~yr 6 of Mercury, ~ages 25–26) or Mercury–Jupiter (~yr 3 of Mercury, ~ages 22–23). The community and professional network Anuradha builds in Mercury dasa — through the quality of friendship extended and the reputation for loyalty established — serves as the social foundation for everything that follows.",
         navigate: "Mercury's primary challenge for Anuradha is not intellect but discernment: the capacity to apply the same analytical precision to relationships that they apply to professional problems. The tendency to forgive too quickly, to maintain loyalty past the point where the other person has honoured their side of the covenant, must be tempered by Mercury's discernment. Mercury–Rahu antardasa (~yr 2 of Mercury, ~ages 21–22) can bring unusual professional developments.",
@@ -88,7 +90,7 @@ const ANURADHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Ketu", period: "7 yrs", ageRange: "Age 36–43", theme: "The Inward Covenant",
+      planet: "Ketu", theme: "The Inward Covenant",
       detail: {
         expect: "Ketu dasa from 36 to 43 redirects the devotional capacity of Anuradha's first decades toward the ultimate covenant — the relationship with the divine. The same intensity that has been applied to friendship and professional relationship turns inward; Anuradha in Ketu dasa often discovers a depth of spiritual practice that surprises even themselves. For those who have been intermittently spiritual, Ketu dasa produces a sustained commitment. For those already committed, it produces a deepening that reaches dimensions previously inaccessible.",
         navigate: "Ketu's withdrawal from social engagement can feel disorienting to Anuradha, whose entire identity has been relational. The person whose gift is the covenant of friendship must navigate a period in which the deepest covenant is interior. Physical concerns: nervous system, autoimmune vulnerabilities, and digestive sensitivity. Ketu–Venus antardasa (~yr 3 of Ketu, ~age 39) brings relational warmth and creative expression as a counterpoint to the austerity.",
@@ -96,7 +98,7 @@ const ANURADHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Venus", period: "20 yrs", ageRange: "Age 43–63", theme: "The Flowering Covenant",
+      planet: "Venus", theme: "The Flowering Covenant",
       detail: {
         expect: "Venus dasa from 43 to 63 brings the most outwardly abundant and relationally rich period of Anuradha's life. The devotional depth of Saturn, the analytical intelligence of Mercury, and the spiritual intensity of Ketu all converge in Venus's abundant relational expression. Career leadership in the chosen domain reaches its peak; the community and professional network built across three decades now manifests its full generative power. Grandchildren may arrive toward the end of this period; the family that Anuradha has been the relational anchor of reflects back the decades of sustained devotion. Creative or devotional artistic expression — music, writing, community service as art — reaches its fullest form.",
         navigate: "Venus dasa's primary health concerns for Anuradha in this period are cardiovascular, kidney function, and hormonal. The relational warmth that Venus amplifies must be balanced with personal boundaries that the earlier dedication to others may have not always maintained. Venus–Saturn antardasa (~yr 14 of Venus, ~ages 57–59) demands careful pacing.",
@@ -104,7 +106,7 @@ const ANURADHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Sun", period: "6 yrs", ageRange: "Age 63–69", theme: "Solar Recognition",
+      planet: "Sun", theme: "Solar Recognition",
       detail: {
         expect: "Sun dasa from 63 to 69 brings a final, radiant quality of recognition — the covenants of friendship and devotion that Anuradha has honoured across six decades are seen clearly and appreciated by those who have benefited. Professional honours, community recognition, and the particular gratitude of those who have been loved well by Anuradha arrive in these six years.",
         navigate: "Cardiovascular and general vitality deserve particular physical attention in Sun dasa. The recognition that arrives should not be allowed to reawaken the achieving drive at the expense of rest. Sun–Saturn antardasa (~yr 4 of Sun, ~ages 66–67) demands deliberate pacing.",
@@ -112,7 +114,7 @@ const ANURADHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Moon", period: "10 yrs", ageRange: "Age 69–79", theme: "Tidal Devotion",
+      planet: "Moon", theme: "Tidal Devotion",
       detail: {
         expect: "Moon dasa from 69 to 79 brings the tidal, oceanic expression of Anuradha's lifelong devotional capacity. Grandchildren and great-grandchildren receive a quality of presence — completely available, completely attentive, completely loving — that is the distillation of six decades of Mitra's covenant. For those in spiritual or pastoral roles, Moon dasa produces the most deeply received ministry of the entire lifetime.",
         navigate: "Moon dasa's health concerns at this age are fluid balance, memory, and emotional sensitivity. The deep feeling that Moon amplifies in Anuradha must be supported with daily structure — morning prayer, regular rhythm, and the consistent presence of loving caregivers. Moon–Saturn antardasa (~yr 6 of Moon, ~ages 74–76) is the most physically demanding sub-period.",
@@ -120,7 +122,7 @@ const ANURADHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Mars", period: "7 yrs", ageRange: "Age 79–86", theme: "Rasi Lord — The Final Transformation",
+      planet: "Mars", theme: "Rasi Lord — The Final Transformation",
       detail: {
         expect: "Mars dasa from 79 to 86 is the rasi lord's arrival for Anuradha. Mars is the lord of your rasi, Vrischika — this makes his dasa doubly charged for Anuradha natives. The Vrischika depth, the capacity to transform through the most difficult waters, and the Mars-fire that has energised Anuradha's devotion throughout the life now reach their most concentrated and essential form. The final transformation is not a physical one but a spiritual one — the recognition of what the covenant was always about. Friends and family members receive from Anuradha in Mars dasa a quality of loving directness — the warmth of Mitra with the clarity of Vrischika's fire — that is among the rarest and most precious gifts a person can offer.",
         navigate: "Physical care at this age is primary. Mars dasa's energy manifests as clarity of will and loving directness, not physical vigour. Mars–Rahu antardasa (~yr 2 of Mars, ~age 81) can bring a brief period of unusual restlessness or family complexity; navigate with Anuradha's characteristic patient depth.",
@@ -128,7 +130,7 @@ const ANURADHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Rahu", period: "18 yrs", ageRange: "Age 86–104", theme: "Dissolution into the Covenant",
+      planet: "Rahu", theme: "Dissolution into the Covenant",
       detail: {
         expect: "Rahu dasa from 86 to 104 is reached by few. For those Anuradha souls who arrive here, Rahu brings the final dissolution — not of the covenant but of the separation between the one who makes covenants and the one with whom all covenants are ultimately made. Mitra's child returns to Mitra.",
         navigate: "Complete, gentle physical care. The unusual circumstances that Rahu brings in youth become, at this age, the unusual grace of a consciousness that has loved deeply and is now releasing into the love that underlies all covenants.",
@@ -245,5 +247,5 @@ const ANURADHA_VISUAL: NatchathiramVisualData = {
 };
 
 export default function AnuradhaVisualPage() {
-  return <NatchathiramVisualContent data={ANURADHA} visual={ANURADHA_VISUAL} />;
+  return <NatchathiramVisualContent data={ANURADHA} visual={ANURADHA_VISUAL} timings={dasaTimingsFor(ANURADHA.number)} />;
 }

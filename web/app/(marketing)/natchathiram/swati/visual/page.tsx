@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { withTamilTwin } from "@/lib/localized-metadata";
+import { withDasaTimingHold } from "@/lib/natchathiram-dasa-hold";
+import { dasaTimingsFor } from "@/lib/natchathiram-dasa-timings";
 import { natchathiramVisualTa } from "@/lib/marketing-seo-ta";
 import { SWATI } from "@/lib/natchathiram-data";
 import { NatchathiramVisualContent, type NatchathiramVisualData } from "@/components/natchathiram-visual";
@@ -17,7 +19,7 @@ const EN_METADATA: Metadata = {
 };
 
 export async function generateMetadata(): Promise<Metadata> {
-  return withTamilTwin(EN_METADATA, "/natchathiram/swati/visual", natchathiramVisualTa("swati")!);
+  return withDasaTimingHold(await withTamilTwin(EN_METADATA, "/natchathiram/swati/visual", natchathiramVisualTa("swati")!), "swati");
 }
 
 const SWATI_VISUAL: NatchathiramVisualData = {
@@ -72,7 +74,7 @@ const SWATI_VISUAL: NatchathiramVisualData = {
 
   dashaTimeline: [
     {
-      planet: "Rahu", period: "18 yrs", ageRange: "Age 0–18", theme: "Born into the Wind",
+      planet: "Rahu", theme: "Born into the Wind",
       detail: {
         expect: "Swati opens in Rahu dasa — a wide, complex, and formative beginning for the nakshathiram of Vayu, the wind that bends without breaking. Childhood (0–7) often involves unusual circumstances: a cosmopolitan family environment, significant travel or cultural crossing, a family business context, or an early exposure to the complexity of human relationships that other children do not encounter. School years (7–14) produce a socially intelligent and diplomatically gifted child — the one who mediates playground conflicts, who navigates different social groups with ease, who reads adults' dynamics before the adults themselves notice. Adolescence (14–18) brings the first serious encounters with the world's unfairness and the development of Swati's characteristic response: not confrontation, but repositioning.",
         navigate: "Rahu's 18-year opening gives Swati an early sophistication that can shade into a lack of rootedness — the wind that knows every direction but has no fixed home. The independence that is Swati's greatest strength has its shadow: the difficulty of commitment, the reluctance to be fully known, the diplomatic personality that occasionally sacrifices authenticity for social ease. Rahu–Saturn antardasa (~yr 12 of Rahu, ~ages 12–14) is the most demanding sub-period; the adolescent Swati faces the sharpest test of whether their adaptive intelligence serves genuine balance or merely personal survival.",
@@ -80,7 +82,7 @@ const SWATI_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Jupiter", period: "16 yrs", ageRange: "Age 18–34", theme: "Wisdom Guides the Wind",
+      planet: "Jupiter", theme: "Wisdom Guides the Wind",
       detail: {
         expect: "Jupiter dasa from 18 to 34 brings the philosophical and ethical grounding that Rahu's expansion lacked. Higher education establishes in law, business, international relations, communication, or the arts — all natural Swati territories. Career foundations are laid with the combination of social intelligence and principled conduct that Jupiter amplifies. Marriage enters in Jupiter–Venus antardasa (~yr 4, ~ages 22–23) or Jupiter–Moon (~yr 7, ~ages 25–26). Travel, if not already a fixed feature, becomes so in Jupiter dasa — Swati's natural affinity for encountering different cultures and commercial contexts expresses fully here.",
         navigate: "Jupiter's generosity can produce over-commitment in young adulthood — Swati's diplomat instinct agreeing to things that the calendar and the body cannot sustain. The tendency to keep options open — another facet of Vayu's independence — must be balanced in Jupiter dasa by deliberate commitment to specific professional and relational paths. Liver health and overextension deserve attention.",
@@ -88,7 +90,7 @@ const SWATI_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Saturn", period: "19 yrs", ageRange: "Age 34–53", theme: "The Wind Settles",
+      planet: "Saturn", theme: "The Wind Settles",
       detail: {
         expect: "Saturn dasa from 34 to 53 is the great settling and deepening of Swati's career and life. The professional reputation built in Rahu and Jupiter dasas now carries institutional weight; leadership, senior advisory, or principal partnership roles become the terrain. Family life is fully established; children are in school and approaching adolescence; the responsibilities of the mature generation are assumed. The diplomat, the businessperson, or the artist of Saturn dasa is no longer the charming newcomer but the experienced practitioner whose judgement others seek.",
         navigate: "Saturn's primary tests for Swati are patience and the willingness to work within constraints. The wind does not like to be bounded by walls, but the most enduring contributions require the sustained, systematic effort that walls — structure, commitment, process — enable. Saturn–Rahu antardasa (~yr 12 of Saturn, ~ages 46–48) is the most demanding sub-period; professional and personal pressure can converge acutely. Physical concerns: musculoskeletal, cardiovascular, and respiratory from the early forties.",
@@ -96,7 +98,7 @@ const SWATI_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Mercury", period: "17 yrs", ageRange: "Age 53–70", theme: "The Articulate Wind",
+      planet: "Mercury", theme: "The Articulate Wind",
       detail: {
         expect: "Mercury dasa from 53 to 70 brings Swati's communicative and analytical intelligence to its sharpest and most refined expression. The accumulated social and professional wisdom of five decades now finds voice in teaching, writing, advisory work, or the kind of negotiation and mediation that only experience produces. Mercury's affinity with commerce amplifies Swati's business intelligence; financial management, advisory, and the oversight of complex commercial relationships reach their most sophisticated form. For those in the arts, Mercury dasa produces the most analytically self-aware creative work of the life.",
         navigate: "Mercury's primary health concerns for Swati in this period are nervous system and respiratory. The tendency to scatter across too many simultaneous engagements — a lifelong Swati risk — is amplified by Mercury's naturally wide-ranging intelligence; conscious prioritisation becomes more important than ever. Mercury–Rahu antardasa (~yr 2 of Mercury, ~ages 55–56) can bring unusual professional developments.",
@@ -104,7 +106,7 @@ const SWATI_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Ketu", period: "7 yrs", ageRange: "Age 70–77", theme: "The Wind Grows Still",
+      planet: "Ketu", theme: "The Wind Grows Still",
       detail: {
         expect: "Ketu dasa from 70 to 77 brings Swati to the stillness that the wind has always been moving toward. The social intelligence and diplomatic mastery that characterised five decades of active engagement gradually yield to a quality of inward presence — the wind that knows where it has been and rests in the knowing. Spiritual depth surfaces with unusual directness; the Vayu connection that underlies Swati's entire nature expresses through meditation, pranayama, or sacred study. Grandchildren receive a quality of undistracted presence that the working decades could not always provide.",
         navigate: "Ketu's natural withdrawal tendency at this age is appropriate; ensure it does not become complete social isolation. Physical concerns: nervous system, autoimmune, and digestive sensitivities. Spiritual companionship is as important as physical care.",
@@ -112,7 +114,7 @@ const SWATI_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Venus", period: "20 yrs", ageRange: "Age 77–97", theme: "Rasi Lord — The Great Beauty",
+      planet: "Venus", theme: "Rasi Lord — The Great Beauty",
       detail: {
         expect: "Venus dasa from 77 to 97 is the rasi lord's arrival for Swati. Venus is the lord of your rasi, Tula — this makes her dasa doubly charged for Swati natives. The beauty, love, aesthetic richness, and relational warmth that have been present throughout the life now reach their fullest and most freely expressed form. Where the earlier decades required Swati to navigate, negotiate, and balance, Venus dasa simply allows the experience of beauty — music, gardens, grandchildren, art, the texture of human love. Creative work at this age has a quality of serene completion. The diplomat who has balanced competing interests for seven decades discovers, in Venus's dasa, that balance was never the goal but only the means — the goal was beauty, and it was always here.",
         navigate: "Physical care at this age is primary: warmth, aesthetic comfort, music, and the presence of loving people. Cardiovascular and hormonal health needs gentle, consistent care. Venus–Saturn antardasa (~yr 14 of Venus, ~ages 91–93) demands reduced pace and careful physical management.",
@@ -120,7 +122,7 @@ const SWATI_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Sun", period: "6 yrs", ageRange: "Age 97–103", theme: "Final Solar Balance",
+      planet: "Sun", theme: "Final Solar Balance",
       detail: {
         expect: "Sun dasa from 97 to 103 is reached by very few. For those rare Swati souls who arrive here, the Sun brings a final gift of radiant clarity — the identity that Swati's wind has carried through every storm, fully luminous. The diplomat, the merchant, the artist: all have been expressions of the same solar selfhood.",
         navigate: "Complete physical care and warmth. The clarity of identity that Sun dasa brings at this age is not an achievement but a recognition — Swati was always this.",
@@ -128,7 +130,7 @@ const SWATI_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Moon", period: "10 yrs", ageRange: "Age 103–113", theme: "Tidal Completion",
+      planet: "Moon", theme: "Tidal Completion",
       detail: {
         expect: "Moon dasa from 103 to 113 is reached by virtually none. For those extraordinary few, the Moon brings the final tidal completion — the wind, the balance, and the love all dissolving into the oceanic feeling of a life that moved through the world with grace.",
         navigate: "Complete and tender care. The body's needs are simple; the person's spiritual presence is vast.",
@@ -245,5 +247,5 @@ const SWATI_VISUAL: NatchathiramVisualData = {
 };
 
 export default function SwatiVisualPage() {
-  return <NatchathiramVisualContent data={SWATI} visual={SWATI_VISUAL} />;
+  return <NatchathiramVisualContent data={SWATI} visual={SWATI_VISUAL} timings={dasaTimingsFor(SWATI.number)} />;
 }

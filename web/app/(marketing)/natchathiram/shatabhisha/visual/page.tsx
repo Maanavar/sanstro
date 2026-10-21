@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { withTamilTwin } from "@/lib/localized-metadata";
+import { withDasaTimingHold } from "@/lib/natchathiram-dasa-hold";
+import { dasaTimingsFor } from "@/lib/natchathiram-dasa-timings";
 import { natchathiramVisualTa } from "@/lib/marketing-seo-ta";
 import { SATHAYAM } from "@/lib/natchathiram-data";
 import { NatchathiramVisualContent, type NatchathiramVisualData } from "@/components/natchathiram-visual";
@@ -17,7 +19,7 @@ const EN_METADATA: Metadata = {
 };
 
 export async function generateMetadata(): Promise<Metadata> {
-  return withTamilTwin(EN_METADATA, "/natchathiram/shatabhisha/visual", natchathiramVisualTa("shatabhisha")!);
+  return withDasaTimingHold(await withTamilTwin(EN_METADATA, "/natchathiram/shatabhisha/visual", natchathiramVisualTa("shatabhisha")!), "shatabhisha");
 }
 
 const SHATABHISHA_VISUAL: NatchathiramVisualData = {
@@ -72,7 +74,7 @@ const SHATABHISHA_VISUAL: NatchathiramVisualData = {
 
   dashaTimeline: [
     {
-      planet: "Rahu", period: "18 yrs", ageRange: "Age 0–18", theme: "Born into the Invisible",
+      planet: "Rahu", theme: "Born into the Invisible",
       detail: {
         expect: "Shatabhisha opens in Rahu dasa — a beginning of unusual perceptual range, unconventional intelligence, and the sense that the invisible dimension of experience is as real, or more real, than the visible. The Shatabhisha child born into Rahu's domain has an uncanny quality from the earliest years: the awareness of what is not said, what is not shown, what operates beneath the surface of family and social life. Early encounters with the mystical, the medical, or the scientifically unconventional are common in Rahu's opening. The school years engage the educational system with a mixture of genuine intellectual brilliance and difficulty with conventional frameworks — the Shatabhisha mind is too wide and too deep for most curricula. Rahu–Saturn antardasa (~yr 15 of Rahu, ~ages 15-16) is a critical rasi lord sub-period flag: the structural discipline and long-game patience that Saturn will govern in its own dasa arrives as an early formative encounter in adolescence.",
         navigate: "Rahu's primary challenge for the young Shatabhisha is the intensity of the perceptual range — the child who sees the invisible is also exposed to it without the maturity to integrate what is perceived. The unconventional intelligence needs unconventional educational support; forcing the Shatabhisha child into purely conventional frameworks produces frustration and often apparent underperformance in a highly capable person. Rahu–Saturn (~yr 15, ~ages 15-16) is a rasi lord flag: a pivotal adolescent encounter with the discipline and structure that will be the framework for the mature Shatabhisha life.",
@@ -80,7 +82,7 @@ const SHATABHISHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Jupiter", period: "16 yrs", ageRange: "Age 18–34", theme: "The Philosophical Opening",
+      planet: "Jupiter", theme: "The Philosophical Opening",
       detail: {
         expect: "Jupiter dasa from 18 to 34 brings the philosophical breadth and wisdom that contextualises Shatabhisha's mystical and healing intelligence within a larger tradition of understanding. Higher education, the first serious encounter with the healing or occult tradition that becomes the life's work, and the philosophical framework within which the unconventional intelligence operates are all established in Jupiter's sixteen years. The teacher who becomes the defining guide of the Shatabhisha professional life typically enters in Jupiter–Venus or Jupiter–Saturn antardasa. The first serious healing or research practice is established.",
         navigate: "Jupiter's primary challenge for Shatabhisha is the temptation to systematise the mystical — to turn the living, fluid intelligence of Varuna's domain into a fixed philosophical system that loses the living quality. The 'hundred healers' does not work from a single system but from the capacity to find the appropriate medicine for the specific situation. Jupiter–Saturn (~yr 13 of Jupiter, ~ages 31-33) is a major rasi lord sub-period flag — the most significant encounter with the Saturn structural discipline in Jupiter's expansive field.",
@@ -88,7 +90,7 @@ const SHATABHISHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Saturn", period: "19 yrs", ageRange: "Age 34–53", theme: "Rasi Lord — The Healer's Mastery",
+      planet: "Saturn", theme: "Rasi Lord — The Healer's Mastery",
       detail: {
         expect: "Saturn dasa from 34 to 53 is the rasi lord's arrival for Shatabhisha. Saturn is the lord of your rasi, Kumbha — and his 19-year dasa, arriving in the prime professional years, is the most structurally complete, disciplined, and professionally authoritative period of the Shatabhisha life. The healing, research, or mystical practice that has been developing since Rahu's opening and deepened through Jupiter's philosophical breadth now receives the full structural governance of Saturn's long-game patience. Independent practice is established; the reputation of the 'hundred healers' begins to be known in the wider world; the research or healing work reaches a quality of structural mastery that earlier periods, however inspired, could not achieve. This is the dasa of the established healer, the authoritative researcher, the master of the hidden order.",
         navigate: "Saturn's primary challenge in the rasi lord dasa is the institutionalisation of the independent vision — the healer who has always operated from the invisible root of illness discovering the temptation to create a fixed system and defend it as the only correct approach. Varuna's domain has a hundred medicines because illness is various and the healing intelligence must remain flexible. Physical care is important across the long 19-year dasa.",
@@ -96,7 +98,7 @@ const SHATABHISHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Mercury", period: "17 yrs", ageRange: "Age 53–70", theme: "The Articulate Mystery",
+      planet: "Mercury", theme: "The Articulate Mystery",
       detail: {
         expect: "Mercury dasa from 53 to 70 brings the mind's precision and articulative capacity to Shatabhisha's mystical and healing mastery. The hidden knowledge that has been operating as practice and presence since Rahu's opening now finds in Mercury the capacity for clear, precise articulation — the healer who can explain what they do, the mystic who can write what they know, the researcher who can publish what they have found. Teaching, writing, and the transmission of the Shatabhisha understanding are the primary professional expressions of Mercury dasa.",
         navigate: "Mercury's primary challenge for Shatabhisha is the articulation of what is genuinely ineffable — the domain of Varuna's hidden order does not always translate cleanly into Mercury's precise language. The risk is either the over-simplification that loses the depth or the deliberate obscurity that protects the depth but fails to transmit it. Physical care and energy management are important.",
@@ -104,7 +106,7 @@ const SHATABHISHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Ketu", period: "7 yrs", ageRange: "Age 70–77", theme: "The Mystery Returns",
+      planet: "Ketu", theme: "The Mystery Returns",
       detail: {
         expect: "Ketu dasa from 70 to 77 brings the great simplification of the knowledge domain. After Mercury's articulative fullness, Ketu returns Shatabhisha to the source — the invisible dimension from which the healing and mystical intelligence has always drawn its authority. The 'hundred healers' discovers, in Ketu's simplification, that the final medicine is not a specific herb or a specific practice but the presence itself — the quality of attentiveness that Varuna's awareness grants.",
         navigate: "Complete and gentle physical care. Ketu at this age is the invitation to be present to what is, without the healer's need to fix it — the deepest expression of the 'hundred healers' intelligence in its most distilled form.",
@@ -112,7 +114,7 @@ const SHATABHISHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Venus", period: "20 yrs", ageRange: "Age 77–97", theme: "The Beautiful Healing",
+      planet: "Venus", theme: "The Beautiful Healing",
       detail: {
         expect: "Venus dasa from 77 to 97 brings the aesthetic grace and abundant warmth of Venus to the late life of the Shatabhisha elder. The mystical depth and healing mastery of the previous dasas are now accompanied by Venus's gift of beauty — the quality that makes the elder's presence itself a form of nourishment.",
         navigate: "Complete and devoted physical care across Venus's long 20-year dasa at this age. The body requires consistent, gentle attention.",
@@ -120,7 +122,7 @@ const SHATABHISHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Sun", period: "6 yrs", ageRange: "Age 97–103", theme: "Final Solar Clarity",
+      planet: "Sun", theme: "Final Solar Clarity",
       detail: {
         expect: "Sun dasa from 97 to 103 is reached by very few Shatabhisha souls. For those who arrive, Sun brings the final solar clarity — the distilled authority of the hundred healers in its most luminous form.",
         navigate: "Complete and devoted physical care.",
@@ -128,7 +130,7 @@ const SHATABHISHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Moon", period: "10 yrs", ageRange: "Age 103–113", theme: "Final Emotional Ocean",
+      planet: "Moon", theme: "Final Emotional Ocean",
       detail: {
         expect: "Moon dasa from 103 to 113 is reached by extraordinarily few Shatabhisha souls. For those who arrive, Moon brings the final return to the emotional ocean — the feeling dimension of Varuna's cosmic waters in their most direct and unmediated form.",
         navigate: "Complete and devoted physical care at this extreme age.",
@@ -245,5 +247,5 @@ const SHATABHISHA_VISUAL: NatchathiramVisualData = {
 };
 
 export default function ShatabhishaVisualPage() {
-  return <NatchathiramVisualContent data={SATHAYAM} visual={SHATABHISHA_VISUAL} />;
+  return <NatchathiramVisualContent data={SATHAYAM} visual={SHATABHISHA_VISUAL} timings={dasaTimingsFor(SATHAYAM.number)} />;
 }

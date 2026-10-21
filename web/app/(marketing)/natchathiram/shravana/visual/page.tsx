@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { withTamilTwin } from "@/lib/localized-metadata";
+import { withDasaTimingHold } from "@/lib/natchathiram-dasa-hold";
+import { dasaTimingsFor } from "@/lib/natchathiram-dasa-timings";
 import { natchathiramVisualTa } from "@/lib/marketing-seo-ta";
 import { THIRUVONAM } from "@/lib/natchathiram-data";
 import { NatchathiramVisualContent, type NatchathiramVisualData } from "@/components/natchathiram-visual";
@@ -17,7 +19,7 @@ const EN_METADATA: Metadata = {
 };
 
 export async function generateMetadata(): Promise<Metadata> {
-  return withTamilTwin(EN_METADATA, "/natchathiram/shravana/visual", natchathiramVisualTa("shravana")!);
+  return withDasaTimingHold(await withTamilTwin(EN_METADATA, "/natchathiram/shravana/visual", natchathiramVisualTa("shravana")!), "shravana");
 }
 
 const SHRAVANA_VISUAL: NatchathiramVisualData = {
@@ -72,7 +74,7 @@ const SHRAVANA_VISUAL: NatchathiramVisualData = {
 
   dashaTimeline: [
     {
-      planet: "Moon", period: "10 yrs", ageRange: "Age 0–10", theme: "Born to Listen",
+      planet: "Moon", theme: "Born to Listen",
       detail: {
         expect: "Shravana opens in Moon dasa — a beginning of unusual emotional receptivity, sensitivity, and the capacity to absorb the environment. The Shravana child hears everything: not just words but tones, undercurrents, the emotional textures of the household environment. This is the nakshathiram of hearing, and in Moon dasa the hearing function develops in its most absorptive and impressionable form. The family stories, the religious traditions, the songs and prayers of the household — everything heard in Moon dasa leaves a permanent impression on Shravana's memory and character. The first teacher who truly sees this child is a formative encounter; what they transmit in these years is retained across a lifetime.",
         navigate: "Moon's primary challenge for the young Shravana is the permeability that comes with deep listening — the child who hears everything also absorbs the emotional distortions, conflicts, and unresolved material of the environment as readily as the wisdom and the beauty. The family environment's emotional quality is more formative for Shravana in Moon dasa than for almost any other nakshathiram. Moon–Saturn antardasa (~yr 9 of Moon, ~ages 8-9) is a rasi lord sub-period flag: the early encounter with the patience, discipline, and structural intelligence that Saturn will govern in its own dasa at ages 51-70.",
@@ -80,7 +82,7 @@ const SHRAVANA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Mars", period: "7 yrs", ageRange: "Age 10–17", theme: "Active Engagement",
+      planet: "Mars", theme: "Active Engagement",
       detail: {
         expect: "Mars dasa from 10 to 17 brings the directed fire and competitive energy of adolescence to Shravana's otherwise receptive and contemplative nature. School years are engaged with Mars's characteristic intensity: the student who has been absorbing quietly in Moon dasa now applies that material with directed effort. The listening capacity is not lost in Mars dasa but gains an active dimension — the scholar who can also debate, defend, and apply what they have heard. Physical activity, sports, and the social competition of adolescence all engage Shravana through Mars's seven years.",
         navigate: "Mars's primary challenge for Shravana is the tension between the receptive, listening character and the active, assertive energy Mars brings. The deep listener who is pushed by Mars to express, assert, and compete can find the directness of Mars's communication style genuinely uncomfortable — not because they cannot communicate but because the depth and care of what they want to say requires more space than Mars's pace allows. Mars–Saturn antardasa (~yr 6 of Mars, ~ages 15-16) carries the rasi lord's quality — a brief but significant encounter with discipline, patience, or the first serious institutional experience.",
@@ -88,7 +90,7 @@ const SHRAVANA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Rahu", period: "18 yrs", ageRange: "Age 17–35", theme: "The Wide Hearing",
+      planet: "Rahu", theme: "The Wide Hearing",
       detail: {
         expect: "Rahu dasa from 17 to 35 expands Shravana's listening and wisdom-retention capacities into the broadest possible field. University education — particularly in traditions that require deep engagement with texts, teachers, and the accumulated wisdom of a lineage — is the ideal domain for Rahu's expansion of Shravana's receptive intelligence. International study, cross-cultural exposure, and the encounter with traditions outside the birth lineage are common in Rahu dasa. Marriage and first professional establishment typically occur in Rahu–Jupiter antardasa (~yr 3 of Rahu, ~ages 20-21) or Rahu–Saturn (~yr 15 of Rahu, ~ages 32-34). Rahu–Saturn antardasa (~yr 15, ~ages 32-34) is a particularly significant rasi lord sub-period flag.",
         navigate: "Rahu's primary challenge for Shravana is the expansion of the listening capacity into domains where the depth of hearing cannot be guaranteed — the person who has learned to hear deeply in a lineage context now encountering the noise and superficiality of the broader world, and the risk of hearing more volume with less depth. Rahu–Saturn (~yr 15, ~ages 32-34) is a rasi lord flag — a significant encounter with Saturn's structuring, disciplining, and institutionalising quality.",
@@ -96,7 +98,7 @@ const SHRAVANA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Jupiter", period: "16 yrs", ageRange: "Age 35–51", theme: "The Wisdom Distillation",
+      planet: "Jupiter", theme: "The Wisdom Distillation",
       detail: {
         expect: "Jupiter dasa from 35 to 51 brings the great distillation of what Shravana has heard across three decades of listening. The scholar and teacher now reaches the fullness of their first mature transmission period: the work that has been accumulated in Moon, Mars, and Rahu dasas is now organised, deepened, and transmitted with the authority of Jupiter's philosophical breadth and wisdom. Senior teaching positions, major publications, and the construction of the institutional frameworks that will carry Shravana's contribution forward are the natural expressions of Jupiter dasa. Jupiter–Saturn antardasa (~yr 13 of Jupiter, ~ages 48-50) is a major rasi lord sub-period flag — the most significant sub-period of Jupiter dasa for Shravana.",
         navigate: "Jupiter's primary challenge for Shravana is the philosophical inflation that can come with the authority of accumulated wisdom — the deep listener who has heard everything beginning to believe that they now know everything. The Shravana humility — the understanding that deep listening reveals how much more there is to hear — must be maintained even in Jupiter's fullness. Jupiter–Saturn (~yr 13, ~ages 48-50) is a rasi lord flag — a period of major structural consolidation, institutional building, or the decisive encounter with the patient discipline that will characterise the rasi lord's own dasa.",
@@ -104,7 +106,7 @@ const SHRAVANA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Saturn", period: "19 yrs", ageRange: "Age 51–70", theme: "Rasi Lord — The Preservation Mastery",
+      planet: "Saturn", theme: "Rasi Lord — The Preservation Mastery",
       detail: {
         expect: "Saturn dasa from 51 to 70 is the rasi lord's arrival for Shravana. Saturn is the lord of your rasi, Makara — and his long 19-year dasa, arriving as Shravana enters the elder years of professional authority, is the period in which the patient, structured, long-game mastery of the preservation function reaches its fullness. The institutional work of preserving what has been heard — the academic institution, the religious tradition, the musical lineage, the counselling practice — now receives the full weight of Saturn's structural governance. Shravana in Saturn dasa is the elder scholar, the established teacher, the institutional guardian who has the patience to do the preservation work not for the immediate reward but for the generations who will come after.",
         navigate: "Saturn's primary challenge in the rasi lord dasa is the institutionalisation of what must remain alive — the preservation function becoming the controlling function, the guardian of the tradition becoming the one who refuses to let the tradition breathe or develop. The tradition must be preserved, but preserved in a living way — and this requires Saturn's discipline to include the willingness to let the tradition encounter the living present. Physical care and energy management are increasingly important across Saturn's long 19-year dasa.",
@@ -112,7 +114,7 @@ const SHRAVANA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Mercury", period: "17 yrs", ageRange: "Age 70–87", theme: "The Articulate Elder",
+      planet: "Mercury", theme: "The Articulate Elder",
       detail: {
         expect: "Mercury dasa from 70 to 87 brings the mind's precision and articulative capacity to Shravana's elder transmission. After Saturn's long institutional governance, Mercury offers the return of the scholar's pleasure in language, in the exact word, in the precise formulation. The listening capacity and the wisdom retention that have been accumulating since Moon's opening now express through Mercury's gift for clear, concise, and memorable articulation. For many Shravana, Mercury dasa produces the most enduring written or oral works of the life — the works that will still be heard after the person is gone.",
         navigate: "Physical care and the management of the nervous system's demands at this age. Mercury's pace can be demanding; deliberate rest and energy management are important. Mercury–Saturn (~yr 14 of Mercury, ~ages 84-85) brings a brief rasi lord presence in the elder articulative period.",
@@ -120,7 +122,7 @@ const SHRAVANA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Ketu", period: "7 yrs", ageRange: "Age 87–94", theme: "The Silence Returns",
+      planet: "Ketu", theme: "The Silence Returns",
       detail: {
         expect: "Ketu dasa from 87 to 94 brings the return of the silence from which the listening begins. After Mercury's articulative fullness, Ketu invites the elder Shravana to rest in the hearing without the transmission — to be present to what is, without the scholar's need to organise, retain, and pass it forward. For those who navigate this transition with Shravana's characteristic devotional grace, Ketu dasa is among the most spacious and deeply restful periods of the entire life.",
         navigate: "Complete and gentle physical care. Ketu at this age is a gift of simplicity — the stripping away of everything that was instrumental in service of the listening itself, leaving the listening alone.",
@@ -128,7 +130,7 @@ const SHRAVANA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Venus", period: "20 yrs", ageRange: "Age 94–114", theme: "Final Beauty",
+      planet: "Venus", theme: "Final Beauty",
       detail: {
         expect: "Venus dasa from 94 to 114 is reached by extraordinarily few Shravana souls. For those who arrive, Venus brings the final gift of beauty — the aesthetic grace and abundant warmth that make the elder's presence itself a form of generosity.",
         navigate: "Complete and devoted physical care. Venus at this extreme age is pure luminosity.",
@@ -245,5 +247,5 @@ const SHRAVANA_VISUAL: NatchathiramVisualData = {
 };
 
 export default function ShravanaVisualPage() {
-  return <NatchathiramVisualContent data={THIRUVONAM} visual={SHRAVANA_VISUAL} />;
+  return <NatchathiramVisualContent data={THIRUVONAM} visual={SHRAVANA_VISUAL} timings={dasaTimingsFor(THIRUVONAM.number)} />;
 }

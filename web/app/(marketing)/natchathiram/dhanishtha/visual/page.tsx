@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { withTamilTwin } from "@/lib/localized-metadata";
+import { withDasaTimingHold } from "@/lib/natchathiram-dasa-hold";
+import { dasaTimingsFor } from "@/lib/natchathiram-dasa-timings";
 import { natchathiramVisualTa } from "@/lib/marketing-seo-ta";
 import { AVITTAM } from "@/lib/natchathiram-data";
 import { NatchathiramVisualContent, type NatchathiramVisualData } from "@/components/natchathiram-visual";
@@ -17,7 +19,7 @@ const EN_METADATA: Metadata = {
 };
 
 export async function generateMetadata(): Promise<Metadata> {
-  return withTamilTwin(EN_METADATA, "/natchathiram/dhanishtha/visual", natchathiramVisualTa("dhanishtha")!);
+  return withDasaTimingHold(await withTamilTwin(EN_METADATA, "/natchathiram/dhanishtha/visual", natchathiramVisualTa("dhanishtha")!), "dhanishtha");
 }
 
 const DHANISHTHA_VISUAL: NatchathiramVisualData = {
@@ -72,7 +74,7 @@ const DHANISHTHA_VISUAL: NatchathiramVisualData = {
 
   dashaTimeline: [
     {
-      planet: "Mars", period: "7 yrs", ageRange: "Age 0–7", theme: "Born to the Drummer's Fire",
+      planet: "Mars", theme: "Born to the Drummer's Fire",
       detail: {
         expect: "Dhanishtha opens in Mars dasa — a beginning of unusual vitality, physical energy, and the kind of bold presence that the combination of Mars and the Ashta Vasus produces. The Dhanishtha child is physically alive in a particular way: the body is responsive, rhythmic, and energetic. The first seven years often show unusual physical coordination — a child who takes to music, rhythm, or physical movement with a naturalness that surprises. The family environment's relationship to music, physical vitality, and abundance is formative in Mars's opening. Mars–Saturn antardasa (~yr 6 of Mars, ~age 5-6) is a notable rasi lord sub-period flag: even in early childhood, the structural discipline and patient long-game that Saturn represents makes a brief appearance.",
         navigate: "Mars's primary challenge for the young Dhanishtha is the directed force finding appropriate expression — the physically energetic, rhythmically alive child needs channels for the Mars vitality that are constructive rather than disruptive. Mars–Saturn (~yr 6, ~ages 5-6) is a rasi lord antardasa flag: a brief but memorable early encounter with the patience and structure that will govern the major dasa at ages 41-60.",
@@ -80,7 +82,7 @@ const DHANISHTHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Rahu", period: "18 yrs", ageRange: "Age 7–25", theme: "The Expanding World",
+      planet: "Rahu", theme: "The Expanding World",
       detail: {
         expect: "Rahu dasa from 7 to 25 brings the great expansion of Dhanishtha's rhythmic and abundant nature into the broader world. School years (7-14) see the rhythmic intelligence engaging with formal education — the Dhanishtha student finds the subjects that have pattern, rhythm, and structural elegance more naturally than those that require purely verbal or abstract reasoning. The musical or physical arts training that began in Mars dasa deepens significantly in Rahu's first decade. Higher education (14-22) brings the first professional-level engagements with the Dhanishtha domain — serious music study, engineering or finance education, or physical arts training at a competitive level. Rahu–Saturn antardasa (~yr 15 of Rahu, ~ages 22-24) is a significant rasi lord sub-period flag.",
         navigate: "Rahu's primary challenge for Dhanishtha is the expansion of the rhythmic abundance instinct beyond what the discipline can yet contain — the young person whose natural wealth-creating and rhythm-inhabiting capacity runs ahead of the Saturn-structured patience that will eventually govern it with full mastery. Rahu–Saturn (~yr 15, ~ages 22-24) is a rasi lord flag: a significant encounter with the patient, structured discipline that defines the Dhanishtha mature period.",
@@ -88,7 +90,7 @@ const DHANISHTHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Jupiter", period: "16 yrs", ageRange: "Age 25–41", theme: "The Philosophical Foundation",
+      planet: "Jupiter", theme: "The Philosophical Foundation",
       detail: {
         expect: "Jupiter dasa from 25 to 41 brings philosophical breadth, wisdom, and the expansive generosity of the teacher-philosopher to Dhanishtha's rhythmic and driven nature. The professional foundations established in Rahu dasa are now deepened with Jupiter's wisdom and expanded with Jupiter's range. Marriage and family formation typically occur in Jupiter–Venus antardasa (~yr 4 of Jupiter, ~ages 29-30) or Jupiter–Mercury (~yr 14, ~ages 39-40). The wealth-creating intelligence of Dhanishtha finds in Jupiter dasa the philosophical framework — the understanding of why abundance is generated and how it serves the whole — that makes the wealth not merely accumulation but genuine generosity. Jupiter–Saturn antardasa (~yr 13 of Jupiter, ~ages 38-40) is a significant rasi lord sub-period flag.",
         navigate: "Jupiter's primary challenge for Dhanishtha is the philosophical over-extension — the rhythmically intelligent, wealth-generating person who, in Jupiter's expansion, begins to believe that the abundance will always flow without the Saturnine discipline that actually sustains it. Jupiter–Saturn (~yr 13, ~ages 38-40) is a rasi lord flag: a period of structural testing and the decisive encounter with the patient discipline that will govern the rasi lord dasa.",
@@ -96,7 +98,7 @@ const DHANISHTHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Saturn", period: "19 yrs", ageRange: "Age 41–60", theme: "Rasi Lord — The Wealth Master",
+      planet: "Saturn", theme: "Rasi Lord — The Wealth Master",
       detail: {
         expect: "Saturn dasa from 41 to 60 is the rasi lord's arrival for Dhanishtha — Saturn is the lord of both Makara (padas 1-2) and Kumbha (padas 3-4), making every Dhanishtha native a Saturn-rasi person, and making this 19-year dasa uniquely charged for all Dhanishtha. The rhythmic intelligence, Mars-powered drive, and Ashta Vasus' wealth instinct that have been developing since the life's opening now receive the full structural governance of the rasi lord's own dasa. Wealth creation peaks: the patient, structured, long-game approach that Saturn demands, applied to the abundance instinct that the Ashta Vasus gave, produces the most reliable and significant financial results of the entire life. The musical or artistic mastery, if cultivated since Mars's opening, reaches its fullest expression — the seasoned performer, the established master, the artist who has practised long enough that the Saturn discipline and the Ashta Vasus' rhythm have become one.",
         navigate: "Saturn's primary challenge in the rasi lord dasa is the rigidity of the structural master — the patient long-game person who has correctly identified the right approach beginning to insist that only their approach is right. The 'most wealthy star' shares its wealth; the Saturn rasi lord's governance requires that the wealth — financial, musical, vitality-based — be genuinely shared rather than hoarded. Physical care is important across the long 19-year dasa: the body's rhythmic systems, the cardiovascular function, and the musculoskeletal structure all require consistent attention.",
@@ -104,7 +106,7 @@ const DHANISHTHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Mercury", period: "17 yrs", ageRange: "Age 60–77", theme: "The Articulate Master",
+      planet: "Mercury", theme: "The Articulate Master",
       detail: {
         expect: "Mercury dasa from 60 to 77 brings the mind's precision and articulativeness to Dhanishtha's already rhythmically and structurally mature character. The rhythmic intelligence — which has always been primarily non-verbal, bodily, and musical — now finds in Mercury the capacity for precise articulation: the elder musician who can explain the rhythm they inhabit, the experienced engineer who can teach the principles they have practised, the wealth master who can transmit the understanding behind the abundance creation. Teaching, writing, and the verbal transmission of what has been mastered through Mars, Rahu, Jupiter, and Saturn become the primary professional expressions.",
         navigate: "Mercury's pace can challenge the Saturn-governed patience of the mature Dhanishtha — the fast-moving analytical mind meeting the slow and deliberate rhythmic wisdom. Physical care and energy management are important. Mercury–Saturn (~yr 14 of Mercury, ~ages 74-75) brings a brief but notable rasi lord sub-period.",
@@ -112,7 +114,7 @@ const DHANISHTHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Ketu", period: "7 yrs", ageRange: "Age 77–84", theme: "The Rhythm Without Form",
+      planet: "Ketu", theme: "The Rhythm Without Form",
       detail: {
         expect: "Ketu dasa from 77 to 84 brings the great simplification of Dhanishtha's richly rhythmic and abundant life. The rhythmic intelligence — which has been expressed through music, through wealth creation, through physical vitality, through structural mastery — now returns to its source in the rhythm that needs no particular form: the pulse that is present before any specific beat is struck.",
         navigate: "Complete and gentle physical care. Ketu at this age is the invitation to rest in the rhythm rather than play it — the deep listening that underlies all the Dhanishtha expression across a lifetime.",
@@ -120,7 +122,7 @@ const DHANISHTHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Venus", period: "20 yrs", ageRange: "Age 84–104", theme: "The Beauty of Abundance",
+      planet: "Venus", theme: "The Beauty of Abundance",
       detail: {
         expect: "Venus dasa from 84 to 104 is reached by very few Dhanishtha souls. For those who arrive, Venus brings the final gift of beauty — the aesthetic grace and luminous warmth that make a very long life's fullness visible to those who are present with the elder.",
         navigate: "Complete and devoted physical care. Venus at this extreme age is the abundance of the 'most wealthy star' arriving in its most distilled form — not financial wealth but the wealth of presence.",
@@ -128,7 +130,7 @@ const DHANISHTHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Sun", period: "6 yrs", ageRange: "Age 104–110", theme: "Final Solar Clarity",
+      planet: "Sun", theme: "Final Solar Clarity",
       detail: {
         expect: "Sun dasa from 104 to 110 is reached only by extraordinarily few Dhanishtha souls — among the longest-lived of all nakshathirams. For those who arrive, Sun brings the final solar clarity, the authority that distils nine decades of rhythmic mastery into simple, luminous presence.",
         navigate: "Complete and devoted physical care at this extreme age.",
@@ -245,5 +247,5 @@ const DHANISHTHA_VISUAL: NatchathiramVisualData = {
 };
 
 export default function DhanishthiaVisualPage() {
-  return <NatchathiramVisualContent data={AVITTAM} visual={DHANISHTHA_VISUAL} />;
+  return <NatchathiramVisualContent data={AVITTAM} visual={DHANISHTHA_VISUAL} timings={dasaTimingsFor(AVITTAM.number)} />;
 }

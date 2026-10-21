@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { withTamilTwin } from "@/lib/localized-metadata";
+import { withDasaTimingHold } from "@/lib/natchathiram-dasa-hold";
+import { dasaTimingsFor } from "@/lib/natchathiram-dasa-timings";
 import { natchathiramVisualTa } from "@/lib/marketing-seo-ta";
 import { ASHWINI } from "@/lib/natchathiram-data";
 import { NatchathiramVisualContent, type NatchathiramVisualData } from "@/components/natchathiram-visual";
@@ -17,7 +19,7 @@ const EN_METADATA: Metadata = {
 };
 
 export async function generateMetadata(): Promise<Metadata> {
-  return withTamilTwin(EN_METADATA, "/natchathiram/ashwini/visual", natchathiramVisualTa("ashwini")!);
+  return withDasaTimingHold(await withTamilTwin(EN_METADATA, "/natchathiram/ashwini/visual", natchathiramVisualTa("ashwini")!), "ashwini");
 }
 
 // ── Visual data for Ashwini ────────────────────────────────────────────────
@@ -84,7 +86,7 @@ const ASHWINI_VISUAL: NatchathiramVisualData = {
   // Ages are from birth assuming full dasa balance; actual first dasa is usually shorter.
   dashaTimeline: [
     {
-      planet: "Ketu", period: "7 yrs", ageRange: "Age 0–7", theme: "The Soul's First Print",
+      planet: "Ketu", theme: "The Soul's First Print",
       detail: {
         expect: "Born under Ketu, Ashwini children carry the mark of a refined soul. The first years often include at least one notable health challenge — fever, respiratory trouble, or a mysterious illness that resolves faster than the doctor expects. This child tends toward quietness, drawn to elders over peers, and may display premature wisdom that unsettles adults. Academic entry (ages 5–7) starts slowly — not from lack of ability, but because Ketu's children learn through inner absorption, not repetition. One grandparent or elderly relative typically becomes a spiritual anchor. Most born in Ashwini will not experience the full 7 years — the balance depends on exact birth position.",
         navigate: "Monitor for recurrent fevers, skin conditions, or unexplained crying in infancy — do not miss vaccination schedules. At the family level, Ketu dasa at birth often coincides with a household disruption: a financial setback, a parent's absence, or a move. This is ancestral karma clearing, not punishment. If pitru dosha is present in the family chart, it surfaces now. Unusual behavioral patterns in the child — night fears, sensitivity to unseen presences — are spiritual awareness, not illness.",
@@ -92,7 +94,7 @@ const ASHWINI_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Venus", period: "20 yrs", ageRange: "Age 7–27", theme: "The Golden Stretch",
+      planet: "Venus", theme: "The Golden Stretch",
       detail: {
         expect: "The longest and most consequential dasa in Ashwini's life — 20 years spanning everything from classroom to career to courtship. In school years (7–14) friendships come naturally, talents in arts, music, sport, or design surface, and confidence builds steadily. College years (17–22) bring Ashwini into full social bloom — charm, romance, and often a serious relationship that transforms the person. Marriage is most likely in the Venus–Moon or Venus–Jupiter antardasa window, typically between ages 21 and 26. Career in medicine, technology, or creative fields establishes. First savings or property gesture may happen before this dasa closes.",
         navigate: "Venus rules both the lagna and 6th house for Aries ascendant — its gifts come wrapped in subtle tests. Venus–Rahu antardasa (roughly ages 20–22) carries the highest risk: a relationship that appears ideal may conceal instability, or a career shortcut may compromise long-term integrity. Reproductive health, kidney function, and hormonal balance should not be ignored. Do not let Venus's abundance breed complacency — financial discipline formed now determines comfort in every dasa that follows.",
@@ -100,7 +102,7 @@ const ASHWINI_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Sun", period: "6 yrs", ageRange: "Age 27–33", theme: "Career Crystallises",
+      planet: "Sun", theme: "Career Crystallises",
       detail: {
         expect: "A compact but pivotal 6-year window. Career trajectory sharpens — a first major promotion, a government connection, or a senior mentor relationship defines this period. The person's professional identity becomes unmistakable. In medicine or research, a specialization credential arrives. In technology or engineering, the first leadership role crystallizes. Government sectors, corporate hierarchies, and institutional bodies strongly favor Ashwini here. Self-confidence peaks and the person commands a room in a way their 20s never allowed.",
         navigate: "Sun amplifies Ashwini's natural confidence into occasional arrogance — choose battles with superiors with great care. One ego-driven confrontation can derail years of carefully built reputation. Father's health deserves proactive attention; cardiac screening is advisable if family history warrants it. Eye strain from screens and overwork accumulates silently. The 6-year window closes fast — do not waste it in unnecessary conflict.",
@@ -108,7 +110,7 @@ const ASHWINI_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Moon", period: "10 yrs", ageRange: "Age 33–43", theme: "Family, Public & Travel",
+      planet: "Moon", theme: "Family, Public & Travel",
       detail: {
         expect: "Moon dasa in the mid-thirties finds Ashwini managing a full life — career, family, and community simultaneously. Children (if married in Venus dasa) are now school-age; the emotional investment in family deepens. Business dealing with the public — food, healthcare, real estate, education, or hospitality — gains natural momentum. Relocation to a new city, or significant travel for work, is common. A second child or major family transition (elderly parent, adoption) frequently occurs. Public recognition in professional circles builds steadily.",
         navigate: "Moon dasa brings emotional tides that can catch even steady Ashwini off guard. Moon–Rahu antardasa (roughly ages 38–40) is the most unstable sub-period — decisions made impulsively here often require years of correction. Mother's health requires close monitoring, particularly in this window. Sleep disturbances and anxiety during low phases (especially around new and full moons) are Moon's signal, not a medical disorder. Do not mistake restlessness for dissatisfaction and make unnecessary career pivots mid-dasa.",
@@ -116,7 +118,7 @@ const ASHWINI_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Mars", period: "7 yrs", ageRange: "Age 43–50", theme: "Property & Power",
+      planet: "Mars", theme: "Property & Power",
       detail: {
         expect: "Mars dasa arrives when Ashwini is at the height of practical authority. Critically, Mars is the lord of your rasi, Mesha — this makes his dasa doubly charged for Ashwini natives. Where other nakshathirams experience Mars dasa as one planetary period among nine, for Ashwini it is the rasi lord himself taking the wheel. Every Martian theme is amplified: the property instinct is stronger, the physical authority more pronounced, the urge to build permanent legacy reaches its lifetime peak. This is the traditional 'buy your land' dasa in Tamil astrology — property acquisition, construction, vehicle purchase, and major real estate decisions are all strongly favored. Sibling relationships — dormant for years — become active, either as business allies or as sources of friction. Physical energy remains high even as the body needs more deliberate care.",
         navigate: "Mars dasa carries the highest accident and surgical risk in Ashwini's cycle — ages 43–50 in men particularly call for cardiac and blood pressure awareness. Avoid risky physical activities or hasty decisions in Mars–Rahu antardasa (approximately ages 44–45). Legal disputes initiated during Mars dasa almost always drain more than they return — negotiate instead of litigate. Anger is Mars's principal weapon against your own interests; every impulsive outburst carries disproportionate consequence here.",
@@ -124,7 +126,7 @@ const ASHWINI_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Rahu", period: "18 yrs", ageRange: "Age 50–68", theme: "The Great Reshaping",
+      planet: "Rahu", theme: "The Great Reshaping",
       detail: {
         expect: "No dasa reshapes Ashwini more completely than Rahu's 18-year arc. Everything accelerates, complicates, and eventually clarifies. Foreign connections intensify — a child settles abroad, business expands internationally, or technology opens doors conventional training never anticipated. For those with strong technical inclination, Rahu dasa can deliver the most financially significant breakthrough of the entire life — through unconventional routes. The first half (ages 50–59) is turbulent: status fluctuations, reputation pressures, identity confusion. The second half (ages 59–68) stabilizes as Rahu matures and the person adapts.",
         navigate: "Rahu's greatest weapon against Ashwini is the illusion of a shortcut. Any investment, deal, or alliance that appears unusually promising demands exceptional scrutiny — especially if foreign or technology-driven. Rahu–Jupiter antardasa (approximately ages 57–60) is specifically sensitive; no irreversible financial or legal decision should be finalized during exact transit conjunctions. Health: nervous system, skin, and respiratory conditions surface under Rahu. A period of spiritual doubt is normal — remain rooted without becoming rigid.",
@@ -132,7 +134,7 @@ const ASHWINI_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Jupiter", period: "16 yrs", ageRange: "Age 68–84", theme: "The Harvest",
+      planet: "Jupiter", theme: "The Harvest",
       detail: {
         expect: "Jupiter dasa in the final decades is the harvest — the quiet, dignified return on a lifetime of dharmic living. Grandchildren bring a joy that no earlier dasa prepared you for. Teaching, writing, and mentoring roles become effortless; accumulated wisdom finally finds an audience ready to receive it. Long-standing investments, properties, and businesses begun in Venus and Mars dasas often produce their most stable returns here. Pilgrimage travel, scriptural study, and charitable activity become genuine pleasure rather than obligation. The body, while aging, tends to remain more resilient than feared when Jupiter is well-placed.",
         navigate: "The trap of Jupiter dasa is complacency born of blessing — believing all decisions are automatically right because things have generally gone well. Health: liver, pancreas, and weight management require ongoing attention. Relationship with adult children and grandchildren deserves careful stewardship — Jupiter dasa is not only personal harvest, it is the period in which your legacy is shaped in the minds of those who will carry it forward.",
@@ -140,7 +142,7 @@ const ASHWINI_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Saturn", period: "19 yrs", ageRange: "Age 84–103", theme: "Completion & Legacy",
+      planet: "Saturn", theme: "Completion & Legacy",
       detail: {
         expect: "Saturn dasa in advanced age is experienced in full measure by few, but those who reach it carry the weight of a complete life. For Ashwini, Saturn rules the 10th house (career legacy) and 11th house (gains and fulfillment) from Aries — making this dasa one of final recognition and karmic completion. Institutional honors, community respect, and family legacy acknowledgment arrive quietly but distinctly. Daily routine becomes not obligation but medicine. Family support from children and grandchildren flows naturally to those who invested in relationships in earlier dasas.",
         navigate: "Saturn accepts no shortcuts and permits no delays. Physical dependence on others, encountered with grace rather than resistance, brings deep peace. The body's requirements are specific and non-negotiable — regular meals, movement within capacity, adequate rest, and avoidance of cold. Rigidity of thought or refusal to release past roles accelerates decline. Any unresolved family disputes that remain should be addressed with urgency — Saturn's dasa does not wait for perfect timing.",
@@ -266,5 +268,5 @@ const ASHWINI_VISUAL: NatchathiramVisualData = {
 };
 
 export default function AshwiniVisualPage() {
-  return <NatchathiramVisualContent data={ASHWINI} visual={ASHWINI_VISUAL} />;
+  return <NatchathiramVisualContent data={ASHWINI} visual={ASHWINI_VISUAL} timings={dasaTimingsFor(ASHWINI.number)} />;
 }

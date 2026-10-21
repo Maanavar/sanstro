@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { withTamilTwin } from "@/lib/localized-metadata";
+import { withDasaTimingHold } from "@/lib/natchathiram-dasa-hold";
+import { dasaTimingsFor } from "@/lib/natchathiram-dasa-timings";
 import { natchathiramVisualTa } from "@/lib/marketing-seo-ta";
 import { PURVA_PHALGUNI } from "@/lib/natchathiram-data";
 import { NatchathiramVisualContent, type NatchathiramVisualData } from "@/components/natchathiram-visual";
@@ -17,7 +19,7 @@ const EN_METADATA: Metadata = {
 };
 
 export async function generateMetadata(): Promise<Metadata> {
-  return withTamilTwin(EN_METADATA, "/natchathiram/purva-phalguni/visual", natchathiramVisualTa("purva-phalguni")!);
+  return withDasaTimingHold(await withTamilTwin(EN_METADATA, "/natchathiram/purva-phalguni/visual", natchathiramVisualTa("purva-phalguni")!), "purva-phalguni");
 }
 
 const PURVA_PHALGUNI_VISUAL: NatchathiramVisualData = {
@@ -72,7 +74,7 @@ const PURVA_PHALGUNI_VISUAL: NatchathiramVisualData = {
 
   dashaTimeline: [
     {
-      planet: "Venus", period: "20 yrs", ageRange: "Age 0–20", theme: "Born into Beauty",
+      planet: "Venus", theme: "Born into Beauty",
       detail: {
         expect: "Purva Phalguni opens life in Venus dasa — perhaps the most fortunate of all natal dasas. The childhood (0–8) of a Purva Phalguni native is typically characterised by unusual sensory richness: a home with beauty in it, an early love of music or dance or colour, a social ease with other children, and an instinctive delight in pleasure that adults find disarming and charming. The child who sings before they speak clearly, who arranges flowers before they can write, who remembers the aesthetics of a room before its contents — this is Purva Phalguni under Venus's opening governance. School years (8–16) develop these gifts into recognisable talents. Creative subjects attract; performance arts draw; the social world of school is navigated with natural ease. Venus–Jupiter antardasa (approximately ages 11–13) is a particularly auspicious sub-period — creative gifts flourish, recognition arrives, and the expansive quality of Jupiter amplifies Venus's natural grace. Adolescence brings the first serious romantic attention (Venus–Mars, approximately ages 16–17) — Purva Phalguni's magnetic charm tends to attract admirers earlier and more persistently than most. The transition to higher education or early career (Venus–Saturn, approximately ages 18–20) introduces the first discipline: Bhaga's festival of pleasure meets Saturn's insistence on structure, and the creative gifts that have flowered freely must now be directed.",
         navigate: "Venus dasa's primary challenge for Purva Phalguni is the cultivation of discipline alongside delight. The nakshathiram that opens life in Venus's bounty can develop a deep reluctance to engage with difficulty — the hammock is comfortable, and leaving it requires a motivation that pleasure alone cannot provide. The habit of living fully in the present, spending freely on what brings immediate joy, and deferring anything tedious until it becomes urgent must be consciously addressed before Venus dasa closes. Venus–Rahu antardasa (approximately ages 13–15) is the most volatile sub-period of childhood; unusual relationships, boundary-testing, and sudden artistic enthusiasms may arrive and require gentle guidance rather than suppression. Physical concerns: skin, kidneys, blood sugar, and the overconsumption of pleasure that Venus dasa can encourage.",
@@ -80,7 +82,7 @@ const PURVA_PHALGUNI_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Sun", period: "6 yrs", ageRange: "Age 20–26", theme: "The Stage is Lit",
+      planet: "Sun", theme: "The Stage is Lit",
       detail: {
         expect: "Sun dasa from 20 to 26 brings the first solar illumination of the creative gifts Venus dasa developed. Leo's ruler governs this phase; combined with Purva Phalguni's natal Leo placement, Sun dasa produces a period of unusual visibility and ambition. Career launches with a directness that surprises those who knew the more pleasure-focused Venus dasa Purva Phalguni — there is now a clear desire for recognition, for a position, for a name. Higher education or professional training is completed; the first significant career appointments or creative commissions arrive. The identity that will define the public life for the next three decades is being established. Sun–Jupiter antardasa (approximately ages 22–23) is the most expansive sub-period, often marking the debut or breakthrough moment — the first significant creative recognition, the institutional acceptance, the performance that is remembered.",
         navigate: "Sun dasa's challenge for Purva Phalguni is the management of the pride that Leo's solar quality can intensify. Bhaga's nakshathiram is naturally generous and socially warm; Leo's king-energy can temporarily overshadow this, producing a period of competitive self-assertion that alienates the very relationships that Purva Phalguni's charm built in Venus dasa. The recognition that arrives in Sun dasa is earned by Venus dasa's gifts, not by Sun dasa's ambition — keeping this perspective intact preserves the warmth that is Purva Phalguni's most valuable social currency. Physical care: heart, spine, eyes, and the circulation.",
@@ -88,7 +90,7 @@ const PURVA_PHALGUNI_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Moon", period: "10 yrs", ageRange: "Age 26–36", theme: "The Heart of Creation",
+      planet: "Moon", theme: "The Heart of Creation",
       detail: {
         expect: "Moon dasa from 26 to 36 brings the most emotionally full decade of Purva Phalguni's early adult life. Marriage may arrive in Moon–Mars antardasa (approximately ages 28–30) or Moon–Jupiter (approximately ages 32–33); Bhaga's deity governs marital joy, and for many Purva Phalguni natives, Moon dasa is when the central relationship of the life is established or deepened. Children arrive; the domestic sphere, which receives less attention in the public-oriented Sun dasa, now comes into its warmth and fullness. The creative work of Sun dasa's career foundation is now rooted in a genuine emotional life — the artist who previously performed from talent now performs from experience, and the work deepens correspondingly. For those in the performing arts or creative industries, Moon dasa produces the most emotionally resonant and publicly beloved work of the career.",
         navigate: "Moon dasa's health concerns are digestive, hormonal, and related to emotional regulation. Purva Phalguni's natural generosity, in Moon dasa, can extend to emotional over-giving — investing emotional energy in relationships beyond what is returned, or carrying others' moods as personal responsibility. The boundary between warmth and absorption must be maintained. Moon–Ketu antardasa (~yr 8 of Moon, ~ages 33–34) is the most internally reflective sub-period; a spiritual deepening or temporary withdrawal from the public sphere typically occurs here, and is valuable rather than problematic.",
@@ -96,7 +98,7 @@ const PURVA_PHALGUNI_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Mars", period: "7 yrs", ageRange: "Age 36–43", theme: "Creative Command",
+      planet: "Mars", theme: "Creative Command",
       detail: {
         expect: "Mars dasa from 36 to 43 introduces a quality of directed force and decisive action into a life that has been characterised by beauty and flow. Purva Phalguni in Mars dasa does not become aggressive — rather, the creative energy that has been expressing itself is now consolidated, focused, and deployed with strategic precision. Career decisions are made that define the legacy: the creative director who builds a studio, the performer who chooses the defining project, the entrepreneur who makes the founding investment. The discipline that Sun dasa called for and Moon dasa deepened is now expressed in committed action. For those who have been deferring a major creative or professional ambition, Mars dasa is when the hammock is finally vacated and the stage is taken — permanently.",
         navigate: "Mars dasa's primary challenge is physical energy management. Leo's constitution, energised by Mars, can push beyond what is sustainable; the body requires equal discipline to the career. Mars–Rahu antardasa (~yr 2 of Mars, ~ages 38–39) can bring a period of unusual volatility — significant creative risks, relationship friction, or a pivotal confrontation that defines the remaining career trajectory. Navigate this sub-period with deliberate care rather than reactive impulse. Physical concerns: blood pressure, inflammatory conditions, musculoskeletal health.",
@@ -104,7 +106,7 @@ const PURVA_PHALGUNI_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Rahu", period: "18 yrs", ageRange: "Age 43–61", theme: "The Grand Stage",
+      planet: "Rahu", theme: "The Grand Stage",
       detail: {
         expect: "Rahu dasa from 43 to 61 is Purva Phalguni's grandest and most expansive chapter — eighteen years of unusual visibility, unconventional success, and the complete expression of the creative identity that the preceding four dasas built. Rahu amplifies everything it touches; for Purva Phalguni, whose natural medium is beauty, pleasure, and human connection, this amplification produces extraordinary creative output and public reach. International recognition, cross-cultural collaborations, technology-mediated platforms, and the kind of visibility that earlier generations would have considered impossible for a single lifetime — all of these characterise Rahu dasa for the most realised Purva Phalguni natives. Rahu–Jupiter antardasa (~yr 9 of Rahu, ~age 52) is the single most expansive sub-period — the peak of what this creative life can produce and be recognised for. Children are establishing their own lives; the domestic sphere lightens; creative energy that was shared across family and career can now concentrate on the work itself.",
         navigate: "Rahu dasa's eighteen years span a major physiological transition (from midlife vitality into senior health management), and the pace that Rahu encourages must be modulated accordingly. The pleasure-seeking that has characterised Purva Phalguni since Venus dasa can, in Rahu's amplification, extend into excess — dietary, sensory, or relational indulgences that the body of this age cannot sustain without consequence. Rahu–Saturn antardasa (~yr 14 of Rahu, ~age 57) is the most demanding sub-period; a deliberate reduction in pace and scope is required. Health concerns: cardiovascular, metabolic, and the hormonal changes of this life stage.",
@@ -112,7 +114,7 @@ const PURVA_PHALGUNI_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Jupiter", period: "16 yrs", ageRange: "Age 61–77", theme: "The Elder's Grace",
+      planet: "Jupiter", theme: "The Elder's Grace",
       detail: {
         expect: "Jupiter dasa from 61 to 77 brings a philosophical depth and generous wisdom to the creative life that Purva Phalguni has been building across six decades. The artist whose work has always delighted now also instructs; the performer whose presence has always charmed now also moves; the creative leader whose taste has always refined now also reveals. Jupiter's sixteen years are characterised by a quality of expansive giving — mentoring younger creative talents, contributing to cultural institutions, sharing the aesthetic wisdom that a lifetime of creative practice has accumulated. Grandchildren receive an extraordinary quality of joyful attention. Financial consolidation and comfortable stability characterise these years; Bhaga's fortune, which was shared so freely across Rahu dasa's peak, now settles into the dignified sufficiency that suits this season.",
         navigate: "Physical concerns in this age band are primarily hepatic, metabolic, and related to the management of the abundance that Jupiter encourages. The natural inclination toward rich food, pleasurable excess, and generous social spending must be moderated. Jupiter–Saturn antardasa (~yr 10 of Jupiter, ~ages 71–73) is the most demanding sub-period; deliberate simplification of obligations and a gentle reduction in public commitments provide the necessary counterweight to Jupiter's expansive optimism.",
@@ -120,7 +122,7 @@ const PURVA_PHALGUNI_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Saturn", period: "19 yrs", ageRange: "Age 77–96", theme: "Beauty Made Permanent",
+      planet: "Saturn", theme: "Beauty Made Permanent",
       detail: {
         expect: "Saturn dasa from 77 to 96 brings the final discipline of a life that has been, in its essence, devoted to the experience and creation of beauty. Saturn, the planet of structure and permanence, asks Purva Phalguni to consider what of the pleasure and creation of this life will endure. The hammock is folded; the stage lights dim to the quiet illumination of memory and presence. What remains is not performance but being — the quality of radiance that Purva Phalguni carries simply by existing, the warmth that surrounds them without effort, the beauty that inheres in their very presence.",
         navigate: "Complete physical care is primary. Saturn's energy at this age manifests as the quiet authority of one whose life has been fully lived — accept the limitation of the body without interpreting it as loss. Saturn–Venus antardasa (~yr 12 of Saturn, ~ages 89–91) brings a late-life interval of genuine creative warmth, perhaps a final artistic expression or a deep rekindling of the loving relationship that Bhaga first blessed.",
@@ -128,7 +130,7 @@ const PURVA_PHALGUNI_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Mercury", period: "17 yrs", ageRange: "Age 96–113", theme: "The Last Song",
+      planet: "Mercury", theme: "The Last Song",
       detail: {
         expect: "Mercury dasa from 96 onwards is reached by very few. For those Purva Phalguni souls who arrive here — having lived a full century of beauty, creation, pleasure, and warmth — Mercury brings the final articulation: the story told clearly, the lesson expressed simply, the understanding that what was always felt can now be precisely named.",
         navigate: "Complete care and the grace of being surrounded by those who have been touched by this life's warmth.",
@@ -245,5 +247,5 @@ const PURVA_PHALGUNI_VISUAL: NatchathiramVisualData = {
 };
 
 export default function PurvaPhalguni() {
-  return <NatchathiramVisualContent data={PURVA_PHALGUNI} visual={PURVA_PHALGUNI_VISUAL} />;
+  return <NatchathiramVisualContent data={PURVA_PHALGUNI} visual={PURVA_PHALGUNI_VISUAL} timings={dasaTimingsFor(PURVA_PHALGUNI.number)} />;
 }

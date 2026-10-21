@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { withTamilTwin } from "@/lib/localized-metadata";
+import { withDasaTimingHold } from "@/lib/natchathiram-dasa-hold";
+import { dasaTimingsFor } from "@/lib/natchathiram-dasa-timings";
 import { natchathiramVisualTa } from "@/lib/marketing-seo-ta";
 import { POORATTATHI } from "@/lib/natchathiram-data";
 import { NatchathiramVisualContent, type NatchathiramVisualData } from "@/components/natchathiram-visual";
@@ -17,7 +19,7 @@ const EN_METADATA: Metadata = {
 };
 
 export async function generateMetadata(): Promise<Metadata> {
-  return withTamilTwin(EN_METADATA, "/natchathiram/purva-bhadra/visual", natchathiramVisualTa("purva-bhadra")!);
+  return withDasaTimingHold(await withTamilTwin(EN_METADATA, "/natchathiram/purva-bhadra/visual", natchathiramVisualTa("purva-bhadra")!), "purva-bhadra");
 }
 
 const PURVA_BHADRA_VISUAL: NatchathiramVisualData = {
@@ -72,7 +74,7 @@ const PURVA_BHADRA_VISUAL: NatchathiramVisualData = {
 
   dashaTimeline: [
     {
-      planet: "Jupiter", period: "16 yrs", ageRange: "Age 0–16", theme: "Born in Wisdom (Meena) or Structural Opening (Kumbha)",
+      planet: "Jupiter", theme: "Born in Wisdom (Meena) or Structural Opening (Kumbha)",
       detail: {
         expect: "Purva Bhadra opens in Jupiter dasa — and the character of this opening is fundamentally different depending on which pada was occupied at birth. For Meena pada 4 natives, Jupiter is your rasi lord — and this makes the opening dasa the rasi lord's own period, charged with Jupiter's full philosophical abundance, expansive wisdom, and optimistic grace from the very beginning. The Meena-born Purva Bhadra child has a quality of wisdom and openness that is immediately apparent; the philosophical and spiritual dimensions of experience are available from the earliest years with unusual naturalness. For Kumbha padas 1-3 natives, Jupiter dasa is a supportive, expansive opening before the rasi lord Saturn's arrival — the philosophical breadth that will later be structured and disciplined.",
         navigate: "Jupiter's primary challenge for Purva Bhadra is the very expansiveness of the opening — the child born in philosophical abundance can develop a certain resistance to the limitations and disciplines that are necessary for the expansive vision to find its effective expression in the world. For Meena pada: the rasi lord's own dasa requires the early cultivation of grounded structure alongside the natural philosophical openness. For Kumbha padas: Jupiter–Saturn (~yr 13 of Jupiter, ~ages 13-14) is a rasi lord sub-period flag: a brief but important adolescent encounter with the Saturn discipline that will govern the next major period.",
@@ -80,7 +82,7 @@ const PURVA_BHADRA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Saturn", period: "19 yrs", ageRange: "Age 16–35", theme: "Rasi Lord (Kumbha) — The Fire Structured / Rasi Support (Meena)",
+      planet: "Saturn", theme: "Rasi Lord (Kumbha) — The Fire Structured / Rasi Support (Meena)",
       detail: {
         expect: "Saturn dasa from 16 to 35 is the rasi lord's arrival for Kumbha padas 1-3 Purva Bhadra. For the Kumbha-born, Saturn governs the critical years of university, early career, marriage, and the establishment of the professional and personal foundations. The transformative fire and the intense idealism of Purva Bhadra now receive the structural governance of the Saturn rasi lord — the vision is not abandoned but disciplined; the fire is not extinguished but channelled. The combination of Jupiter's philosophical depth (from the opening dasa) and Saturn's structural patience (in the rasi lord dasa) is what makes the Kumbha Purva Bhadra's contribution genuinely lasting. For Meena pada 4 Purva Bhadra, Saturn dasa is a period of powerful structural support — disciplining the philosophical abundance of Jupiter's opening into the forms that can carry the vision into the world.",
         navigate: "Saturn's primary challenge for Purva Bhadra is the encounter between the transformative fire's urgency and Saturn's long-game patience. The intense idealist who wants transformation now finds, in Saturn's structural governance, that the transformations that last require the time they require. Saturn–Jupiter antardasa (~yr 13 of Saturn, ~ages 29-31) is a significant sub-period for both Kumbha and Meena padas: for Kumbha, it is the rasi lord Saturn met by Jupiter's expansive support; for Meena, it is the Jupiter rasi lord appearing in Saturn's structuring field.",
@@ -88,7 +90,7 @@ const PURVA_BHADRA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Mercury", period: "17 yrs", ageRange: "Age 35–52", theme: "The Articulate Vision",
+      planet: "Mercury", theme: "The Articulate Vision",
       detail: {
         expect: "Mercury dasa from 35 to 52 brings the mind's precision and articulativeness to Purva Bhadra's fiery and idealistic character. The transformative vision — which has been felt and inhabiting since the beginning — now finds in Mercury the capacity for clear articulation. Writing, teaching, and the transmission of the Purva Bhadra understanding reach their most publicly effective expression in Mercury dasa. Mercury–Jupiter antardasa (~yr 14 of Mercury, ~ages 49-50) is a significant sub-period: for Meena pada, Jupiter is the rasi lord appearing in Mercury's articulative field — a period of philosophical writing or teaching breakthrough; for Kumbha padas, Jupiter as a major benefic brings philosophical depth to Mercury's articulation.",
         navigate: "Mercury's primary challenge for Purva Bhadra is the articulation of transformative intensity in language accessible to those who have not had the same experience. The intensity of the fire can produce writing or teaching that is profound but inaccessible — the challenge is to transmit the heat without burning the audience. Mercury–Jupiter (~yr 14, ~ages 49-50) is a significant rasi lord sub-period for Meena pada.",
@@ -96,7 +98,7 @@ const PURVA_BHADRA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Ketu", period: "7 yrs", ageRange: "Age 52–59", theme: "The Fire Stripped",
+      planet: "Ketu", theme: "The Fire Stripped",
       detail: {
         expect: "Ketu dasa from 52 to 59 strips the Purva Bhadra identity of everything that has accumulated around the transformative vision. The career achievements, the philosophical frameworks, the articulated teachings — all the things that Mercury dasa produced — now undergo Ketu's great simplification. For those who have genuinely entered the transformative fire and come through, Ketu dasa is among the most profound and honest periods of the Purva Bhadra life: the willingness to release what has been built, to let the fire do its work again, to discover what remains when the accumulation is gone.",
         navigate: "Ketu's primary challenge for Purva Bhadra is the attachment to the transformative identity — the one who has undergone the fire and survived can become attached to the survivor-identity, to the accumulated wisdom, to the position of the transformed elder. Ketu asks for the release of this, too. Physical concerns: nervous system, autoimmune function, the accumulated intensity of five decades of fiery engagement.",
@@ -104,7 +106,7 @@ const PURVA_BHADRA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Venus", period: "20 yrs", ageRange: "Age 59–79", theme: "The Beautiful Second Flowering",
+      planet: "Venus", theme: "The Beautiful Second Flowering",
       detail: {
         expect: "Venus dasa from 59 to 79 brings a second flowering — one of beauty, abundance, and relational warmth — after Ketu's great simplification. For Purva Bhadra, whose intensity can sometimes overshadow the beauty of what is right in front of them, Venus dasa offers the gift of the present — the pleasure of what exists rather than the urgency of what must be transformed. Late-career work reaches the widest audience; grandchildren arrive; the relationships that have survived the fires of the Purva Bhadra life are experienced in their full depth. Venus–Jupiter antardasa (~yr 1 of Venus, ~ages 59-60) is an early rasi lord sub-period for Meena pada — a beautiful, philosophical opening to Venus's long dasa.",
         navigate: "Venus's primary challenge for Purva Bhadra is the temptation toward comfort after the long fires — the intense idealist discovering pleasure and beginning to prefer comfort to the transformative engagement that is their nature. Ketu's stripping has prepared the ground for genuine enjoyment; the challenge is to let the enjoyment be genuine rather than a retreat from the fire that remains available.",
@@ -112,7 +114,7 @@ const PURVA_BHADRA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Sun", period: "6 yrs", ageRange: "Age 79–85", theme: "Final Solar Authority",
+      planet: "Sun", theme: "Final Solar Authority",
       detail: {
         expect: "Sun dasa from 79 to 85 brings the final crystallisation of the Purva Bhadra authority. The transformative wisdom, the philosophical depth, the endurance of the long fires — all of it is now expressed through the solar clarity of an elder who has been through the fire and stands in it freely.",
         navigate: "Complete and gentle physical care. The Sun dasa elder's authority is the authority of presence — it requires no assertion.",
@@ -120,7 +122,7 @@ const PURVA_BHADRA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Moon", period: "10 yrs", ageRange: "Age 85–95", theme: "The Emotional Ocean",
+      planet: "Moon", theme: "The Emotional Ocean",
       detail: {
         expect: "Moon dasa from 85 to 95 brings the emotional ocean to the Purva Bhadra elder. After the long fires and the solar authority, Moon invites the return of the feeling dimension — the emotional depth that the intense idealism sometimes bypassed in the service of the vision.",
         navigate: "Complete and devoted physical care. The emotional depth of Moon dasa at this age requires the physical environment to support the emotional openness.",
@@ -128,7 +130,7 @@ const PURVA_BHADRA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Mars", period: "7 yrs", ageRange: "Age 95–102", theme: "Final Fire",
+      planet: "Mars", theme: "Final Fire",
       detail: {
         expect: "Mars dasa from 95 to 102 is reached by extraordinarily few Purva Bhadra souls. For those who arrive, Mars brings the final flaring of the transformative fire — the energy of the one-footed deity in its most distilled form: the will to continue, the capacity to stand in the flame.",
         navigate: "Complete and devoted physical care at this extreme age.",
@@ -245,5 +247,5 @@ const PURVA_BHADRA_VISUAL: NatchathiramVisualData = {
 };
 
 export default function PurvaBhadraVisualPage() {
-  return <NatchathiramVisualContent data={POORATTATHI} visual={PURVA_BHADRA_VISUAL} />;
+  return <NatchathiramVisualContent data={POORATTATHI} visual={PURVA_BHADRA_VISUAL} timings={dasaTimingsFor(POORATTATHI.number)} />;
 }

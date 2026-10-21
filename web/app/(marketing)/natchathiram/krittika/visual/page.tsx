@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { withTamilTwin } from "@/lib/localized-metadata";
+import { withDasaTimingHold } from "@/lib/natchathiram-dasa-hold";
+import { dasaTimingsFor } from "@/lib/natchathiram-dasa-timings";
 import { natchathiramVisualTa } from "@/lib/marketing-seo-ta";
 import { KRITTIKA } from "@/lib/natchathiram-data";
 import { NatchathiramVisualContent, type NatchathiramVisualData } from "@/components/natchathiram-visual";
@@ -17,7 +19,7 @@ const EN_METADATA: Metadata = {
 };
 
 export async function generateMetadata(): Promise<Metadata> {
-  return withTamilTwin(EN_METADATA, "/natchathiram/krittika/visual", natchathiramVisualTa("krittika")!);
+  return withDasaTimingHold(await withTamilTwin(EN_METADATA, "/natchathiram/krittika/visual", natchathiramVisualTa("krittika")!), "krittika");
 }
 
 const KRITTIKA_VISUAL: NatchathiramVisualData = {
@@ -72,7 +74,7 @@ const KRITTIKA_VISUAL: NatchathiramVisualData = {
 
   dashaTimeline: [
     {
-      planet: "Sun", period: "6 yrs", ageRange: "Age 0–6", theme: "Born into Authority",
+      planet: "Sun", theme: "Born into Authority",
       detail: {
         expect: "Krittika is born into Sun dasa — a powerful but brief opening statement. This child arrives with an unusual sense of presence that even adults recognise; there is something commanding about them from infancy. The early years often place the father at the centre of the family narrative — either as a strong, shaping influence or, if absent or compromised, as a defining absence. Academic entry (ages 5–6) comes easily; Krittika children are sharp and structured learners. Health in Sun dasa is generally good but fevers and inflammatory conditions can appear quickly. Most born in Krittika will have experienced only a partial Sun dasa, depending on exact birth position within the nakshathiram.",
         navigate: "The father's health and professional standing are deeply tied to the family's stability in this period — monitor both. Krittika Sun-Dasa children can display early perfectionism that manifests as rigidity or temper; do not mistake these for personality flaws, they are Agni's fire seeking correct channelling. Eye health deserves attention even in infancy. The brevity of this dasa is its own challenge — the Sun's gifts open fast and close before the person can fully comprehend them.",
@@ -80,7 +82,7 @@ const KRITTIKA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Moon", period: "10 yrs", ageRange: "Age 6–16", theme: "Learning & First World",
+      planet: "Moon", theme: "Learning & First World",
       detail: {
         expect: "Moon dasa from age 6 to 16 spans Krittika's entire formal schooling. The sharp intellect established at birth now encounters the emotional complexity of peer relationships and social learning. Academic performance is typically strong — Krittika Moon children excel in structured subjects (mathematics, science, languages) — but the emotional dimension of school life can be harder. Friendships are selective and deep rather than wide. A strong attachment to the mother and maternal figure characterises this period. By the end of Moon dasa (14–16), the first clear academic direction emerges.",
         navigate: "Moon's emotional tides conflict with Krittika's fire nature — mood swings, unexplained irritability, and sensitivity to criticism are common in the 8–12 year range. Mother's health and the relationship with the mother requires careful stewardship; any disruption in the maternal bond resonates through Krittika's entire emotional development. Moon–Rahu antardasa (approximately ages 14–15) is the most turbulent sub-period — peer pressure, experimental behaviour, and identity confusion peak here. Monitor sleep patterns and digestive health throughout this dasa.",
@@ -88,7 +90,7 @@ const KRITTIKA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Mars", period: "7 yrs", ageRange: "Age 16–23", theme: "Rasi Lord Claims the Field",
+      planet: "Mars", theme: "Rasi Lord Claims the Field",
       detail: {
         expect: "Mars dasa from age 16 to 23 is among the most consequential periods in Krittika's life. For Mesha-pada (1st pada) Krittika natives, Mars is the lord of your rasi — this makes his dasa doubly charged. Where other nakshathirams experience Mars dasa as one planetary period among nine, for Mesha Krittika it is the rasi lord himself arriving at the threshold of adulthood. Physical power, competitive drive, and the will to achieve peak together at exactly the age when life's first major battles are fought: board examinations, competitive entrance tests, first jobs, first independent decisions. Campus leadership, military ambitions, or athletic achievement are strongly favoured. First serious romantic interest often arrives in Mars–Venus antardasa (approximately ages 19–20).",
         navigate: "Mars dasa's combination with Agni nakshathiram energy creates a potent but potentially destructive mix if unchecked. Accidents, rash decisions, and confrontations with authority figures (parents, teachers, supervisors) are the primary risks between ages 16 and 23. Anger management is not optional — one violent or irreversible action in this window can alter the trajectory permanently. For Rishabam-pada Krittika, Mars dasa is less personally charged but still brings physical boldness and independence that requires direction.",
@@ -96,7 +98,7 @@ const KRITTIKA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Rahu", period: "18 yrs", ageRange: "Age 23–41", theme: "The Great World Opens",
+      planet: "Rahu", theme: "The Great World Opens",
       detail: {
         expect: "Rahu dasa from 23 to 41 is Krittika's longest dasa and coincides with the prime professional years. This is when Krittika's disciplined intelligence collides with the complexity of the real world — and, for those who navigate it well, when the most significant career achievements are built. Foreign influence — study abroad, international clients, technology exposure — accelerates progress. The analytical and engineering instinct that Krittika carries from birth finds its most fertile professional soil here. Marriage and children typically land between ages 26–33. Property acquisition becomes feasible by the mid-thirties. By age 40, the professional identity is fully formed and typically commanding.",
         navigate: "Rahu's principal danger for Krittika is the corruption of the perfectionist nature — a drive for excellence mutating into an obsession with external recognition that compromises integrity. Rahu–Saturn antardasa (approximately ages 34–36) is the highest-pressure sub-period, combining Rahu's ambition with Saturn's demand for results. Health: nervous system, respiratory system, and skin conditions require attention. Rahu dasa can also produce a period of spiritual emptiness as the intellectual focus crowds out the inner life — do not ignore this signal.",
@@ -104,7 +106,7 @@ const KRITTIKA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Jupiter", period: "16 yrs", ageRange: "Age 41–57", theme: "Authority Earns Its Wisdom",
+      planet: "Jupiter", theme: "Authority Earns Its Wisdom",
       detail: {
         expect: "Jupiter dasa from 41 to 57 finds Krittika at the summit of professional authority. Career peaks — a senior leadership role, an institutional honour, or the establishment of an independent practice — arrive between ages 43 and 52. The teaching impulse strengthens dramatically; Krittika begins training successors and contributing to the field rather than simply competing within it. Children are entering adulthood and requiring the parent's wisdom rather than their control — a transition that Krittika's perfectionist nature must navigate consciously. Financial prosperity typically reaches its most stable phase in Jupiter dasa.",
         navigate: "Jupiter's greatest trap for Krittika is rigidity — the belief that hard-won experience translates into permanent correctness. Intellectual arrogance, particularly toward younger professionals, can alienate the very people who would carry Krittika's legacy forward. Liver health, weight management, and metabolic monitoring become relevant in the fifties. A tendency to over-commit — to lead more projects than is sustainable — requires conscious limitation.",
@@ -112,7 +114,7 @@ const KRITTIKA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Saturn", period: "19 yrs", ageRange: "Age 57–76", theme: "Disciplined Ripening",
+      planet: "Saturn", theme: "Disciplined Ripening",
       detail: {
         expect: "Saturn dasa from 57 to 76 is one of Krittika's longest periods and — unusually among nakshatrams — one of its most productive. Krittika's natural discipline and structural intelligence aligns with Saturn's demands rather than chafing against them. Institutional recognition, community leadership, and the quiet consolidation of everything built in prior decades characterise this period. Grandchildren arrive and provide a new dimension of purpose. Charitable and social work amplifies naturally. Late-career achievements — honours, publications, leadership of organisations — are more common in Krittika's Saturn dasa than in almost any other nakshathiram.",
         navigate: "Saturn's primary health warnings for Krittika between 57 and 76 are musculoskeletal (joints, spine), cardiovascular, and respiratory. Cold, dampness, and overwork compound rapidly at this age. The discipline that served Krittika through the working years must now be applied to rest and recovery — a lesson Krittika resists but cannot avoid. Any unresolved karmic obligations — broken promises, family disputes, unfulfilled commitments — surface with unusual persistence in Saturn dasa.",
@@ -120,7 +122,7 @@ const KRITTIKA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Mercury", period: "17 yrs", ageRange: "Age 76–93", theme: "The Living Library",
+      planet: "Mercury", theme: "The Living Library",
       detail: {
         expect: "Mercury dasa from 76 to 93 finds Krittika in an unexpected flowering of intellectual life. The accumulated precision of a lifetime — the sharp analysis, the structured knowledge, the disciplined study — produces insights that are genuinely irreplaceable. Writing memoirs, teaching spiritually, advising institutions, and conducting correspondence with depth become the primary activities. Technology (if embraced in earlier decades) provides surprising new avenues of connection and contribution. The mind, kept active by decades of rigorous use, tends to remain lucid well into Mercury dasa.",
         navigate: "Mercury governs the nervous system and lungs — at this age, respiratory conditions, tremors, and memory fragmentation are the primary concerns. Regular social and intellectual engagement maintains Mercury's vitality far longer than withdrawal into passivity. Cold and dry environments aggravate Mercury conditions — adequate warmth is non-negotiable. Avoid excessive sensory stimulation that fragments the still-sharp mind.",
@@ -128,7 +130,7 @@ const KRITTIKA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Ketu", period: "7 yrs", ageRange: "Age 93–100", theme: "Return to Fire",
+      planet: "Ketu", theme: "Return to Fire",
       detail: {
         expect: "Ketu dasa from 93 to 100 is the final chapter — reached by very few, but those who reach it carry the fullness of Agni's lifecycle. Where life began under the Sun's solar fire, it completes under Ketu's spiritual fire. A deep withdrawal from outer engagement is natural and appropriate. Attachment to outcomes dissolves. The person experiences — and this is most clearly seen in Krittika of all nakshatrams — a return to the essential: silence, spiritual presence, and the simple flame of consciousness. Pilgrimage, if physically possible, carries special significance here.",
         navigate: "Physical dependence must be met with grace rather than Krittika's habitual resistance to vulnerability. The body's demands are simple and absolute — warmth, nourishment, adequate rest, gentle movement. Spiritual companions and caregivers who understand the depth of this period are more important than medical intervention alone.",
@@ -251,5 +253,5 @@ const KRITTIKA_VISUAL: NatchathiramVisualData = {
 };
 
 export default function KrittikaVisualPage() {
-  return <NatchathiramVisualContent data={KRITTIKA} visual={KRITTIKA_VISUAL} />;
+  return <NatchathiramVisualContent data={KRITTIKA} visual={KRITTIKA_VISUAL} timings={dasaTimingsFor(KRITTIKA.number)} />;
 }

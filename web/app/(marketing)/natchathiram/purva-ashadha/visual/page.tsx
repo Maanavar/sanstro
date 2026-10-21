@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { withTamilTwin } from "@/lib/localized-metadata";
+import { withDasaTimingHold } from "@/lib/natchathiram-dasa-hold";
+import { dasaTimingsFor } from "@/lib/natchathiram-dasa-timings";
 import { natchathiramVisualTa } from "@/lib/marketing-seo-ta";
 import { PURVA_ASHADHA } from "@/lib/natchathiram-data";
 import { NatchathiramVisualContent, type NatchathiramVisualData } from "@/components/natchathiram-visual";
@@ -17,7 +19,7 @@ const EN_METADATA: Metadata = {
 };
 
 export async function generateMetadata(): Promise<Metadata> {
-  return withTamilTwin(EN_METADATA, "/natchathiram/purva-ashadha/visual", natchathiramVisualTa("purva-ashadha")!);
+  return withDasaTimingHold(await withTamilTwin(EN_METADATA, "/natchathiram/purva-ashadha/visual", natchathiramVisualTa("purva-ashadha")!), "purva-ashadha");
 }
 
 const PURVA_ASHADHA_VISUAL: NatchathiramVisualData = {
@@ -72,7 +74,7 @@ const PURVA_ASHADHA_VISUAL: NatchathiramVisualData = {
 
   dashaTimeline: [
     {
-      planet: "Venus", period: "20 yrs", ageRange: "Age 0–20", theme: "Born in the Beautiful",
+      planet: "Venus", theme: "Born in the Beautiful",
       detail: {
         expect: "Purva Ashadha opens in Venus dasa — a beginning of unusual beauty, abundance, and sensory richness. The childhood environment typically carries aesthetic quality: music, art, beauty, and the pleasure of ideas are available from the earliest years. School years (7–14) produce a student of genuine breadth — not necessarily the most disciplined but consistently the most inspired, the one who makes others feel that learning is an adventure rather than a requirement. Early romantic and creative interests blossom in Venus's second decade (14–20); the first serious aesthetic passion — music, writing, visual art, performance — often crystallises in this period. Venus–Jupiter antardasa (~yr 1 of Venus, ~ages 0–1) carries the rasi lord's presence in a brief but luminous very early window — a philosophical or spiritual quality in the very early childhood environment.",
         navigate: "Venus's primary challenge for the young Purva Ashadha is the comfort of the beautiful — the child whose natural environment is aesthetic and expansive can find the plainness and discipline of structured learning jarring. The Dhanus fire that motivates genuine philosophical commitment has not yet fully ignited in Venus dasa; the result can be breadth without depth, enthusiasm without completion. Venus–Jupiter (~yr 1 of Venus, ~ages 0–1) is a brief rasi lord sub-period flag even in infancy.",
@@ -80,7 +82,7 @@ const PURVA_ASHADHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Sun", period: "6 yrs", ageRange: "Age 20–26", theme: "The First Clarity",
+      planet: "Sun", theme: "The First Clarity",
       detail: {
         expect: "Sun dasa from 20 to 26 brings the first concentrated authority to Purva Ashadha's expansive Venus beginning. University completion, first career steps, and the consolidation of identity are the central dramas of Sun's six years. The philosophical idealism that has been gestating in Venus dasa now meets the discipline of having to choose: which vision, which career, which life? The solar clarity that comes from this choice — even when the choice is difficult — is Purva Ashadha's first real experience of their own determination.",
         navigate: "Sun's primary challenge for Purva Ashadha is the conflict between the solar demand for singular focus and the Dhanus–Venus appetite for breadth. The person who wants to study everything and experience everything finds, in Sun dasa, the productive constraint of having to become something specific. Sun–Rahu (~yr 3 of Sun, ~ages 22–23) can bring disruption and unexpected direction changes.",
@@ -88,7 +90,7 @@ const PURVA_ASHADHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Moon", period: "10 yrs", ageRange: "Age 26–36", theme: "Emotional Foundations",
+      planet: "Moon", theme: "Emotional Foundations",
       detail: {
         expect: "Moon dasa from 26 to 36 brings emotional depth and relational richness to Purva Ashadha's otherwise philosophical and aesthetic nature. Marriage may enter in Moon–Jupiter antardasa (~yr 4 of Moon, ~ages 30–31) or Moon–Venus (~yr 9 of Moon, ~ages 34–35). Children may arrive; the family foundation that Purva Ashadha will nourish through decades may take root. Professional development continues through the Moon decade; the motivational and teaching capacities that are Purva Ashadha's most distinctive professional gifts begin to find their most effective expression as the emotional intelligence deepens.",
         navigate: "Moon's primary challenge for Purva Ashadha is the encounter with emotional limitation — their own and others'. The expansive optimism that is their deepest nature meets, in Moon dasa, the reality that emotional life cannot always be expanded or philosophically reframed. Moon–Jupiter (~yr 4 of Moon, ~ages 30–31) is a warm sub-period with rasi lord presence — an expansive, wise, and possibly pivotal personal or professional moment.",
@@ -96,7 +98,7 @@ const PURVA_ASHADHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Mars", period: "7 yrs", ageRange: "Age 36–43", theme: "Directed Fire",
+      planet: "Mars", theme: "Directed Fire",
       detail: {
         expect: "Mars dasa from 36 to 43 ignites Purva Ashadha's idealism with directed action. The philosophical vision and the motivational presence now meet the energy of decisive implementation — the inspired teacher who begins to build institutions, the philosophical writer who completes the major work, the creative director who launches the defining project. Mars's fire in Dhanus is the fire of the philosopher-warrior: not the warrior who fights for territory but the one who fights for ideas, for higher possibilities, for the vision that others have not yet seen. Professional achievements of Mars dasa typically have a quality of invincibility — the obstacles are met with the Apas deity's patient, insistent, adaptive advance.",
         navigate: "Mars's primary challenge for Purva Ashadha is impatience — the motivated person who has finally found the directed fire for their vision can become intolerant of the time that implementation actually requires. The optimism of Purva Ashadha's nature meets the reality that even the invincible advance takes the time it takes. Mars–Jupiter (~yr 3 of Mars, ~ages 39–40) brings a brief but significant rasi lord presence — the philosophical moderator in Mars's active field.",
@@ -104,7 +106,7 @@ const PURVA_ASHADHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Rahu", period: "18 yrs", ageRange: "Age 43–61", theme: "The World Stage",
+      planet: "Rahu", theme: "The World Stage",
       detail: {
         expect: "Rahu dasa from 43 to 61 brings Purva Ashadha's vision and motivational presence to the widest possible arena. International recognition, cross-cultural work, and the encounter with ideas and traditions far outside the birth culture are the signature experiences of Rahu's eighteen years. The philosophical breadth of Dhanus and the aesthetic grace of Venus find in Rahu dasa the amplifying field they have been building toward. Teaching, writing, leadership, and the transmission of the higher vision that Purva Ashadha carries reach their widest reach in this period. Financial prosperity typically peaks in Rahu dasa as well — the combination of Venus's abundance instinct and Rahu's expansive appetite produces significant material results.",
         navigate: "Rahu's primary challenge for Purva Ashadha is the amplification of the optimism beyond its genuine capacity — the invincible attitude that works as a genuine spiritual orientation becoming a refusal to acknowledge real limits. The water's adaptive flow requires acknowledging the presence of obstacles before finding the path through them. Rahu–Jupiter (~yr 3 of Rahu, ~ages 46–48) is a 16-month window of major philosophical, spiritual, or wisdom-tradition deepening.",
@@ -112,7 +114,7 @@ const PURVA_ASHADHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Jupiter", period: "16 yrs", ageRange: "Age 61–77", theme: "Rasi Lord — The Philosopher's Fullness",
+      planet: "Jupiter", theme: "Rasi Lord — The Philosopher's Fullness",
       detail: {
         expect: "Jupiter dasa from 61 to 77 is the rasi lord's arrival for Purva Ashadha — the planet that rules your rasi, Dhanus, now governs your dasa. For the Purva Ashadha native whose entire life has been animated by philosophical expansiveness, aesthetic grace, motivational presence, and invincible optimism, Jupiter dasa is the fullness — the period in which the breadth and beauty of the life that has been lived can be transmitted with the authority of genuine experience. Grandchildren receive the teacher of teachers. The philosophical and spiritual institutions Purva Ashadha has been building through Rahu dasa now enter their mature phase. Writing and teaching reach a quality of transmission that the earlier work, however inspired, could not achieve — because it is now informed by the fullness of a life actually lived.",
         navigate: "Jupiter's primary shadow in the rasi lord dasa is the philosophical inflation of the teacher — the person whose vision has been validated across decades beginning to believe their vision is the vision, rather than one inspired expression of a truth that exceeds any single formulation. The Apas deity's humility — the water that serves by flowing, not by demanding that the landscape accommodate it — is the antidote. Physical care and the deliberate simplicity of later life are important.",
@@ -120,7 +122,7 @@ const PURVA_ASHADHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Saturn", period: "19 yrs", ageRange: "Age 77–96", theme: "The Long Discipline",
+      planet: "Saturn", theme: "The Long Discipline",
       detail: {
         expect: "Saturn dasa from 77 to 96 brings the great discipline of time and limitation to Purva Ashadha's otherwise expansive and optimistic life. After the philosophical fullness of Jupiter dasa, Saturn insists on simplicity: the single relationship, the single practice, the single truth that has survived the long life. For those who have remained genuinely open to learning, Saturn dasa is the most honest period of the life — the discipline that strips away what is remaining of the performed philosophical optimism and leaves the genuine equanimity underneath.",
         navigate: "Complete and gentle physical care. Saturn's demands at this age require deliberate, devoted attention from those who love this person. Saturn–Jupiter (~yr 10 of Saturn, ~ages 87–89) brings the rasi lord in Saturn's disciplined late field.",
@@ -128,7 +130,7 @@ const PURVA_ASHADHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Mercury", period: "17 yrs", ageRange: "Age 96–113", theme: "Final Intelligence",
+      planet: "Mercury", theme: "Final Intelligence",
       detail: {
         expect: "Mercury dasa from 96 to 113 is reached by extraordinarily few Purva Ashadha souls. For those who arrive, Mercury brings a final return to the mind's capacity — the intelligence of articulation, the precision of language — in a context of radical simplicity.",
         navigate: "Complete and devoted physical care. Mercury at this extreme age is a gift of the sharpness of understanding — a mind that has been refined by nine decades of philosophical engagement.",
@@ -245,5 +247,5 @@ const PURVA_ASHADHA_VISUAL: NatchathiramVisualData = {
 };
 
 export default function PurvaAshadhaVisualPage() {
-  return <NatchathiramVisualContent data={PURVA_ASHADHA} visual={PURVA_ASHADHA_VISUAL} />;
+  return <NatchathiramVisualContent data={PURVA_ASHADHA} visual={PURVA_ASHADHA_VISUAL} timings={dasaTimingsFor(PURVA_ASHADHA.number)} />;
 }

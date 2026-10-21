@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { withTamilTwin } from "@/lib/localized-metadata";
+import { withDasaTimingHold } from "@/lib/natchathiram-dasa-hold";
+import { dasaTimingsFor } from "@/lib/natchathiram-dasa-timings";
 import { natchathiramVisualTa } from "@/lib/marketing-seo-ta";
 import { UTTIRATATHI } from "@/lib/natchathiram-data";
 import { NatchathiramVisualContent, type NatchathiramVisualData } from "@/components/natchathiram-visual";
@@ -17,7 +19,7 @@ const EN_METADATA: Metadata = {
 };
 
 export async function generateMetadata(): Promise<Metadata> {
-  return withTamilTwin(EN_METADATA, "/natchathiram/uttara-bhadra/visual", natchathiramVisualTa("uttara-bhadra")!);
+  return withDasaTimingHold(await withTamilTwin(EN_METADATA, "/natchathiram/uttara-bhadra/visual", natchathiramVisualTa("uttara-bhadra")!), "uttara-bhadra");
 }
 
 const UTTARA_BHADRA_VISUAL: NatchathiramVisualData = {
@@ -72,7 +74,7 @@ const UTTARA_BHADRA_VISUAL: NatchathiramVisualData = {
 
   dashaTimeline: [
     {
-      planet: "Saturn", period: "19 yrs", ageRange: "Age 0–19", theme: "Born into the Deep Patience",
+      planet: "Saturn", theme: "Born into the Deep Patience",
       detail: {
         expect: "Uttara Bhadra opens in Saturn dasa — a beginning of unusual depth, patience, and the quality of having already been through much before the life has formally begun. The Uttara Bhadra child in Saturn dasa has a gravitas that strikes caregivers early: the seriousness, the depth of attention, the capacity for sustained contemplation that are not typical of very young children. Saturn's nineteen years cover infancy, childhood, and early adolescence — the entire formative period is structured by Saturn's long-game governance. The educational path is typically marked by the depth of engagement rather than the breadth — the Uttara Bhadra student who studies one thing until it is fully understood, rather than moving quickly across many things. Saturn–Jupiter antardasa (~yr 13 of Saturn, ~ages 13-14) is a critical rasi lord sub-period flag: Jupiter is the lord of your rasi, Meena, and this 11-month sub-period in early adolescence brings the rasi lord's philosophical abundance, grace, and expansive wisdom as the first significant encounter with the Jupiter quality that governs the entire life.",
         navigate: "Saturn's primary challenge for the young Uttara Bhadra is the weight of the deep patience in the social environment of childhood — the contemplative child who is not quick, not light, not easily animated by the social entertainments of their peers, can find the early social environment genuinely difficult. The depth is real and valuable; the challenge is to provide the young Uttara Bhadra with relationships and environments that honour the depth rather than demanding the performance of lightness. Saturn–Jupiter (~yr 13, ~ages 13-14) is a major rasi lord antardasa flag: this is the first, brief, formative encounter with the Jupiter quality that defines the Uttara Bhadra nature.",
@@ -80,7 +82,7 @@ const UTTARA_BHADRA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Mercury", period: "17 yrs", ageRange: "Age 19–36", theme: "The Depth Finds Its Voice",
+      planet: "Mercury", theme: "The Depth Finds Its Voice",
       detail: {
         expect: "Mercury dasa from 19 to 36 brings the capacity for articulation to Uttara Bhadra's depth. The contemplative intelligence that has been developing through Saturn's nineteen years now finds in Mercury the ability to express, to articulate, to communicate what has been understood from the depths. University education and the first professional steps are taken in Mercury's field; the academic or philosophical career begins to take shape. The depth of engagement that Uttara Bhadra brings to any intellectual domain they inhabit produces, in Mercury dasa, the work that begins to distinguish them within their chosen field. Mercury–Jupiter antardasa (~yr 14 of Mercury, ~ages 33-34) is a significant rasi lord sub-period flag: Jupiter arrives in Mercury's articulative field as the most expansive and philosophically rich sub-period of the Mercury dasa.",
         navigate: "Mercury's primary challenge for Uttara Bhadra is the pace difference between the contemplative depth and Mercury's quick analytical movement — the deep thinker finding Mercury's speed genuinely challenging to inhabit while maintaining the quality of contemplation that gives the thought its depth. Mercury–Jupiter (~yr 14, ~ages 33-34) is a rasi lord antardasa flag: Jupiter's arrival in Mercury's field as a significant philosophical expansion and possible wisdom breakthrough.",
@@ -88,7 +90,7 @@ const UTTARA_BHADRA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Ketu", period: "7 yrs", ageRange: "Age 36–43", theme: "The Inward Return",
+      planet: "Ketu", theme: "The Inward Return",
       detail: {
         expect: "Ketu dasa from 36 to 43 brings the great inward return — after Saturn's deep patience and Mercury's articulative engagement, Ketu strips the accumulated constructions and invites the return to the source. For Uttara Bhadra, whose nature is already contemplative and depth-oriented, Ketu's inward movement is not a radical disruption but a deepening: the contemplative returns to the contemplative, the depth to the depths. For many Uttara Bhadra, Ketu dasa is a period of significant spiritual practice deepening — a retreat, a period of dedicated practice, or the decisive encounter with the teacher or tradition that provides the framework for the life's remaining decades. Ketu–Jupiter antardasa (~yr 5 of Ketu, ~ages 41-42) is a significant rasi lord sub-period flag.",
         navigate: "Ketu's primary challenge for Uttara Bhadra is the risk of withdrawal beyond what serves — the contemplative person who uses Ketu's inward pull to avoid the engagement that the wisdom requires. Ahir Budhnya holds the cosmos from below; the depth is in service of what is above, not a retreat from it. Ketu–Jupiter (~yr 5, ~ages 41-42) is a rasi lord flag: the most significant sub-period of Ketu dasa for Uttara Bhadra.",
@@ -96,7 +98,7 @@ const UTTARA_BHADRA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Venus", period: "20 yrs", ageRange: "Age 43–63", theme: "The Beautiful Deepening",
+      planet: "Venus", theme: "The Beautiful Deepening",
       detail: {
         expect: "Venus dasa from 43 to 63 brings beauty, abundance, and relational warmth to Uttara Bhadra's otherwise contemplative and depth-oriented life. The wisdom that has been accumulating since Saturn's opening now meets the world's beauty in a way that the deep person can genuinely receive and share. Professional recognition reaches its widest scope; teaching and transmission of the Uttara Bhadra wisdom becomes the primary professional expression; grandchildren may arrive for those who have married. Venus–Jupiter antardasa (~yr 1 of Venus, ~ages 43-44) is a significant rasi lord sub-period flag: Jupiter arrives very early in Venus's long dasa as a luminous, expansive philosophical opening to the entire twenty-year period.",
         navigate: "Venus's primary challenge for Uttara Bhadra is the temptation to dilute the depth in service of the beautiful — the contemplative whose wisdom is packaged for wider consumption at the cost of the depth that made it valuable. The beauty that Venus offers is the beauty of the depths made accessible, not the beauty of the surface substituting for the depths. Venus–Jupiter (~yr 1, ~ages 43-44) is a major rasi lord flag.",
@@ -104,7 +106,7 @@ const UTTARA_BHADRA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Sun", period: "6 yrs", ageRange: "Age 63–69", theme: "The Solar Elder",
+      planet: "Sun", theme: "The Solar Elder",
       detail: {
         expect: "Sun dasa from 63 to 69 brings the solar clarity of authority to Uttara Bhadra's depth wisdom. The contemplative who has inhabited the depths across six decades now stands in the solar light — not with the solar fire's urgency but with the settled authority of one who has seen to the bottom and come back. Teaching and transmission reach their most authoritative expression; the elder's presence itself is the teaching.",
         navigate: "Sun's primary challenge for Uttara Bhadra is the encounter between the solar demand for visibility and the contemplative's preference for the depths. Sun–Jupiter (~yr 3 of Sun, ~ages 65-66) brings a brief but notable rasi lord presence — Jupiter arrives as a warm, expansive sub-period in the solar authority field.",
@@ -112,7 +114,7 @@ const UTTARA_BHADRA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Moon", period: "10 yrs", ageRange: "Age 69–79", theme: "The Emotional Ocean",
+      planet: "Moon", theme: "The Emotional Ocean",
       detail: {
         expect: "Moon dasa from 69 to 79 brings the emotional ocean to Uttara Bhadra's depth wisdom. The contemplative who has inhabited the deeper-than-emotional dimension of experience now descends into the feeling dimension — the emotional depth that Meena naturally carries, and that the Uttara Bhadra character has perhaps held below the surface through the earlier decades of committed depth work. Family relationships, the bonds of decades, and the emotional richness of a life deeply lived are the primary gifts of Moon's ten years. Moon–Jupiter (~yr 7 of Moon, ~ages 75-77) brings a significant rasi lord sub-period — one of the most expansive Jupiter presences in the Uttara Bhadra sequence.",
         navigate: "Moon's primary challenge for Uttara Bhadra is the encounter with emotional vulnerability — the person whose depth has been primarily in the contemplative domain discovering the ocean of feeling as a distinct and sometimes overwhelming dimension. Moon–Jupiter (~yr 7, ~ages 75-77) is a major rasi lord flag: Jupiter arrives in Moon's emotional field as a warm, philosophically expansive, and possibly the most profound Jupiter encounter in the pre-Jupiter-Dasa sequence.",
@@ -120,7 +122,7 @@ const UTTARA_BHADRA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Mars", period: "7 yrs", ageRange: "Age 79–86", theme: "The Final Fire",
+      planet: "Mars", theme: "The Final Fire",
       detail: {
         expect: "Mars dasa from 79 to 86 brings the directed fire and vital energy of Mars to the Uttara Bhadra elder. After Moon's emotional ocean, Mars is a sudden, vitalising presence — the body's energy and the will's directedness in an unexpected late-life appearance. Mars–Jupiter (~yr 3 of Mars, ~ages 81-82) brings a rasi lord sub-period: a brief but luminous encounter with the Jupiter quality in Mars's vital field.",
         navigate: "Complete and gentle physical care. Mars's vitality at this age requires careful management — the fire is real, but the body requires deliberate protection. Mars–Jupiter (~yr 3, ~ages 81-82): rasi lord sub-period flag.",
@@ -128,7 +130,7 @@ const UTTARA_BHADRA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Rahu", period: "18 yrs", ageRange: "Age 86–104", theme: "The Final Expansion",
+      planet: "Rahu", theme: "The Final Expansion",
       detail: {
         expect: "Rahu dasa from 86 to 104 brings the great expansion and dissolution of identity to Uttara Bhadra's elder years. The contemplative depth and the cosmic stability that have defined this person across nine decades now meet Rahu's insistent expansion — the recognition that what has been the individual form of wisdom is part of a much larger field. Rahu–Jupiter (~yr 3 of Rahu, ~ages 88-90) brings a major rasi lord antardasa: the most significant Jupiter presence in the entire Uttara Bhadra life sequence, occurring in the late elder years as a profound philosophical expansion and possible completion.",
         navigate: "Complete and devoted physical care. Rahu at this extreme age is the dissolution of what was always already larger than the individual form. Rahu–Jupiter (~yr 3, ~ages 88-90) is the single most significant rasi lord antardasa in the Uttara Bhadra life — Jupiter as rasi lord arriving in Rahu's expansive, dissolving field.",
@@ -245,5 +247,5 @@ const UTTARA_BHADRA_VISUAL: NatchathiramVisualData = {
 };
 
 export default function UttaraBhadraVisualPage() {
-  return <NatchathiramVisualContent data={UTTIRATATHI} visual={UTTARA_BHADRA_VISUAL} />;
+  return <NatchathiramVisualContent data={UTTIRATATHI} visual={UTTARA_BHADRA_VISUAL} timings={dasaTimingsFor(UTTIRATATHI.number)} />;
 }

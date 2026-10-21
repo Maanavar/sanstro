@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { withTamilTwin } from "@/lib/localized-metadata";
+import { withDasaTimingHold } from "@/lib/natchathiram-dasa-hold";
+import { dasaTimingsFor } from "@/lib/natchathiram-dasa-timings";
 import { natchathiramVisualTa } from "@/lib/marketing-seo-ta";
 import { VISHAKHA } from "@/lib/natchathiram-data";
 import { NatchathiramVisualContent, type NatchathiramVisualData } from "@/components/natchathiram-visual";
@@ -17,7 +19,7 @@ const EN_METADATA: Metadata = {
 };
 
 export async function generateMetadata(): Promise<Metadata> {
-  return withTamilTwin(EN_METADATA, "/natchathiram/vishakha/visual", natchathiramVisualTa("vishakha")!);
+  return withDasaTimingHold(await withTamilTwin(EN_METADATA, "/natchathiram/vishakha/visual", natchathiramVisualTa("vishakha")!), "vishakha");
 }
 
 const VISHAKHA_VISUAL: NatchathiramVisualData = {
@@ -72,7 +74,7 @@ const VISHAKHA_VISUAL: NatchathiramVisualData = {
 
   dashaTimeline: [
     {
-      planet: "Jupiter", period: "16 yrs", ageRange: "Age 0–16", theme: "The Goal is Set",
+      planet: "Jupiter", theme: "The Goal is Set",
       detail: {
         expect: "Vishakha opens in Jupiter dasa — a wise, expansive beginning that sets the philosophical and ethical foundation for a lifetime of purposeful pursuit. Childhood (0–8) is typically characterised by an unusual earnestness: the Vishakha child has opinions, positions, and a sense of what matters that adults find surprising. Brihaspati's influence gives the young Vishakha access to principles — right and wrong, fair and unfair, worthy and unworthy — before most peers have even formed the questions. School years (8–16) produce the student who has already decided what they want and is using education as the instrument for getting there. The first serious life goal — a career ambition, a philosophical conviction, a sporting or competitive dream — crystallises in Jupiter dasa.",
         navigate: "Jupiter's generosity can produce in the young Vishakha a degree of righteousness — the certainty of one's own correctness — that alienates peers and teachers who feel judged by the standard being applied. The Indra-Agni fire that is Vishakha's gift requires the warmth of Jupiter's wisdom to channel it productively rather than abrasively. Jupiter–Rahu antardasa (~yr 12 of Jupiter, ~age 12) can bring an early identity disruption or philosophical crisis that is ultimately clarifying.",
@@ -80,7 +82,7 @@ const VISHAKHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Saturn", period: "19 yrs", ageRange: "Age 16–35", theme: "The Long Work Toward the Goal",
+      planet: "Saturn", theme: "The Long Work Toward the Goal",
       detail: {
         expect: "Saturn dasa from 16 to 35 is the great test of Vishakha's goal-determination. The ambition set in Jupiter dasa now meets reality — the long, demanding, sometimes discouraging work of actually becoming what was envisioned. Higher education or professional training; the first career steps; marriage and family formation (typically ages 25–30); the first significant achievement that validates the direction — all run through Saturn's nineteen years. Vishakha in Saturn dasa discovers whether the goal-determination is genuine or merely the enthusiasm of youth. For most, it is genuine, and Saturn's demands forge it into steel.",
         navigate: "Saturn's primary test for Vishakha is patience with the pace of progress. Indra-Agni's fire wants the goal now; Saturn insists on the full journey. The frustration that produces — the talent that is not yet matched by opportunity, the ambition that outpaces the circumstances — is Saturn's teaching. Saturn–Rahu antardasa (~yr 12 of Saturn, ~ages 28–30) is the most demanding sub-period; career stagnation, relationship pressure, and value conflicts can all peak simultaneously.",
@@ -88,7 +90,7 @@ const VISHAKHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Mercury", period: "17 yrs", ageRange: "Age 35–52", theme: "Strategic Intelligence",
+      planet: "Mercury", theme: "Strategic Intelligence",
       detail: {
         expect: "Mercury dasa from 35 to 52 brings Vishakha's analytical and communicative intelligence into full service of the goal. The strategic mind — the capacity to understand systems, identify leverage points, and communicate the goal in ways that recruit others to it — reaches its peak expression. Career advances significantly; leadership recognition comes; the social and professional network that Vishakha has been building since Jupiter dasa now has enough critical mass to accelerate progress toward the primary objective. For those in political, legal, research, or leadership roles, the most significant professional contributions of the life typically fall in Mercury dasa.",
         navigate: "Mercury's primary challenge for Vishakha is not the goal but the method — the risk of becoming purely strategic, treating people as instruments for achieving objectives rather than as ends in themselves. The intensity that serves the goal can corrode relationships and alliances if Mercury's rationality is not balanced by Jupiter's warmth. Physical concerns: nervous system, respiratory, and the tension-related conditions that sustained ambitious focus produces.",
@@ -96,7 +98,7 @@ const VISHAKHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Ketu", period: "7 yrs", ageRange: "Age 52–59", theme: "The Arrow Turns Inward",
+      planet: "Ketu", theme: "The Arrow Turns Inward",
       detail: {
         expect: "Ketu dasa from 52 to 59 redirects Vishakha's arrow toward the interior. The external goals that have organised the life are either achieved, abandoned, or transformed; Ketu demands an honest accounting of what was worth the sustained pursuit and what was not. Spiritual depth that has been deferred by the urgency of goal-pursuit surfaces with unusual force. For many Vishakha, Ketu dasa is the period in which the philosophical hunger that Jupiter first awakened finally receives the sustained attention it has always deserved.",
         navigate: "Ketu's inward demand can feel profoundly disorienting to a person whose entire identity has been organised around external achievement. The fire that burned toward the goal for forty years does not simply extinguish; it transforms into the fire of inquiry, practice, and ultimate seeking. Physical concerns: nervous system, autoimmune vulnerabilities, and the physical cost of decades of sustained intense effort.",
@@ -104,7 +106,7 @@ const VISHAKHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Venus", period: "20 yrs", ageRange: "Age 59–79", theme: "Rasi Lord for Tula-born — The Beautiful Achievement",
+      planet: "Venus", theme: "Rasi Lord for Tula-born — The Beautiful Achievement",
       detail: {
         expect: "Venus dasa from 59 to 79 is the rasi lord's arrival for Tula-pada Vishakha. Venus is the lord of your rasi, Tula — this makes her dasa doubly charged for Tula-born Vishakha natives. The beauty, relational warmth, and aesthetic richness that Tula's Venus offers now flow without the goal-urgency that characterised the earlier decades. Career legacy is established; grandchildren arrive; the achieved life is enjoyed rather than driven. Creative expression — music, art, garden, writing — re-emerges with the freedom that achievement provides. For Vrischika-pada Vishakha, Venus dasa brings a prolonged period of aesthetic and relational abundance.",
         navigate: "Venus dasa's health concerns in this age band are cardiovascular, kidney function, and hormonal. The intensity that defined Vishakha's earlier decades requires deliberate release in Venus dasa — the fire is allowed to warm rather than burn. Venus–Saturn antardasa (~yr 14 of Venus, ~ages 73–75) demands careful pacing.",
@@ -112,7 +114,7 @@ const VISHAKHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Sun", period: "6 yrs", ageRange: "Age 79–85", theme: "Solar Recognition",
+      planet: "Sun", theme: "Solar Recognition",
       detail: {
         expect: "Sun dasa from 79 to 85 brings a final quality of radiant recognition — the goals pursued across a lifetime are seen clearly and acknowledged, both by Vishakha and by those who have witnessed the pursuit. The Indra-Agni fire settles into pure solar warmth: the authority of one who has arrived.",
         navigate: "Physical care focuses on heart and general vitality. The recognition of Sun dasa should not reawaken the achieving drive at the expense of physical care — the body needs rest, warmth, and gentle living now.",
@@ -120,7 +122,7 @@ const VISHAKHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Moon", period: "10 yrs", ageRange: "Age 85–95", theme: "Tidal Completion",
+      planet: "Moon", theme: "Tidal Completion",
       detail: {
         expect: "Moon dasa from 85 to 95 brings the tidal completion — the emotional ocean that the fire of Vishakha's life was always also flowing through. Grandchildren and great-grandchildren receive the most fully present version of this person. The spiritual hunger of a lifetime resolves into the oceanic feeling of the Moon.",
         navigate: "At this age, physical care is the primary requirement. Moon dasa amplifies the need for consistent, loving human presence and gentle routine.",
@@ -128,7 +130,7 @@ const VISHAKHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Mars", period: "7 yrs", ageRange: "Age 95–102", theme: "Rasi Lord for Vrischika-born — The Final Fire",
+      planet: "Mars", theme: "Rasi Lord for Vrischika-born — The Final Fire",
       detail: {
         expect: "Mars dasa from 95 to 102 is the rasi lord's arrival for Vrischika-pada Vishakha. Mars is the lord of your rasi, Vrischika — this makes his dasa doubly charged for Vrischika-born Vishakha natives. The fire that has defined this person's entire life returns in its purest form — not the ambitious drive of youth but the clarified, essential will of one who has completed a great journey. For Tula-pada Vishakha, Mars dasa at this extreme age brings one final quality of decisive presence.",
         navigate: "Complete physical care. Mars at this age is will, not energy; clarity, not force. Treat this person's last years with the respect owed to one who has pursued a great goal with a great fire.",
@@ -245,5 +247,5 @@ const VISHAKHA_VISUAL: NatchathiramVisualData = {
 };
 
 export default function VishakhaVisualPage() {
-  return <NatchathiramVisualContent data={VISHAKHA} visual={VISHAKHA_VISUAL} />;
+  return <NatchathiramVisualContent data={VISHAKHA} visual={VISHAKHA_VISUAL} timings={dasaTimingsFor(VISHAKHA.number)} />;
 }

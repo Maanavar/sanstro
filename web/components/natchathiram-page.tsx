@@ -7,6 +7,8 @@ import { NATCHATHIRAM_LIST, type NatchathiramEntry } from "@/lib/natchathiram-da
 import { NATCHATHIRAM_EN, NATCHATHIRAM_EN_FACTS, JYOTISH_TERM_EN, type NatchathiramEnSections } from "@/lib/natchathiram-data-en";
 import { normalizeTamilAstroText, romanNakshathiramLabel, romanNakshathiramName, tamilizeAstroEnglish } from "@/lib/tamil-astro";
 import { NatchathiramFactVisual, RasiGlyph } from "@/components/astro-symbols";
+import { DASA_TIMING_NOTE, DasaSummaryTables } from "@/components/natchathiram-dasa-timing";
+import { dasaTimingsFor } from "@/lib/natchathiram-dasa-timings";
 
 interface Props {
   data: NatchathiramEntry;
@@ -165,6 +167,11 @@ export async function NatchathiramPageContent({ data }: Props) {
                 {mt(d.dasha_note_link, lang)}
               </Link>{" "}
               {mt(d.dasha_note_post, lang)}
+            </p>
+            {/* FSA-03: every dasa number on this page is the engine's; the prose below carries none. */}
+            <DasaSummaryTables timings={dasaTimingsFor(data.number)} lang={lang === "ta" ? "ta" : "en"} />
+            <p style={{ fontSize: "0.78rem", opacity: 0.7, marginBottom: "1.25rem" }}>
+              {DASA_TIMING_NOTE[lang === "ta" ? "ta" : "en"]}
             </p>
             {paras("dasha").map((p, i) => <p key={i}>{p}</p>)}
           </div>

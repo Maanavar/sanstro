@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { withTamilTwin } from "@/lib/localized-metadata";
+import { withDasaTimingHold } from "@/lib/natchathiram-dasa-hold";
+import { dasaTimingsFor } from "@/lib/natchathiram-dasa-timings";
 import { natchathiramVisualTa } from "@/lib/marketing-seo-ta";
 import { REVATHI } from "@/lib/natchathiram-data";
 import { NatchathiramVisualContent, type NatchathiramVisualData } from "@/components/natchathiram-visual";
@@ -17,7 +19,7 @@ const EN_METADATA: Metadata = {
 };
 
 export async function generateMetadata(): Promise<Metadata> {
-  return withTamilTwin(EN_METADATA, "/natchathiram/revati/visual", natchathiramVisualTa("revati")!);
+  return withDasaTimingHold(await withTamilTwin(EN_METADATA, "/natchathiram/revati/visual", natchathiramVisualTa("revati")!), "revati");
 }
 
 const REVATI_VISUAL: NatchathiramVisualData = {
@@ -72,7 +74,7 @@ const REVATI_VISUAL: NatchathiramVisualData = {
 
   dashaTimeline: [
     {
-      planet: "Mercury", period: "17 yrs", ageRange: "Age 0–17", theme: "Born to Communicate the Nourishment",
+      planet: "Mercury", theme: "Born to Communicate the Nourishment",
       detail: {
         expect: "Revati opens in Mercury dasa — a beginning of unusual communicative sensitivity, relational intelligence, and the capacity to perceive and articulate what others are experiencing. The Revati child in Mercury dasa has an early gift for language, for storytelling, and for the kind of communication that makes others feel seen and understood. School years (7-14) produce a student whose intelligence is characteristically inclusive — not the student who excels by outperforming others but the one who ensures that the learning is shared and that no one is left behind. The first significant artistic, communicative, or relational passion typically crystallises in Mercury's first decade. Mercury–Jupiter antardasa (~yr 14 of Mercury, ~ages 14-15) is a rasi lord sub-period flag: Jupiter is the lord of your rasi, Meena, and this first significant Jupiter antardasa in adolescence brings the rasi lord's philosophical grace and expansive wisdom as the first major encounter with the Jupiter quality.",
         navigate: "Mercury's primary challenge for Revati is the risk of dispersal — the person whose natural quality is to communicate what others need to hear, available to everyone, can find Mercury's breadth producing a certain lack of depth in the early communications. The Pushan guidance function requires knowing where one is going as well as being available to help others find their way. Mercury–Jupiter (~yr 14, ~ages 14-15) is a rasi lord flag: a first, luminous encounter with the Jupiter quality that will govern the life's final philosophical harvest.",
@@ -80,7 +82,7 @@ const REVATI_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Ketu", period: "7 yrs", ageRange: "Age 17–24", theme: "The Inner Threshold",
+      planet: "Ketu", theme: "The Inner Threshold",
       detail: {
         expect: "Ketu dasa from 17 to 24 brings the great inward turn — after Mercury's communicative opening, Ketu invites the young Revati to discover that the guidance function requires first a genuine internal navigation. University years and the first independent adult experiences run through Ketu's seven years; the separation from the family of origin, the first encounters with loss, and the discovery of the limits of what the communicative empathy alone can provide are the formative experiences of Ketu dasa. The Pushan function — guiding others through thresholds — requires that the guide know the threshold from the inside. Ketu provides that internal encounter.",
         navigate: "Ketu's primary challenge for Revati is the encounter with the limits of nourishment — the person whose nature is to provide Pushan's abundance discovering that not every situation can be nourished, not every transition can be smoothed, not every threshold can be guided through without loss. Ketu–Jupiter (~yr 5 of Ketu, ~ages 22-23) is a rasi lord sub-period flag: Jupiter arrives in Ketu's simplifying field as a philosophical, expansive, and possibly spiritually decisive sub-period.",
@@ -88,7 +90,7 @@ const REVATI_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Venus", period: "20 yrs", ageRange: "Age 24–44", theme: "The Nourishing Abundance",
+      planet: "Venus", theme: "The Nourishing Abundance",
       detail: {
         expect: "Venus dasa from 24 to 44 brings the full flowering of Revati's nourishing and guiding capacities in the professional and relational world. Career foundations are established; the unique combination of Revati's compassion, Mercury's articulativeness, and the depth earned in Ketu's threshold is now available in the world's fullness. Marriage and family formation typically occur in Venus–Jupiter antardasa (~yr 1 of Venus, ~ages 24-25) or Venus–Mercury (~yr 8, ~ages 32-33). Children arrive; the Revati parent's quality of presence — nourishing without smothering, guiding without controlling — is the distinctive contribution to the next generation. Professional recognition in the teaching, healing, or creative domain reaches its first peak. Venus–Jupiter antardasa (~yr 1 of Venus, ~ages 24-25) is a significant rasi lord sub-period flag.",
         navigate: "Venus's primary challenge for Revati is the temptation to provide too much — the nourishing person whose abundance instinct meets the world's real needs can begin to deplete the internal resource through over-giving. Pushan nourishes others because Pushan is itself nourished from an inexhaustible source; the Revati equivalent is the deliberate maintenance of the inner source through contemplative practice alongside the outer giving. Venus–Jupiter (~yr 1, ~ages 24-25) is a major rasi lord flag.",
@@ -96,7 +98,7 @@ const REVATI_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Sun", period: "6 yrs", ageRange: "Age 44–50", theme: "The Solar Guide",
+      planet: "Sun", theme: "The Solar Guide",
       detail: {
         expect: "Sun dasa from 44 to 50 brings the solar clarity and authority to Revati's compassionate and nourishing character. The guide who has been accompanying others through transitions now stands in the solar light of acknowledged authority — not the authority of power but the authority of trustworthiness, the kind of authority that comes from having genuinely seen people through the difficult passages. Leadership in the professional domain; widening recognition; the public expression of what the Revati wisdom has accumulated.",
         navigate: "Sun's primary challenge for Revati is the encounter between the solar demand for singularity and the Revati inclusive compassion that does not privilege any one over another. The shepherd who also stands in the solar spotlight must remember that the spotlight is in service of the flock, not the other way around. Sun–Jupiter (~yr 3 of Sun, ~ages 46-47) brings a rasi lord sub-period: Jupiter arrives in the solar authority field as a warm, expansive, and philosophically rich sub-period.",
@@ -104,7 +106,7 @@ const REVATI_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Moon", period: "10 yrs", ageRange: "Age 50–60", theme: "The Emotional Shepherd",
+      planet: "Moon", theme: "The Emotional Shepherd",
       detail: {
         expect: "Moon dasa from 50 to 60 brings the full depth of emotional nourishment and compassionate presence to Revati's mature expression. The compassionate guidance function that has been developing since Mercury's opening now operates from the most emotionally present and responsive place available. Family relationships deepen; the Revati elder parent is the emotional ground for adult children navigating their own transitions. Professional work in counselling, healing, or teaching reaches its most emotionally resonant and effective expression. Moon–Jupiter (~yr 7 of Moon, ~ages 56-58) is a significant rasi lord sub-period flag.",
         navigate: "Moon's primary challenge for Revati is the risk of emotional merger — the shepherd whose compassion is so complete that the boundaries between self and other begin to dissolve. Pushan guides the flock from a position of knowing where the path goes; the guide who has no separate position from the flock cannot guide. Moon–Jupiter (~yr 7, ~ages 56-58) is a major rasi lord flag: one of the most expansive and philosophically significant Jupiter presences in the pre-Jupiter-Dasa sequence.",
@@ -112,7 +114,7 @@ const REVATI_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Mars", period: "7 yrs", ageRange: "Age 60–67", theme: "The Vigorous Elder",
+      planet: "Mars", theme: "The Vigorous Elder",
       detail: {
         expect: "Mars dasa from 60 to 67 brings directed energy and physical vitality to Revati's compassionate elder years. After Moon's emotional depth, Mars is invigorating — the elder guide who still has the directness and physical engagement that the early years of guidance lacked. For many Revati, Mars dasa produces a period of surprising professional productivity — the directed energy of Mars joined to the accumulated wisdom of six decades produces decisive, effective work.",
         navigate: "Mars's primary challenge for Revati is the encounter between the directed energy and the inclusive compassion — Mars wants to direct, and the Revati compassion wants to include everyone. The vigorous elder who uses Mars's energy in service of the nourishing function is the ideal; the elder who becomes directive rather than guiding is the shadow. Mars–Jupiter (~yr 3 of Mars, ~ages 62-63) brings a rasi lord sub-period.",
@@ -120,7 +122,7 @@ const REVATI_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Rahu", period: "18 yrs", ageRange: "Age 67–85", theme: "The Wide Shepherd",
+      planet: "Rahu", theme: "The Wide Shepherd",
       detail: {
         expect: "Rahu dasa from 67 to 85 brings the great expansion of Revati's nourishing and guiding capacities to the widest possible field. The inclusive compassion that has been developing since Mercury's opening is now available at the scale of communities, institutions, and the wider world. International work, cross-cultural service, and the encounter with the full diversity of human need are common in Rahu's eighteen years. The Revati elder who navigates Rahu dasa with the wisdom accumulated through the previous six dasas becomes a figure of remarkable universal compassion — Pushan's shepherd at the largest possible scale.",
         navigate: "Rahu's primary challenge for Revati is the expansion of the nourishing instinct beyond the capacity of the individual to provide — the shepherd whose flock has become too large for any individual guide. The Revati response is to train other shepherds — to transmit the guidance function itself. Rahu–Jupiter (~yr 3 of Rahu, ~ages 70-71) is a major rasi lord sub-period flag: one of the most significant Jupiter encounters in the Revati life sequence.",
@@ -128,7 +130,7 @@ const REVATI_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Jupiter", period: "16 yrs", ageRange: "Age 85–101", theme: "Rasi Lord — The Philosopher-Shepherd's Harvest",
+      planet: "Jupiter", theme: "Rasi Lord — The Philosopher-Shepherd's Harvest",
       detail: {
         expect: "Jupiter dasa from 85 to 101 is the rasi lord's arrival for Revati — the planet that rules your rasi, Meena, now governs your dasa. For the Revati native who has spent eight decades nourishing, guiding, and providing Pushan's inclusive compassion to all who sought them, Jupiter dasa is the culminating harvest — the period in which the wisdom of a full life of compassionate service radiates with the philosophical completeness that only age and genuine depth can produce. Those around the Revati elder in Jupiter dasa experience a quality of presence that is difficult to describe — the warmth of the shepherd who has genuinely seen the flock home, now resting in the awareness of what the journey was for. Jupiter dasa is the ending that is also a beginning: Revati, the last nakshathiram, circles back to the first; the shepherd at the boundary is also the one who opens the gate for the new cycle.",
         navigate: "Jupiter's primary shadow in the rasi lord dasa for Revati is the philosophical sentimentality of the completion — the wisdom that has been earned through genuine service beginning to present itself as a comfortable resting place rather than the continuing orientation toward what is real and what is needed. Pushan nourishes at every threshold, including the final one; the Revati elder in Jupiter dasa is called to remain available to what is present rather than dwelling in what has been. Physical care and the gentle management of the body's needs are the primary practical concerns.",
@@ -250,5 +252,5 @@ const REVATI_VISUAL: NatchathiramVisualData = {
 };
 
 export default function RevatiVisualPage() {
-  return <NatchathiramVisualContent data={REVATHI} visual={REVATI_VISUAL} />;
+  return <NatchathiramVisualContent data={REVATHI} visual={REVATI_VISUAL} timings={dasaTimingsFor(REVATHI.number)} />;
 }

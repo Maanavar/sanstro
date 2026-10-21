@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { withTamilTwin } from "@/lib/localized-metadata";
+import { withDasaTimingHold } from "@/lib/natchathiram-dasa-hold";
+import { dasaTimingsFor } from "@/lib/natchathiram-dasa-timings";
 import { natchathiramVisualTa } from "@/lib/marketing-seo-ta";
 import { MULA } from "@/lib/natchathiram-data";
 import { NatchathiramVisualContent, type NatchathiramVisualData } from "@/components/natchathiram-visual";
@@ -17,7 +19,7 @@ const EN_METADATA: Metadata = {
 };
 
 export async function generateMetadata(): Promise<Metadata> {
-  return withTamilTwin(EN_METADATA, "/natchathiram/mula/visual", natchathiramVisualTa("mula")!);
+  return withDasaTimingHold(await withTamilTwin(EN_METADATA, "/natchathiram/mula/visual", natchathiramVisualTa("mula")!), "mula");
 }
 
 const MULA_VISUAL: NatchathiramVisualData = {
@@ -72,7 +74,7 @@ const MULA_VISUAL: NatchathiramVisualData = {
 
   dashaTimeline: [
     {
-      planet: "Ketu", period: "7 yrs", ageRange: "Age 0–7", theme: "Born at the Root",
+      planet: "Ketu", theme: "Born at the Root",
       detail: {
         expect: "Mula opens in Ketu dasa — among the most charged beginnings of all twenty-seven nakshathirams. The child born into Ketu's domain is already old: there is a quality of ancestral awareness, of having been here before, that caregivers notice from the earliest days. The family environment itself may carry unusual intensity — ancestral unresolved material, spiritual intensity, unexpected disruption, or the presence of genuine wisdom in the household. Early childhood may be marked by separations, encounters with the unfamiliar, or the unsettling sense that the obvious explanations for things are not the real explanations. This peculiar wisdom — born not from learning but from a pre-verbal understanding of how things actually work — is the gift Ketu places at Mula's foundation.",
         navigate: "The physical constitution in Ketu dasa can show vulnerability in the areas Ketu governs: nervous system hypersensitivity, unexpected fevers, and the autoimmune domain. The family is the primary support structure; any instability in the family environment during 0–7 resonates through the Mula life structure with unusual amplitude. Pitru dosha in the family line, if present, often shows its effects in Mula's Ketu dasa infancy. Ketu–Jupiter antardasa (~yr 5 of Ketu, ~age 5) is noteworthy — Jupiter is the rasi lord, and even this brief 4-month sub-period in infancy can mark a moment of unusual brightness, a teacher figure, or a developmental leap.",
@@ -80,7 +82,7 @@ const MULA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Venus", period: "20 yrs", ageRange: "Age 7–27", theme: "Beauty as the Bridge",
+      planet: "Venus", theme: "Beauty as the Bridge",
       detail: {
         expect: "Venus dasa from 7 to 27 is the great civilising arc of Mula's early life. After the intensity and ancestral weight of Ketu's opening seven years, Venus offers beauty, relationship, creative expression, and worldly engagement as the training ground for the philosophical depth that Mula carries. School years (7–14) see a significant social and aesthetic opening: the Mula child who was perhaps withdrawn or unsettling in Ketu dasa begins to find their way into friendships, creative expression, and aesthetic engagement with the world. Higher education and the first serious romantic relationships develop in Venus's second decade (14–27). The first major philosophical or spiritual influence — a teacher, a book, a tradition — typically enters in Venus–Rahu or Venus–Jupiter antardasa.",
         navigate: "Venus's primary challenge for Mula is the temptation toward comfort — the person whose nature is dissolution discovering the pleasures of beauty and abundance and becoming, temporarily, attached to not-dissolving. This is not wrong; it is the necessary human experience of what it is to be attached before the real teaching of letting go can be understood from the inside. Venus–Jupiter antardasa (~yr 1 of Venus, ~ages 7–8) carries the rasi lord's presence in a brief but luminous early window — a philosophical opening, an encounter with a wise teacher, or the first serious questioning of received belief.",
@@ -88,7 +90,7 @@ const MULA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Sun", period: "6 yrs", ageRange: "Age 27–33", theme: "The First Authority",
+      planet: "Sun", theme: "The First Authority",
       detail: {
         expect: "Sun dasa from 27 to 33 is the first crystallisation of Mula's authority. The years following university or early career exploration — the late twenties — are the years in which the philosophical depth and root-level intelligence Mula carries begins to be recognised professionally and socially. Leadership positions are offered; the investigative or philosophical work deepens; the identity consolidates around what Mula genuinely knows rather than what they have learned to perform. For many Mula, Sun dasa is the period of the first major dissolution they choose rather than have imposed — the leaving of a career, relationship, or worldview that has been acknowledged as insufficient.",
         navigate: "Sun's primary shadow for Mula is the authority of one who knows the root — the person who has seen through the comfortable explanations can become intolerant of others who have not yet made that journey. The dissolution faculty needs to be applied to the self's certainties as readily as to external structures. Sun–Rahu (~yr 3 of Sun, ~ages 29–30) can bring disruption.",
@@ -96,7 +98,7 @@ const MULA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Moon", period: "10 yrs", ageRange: "Age 33–43", theme: "The Emotional Root",
+      planet: "Moon", theme: "The Emotional Root",
       detail: {
         expect: "Moon dasa from 33 to 43 brings the emotional dimension to Mula's investigative, philosophical intelligence. The root-level understanding that has been developing in the intellectual domain now meets the emotional roots: the family of origin patterns, the deepest relational needs and fears, the emotional inheritance that Ketu dasa began to reveal and Venus dasa began to civilise. Marriage deepens; children arrive; the Mula native's role as a parent invites the question of what roots they will plant for another life. The emotional intelligence of Moon dasa, for Mula, is the intelligence of understanding the root causes of emotional experience — not just feeling them but understanding why they arise.",
         navigate: "Moon's primary challenge for Mula is the tendency to investigate rather than simply feel — the philosopher of dissolution who analyses their emotional experience rather than living inside it. Physical concerns: digestive, lymphatic, and the nervous system's accumulated tension. Moon–Rahu (~yr 7 of Moon, ~ages 39–40) can produce turbulence. Moon–Jupiter (~yr 4 of Moon, ~ages 37–38) is a brief but warm sub-period — the rasi lord's presence brings philosophical ease, emotional spaciousness, and possible spiritual community.",
@@ -104,7 +106,7 @@ const MULA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Mars", period: "7 yrs", ageRange: "Age 43–50", theme: "The Dissolution Agent",
+      planet: "Mars", theme: "The Dissolution Agent",
       detail: {
         expect: "Mars dasa from 43 to 50 activates the dissolution faculty of Mula's nature in its most direct and forceful expression. Where Venus offered beauty and Moon offered emotional depth, Mars offers the cutting instrument of necessary endings. For those whose professional domain is investigation, research, therapy, or philosophy, this is a period of decisive action: the publication of findings that challenge accepted structures, the therapeutic breakthrough that dissolves a long-standing wound, the philosophical formulation that dismantles a comfortable but false worldview. For those in organisational leadership, Mars dasa often brings the most significant restructuring work of the career.",
         navigate: "Mars's primary shadow for Mula is the righteous dismantler — the person who has identified the root cause of a structural problem and begins dismantling it without adequate attention to what must be preserved or the human cost of the dissolution. Mars–Jupiter (~yr 3 of Mars, ~ages 46–47) brings a brief but significant rasi lord sub-period — the philosophical wisdom and expansiveness of Jupiter moderating Mars's cutting edge.",
@@ -112,7 +114,7 @@ const MULA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Rahu", period: "18 yrs", ageRange: "Age 50–68", theme: "The Necessary Expansion",
+      planet: "Rahu", theme: "The Necessary Expansion",
       detail: {
         expect: "Rahu dasa from 50 to 68 brings expansion, worldly engagement, and the testing of Mula's root-level intelligence in the broadest possible arena. The philosophical and investigative depth accumulated across Ketu, Venus, Sun, Moon, and Mars now engages with the world's complexity at scale. International work, cross-cultural philosophical exchange, or the encounter with traditions outside the birth culture are common in Rahu dasa. The Mula person who has spent decades investigating roots now discovers that roots run beneath cultures, beneath traditions, beneath the visible world — Rahu's globalising expansion is the arena in which this deeper understanding is tested.",
         navigate: "Rahu's primary shadow for Mula is the universalising of the dissolution faculty — the person who has identified patterns at their own cultural and personal root beginning to apply those patterns everywhere, without the humility that recognises the limits of any single perspective. Rahu–Jupiter (~yr 3 of Rahu, ~ages 53–55) is the most significant sub-period — the rasi lord's presence is a major philosophical expansion and possible spiritual breakthrough.",
@@ -120,7 +122,7 @@ const MULA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Jupiter", period: "16 yrs", ageRange: "Age 68–84", theme: "Rasi Lord — The Philosopher's Harvest",
+      planet: "Jupiter", theme: "Rasi Lord — The Philosopher's Harvest",
       detail: {
         expect: "Jupiter dasa from 68 to 84 is the rasi lord's arrival for Mula — the planet that rules your rasi, Dhanus, now governs your dasa. For the Mula native who has spent six decades dissolving illusions, investigating roots, and building the understanding that comes from genuine philosophical commitment, Jupiter dasa is the harvest. The wisdom that has accumulated through Ketu's initiation, Venus's civilising, Sun's authority, Moon's emotional depth, Mars's decisive action, and Rahu's global expansion now radiates as the genuine wisdom of an elder who has actually been to the root. Teaching, transmission, grandchildren, and the building of institutions or communities that carry the root-level understanding forward are the natural expressions of Mula's Jupiter dasa.",
         navigate: "Jupiter's primary shadow in the rasi lord dasa is the temptation toward the final synthesis — the philosopher who has accumulated so much understanding that they begin to believe the synthesis is complete. For Mula, whose entire nature is to know that the root has no final floor, this is the deepest irony. The greatest Mula in Jupiter dasa are those who remain students even while transmitting. Physical care and deliberate simplicity are important.",
@@ -128,7 +130,7 @@ const MULA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Saturn", period: "19 yrs", ageRange: "Age 84–103", theme: "Final Dissolution",
+      planet: "Saturn", theme: "Final Dissolution",
       detail: {
         expect: "Saturn dasa from 84 to 103 is reached by very few Mula souls. For those who arrive, Saturn brings the final, gentle dissolution of the identity that has been built across nine decades of root-level investigation, philosophical depth, and wisdom transmission. The great dismantler meets the great disciplinarian; what remains is only what was always real.",
         navigate: "Complete and gentle physical care. Saturn at this extreme age requires consistent, devoted attention from those who love this person.",
@@ -245,5 +247,5 @@ const MULA_VISUAL: NatchathiramVisualData = {
 };
 
 export default function MulaVisualPage() {
-  return <NatchathiramVisualContent data={MULA} visual={MULA_VISUAL} />;
+  return <NatchathiramVisualContent data={MULA} visual={MULA_VISUAL} timings={dasaTimingsFor(MULA.number)} />;
 }

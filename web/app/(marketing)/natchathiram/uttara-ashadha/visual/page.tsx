@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { withTamilTwin } from "@/lib/localized-metadata";
+import { withDasaTimingHold } from "@/lib/natchathiram-dasa-hold";
+import { dasaTimingsFor } from "@/lib/natchathiram-dasa-timings";
 import { natchathiramVisualTa } from "@/lib/marketing-seo-ta";
 import { UTTARA_ASHADHA } from "@/lib/natchathiram-data";
 import { NatchathiramVisualContent, type NatchathiramVisualData } from "@/components/natchathiram-visual";
@@ -17,7 +19,7 @@ const EN_METADATA: Metadata = {
 };
 
 export async function generateMetadata(): Promise<Metadata> {
-  return withTamilTwin(EN_METADATA, "/natchathiram/uttara-ashadha/visual", natchathiramVisualTa("uttara-ashadha")!);
+  return withDasaTimingHold(await withTamilTwin(EN_METADATA, "/natchathiram/uttara-ashadha/visual", natchathiramVisualTa("uttara-ashadha")!), "uttara-ashadha");
 }
 
 const UTTARA_ASHADHA_VISUAL: NatchathiramVisualData = {
@@ -72,7 +74,7 @@ const UTTARA_ASHADHA_VISUAL: NatchathiramVisualData = {
 
   dashaTimeline: [
     {
-      planet: "Sun", period: "6 yrs", ageRange: "Age 0–6", theme: "Born in the Solar Light",
+      planet: "Sun", theme: "Born in the Solar Light",
       detail: {
         expect: "Uttara Ashadha opens in Sun dasa — a beginning of unusual solar clarity, authority, and purpose. For Dhanus pada 1 natives, the Sun dasa opening carries the quality of the rasi lord's own planetary period. The Dhanus pada 1 Uttara Ashadha experiences 0–6 as the Sun's early illumination of the Dhanus philosophical field: a childhood that is solar, purposeful, and often marked by an unusual sense of destiny or clarity about what the life is for. For Makara padas 2-4 natives, Sun dasa is a powerful but brief opening that precedes the Saturn governance of the rasi — a first solar experience before the long Saturn discipline begins.",
         navigate: "The Sun's authority in the infant and young child can produce a certain quality of demanding presence — the Uttara Ashadha child who knows what they want and knows why, and whose sense of self is already surprisingly clear. Physical concerns: heart, eyes, and the digestive fire. Sun–Rahu antardasa (~yr 3 of Sun, ~ages 2-3) can bring unexpected disruption to the early settled quality.",
@@ -80,7 +82,7 @@ const UTTARA_ASHADHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Moon", period: "10 yrs", ageRange: "Age 6–16", theme: "Emotional Deepening",
+      planet: "Moon", theme: "Emotional Deepening",
       detail: {
         expect: "Moon dasa from 6 to 16 brings the emotional ocean to Uttara Ashadha's otherwise purposeful and structured beginning. School years are marked by the development of the empathic and relational intelligence that Uttara Ashadha will need to lead effectively across a lifetime — not just the vision and the ethical spine, but the capacity to understand what others feel and to calibrate the leadership accordingly. For many Uttara Ashadha, Moon dasa is the period of the formation of the deepest friendship or the encounter with the teacher who sees clearly who this child genuinely is.",
         navigate: "Moon's primary challenge for Uttara Ashadha is the encounter with emotional ambiguity — the purposeful, structured character finding the emotional world's resistance to structure genuinely challenging. Physical concerns: digestive, lymphatic, and the body's fluid balance. Moon–Saturn antardasa (~yr 8 of Moon, ~ages 14-15) for Makara padas or Moon–Jupiter antardasa (~yr 7 of Moon, ~ages 13-14) for Dhanus pada are worth noting as rasi lord-flavoured sub-periods.",
@@ -88,7 +90,7 @@ const UTTARA_ASHADHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Mars", period: "7 yrs", ageRange: "Age 16–23", theme: "The First Campaign",
+      planet: "Mars", theme: "The First Campaign",
       detail: {
         expect: "Mars dasa from 16 to 23 brings the directed fire of competitive action to Uttara Ashadha's purposeful and structured character. University years and the first professional steps run through Mars's seven years. The Uttara Ashadha character — the ethical authority, the long-game orientation, the universal vision — now encounters the immediate competitive realities of education and early career with Mars's focused intensity. For many Uttara Ashadha, Mars dasa contains the first serious test of the ethical spine: the situation that cannot be resolved by the right combination of persistence and integrity, where the compromise is offered and must be refused.",
         navigate: "Mars's primary challenge for Uttara Ashadha is the impatience of the directed fire meeting the patience of the long-game character. The victory of Uttara Ashadha is always the later victory; Mars dasa often delivers the first significant experience of having done everything right and still not won immediately — and the invitation to trust the long arc. Mars–Jupiter (~yr 3 of Mars, ~ages 19-20) for Dhanus pada or Mars–Saturn (~yr 5 of Mars, ~ages 21-22) for Makara padas carry rasi lord presence.",
@@ -96,7 +98,7 @@ const UTTARA_ASHADHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Rahu", period: "18 yrs", ageRange: "Age 23–41", theme: "The World Encounter",
+      planet: "Rahu", theme: "The World Encounter",
       detail: {
         expect: "Rahu dasa from 23 to 41 is the period in which Uttara Ashadha's vision and ethical authority encounter the full complexity of the world — including the parts of the world that do not share Uttara Ashadha's ethical standards, long-game orientation, or universal vision. Career builds rapidly in Rahu dasa; professional recognition arrives; the combination of Uttara Ashadha's purposeful intelligence and Rahu's expansive ambition produces significant career achievements. Marriage and family formation typically occur in Rahu–Jupiter (~yr 3, ~ages 26-28) for Dhanus pada or Rahu–Saturn (~yr 10, ~ages 33-36) for Makara padas.",
         navigate: "Rahu's primary challenge for Uttara Ashadha is the amplification of ambition beyond the ethical spine's comfort zone — the long-game person who discovers, in Rahu's expanding field, that the pace of the world is faster than the pace of their integrity. The later victory requires not losing the ethical standard in the face of the world's demands for compromise. Rahu–Jupiter (~yr 3, ~ages 26-28) for Dhanus pada is a 16-month rasi lord window of major expansion and possible breakthrough.",
@@ -104,7 +106,7 @@ const UTTARA_ASHADHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Jupiter", period: "16 yrs", ageRange: "Age 41–57", theme: "Rasi Lord (Dhanus) — The Philosophical Harvest / Supporting Wisdom (Makara)",
+      planet: "Jupiter", theme: "Rasi Lord (Dhanus) — The Philosophical Harvest / Supporting Wisdom (Makara)",
       detail: {
         expect: "Jupiter dasa from 41 to 57 is the rasi lord's arrival for Dhanus pada 1 Uttara Ashadha. For those born in Dhanus pada, Jupiter is your rasi lord — and his dasa, arriving in the prime of professional life, is the most expansive, wise, and philosophically abundant period of the entire life. The Vishvedevas' universal vision, joined to Jupiter's philosophical breadth, produces the period of maximum teaching authority, institutional leadership, and wisdom transmission. Senior leadership positions, significant publications, and the widest reach of Uttara Ashadha's influence typically fall in Jupiter dasa for Dhanus pada natives. For Makara padas 2-4 Uttara Ashadha, Jupiter dasa is a period of powerful philosophical support — not the rasi lord, but a benefic and expansive influence that deepens the wisdom and broadens the vision of the long-game practitioner.",
         navigate: "Jupiter's primary shadow for Uttara Ashadha is the philosophical inflation of the universal visionary — the person whose vision has been validated across the Rahu dasa beginning to believe that their vision of the universal is itself universal. The Vishvedevas' gift requires remembering that they are many gods, not one — the universal vision is always a chorus, not a solo. Jupiter–Saturn (~yr 10 of Jupiter, ~ages 51-53) brings structural testing and refinement.",
@@ -112,7 +114,7 @@ const UTTARA_ASHADHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Saturn", period: "19 yrs", ageRange: "Age 57–76", theme: "Rasi Lord (Makara) — The Long Discipline / Structural Mastery (Dhanus)",
+      planet: "Saturn", theme: "Rasi Lord (Makara) — The Long Discipline / Structural Mastery (Dhanus)",
       detail: {
         expect: "Saturn dasa from 57 to 76 is the rasi lord's arrival for Makara padas 2-4 Uttara Ashadha. For those born in Makara, Saturn is your rasi lord — and his long 19-year dasa, arriving in the elder years, is the most structurally mastered, patiently disciplined, and institutionally powerful period of the life. The long-game wisdom that has been accumulating since Sun dasa's brief opening now governs; the institutions built through Rahu and Jupiter dasas enter their maturity; the leadership that Uttara Ashadha provides in Saturn dasa carries the authority of someone who has actually played the long game and arrived at its harvest. For Dhanus pada 1 Uttara Ashadha, Saturn dasa is a period of powerful structural support — not the rasi lord, but a disciplining and clarifying force that grounds the philosophical vision in practical reality.",
         navigate: "Saturn's primary challenge for Uttara Ashadha is the rigidity of the structural master — the patient person who has correctly identified the long-game approach beginning to insist that only the long game is correct. The universal vision requires flexibility as well as persistence. Physical care and energy management become increasingly important through Saturn's long dasa.",
@@ -120,7 +122,7 @@ const UTTARA_ASHADHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Mercury", period: "17 yrs", ageRange: "Age 76–93", theme: "The Clear Articulation",
+      planet: "Mercury", theme: "The Clear Articulation",
       detail: {
         expect: "Mercury dasa from 76 to 93 brings the mind's precision and articulative capacity to Uttara Ashadha's elder years. The universal vision and the long-game wisdom now meet Mercury's gift for clear expression — the elder who speaks with the concision and precision that only comes from decades of having thought carefully about what to say. Writing, teaching, and the transmission of the institutional wisdom accumulated across the life are the natural expressions of Mercury dasa.",
         navigate: "Physical care and the management of the nervous system's accumulated demands. Mercury at this age requires consistent energy management and deliberate pacing.",
@@ -128,7 +130,7 @@ const UTTARA_ASHADHA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Ketu", period: "7 yrs", ageRange: "Age 93–100", theme: "Final Release",
+      planet: "Ketu", theme: "Final Release",
       detail: {
         expect: "Ketu dasa from 93 to 100 is reached by very few Uttara Ashadha souls. For those who arrive, Ketu brings the final release of the identity that has been built across nine decades of purposeful, ethical, long-game engagement. The undefeated one discovers, in Ketu's closing, that the victory was never personal — it was always in service of the universal.",
         navigate: "Complete and devoted physical care. Ketu at this extreme age is a gift of presence — the stripping away of everything that was never essential, leaving what always was.",
@@ -245,5 +247,5 @@ const UTTARA_ASHADHA_VISUAL: NatchathiramVisualData = {
 };
 
 export default function UttaraAshadhaVisualPage() {
-  return <NatchathiramVisualContent data={UTTARA_ASHADHA} visual={UTTARA_ASHADHA_VISUAL} />;
+  return <NatchathiramVisualContent data={UTTARA_ASHADHA} visual={UTTARA_ASHADHA_VISUAL} timings={dasaTimingsFor(UTTARA_ASHADHA.number)} />;
 }

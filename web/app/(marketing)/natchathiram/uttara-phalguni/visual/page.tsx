@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { withTamilTwin } from "@/lib/localized-metadata";
+import { withDasaTimingHold } from "@/lib/natchathiram-dasa-hold";
+import { dasaTimingsFor } from "@/lib/natchathiram-dasa-timings";
 import { natchathiramVisualTa } from "@/lib/marketing-seo-ta";
 import { UTTARA_PHALGUNI } from "@/lib/natchathiram-data";
 import { NatchathiramVisualContent, type NatchathiramVisualData } from "@/components/natchathiram-visual";
@@ -17,7 +19,7 @@ const EN_METADATA: Metadata = {
 };
 
 export async function generateMetadata(): Promise<Metadata> {
-  return withTamilTwin(EN_METADATA, "/natchathiram/uttara-phalguni/visual", natchathiramVisualTa("uttara-phalguni")!);
+  return withDasaTimingHold(await withTamilTwin(EN_METADATA, "/natchathiram/uttara-phalguni/visual", natchathiramVisualTa("uttara-phalguni")!), "uttara-phalguni");
 }
 
 const UTTARA_PHALGUNI_VISUAL: NatchathiramVisualData = {
@@ -72,7 +74,7 @@ const UTTARA_PHALGUNI_VISUAL: NatchathiramVisualData = {
 
   dashaTimeline: [
     {
-      planet: "Sun", period: "6 yrs", ageRange: "Age 0–6", theme: "Born in Solar Light",
+      planet: "Sun", theme: "Born in Solar Light",
       detail: {
         expect: "Uttara Phalguni opens in Sun dasa — a radiant, purposeful beginning for a nakshathiram that carries Aryaman's solar authority. The very earliest years (0–6) are often marked by a family environment of warmth, structure, and clear values. The Simha pada child feels the Sun's confidence from the first; the Kanya pada child already shows Mercury's discerning thoughtfulness before school age. Both arrive at early childhood with a quiet readiness that caregivers notice. The foundation of duty, service, and social obligation that will define the entire life begins to be laid in the family dynamics of these six years.",
         navigate: "Sun dasa's opening brevity — only six years — means Uttara Phalguni arrives at Moon dasa's emotional complexity before the character has had time to fully consolidate. For Simha pada, Sun is the rasi lord; this brief first dasa carries the rasi lord's amplified confidence, leadership potential, and solar brightness. Any unusual early recognition — the child others naturally look to, the natural young leader — is the rasi lord's signature. Protect this quality through the turbulence of Rahu dasa that lies ahead.",
@@ -80,7 +82,7 @@ const UTTARA_PHALGUNI_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Moon", period: "10 yrs", ageRange: "Age 6–16", theme: "Emotional Foundation",
+      planet: "Moon", theme: "Emotional Foundation",
       detail: {
         expect: "Moon dasa from 6 to 16 takes the solar clarity of Uttara Phalguni's earliest years and deposits it into the emotional field. School (6–14) produces a student who is both sociable and studious; friendships are taken seriously and tend to last. The social intelligence that is core to Uttara Phalguni's nature — understanding what people need, honouring agreements, being the reliable friend — emerges consciously in Moon dasa. Adolescence (14–16) brings the first significant social tests: the first experience of a commitment broken, a friendship betrayed, or an agreement dishonoured by another, and the formative response Uttara Phalguni develops to those experiences.",
         navigate: "Moon dasa in adolescence for Uttara Phalguni can produce over-sensitivity to social disappointment — the gap between the standard they hold themselves to and the unreliability they occasionally encounter in others. Physical concerns: digestive, hormonal, and cold-related vulnerabilities typical of Moon dasa. Moon–Rahu antardasa (~yr 7 of Moon, ~age 13) is the most unsettled sub-period; social complexity or a family disruption may test the young Uttara Phalguni.",
@@ -88,7 +90,7 @@ const UTTARA_PHALGUNI_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Mars", period: "7 yrs", ageRange: "Age 16–23", theme: "First Testing",
+      planet: "Mars", theme: "First Testing",
       detail: {
         expect: "Mars dasa from 16 to 23 brings the first serious tests to Uttara Phalguni's character and commitments. Higher secondary and early tertiary education; the first significant career or vocational choices; the first serious relationship or family obligation — all land in Mars dasa. Uttara Phalguni's constitutional reliability is stress-tested: can they maintain commitments under pressure? The answer established in Mars dasa tends to define the character for decades. For those who pass Mars's test with integrity, the reputation that follows is the bedrock of everything that comes after.",
         navigate: "Mars's energy in this age band can produce impatience and over-commitment — Uttara Phalguni taking on obligations they cannot yet fulfil, driven by the desire to be seen as reliable before reliability is fully established. Physical concerns: accidents, inflammatory conditions, and overexertion deserve attention. Mars–Rahu antardasa (~yr 4 of Mars, ~age 20) is the most turbulent sub-period.",
@@ -96,7 +98,7 @@ const UTTARA_PHALGUNI_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Rahu", period: "18 yrs", ageRange: "Age 23–41", theme: "The World Opens",
+      planet: "Rahu", theme: "The World Opens",
       detail: {
         expect: "Rahu dasa from 23 to 41 is the great expansion of Uttara Phalguni's career and social world. Advanced education or professional establishment; career ascent; marriage and family formation (often around ages 27–32); property acquisition and potential financial progress; widening professional networks and institutional responsibilities — the full arc of adult establishment runs through Rahu's eighteen years. Uttara Phalguni's gifts for social architecture and reliable execution find their first large-scale expression here. Recognition within a field, institutional leadership, or significant community contribution typically arrives in the mid-to-late thirties.",
         navigate: "Rahu's expansion can pull Uttara Phalguni beyond their authentic commitments — taking on social and professional obligations for prestige or external approval rather than genuine alignment with values. Rahu–Saturn antardasa (~yr 12 of Rahu, ~ages 35–37) is the most demanding sub-period; overextension and value conflicts peak. Also watch Rahu–Mercury antardasa (~yr 15 of Rahu, ~ages 38–39) for Kanya-pada Uttara Phalguni: Mercury as rasi lord brings an exceptional period of analytical and professional breakthrough.",
@@ -104,7 +106,7 @@ const UTTARA_PHALGUNI_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Jupiter", period: "16 yrs", ageRange: "Age 41–57", theme: "Wisdom and Leadership",
+      planet: "Jupiter", theme: "Wisdom and Leadership",
       detail: {
         expect: "Jupiter dasa from 41 to 57 is the great wisdom and leadership period for Uttara Phalguni. The social and professional foundations laid in Rahu dasa now support institutional authority and mentoring responsibilities. Career reaches peak leadership expression; community roles of genuine weight are assumed. Children are growing into adulthood; the grandparent generation is in its final years; Uttara Phalguni stands in the middle generation holding the family's practical continuity. Jupiter–Venus antardasa (~yr 4, ~ages 45–46) brings particular relational and creative abundance.",
         navigate: "Jupiter's generosity can produce over-expansion of obligations in mid-career. Cardiovascular and liver health deserve sustained attention from the mid-forties. Jupiter–Saturn antardasa (~yr 13, ~ages 54–56) demands careful pacing — reduce scope, not depth.",
@@ -112,7 +114,7 @@ const UTTARA_PHALGUNI_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Saturn", period: "19 yrs", ageRange: "Age 57–76", theme: "Long Service, Deep Root",
+      planet: "Saturn", theme: "Long Service, Deep Root",
       detail: {
         expect: "Saturn dasa from 57 to 76 brings the long, deep service of Uttara Phalguni's mature decades. Retirement from primary career may come mid-Saturn, but service does not stop — the form changes. Community elder roles, advisory positions, family patriarch/matriarch responsibilities, and spiritual deepening all fill the space. Grandchildren arrive and are nurtured. Property and financial matters are settled and simplified. The Kanya pada native particularly excels in Saturn dasa — the Saturn-Mercury affinity produces a period of unusual analytical clarity and practical wisdom.",
         navigate: "Saturn's primary health concerns from 57 to 76 are musculoskeletal, cardiovascular, and respiratory. Chronic overwork accumulating from Rahu and Jupiter dasas must be addressed with deliberate rest. Saturn–Rahu antardasa (~yr 12 of Saturn, ~ages 69–71) is the most physically demanding sub-period.",
@@ -120,7 +122,7 @@ const UTTARA_PHALGUNI_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Mercury", period: "17 yrs", ageRange: "Age 76–93", theme: "Rasi Lord for Kanya-born — The Great Refinement",
+      planet: "Mercury", theme: "Rasi Lord for Kanya-born — The Great Refinement",
       detail: {
         expect: "Mercury dasa from 76 to 93 is the rasi lord's arrival for Kanya-pada Uttara Phalguni. Mercury is the lord of your rasi, Kanya — this makes his dasa doubly charged for Kanya-born Uttara Phalguni natives. Analytical precision, written legacy, communicative clarity, and service through intellect reach their lifetime peak. The accumulated wisdom of seven decades in service — the pattern recognition that only long experience provides — now finds expression in teaching, writing, or systematic knowledge transmission. For Simha pada Uttara Phalguni, Mercury dasa at this age is a late-life gift of intellectual clarity.",
         navigate: "Physical care for the nervous system and respiratory function is primary at this age. Mercury's mental agility, maintained through active intellectual engagement, outlasts physical agility in old age. Isolation is Mercury's enemy — sustained social and intellectual engagement is both the remedy and the requirement.",
@@ -128,7 +130,7 @@ const UTTARA_PHALGUNI_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Ketu", period: "7 yrs", ageRange: "Age 93–100", theme: "Dissolution into Service",
+      planet: "Ketu", theme: "Dissolution into Service",
       detail: {
         expect: "Ketu dasa from 93 to 100 is the completion of the cycle — the Uttara Phalguni who opened in the Sun's social confidence closes in Ketu's quiet interiority. The decades of service, contract-honouring, and social architecture settle into a deep inner stillness. Spiritual depth that has been present throughout the life but always secondary to practical service now becomes primary. Great-grandchildren and family members receive a quality of loving presence that is purely relational, unburdened by obligation or agenda.",
         navigate: "Complete physical care from loving caregivers. Ketu's natural withdrawal is appropriate at this age; ensure warmth, company, and spiritual companionship rather than forcing outward engagement.",
@@ -245,5 +247,5 @@ const UTTARA_PHALGUNI_VISUAL: NatchathiramVisualData = {
 };
 
 export default function UttaraPhalguniVisualPage() {
-  return <NatchathiramVisualContent data={UTTARA_PHALGUNI} visual={UTTARA_PHALGUNI_VISUAL} />;
+  return <NatchathiramVisualContent data={UTTARA_PHALGUNI} visual={UTTARA_PHALGUNI_VISUAL} timings={dasaTimingsFor(UTTARA_PHALGUNI.number)} />;
 }

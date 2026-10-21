@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { withTamilTwin } from "@/lib/localized-metadata";
+import { withDasaTimingHold } from "@/lib/natchathiram-dasa-hold";
+import { dasaTimingsFor } from "@/lib/natchathiram-dasa-timings";
 import { natchathiramVisualTa } from "@/lib/marketing-seo-ta";
 import { MRIGASHIRA } from "@/lib/natchathiram-data";
 import { NatchathiramVisualContent, type NatchathiramVisualData } from "@/components/natchathiram-visual";
@@ -17,7 +19,7 @@ const EN_METADATA: Metadata = {
 };
 
 export async function generateMetadata(): Promise<Metadata> {
-  return withTamilTwin(EN_METADATA, "/natchathiram/mrigashira/visual", natchathiramVisualTa("mrigashira")!);
+  return withDasaTimingHold(await withTamilTwin(EN_METADATA, "/natchathiram/mrigashira/visual", natchathiramVisualTa("mrigashira")!), "mrigashira");
 }
 
 const MRIGASHIRA_VISUAL: NatchathiramVisualData = {
@@ -72,7 +74,7 @@ const MRIGASHIRA_VISUAL: NatchathiramVisualData = {
 
   dashaTimeline: [
     {
-      planet: "Mars", period: "7 yrs", ageRange: "Age 0–7", theme: "The Searching Begins",
+      planet: "Mars", theme: "The Searching Begins",
       detail: {
         expect: "Mrigashira is born into Mars dasa — an energetic, active opening for a nakshathiram whose nature is inherently gentle and searching. This child arrives with unusual physical vitality and a restlessness that can be mistaken for difficulty; they are simply the deer in motion from the first breath. The bond with elder siblings or cousins is often defining in these early years. School entry (ages 5–7) comes easily for some Mrigashira children and with resistance for others — this depends heavily on whether the school environment rewards curiosity over conformity. Health is generally robust but inflammatory conditions — fevers, skin issues, head injuries — are Mars's typical presentation. Most born in Mrigashira will experience only a partial Mars dasa, depending on exact birth position.",
         navigate: "Mars's physical energy without adequate channelling becomes restless aggression in young children. Parental management of this energy through structured physical play, early sport, or outdoor exploration is essential. Accidents and head injuries are the primary physical risks in Mars dasa infancy and early childhood. The family's stability and the father's health and presence are directly reflected in this child's sense of security.",
@@ -80,7 +82,7 @@ const MRIGASHIRA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Rahu", period: "18 yrs", ageRange: "Age 7–25", theme: "The Wide World Beckons",
+      planet: "Rahu", theme: "The Wide World Beckons",
       detail: {
         expect: "Rahu dasa from 7 to 25 spans Mrigashira's entire schooling, adolescence, and early adulthood. This is when the searching nature finds its first serious object of pursuit — an academic interest, a creative passion, a relationship, or an ambition. School performance in Rahu dasa tends to be uneven: brilliant in subjects that capture the imagination, indifferent in those that don't. By college age (17–22), the creative or intellectual direction that will define the person's life typically crystallises. Foreign influence — exchange programs, internationally-connected mentors, online communities — accelerates Mrigashira's development. First significant romantic relationship arrives, often intensely and unexpectedly.",
         navigate: "Rahu's amplification of Mrigashira's natural restlessness can produce a person who changes direction too frequently — academic streams, career paths, relationships — before depth is built anywhere. The most critical risk between ages 17 and 24 is scattered pursuit: doing many things superficially instead of one thing deeply. Rahu–Saturn antardasa (approximately ages 20–22) is the most demanding sub-period; identity consolidation must happen here even as external instability peaks.",
@@ -88,7 +90,7 @@ const MRIGASHIRA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Jupiter", period: "16 yrs", ageRange: "Age 25–41", theme: "Creative & Intellectual Harvest",
+      planet: "Jupiter", theme: "Creative & Intellectual Harvest",
       detail: {
         expect: "Jupiter dasa from 25 to 41 finds Mrigashira in the fullest expression of creative and intellectual life. Career establishes and deepens — the artist, writer, researcher, or communicator finds their audience. Marriage may arrive in Jupiter–Mars antardasa (approximately ages 28–30) or Jupiter–Venus (approximately ages 35–37). Children may come. Property acquisition becomes feasible in the mid-thirties. Mrigashira's restlessness — which was a disadvantage in youth — becomes an asset in Jupiter dasa: the broad curiosity and cross-domain exploration produces creative work that narrowly specialised people cannot match. Teaching and mentoring impulses emerge.",
         navigate: "Jupiter's abundance can deepen Mrigashira's natural tendency to search perpetually for 'what's next' — the result is commitment avoidance in relationships and career that prevents the depth Jupiter is actually offering. Liver health and metabolic management become relevant in the mid-thirties. The temptation to pursue every interesting opportunity that Jupiter dasa generates must be resisted in favour of depth in the two or three areas that truly matter.",
@@ -96,7 +98,7 @@ const MRIGASHIRA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Saturn", period: "19 yrs", ageRange: "Age 41–60", theme: "Depth Over Breadth",
+      planet: "Saturn", theme: "Depth Over Breadth",
       detail: {
         expect: "Saturn dasa from 41 to 60 is Mrigashira's most testing period — not because Saturn is malefic for Mrigashira, but because Saturn's demand for sustained commitment and delayed gratification sits in deliberate tension with the searching, exploring nature that defines this nakshathiram. Those who found their true depth in Jupiter dasa discover that Saturn rewards it generously. Property consolidation, institutional recognition, and mature creative mastery characterise the productive phase of this dasa. Children enter adulthood. The domestic environment stabilises.",
         navigate: "Mrigashira's most difficult Saturn dasa experience is the loss of the freedom to search — Saturn demands one path, committed to. Depression or creative dryness can appear if the native has not found a genuine deep calling by the time Saturn dasa begins. Saturn–Rahu antardasa (approximately ages 50–53) is the most turbulent sub-period; financial, legal, and health challenges can converge acutely. Joint care, cardiovascular monitoring, and respiratory health require active attention from the mid-forties.",
@@ -104,7 +106,7 @@ const MRIGASHIRA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Mercury", period: "17 yrs", ageRange: "Age 60–77", theme: "Rasi Lord — The Great Communication",
+      planet: "Mercury", theme: "Rasi Lord — The Great Communication",
       detail: {
         expect: "Mercury dasa from 60 to 77 is the rasi lord's arrival for Mithuna-pada (padas 3–4) Mrigashira natives. Mercury is the lord of your rasi, Mithuna — this makes his dasa doubly charged for these natives. Where other nakshathirams experience Mercury dasa as one planetary period among many, for Mithuna Mrigashira it is the rasi lord himself taking the wheel in the final active decades. Writing, teaching, intellectual legacy-building, and communicative mastery reach their lifetime peak. The accumulated searching of fifty years crystallises into insight that is genuinely irreplaceable. For Rishabam-pada (padas 1–2) Mrigashira, Mercury dasa is still rich — intellectual clarity and social connection remain strong — but the rasi lord's amplification is reserved for Venus dasa (which follows).",
         navigate: "Mercury's primary health concerns at this age are nervous system, respiratory, and fine motor coordination. Mental agility, maintained through active intellectual engagement — writing, conversation, analysis — outlasts physical agility. Mrigashira's perpetual searching nature, having found its deepest object by now, must settle into transmission rather than perpetual exploration. The temptation to keep searching for new things must give way to sharing what has already been found.",
@@ -112,7 +114,7 @@ const MRIGASHIRA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Ketu", period: "7 yrs", ageRange: "Age 77–84", theme: "The Deer Comes Home",
+      planet: "Ketu", theme: "The Deer Comes Home",
       detail: {
         expect: "Ketu dasa from 77 to 84 is Mrigashira's turning inward — the deer that spent a lifetime searching finally recognises that what was sought was never external. A deep spiritual quietude settles. Grandchildren and great-grandchildren become the new focus of gentle, unconditional love. Creative work, if still pursued, takes on a quality of absolute simplicity — a single melody, a brief poem, a carefully made object — that contains everything earlier complexity could not.",
         navigate: "Physical dependence increases and must be met with the grace that Mrigashira has extended to others throughout life. The restlessness that characterised earlier decades tends to quiet in Ketu dasa for Mrigashira — if it does not, it is a signal to deepen spiritual practice. Ketu's connection to ancestral worlds means dreams, spiritual intuitions, and awareness of subtle presences may intensify.",
@@ -120,7 +122,7 @@ const MRIGASHIRA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Venus", period: "20 yrs", ageRange: "Age 84–104", theme: "Rasi Lord — Beauty's Final Statement",
+      planet: "Venus", theme: "Rasi Lord — Beauty's Final Statement",
       detail: {
         expect: "Venus dasa from 84 onward is the rasi lord's arrival for Rishabam-pada (padas 1–2) Mrigashira natives. Venus is the lord of your rasi, Rishabam — this makes her dasa doubly charged for these natives. Where other nakshathirams experience Venus dasa as one planetary period among many, for Rishabam Mrigashira it is the rasi lord herself arriving in the final chapter of life. Beauty, grace, and the pleasures of the senses — music heard more deeply than ever before, the fragrance of flowers, the warmth of family — take on their most essential quality. The person lives in a state of refined abundance that mirrors in miniature the Venusian gifts they shared across a lifetime of creative and aesthetic contribution.",
         navigate: "At this extreme age, physical care is complete and simple: warmth, gentle nourishment, beauty in the immediate environment, steady companionship. The mind, if Venus is strong in the natal chart, can remain astonishingly present and aesthetically alive. Avoid sensory harshness and emotional disruption.",
@@ -128,7 +130,7 @@ const MRIGASHIRA_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Sun", period: "6 yrs", ageRange: "Age 104–110", theme: "Final Solar Clarity",
+      planet: "Sun", theme: "Final Solar Clarity",
       detail: {
         expect: "Sun dasa from 104 to 110 is reached by virtually none. For those rare souls who arrive here, the Sun brings its final gift — absolute clarity of identity, a settled luminosity that needs no search because it has become the light itself. The searching deer has merged with the moon's reflection in the water.",
         navigate: "Physical care at this age is complete and tender. The body's requirements are minimal and specific. Warmth, light, familiar sounds, and beloved presence are everything.",
@@ -251,5 +253,5 @@ const MRIGASHIRA_VISUAL: NatchathiramVisualData = {
 };
 
 export default function MrigashiraVisualPage() {
-  return <NatchathiramVisualContent data={MRIGASHIRA} visual={MRIGASHIRA_VISUAL} />;
+  return <NatchathiramVisualContent data={MRIGASHIRA} visual={MRIGASHIRA_VISUAL} timings={dasaTimingsFor(MRIGASHIRA.number)} />;
 }

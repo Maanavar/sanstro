@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { withTamilTwin } from "@/lib/localized-metadata";
+import { withDasaTimingHold } from "@/lib/natchathiram-dasa-hold";
+import { dasaTimingsFor } from "@/lib/natchathiram-dasa-timings";
 import { natchathiramVisualTa } from "@/lib/marketing-seo-ta";
 import { BHARANI } from "@/lib/natchathiram-data";
 import { NatchathiramVisualContent, type NatchathiramVisualData } from "@/components/natchathiram-visual";
@@ -17,7 +19,7 @@ const EN_METADATA: Metadata = {
 };
 
 export async function generateMetadata(): Promise<Metadata> {
-  return withTamilTwin(EN_METADATA, "/natchathiram/bharani/visual", natchathiramVisualTa("bharani")!);
+  return withDasaTimingHold(await withTamilTwin(EN_METADATA, "/natchathiram/bharani/visual", natchathiramVisualTa("bharani")!), "bharani");
 }
 
 const BHARANI_VISUAL: NatchathiramVisualData = {
@@ -72,7 +74,7 @@ const BHARANI_VISUAL: NatchathiramVisualData = {
 
   dashaTimeline: [
     {
-      planet: "Venus", period: "20 yrs", ageRange: "Age 0–20", theme: "The World Arrives at Once",
+      planet: "Venus", theme: "The World Arrives at Once",
       detail: {
         expect: "Bharani is born into Venus's 20-year embrace — the longest and richest opening gift in the Vimshottari cycle. From infancy through age 7, this child lives in sensory wonder: music, colour, texture, and beauty register at an intensity most people never feel. School years (7–14) are marked by creative gifts emerging early — arts, dance, literature, or dramatic performance surface naturally. The social circle is warm and wide; Bharani children draw people effortlessly. Ages 14–20 bring the full force of Bharani's magnetism: romantic attraction arrives young, the desire for independence sharpens against parental authority, and career instincts — toward arts, medicine, beauty, or business — become unmistakably clear. Marriage is typically not yet required in Venus dasa, but a serious relationship that transforms the person is almost certain by age 18–20.",
         navigate: "Venus ruling the birth dasa carries both the gift and the burden of excess. Love affairs beginning too young (before 17) can bind Bharani before they are ready — emotional depth without life experience creates dependency patterns that are hard to exit. Financial recklessness — spending on beauty, pleasure, and social display before income is established — can drain the early foundation. Venus–Rahu antardasa (approximately years 12–14 of the dasa, around ages 12–14) carries the highest risk of unhealthy romantic entanglement or harmful peer-group influence. Skin health, hormonal development, and reproductive care deserve proactive attention throughout this period.",
@@ -80,7 +82,7 @@ const BHARANI_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Sun", period: "6 yrs", ageRange: "Age 20–26", theme: "Authority Declared",
+      planet: "Sun", theme: "Authority Declared",
       detail: {
         expect: "Sun dasa lands precisely at the threshold of adulthood — ages 20 to 26. Education is completing or translating into professional identity. Career direction crystallises with unusual confidence; Bharani at 20 has already felt the world intensely and now turns that emotional intelligence toward professional purpose. A first job of consequence, a mentor figure in authority, or institutional recognition defines this compact period. Government connections, academic credentials, or visible leadership in the peer group consolidate. Self-confidence peaks early — this is when Bharani's presence begins to command rooms rather than simply occupy them.",
         navigate: "Sun amplifies Bharani's natural confidence into occasional arrogance — and the combination of Aries fire plus Yama's intensity can produce confrontational dynamics with superiors. One ego-driven incident in the workplace can cost years of carefully built credibility. Father's health and the relationship with authority figures deserve careful attention; cardiac screening and eye health are specific concerns if family history warrants. Sun dasa's six years close with unusual speed — do not waste the window in unnecessary conflict or directionless exploration.",
@@ -88,7 +90,7 @@ const BHARANI_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Moon", period: "10 yrs", ageRange: "Age 26–36", theme: "Relationships & Roots",
+      planet: "Moon", theme: "Relationships & Roots",
       detail: {
         expect: "Moon dasa in the late twenties and early thirties lands Bharani in the fullness of adult life — career is established, relationships are deepening, and family is often forming. Marriage, if not completed in Venus dasa, becomes strongly likely between ages 26–30; Moon–Jupiter antardasa (approximately ages 31–33) is the secondary marriage window. A first child arrives during this period for most. Business dealing with the public — hospitality, retail, beauty, healthcare, or education — gains natural momentum. Relocation to a new city or significant expansion of the social world is common. Public recognition in professional circles grows steadily through the mid-thirties.",
         navigate: "Moon rules emotions and Bharani already carries Yama's intensity — Moon dasa amplifies both the gifts of emotional intelligence and the vulnerability to emotional overwhelm. Moon–Rahu antardasa (approximately ages 33–34) is the highest-risk sub-period: decisions made impulsively during this 18-month window often require years of correction. Mother's health requires close monitoring during this window. Bharani's deep sensitivity can translate into anxiety and sleep disturbance during Moon dasa low phases — these are signals, not disorders. Do not mistake restlessness for dissatisfaction and make unnecessary career pivots mid-dasa.",
@@ -96,7 +98,7 @@ const BHARANI_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Mars", period: "7 yrs", ageRange: "Age 36–43", theme: "Rasi Lord Arrives — Build Now",
+      planet: "Mars", theme: "Rasi Lord Arrives — Build Now",
       detail: {
         expect: "Mars dasa lands precisely at Bharani's mid-life peak of practical authority — and for Bharani, it carries a weight no other nakshathiram's Mars dasa carries. Mars is the lord of your rasi, Mesha — this makes his dasa doubly charged for Bharani natives. Where other nakshathirams experience Mars dasa as one planetary period among nine, for Bharani it is the rasi lord himself taking the wheel directly. Every Martian theme amplifies: the property instinct becomes urgent, physical authority reaches its clearest expression, and the drive to build permanent legacy — a business, a home, a reputation — peaks. Property acquisition, construction, vehicle purchase, and real estate decisions are strongly favoured. Sibling relationships activate — either as business allies or as friction points requiring resolution.",
         navigate: "Mars dasa carries the highest accident, surgical, and legal risk in Bharani's cycle — ages 36–43. Blood pressure, cardiac health, and inflammatory conditions require proactive management. Avoid risky physical activities or financially impulsive decisions during Mars–Rahu antardasa (approximately ages 37–38). Legal disputes initiated in Mars dasa almost always drain more than they return — resolve through negotiation rather than litigation. Anger is Mars's primary weapon against your own interests; every unchecked outburst carries disproportionate consequence here.",
@@ -104,7 +106,7 @@ const BHARANI_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Rahu", period: "18 yrs", ageRange: "Age 43–61", theme: "The Great Acceleration",
+      planet: "Rahu", theme: "The Great Acceleration",
       detail: {
         expect: "Rahu's 18-year arc from age 43 to 61 is the most complex and consequential dasa of Bharani's later life. Foreign connections intensify — children may settle abroad, business expands internationally, or technology opens doors that conventional training never anticipated. Bharani's artistic and creative gifts find unexpected commercial channels during Rahu dasa; unconventional routes often deliver the most financially significant breakthroughs of the entire life. The first half (43–52) is turbulent: status changes, reputation fluctuations, identity recalibration. The second half (52–61) stabilises as Rahu matures and the person integrates the transformation.",
         navigate: "Rahu's greatest weapon against Bharani is the illusion of a shortcut. Any investment, business deal, or alliance that appears unusually attractive — especially if foreign, technology-driven, or entertainment-related — demands exceptional scrutiny before commitment. Rahu–Jupiter antardasa (approximately ages 55–57) is specifically sensitive; no irreversible financial or legal decision should be finalised during exact planetary conjunctions. Health: nervous system conditions, mysterious skin ailments, and respiratory disruptions surface under Rahu. A period of spiritual questioning is normal and expected — remain grounded without becoming rigid.",
@@ -112,7 +114,7 @@ const BHARANI_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Jupiter", period: "16 yrs", ageRange: "Age 61–77", theme: "The Harvest of Grace",
+      planet: "Jupiter", theme: "The Harvest of Grace",
       detail: {
         expect: "Jupiter dasa from 61 to 77 is Bharani's harvest — the dignified return on a lifetime of dharmic living through intensity and transformation. Grandchildren arrive and bring a quality of joy that no earlier dasa prepares the person for. Teaching, mentoring, and guiding roles become effortless and deeply satisfying. Long-standing investments and properties begun in Venus, Mars, and Rahu dasas typically produce their most stable returns here. Pilgrimages, scriptural study, and charitable work become genuine pleasure rather than obligation. Bharani's lifelong emotional depth finds its highest expression in Jupiter dasa — the wisdom of having felt everything fully now becomes an instrument of compassion.",
         navigate: "Jupiter dasa's trap for Bharani is complacency — the belief that all decisions are automatically right because life has rewarded dharmic living. Liver health, weight management, and joint care require active attention. The relationship with adult children and grandchildren deserves careful stewardship; Bharani's intensity does not diminish with age and must be channelled into grace, not control. Jupiter dasa is not only personal harvest — it is the period in which your legacy is sealed in the minds of those who carry your name forward.",
@@ -120,7 +122,7 @@ const BHARANI_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Saturn", period: "19 yrs", ageRange: "Age 77–96", theme: "The Long Completion",
+      planet: "Saturn", theme: "The Long Completion",
       detail: {
         expect: "Saturn dasa from 77 to 96 is experienced in full measure by very few, but those who reach it carry the weight of a complete life well-lived. From Bharani's Mesha rasi perspective, Saturn rules the 10th house (career legacy) and 11th house (gains and fulfilment from Aries) — making this dasa one of final institutional recognition and karmic completion. Community respect, family legacy, and the quiet acknowledgment of a life's work arrive without fanfare but with deep permanence. Daily routine becomes medicine. Children and grandchildren provide natural support to those who invested in relationships through the active earlier decades.",
         navigate: "Saturn accepts no shortcuts and permits no delays — and Bharani, who has lived at high intensity for decades, must learn the grace of slowing down. Physical dependence on others, met with grace rather than resistance, brings peace rather than loss. The body's requirements are non-negotiable: regular meals, movement within capacity, adequate warmth, and avoidance of cold and damp. Unresolved family tensions or karmic obligations must be addressed with urgency — Saturn's dasa does not wait for perfect timing or convenient emotion.",
@@ -128,7 +130,7 @@ const BHARANI_VISUAL: NatchathiramVisualData = {
       },
     },
     {
-      planet: "Mercury", period: "17 yrs", ageRange: "Age 96–113", theme: "Ancient Clarity",
+      planet: "Mercury", theme: "Ancient Clarity",
       detail: {
         expect: "Mercury dasa, reached by very few, is the final completion of the Vimshottari cycle for Bharani. At this advanced age, clarity of mind — if Mercury is strong in the natal chart — remains astonishing. The intellect, sharpened by a lifetime of creative and emotional experience, produces insight that younger minds cannot access. Conversations with great-grandchildren or spiritual seekers carry a quality of transmission that cannot be taught. This dasa is not experienced by most Bharani natives in the normal course; those who reach it do so as a grace beyond expectation.",
         navigate: "Mercury governs the nervous system and communication — at this age, the primary concern is maintaining clarity of speech, memory, and coordination. Light, stimulating intellectual activity — reading, conversation, music — keeps Mercury's faculty alive longer than disengagement. Avoid cold and damp conditions and respiratory strain that can cloud mental alertness.",
@@ -251,5 +253,5 @@ const BHARANI_VISUAL: NatchathiramVisualData = {
 };
 
 export default function BharaniVisualPage() {
-  return <NatchathiramVisualContent data={BHARANI} visual={BHARANI_VISUAL} />;
+  return <NatchathiramVisualContent data={BHARANI} visual={BHARANI_VISUAL} timings={dasaTimingsFor(BHARANI.number)} />;
 }

@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { DOSHAM_DETAILS, DRAFT_GUIDE_SLUGS, YOGAM_DETAILS, TEMPLE_DETAILS, PARIHARAM_DETAILS } from "@/lib/guide-detail-content";
 import { NAKSHATRA_LIST } from "@vinaadi/shared/constants";
 import { languageUrls } from "@/lib/localized-metadata";
+import { isDasaTimingHeld } from "@/lib/natchathiram-dasa-hold";
 import { SITE_URL } from "@/lib/page-metadata";
 import { isTaReady } from "@/lib/ta-routes";
 import { CALENDAR_CATEGORY_SLUGS } from "./(marketing)/tamil-calendar/calendar-category-api";
@@ -298,10 +299,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.8,
     },
     // All 27, generated — the hand-written list had drifted to 4 of 27 visual
-    // profiles. The shared slugs are the route folder names.
+    // profiles. The shared slugs are the route folder names. Visual profiles
+    // held for their dasa timings (FSA-03) are noindex, so they are not listed.
     ...NAKSHATRA_LIST.flatMap(({ slug }) => [
       { url: `${BASE}/natchathiram/${slug}`, changeFrequency: "monthly" as const, priority: 0.8 },
-      { url: `${BASE}/natchathiram/${slug}/visual`, changeFrequency: "monthly" as const, priority: 0.7 },
+      ...(isDasaTimingHeld(slug)
+        ? []
+        : [{ url: `${BASE}/natchathiram/${slug}/visual`, changeFrequency: "monthly" as const, priority: 0.7 }]),
     ]),
     /* ── Daily panchangam pages (30 days) ── */
     ...panchangamDateEntries(),
