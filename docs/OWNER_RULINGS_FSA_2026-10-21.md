@@ -35,8 +35,11 @@ Standing requirements:
 | FSA-01 | Remove the sunrise-lagna factor; do not repair | **Done** — removed from both paths, gated; 1216-test muhurta suite green |
 | §8.3 / FSA-17 | Hide months now (P0); disclose per component on the paid page; name it Varuda Palan | **Done** (§4) |
 | FSA-02 | Per-karya star lists + tradition profile | Approved (§7.4); not built; three tables and the gandanta reading await the astrologer |
-| §8.4 URLs | Keep Sanskrit URLs; Tamil name first in title and H1 | Ruled (§7.5); one conflict with the no-echo ruling to confirm; not built |
-| Year lord | Five-candidate architecture; weekday lord rejected | Ruled (§7.3); **blocked** on the astrologer naming the text |
+| §8.4 URLs | Keep Sanskrit URLs; Tamil name first in title and H1 | **Done** — Option A ruled (§8.1) and built |
+| Year lord | Five-candidate architecture; weekday lord rejected | **Blocked** on documented textual rules (§8.4) |
+| Shatabhisha Saturn | Age-independent rewrite | **Done** (§8.3) |
+| Rohini release | — | **Hold** until Tamil and content review (§8.2) |
+| Native Tamil review | — | **Release requirement** (§8.6) |
 | Mobile 6/8 | Add the note to the mobile porutham screen as a disclosure | **Done** (§7.6) |
 
 Nothing here is committed.
@@ -481,9 +484,148 @@ majority half.
 
 Blind spot: no mobile render test (type-checked only).
 
-### 7.7 Native Tamil read — still owed
+### 7.7 Native Tamil read — superseded by §8.6
 
 Unreviewed by a native reader: the Varuda Palan copy (§4), the Chandrashtama
 strings (§2), and from this round — the dasa table labels and footnote
 (`web/components/natchathiram-dasa-timing.tsx`), the 81 base-page edits, the
 Rohini Tamil edits, and the mobile half-of-star prompt.
+
+---
+
+## 8. Third round of rulings (same day)
+
+> **My overall ruling:** Keep the astrological calculations source-driven,
+> distinguish established doctrine from assumptions, and do not release
+> unverified Tamil astrology content merely because the automated tests pass.
+>
+> … **when the source is uncertain, say so; when the calculation is
+> unavailable, do not invent it; and when the Tamil has not been reviewed, do
+> not treat automated test success as editorial approval.**
+
+Three standards, kept separate: calculation correctness (the engine does what
+its documented algorithm says), astrological authority (no rule presented as
+traditional without an identifiable source), Tamil editorial quality.
+
+### 8.1 Display names — Option A, built
+
+> Approve Option A for all 108 title/H1 combinations. Preserve the existing URL
+> structure. … Retain the spelling `Nakshathiram` … The existing `tNakshatra`
+> function should supply the names. Do not manually enter the 108 titles and H1s.
+
+| Page | Title and H1 |
+|---|---|
+| English | Anusham Nakshathiram (Anuradha) |
+| Tamil | அனுஷம் நட்சத்திரம் (அனுராதா) |
+
+**Built:** `web/lib/nakshatra-display-name.ts` composes every name from
+`tNakshatra` plus a new `NAKSHATRA_SANSKRIT_NAMES` beside `NAKSHATRA_NAMES` in
+`packages/shared/src/i18n/panchangam-names.ts`. It feeds the base-page titles
+(both languages; also the Article JSON-LD headline), the visual-page titles (the
+27 hand-typed English titles are gone; the Tamil ones were already generated)
+and both H1s. The English visual H1 used to repeat the name in capitals beneath
+itself, so a screen reader read it twice; removed. URLs and canonicals unchanged.
+
+**One judgement call to confirm:** five stars carry no bracket, because the
+Sanskrit name *is* the Tamil one and the bracket would only echo it —
+Aswini, Bharani, Rohini, Swathi, Revathi ("Rohini Nakshathiram", not
+"Rohini Nakshathiram (Rohini)"). Magam (Magha), Hastham (Hasta), Moolam (Mula)
+and Chithirai (Chitra) keep theirs: they are different forms a reader searches.
+Flipping any of these is one line in the map.
+
+**Gate:** `web/lib/nakshatra-display-name.test.ts` — the ruling's example in both
+languages; every key mapped; no Tamil script in an English name, no Latin letter
+in a Tamil one; and every page's real `generateMetadata`, base and visual, both
+twins, leads with the display name. One visual title restored to its old hand
+string: fails. H1s checked on a running dev server (EN and TA, base and visual).
+
+**Blind spot:** the Tamil-script Sanskrit forms (க்ருத்திகா, ம்ருகசிரா, ஆஷ்லேஷா,
+மகா, ஷ்ரவணா, ஷதபிஷா …) are transliterations; the test checks their script, not
+their spelling. They join the native review (§8.6). `entry.meta.title` in
+`natchathiram-data.ts` no longer has a reader; its 27 strings can be removed.
+
+### 8.2 Rohini — hold
+
+> Keep both language versions on hold until these checks are complete. Do not
+> split the language holds merely to release the English version earlier …
+
+Release conditions, verbatim in substance: (1) all edited Tamil sentences
+reviewed for naturalness, grammar and meaning; (2) personality, career and
+family sections reviewed for unsupported or overly deterministic claims;
+(3) life-stage descriptions checked against the engine ranges; (4) English and
+Tamil carry the same astrological meaning; (5) tests run and sitemap inclusion
+verified after release. **These conditions apply to every visual page, not only
+Rohini.** No change made.
+
+### 8.3 Shatabhisha Saturn paragraph — replaced
+
+> Replace the existing paragraph with the revised version, then ensure that the
+> English version communicates the same meaning.
+
+The ruled Tamil paragraph is in place verbatim. The English third paragraph,
+which only listed the dasa sequence, now carries the same meaning (Saturn
+associated with responsibility, discipline, patience and long-term effort;
+career growth, family responsibilities and property decisions may come to the
+fore; results vary with the horoscope and Saturn's placement) and keeps the
+sequence. Ruling's qualification: general introductory content, not a
+prediction for every native.
+
+### 8.4 Year lord — blocked on documented rules
+
+> Keep Varuda Palan's year-lord determination explicitly unresolved until the
+> missing source rules are verified. Do not present an invented or partially
+> implemented result as a traditional calculation.
+
+| Component | Decision |
+|---|---|
+| Five office-holders | Retain as the candidate set provisionally |
+| Eligibility by aspect | Blocked pending source verification |
+| Panchavargiya bala | Retain, subject to the chosen authority |
+| Hadda table | Blocked pending source selection; once chosen, versioned and tested |
+| Tie-breaking | Do not invent a rule |
+| No eligible candidate | Return an explicit unresolved result, e.g. `NO_ELIGIBLE_YEAR_LORD`, explained in the UI |
+| Day/night classification | Evaluated at the **solar return**, never copied from birth |
+
+Documentation required with the implementation: exact text and edition,
+chapter/section and verse, translation used, and the interpretation adopted
+where the source is ambiguous. Tajika Neelakanthi is the text to investigate;
+not to be claimed as governing until the edition is identified and checked.
+
+### 8.5 Gandanta for AARAMBAM — blocked on source
+
+> Do not ship a whole-star exclusion or a junction-only exclusion as a verified
+> traditional rule until the source has been documented.
+
+Prefer the junction reading (last pada of Revati/Ashlesha/Jyeshta, first of
+Ashwini/Magha/Moola) if the chosen authority supports it; the exact interval may
+be narrower. Implementation steps: identify the authority; establish whole star
+vs pada vs narrower interval; record exact longitude boundaries and any time
+restrictions; implement in the shared function; test before, at and after each
+boundary; if unsettled, return an explicit unresolved result. Until purpose
+tables exist, AARAMBAM, GRIHA_PRAVESAM and PRAYANAM show "no sourced ruling".
+
+### 8.6 Native Tamil review — a release requirement
+
+> Conduct a systematic Tamil-language review before releasing new or materially
+> edited astrological content. … A separate astrology review should assess
+> doctrinal accuracy where needed. Fluency alone does not establish astrological
+> correctness.
+
+Per string: spelling and grammar; read aloud; meaning matches the English;
+astrological claim checked against source or calculation; terminology
+consistent across web and mobile; approval recorded before release.
+
+Groups to review: Varuda Palan (§4), Chandrashtama (§2), the dasa timing tables
+and footnote, the visual-panel label (இந்த தசையில்), the base-page edits, the
+Rohini edits, the mobile half-of-star prompt, and now the Tamil-script Sanskrit
+names (§8.1) and the Shatabhisha paragraph (§8.3).
+
+Reviewer's notes on specific terms, **for the reviewer to settle, not changed
+here:** வருடப்பலன் — எளிமைப்படுத்தப்பட்ட ஆண்டு ஜாதகம் (test with ordinary
+readers); தோராயம் (say what is approximate); மறைக்கப்பட்டுள்ளது (may read as
+deliberately concealed — consider a word for "not yet calculated");
+இல்லை — கணக்கிடுவதாகக் கூறவில்லை (awkward; must not imply the concept does not
+exist); பிறப்பில் நடப்பது · தசா இருப்பு … வரை (must read as the balance of the
+dasa running at birth, not a life span); பதின்வயது (check naturalness in
+context); இந்த தசையில் (right for dasa themes, not a universal replacement for
+age language).
