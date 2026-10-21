@@ -1,6 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import {
+  VARUDA_PALAN_COMPONENTS,
+  VARUDA_PALAN_NAME,
+  VARUDA_PALAN_STATUS_LABEL,
+  varudaPalanAreaLabel,
+  type VarudaPalanComponentStatus,
+} from "@vinaadi/shared/constants";
 import { t, tPlanetLord } from "@/lib/i18n";
 import { rasiDisplayName } from "@/lib/chart-utils";
 import { scoreColor } from "@/lib/format";
@@ -28,8 +35,6 @@ const PLANET_COLORS: Record<string, string> = {
   SUN: "var(--planet-sun)", MOON: "var(--planet-moon)", MARS: "var(--planet-mars)", MERCURY: "var(--planet-mercury)",
   JUPITER: "var(--planet-jupiter)", VENUS: "var(--planet-venus)", SATURN: "var(--planet-saturn-soft)", RAHU: "var(--planet-rahu)", KETU: "var(--planet-ketu)",
 };
-
-const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 
 function PlanetTag({ planet, lang }: { planet: string; lang: Lang }) {
@@ -65,12 +70,14 @@ export function VarshaphalaPanel({ lang, chartId, data, loading, onLoad }: Props
   if (!chartId) return null;
 
   return (
-    <Surface title={t("varshaphala_title", lang)}>
+    <Surface title={VARUDA_PALAN_NAME[lang]}>
       <p style={{ fontSize: "0.8125rem", color: W.muted, lineHeight: 1.5, marginBottom: "var(--space-3)" }}>
         {lang === "ta"
-          ? "உங்கள் சூரிய திரும்பு (வர்ஷ பிரவேச) ஆண்டு கட்டம் — முந்தா, ஆண்டு அதிபதி, இத்தாஸல/இஸாரஃபா அம்சங்கள், மற்றும் எந்த ஆண்டிற்கும் மாதம் வாரியான பலன்."
-          : "Your solar-return year chart — muntha, year lord, itthasala/isarafa aspects, and a month-by-month outlook for any year."}
+          ? "உங்கள் சூரியப் பிரவேச ஆண்டு ஜாதகம் — முந்தா, ஆண்டு அதிபதி, துறை வாரியான நிலை. எது கணக்கிடப்படுகிறது, எது இல்லை என்பது கீழே."
+          : "Your solar-return year chart — muntha, year lord and an outlook by life area. What is and is not computed is listed below."}
       </p>
+
+      <VarudaPalanDisclosure lang={lang} />
 
       {/* Year picker + load button */}
       <div style={{ display: "flex", gap: "var(--space-3)", alignItems: "center", marginBottom: "var(--space-3)", flexWrap: "wrap" }}>
@@ -111,7 +118,7 @@ export function VarshaphalaPanel({ lang, chartId, data, loading, onLoad }: Props
 
           {/* Solar return date */}
           <p style={{ fontSize: "0.78rem", color: W.muted, marginBottom: "var(--space-4)" }}>
-            {lang === "ta" ? "சூரிய திரும்பு தேதி:" : "Solar return:"}&nbsp;
+            {lang === "ta" ? "சூரியப் பிரவேச தேதி:" : "Solar return:"}&nbsp;
             <strong style={{ color: W.inkMid }}>{data.solarReturnDate}</strong>
           </p>
 
@@ -139,7 +146,7 @@ export function VarshaphalaPanel({ lang, chartId, data, loading, onLoad }: Props
               </Kicker>
               <p style={{ fontSize: "0.72rem", color: W.muted, lineHeight: 1.5, marginBottom: "var(--space-2_5)", padding: "var(--space-1_5) var(--space-2_5)", borderRadius: "8px", background: "rgba(122,111,94,0.07)", border: "1px solid rgba(122,111,94,0.15)" }}>
                 {lang === "ta"
-                  ? "இந்த மதிப்பெண்கள் வர்ஷபல (ஆண்டு) கட்டத்தை மட்டும் அடிப்படையாகக் கொண்டவை. 'ஜீவிதப் பகுதிகள்' தாவலில் உள்ள மதிப்பெண்கள் உங்கள் ஜாதகம் + தசை + கோச்சாரம் மூன்றையும் சேர்த்து கணக்கிடப்படுவதால் வேறுபடும்."
+                  ? "இந்த மதிப்பெண்கள் வருடப்பலன் (ஆண்டு) ஜாதகத்தை மட்டும் அடிப்படையாகக் கொண்டவை. 'ஜீவிதப் பகுதிகள்' தாவலில் உள்ள மதிப்பெண்கள் உங்கள் ஜாதகம் + தசை + கோச்சாரம் மூன்றையும் சேர்த்து கணக்கிடப்படுவதால் வேறுபடும்."
                   : "These scores are based solely on your annual solar return chart. They will differ from the Life Areas tab, which combines natal chart strength, dasha period, and transits together."}
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
@@ -149,7 +156,7 @@ export function VarshaphalaPanel({ lang, chartId, data, loading, onLoad }: Props
                     defaultOpen={false}
                     title={
                       <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", width: "100%" }}>
-                        <span style={{ fontWeight: 600, fontSize: "0.85rem", color: W.inkMid, minWidth: "8rem" }}>{item.area}</span>
+                        <span style={{ fontWeight: 600, fontSize: "0.85rem", color: W.inkMid, minWidth: "8rem" }}>{varudaPalanAreaLabel(item.area, lang)}</span>
                         <span style={{
                           fontWeight: 700,
                           fontSize: "0.9rem",
@@ -158,11 +165,10 @@ export function VarshaphalaPanel({ lang, chartId, data, loading, onLoad }: Props
                         }}>
                           {item.score}
                         </span>
-                        {item.favourableMonths.length > 0 && (
-                          <span style={{ fontSize: "0.72rem", color: W.muted }}>
-                            {t("varshaphala_fav_months", lang)}: {item.favourableMonths.map(m => MONTHS[m - 1]).join(", ")}
-                          </span>
-                        )}
+                        {/* Favourable months are hidden (FSA-17): they were a
+                            constant per score band, not computed from the chart.
+                            Do not render `favourableMonths` until the backend
+                            derives them by a method ruled on first. */}
                       </div>
                     }
                   >
@@ -185,6 +191,36 @@ export function VarshaphalaPanel({ lang, chartId, data, loading, onLoad }: Props
         </p>
       )}
     </Surface>
+  );
+}
+
+const STATUS_TONE: Record<VarudaPalanComponentStatus, string> = {
+  COMPUTED: W.sage,
+  APPROXIMATE: W.terracotta,
+  HIDDEN: W.muted,
+  NOT_IMPLEMENTED: W.muted,
+};
+
+/** What this feature does and does not compute, on the paid page itself
+ *  (owner ruling 2026-10-21). Rows come from the shared table that mobile reads. */
+function VarudaPalanDisclosure({ lang }: { lang: Lang }) {
+  return (
+    <Card variant="soft" style={{ padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-card)", marginBottom: "var(--space-3)" }}>
+      <Kicker as="p" color="var(--color-faint)" style={{ letterSpacing: "0.08em", marginBottom: "var(--space-1_5)" }}>
+        {lang === "ta" ? "இந்த ஆண்டு ஜாதகத்தில் என்ன உள்ளது" : "What this annual chart includes"}
+      </Kicker>
+      <dl data-testid="varuda-palan-disclosure" style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "var(--space-1) var(--space-3)", margin: 0, fontSize: "0.78rem" }}>
+        {VARUDA_PALAN_COMPONENTS.map((row) => (
+          <div key={row.key} style={{ display: "contents" }}>
+            <dt style={{ color: W.inkMid, fontWeight: 600 }}>{row.label[lang]}</dt>
+            <dd style={{ margin: 0, color: W.muted }}>
+              <span style={{ color: STATUS_TONE[row.status], fontWeight: 700 }}>{VARUDA_PALAN_STATUS_LABEL[row.status][lang]}</span>
+              {row.note ? ` — ${row.note[lang]}` : null}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </Card>
   );
 }
 

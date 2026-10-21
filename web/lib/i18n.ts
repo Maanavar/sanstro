@@ -1063,11 +1063,12 @@ const STRINGS = {
   equal_bhava_title:       { ta: "சம பாவம்",                    en: "Equal Bhava (House)" },
   equal_bhava_desc:        { ta: "ராசி வீட்டிலிருந்து பாவ வீட்டில் மாற்றம் உள்ள கிரகங்கள் மட்டும்", en: "Planets that differ between Rasi and equal-house (a secondary lens, not Sripati chalit)" },
 
-  // ── Varshaphala (Annual Chart)
-  varshaphala_title:       { ta: "வர்ஷபல — ஆண்டு கட்டம்",      en: "Varshaphala — Annual Chart" },
-  varshaphala_sr_lagna:    { ta: "சூரிய திரும்பு லக்னம்",       en: "Solar Return Lagna" },
+  // ── Varuda Palan — simplified annual chart (internally "varshaphala"). The
+  // feature's name and its computed/not-computed table live in
+  // @vinaadi/shared/constants (varuda-palan.ts), shared with mobile.
+  varshaphala_sr_lagna:    { ta: "சூரியப் பிரவேச லக்னம்",       en: "Solar-return lagna" },
   varshaphala_muntha:      { ta: "முந்தா",                       en: "Muntha" },
-  varshaphala_year_lord:   { ta: "ஆண்டு அதிபதி",                en: "Year Lord" },
+  varshaphala_year_lord:   { ta: "ஆண்டு அதிபதி (தோராயம்)",      en: "Year lord (approximate)" },
   varshaphala_house:       { ta: "வீடு",                         en: "House" },
   varshaphala_itthasala:   { ta: "இத்தாஸல (பொருந்தும் அம்சம்)", en: "Itthasala (Applying)" },
   varshaphala_isarafa:     { ta: "இஸாரஃபா (விலகும் அம்சம்)",   en: "Isarafa (Separating)" },
@@ -1076,7 +1077,6 @@ const STRINGS = {
   // pending native review.
   varshaphala_simplified_badge: { ta: "எளிமையாக்கப்பட்டது",     en: "Simplified" },
   varshaphala_area_outlook:{ ta: "இந்த ஆண்டு துறை நிலை",        en: "Area outlook this year" },
-  varshaphala_fav_months:  { ta: "சாதகமான மாதங்கள்",            en: "Favourable months" },
   varshaphala_load:        { ta: "ஆண்டு கட்டம் காண்",           en: "View Annual Chart" },
   varshaphala_loading:     { ta: "கணக்கிடுகிறது…",               en: "Computing…" },
   varshaphala_no_pairs:    { ta: "அம்சங்கள் இல்லை",             en: "No aspects detected" },

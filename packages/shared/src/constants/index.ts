@@ -1,6 +1,7 @@
 export * from "./tiers";
 export * from "./launch";
 export * from "./site";
+export * from "./varuda-palan";
 
 import type { BiText } from "../types";
 

@@ -9,6 +9,7 @@ import {
   TrendingUp, Award, Users, Shuffle, CalendarDays, UserCheck, ShoppingCart,
 } from "lucide-react-native";
 import type { LucideIcon } from "lucide-react-native";
+import { VARUDA_PALAN_SHORT_NAME } from "@vinaadi/shared/constants";
 import { useColors } from "@/hooks/useColors";
 import type { ColorTokens } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
@@ -144,8 +145,8 @@ const GROUPS: ToolGroup[] = [
       },
       {
         Icon: TrendingUp, key: "varshaphala", route: "/varshaphala/index",
-        nameEn: "Varshaphala",   nameTa: "வர்ஷபல",
-        descEn: "Annual chart & predictions",    descTa: "ஆண்டு ஜாதக முன்னறிவிப்பு",
+        nameEn: VARUDA_PALAN_SHORT_NAME.en,   nameTa: VARUDA_PALAN_SHORT_NAME.ta,
+        descEn: "Simplified solar-return year chart",    descTa: "எளிமைப்படுத்தப்பட்ட ஆண்டு ஜாதகம்",
       },
       // Rectification is deliberately not listed. Its ranking compares the
       // candidate Lagna's rasi number with the event's house numbers and never

@@ -822,8 +822,8 @@ export function DashboardSetupTab({
             </p>
             <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.55 }}>
               {lang === "ta"
-                ? "வருஷபலன், வர்கங்கள், ஒத்திசைவு — iOS மற்றும் Android ஆப்பில் சந்தா செய்யலாம்."
-                : "Varshaphala, vargas, synastry, and 5 reports/month — subscribe via the iOS or Android app."}
+                ? "வருடப்பலன் (எளிமைப்படுத்தப்பட்ட ஆண்டு ஜாதகம்), வர்கங்கள், ஒத்திசைவு — iOS மற்றும் Android ஆப்பில் சந்தா செய்யலாம்."
+                : "Simplified Annual Chart (Varuda Palan), vargas, synastry, and 5 reports/month — subscribe via the iOS or Android app."}
             </p>
             {/* Explicit free/paid boundary — counters the "free = hidden charges
                 later" reflex that keeps money-anxious users defensive (#19/#73). */}

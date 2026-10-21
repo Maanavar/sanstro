@@ -15,6 +15,13 @@ import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "@/hooks/useSession";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { ErrorCard } from "@/components/ErrorCard";
+import { rasiDisplayName, tPlanetLord, type Lang } from "@vinaadi/shared";
+import {
+  VARUDA_PALAN_COMPONENTS,
+  VARUDA_PALAN_SHORT_NAME,
+  VARUDA_PALAN_STATUS_LABEL,
+  varudaPalanAreaLabel,
+} from "@vinaadi/shared/constants";
 import { getVarshaphala } from "@/api/varshaphala";
 import { getPrimaryChartId } from "@/lib/userPrefs";
 import type { VarshaphalaAreaOutlook } from "@/api/varshaphala";
@@ -22,9 +29,12 @@ import type { VarshaphalaAreaOutlook } from "@/api/varshaphala";
 const CURRENT_YEAR = new Date().getFullYear();
 const YEAR_RANGE = [-3, -2, -1, 0, 1, 2, 3].map((n) => CURRENT_YEAR + n);
 
+// The backend scores each area 20–90 (tajaka_service clamps to that range and
+// words >= 70 as supportive, 50–69 as mixed). This used to test 7 and 4 and
+// print "/10", so every area showed green and read "72/10".
 function scoreColor(score: number, C: ColorTokens): string {
-  if (score >= 7) return C.green;
-  if (score >= 4) return C.amber;
+  if (score >= 70) return C.green;
+  if (score >= 50) return C.amber;
   return C.alert;
 }
 
@@ -54,7 +64,7 @@ export default function VarshaphalaScreen() {
   if (tier === "guest") {
     return (
       <SafeAreaView style={styles.container}>
-        <Header isTamil={isTamil} />
+        <Header lang={lang} />
         <View style={styles.guestWrap}>
           <Lock size={48} color={C.textTertiary} strokeWidth={1} />
           <Text style={[styles.guestTitle, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
@@ -62,8 +72,8 @@ export default function VarshaphalaScreen() {
           </Text>
           <Text style={[styles.guestDesc, isTamil ? TamilType.caption : EnType.caption]}>
             {isTamil
-              ? "வர்ஷபல காண ஜாதகம் தேவை."
-              : "Create a birth chart to view annual predictions."}
+              ? "வருடப்பலன் காண ஜாதகம் தேவை."
+              : "Create a birth chart to view your annual chart."}
           </Text>
           <TouchableOpacity style={styles.loginBtn} onPress={() => router.push("/(auth)/login")}>
             <Text style={styles.loginBtnText}>{isTamil ? "உள்நுழைக" : "Sign In"}</Text>
@@ -75,7 +85,7 @@ export default function VarshaphalaScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Header isTamil={isTamil} />
+      <Header lang={lang} />
 
       {/* Year selector */}
       <View style={styles.yearStripOuter}>
@@ -88,6 +98,21 @@ export default function VarshaphalaScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+        {/* What this feature does and does not compute — on the paid screen
+            itself (owner ruling 2026-10-21). Same shared table as web. */}
+        <View style={styles.summaryCard} testID="varuda-palan-disclosure">
+          <Text style={[styles.sectionTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
+            {isTamil ? "இந்த ஆண்டு ஜாதகத்தில் என்ன உள்ளது" : "What this annual chart includes"}
+          </Text>
+          {VARUDA_PALAN_COMPONENTS.map((row) => (
+            <Text key={row.key} style={[styles.disclosureRow, isTamil ? TamilType.caption : EnType.caption]}>
+              <Text style={styles.disclosureLabel}>{row.label[lang]}: </Text>
+              {VARUDA_PALAN_STATUS_LABEL[row.status][lang]}
+              {row.note ? ` — ${row.note[lang]}` : ""}
+            </Text>
+          ))}
+        </View>
+
         {isLoading && (
           <>
             <SkeletonCard height={120} />
@@ -101,15 +126,15 @@ export default function VarshaphalaScreen() {
             {/* Solar return summary */}
             <View style={styles.summaryCard}>
               <Text style={[styles.sectionTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
-                {isTamil ? `${year} வர்ஷபல சுருக்கம்` : `${year} Annual Summary`}
+                {`${year} ${VARUDA_PALAN_SHORT_NAME[lang]}`}
               </Text>
               <View style={styles.summaryRow}>
                 <View style={styles.summaryItem}>
                   <Text style={[styles.summaryLabel, isTamil ? TamilType.caption : EnType.caption]}>
-                    {isTamil ? "வர்ஷ லக்னம்" : "Varsha Lagna"}
+                    {isTamil ? "சூரியப் பிரவேச லக்னம்" : "Solar-return lagna"}
                   </Text>
                   <Text style={[styles.summaryValue, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
-                    {v.solarReturnLagnaName}
+                    {rasiDisplayName(v.solarReturnLagnaRasi, lang)}
                   </Text>
                 </View>
                 <View style={styles.summaryItem}>
@@ -117,15 +142,15 @@ export default function VarshaphalaScreen() {
                     {isTamil ? "முந்தா" : "Muntha"}
                   </Text>
                   <Text style={[styles.summaryValue, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
-                    {v.munthaRasiName}
+                    {rasiDisplayName(v.munthaRasi, lang)}
                   </Text>
                 </View>
                 <View style={styles.summaryItem}>
                   <Text style={[styles.summaryLabel, isTamil ? TamilType.caption : EnType.caption]}>
-                    {isTamil ? "வர்ஷேஷ்" : "Varshesh"}
+                    {isTamil ? "ஆண்டு அதிபதி (தோராயம்)" : "Year lord (approximate)"}
                   </Text>
                   <Text style={[styles.summaryValue, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
-                    {v.yearLord}
+                    {tPlanetLord(v.yearLord, lang)}
                   </Text>
                 </View>
               </View>
@@ -146,10 +171,10 @@ export default function VarshaphalaScreen() {
                 >
                   <View style={styles.bhavaHeader}>
                     <View style={[styles.scoreChip, { backgroundColor: scoreColor(h.score, C) + "22" }]}>
-                      <Text style={[styles.scoreChipText, { color: scoreColor(h.score, C) }]}>{h.score}/10</Text>
+                      <Text style={[styles.scoreChipText, { color: scoreColor(h.score, C) }]}>{h.score}</Text>
                     </View>
                     <Text style={[styles.bhavaTitle, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
-                      {h.area}
+                      {varudaPalanAreaLabel(h.area, lang)}
                     </Text>
                     <Text style={styles.bhavaChevron}>{isOpen ? "▲" : "▼"}</Text>
                   </View>
@@ -158,13 +183,8 @@ export default function VarshaphalaScreen() {
                       <Text style={[styles.bhavaSummary, isTamil ? TamilType.body : EnType.body]}>
                         {isTamil ? h.narrativeTa : h.narrativeEn}
                       </Text>
-                      {h.favourableMonths.length > 0 && (
-                        <Text style={[styles.favourableMonths, isTamil ? TamilType.caption : EnType.caption]}>
-                          {isTamil
-                            ? `சாதக மாதங்கள்: ${h.favourableMonths.join(", ")}`
-                            : `Favourable months: ${h.favourableMonths.join(", ")}`}
-                        </Text>
-                      )}
+                      {/* Favourable months are hidden (FSA-17): they were a
+                          constant per score band, not computed from the chart. */}
                     </>
                   )}
                 </TouchableOpacity>
@@ -177,7 +197,7 @@ export default function VarshaphalaScreen() {
   );
 }
 
-function Header({ isTamil }: { isTamil: boolean }) {
+function Header({ lang }: { lang: Lang }) {
   const C = useColors();
   const styles = useMemo(() => makeStyles(C), [C]);
   return (
@@ -185,8 +205,8 @@ function Header({ isTamil }: { isTamil: boolean }) {
       <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
         <Text style={styles.back}>←</Text>
       </TouchableOpacity>
-      <Text style={[styles.headerTitle, isTamil ? TamilType.heading : EnType.heading]}>
-        {isTamil ? "வர்ஷபல" : "Annual Prediction"}
+      <Text style={[styles.headerTitle, lang === "ta" ? TamilType.heading : EnType.heading]}>
+        {VARUDA_PALAN_SHORT_NAME[lang]}
       </Text>
       <View style={{ width: 40 }} />
     </View>
@@ -226,7 +246,8 @@ function makeStyles(C: ColorTokens) {
   bhavaTitle: { flex: 1, fontSize: 15, lineHeight: 22, color: C.textPrimary },
   bhavaChevron: { fontFamily: "Inter_400Regular", fontSize: 12, color: C.textTertiary },
   bhavaSummary: { color: C.textPrimary, marginTop: S.md, lineHeight: 22 },
-  favourableMonths: { color: C.textTertiary, marginTop: S.xs },
+  disclosureRow: { color: C.textSecond },
+  disclosureLabel: { color: C.textPrimary },
 
   guestWrap: { flex: 1, alignItems: "center", justifyContent: "center", padding: S.xxl, gap: S.md },
   guestTitle: { fontSize: 18, color: C.textPrimary, textAlign: "center" },

@@ -33,7 +33,7 @@ const FEATURES = [
   { ta: "மாதம் 30 Ask Vinaadi கேள்விகள் + கூடுதல் பேக் கிடைக்கும்", en: "30 Ask Vinaadi questions/month + top-up available" },
   { ta: "மாதம் 5 விரிவான அறிக்கைகள் உட்பட", en: "5 detailed reports/month included" },
   { ta: "முழு தசா காலவரிசை (மகாதசா → பிரத்யந்தர்)", en: "Full dasha timeline (mahadasha → pratyantardasha)" },
-  { ta: "வருஷபலன், வர்கங்கள், ஒத்திசைவு பலகை", en: "Varshaphala, vargas, synastry panel" },
+  { ta: "வருடப்பலன் (எளிமைப்படுத்தப்பட்ட ஆண்டு ஜாதகம்), வர்கங்கள், ஒத்திசைவு பலகை", en: "Simplified Annual Chart (Varuda Palan), vargas, synastry panel" },
   { ta: "வார்ஷிக Wrapped சமூக பகிர்வு + பரிகாரங்கள்", en: "Annual Wrapped social share + remedy suggestions" },
 ];
 

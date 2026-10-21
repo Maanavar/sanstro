@@ -349,7 +349,7 @@ export default function MeScreen() {
                 <TouchableOpacity style={styles.menuRow} onPress={() => router.push("/varshaphala" as Href)}>
                   <Text style={styles.menuIcon}>📅</Text>
                   <Text style={[styles.menuLabel, { fontFamily: T.body.fontFamily }]}>
-                    {isTamil ? "வர்ஷபல" : "Annual Prediction"}
+                    {isTamil ? "வருடப்பலன்" : "Annual Chart"}
                   </Text>
                   <ChevronRight size={18} color={C.textTertiary} strokeWidth={1.5} />
                 </TouchableOpacity>

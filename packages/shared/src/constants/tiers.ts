@@ -166,8 +166,8 @@ export const PPU_REPORT_PRODUCTS = {
     priceINR: 59,
     label: { ta: "நடுத்தர அறிக்கை", en: "Standard Report" },
     description: {
-      ta: "கிரக நிலை, விரிவான தசா, அடிப்படை வருஷபலன்",
-      en: "Planetary positions, full dasha, basic varshaphala",
+      ta: "கிரக நிலை, விரிவான தசா, அடிப்படை வருடப்பலன்",
+      en: "Planetary positions, full dasha, basic annual chart (Varuda Palan)",
     },
   },
   DETAILED_5PAGE: {

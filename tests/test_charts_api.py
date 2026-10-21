@@ -410,6 +410,21 @@ def test_varshaphala_area_outlook_scores_vary_by_area(client, birth_profile_payl
     }
 
 
+def test_varshaphala_never_sends_favourable_months_fsa17(client, birth_profile_payload_factory):
+    # FSA-17 (owner ruling 2026-10-21): favourable months were a constant per
+    # score band — every area scoring >= 70 on every chart got [2, 4, 6, 9, 11].
+    # Hidden until derived from the individual chart by a method ruled on first.
+    # The field stays on the wire, always empty, so no client breaks.
+    created = client.post("/api/v1/birth-profiles", json=birth_profile_payload_factory()).json()
+    chart_id = created["data"]["chartId"]
+    for year in (2025, 2026, 2027):
+        response = client.get(f"/api/v1/charts/{chart_id}/varshaphala", params={"year": year})
+        assert response.status_code == 200
+        area_outlook = response.json()["data"]["areaOutlook"]
+        assert area_outlook
+        assert all(row["favourableMonths"] == [] for row in area_outlook), area_outlook
+
+
 def test_varshaphala_area_outlook_scores_ignore_itthasala_isarafa_wi18(
     client, birth_profile_payload_factory, monkeypatch,
 ):

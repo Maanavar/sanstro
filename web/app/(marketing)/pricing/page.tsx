@@ -94,7 +94,7 @@ function featureRows(L: (en: string, ta: string) => string) {
       premium: L(`${p.detailedReportsMonthlyIncluded} detailed reports / month`, `மாதம் ${p.detailedReportsMonthlyIncluded} விரிவான அறிக்கைகள்`),
     },
     {
-      label: L("Varshaphala + Vargas", "வருஷபலன் + வர்கங்கள்"),
+      label: L("Simplified Annual Chart (Varuda Palan) + Vargas", "வருடப்பலன் (எளிமைப்படுத்தப்பட்ட ஆண்டு ஜாதகம்) + வர்கங்கள்"),
       guest: L("Unlocks with Premium", "பிரீமியத்தில் திறக்கும்"),
       registered: L("Unlocks with Premium", "பிரீமியத்தில் திறக்கும்"),
       premium: L("Included", "உள்ளடங்கும்"),

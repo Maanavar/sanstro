@@ -23,6 +23,7 @@ import { t, tNakshatra, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { tamilizeAstroEnglish } from "@/lib/tamil-astro";
 import { compareSynastry } from "@vinaadi/shared/api/relationships";
+import { VARUDA_PALAN_NAME } from "@vinaadi/shared/constants";
 import type {
   ChartCalculateResponseData,
   CharaDashaData,
@@ -1814,7 +1815,7 @@ export function DashboardFamilyChartsHybrid({
                     </CollapsibleSection>
                   )}
                   {solarReturn && (
-                    <CollapsibleSection title={lang === "ta" ? `${solarReturn.returnYear} ஆண்டு தாஜகா` : `${solarReturn.returnYear} Annual Chart`} defaultOpen={false}>
+                    <CollapsibleSection title={`${solarReturn.returnYear} ${VARUDA_PALAN_NAME[lang]}`} defaultOpen={false}>
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "var(--space-2_5)", paddingTop: "var(--space-2)" }}>
                         <Card variant="soft" style={{ display: "block", padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-md)" }}>
                           <Kicker as="p" color="var(--color-faint)" style={{ margin: "0 0 var(--space-0_5)", letterSpacing: "0.08em" }}>{lang === "ta" ? "வருட லக்னம்" : "SR Lagna"}</Kicker>

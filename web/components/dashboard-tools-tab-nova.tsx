@@ -5,6 +5,7 @@ import {
   ScrollText, CalendarDays, History, Sunrise, Moon, Sparkles, Timer, CalendarClock,
   HeartHandshake, Hash, ArrowLeft, ArrowRight, ChevronRight, type LucideIcon,
 } from "lucide-react";
+import { VARUDA_PALAN_NAME } from "@vinaadi/shared/constants";
 
 import type { Lang } from "@/lib/i18n";
 import type { ChartCalculateResponseData, RelationshipAlertItem, VarshaphalaData } from "@/lib/types";
@@ -198,9 +199,9 @@ export function DashboardToolsTabNova({
     },
     {
       id: "varshaphala", icon: CalendarClock, color: "var(--color-accent-strong)",
-      nameEn: "Varshaphala — Annual Chart", nameTa: "வர்ஷபலம் — ஆண்டு ஜாதகம்",
-      descEn: "Your solar-return year chart — muntha, year lord, and a month-by-month outlook for any year.",
-      descTa: "உங்கள் சூரிய வருடாந்திர ஜாதகம் — முந்தை, ஆண்டு அதிபதி, மற்றும் மாதம் வாரியான பலன்.",
+      nameEn: VARUDA_PALAN_NAME.en, nameTa: VARUDA_PALAN_NAME.ta,
+      descEn: "Your solar-return year chart — muntha, an approximate year lord and an outlook by life area.",
+      descTa: "உங்கள் சூரியப் பிரவேச ஆண்டு ஜாதகம் — முந்தா, தோராயமான ஆண்டு அதிபதி, துறை வாரியான நிலை.",
       metaEn: "uses · your saved chart", metaTa: "பயன்படுத்துவது · உங்கள் ஜாதகம்", disabled: needsProfile, kind: "inline",
     },
     {
