@@ -2,25 +2,38 @@ from __future__ import annotations
 
 import calendar
 import logging
+from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
+from typing import Any
 from uuid import UUID
 from zoneinfo import ZoneInfoNotFoundError
 
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from app.calculations.astro import format_clock_hhmm
-from app.calculations.festivals import get_festivals_for_date
+from app.calculations.astro import format_clock_hhmm, julian_day_to_utc_datetime, utc_datetime_to_julian_day
+from app.calculations.ephemeris import calculate_rise_transit_jd, calculate_sun_moon_longitudes
+from app.calculations.festivals import (
+    SOLAR_MONTH_OBSERVANCES,
+    NisheethaNight,
+    ObservanceInstants,
+    get_festivals_for_date,
+)
+from app.calculations.lunar_month import amanta_month_at, amavasai_month_for_day
+from app.calculations.observance_days import printed_tithi_day_on_or_after, select_in_solar_month
 from app.calculations.panchangam import (
     _compute_subha_muhurtham_broad,
     _compute_subha_muhurtham_strict,
+    _tithi_number_at_jd,
 )
 from app.calculations.tamil_calendar import (
     TAMIL_MONTHS,
     format_tamil_date,
+    tamil_date_source,
     tamil_month_spans,
     tamil_solar_date,
 )
+from app.constants.astrology import NAKSHATRA_NAMES
 from app.data.muhurtham_naals import get_muhurtham_naals
 from app.models import BirthProfile, Chart
 from app.schemas.panchangam import (
@@ -131,6 +144,184 @@ def _build_kalam(snapshot) -> PanchangamKalam:
     )
 
 
+_NAKSHATRA_SPAN = 40 / 3
+_MARGAZHI = 8  # TAMIL_MONTHS index
+# The sunrise vratams' first-of-two needs the previous sunrise's star.
+_STARS_NEEDING_PREVIOUS_SUNRISE = frozenset({"ROHINI", "THIRUVONAM"})
+# A star at sunset can be Karthigai only if the sunrise star is Bharani or
+# Karthigai itself (a star lasts under ~27 h).
+_SUNRISE_STARS_BEFORE_KARTHIGAI = frozenset({"BHARANI", "KARTHIGAI"})
+# A Jayanthi night whose nisheetha lands on this civil day opens on this or
+# the previous evening; Krishna Ashtami (23), or a bracketing Saptami/Navami
+# in the tie-break, can sit there only if the sunrise tithi is Krishna
+# Shashthi..Dasami.
+_SUNRISE_TITHIS_NEAR_KRISHNA_ASHTAMI = frozenset({21, 22, 23, 24, 25})
+# Varalakshmi (§9.1): a Friday at most six days before the Pournami has a
+# bright-fortnight tithi of at least Saptami at sunrise.
+_SUNRISE_TITHIS_BEFORE_POURNAMI = frozenset(range(7, 16))
+
+
+def _star_at_jd(jd: float) -> str:
+    sun, moon = calculate_sun_moon_longitudes(jd)
+    return NAKSHATRA_NAMES[int(((moon % 360.0) + 1e-9) // _NAKSHATRA_SPAN) % 27]
+
+
+def _aparahna_jd(sunrise_jd: float, sunset_jd: float) -> float:
+    """Midpoint of aparahna, the fourth fifth of daytime."""
+    return sunrise_jd + 0.7 * (sunset_jd - sunrise_jd)
+
+
+def _observance_instants(snapshot) -> ObservanceInstants:
+    """FCA-04 — the values observances read at instants other than sunrise.
+
+    Each is computed only when the sunrise state makes it reachable, so the
+    other days of the month pay nothing. A failure leaves the field None,
+    which omits that observance rather than guessing it from sunrise.
+    """
+    # Heterogeneous by design: each key is one ObservanceInstants field.
+    values: dict[str, Any] = {}
+    try:
+        sunrise_jd = utc_datetime_to_julian_day(snapshot.sunrise.astimezone(UTC))
+        sunset_jd = utc_datetime_to_julian_day(snapshot.sunset.astimezone(UTC))
+        sunrise_star = snapshot.nakshatra_name.upper()
+        lat, lng = snapshot.latitude, snapshot.longitude
+
+        def rise_after(jd: float) -> float:
+            return calculate_rise_transit_jd(jd, lat, lng, rise=True)
+
+        def set_after(jd: float) -> float:
+            return calculate_rise_transit_jd(jd, lat, lng, rise=False)
+
+        # A star that holds neither this sunrise nor the next is a middle span
+        # of the sunrise-to-sunrise day.
+        spans = snapshot.nakshatra_spans or []
+        kshaya_star = spans[1].name.upper() if len(spans) >= 3 else None
+        values["kshaya_nakshatra_name"] = kshaya_star
+        if sunrise_star in _SUNRISE_STARS_BEFORE_KARTHIGAI:
+            values["sunset_nakshatra_name"] = _star_at_jd(sunset_jd)
+            values["previous_sunset_nakshatra_name"] = _star_at_jd(
+                calculate_rise_transit_jd(sunrise_jd - 1.2, snapshot.latitude, snapshot.longitude, rise=False)
+            )
+        if sunrise_star in _STARS_NEEDING_PREVIOUS_SUNRISE:
+            values["previous_sunrise_nakshatra_name"] = _star_at_jd(
+                calculate_rise_transit_jd(sunrise_jd - 1.2, snapshot.latitude, snapshot.longitude, rise=True)
+            )
+        # Krishna Chaturthi (19) can hold this evening's moonrise only if the
+        # sunrise tithi is Tritiya (18) or Chaturthi itself.
+        if snapshot.tithi_number in (18, 19):
+            def moonrise_after(jd: float) -> float:
+                return calculate_rise_transit_jd(jd, snapshot.latitude, snapshot.longitude, rise=True, body="MOON")
+
+            moonrise_jd = moonrise_after(sunrise_jd)
+            values["moonrise_tithi_number"] = _tithi_number_at_jd(moonrise_jd)
+            # Moonrise recurs every ~24h50m, so these land on the neighbours'.
+            values["previous_moonrise_tithi_number"] = _tithi_number_at_jd(moonrise_after(moonrise_jd - 1.5))
+            values["next_moonrise_tithi_number"] = _tithi_number_at_jd(moonrise_after(moonrise_jd + 0.5))
+        if snapshot.tithi_number in (1, 2):
+            values["previous_sunrise_tithi_number"] = _tithi_number_at_jd(
+                calculate_rise_transit_jd(sunrise_jd - 1.2, snapshot.latitude, snapshot.longitude, rise=True)
+            )
+        # Aparahna, with both neighbours' (they decide "two aparahnas" and
+        # "none") and both neighbours' sunrise tithis (the fallback day).
+        # Navami or Dasami can hold the afternoon only if the sunrise tithi is
+        # Ashtami..Dasami (Shukla — the Navarathiri fortnight); Amavasai, for
+        # tharpanam (ruling Q6), only if it is Chaturdashi or Amavasai.
+        if snapshot.tithi_number in (8, 9, 10, 29, 30):
+            previous_sunrise = rise_after(sunrise_jd - 1.2)
+            next_sunrise = rise_after(sunset_jd)
+            values["aparahna_tithi_number"] = _tithi_number_at_jd(_aparahna_jd(sunrise_jd, sunset_jd))
+            values["previous_aparahna_tithi_number"] = _tithi_number_at_jd(
+                _aparahna_jd(previous_sunrise, set_after(previous_sunrise))
+            )
+            values["next_aparahna_tithi_number"] = _tithi_number_at_jd(
+                _aparahna_jd(next_sunrise, set_after(next_sunrise))
+            )
+            values["previous_sunrise_tithi_number"] = _tithi_number_at_jd(previous_sunrise)
+            values["next_sunrise_tithi_number"] = _tithi_number_at_jd(next_sunrise)
+        # Krishna Jayanthi (§2): nisheetha is the midpoint of the night, sunset
+        # to the next sunrise. The nights opening on the evenings of day -2,
+        # -1, 0 and +1, each with both civil dates it could be printed on.
+        if snapshot.tithi_number in _SUNRISE_TITHIS_NEAR_KRISHNA_ASHTAMI:
+            tz = snapshot.sunrise.tzinfo
+
+            def civil(jd: float) -> date:
+                return julian_day_to_utc_datetime(jd).astimezone(tz).date()
+
+            rise = rise_after(sunrise_jd - 2.2)
+            nights = []
+            for _ in range(4):
+                sunset = set_after(rise)
+                rise = rise_after(sunset)
+                nisheetha = (sunset + rise) / 2
+                nights.append(NisheethaNight(
+                    tithi_number=_tithi_number_at_jd(nisheetha),
+                    nakshatra_name=_star_at_jd(nisheetha),
+                    evening_date=civil(sunset),
+                    nisheetha_date=civil(nisheetha),
+                ))
+            values["nisheetha_nights"] = tuple(nights)
+        # Varalakshmi (§9.1): how far the printed Pournami is from a Friday.
+        if snapshot.weekday == "FRIDAY" and snapshot.tithi_number in _SUNRISE_TITHIS_BEFORE_POURNAMI:
+            pournami_day = printed_tithi_day_on_or_after(
+                15, snapshot.date_local, snapshot.timezone_name, lat, lng
+            )
+            values["days_until_pournami_day"] = (pournami_day - snapshot.date_local).days
+        if snapshot.nishita_tithi_number == 29:
+            local_midnight = datetime.combine(snapshot.date_local, datetime.min.time(), tzinfo=snapshot.sunrise.tzinfo)
+            values["previous_nishita_tithi_number"] = _tithi_number_at_jd(
+                utc_datetime_to_julian_day(local_midnight.astimezone(UTC))
+            )
+    except Exception as exc:
+        logger.warning("Observance instants failed for %s: %s", snapshot.date_local, exc)
+    return ObservanceInstants(**values)
+
+
+def _solar_month_observances(
+    snapshot, tamil_month_index: int | None, tamil_day_of_month: int | None
+) -> tuple[frozenset[str], frozenset[str], frozenset[tuple[str, str]]]:
+    """§3 — the solar-month observances that fall on this day, those whose
+    duplicate tie-break fired to choose it, and how each day was named.
+
+    Each is decided once per month (`select_in_solar_month` is cached), and
+    only asked on a day its star or tithi can reach: the star at sunrise, the
+    star before it (a sunset kala), or a star contained in the day; for a
+    tithi, the tithi or the one before it at sunrise.
+    """
+    if tamil_month_index is None or tamil_day_of_month is None:
+        return frozenset(), frozenset(), frozenset()
+    spans = snapshot.nakshatra_spans or []
+    stars = {snapshot.nakshatra_name.upper()}
+    if len(spans) >= 3:
+        stars.add(spans[1].name.upper())
+    month_start = snapshot.date_local - timedelta(days=tamil_day_of_month - 1)
+    falls, fired, named_by = set(), set(), set()
+    for observance in SOLAR_MONTH_OBSERVANCES:
+        if observance.tamil_month != tamil_month_index:
+            continue
+        if observance.kind == "star":
+            index = NAKSHATRA_NAMES.index(str(observance.value))
+            if not stars & {NAKSHATRA_NAMES[index], NAKSHATRA_NAMES[index - 1]}:
+                continue
+        elif snapshot.tithi_number not in (int(observance.value) - 1, int(observance.value)):
+            continue
+        try:
+            selection = select_in_solar_month(
+                observance.kind, observance.value, observance.kala, month_start,
+                snapshot.timezone_name, snapshot.latitude, snapshot.longitude, observance.tie_break,
+            )
+        except Exception as exc:
+            logger.warning("%s selection failed for %s: %s", observance.name, snapshot.date_local, exc)
+            continue
+        if snapshot.date_local in selection.selected:
+            falls.add(observance.name)
+            if selection.tie_break_fired:
+                fired.add(observance.name)
+            named_by.update(
+                (observance.name, c.named_by) for c in selection.candidates if c.day == snapshot.date_local
+            )
+    return frozenset(falls), frozenset(fired), frozenset(named_by)
+
+
 def _build_festivals(
     snapshot,
     *,
@@ -151,6 +342,42 @@ def _build_festivals(
         tamil_month_index = None
         tamil_day_of_month = None
 
+    instants = _observance_instants(snapshot)
+    # Bhogi is the last day of Margazhi; only a late-month day can be one.
+    if tamil_month_index == _MARGAZHI and (tamil_day_of_month or 0) >= 28:
+        try:
+            _, tomorrow_day = tamil_solar_date(
+                snapshot.date_local + timedelta(days=1),
+                snapshot.timezone_name,
+                snapshot.latitude,
+                snapshot.longitude,
+            )
+            instants = replace(instants, tamil_month_ends_today=tomorrow_day == 1)
+        except Exception as exc:
+            logger.debug("Next-day Tamil date failed for %s: %s", snapshot.date_local, exc)
+    solar_month, tie_breaks, named_by = _solar_month_observances(snapshot, tamil_month_index, tamil_day_of_month)
+    instants = replace(
+        instants,
+        solar_month_observances=solar_month,
+        solar_month_tie_breaks=tie_breaks,
+        solar_month_named_by=named_by,
+    )
+
+    # FCA-01: lunar-month festivals are named by the amanta month, not the
+    # solar Tamil month. Derived from the cached sunrise, so no cache-schema
+    # change. On failure they are omitted rather than guessed from the solar
+    # month, which is the rule that was wrong.
+    lunar_month = amavasai_month = None
+    try:
+        sunrise_jd = utc_datetime_to_julian_day(snapshot.sunrise.astimezone(UTC))
+        lunar_month = amanta_month_at(sunrise_jd)
+        # The sunrise Amavasai day, or a tharpanam day (Chaturdashi or
+        # Amavasai at sunrise, ruling Q6).
+        if snapshot.special_tithi_day_number == 30 or snapshot.tithi_number in (29, 30):
+            amavasai_month = amavasai_month_for_day(sunrise_jd, snapshot.tithi_number)
+    except Exception as exc:
+        logger.warning("Lunar month lookup failed for %s: %s", snapshot.date_local, exc)
+
     return [
         PanchangamFestival(name=f["name"], category=f["category"], tags=f.get("tags", [f["category"]]))
         for f in get_festivals_for_date(
@@ -166,6 +393,11 @@ def _build_festivals(
             tamil_day_of_month=tamil_day_of_month,
             previous_day_tithi_number=previous_day_snapshot.tithi_number if previous_day_snapshot else None,
             previous_day_tithi_paksha=previous_day_snapshot.tithi_paksha if previous_day_snapshot else None,
+            lunar_month_index=lunar_month.index if lunar_month else None,
+            lunar_month_is_adhika=lunar_month.is_adhika if lunar_month else False,
+            amavasai_lunar_month_index=amavasai_month.index if amavasai_month else None,
+            amavasai_lunar_month_is_adhika=amavasai_month.is_adhika if amavasai_month else False,
+            instants=instants,
         )
     ]
 
@@ -209,6 +441,20 @@ def _build_tamil_date(snapshot) -> BiText | None:
         return BiText(ta=ta, en=en)
     except Exception as exc:
         logger.debug("Tamil date conversion failed for %s: %s", snapshot.date_local, exc)
+        return None
+
+
+def _build_tamil_date_source(snapshot) -> str | None:
+    """FCA-02 — whether `_build_tamil_date` is the almanac's date or the rule's."""
+    try:
+        return tamil_date_source(
+            snapshot.date_local,
+            snapshot.timezone_name,
+            snapshot.latitude,
+            snapshot.longitude,
+        )
+    except Exception as exc:
+        logger.debug("Tamil date source lookup failed for %s: %s", snapshot.date_local, exc)
         return None
 
 
@@ -283,6 +529,7 @@ def calculate_panchangam(query: PanchangamDailyQuery, session: Session | None = 
         data=PanchangamDailyResponseData(
             date_local=snapshot.date_local,
             tamil_date=_build_tamil_date(snapshot),
+            tamil_date_source=_build_tamil_date_source(snapshot),
             location=PanchangamLocation(lat=snapshot.latitude, lng=snapshot.longitude, timezone=snapshot.timezone_name),
             sunrise=format_clock_hhmm(snapshot.sunrise),
             sunset=format_clock_hhmm(snapshot.sunset),
@@ -509,6 +756,7 @@ def build_monthly_panchangam(query: PanchangamMonthlyQuery, session: Session | N
             PanchangamMonthDayEntry(
                 date_local=snapshot.date_local,
                 tamil_date=tamil_date,
+                tamil_date_source=_build_tamil_date_source(snapshot),
                 weekday=snapshot.weekday,
                 tithi_number=governing_tithi_number,
                 tithi_name=governing_tithi_name,

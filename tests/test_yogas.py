@@ -90,7 +90,13 @@ def test_t090_sevvai_dosham_detection():
     assert result.is_present is True
 
 
-def test_t091_sevvai_dosham_cancellation_for_certain_lagna():
+def test_t091_sevvai_dosham_mesham_lagna_mars_in_the_2nd():
+    """O-18 (owner, 2026-10-03, upheld by §8 of the round-two rulings): the
+    Mesham/Viruchigam-lagna exception is a strong mitigation, so it reads
+    present, reduced. The option's old "full_cancellation" value no longer
+    cancels: §8 allows two cancellations, both two-chart."""
+    from app.calculations.doctrine_options import DoctrineOptions
+
     planets = {
         "SUN": 3,
         "MOON": 4,
@@ -104,24 +110,70 @@ def test_t091_sevvai_dosham_cancellation_for_certain_lagna():
     }
     result = detect_sevvai_dosham(planets, lagna_rasi=1)
     assert result.is_present is True
-    assert result.is_cancelled is True
+    assert result.is_cancelled is False
+    assert "mars_lagna_lord_mitigation" in result.cancellation_factors
+    legacy = detect_sevvai_dosham(planets, lagna_rasi=1, doctrine=DoctrineOptions(o18_aries_scorpio_sevvai="full_cancellation"))
+    assert legacy.is_cancelled is False
 
 
-def test_t091_both_partners_have_sevvai_dosham_cancellation():
-    planets = {
-        "SUN": 3,
-        "MOON": 4,
-        "MARS": 7,
-        "MERCURY": 2,
-        "JUPITER": 5,
-        "VENUS": 6,
-        "SATURN": 9,
-        "RAHU": 11,
-        "KETU": 5,
-    }
-    result = detect_sevvai_dosham(planets, lagna_rasi=2, partner_has_sevvai_dosham=True)
+# Rishabam lagna, Mars in Thulam: 4th from the Moon (Kadagam) and 2nd from
+# Venus (Kanni) — two references, not the Lagna.
+_SEVVAI_FROM_MOON_AND_VENUS = {
+    "SUN": 3, "MOON": 4, "MARS": 7, "MERCURY": 2, "JUPITER": 5,
+    "VENUS": 6, "SATURN": 9, "RAHU": 11, "KETU": 5,
+}
+
+
+def test_t091_dosha_samyam_of_comparable_weight_cancels():
+    """§8 condition 1: the partner carries Sevvai too, also from two or more
+    references. Only a two-chart reading can say so."""
+    assert {"from_moon", "from_venus"} <= set(detect_sevvai_dosham(_SEVVAI_FROM_MOON_AND_VENUS, lagna_rasi=2).conditions_met)
+    result = detect_sevvai_dosham(
+        _SEVVAI_FROM_MOON_AND_VENUS, lagna_rasi=2, partner_sevvai_references=["from_moon", "from_venus"]
+    )
     assert result.is_present is True
     assert result.is_cancelled is True
+    assert "both_partners_have_sevvai" in result.cancellation_factors
+
+
+def test_t091_dosha_samyam_against_a_lighter_placement_only_reduces():
+    """§8: a severe placement against a trivial one does not cancel — the
+    partner's Sevvai counted from Venus alone is not of comparable weight."""
+    result = detect_sevvai_dosham(_SEVVAI_FROM_MOON_AND_VENUS, lagna_rasi=2, partner_sevvai_references=["from_venus"])
+    assert result.is_cancelled is False
+    assert "partner_sevvai_unequal_weight" in result.cancellation_factors
+    assert result.strength != result.formation_strength
+
+
+def test_mars_debilitated_in_the_dosha_house_cancels_only_with_a_second_chart():
+    """§8 condition 2, beside the hard constraint that a single-chart reading
+    never prints "cancelled": Mars in Katakam (debilitated), 7th from a
+    Makaram lagna, reads present, reduced alone and cancelled in a match."""
+    planets = {
+        "SUN": 1, "MOON": 12, "MARS": 4, "MERCURY": 2, "JUPITER": 6,
+        "VENUS": 2, "SATURN": 9, "RAHU": 11, "KETU": 5,
+    }
+    single = detect_sevvai_dosham(planets, lagna_rasi=10)
+    assert single.is_present is True
+    assert single.is_cancelled is False
+    assert "mars_debilitated_in_dosha_house" in single.cancellation_factors
+    matched = detect_sevvai_dosham(planets, lagna_rasi=10, partner_sevvai_references=[])
+    assert matched.is_cancelled is True
+
+
+def test_a_single_chart_never_reads_cancelled():
+    """§8 hard constraint, swept: every Lagna and every Mars/Jupiter/Moon/Venus
+    placement on a fixed background; no single-chart Sevvai reads cancelled."""
+    for lagna in range(1, 13):
+        for mars in range(1, 13):
+            for jupiter in range(1, 13):
+                for moon_venus in range(1, 13):
+                    planets = {
+                        "SUN": 1, "MOON": moon_venus, "MARS": mars, "MERCURY": 2,
+                        "JUPITER": jupiter, "VENUS": moon_venus, "SATURN": 9, "RAHU": 11, "KETU": 5,
+                    }
+                    result = detect_sevvai_dosham(planets, lagna_rasi=lagna)
+                    assert not result.is_cancelled, (lagna, mars, jupiter, moon_venus)
 
 
 def test_t092_sevvai_dosham_from_lagna_moon_venus():
@@ -403,10 +455,19 @@ SCENARIO_LAGNA = 1  # Mesham
 
 
 def test_sevvai_scenario_mesha_lagna_8th_mars_female():
-    """Spec §19.2: Mars 8th from Lagna (Viruchigam), own sign + Guru 5th aspect = SEVVAI_DOSHAM_WITH_NIVARTHI."""
+    """Spec §19.2: Mars 8th from Lagna (Viruchigam), own sign + Guru 5th aspect.
+
+    The spec read SEVVAI_DOSHAM_WITH_NIVARTHI: two minor factors cancelled it.
+    Astrologer ruling 2026-10-22 (Q8): minors reduce and never cancel, so it is
+    present, reduced — one grade below its STRONG formation. The same ruling
+    lists own sign as a MAJOR factor, which would cancel it; that half
+    reverses O-18 and waits for the owner (O-33). This is the case that flips.
+    """
     result = detect_sevvai_dosham(SCENARIO_PLANETS, SCENARIO_LAGNA, gender="female")
     assert result.is_present is True
-    assert result.label == "SEVVAI_DOSHAM_WITH_NIVARTHI"
+    assert result.is_cancelled is False
+    assert result.label == "ACTIVE_SEVVAI_DOSHAM"
+    assert (result.formation_strength, result.strength) == ("STRONG", "PARTIAL")
     assert "from_lagna" in result.conditions_met
     # Mars is in Viruchigam = own sign
     assert "mars_own_sign" in result.cancellation_factors
@@ -463,8 +524,10 @@ def test_sevvai_mars_dispositor_kendra_trikona():
     assert "mars_dispositor_kendra_trikona" in result.cancellation_factors
 
 
-def test_sevvai_jupiter_conjunct_mars_major_cancellation():
-    """Spec §6.5: Jupiter and Mars in same rasi → major cancellation."""
+def test_sevvai_jupiter_conjunct_mars_reduces_and_never_cancels():
+    """Spec §6.5 made Guru joining Mars a major cancellation. Rulings
+    2026-10-22 round two, §8: cancellation is two conditions only, both
+    two-chart, and this is neither — it reduces."""
     planets = {
         "SUN": 3,
         "MOON": 5,
@@ -478,13 +541,16 @@ def test_sevvai_jupiter_conjunct_mars_major_cancellation():
     }
     result = detect_sevvai_dosham(planets, lagna_rasi=1)
     assert "jupiter_conjunct_mars" in result.cancellation_factors
-    assert result.is_cancelled is True
+    assert result.is_present is True
+    assert result.is_cancelled is False
+    assert result.strength != result.formation_strength  # reduced, one grade
 
 
 def test_sevvai_kadagam_lagna_yogakaraka():
     """DD-06 (v1.3): the Kadagam/Simmam exception is a strong mitigation, never a
-    major cancellation on its own. Here Guru also aspects the 7th lord, so two
-    mitigations together give nivarthi — the exception alone would not."""
+    major cancellation. Here Guru also aspects the 7th lord. That used to make
+    two mitigations and so nivarthi; since the 2026-10-22 ruling (Q8) minors
+    never cancel, so it is present, reduced — and reduced once, not twice."""
     planets = {
         "SUN": 3,
         "MOON": 5,
@@ -500,7 +566,11 @@ def test_sevvai_kadagam_lagna_yogakaraka():
     assert "tamil_sevvai_exception_cancer_leo" in result.cancellation_factors
     assert "jupiter_aspects_seventh_lord" in result.cancellation_factors
     assert result.is_present is True
-    assert result.is_cancelled is True
+    assert result.is_cancelled is False
+    # 8th from the Lagna: a STRONG formation, reduced one grade — and raised
+    # back by Rahu sharing Mars's rasi (the aggravation step runs after).
+    assert "mars_joined_saturn_or_rahu" in result.conditions_met
+    assert (result.formation_strength, result.strength) == ("STRONG", "STRONG")
 
 
 def test_sevvai_benefic_association_mars():

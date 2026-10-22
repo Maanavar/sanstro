@@ -176,6 +176,18 @@ export function tNakshatra(key: string | null | undefined, lang: Lang): string {
   return lookupPanchangamName(NAKSHATRA_NAMES, key, lang);
 }
 
+/**
+ * A nakshatra by its 1-27 number (Aswini=1 … Revathi=27) in the reader's
+ * language. Responses carry the number beside a pre-rendered English
+ * `nakshatraName`; render the number through here, never the name.
+ * Out of range returns "" rather than a guess.
+ */
+export function tNakshatraNumber(nakshatra: number | null | undefined, lang: Lang): string {
+  if (typeof nakshatra !== "number") return "";
+  const key = Object.keys(NAKSHATRA_NAMES)[nakshatra - 1];
+  return key ? NAKSHATRA_NAMES[key][lang] : "";
+}
+
 export function tYoga(key: string | null | undefined, lang: Lang): string {
   return lookupPanchangamName(YOGA_NAMES, key, lang);
 }

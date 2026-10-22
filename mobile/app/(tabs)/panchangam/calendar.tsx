@@ -16,6 +16,7 @@ import { getPanchangamMonth } from "@/api/panchangam";
 import { loadGuestPrefs } from "@/features/guest/guestStore";
 import type { GuestPrefs } from "@/features/guest/guestStore";
 import { SwipeRouteView } from "@/components/SwipeRouteView";
+import { tFestival } from "@vinaadi/shared";
 
 const TZ = "Asia/Kolkata";
 
@@ -203,7 +204,7 @@ export default function PanchangamCalendarScreen() {
                 e.festivals.map((fest, fi) => (
                   <View key={`${e.dateLocal}-${fi}`} style={styles.festivalRow}>
                     <Text style={[styles.festivalName, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_600SemiBold" }]}>
-                      {fest.name}
+                      {tFestival(fest.name, lang)}
                     </Text>
                     <Text style={styles.festivalDate}>
                       {e.tamilDate ? (isTamil ? e.tamilDate.ta : e.tamilDate.en) : e.dateLocal}

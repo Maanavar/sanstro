@@ -18,7 +18,7 @@ import { JadhagamChart, type JadhagamHouseData } from "@/components/JadhagamChar
 import { ThirukanithamBadge } from "@/components/ThirukanithamBadge";
 import { getChartFull } from "@/api/charts";
 import { getPrimaryChartId } from "@/lib/userPrefs";
-import { RASI_LIST, type ChartCalculateResponseData } from "@vinaadi/shared";
+import { RASI_LIST, rasiDisplayName, tNakshatraNumber, tPlanetLord, type ChartCalculateResponseData } from "@vinaadi/shared";
 import { Lock } from "lucide-react-native";
 
 const PLANET_SHORT_TA: Record<string, string> = {
@@ -90,14 +90,17 @@ export default function JadhagamToolScreen() {
   });
 
   const chart = data?.data;
+  // நட்சத்திரம் unqualified is the janma star — the Moon's, not the lagna's.
+  const janma = chart?.planets.find((p) => p.graha === "MOON") ?? null;
+  const janmaStar = tNakshatraNumber(janma?.nakshatra, lang) || "—";
 
   async function handleShare() {
     if (!chart) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     await Share.share({
       message: isTamil
-        ? `${chart.birthProfile.displayName} ஜாதகம் — லக்னம்: ${chart.lagna.rasiName}, நட்சத்திரம்: ${chart.lagna.nakshatraName}`
-        : `${chart.birthProfile.displayName} Jadhagam — Lagna: ${chart.lagna.rasiName}, Nakshatra: ${chart.lagna.nakshatraName}`,
+        ? `${chart.birthProfile.displayName} ஜாதகம் — லக்னம்: ${rasiDisplayName(chart.lagna.rasi, lang)}, நட்சத்திரம்: ${janmaStar}`
+        : `${chart.birthProfile.displayName} Jadhagam — Lagna: ${rasiDisplayName(chart.lagna.rasi, lang)}, Nakshatra: ${janmaStar}`,
     });
   }
 
@@ -186,9 +189,9 @@ export default function JadhagamToolScreen() {
             {/* Key details */}
             <View style={styles.detailsGrid}>
               {[
-                { label: isTamil ? "லக்னம்" : "Lagna", value: chart.lagna.rasiName },
-                { label: isTamil ? "நட்சத்திரம்" : "Nakshatra", value: chart.lagna.nakshatraName },
-                { label: isTamil ? "பாதம்" : "Pada", value: String(chart.lagna.pada) },
+                { label: isTamil ? "லக்னம்" : "Lagna", value: rasiDisplayName(chart.lagna.rasi, lang) },
+                { label: isTamil ? "நட்சத்திரம்" : "Nakshatra", value: janmaStar },
+                { label: isTamil ? "பாதம்" : "Pada", value: janma ? String(janma.pada) : "—" },
               ].map((item) => (
                 <View key={item.label} style={styles.detailCard}>
                   <Text style={styles.detailLabel}>{item.label}</Text>
@@ -207,7 +210,7 @@ export default function JadhagamToolScreen() {
                     <Text style={styles.planetChipText}>{PLANET_SHORT_TA[p.graha] ?? p.graha.slice(0, 2)}</Text>
                   </View>
                   <Text style={[styles.planetName, { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
-                    {p.graha}
+                    {tPlanetLord(p.graha, lang)}
                   </Text>
                   <Text style={styles.planetRasi}>{rasiName(p.rasi, isTamil)}</Text>
                   {p.isRetrograde && (

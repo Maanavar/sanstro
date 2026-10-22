@@ -17,7 +17,7 @@ import { getPanchangamDay } from "@/api/panchangam";
 import { loadGuestPrefs } from "@/features/guest/guestStore";
 import type { GuestPrefs } from "@/features/guest/guestStore";
 import type { PanchangamDailyResponseData } from "@vinaadi/shared";
-import { tKarana, tNakshatra, tTithi, tYoga } from "@vinaadi/shared";
+import { tFestival, tKarana, tNakshatra, tTithi, tYoga } from "@vinaadi/shared";
 
 const TZ = "Asia/Kolkata";
 
@@ -223,7 +223,7 @@ export default function DailyPanchangamToolScreen() {
                 {p.festivals.map((f, i) => (
                   <View key={i} style={styles.festivalTag}>
                     <Text style={[styles.festivalText, { fontFamily: isTamil ? "NotoSansTamil_600SemiBold" : "Inter_600SemiBold" }]}>
-                      {f.name}
+                      {tFestival(f.name, lang)}
                     </Text>
                   </View>
                 ))}

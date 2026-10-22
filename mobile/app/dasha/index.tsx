@@ -18,7 +18,7 @@ import { MethodologyStrip } from "@/components/MethodologyStrip";
 // F-DSP-01 / display boundary: a dasha lord arrives as a language-free key
 // ("JUPITER"). It was rendered raw behind an `isTamil ? x : x` branch whose
 // two arms were identical, so Tamil readers saw the English key.
-import { tPlanetLord } from "@vinaadi/shared";
+import { rasiDisplayName, tPlanetLord } from "@vinaadi/shared";
 import { getDashaTimeline, getCharaDasha, getYoginiDasha, getAshtottariDasha, getKalachakraDasha } from "@/api/dasha";
 import { getPrimaryChartId } from "@/lib/userPrefs";
 import type { DashaTimelineItem, CharaPeriod, YoginiDashaPeriod, AshtottariDashaPeriod, KalachakraDashaPeriod } from "@/api/dasha";
@@ -393,10 +393,10 @@ export default function DashaScreen() {
                         : KARAKA_PLANET_LABELS[cd.atmakaraka]?.en ?? cd.atmakaraka}
                     </Text>
                   </View>
-                  {cd.karakamsaRasiName && (
+                  {cd.karakamsaRasi != null && (
                     <View style={styles.karakaRow}>
                       <Text style={styles.karakaLabel}>{isTamil ? "காரகாம்சம்" : "Karakamsa"}</Text>
-                      <Text style={styles.karakaValue}>{cd.karakamsaRasiName}</Text>
+                      <Text style={styles.karakaValue}>{rasiDisplayName(cd.karakamsaRasi, lang)}</Text>
                     </View>
                   )}
                 </View>
@@ -658,7 +658,7 @@ export default function DashaScreen() {
                       fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold",
                       color: isActive ? C.saffron : C.textPrimary,
                     }]}>
-                      {label ? (isTamil ? label.ta : label.en) : item.lord}
+                      {label ? (isTamil ? label.ta : label.en) : tPlanetLord(item.lord, lang)}
                     </Text>
                     <Text style={[styles.periodDates, isTamil ? TamilType.caption : EnType.caption]}>
                       {formatDate(item.startDate)} – {formatDate(item.endDate)}
@@ -710,7 +710,7 @@ export default function DashaScreen() {
               </Text>
               <View style={styles.banner}>
                 <View style={styles.bannerMain}>
-                  <Text style={styles.bannerLord}>{kd.current.mahadasha.rasiName ?? kd.current.mahadasha.rasiCode}</Text>
+                  <Text style={styles.bannerLord}>{rasiDisplayName(kd.current.mahadasha.rasi, lang)}</Text>
                   <Text style={styles.bannerLabel}>{isTamil ? "காலசக்ரா மஹா தசை" : "Kalachakra Maha Dasha"}</Text>
                   <Text style={styles.bannerDates}>
                     {formatDate(kd.current.mahadasha.startDate)} – {formatDate(kd.current.mahadasha.endDate)}
@@ -726,7 +726,7 @@ export default function DashaScreen() {
                 </View>
                 <View style={styles.bannerDivider} />
                 <View style={styles.bannerSub}>
-                  <Text style={styles.bannerSubLord}>{kd.current.antardasha.rasiName ?? kd.current.antardasha.rasiCode}</Text>
+                  <Text style={styles.bannerSubLord}>{rasiDisplayName(kd.current.antardasha.rasi, lang)}</Text>
                   <Text style={styles.bannerSubLabel}>{isTamil ? "அந்தர் தசை" : "Antar Dasha"}</Text>
                   <Text style={styles.bannerSubDates}>
                     {formatDate(kd.current.antardasha.startDate)} – {formatDate(kd.current.antardasha.endDate)}
@@ -749,7 +749,7 @@ export default function DashaScreen() {
                       fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold",
                       color: isActive ? C.saffron : C.textPrimary,
                     }]}>
-                      {item.rasiName ?? item.rasiCode}
+                      {rasiDisplayName(item.rasi, lang)}
                     </Text>
                     <Text style={[styles.periodDates, isTamil ? TamilType.caption : EnType.caption]}>
                       {formatDate(item.startDate)} – {formatDate(item.endDate)}

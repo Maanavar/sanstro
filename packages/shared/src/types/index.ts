@@ -212,6 +212,8 @@ export interface AlmanacMuhurtham {
 export interface MuhurtaSlot {
   date: string;
   tamilDate: BiText | null;
+  /** FCA-02: "published" = the almanac's own Tamil date; "computed" = the sunset-rule fallback, never to be shown as the almanac's. */
+  tamilDateSource: "published" | "computed" | null;
   timeStart: string;
   timeEnd: string;
   score: number;
@@ -1317,6 +1319,8 @@ export interface PanchangamLimbSpan {
 export interface PanchangamDailyResponseData {
   dateLocal: string;
   tamilDate?: BiText | null;
+  /** FCA-02: "published" = the almanac's own Tamil date; "computed" = the sunset-rule fallback, never to be shown as the almanac's. */
+  tamilDateSource?: "published" | "computed" | null;
   location: { lat: number; lng: number; timezone: string };
   sunrise: string;
   sunset: string;
@@ -1386,6 +1390,8 @@ export type PanchangamTimingsData = Pick<
 export interface PanchangamMonthDayEntry {
   dateLocal: string;
   tamilDate?: BiText | null;
+  /** FCA-02: "published" = the almanac's own Tamil date; "computed" = the sunset-rule fallback, never to be shown as the almanac's. */
+  tamilDateSource?: "published" | "computed" | null;
   weekday: string;
   tithiNumber: number;
   tithiName: string;

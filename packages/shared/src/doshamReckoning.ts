@@ -187,8 +187,12 @@ export function doshamContextLines(d: ReckoningInput, lang: DoshamLang): string[
 /** The doshams that get an L2 line on every surface: the two marriage doshams. */
 export const VERDICT_DOSHAMS = new Set(["SEVVAI_DOSHAM", "RAHU_KETU_DOSHAM"]);
 
-/** The two markers that classically cancel rather than soften (Sevvai). */
-export const MAJOR_CANCELLATION_MARKERS = new Set(["jupiter_conjunct_mars", "both_partners_have_sevvai"]);
+/**
+ * The two Sevvai markers that cancel rather than soften — and only in a
+ * two-chart (matching) reading; a single chart never reads "cancelled"
+ * (rulings 2026-10-22 round two, §8). Guru joining Mars reduces.
+ */
+export const MAJOR_CANCELLATION_MARKERS = new Set(["both_partners_have_sevvai", "mars_debilitated_in_dosha_house"]);
 
 /**
  * Short noun phrases for every mitigation the Sevvai and Rahu–Ketu detectors
@@ -210,6 +214,8 @@ export const MITIGATION_PHRASE: Record<string, Text> = {
   seventh_lord_strong_d9: { ta: "நவாம்சத்தில் வலுவான 7-ஆம் அதிபதி", en: "the 7th lord strong in the Navamsa" },
   jupiter_aspects_seventh_lord: { ta: "7-ஆம் அதிபதி மீது குருவின் பார்வை", en: "Jupiter's aspect on the 7th lord" },
   both_partners_have_sevvai: { ta: "துணையின் ஜாதகத்திலும் ஒத்த செவ்வாய் நிலை", en: "a matching Sevvai in the partner's chart" },
+  partner_sevvai_unequal_weight: { ta: "துணையின் ஜாதகத்தில் வேறு வலிமையிலான செவ்வாய் தோஷம்", en: "a Sevvai of different weight in the partner's chart" },
+  mars_debilitated_in_dosha_house: { ta: "தோஷ வீட்டில் செவ்வாய் நீசம் பெற்றிருப்பது", en: "Mars debilitated in the dosha house" },
   // Rahu–Ketu
   guru_joins_or_aspects_node: { ta: "ராகு/கேது மீது குருவின் தொடர்பு", en: "Jupiter's influence on the nodes" },
   guru_aspects_seventh_or_its_lord: { ta: "7-ஆம் வீடு அல்லது அதன் அதிபதி மீது குருவின் பார்வை", en: "Jupiter's aspect on the 7th house or its lord" },

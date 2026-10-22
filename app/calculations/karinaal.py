@@ -28,15 +28,16 @@ exactly, and the differences are the point:
   **reverted that**: published Karthigai lists disagree on day 7, so it must not
   be dropped on the strength of this table alone. It is present, and it is the
   one cell still disputed.
-* The five Thai rows move one civil day earlier (Thai 1 is Pongal, the Makara
-  sankranti day), because the hand list's Thai dates were keyed one day late
-  against this engine's month start.
+* The five Thai rows briefly moved one civil day earlier, because the engine's
+  computed Thai 1 was 14 Jan. The owner ruled Thai 1, 2026 = 15 Jan (the
+  Tamil Nadu Pongal holiday, 2026-10-22, FCA-08), which put them back on
+  15, 16, 17, 25 and 31 Jan — where the hand list had them. The same day the
+  astrologer ruled Thai's list is 1, 2, 3, 10, 16 (the 2027 almanac's), so
+  2026 now reads 15, 16, 17, 24 and 30 Jan.
 
-The first two are the audit's own findings. The third is this engine's Thai
-month start; it is internally consistent with every other Tamil date the app
-prints, which the hand list was not. **Open item:** none of the three has been
-checked against the printed source sheet — see
-`docs/TAMIL_ASTROLOGY_GROUND_TRUTH_AUDIT_2026-10-13.md` F-MUH-02. If the sheet
+Checked against a printed source (the tamildailycalendar.com 2027 almanac,
+2026-10-22): every month agrees except Thai (now adopted) and the two cells
+the astrologer keeps against it, Karthigai 7 and Margazhi 11. If a source
 disagrees, change `KARINAAL_TAMIL_DAYS` below, not the civil dates.
 """
 
@@ -73,12 +74,17 @@ KARINAAL_TAMIL_DAYS: dict[int, frozenset[int]] = {
     # published Karthigai lists disagree — some carry day 7, others do not — so it
     # must not be removed on the strength of this table alone. Karinaal is an
     # avoid-day, so the fail-safe direction is to keep showing it and let the
-    # printed almanac remove it, not the reverse. Margazhi {6, 9, 11} and
-    # Thai {1, 2, 3, 11, 17} were separately confirmed against published tables in
-    # the same ruling; this is the only cell still disputed.
+    # printed almanac remove it, not the reverse. The 2026-10-22 ruling keeps
+    # both Karthigai 7 and Margazhi 11, which the 2027 almanac omits: an
+    # aggregator's omission is not a doctrinal exclusion.
     7:  frozenset({1, 7, 10, 17}),   # Karthigai (7 disputed - see above)
     8:  frozenset({6, 9, 11}),       # Margazhi
-    9:  frozenset({1, 2, 3, 11, 17}),  # Thai
+    # Thai 10 and 16, not 11 and 17 (ruling 2026-10-22 Q7). Checked first, as
+    # the ruling required: the 2027 almanac agrees with this table on every
+    # other month's days, so the shift is Thai's own list, not an off-by-one
+    # in day numbering (scripts/audit/almanac_2027_vs_engine.py, Karinaal by
+    # Tamil month). The 2026 rows, source unrecorded, had 11 and 17.
+    9:  frozenset({1, 2, 3, 10, 16}),  # Thai
     10: frozenset({15, 16, 17}),     # Maasi
     11: frozenset({6, 15, 19}),      # Panguni
 }

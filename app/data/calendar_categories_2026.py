@@ -103,11 +103,14 @@ CALENDAR_CATEGORY_EVENTS_2026: tuple[CalendarCategoryEvent, ...] = (
     # "Thai Pongal / Makar Sankranti" is renamed to plain "Thai Pongal" so it
     # dedupes by (date, name) with the algorithmic engine's own row instead of
     # rendering as a second entry beside it.
-    CalendarCategoryEvent("hindu-festivals-2026", date(2026, 1, 13), "Bhogi", "போகிப் பண்டிகை", ("hindu",)),
-    CalendarCategoryEvent("hindu-festivals-2026", date(2026, 1, 14), "Thai Pongal", "தைப் பொங்கல்", ("hindu",)),
-    CalendarCategoryEvent("hindu-festivals-2026", date(2026, 1, 15), "Mattu Pongal", "மாட்டுப் பொங்கல்", ("hindu",)),
+    # FCA-08 (owner ruling 2026-10-22: Thai 1 = 15 Jan 2026). These four were a
+    # day early — keyed to the computed Thai 1 of 14 Jan — and contradicted the
+    # Tamil Nadu holiday rows below (two Pongals, two Mattu Pongals).
+    CalendarCategoryEvent("hindu-festivals-2026", date(2026, 1, 14), "Bhogi", "போகிப் பண்டிகை", ("hindu",)),
+    CalendarCategoryEvent("hindu-festivals-2026", date(2026, 1, 15), "Thai Pongal", "தைப் பொங்கல்", ("hindu",)),
+    CalendarCategoryEvent("hindu-festivals-2026", date(2026, 1, 16), "Mattu Pongal", "மாட்டுப் பொங்கல்", ("hindu",)),
     CalendarCategoryEvent("hindu-festivals-2026", date(2026, 1, 16), "Thiruvalluvar Day", "திருவள்ளுவர் தினம்", ("hindu", "tamilnadu_govt")),
-    CalendarCategoryEvent("hindu-festivals-2026", date(2026, 1, 16), "Kaanum Pongal", "காணும் பொங்கல்", ("hindu",)),
+    CalendarCategoryEvent("hindu-festivals-2026", date(2026, 1, 17), "Kaanum Pongal", "காணும் பொங்கல்", ("hindu",)),
     CalendarCategoryEvent("hindu-festivals-2026", date(2026, 1, 17), "Uzhavar Thirunal", "உழவர் திருநாள்", ("hindu", "tamilnadu_govt")),
     CalendarCategoryEvent("hindu-festivals-2026", date(2026, 1, 18), "Thai Amavasai", "தை அமாவாசை", ("hindu",)),
     CalendarCategoryEvent("hindu-festivals-2026", date(2026, 1, 25), "Ratha Saptami", "ரத ஸப்தமி", ("hindu",)),

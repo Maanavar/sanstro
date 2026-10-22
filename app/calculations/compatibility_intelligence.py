@@ -280,13 +280,28 @@ class CompatibilityIntelligenceResult:
 # is_cancelled for the same chart (WI-13).
 # ---------------------------------------------------------------------------
 
-def _compute_sevvai(snap: Any) -> SevvaiDoshamDetail:
+def _sevvai_references(snap: Any) -> list[str]:
+    """The `from_*` references a chart's own Sevvai dosham stands on, or none."""
+    result = detect_sevvai_dosham({p.graha: p.rasi for p in snap.data.planets}, snap.data.lagna.rasi)
+    return [c for c in result.conditions_met if c.startswith("from_")] if result.is_present else []
+
+
+def _compute_sevvai(snap: Any, partner: Any | None = None) -> SevvaiDoshamDetail:
+    """`partner` makes this a two-chart reading, the only kind that can cancel
+    (rulings 2026-10-22 round two, §8): dosha samyam of comparable weight, or
+    Mars debilitated in Katakam in the dosha house. It replaced a mutual
+    cancellation that fired whenever both charts carried any Sevvai at all."""
     mars = _get_planet(snap, "MARS")
     lagna_rasi = snap.data.lagna.rasi
     planets_rasi_map = {p.graha: p.rasi for p in snap.data.planets}
     gender = getattr(snap.data.birth_profile, "gender_for_traditional_rules", None)
 
-    result = detect_sevvai_dosham(planets_rasi_map, lagna_rasi, gender=gender)
+    result = detect_sevvai_dosham(
+        planets_rasi_map,
+        lagna_rasi,
+        gender=gender,
+        partner_sevvai_references=_sevvai_references(partner) if partner is not None else None,
+    )
 
     if not result.is_present:
         severity, score = "NONE", 5
@@ -452,31 +467,6 @@ def papa_samyam_lines(
             "வேண்டும்; அனுபவமிக்க ஜோதிடரிடம் ஆலோசிக்கவும்"
         ],
     )
-
-
-def _apply_mutual_sevvai_cancellation(a: SevvaiDoshamDetail, b: SevvaiDoshamDetail) -> tuple[SevvaiDoshamDetail, SevvaiDoshamDetail]:
-    """Both persons having uncancelled Sevvai Dosham cancels each other out."""
-    if (
-        a.has_dosham and not a.is_cancelled
-        and b.has_dosham and not b.is_cancelled
-    ):
-        a = SevvaiDoshamDetail(
-            has_dosham=a.has_dosham, mars_house=a.mars_house, is_cancelled=True,
-            severity="NONE",
-            cancellation_reasons=["Both partners have Sevvai Dosham — mutual cancellation applies"],
-            note_en="Both partners have Sevvai Dosham — mutual cancellation applies per classical rules.",
-            note_ta="இரு நபர்களுக்கும் செவ்வாய் தோஷம் உள்ளது — பாரம்பரிய விதிப்படி பரஸ்பர நீக்கம் ஏற்படுகிறது.",
-            score=4,
-        )
-        b = SevvaiDoshamDetail(
-            has_dosham=b.has_dosham, mars_house=b.mars_house, is_cancelled=True,
-            severity="NONE",
-            cancellation_reasons=["Both partners have Sevvai Dosham — mutual cancellation applies"],
-            note_en="Both partners have Sevvai Dosham — mutual cancellation applies per classical rules.",
-            note_ta="இரு நபர்களுக்கும் செவ்வாய் தோஷம் உள்ளது — பாரம்பரிய விதிப்படி பரஸ்பர நீக்கம் ஏற்படுகிறது.",
-            score=4,
-        )
-    return a, b
 
 
 _LABEL_RUNGS = ("CAUTION", "AVERAGE", "GOOD", "EXCELLENT")
@@ -1010,9 +1000,8 @@ def compute_compatibility_intelligence(
     navamsa = _compute_navamsa(snap_a, snap_b)
 
     # Layer 5: Dosham
-    sevvai_a = _compute_sevvai(snap_a)
-    sevvai_b = _compute_sevvai(snap_b)
-    sevvai_a, sevvai_b = _apply_mutual_sevvai_cancellation(sevvai_a, sevvai_b)
+    sevvai_a = _compute_sevvai(snap_a, partner=snap_b)
+    sevvai_b = _compute_sevvai(snap_b, partner=snap_a)
     dosham_pts = sevvai_a.score + sevvai_b.score  # 0-10 (5 each max)
 
     # Nadi dosha penalty

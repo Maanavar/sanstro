@@ -328,6 +328,7 @@ export interface MuhurtaFactor {
 export interface MuhurtaSlot {
   date: string;
   tamilDate: BiText | null;
+  tamilDateSource: "published" | "computed" | null;
   timeStart: string;
   timeEnd: string;
   score: number;

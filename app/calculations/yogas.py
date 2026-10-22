@@ -7,7 +7,7 @@ Internal logic is split across three private sub-modules:
 """
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Collection, Iterable, Mapping
 
 # ── Re-export everything from sub-modules so callers don't need to change ──────
 # The names below are imported to be re-exported, not because this file uses
@@ -108,7 +108,7 @@ def detect_yogas_and_doshams(
     active_lords: Iterable[str] | None = None,
     current_maha_lord: str | None = None,
     gender: str | None = None,
-    partner_has_sevvai_dosham: bool = False,
+    partner_sevvai_references: Collection[str] | None = None,
     combust_planets: frozenset[str] = frozenset(),
     retrograde_planets: frozenset[str] = frozenset(),
     janma_nakshatra: int | None = None,
@@ -388,7 +388,7 @@ def detect_yogas_and_doshams(
             planets,
             lagna_rasi,
             gender=gender,
-            partner_has_sevvai_dosham=partner_has_sevvai_dosham,
+            partner_sevvai_references=partner_sevvai_references,
             active_lords=active_lords,
             combust_planets=combust_planets,
             d9_rasi_map=d9_rasi_map,

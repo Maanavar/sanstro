@@ -543,8 +543,12 @@ def test_sevvai_residual_aggravations_are_conditions_and_raise_strength() -> Non
     assert "mars_combust" not in combust.cancellation_factors
     assert "mars_joined_saturn_or_rahu" in joined.conditions_met
     assert "mars_joined_saturn_or_rahu" not in joined.cancellation_factors
-    assert base.strength == "PARTIAL"
-    assert combust.strength == joined.strength == "STRONG"
+    # Sevvai sits in Kadagam, its debilitation: since §8 of the 2026-10-22
+    # round-two rulings that reduces a single chart one grade (it cancels only
+    # in matching), so the base reads WEAK and each aggravation lifts it one.
+    assert "mars_debilitated_in_dosha_house" in base.cancellation_factors
+    assert base.strength == "WEAK"
+    assert combust.strength == joined.strength == "PARTIAL"
 
 
 # O-2 / O-11 / O-17 / O-18 executable, dormant doctrine branches.
@@ -626,14 +630,16 @@ def test_o18_switches_mesham_viruchigam_exception_posture() -> None:
         GURU: RISHABAM, SURYAN: MITHUNAM, BUDHAN: MITHUNAM, SANI: MITHUNAM,
         RAHU: KANNI, KETU: MEENAM,
     }
-    # Owner ruling 2026-10-03: strong mitigation is now the default.
-    cancelled = detect_sevvai_dosham(
+    # Owner ruling 2026-10-03: strong mitigation is the default. Since §8 of
+    # the 2026-10-22 round-two rulings (O-18 upheld; cancellation is two
+    # two-chart conditions only) the old "full_cancellation" value is inert.
+    legacy = detect_sevvai_dosham(
         chart, VIRUCHIGAM,
         doctrine=DoctrineOptions(o18_aries_scorpio_sevvai="full_cancellation"),
     )
     mitigated = detect_sevvai_dosham(chart, VIRUCHIGAM)
-    assert "mars_lagna_lord_mitigation" in cancelled.cancellation_factors
-    assert cancelled.is_cancelled is True
+    assert "mars_lagna_lord_mitigation" in legacy.cancellation_factors
+    assert legacy.is_cancelled is False
     assert mitigated.is_present is True
     assert mitigated.is_cancelled is False
 

@@ -1,7 +1,7 @@
 """Dosham detection functions: Sevvai, Rahu/Ketu, Pitru, Kalasarpa, Kalathra, Putra Sarpa, Badhaka."""
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Collection, Iterable, Mapping
 
 from app.calculations._yoga_helpers import (
     FEMALE_HIGH_ATTENTION_SEVVAI_HOUSES,
@@ -30,7 +30,7 @@ from app.calculations._yoga_helpers import (
 )
 from app.calculations.aspects import aspects_house, effective_natural_class
 from app.calculations.astro import house_from_reference
-from app.calculations.chart_strength import EXALTATION_RASI, OWN_SIGN_RASI, SIGN_LORD
+from app.calculations.chart_strength import DEBILITATION_RASI, EXALTATION_RASI, OWN_SIGN_RASI, SIGN_LORD
 from app.calculations.display_names import planet_en, planet_ta, rasi_en, rasi_ta
 from app.calculations.doctrine_options import DEFAULT_DOCTRINE, LONGITUDE_EPSILON, DoctrineOptions
 
@@ -127,13 +127,33 @@ def detect_sevvai_dosham(
     lagna_rasi: int,
     *,
     gender: str | None = None,
-    partner_has_sevvai_dosham: bool = False,
+    partner_sevvai_references: Collection[str] | None = None,
     active_lords: Iterable[str] | None = None,
     combust_planets: frozenset[str] = frozenset(),
     d9_rasi_map: Mapping[str, int] | None = None,
     d9_lagna_rasi: int | None = None,
     doctrine: DoctrineOptions = DEFAULT_DOCTRINE,
 ) -> DoshamResult:
+    """Sevvai dosham, three states (rulings 2026-10-22 round two, §8, CONVENTION):
+    present; present, reduced (one or more reduction factors: one grade
+    down); cancelled.
+
+    Cancellation is two conditions only, and both need a second chart, so a
+    single-chart reading (`partner_sevvai_references` None) can never print
+    "cancelled" — its ceiling is "present, reduced":
+
+    1. Dosha samyam of comparable weight — the partner carries the dosham too,
+       and both are reckoned from the Lagna, or both from two or more of
+       Lagna/Chandra/Sukra. A severe placement against a trivial one does not
+       cancel. `partner_sevvai_references` is the partner's `from_*` list.
+    2. Mars debilitated in Katakam, in the dosha house.
+
+    Everything else reduces and never cancels, however many: Mars in own sign,
+    exalted, or in the traditional exempt rasi for its house; Guru's aspect on
+    or conjunction with Mars; Guru's aspect on the 7th lord; a strong 7th
+    lord; the DD-06 and O-18 lagna exceptions. A stronger Mars delivers the
+    dosham with more force, not less (O-18, upheld).
+    """
     active = set(active_lords or ())
     # JUPITER is read unconditionally below (its drishti on Mars is a
     # cancellation), so it is required here too. It was left out, and a chart
@@ -238,15 +258,12 @@ def detect_sevvai_dosham(
             mitigation_score += 1
             softened_by_exception = True
     elif lagna_rasi in {1, 8} and lagna_house in {1, 2}:
-        # O-18 is now operational without choosing the ruling: preserve the
-        # shipped full cancellation by default, or switch to DD-06's strong
-        # mitigation posture through DoctrineOptions.
+        # O-18 (owner 2026-10-03, upheld by §8): a strong mitigation. The
+        # option's "full_cancellation" value no longer cancels: §8 allows
+        # two cancellations only. Retiring the value is with the owner.
         cancellation_factors.append("mars_lagna_lord_mitigation")
         mitigation_score += 1
-        if doctrine.o18_aries_scorpio_sevvai == "full_cancellation":
-            major_cancellation = True
-        else:
-            softened_by_exception = True
+        softened_by_exception = True
 
     for _ref_key, house_num in house_hits.items():
         if house_num in HOUSE_SIGN_NIVARTHI and mars_rasi in HOUSE_SIGN_NIVARTHI[house_num]:
@@ -260,9 +277,10 @@ def detect_sevvai_dosham(
         mitigation_score += 1
 
     if jupiter_rasi == mars_rasi:
+        # Was a major (cancelling) factor; §8 lists two cancellations and
+        # this is not one of them.
         cancellation_factors.append("jupiter_conjunct_mars")
         mitigation_score += 1
-        major_cancellation = True
 
     for benefic in SEVVAI_BENEFIC_REDUCERS - {"JUPITER"}:
         if benefic in planets and _planet_rasi(planets, benefic) == mars_rasi:
@@ -315,12 +333,32 @@ def detect_sevvai_dosham(
             cancellation_factors.append("jupiter_aspects_seventh_lord")
             mitigation_score += 1
 
-    if partner_has_sevvai_dosham:
-        cancellation_factors.append("both_partners_have_sevvai")
-        major_cancellation = True
+    own_references = {c for c in conditions_met if c.startswith("from_")}
+    two_chart_reading = partner_sevvai_references is not None
+    if two_chart_reading and own_references and partner_sevvai_references:
+        partner_references = set(partner_sevvai_references)
+        comparable = ("from_lagna" in own_references and "from_lagna" in partner_references) or (
+            len(own_references) >= 2 and len(partner_references) >= 2
+        )
+        if comparable:
+            cancellation_factors.append("both_partners_have_sevvai")
+            major_cancellation = True
+        else:
+            # Samyam against a placement of different weight reduces only.
+            cancellation_factors.append("partner_sevvai_unequal_weight")
+            mitigation_score += 1
+    if own_references and mars_rasi == DEBILITATION_RASI["MARS"]:
+        cancellation_factors.append("mars_debilitated_in_dosha_house")
+        if two_chart_reading:
+            major_cancellation = True
+        else:
+            mitigation_score += 1
 
     is_present = bool(conditions_met) and not exempt_lagna
-    is_cancelled = is_present and (major_cancellation or mitigation_score >= 2)
+    # §8: only a two-chart reading can cancel; one or more reduction factors
+    # is "present, reduced", one grade lower. (Q8 had required two.)
+    is_cancelled = is_present and two_chart_reading and major_cancellation
+    reduced = softened_by_exception or mitigation_score >= 1
     strong_house_hit = any(house_hits.get(key) in {7, 8} for key in house_hits)
     reference_count = len([c for c in conditions_met if c.startswith("from_")])
     # DD-17: the formation's own grade, before any mitigation softens it.
@@ -330,9 +368,9 @@ def detect_sevvai_dosham(
     if not is_present or is_cancelled:
         strength = "WEAK"
     elif strong_house_hit or len([c for c in conditions_met if c.startswith("from_")]) >= 2:
-        strength = "PARTIAL" if softened_by_exception else "STRONG"
+        strength = "PARTIAL" if reduced else "STRONG"
     else:
-        strength = "WEAK" if softened_by_exception else "PARTIAL"
+        strength = "WEAK" if reduced else "PARTIAL"
     if is_present and not is_cancelled and aggravation_count:
         strength = {"WEAK": "PARTIAL", "PARTIAL": "STRONG", "STRONG": "STRONG"}[strength]
 
@@ -352,7 +390,9 @@ def detect_sevvai_dosham(
         is_cancelled=is_cancelled,
         strength=strength,
         formation_strength=formation_strength,
-        narrow_margin=not major_cancellation and mitigation_score == 2,
+        # Nivarthi needs a major factor now (Q8), and a major factor is never
+        # a narrow margin.
+        narrow_margin=False,
         # The Lagna is the primary reference; a dosham counted only from the
         # Moon or Venus is the lighter reading (DD-17).
         primary_reference="from_lagna" in conditions_met,

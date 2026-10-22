@@ -204,6 +204,63 @@ item" in CLAUDE.md.
 
 **Rationale:** Silent disappearance of festivals in 2027 is worse than "feature unavailable."
 
+**Astrologer rulings 2026-10-22 — the governing moment** (`docs/REVIEW_REQUESTS_2026-10-22.md`). Two principles, to be applied to every observance, not only the ones asked about:
+
+1. **The moment that names an observance's day is the time of its principal worship.** Karthigai vratam: pradosham (sunset). Thiruvonam and Rohini vratams: the morning (sunrise). Sankatahara: moonrise. Ayudha Pooja, Saraswathi Pooja, Vijayadasami: aparahna. Tharpanam and all pitru karya (Mahalaya, Thai and Aadi Amavasai): aparahna. Krishna Jayanthi: nisheetha, the midpoint of the night. Karthigai Deepam: pradosham, with Krittika beside the Karthigai full moon. The printed monthly Amavasai and Pournami: sunrise. A star or tithi holding two of its moments takes the first (Sankatahara's two moonrises take the later: the fast ends at moonrise).
+2. **When the specific kala fails, fall back to suryodaya-vyapini — never to "most of the day".** Majority-of-day is not a kala recognised in nirnaya. It was the rule behind the Amavasai/Pournami day and has been removed (`panchangam.special_tithi_day_from_sunrises`).
+
+Recorded with them, not ruled: a tithi or star that holds **no** sunrise names the sunrise-to-sunrise day it falls in (Pournami, 20 Feb 2027; Poosam, 9 Feb 2028). Without it the sunrise rule gave those months no day at all.
+
+**Lock to the rule, not to an almanac's house style.** The same publisher's 2026 and 2027 editions disagree (Thiruvonam 8/13 against 13/13). The engine follows the siddhantic rule; an almanac is evidence about a rule, not the rule.
+
+**Karinaal lineage.** A Karinaal list is taken whole from one named lineage, never merged across sources; an omission in an aggregator is not a doctrinal exclusion. The list in `karinaal.KARINAAL_TAMIL_DAYS` agrees with the tamildailycalendar.com 2027 almanac in every month, Thai 10/16 included (adopted 2026-10-22), **except** Karthigai 7 and Margazhi 11, which the astrologer keeps. **The lineage it follows is not yet named** — see the follow-up in the review-requests file.
+
+### 8.1 Round two (astrologer, 2026-10-22, second answer) — kala, selection rules, confidence
+
+Source: the astrologer's "Festival & Calendar Doctrine Rulings — 22 Oct 2026" (second round), answering F1–F8 of `docs/REVIEW_REQUESTS_2026-10-22.md`. What was built, held and found is in the round-two section of that file. Each ruling carries the astrologer's confidence tag: **CLASSICAL** (settled nirnaya), **CONVENTION** (Vinaadi's chosen convention; lineages differ), **PROVISIONAL** (thin evidence; revisit). A CONVENTION or PROVISIONAL ruling is never presented to users as universal practice.
+
+**Kala (§0.3).** An observance is named by the civil day on which its kala, the moment of the principal worship, falls inside it. Majority-of-day is not a kala and is not used to name any observance (it survives only in daily *guidance* scoring, `dominant_*_number`, which names no festival).
+
+| Kala | Observances | Code |
+|---|---|---|
+| Sunrise | Thiruvonam, Rohini; printed Amavasai/Pournami; Thai Poosam, Maasi Magam, Panguni Uthiram, Vaigasi Visakam, Arudra Darisanam, Aadi Pooram; every generic fallback | `_NAKSHATRA_FESTIVALS`, `special_tithi_day_from_sunrises`, `SOLAR_MONTH_OBSERVANCES` |
+| Pradosham (sunset) | Karthigai vratam, Karthigai Deepam, Aadi Krithigai | `_sunset_star_names_day`, `SOLAR_MONTH_OBSERVANCES` |
+| Moonrise | Sankatahara Chathurthi | `_is_sankatahara_day` |
+| Aparahna | Ayudha/Saraswathi Pooja, Vijayadasami, Mahalaya, Thai and Aadi Amavasai | `_aparahna_names_day`, `SOLAR_MONTH_OBSERVANCES` |
+| Nisheetha | Krishna Jayanthi | `_jayanthi_night_selected` |
+
+**Universal fallback.** Where an observance's kala falls inside no day of its occurrence, the day it holds at sunrise, first of two. Where it holds no sunrise either, §5 below.
+
+**§5 Containment — CLASSICAL.** A tithi or star that begins after one sunrise and ends before the next belongs to that sunrise-to-sunrise day. It names the day only. It is reached only after no kala instant and no sunrise fell inside the occurrence, so it cannot override a kala satisfied on another day (`observance_days.name_day`, and the order of the branches in `_sunset_star_names_day` and `_sunrise_names_tithi_day`).
+
+**Selection rules.** Each states when it fires. `scripts/audit/yearly_observances_scan.py` prints the years each one fired over 2020–2045 (`festivals.SELECTION_RULES`, `rule_fires`). A tie-break firing in more than a handful of years is a bug report.
+
+| Rule | Tag | FIRES WHEN | EFFECT | OTHERWISE | Fired 2020–2045 |
+|---|---|---|---|---|---|
+| §3 duplicate tie-break | CONVENTION | the same star or special tithi is named on two days of one Tamil solar month | the one in the amanta month that **begins** inside the solar month | dormant; the single day stands | 1–5 years per festival (Aadi Pooram 5, Aadi Krithigai 4, Deepam 3, Aadi/Thai Amavasai 1 each); 13 years with any |
+| Family A full-moon tie-break (**held**, OPEN-3) | — | as above, for Thai Poosam, Maasi Magam, Panguni Uthiram, Vaigasi Visakam, Arudra | the one beside the solar month's own full moon | dormant | 2–3 years each. Gated behind the duplicate check (§9.3); it used to run as a filter every year |
+| §0.3 sunrise fallback | — | a sunset-kala star holds no sunset | the day it holds at sunrise | dormant | 7 years (2025, 2032, 2034, 2041, 2042, 2044, 2045) |
+| §5 containment | CLASSICAL | no kala instant and no sunrise inside the occurrence | the day containing it | dormant | 6 years (2020, 2021, 2028, 2037, 2040, 2045) |
+| §6 two aparahnas | CONVENTION | the tithi holds two aparahnas | the first | dormant | 13 years* |
+| §6 no aparahna | CONVENTION | the tithi holds no aparahna | the tithi at sunrise, first of two | dormant | 13 years* |
+| §2 Rohini tie-break | CLASSICAL | Krishna Ashtami holds two nisheethas, or none | Rohini's night; if neither, the later | dormant | 1 year (2021) |
+| §9.1 Varalakshmi | CLASSICAL | Shravana's Pournami day is a Friday | that Friday | the last Friday before the Pournami day | 3 years (2022, 2026, 2029) |
+| Sankatahara (FCA-04) | — | Chathurthi holds two moonrises / none | the later / the sunrise day | dormant | 7 / 16 years* |
+
+\* Not duplicate tie-breaks: kala outcomes over several observances a year (the six aparahna observances) or twelve a year (Sankatahara), so a year counts if any one of them fired. A tithi of 20–26 hours meets a daily instant twice, or not at all, routinely. Run 2026-10-22, `yearly_observances_scan.py 2020 2045`: 0 unreported problems.
+
+**§4 Karthigai Deepam — CLASSICAL.** The Karthigai month's Karthigai vratam: Krittika at pradosham, sunrise fallback, §3 for a duplicate. The Krittika–Pournami overlap condition is withdrawn. Recorded conflict, not chased: the publisher's 2027 almanac prints 12 Dec and its own festival list 11 Dec; 11 Dec is implemented. Hold the siddhantic rule; do not re-tune to a publisher edition.
+
+**§7 Karinaal — PROVISIONAL, Vinaadi working list.** `KARINAAL_TAMIL_DAYS` is *tamildailycalendar.com 2027* plus two days restored by the astrologer's ruling of 2026-10-22: **Karthigai 7** and **Margazhi 11**, each a separately documented Vinaadi exception. It is a merge of two sources and is **not** a lineage list; user-facing copy must not call it traditional or authenticated. Before launch it is replaced wholesale by a complete twelve-month table from one printed Thirukkanitha panchangam (OPEN-4), whichever way Thai, Karthigai 7 and Margazhi 11 fall. Not a launch blocker: Karinaal is a muhurtha-avoidance list, not a festival.
+
+**Withdrawn (§1) and deleted from the code:** Family B "nearest the Amavasai"; Aadi Amavasai "first occurrence"; the Deepam Krittika–Pournami overlap and "nearest Pournami" conditions; the two-Pournami nakshatra-at-completion test (never built); every majority-of-day selection.
+
+**Held, not built as written, pending the astrologer (round-two report):**
+- **§2 printed date (OPEN-1).** The night is computed as ruled. The printed date stays at the evening that opens the night (`festivals._JAYANTHI_LABEL`), because §2's nisheetha date matches 3 of its own 11 vectors (the evening 8, the sunrise day 7) and would move 2026 off the 4 Sep government holiday. Both dates are carried; switching is one line.
+- **Family A (OPEN-3).** §3 moves six dates (Thai Poosam, Maasi Magam, Panguni Uthiram 2033; Vaigasi Visakam 2022, 2030, 2041). As the ruling asks, reported before the proximity test is deleted.
+- **Aadi Krithigai kala (OPEN-2).** The engine already used pradosham. Pradosham matches the vectors 4/11; sunrise matches 10/11.
+- **§6 invariant vs §6 tie-break, 2045.** Built as ruled: Navami holds two aparahnas and takes the first (18 Oct); Dasami holds only the 20th's, so Vijayadasami is 20 Oct, not consecutive. The invariant holds in the other 25 years and is pinned with 2045 as the reported exception.
+
 ---
 
 ## 9. Tajaka Ithasala / Isarafa

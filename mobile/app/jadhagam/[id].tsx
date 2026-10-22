@@ -19,7 +19,8 @@ import { ErrorCard } from "@/components/ErrorCard";
 import {
   RASI_LIST,
   rasiDisplayName,
-  tNakshatra,
+  tNakshatraNumber,
+  tPlanetLord,
   type ChartCalculateResponseData,
 } from "@vinaadi/shared";
 let Share: typeof import("react-native-share").default | null = null;
@@ -113,6 +114,7 @@ export default function JadhagamDetailScreen() {
   });
 
   const chart = data?.data;
+  const janma = chart?.planets.find((p) => p.graha === "MOON") ?? null;
   const activeVargaMeta = useMemo(() => VARGA_OPTIONS.find((item) => item.key === activeVarga) ?? VARGA_OPTIONS[0], [activeVarga]);
   const activeVargaHasPlacements = useMemo(
     () => chart ? hasVargaPlacements(chart, activeVarga) : true,
@@ -229,8 +231,10 @@ export default function JadhagamDetailScreen() {
                   // they printed "Mithunam" at a Tamil reader. The
                   // language-free keys sit right beside them in the payload.
                   { label: isTamil ? "லக்னம்" : "Lagna", value: rasiDisplayName(chart.lagna.rasi, lang) },
-                  { label: isTamil ? "நட்சத்திரம்" : "Nakshatra", value: tNakshatra(chart.lagna.nakshatraName, lang) },
-                  { label: isTamil ? "பாதம்" : "Pada", value: String(chart.lagna.pada) },
+                  // நட்சத்திரம் unqualified is the janma star — the Moon's,
+                  // not the lagna's (FCA-05).
+                  { label: isTamil ? "நட்சத்திரம்" : "Nakshatra", value: tNakshatraNumber(janma?.nakshatra, lang) || "—" },
+                  { label: isTamil ? "பாதம்" : "Pada", value: janma ? String(janma.pada) : "—" },
                 ].map((item) => (
                   <View key={item.label} style={styles.datumCard}>
                     <Text style={styles.datumLabel}>{item.label}</Text>
@@ -258,7 +262,7 @@ export default function JadhagamDetailScreen() {
                     <Text style={[styles.planetName, {
                       fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular",
                     }]}>
-                      {p.graha}
+                      {tPlanetLord(p.graha, lang)}
                     </Text>
                     <Text style={styles.planetRasi}>{rasiNameForNumber(vargaRasiForPlanet(chart, p.graha, activeVarga), isTamil)}</Text>
                     {p.isRetrograde && (

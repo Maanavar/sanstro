@@ -255,3 +255,105 @@ def test_zero_or_negative_count_returns_no_spans() -> None:
 
     latitude, longitude, tz_name = CHENNAI
     assert tamil_month_spans(date(2026, 9, 4), 0, tz_name, latitude, longitude) == []
+
+
+# ── FCA-02 — published coverage, its cliff, and disclosure ──────────────────
+#
+# docs/FULL_CODEBASE_AUDIT_2026-10-22.md. The published month starts covered
+# one Tamil year; outside it every date silently fell back to a rule that
+# already misses published boundaries. These hold the coverage open, and make
+# the fallback visible instead of silent.
+
+# The next edition must be in before today + this many days runs past the
+# last published boundary — long enough to source and validate a new almanac.
+_COVERAGE_LEAD_DAYS = 120
+
+
+def _coverage_gap(today: date, covers_through: date) -> int:
+    """Days by which today + lead runs past published coverage (<= 0 is fine)."""
+    return (today + timedelta(days=_COVERAGE_LEAD_DAYS) - covers_through).days
+
+
+def test_published_tamil_calendar_covers_the_next_120_days() -> None:
+    """Fails ~four months before the cliff. Fix: import the next edition into
+    app/data/tamil_calendar_authority.py — never extend the rule instead."""
+    from app.calculations.tamil_calendar import published_tamil_calendar_covers_through
+
+    covers_through = published_tamil_calendar_covers_through()
+    gap = _coverage_gap(date.today(), covers_through)
+    assert gap <= 0, (
+        f"Published Tamil month starts end {covers_through}; today + {_COVERAGE_LEAD_DAYS} days "
+        f"is {gap} day(s) past that. Import the next almanac edition."
+    )
+
+
+def test_coverage_guard_would_have_caught_the_2027_cliff() -> None:
+    """The guard's own proof (CLAUDE.md: a gate must be seen to fail). With
+    only the 2026-27 edition loaded, a clock at 2027-01-01 must trip it."""
+    from app.calculations.tamil_calendar import _DAYS_CERTAIN_WITHOUT_NEXT_BOUNDARY
+
+    gnanananda_only = max(GNANANANDA_MONTH_STARTS_2026_27.values()) + timedelta(
+        days=_DAYS_CERTAIN_WITHOUT_NEXT_BOUNDARY - 1
+    )
+    assert _coverage_gap(date(2027, 1, 1), gnanananda_only) > 0
+    assert _coverage_gap(date(2026, 10, 1), gnanananda_only) <= 0
+
+
+def test_published_sources_agree_wherever_they_overlap() -> None:
+    from app.data.tamil_calendar_authority import PUBLISHED_TAMIL_CALENDARS
+
+    seen: dict[tuple[int, int], tuple[str, date]] = {}
+    for calendar in PUBLISHED_TAMIL_CALENDARS:
+        if calendar.complete:
+            assert len(calendar.month_starts) == 12, f"{calendar.name}: import a complete twelve-boundary set"
+        else:
+            assert "ruling" in calendar.name.lower(), f"{calendar.name}: a partial source must cite its ruling"
+        for key, start in calendar.month_starts.items():
+            if key in seen:
+                assert seen[key][1] == start, f"{key}: {seen[key][0]} says {seen[key][1]}, {calendar.name} says {start}"
+            seen[key] = (calendar.name, start)
+
+
+def test_every_published_boundary_is_what_the_calendar_returns() -> None:
+    from app.data.tamil_calendar_authority import PUBLISHED_TAMIL_CALENDARS
+
+    for calendar in PUBLISHED_TAMIL_CALENDARS:
+        for (_year, rasi), start in calendar.month_starts.items():
+            assert tamil_solar_date(start, CHENNAI[2], CHENNAI[0], CHENNAI[1]) == (rasi, 1), (calendar.name, start)
+
+
+def test_published_start_earlier_than_the_sunset_rule_is_honoured() -> None:
+    """Aani 2027: sankranti 18:55 IST on 15 Jun, after Chennai sunset, so the
+    rule says 16 Jun; the almanac opens Aani on the 15th. Before the fix the
+    15th read "Vaikasi 32"."""
+    assert tamil_solar_date(date(2027, 6, 14), CHENNAI[2], CHENNAI[0], CHENNAI[1]) == (1, 31)
+    assert tamil_solar_date(date(2027, 6, 15), CHENNAI[2], CHENNAI[0], CHENNAI[1]) == (2, 1)
+    assert tamil_solar_date(date(2027, 7, 16), CHENNAI[2], CHENNAI[0], CHENNAI[1]) == (2, 32)
+
+
+def test_tamil_date_source_says_when_a_date_is_the_rules_not_the_almanacs() -> None:
+    from app.calculations.tamil_calendar import tamil_date_source
+
+    lat, lon, tz = CHENNAI
+    assert tamil_date_source(date(2027, 6, 15), tz, lat, lon) == "published"
+    # Past the last published boundary's certain days.
+    assert tamil_date_source(date(2028, 2, 1), tz, lat, lon) == "computed"
+    # Maasi 2026 has no published start (only Thai 2026, by ruling, does).
+    assert tamil_date_source(date(2026, 3, 1), tz, lat, lon) == "computed"
+
+
+def test_published_dates_apply_in_every_timezone() -> None:
+    """Owner ruling 2026-10-22. Singapore's sunset rule puts Aani 2027 on
+    16 Jun; the published Aani 1 is 15 Jun, and a reader there gets that."""
+    from app.calculations.tamil_calendar import tamil_date_source
+
+    for tz, lat, lon in (("Asia/Singapore", 1.3521, 103.8198), ("America/Toronto", 43.6532, -79.3832)):
+        assert tamil_solar_date(date(2027, 6, 15), tz, lat, lon) == (2, 1), tz
+        assert tamil_date_source(date(2027, 6, 15), tz, lat, lon) == "published", tz
+
+
+def test_thai_2026_is_the_owner_ruled_15_january() -> None:
+    """FCA-08: the gazetted Pongal. The sunset rule says 14 Jan."""
+    lat, lon, tz = CHENNAI
+    assert tamil_solar_date(date(2026, 1, 14), tz, lat, lon) == (8, 30)
+    assert tamil_solar_date(date(2026, 1, 15), tz, lat, lon) == (9, 1)

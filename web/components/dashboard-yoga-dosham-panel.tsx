@@ -70,7 +70,7 @@ const MARKER_LABELS: Record<string, { ta: string; en: string }> = {
   mars_lagna_lord_mitigation:       { ta: "செவ்வாய் லக்னாதிபதி — லக்னாதிபதி விதியால் தோஷம் குறைகிறது", en: "Mars rules your Lagna — lagna-lord rule reduces dosham" },
   house_sign_nivarthi:              { ta: "செவ்வாயின் ராசி இந்த வீட்டிற்கான நிவர்த்தி ராசி — தோஷம் குறைகிறது", en: "Mars occupies the nivarthi rasi for that house — dosham is reduced" },
   jupiter_aspect_on_mars:           { ta: "குரு செவ்வாயை பார்க்கிறார் — நலமான தோஷ குறைப்பு", en: "Jupiter aspects Mars — a strong protective influence" },
-  jupiter_conjunct_mars:            { ta: "குரு செவ்வாயுடன் சேர்ந்திருக்கிறார் — மிகவும் வலுவான நிவர்த்தி", en: "Jupiter is conjunct Mars in the same house — very strong cancellation" },
+  jupiter_conjunct_mars:            { ta: "குரு செவ்வாயுடன் சேர்ந்திருக்கிறார் — தோஷம் குறைகிறது, நீங்குவதில்லை", en: "Jupiter is conjunct Mars in the same house — the dosham is reduced, not cancelled" },
   benefic_association_mars:         { ta: "சுபக்கிரகம் செவ்வாயுடன் இணைந்துள்ளது — தோஷம் மெலிகிறது", en: "A benefic planet is with Mars — dosham is weakened" },
   // O-26 (DD-17): off by default; if switched on it is counted *from Mars*, and
   // the label must say so — "in a kendra or trikona" alone was checked from the
@@ -78,6 +78,8 @@ const MARKER_LABELS: Record<string, { ta: string; en: string }> = {
   mars_dispositor_kendra_trikona:   { ta: "செவ்வாயிலிருந்து எண்ணும்போது, செவ்வாயின் ராசி அதிபதி கேந்திரம் அல்லது திரிகோணத்தில் உள்ளது — குறைந்த தாக்கம்", en: "Counted from Mars, Mars's sign lord is in a kendra or trikona — reduced impact" },
   benefic_strong_seventh_lord:      { ta: "வலுவான சுப 7-ம் அதிபதி பாதுகாப்பு தருகிறார்", en: "A strong benefic 7th lord provides protection" },
   both_partners_have_sevvai:        { ta: "இருவருக்கும் ஒப்பான செவ்வாய் நிலை — ஒத்திசைவு சீர்படுகிறது", en: "Both partners have comparable Sevvai — compatibility balances out" },
+  partner_sevvai_unequal_weight:    { ta: "துணையின் ஜாதகத்திலும் செவ்வாய் தோஷம் உண்டு, ஆனால் ஒப்பான வலிமையில் இல்லை — குறைப்பு மட்டுமே", en: "The partner's chart carries Sevvai too, but of a different weight — this reduces, it does not cancel" },
+  mars_debilitated_in_dosha_house:  { ta: "தோஷ வீட்டில் செவ்வாய் கடகத்தில் நீசம் — இரு ஜாதகப் பொருத்தத்தில் மட்டுமே நிவர்த்தி", en: "Mars is debilitated in Katakam in the dosha house — this cancels only when two charts are matched" },
   // Rahu-Ketu — one axis finding (DD-03), then each aggravation raises the grade
   rahu_ketu_axis_1_7:      { ta: "ராகு-கேது அச்சு லக்னத்திலிருந்து 1, 7-ம் வீடுகளில் உள்ளது", en: "The Rahu–Ketu axis falls on houses 1 and 7 from your Lagna" },
   rahu_ketu_axis_2_8:      { ta: "ராகு-கேது அச்சு லக்னத்திலிருந்து 2, 8-ம் வீடுகளில் உள்ளது", en: "The Rahu–Ketu axis falls on houses 2 and 8 from your Lagna" },

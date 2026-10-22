@@ -75,7 +75,7 @@ from app.calculations.panchangam import (
     gowri_category_rank,
     gowri_good_label,
 )
-from app.calculations.tamil_calendar import TAMIL_MONTHS, format_tamil_date, tamil_solar_date
+from app.calculations.tamil_calendar import TAMIL_MONTHS, format_tamil_date, tamil_date_source, tamil_solar_date
 from app.calculations.tara_bala import tara_number
 from app.constants.astrology import NAKSHATRA_NAMES, SIGN_LORD
 from app.data.kuligai_polarity import favours as kuligai_favours
@@ -1761,10 +1761,18 @@ def find_best_muhurta_slots(
             logger.debug("Tamil date conversion failed for %s: %s", d, exc)
             return None
 
+    def _tamil_date_source(d: date) -> str | None:
+        try:
+            return tamil_date_source(d, tz_name, lat, lon)
+        except Exception as exc:
+            logger.debug("Tamil date source lookup failed for %s: %s", d, exc)
+            return None
+
     slots = [
         MuhurtaSlot(
             date=c.day,
             tamilDate=_tamil_date(c.day),
+            tamilDateSource=_tamil_date_source(c.day),
             timeStart=c.time_start,
             timeEnd=c.time_end,
             # The engine deliberately does not clamp — callers add their own

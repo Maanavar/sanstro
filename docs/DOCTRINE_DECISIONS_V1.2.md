@@ -742,6 +742,8 @@ Source tier: rulings applied by Claude acting for the owner, after a practitione
 
 **Blind spots, recorded beside the ruling.** The residual threshold is ours, not a text's. The Moon reference is weighed equally with the Lagna for Sevvai's *formation* grade (a 7th from the Moon plus a second reference still grades STRONG); only the residual and the context note discount a Moon/Venus-only Sevvai. A practitioner may prefer to discount it in the formation grade itself — that would be O-30 if raised.
 
+**Sevvai: only a major factor cancels (astrologer ruling 2026-10-22, Q8).** *Superseded the same day by round two, §8 — see "O-33 closed" in §16: one reduction factor now reduces, and only a two-chart reading cancels.* The detector read "cancelled" on one major cancellation **or any two minor relief factors**. Ruled: two minors do not cancel, nor do any number. Jupiter's aspect on Mars and on the 7th lord often come from one Jupiter placement, so the rule was counting one benefic influence twice and calling it nivarthi. Built: `is_cancelled = is_present and major_cancellation`; two or more minors (or the DD-06/O-18 lagna exception) lower the grade by one, which is the ruling's middle tier, *present, reduced*. Surfaces already word it ("X and Y soften it, but not enough to offset it"). `narrow_margin` is now always false for Sevvai, since a major factor is never a narrow margin. **Not built: the ruling's list of major factors**, which is O-33 below, because it conflicts with O-18. Nor the minors the ruling names that the engine does not compute (strong Sukra, Chandra–Guru in kendra, the native past 28, Jupiter's aspect on the 7th *house*): they can only lower a grade, never cancel, so leaving them out makes no chart read cleaner than it is.
+
 **Where it lives.** Engine: `app/calculations/_yoga_dosham.py`, `_yoga_helpers.py`. Wire: `ChartDoshamInsight.formationStrength / residual / contextNotes / referenceHouses / meaningTa / meaningEn`. Words: `packages/shared/src/doshamReckoning.ts` (web and mobile), `yoga_display.dosham_standing_word` (PDF). Cards: `web/components/dosham-reckoning-block.tsx` on every web dosham card; `mobile/app/(tabs)/tools/dosham.tsx`. Tests: `tests/test_doctrine_decisions_dd17.py`, `web/components/dosham-reckoning-block.test.tsx`. Frequencies: `docs/DOSHAM_DD17_FREQUENCY_REPORT_2026-10-06.md`.
 
 ---
@@ -802,6 +804,29 @@ Source tier: rulings applied by Claude acting for the owner, after a practitione
 | # | Question | Default until ruled |
 |---|---|---|
 | O-32 | Putra Sarpa: Sani in the 5th is a trigger. For Thulam lagna, Sani in Kumbam is the 5th lord, in its own sign, and the yogakaraka (4th + 5th). Does it form the dosham? | **Owner ruling 2026-10-06: `neutralized`.** The placement is recorded (`fifth_house_has_saturn`, with `saturn_yogakaraka_own_fifth` as the reason; chip "Neutralized") but does not form the dosham. A node in the 5th or beside Guru still forms it, graded as usual. Deliberately this one case: 5th lord + own sign + yogakaraka; not "own sign always cancels". Hierarchy used: placement → dignity → ownership/function → affliction → final strength. `ordinary` counts it as any Sani in the 5th. Found alongside: Sani "beside the 5th lord" compared Sani with itself, so every Thulam-lagna chart formed Putra Sarpa (code defect, fixed regardless of this option) |
+
+**Added 2026-10-22.** From the astrologer's answer to Q8 of `docs/REVIEW_REQUESTS_2026-10-22.md`. The threshold half is built (DD-17, above); this half needs the owner, because it reverses an owner ruling.
+
+| # | Question | Default until ruled |
+|---|---|---|
+| O-33 | The astrologer lists four **major** Sevvai cancellations (any one nullifies): both charts carry Sevvai (built, as before); Mars in own rasi or exalted in the dosha house; Mars in a classical exempt rasi for its house (2nd Mithunam/Kanni, 4th Mesham/Vrichikam, 7th Makaram/Katakam, 8th Dhanus/Meenam, 12th Rishabam/Thulam — exactly `HOUSE_SIGN_NIVARTHI`); Mars debilitated. O-18 (owner, 2026-10-03) deliberately does **not** treat aatchi/ucham as nivarthi: "a false 'no dosham' is the costlier error". Which governs? Also: Guru *conjunct* Mars is a major factor in the engine and is on neither of the astrologer's lists | **O-18 governs.** Own sign, exaltation and the exempt rasis stay minor (they reduce, never cancel); debilitation is not counted; Guru conjunct Mars stays major. The fail-safe direction: a chart shows *present, reduced* rather than *cancelled* until ruled. `tests/test_yogas.py::test_sevvai_scenario_mesha_lagna_8th_mars_female` is the case that flips |
+
+**O-33 closed 2026-10-22 (astrologer, round two, §8) — CONVENTION. O-18 is upheld; the Q8 major list is withdrawn.** A new ruling superseding the Q8 list; O-18 itself is unchanged. A stronger Mars delivers the dosham with more force, not less; the exemption verses are a late, lenient tradition, and they restate the exempt-rasi list (4th in Mesham/Vrichikam and 7th in Makaram are own-sign and exalted placements).
+
+| State | Condition |
+|---|---|
+| Present | formed, no relief |
+| Present (reduced) | **one or more** reduction factors: one grade down (Q8 had required two) |
+| Cancelled | a cancellation condition, in a **two-chart** reading only |
+
+- **Cancellation, two conditions only:** (1) dosha samyam of comparable weight — the partner carries the dosham and both are reckoned from the Lagna, or both from two or more of Lagna/Chandra/Sukra; a severe placement against a trivial one does not cancel (`partner_sevvai_unequal_weight` reduces instead); (2) Mars debilitated in Katakam in the dosha house (`mars_debilitated_in_dosha_house`).
+- **Hard constraint:** a single-chart reading never prints "Cancelled"; its ceiling is "Present (reduced)" (`tests/test_yogas.py::test_a_single_chart_never_reads_cancelled`, swept). Read with condition (2), which is single-chart by nature, this means debilitation reduces a single chart and cancels only in matching. That reading is ours and is queued back.
+- **Reduction only:** Mars own sign, exalted, in the exempt rasi for its house; Guru's aspect on Mars; Guru's aspect on the 7th lord; strong 7th lord; the DD-06 and O-18 lagna exceptions. **Guru conjunct Mars**, major in the engine until now, is on neither of the ruling's cancellation conditions and now reduces. O-18's old `full_cancellation` value no longer cancels (retiring the admin value is for the owner). Not computed, as before: strong Sukra, Chandra–Guru in kendra, Guru's aspect on the 7th *house*, native past 28 (that one is applied by `marriage_service`); leaving them out only ever reads a chart harsher.
+- **Detection** stays Lagna, Chandra and Sukra, the Lagna primary, graded not gated (DD-17).
+- **Matching** (`compatibility_intelligence._compute_sevvai(snap, partner=...)`) now asks the detector with the partner's references, replacing a mutual cancellation that fired whenever both charts carried any Sevvai.
+- The Mesha-lagna spec example (Mars own sign + Guru's aspect) reads "Present (reduced)".
+
+Festival and calendar rulings of the same round: `docs/DOCTRINE_DECISIONS_V1.md` §8.1.
 
 ---
 

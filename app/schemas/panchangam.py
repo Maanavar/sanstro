@@ -275,6 +275,11 @@ class PanchangamSpecialTithiDay(BaseModel):
 class PanchangamDailyResponseData(BaseModel):
     date_local: date = Field(alias="dateLocal")
     tamil_date: BiText | None = Field(alias="tamilDate", default=None)
+    # FCA-02: "published" when the Tamil date is the almanac's own boundary,
+    # "computed" when it falls back to the sunset rule (outside published
+    # coverage). A computed date must not be shown as the
+    # almanac's.
+    tamil_date_source: Literal["published", "computed"] | None = Field(alias="tamilDateSource", default=None)
     location: PanchangamLocation
     sunrise: str
     sunset: str
@@ -354,6 +359,11 @@ class PanchangamMonthlyQuery(BaseModel):
 class PanchangamMonthDayEntry(BaseModel):
     date_local: date = Field(alias="dateLocal")
     tamil_date: BiText | None = Field(alias="tamilDate", default=None)
+    # FCA-02: "published" when the Tamil date is the almanac's own boundary,
+    # "computed" when it falls back to the sunset rule (outside published
+    # coverage). A computed date must not be shown as the
+    # almanac's.
+    tamil_date_source: Literal["published", "computed"] | None = Field(alias="tamilDateSource", default=None)
     weekday: str
     tithi_number: int = Field(alias="tithiNumber")
     tithi_name: str = Field(alias="tithiName")

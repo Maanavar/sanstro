@@ -322,8 +322,7 @@ def _stub_strong_layers(monkeypatch: pytest.MonkeyPatch) -> None:
     isolates the WI-21 label-cap logic from needing real chart snapshots."""
     monkeypatch.setattr(ci_module, "_compute_chart_marriage_strength", lambda snap: _STRONG_STRENGTH)
     monkeypatch.setattr(ci_module, "_compute_navamsa", lambda a, b: _STRONG_NAVAMSA)
-    monkeypatch.setattr(ci_module, "_compute_sevvai", lambda snap: _STRONG_SEVVAI)
-    monkeypatch.setattr(ci_module, "_apply_mutual_sevvai_cancellation", lambda a, b: (a, b))
+    monkeypatch.setattr(ci_module, "_compute_sevvai", lambda snap, partner=None: _STRONG_SEVVAI)
     monkeypatch.setattr(ci_module, "_compute_dasha_harmony", lambda a, b, jd: _STRONG_DASHA)
     monkeypatch.setattr(ci_module, "_compute_emotional_compatibility", lambda a, b: _STRONG_EMOTIONAL)
     # DD-03 samyam lines read real snapshots; text only, no score effect.
@@ -395,7 +394,7 @@ def _one_sided(monkeypatch: pytest.MonkeyPatch, sevvai_a: SevvaiDoshamDetail) ->
     """Person A carries `sevvai_a`; person B is clear."""
     seen: list[object] = []
 
-    def _compute(snap):
+    def _compute(snap, partner=None):
         seen.append(snap)
         return sevvai_a if len(seen) == 1 else _STRONG_SEVVAI
 

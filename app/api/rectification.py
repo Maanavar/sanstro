@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import date, datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends
@@ -54,19 +53,29 @@ def apply_rectification(
     current_user: User = Depends(get_current_user),
 ) -> RectificationApplyResponse:
     existing = session.get(BirthProfile, birth_profile_id)
-    before_time = existing.birth_time_local if existing is not None else None
+    # Read only what the owner may see; the service raises 404/403 below.
+    before_instant = (
+        existing.birth_datetime_utc
+        if existing is not None
+        and existing.owner_user_id == current_user.user_id
+        and existing.birth_time_local is not None
+        else None
+    )
     updated = apply_rectified_time(
         session,
         birth_profile_id,
         payload.selected_time,
         owner_user_id=current_user.user_id,
     )
-    if before_time is None or updated.birth_time_local is None:
+    # The shift of the birth *instant*. Candidates are swept across the recorded
+    # birth date and the date is never changed, so 23:50 -> 00:10 really does
+    # move the birth back 1420 minutes; computing on UTC instants also keeps a
+    # DST-day birth honest.
+    after_instant = updated.birth_datetime_utc
+    if before_instant is None or after_instant is None:
         offset_minutes = 0
     else:
-        before_dt = datetime.combine(date.today(), before_time)
-        after_dt = datetime.combine(date.today(), updated.birth_time_local)
-        offset_minutes = int((after_dt - before_dt).total_seconds() // 60)
+        offset_minutes = int((after_instant - before_instant).total_seconds() // 60)
 
     return RectificationApplyResponse(
         birthProfileId=updated.birth_profile_id,

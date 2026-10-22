@@ -24,10 +24,8 @@ from app.calculations.panchangam import (
     _jeevan_value,
     _nakshatra_angle_at_jd,
     _nethiram_value,
-    _special_tithi_durations_for_civil_day,
     best_gowri_slot,
     chandrashtamam_janma_nakshatra_windows_for_day,
-    dominant_special_tithi_for_civil_day,
     gowri_category_rank,
     own_chandrashtama_windows,
 )
@@ -806,29 +804,40 @@ def test_chandrashtama_windows_stay_inside_the_eighth_rasi_rule():
                 )
 
 
-def test_amavasai_pournami_use_dominant_civil_day_marker():
-    timezone_name = "Asia/Kolkata"
-    start = date(2026, 6, 1)
-    flagged: dict[int, list[date]] = {15: [], 30: []}
+def test_special_tithi_day_from_sunrises_rules():
+    """Ruling 2026-10-22 Q6, as a unit: the tithi at sunrise names the day, the
+    first of two sunrises, and a kshaya tithi names the day it falls in."""
+    from app.calculations.panchangam import special_tithi_day_from_sunrises as rule
 
-    for offset in range(45):
-        current = start + timedelta(days=offset)
-        special = dominant_special_tithi_for_civil_day(current, timezone_name)
-        if special not in {15, 30}:
-            continue
+    assert rule(15, 14, 16) == 15
+    assert rule(15, 15, 16) is None  # second of two sunrises
+    assert rule(15, 14, 15) == 15  # first of two
+    assert rule(14, 13, 16) == 15  # kshaya Pournami
+    assert rule(30, 29, 1) == 30
+    assert rule(29, 28, 1) == 30  # kshaya Amavasai
+    assert rule(29, 28, 30) is None  # Amavasai is tomorrow's sunrise
+    assert rule(10, 9, 11) is None
 
-        current_duration = _special_tithi_durations_for_civil_day(current, timezone_name)[special]
-        previous_duration = _special_tithi_durations_for_civil_day(current - timedelta(days=1), timezone_name)[special]
-        next_duration = _special_tithi_durations_for_civil_day(current + timedelta(days=1), timezone_name)[special]
 
-        assert current_duration >= previous_duration
-        assert current_duration >= next_duration
-        snapshot = calculate_daily_panchangam(current, 13.0827, 80.2707, timezone_name)
-        assert snapshot.special_tithi_day_number == special
-        flagged[special].append(current)
-
-    assert flagged[15]
-    assert flagged[30]
+@pytest.mark.parametrize(
+    ("day", "special"),
+    [
+        # The five days the old majority-of-the-civil-day rule put a day early
+        # against the 2027 almanac (scripts/audit/almanac_2027_vs_engine.py).
+        (date(2027, 7, 4), 30),
+        (date(2027, 9, 30), 30),
+        (date(2027, 11, 28), 30),
+        (date(2027, 8, 17), 15),
+        (date(2027, 11, 14), 15),
+        # Kshaya: this Pournami holds no sunrise; the almanac prints the 20th.
+        (date(2027, 2, 20), 15),
+    ],
+)
+def test_amavasai_pournami_day_is_the_sunrise_tithi(day: date, special: int):
+    snapshot = calculate_daily_panchangam(day, 13.0827, 80.2707, "Asia/Kolkata")
+    assert snapshot.special_tithi_day_number == special
+    before = calculate_daily_panchangam(day - timedelta(days=1), 13.0827, 80.2707, "Asia/Kolkata")
+    assert before.special_tithi_day_number != special
 
 
 def test_monthly_builder_uses_sunrise_governing_labels():
@@ -1002,35 +1011,21 @@ def test_rahu_kalam_uses_daylight_division_chennai_2026_01_15():
 # ---------------------------------------------------------------------------
 
 def test_tithi_boundary_pournami_amavasai_q1_2026():
-    """Pournami (15) and Amavasai (30) dominant civil days are found and internally consistent
-    across Q1 2026.  The panchangam snapshot's special_tithi_day_number must agree with
-    dominant_special_tithi_for_civil_day() for every identified civil day. (P2-03)"""
+    """Exactly one Pournami (15) and one Amavasai (30) day per lunation across
+    Q1 2026 — never two, never none, kshaya months included (P2-03; the rule
+    is the sunrise tithi since the 2026-10-22 ruling)."""
     tz = "Asia/Kolkata"
-    pournami_days: list[date] = []
-    amavasai_days: list[date] = []
-
+    flagged: dict[int, list[date]] = {15: [], 30: []}
     for offset in range(90):  # Jan 1 – Mar 31, 2026
         d = date(2026, 1, 1) + timedelta(days=offset)
-        dominant = dominant_special_tithi_for_civil_day(d, tz)
-        if dominant == 15:
-            pournami_days.append(d)
-        elif dominant == 30:
-            amavasai_days.append(d)
+        special = calculate_daily_panchangam(d, 13.0827, 80.2707, tz).special_tithi_day_number
+        if special in flagged:
+            flagged[special].append(d)
 
-    assert len(pournami_days) >= 3, f"Expected ≥3 Pournami civil days in Q1 2026, got {pournami_days}"
-    assert len(amavasai_days) >= 3, f"Expected ≥3 Amavasai civil days in Q1 2026, got {amavasai_days}"
-
-    for d in pournami_days[:3]:
-        snap = calculate_daily_panchangam(d, 13.0827, 80.2707, tz)
-        assert snap.special_tithi_day_number == 15, (
-            f"Pournami day {d}: snapshot.special_tithi_day_number={snap.special_tithi_day_number}"
-        )
-
-    for d in amavasai_days[:3]:
-        snap = calculate_daily_panchangam(d, 13.0827, 80.2707, tz)
-        assert snap.special_tithi_day_number == 30, (
-            f"Amavasai day {d}: snapshot.special_tithi_day_number={snap.special_tithi_day_number}"
-        )
+    for special, days in flagged.items():
+        assert len(days) == 3, f"tithi {special}: {days}"
+        gaps = [(b - a).days for a, b in zip(days, days[1:], strict=False)]
+        assert all(28 <= gap <= 31 for gap in gaps), f"tithi {special}: {days}"
 
 
 # ---------------------------------------------------------------------------

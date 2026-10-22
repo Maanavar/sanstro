@@ -26,6 +26,7 @@ import {
   type RectificationEventType,
   type RectificationResultData,
 } from "@/api/rectification";
+import { rasiDisplayName } from "@vinaadi/shared";
 import { ErrorCard } from "@/components/ErrorCard";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { getPrimaryChartId, getPrimaryProfileId } from "@/lib/userPrefs";
@@ -364,7 +365,7 @@ export default function RectificationScreen() {
                       {index === 0 && <Text style={styles.recommendedBadge}>Recommended</Text>}
                     </View>
                     <View style={styles.candidateMain}>
-                      <Text style={styles.candidateLagna}>Lagna: {candidate.lagnaRasiName}</Text>
+                      <Text style={styles.candidateLagna}>{isTamil ? "லக்னம்" : "Lagna"}: {rasiDisplayName(candidate.lagnaRasi, lang)}</Text>
                       <Text style={styles.candidateMatch}>
                         {candidate.matchingEvents} event match(es) - {probabilityLabel(candidate.probabilityWeight)}
                       </Text>

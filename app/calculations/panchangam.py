@@ -592,8 +592,11 @@ DEFAULT_AYANAMSA_TYPE = "LAHIRI"
 # limb boundary moves by about 1-2 s — enough to flip a minute-rounded time when
 # the instant sits on a half-minute. Small, but cached values are now from a
 # different ephemeris than fresh ones, so they recompute.
-PANCHANGAM_CACHE_DATA_VERSION = 48
-DOMINANT_SPECIAL_TITHIS = {15, 30}
+# v49 (2026-10-22, astrologer ruling Q6): `special_tithi_day_number` — the day
+# called Amavasai or Pournami — is the tithi at sunrise (first of two), not the
+# civil day the tithi fills most of. It moves by a day about five times a year,
+# and every cached snapshot carries the old answer.
+PANCHANGAM_CACHE_DATA_VERSION = 49
 
 # Fixed weekday clock-table Nalla Neram windows. NOTE (2026-07-17): the daily
 # panchangam no longer uses this table — its Nalla Neram is now derived from the
@@ -948,15 +951,6 @@ def _yoga_number_at_jd(jd: float) -> int:
     return int((_yoga_angle_at_jd(jd) + 1e-9) // (40 / 3)) + 1
 
 
-def _civil_day_bounds_jd(date_local: date, timezone_name: str) -> tuple[float, float]:
-    timezone_obj = resolve_timezone(timezone_name)
-    start_local = datetime.combine(date_local, datetime.min.time(), tzinfo=timezone_obj)
-    end_local = start_local + timedelta(days=1)
-    start_jd = utc_datetime_to_julian_day(start_local.astimezone(UTC))
-    end_jd = utc_datetime_to_julian_day(end_local.astimezone(UTC))
-    return start_jd, end_jd
-
-
 def _solar_day_bounds_jd(
     date_local: date,
     timezone_name: str,
@@ -967,9 +961,7 @@ def _solar_day_bounds_jd(
     divides limbs across.
 
     A Tamil almanac page for a date covers that date's sunrise to the next, which
-    is why every span list on the snapshot is bounded this way. `_civil_day_bounds_jd`
-    above exists for the few markers that genuinely are civil-day questions
-    (Amavasai/Pournami tagging, which the calendar prints against a date).
+    is why every span list on the snapshot is bounded this way.
     """
     timezone_obj = resolve_timezone(timezone_name)
     local_midnight = datetime.combine(date_local, datetime.min.time(), tzinfo=timezone_obj)
@@ -982,48 +974,6 @@ def _solar_day_bounds_jd(
         rise=True,
     )
     return sunrise_jd, next_sunrise_jd
-
-
-def _state_durations_for_civil_day(
-    date_local: date,
-    timezone_name: str,
-    *,
-    value_at_jd,
-    boundary_at_jd,
-    max_transitions: int,
-) -> tuple[dict[int, float], int]:
-    start_jd, end_jd = _civil_day_bounds_jd(date_local, timezone_name)
-    noon_value = int(value_at_jd((start_jd + end_jd) / 2))
-
-    durations: dict[int, float] = {}
-    cursor = start_jd
-    for _ in range(max_transitions):
-        if cursor >= end_jd - 1e-10:
-            break
-        current_value = int(value_at_jd(cursor))
-        next_boundary = boundary_at_jd(cursor)
-        interval_end = min(next_boundary, end_jd)
-        durations[current_value] = durations.get(current_value, 0.0) + max(0.0, interval_end - cursor) * 86400.0
-        if next_boundary >= end_jd:
-            break
-        cursor = min(next_boundary + 1e-8, end_jd)
-
-    return durations, noon_value
-
-
-def _special_tithi_durations_for_civil_day(
-    date_local: date,
-    timezone_name: str,
-) -> dict[int, float]:
-    durations, _ = _state_durations_for_civil_day(
-        date_local,
-        timezone_name,
-        value_at_jd=_tithi_number_at_jd,
-        boundary_at_jd=lambda jd: _find_next_boundary_jd(jd, _tithi_angle_at_jd, 12.0),
-        max_transitions=8,
-    )
-    durations = {number: durations.get(number, 0.0) for number in DOMINANT_SPECIAL_TITHIS}
-    return durations
 
 
 def _karana_index_at_jd(jd: float) -> int:
@@ -1179,32 +1129,33 @@ def limb_weighted(spans: Sequence[PanchangamLimbSpan], value_fn) -> float:
     return sum(value_fn(span) * span.fraction for span in spans) / total
 
 
-def dominant_special_tithi_for_civil_day(
-    date_local: date,
-    timezone_name: str,
+def special_tithi_day_from_sunrises(
+    sunrise_tithi: int,
+    previous_sunrise_tithi: int,
+    next_sunrise_tithi: int,
 ) -> int | None:
-    """Return Amavasai/Pournami only for the civil date with the longest span."""
-    current = _special_tithi_durations_for_civil_day(date_local, timezone_name)
-    active_specials = {
-        tithi_number
-        for tithi_number, duration in current.items()
-        if duration > 0
-    }
-    if not active_specials:
-        return None
+    """The day called "the Pournami" (15) or "the Amavasai" (30), or None.
 
-    previous = _special_tithi_durations_for_civil_day(date_local - timedelta(days=1), timezone_name)
-    following = _special_tithi_durations_for_civil_day(date_local + timedelta(days=1), timezone_name)
+    Astrologer ruling 2026-10-22 (Q6): the printed Amavasai/Pournami is the
+    tithi in force at sunrise (suryodaya-vyapini); if it holds two sunrises,
+    the first. This replaced "the civil day the tithi fills most of", which
+    no nirnaya text recognises and which ran a day early five times against
+    the 2027 almanac (scripts/audit/almanac_2027_vs_engine.py).
 
-    candidates: list[tuple[float, int]] = []
-    for tithi_number in active_specials:
-        duration = current[tithi_number]
-        if duration >= previous[tithi_number] and duration >= following[tithi_number]:
-            candidates.append((duration, tithi_number))
+    A kshaya tithi holds no sunrise: it begins and ends between two of them.
+    It is then the day it falls in, the one sunrise-to-sunrise day that holds
+    it (Pournami, 20 Feb 2027: the almanac's day, and the rule above alone
+    gave that month none). Not ruled — the ruling covers one and two sunrises.
 
-    if not candidates:
-        return None
-    return max(candidates)[1]
+    Tharpanam is a different question (Mahalaya, Thai and Aadi Amavasai): the
+    Amavasai at aparahna. See `festivals._is_tharpanam_amavasai`.
+    """
+    for special in (15, 30):
+        if sunrise_tithi == special and previous_sunrise_tithi != special:
+            return special
+        if sunrise_tithi == special - 1 and next_sunrise_tithi == special % 30 + 1:
+            return special
+    return None
 
 
 def _tithi_name(number: int) -> str:
@@ -2415,7 +2366,17 @@ def compute_daily_panchangam(
     moon_phase_label = _moon_phase_label(tithi_paksha)
     tithi_next_number, tithi_next_name, tithi_next_paksha = _next_tithi(tithi_number)
     nakshatra_next_name = _next_nakshatra_name(nakshatra_number)
-    special_tithi_day_number = dominant_special_tithi_for_civil_day(date_local, timezone_name)
+    previous_sunrise_jd = calculate_rise_transit_jd(
+        utc_datetime_to_julian_day((local_midnight - timedelta(days=1)).astimezone(UTC)),
+        latitude,
+        longitude,
+        rise=True,
+    )
+    special_tithi_day_number = special_tithi_day_from_sunrises(
+        tithi_number,
+        _tithi_number_at_jd(previous_sunrise_jd),
+        _tithi_number_at_jd(next_sunrise_jd),
+    )
 
     soolam_direction = SOOLAM_DIRECTION[weekday_index]
     soolam_parigaram = SOOLAM_PARIGARAM_BY_DIRECTION[soolam_direction]

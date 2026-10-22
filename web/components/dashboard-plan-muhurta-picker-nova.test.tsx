@@ -57,6 +57,7 @@ function slot(date: string, tamil: string | null, score = 70): MuhurtaSlot {
   return {
     date,
     tamilDate: en && ta ? { en, ta } : null,
+    tamilDateSource: en && ta ? "published" : null,
     timeStart: "06:00",
     timeEnd: "07:30",
     score,

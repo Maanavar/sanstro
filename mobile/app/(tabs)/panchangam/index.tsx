@@ -11,7 +11,7 @@ import type { ColorTokens } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
 import { TamilType, EnType } from "@/theme/typography";
 import { useI18n } from "@/hooks/useI18n";
-import { tKarana, tNakshatra, tTithi, tYoga } from "@vinaadi/shared";
+import { tFestival, tKarana, tNakshatra, tTithi, tYoga } from "@vinaadi/shared";
 import { TimeCard } from "@/components/TimeCard";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { ErrorCard } from "@/components/ErrorCard";
@@ -207,7 +207,7 @@ export default function PanchangamDayScreen() {
                   <View key={i} style={styles.festivalRow}>
                     <Star size={12} color={C.gold} strokeWidth={1.5} fill={C.gold} />
                     <Text style={[styles.festivalItem, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_600SemiBold" }]}>
-                      {f.name}
+                      {tFestival(f.name, lang)}
                     </Text>
                   </View>
                 ))}

@@ -6,6 +6,7 @@ from enum import Enum
 from functools import lru_cache
 from pathlib import Path
 from threading import RLock
+from typing import Literal
 
 from app.calculations.astro import degree_in_rasi, normalize_longitude, rasi_from_degree
 
@@ -434,6 +435,7 @@ def calculate_rise_transit_jd(
     *,
     rise: bool,
     convention: SunriseConvention = THIRUKANITHAM_SUNRISE_CONVENTION,
+    body: Literal["SUN", "MOON"] = "SUN",
 ) -> float:
     """Thirukanitham sunrise/sunset (Doctrine §1, WI-07 as re-ruled 2026-09-29):
     **apparent** rise/set of the Sun's upper limb **including atmospheric
@@ -466,6 +468,11 @@ def calculate_rise_transit_jd(
     altitude, and attemp=0 selects 0 °C. Moving to 15 °C shifts the event by
     ~13 s — below the display's rounding granularity, and changing it would
     silently move every pinned reference value.
+
+    ``body="MOON"`` gives moonrise/moonset under the same convention (upper
+    limb, refraction) — what a chandrodaya observance such as Sankatahara
+    Chaturthi is judged at. The default stays the Sun, so no existing caller
+    changes.
     """
     rsmi_rise = CALC_RISE if _HAS_MODULE_API else SE_CALC_RISE
     rsmi_set = CALC_SET if _HAS_MODULE_API else SE_CALC_SET
@@ -492,7 +499,7 @@ def calculate_rise_transit_jd(
             # atmospheric pressure to the ephemeris flags.
             result = swe_module.rise_trans(
                 jd_start,
-                SUN,
+                PLANET_IDS[body],
                 rsmi,
                 geopos,
                 atpress=0.0,
@@ -519,7 +526,7 @@ def calculate_rise_transit_jd(
         serr = create_string_buffer(256)
         retflag = _SWISS.swe_rise_trans(
             jd_start,
-            SE_SUN,
+            PLANET_IDS[body],
             None,
             SEFLG_SWIEPH,
             rsmi,
