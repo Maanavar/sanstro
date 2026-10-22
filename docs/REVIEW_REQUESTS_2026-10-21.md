@@ -11,11 +11,105 @@ page. All 27 pages stay hidden from Google until the items below are signed off.
 |---|---|---|---|---|
 | A1 | Astrologer | One marriage sentence, English + Tamil | 3 empty slots | **Answered and built** (rulings §9.1) |
 | A2 | Astrologer | Keep or replace 5 other marriage sentences | 5 pages | **Answered and built**, 6 sentences (§9.2) |
-| A3 | Astrologer | Same principles applied to 18 more pages? | 18 pages | **Open**, follow-up |
-| T1 | Tamil reviewer | Read 63 new Tamil passages | 21 pages | Open |
-| T2 | Tamil reviewer | Fix Sanskrit star names outside the dasa sections | 6 pages | 88 of 90 done by table (§9.3); remainder + check open |
-| S1 | Content reviewer | Check life-stage words against each page's age table | all 27 pages |
-| S2 | Owner | Release each page once its five conditions are signed | all 27 pages |
+| A3 | Astrologer | Same principles applied to 18 more pages? | 18 pages | **Answered and built** (§10.5): A1 everywhere, node carve-out on three Rahu rows. Rohini not changed |
+| T1 | Tamil reviewer | Read 63 new Tamil passages | 21 pages | Reviewed (§10); two systematic faults fixed; **re-read R1 below** |
+| T2 | Tamil reviewer | Fix Sanskrit star names outside the dasa sections | 9 pages | Six done (§9.3); Swati, Uttara Phalguni, Purva Bhadra done (§10.1); **re-read R1** |
+| S1 | Content reviewer | Check life-stage words against each page's age table | all 27 pages | Seven rewrites from the review built (§10.3); remaining pages open |
+| S2 | Owner | Release each page once its five conditions are signed | all 27 pages | Nothing signed |
+| R1 | Tamil reviewer | Re-read after the fifth round | 26 pages | **Answered and built** (§11); no page signed |
+| R2 | Tamil reviewer | Re-read after the sixth round (below) | 26 pages | **Open** |
+| O1 | Owner | Does condition 1 cover the Tamil outside the dasa sections? | all 27 pages | **Open** (§11.9) |
+
+---
+
+## R2. After the sixth round: what to re-read (for the Tamil reviewer)
+
+Your re-read (rulings §11) is applied, in your order of work, except the
+personification pass, which you placed last; it is not started. The packet is
+regenerated. Everything below is our Tamil and unread.
+
+**1. The four items you said block every page.**
+- The carve-out: your Tamil, verbatim, on Hasta, Krittika and Uttara Phalguni,
+  and now also on Shravana and Uttara Ashadha; the English ends on A1's
+  tendency clause.
+- Ganapati and Hanuman: the sentence is gone; the deity is folded into the
+  list beside it (Ganapati first among Ketu remedies; ஆஞ்சநேயர் beside சனி
+  வழிபாடு). Ashwini and Magha fold into a later sentence, because their first
+  sentence is a single item.
+- நடைமுறை: பயிற்சி / அனுஷ்டானம் / கடைப்பிடித்தல். **We did not use சாதனை**,
+  because the same pages use it for "achievement" (தொழில் சாதனைகள்). Tell us
+  if you want it anyway.
+
+**2. Purva Bhadra:** the Saturn clause, the deity (the English said "serpent"
+too; both now name no animal), தத்துவப் பரப்பு, and குருவின் நம்பிக்கை for
+"Jupiter's optimism" (it said நம்பகத்தன்மை, "reliability").
+
+**3. தரிசனம் and வரை எங்கும்.** On Chitra we used **மனக்காட்சி** where the
+English is the artist's inner image, not நோக்கு. For வரை எங்கும் we used your
+two-ends form throughout; please confirm it, given that it names the ends and
+leaves the middle to "by pada".
+
+**4. The parity rows: 44 of the 47 non-Rohini rows were completed.** These are
+the longest new Tamil in the round. Rows whose *kept* sentence was also wrong
+are listed in rulings §11.7 (immeasurable/measurable, "alternative medicine",
+"bow" for arc, and so on). One substitution needs your eye: **Mula Ketu focus**
+had a Tamil sentence with no English twin; it is replaced by the English's two.
+
+**5. Same class as your §1.3, five more strings.** Ashwini and Bharani Moon,
+Punarvasu and Pushya Ketu ("not a disorder" / "not pathological"), and
+Krittika Ketu ("more important than medical intervention") now say "treat
+them as health concerns" / "as much as medical care". Ardra Ketu's Tamil said
+spiritual company matters more than *medical* support; its English does not,
+and the Tamil now follows the English. The English changes are condition 2:
+please confirm or reword.
+
+**Two corrections to what you were told.** The Ashwini Tamil *did* carry the
+night-fears claim (§10.4 said otherwise); it is now cut in both languages. And
+the base pages have no நேயர் defect: all their hits are ஆஞ்சநேயர், the false
+positive you warned about. Their three ஆரோக்ய are fixed.
+
+**Also for you:** `தசகம்` is 0 only in its bare form; inflected forms
+(தசகங்களுக்கு …) remain 40 times. Still held for the §10.2 reason.
+
+---
+
+## O1. For the owner: the Tamil outside the dasa sections
+
+Condition 1 covers *edited* Tamil. Condition 2 covers the other sections'
+*claims*. Nothing covers their *language*, and the reviewer's defect classes
+are there, untouched: அல்ல ஆனால் 27, practice-sense நடைமுறை 33,
+ஒத்தொலிப்பு 8, தரிசனம் 6, across 20 pages. These sections ship with every
+release. Where a word was wrong in meaning and already had a ruled
+replacement (நிரல் for "occult", மரக்கால for "mystical"), it was fixed
+everywhere; the rest was left for this decision.
+
+**Decide:** extend condition 1 to the whole page's Tamil (more review work
+before any release), or release with those sections as they are.
+
+---
+
+## R1. After the fifth round: what to re-read (for the Tamil reviewer)
+
+Your review (rulings §10) is applied. The regenerated packet shows every
+string as it now stands. Three groups need your eyes, most important first:
+
+1. **Tamil we wrote to carry your rulings.** The node carve-out sentence
+   (Hasta, Krittika, Uttara Phalguni Rahu; tagged "ruled marriage wording"); the
+   Ganapati and Hanuman remedy sentences (every Ketu and Saturn `focus`); the
+   seven life-stage rewrites (§10.3); and the cautions restored to the Tamil
+   (§10.4). None of it has been read by a Tamil speaker.
+2. **The star-name sweep on Swati, Uttara Phalguni and Purva Bhadra** (packet
+   blocks 12.S, 15.S, 25.S). Same check as before: case endings, and any word
+   that was agreeing with the old form.
+3. **The parity worklist**, `DASA_PROSE_PARITY_WORKLIST_2026-10-21.md`: 68
+   strings whose Tamil has fewer sentences than the English (21 are Rohini's).
+   A shortfall of one is often a merged sentence and fine.
+
+Two questions back to you (rulings §10.6): should Shravana and Uttara Ashadha
+Rahu also move to the dispositor wording; and is ஜாதகர் right everywhere நேயர்
+was, given நேயர்களே is the ordinary column address?
+
+If these come back clean, conditions 1 and 4 can be signed per page.
 
 ---
 
@@ -23,7 +117,7 @@ page. All 27 pages stay hidden from Google until the items below are signed off.
 
 > **A1 and A2 answered 2026-10-21, and built.** Rulings recorded in
 > `OWNER_RULINGS_FSA_2026-10-21.md` §9. The questions are kept as asked.
-> **A3 (at the end of this section) is a new follow-up and still open.**
+> **A3 answered the same day in the fifth-round review, and built** (§10.5).
 
 ### A1. One general marriage sentence (English and Tamil)
 
@@ -356,10 +450,12 @@ page present in the sitemap) and recorded.
 section in the review packet.
 
 **Decisions only you can make:**
-- Release order. Suggestion: Rohini first (the pilot), then the 5 stars whose
-  Tamil was already complete (Ashwini, Bharani, Krittika, Mrigashira, Revati),
-  since T1 does not apply to them. (A1 and A2 are answered and built, so they
-  no longer block any page.)
+- Release order. **Updated after the sixth round:** the reviewer expects to
+  sign conditions 1 and 4 first on **Dhanishtha and Shravana**, then Punarvasu,
+  Pushya, Uttara Bhadra and Vishakha. **Not Rohini first:** it is the one page
+  no review round has covered, and it carries 21 of the 24 remaining parity
+  rows. (The earlier suggestion was Rohini, then the five stars whose Tamil was
+  already complete.)
 - Whether English and Tamil are released together. Your earlier ruling says
   yes, and does not allow splitting the language holds to release English
   sooner.
@@ -370,7 +466,9 @@ section in the review packet.
 
 - Review packet: `docs/DASA_PROSE_REVIEW_PACKET_2026-10-21.md` (NEW markers, per-star age tables and sign-off blocks)
 - Rulings: `docs/OWNER_RULINGS_FSA_2026-10-21.md` §8.2 (release conditions), §8.6 (Tamil review)
-- A1 slots (filled): `// Marriage: the astrologer's A1 sentence, verbatim` in the `ashwini`, `bharani` and `purva-ashadha` visual pages (EN and TA `expect`)
-- A3 candidates: the 18 pages listed in A3. Unchanged, waiting on the astrologer.
+- A1 slots (filled): `// Marriage: the astrologer's ruled sentence, verbatim` in the `ashwini`, `bharani` and `purva-ashadha` visual pages (EN and TA `expect`). The comment has no digits on purpose: the hold-lift test reads the dasa region as raw source, comments included.
+- A3: built on 17 of the 18 pages (Rohini, outside the fifth-round review, unchanged), plus Ashlesha (§10.5).
+- Fifth-round scripts: `scripts/dasa_prose_parity_worklist.mjs` (condition-4 triage; since the sixth round it exits non-zero if a page's EN and TA field counts differ). The replacement specs were one-off and are not kept; every rule and count is in rulings §10.1–10.2 and §11.
+- Sixth-round scope rule: phrasing classes were fixed in the dasa sections and the T2 star-name lines only (what the reviewer read); meaning-wrong words with a ruled replacement were fixed page-wide. Counts outside scope are in §11.9 / O1.
 - Hold list: `web/lib/natchathiram-dasa-hold.ts` (`DASA_TIMING_HOLD`)
 - Gate: `web/lib/natchathiram-dasa-prose.test.ts` with detector `web/lib/dasa-prose-timing.ts`. It cannot see life-stage words, Tamil quality, EN↔TA meaning, or star-name inflection.

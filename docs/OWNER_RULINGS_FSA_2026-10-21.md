@@ -39,7 +39,7 @@ Standing requirements:
 | Year lord | Five-candidate architecture; weekday lord rejected | **Blocked** on documented textual rules (§8.4) |
 | Shatabhisha Saturn | Age-independent rewrite | **Done** (§8.3) |
 | Rohini release | — | **Hold** until Tamil and content review (§8.2) |
-| Native Tamil review | — | **Release requirement** (§8.6) |
+| Native Tamil review | — | **Release requirement** (§8.6). Fifth-round review applied to the 26 pages (§10); **no condition signed yet** |
 | Mobile 6/8 | Add the note to the mobile porutham screen as a disclosure | **Done** (§7.6) |
 
 Nothing here is committed.
@@ -719,3 +719,372 @@ Hasta's page. The one other Sanskrit form still in code is deliberate:
 **Gate:** `natchathiram-dasa-prose.test.ts` and `nakshatra-display-name.test.ts`
 pass (181). Neither can see Tamil grammar or case agreement, so the T2 output
 is still part of condition 1, not a substitute for it.
+
+## 10. Fifth round: Tamil astrologer and native-speaker review of the packet (same day)
+
+A review of `DASA_PROSE_REVIEW_PACKET_2026-10-21.md` against conditions 1, 3
+and 4 of §8.2, plus doctrine. The reviewer's sign-off status, verbatim:
+
+> **I cannot sign condition 1 on any page yet.** Five defect classes … are
+> present across all 26 pages and are release-stopping on their own.
+
+Everything below follows the reviewer's recommended order (fix the global
+classes, regenerate, then condition 3, then condition 4, then A3). Rohini was
+out of the review's scope and is unchanged. **No condition is signed by any of
+this;** the next step is the reviewer's re-read of the regenerated packet.
+
+### 10.1 Blocking defects, built
+
+| # | Defect | Fix | Count |
+|---|---|---|---|
+| 1 | நேயர் (radio listener) for "native" | ஜாதகர் | 45, 22 pages |
+| 2 | தசை-எலும்பு: தசை is also "dasa" | எலும்பு–மூட்டு–தசைநார் (அமைப்பு) | 9, 8 pages |
+| 3 | Star names the §9.3 sweep missed | Swati சாதி ("caste") → சுவாதி (17); Uttara Phalguni உத்தர பல்குணி → உத்திரம் (-த்த- stems, 14); Purva Bhadra பூர்வ பாத்ரபதா → பூரட்டாதி (10) | 41 |
+| 4 | நலிவூட்டும் ("weakening") for Apas, "nourishing" | ஊட்டமளிக்கும் | 2 |
+| 5 | நிரல் ஆய்வு ("program study") for "scriptural study" | சாஸ்திர பாராயணம் | 2 |
+
+Mrigashira and Shatabhisha were checked for every Sanskrit form in
+`NAKSHATRA_SANSKRIT_NAMES`: clean. So are the other 18 pages.
+
+### 10.2 The replacement table, built
+
+Applied inside Tamil string literals only, each with an expected count:
+ஆரோக்ய → ஆரோக்கிய (65); தீவிர வயது → மிக முதிர்ந்த வயது (15); the passive
+"… தசை மிகச் சிலரால் அடையப்படுகிறது" → active "… தசையை மிகச் சிலரே அடைகிறார்கள்"
+and its variants (25; the dasa becomes the object, so the reviewer's இதை is
+used only where the dasa is not the subject, Krittika); அழகியல் கருணை →
+அழகியல் நளினம் with its case forms (5); கையெழுத்து → அடையாளம் / சிறப்பியல்பு
+(3); நிகழ்ச்சி நிரல் → எதிர்பார்ப்பு (3); தன்னுக்கும் → தனக்கும் (3, one more
+than listed: Revati); the one-offs (வழிநடத்தட்டும், இலகுவாக்குகிறார்,
+ஒதுங்குதல், ஆண்டாண்டாய், நீண்ட பயணம், செல்வம் மிக்க நட்சத்திரம் ×7,
+திங்கட்கிழமை வழிபாடு ×5); English inside Tamil (MOOC, C-suite, and UI/UX on
+Hasta, Chitra and Ashwini). Normalised: சவிதா, விஸ்வதேவர்கள், தனுசு,
+உபநிடதங்கள், இதய-இரத்தக் குழாய்.
+
+Not applied: தசகம் → பத்தாண்டு (a style note; பத்தாண்டு sits close to the
+timing detector's Tamil number-word rule and wants a person's judgement per
+use), and the ஏனெனில் word-order note.
+
+**Found while applying, same classes:** Ashwini Rahu navigate said ராகு
+காலத்தில் — "during Rahu kalam", the daily inauspicious hour — for "under
+Rahu dasa"; now ராகு தசையில். Purva Bhadra's "(முதல் முதல் மூன்றாம் பாதம்)"
+read as "first from third"; now "(முதல் மூன்று பாதங்கள்)". Mrigashira Venus
+navigate rendered "natal chart" as நட்சத்திர சாட்டம்; now ஜாதகம். Krittika
+Mercury navigate rendered "withdrawal into passivity" as அனுசரிப்பு
+("compliance"); rewritten.
+
+### 10.3 Condition 3 (life stage), built
+
+The reviewer's four must-fix and three should-fix, each checked against the
+engine table and the bhukti arithmetic before writing:
+
+| Page, dasa | Was | Now |
+|---|---|---|
+| Purva Bhadra, Saturn | "begins in adolescence" (engine: 0–16) | "anywhere from infancy to adolescence, by pada"; marriage out of the list, A1 in |
+| Hasta, Rahu | "commonly fall" over a dasa that can open at seven | "may fall" + the node carve-out; "first working decades" → "years" |
+| Mula, Venus focus | "the earliest rasi lord flag" (Ketu–Jupiter is after birth for the longer Ketu balances) | conditional on the Ketu–Jupiter bhukti having fallen before birth |
+| Purva Ashadha, Venus | Venus–Jupiter "in the childhood environment" (it falls ~10–13 years into Venus) | "for the shorter balances it falls before birth"; navigate: "where it falls after birth, it comes in childhood" |
+| Krittika, Moon | "through the school years"; Moon–Mars "in early childhood" | opens "anywhere from birth to the start of schooling"; Moon–Mars "in infancy or early childhood" |
+| Dhanishtha, Rahu | higher education unconditional (the dasa can close at eighteen) | "where the dasa reaches the college years" |
+| Uttara Phalguni, Mars | "from adolescence" (engine: 10–16) | "anywhere from late childhood to mid-adolescence, by pada" |
+
+Found while doing these: Ashlesha Venus said "for the later padas it begins in
+adolescence"; it begins at seven for the shortest Mercury balance. Now
+"childhood or adolescence". Uttara Phalguni Rahu "begins in early adulthood"
+(engine 17–23) → "late adolescence or early adulthood".
+
+### 10.4 Condition 4 (EN/TA), built
+
+The five dropped cautions the reviewer listed (Ashwini Sun, Moon, Mars, Rahu
+navigate; Bharani Mars navigate) are now in the Tamil. The reviewer's
+recommended mechanical check is `scripts/dasa_prose_parity_worklist.mjs`,
+output `DASA_PROSE_PARITY_WORKLIST_2026-10-21.md`: every dasa string whose Tamil
+has fewer sentences than its English. It found four more dropped health or
+safety cautions (Krittika and Bharani Mercury, Mrigashira Venus, Ashwini Saturn
+navigate); those are fixed. **68 rows remain, 21 of them Rohini's.** They are
+the condition-4 worklist, not defects proven: a merged sentence shows as a
+shortfall of one.
+
+**Deliberately not ported:** Ashwini Ketu navigate, English: night fears in a
+child "are spiritual awareness, not illness". That is a condition-2 problem in
+the English, not a Tamil omission, and the Tamil is safer without it.
+Recommend softening or removing the English. **Wrong — see §11.1:** the Tamil
+carried the same claim; both are now cut.
+
+### 10.5 Doctrine, built
+
+**A3 answered.** The reviewer's ruling, verbatim:
+
+> **Adopt the ruled sentence verbatim on all 27 pages.** … **Never name a
+> bhukti.** Marriage is promised by the horoscope and merely activated in time;
+> a universal bhukti claim is unsupportable in any chart-free page.
+> … **Node carve-out, generalised.** … *a node carries no marriage significator
+> of its own; where marriage falls in a node's dasa it is read from the node's
+> dispositor and the seventh house, not from the node itself.*
+
+Built: A1 replaces the marriage sentence on Anuradha, Pushya, Jyeshtha, Revati,
+Swati, Chitra, Dhanishtha (group 3), Mrigashira (group 2), Vishakha and Purva
+Bhadra (group 1, non-node), Ardra, Punarvasu, Mula, Purva Phalguni (group 4, the
+non-marriage clauses kept), and Ashlesha (named by the reviewer; supersedes the
+§9.2 "may fall" row and removes "the bhukti is read from"). The node carve-out
+replaces it on the three Rahu rows of group 1: Hasta, Krittika, Uttara
+Phalguni. Our wording, EN and TA, joining the carve-out to A1's significators:
+
+> EN: A node carries no marriage significator of its own: where marriage falls
+> in Rahu's dasa, it is read from Rahu's dispositor and from the seventh house
+> and its lord, with Venus and Jupiter as the significators, not from Rahu
+> itself.
+>
+> TA: சாயா கிரகத்துக்குத் தனக்கென்று திருமணக் காரகத்துவம் இல்லை: ராகு தசைக்குள்
+> திருமணம் அமைந்தால், அது ராகு நின்ற ராசியின் அதிபதியையும், ஜாதகத்தின் ஏழாம்
+> வீட்டையும் அதன் அதிபதியையும் கொண்டு, சுக்கிரனையும் குருவையும் காரகர்களாகக்
+> கொண்டு பார்க்கப்படுகிறது; ராகுவைக் கொண்டு அல்ல.
+
+**Pada numbers** (§6.2 of the review): all nine mixed-rasi pages map correctly.
+Punarvasu (Mithuna first three padas, Kataka fourth), Chitra (Kanya first and
+second, Tula third and fourth) and Vishakha (Tula first three, Vrischika fourth)
+now say so, in words: the timing gate bans digits in dasa prose.
+
+**Remedies** (§6.4): "Ganapati worship, the principal Ketu remedy, belongs with
+these" is the second sentence of every Ketu `focus` string, and "Hanuman
+worship, the customary Saturn remedy in Tamil practice, belongs with these" of
+every Saturn one (88 strings, EN + TA; the sentences are ours). Skipped: the
+Mula and Purva Ashadha Saturn `focus` strings, which are narrative, not remedy
+lists. Ashwini Moon prescribed daily water offerings to ancestors (a pitru
+observance); now white flowers and arghya to the Moon and Parvati or Annapurani
+worship. **Bharani Moon had the same line** and is fixed the same way; Magha
+keeps its tharpanam, as the reviewer said.
+
+### 10.6 Judgement calls, for the reviewer
+
+1. **Shravana and Uttara Ashadha Rahu keep their §9.2 wording** (read from
+   Venus, Jupiter and the seventh house and its lord). The reviewer called it
+   correct and asked for the carve-out "in this form" elsewhere. Read as an
+   instruction to rewrite those two as well, it is a two-line change.
+2. **ஜாதகர் for நேயர்.** Applied as ruled. நேயர்களே is the ordinary address in
+   Tamil weekly rasi-palan columns, so the old word was magazine register
+   rather than a mistranslation; third-person use for "natives" was the fault.
+3. The Ganapati and Hanuman sentences, the node-carve-out Tamil, and every
+   Tamil sentence written for §10.3 and §10.4 are ours and unread.
+
+### 10.7 What this does not cover
+
+- **Rohini** and the **live base pages** (`natchathiram-data.ts`) carry the same
+  classes: நேயர் 2 and 11, ஆரோக்ய 3 and 3 (**corrected in §11.8:** the base
+  pages' நேயர் hits are all ஆஞ்சநேயர்; the ஆரோக்ய are fixed). Not changed: outside the review's
+  scope, and the base pages are live and indexed. Their சாதி uses are the verb
+  "achieve", not the star.
+- English inside Tamil outside dasa prose: Ashwini's "3D மாதிரியாக்கம்" and the
+  usual loanwords (டிஜிட்டல், ஆப்கள்) are left.
+- The A1 slot comments on Ashwini, Bharani and Purva Ashadha carried digits
+  (`A1`, `2026-10-21`, `§9.1`) inside the region the hold-lift test reads as raw
+  source, so releasing any of those three pages would have failed the build on
+  a comment. Reworded without digits.
+
+**Gate:** the FSA-03 detector over all 27 pages' dasa regions, held or not:
+**0** (66 before the comment change, all in the comments).
+`natchathiram-dasa-prose`, `nakshatra-display-name`, `natchathiram-data`,
+`natchathiram-dasa-hold`, `natchathiram-dasa-timing` and
+`rasi-display-boundary`: 224 pass. `tsc --noEmit` clean. **Blind spot, as
+before:** none of these can see Tamil grammar, case agreement after the
+star-name sweep, life-stage truth, or EN/TA meaning. The parity worklist sees
+sentence *count* only.
+
+## 11. Sixth round: the reviewer's re-read (R1), and what was built (same day)
+
+The reviewer re-read the regenerated packet against R1. Status, verbatim:
+
+> **Sign-off: still nothing signable, but the reason has shrunk to a short
+> list.** Four items block every page (§2.1, §2.2, §3.4, §5.1); one blocks
+> Purva Bhadra alone (§2.3). After those, **Dhanishtha and Shravana** are clear
+> on every class I can test and carry no parity rows.
+
+(Section numbers inside quotes are the reviewer's.) All of the reviewer's
+order of work is built except the last item, the personification rule (§11.9).
+**Nothing is signed by this;** the next step is the reviewer's re-read (R2 in
+`REVIEW_REQUESTS_2026-10-21.md`).
+
+**Scope used throughout.** The reviewer's counts match the dasa sections plus
+the T2 star-name lines the packet shows (e.g. தரிசனம் "Chitra 7, Purva Bhadra 6,
+Shatabhisha 2, Uttara Ashadha 8" are exactly the dasa-region lines). Phrasing
+classes were fixed in that scope only; outside it they are counted in §11.9.
+Words that are wrong in *meaning* and already have a ruled replacement were
+fixed wherever they occur on the page.
+
+### 11.1 The answers to §10.6
+
+1. **Shravana and Uttara Ashadha move to the dispositor wording** — "a strict
+   superset of the §9.2 wording … Nothing ruled is discarded." Built (§11.2).
+2. **ஜாதகர் confirmed** for every நேயர். The reviewer adds that the same slip
+   survives as personification (the bare star name with honorific verbs);
+   rule: neuter where the subject is the star, `<stem> ஜாதகர்` where it is the
+   person. Applied only inside sentences rewritten this round; the pass is §11.9.
+3. **Ashwini Ketu night-fears sentence: cut, do not soften** — "the medical
+   contrast is the defect, not the certainty." **Correction to §10.4:** the
+   Tamil *did* carry it, stronger: `குழந்தையின் இரவு நேர பயம் அல்லது ஆன்மீக
+   உணர்திறன் நோய் அல்ல — அதை அடக்காதீர்கள்`. §10.4's "deliberately not ported"
+   was wrong and the reviewer relied on it. Cut in both languages; the Tamil
+   navigate was rewritten from the English (it had also turned "a parent's
+   absence" into பிரிவு, "separation", and "ancestral karma" into பூர்வஜன்ம,
+   "past-life"), and the "do not suppress it" clause now sits in the focus
+   string with its English twin.
+
+### 11.2 The four global items
+
+| Item | Built | Count |
+|---|---|---|
+| Carve-out drops A1's tendency clause | English appends "and judged from the individual horoscope as a tendency rather than a fixed time"; Tamil ends on A1's own அது ஒரு நிலையான காலம் அல்ல, ஒரு போக்கே | 5 pages × 2 |
+| Carve-out Tamil grammar | The reviewer's sentence, verbatim: சாயாக் கிரகத்துக்குத் திருமணக் காரகத்துவம் இல்லை. ராகு தசைக்குள் … அது ராகுவைக் கொண்டு அல்ல — ராகு நின்ற ராசியின் அதிபதி, … பார்க்கப்படுகிறது. அது ஒரு நிலையான காலம் அல்ல, ஒரு போக்கே. | same |
+| Shravana, Uttara Ashadha | "Marriage and … may fall within this dasa." + the carve-out, EN + TA | 2 × 2 |
+| "belongs with these" | Sentence deleted; deity folded into the list. Ketu: Ganapati worship **first** (it is the principal remedy). Saturn: Hanuman / ஆஞ்சநேயர் worship beside Shani worship. Ashwini and Magha, whose first sentence is a single item, fold into the later list sentence | 44 × 2 |
+| நடைமுறை for a practice | பயிற்சி for a practice, அனுஷ்டானம் for a rite, கடைப்பிடித்தல் for "observing", தொழில் for a legal practice; "practical" and "in practice" uses kept | 33 uses |
+
+Three judgement calls for the reviewer:
+- **சாதனை not used.** The reviewer offered பயிற்சி or சாதனை. சாதனை is
+  "achievement" in current Tamil, and the same pages say தொழில் சாதனைகள்; a
+  second homograph after தசை was not worth it.
+- **"in Tamil practice" is gone from the English too.** §3.3 said keep it in
+  English, but it lived in the sentence the reviewer recommended deleting.
+  Folded into a list, "Hanuman worship" carries no qualifier in either language.
+- **Magha keeps "the principal Ketu remedy"** in its folded sentence, because
+  Magha's first remedy is tharpanam (the reviewer's earlier ruling) and the
+  list Ganapati joins is introduced as "additional".
+
+### 11.3 The §1.3 shape, found four more times
+
+"A symptom is not illness" also appeared in English and Tamil on Ashwini and
+Bharani Moon navigate ("sleep disturbances and anxiety … are Moon's signal,
+not a medical disorder"), and Punarvasu and Pushya Ketu navigate ("social
+circles may narrow; this is appropriate, not pathological"). Krittika Ketu
+navigate said caregivers "are more important than medical intervention
+alone", and Ardra Ketu's *Tamil* said spiritual company matters more than
+மருத்துவ ஆதரவு ("medical support") where its English says "most other support".
+Each now keeps the observation and says the honest thing: "where they persist,
+treat them as health concerns" / "matter as much as medical care". **These are
+English changes, i.e. condition 2:** the reviewer's principle applied, not the
+reviewer's wording. Rohini has the same shape ("not pathology", line 129),
+untouched with the rest of Rohini.
+
+### 11.4 Purva Bhadra
+
+- **Saturn (condition 3):** "depending on the pada it covers some part of
+  schooling, university and early career …", the reviewer's sentence; Tamil to
+  match.
+- **Deity:** the English said "the one-footed **serpent** of fire" twice, as
+  the reviewer suspected. Both languages now name no animal: "the one-footed
+  one of (transformative) fire"; மாற்றும் நெருப்புக்குரிய, ஒற்றைக் காலுடைய அஜ
+  ஏகபாதமே பூரட்டாதியின் தலைமை தெய்வம். ஆஜ → அஜ on every line of the page (6).
+- **தத்துவ எட்டு** → தத்துவப் பரப்பு. Same phrase: குருவின் நம்பகத்தன்மை
+  ("reliability") was rendering "Jupiter's **optimism**"; now நம்பிக்கை.
+- **Pada digits** → words, and the English card ("padas 1-3") too.
+- **Found:** மரக்காளர் for "mystic" (→ மறைஞானி); "ஆழ நிரல் மரபுகள்" for
+  "depth esoteric traditions" (→ மறைஞான மரபுகள்).
+
+### 11.5 தரிசனம் and வரை எங்கும்
+
+**தரிசனம், 36 of 39 in scope replaced:** நோக்கு / தொலைநோக்கு for a conceived
+future or aim, கண்ணோட்டம் / பார்வை for a way of seeing, and on Chitra மனக்காட்சி
+for the artist's inner vision (five uses where the English is the image in the
+maker's mind). Kept: the three தத்துவ தரிசனம் (Purva Ashadha ×2, Uttara
+Ashadha), the worldview sense the reviewer said to keep. Purva Bhadra's
+தரிசனம் கைவிடப்படுவதில்லை is now நோக்கு கைவிடப்படுவதில்லை.
+
+**வரை எங்கும், 11 → 0,** in the reviewer's form: the two ends named with -ஓ
+(கைக்குழந்தைப் பருவத்திலோ வளரிளம் பருவத்திலோ தொடங்கி). **A trade-off to
+confirm:** "in X or in Y" names the ends and leaves the middle to "by pada";
+the old form, though not Tamil, named a range. If the reviewer would rather
+keep the range, `X முதல் Y வரையிலான ஏதோ ஒரு கட்டத்தில்` is the alternative.
+
+### 11.6 Star-name residuals (§5.4–5.8), and what the same lines carried
+
+- Swati: சூழலைப் படிக்கிறார்; ஆஞ்சநேயர் ×3; "Tuesday Anjaneya puja" now
+  செவ்வாய்க்கிழமை (bare செவ்வாய் also reads "Mars"); வாயுவுக்கான பக்தி
+  வெளிப்பாடுகள்; சுவாதியின் வணிக உள்ளுணர்வு, டிஜிட்டல் வடிவில்.
+- ஏனெனில் 6 → 0, cause first; Uttara Phalguni uses the reviewer's sentence.
+- அல்ல ஆனால் 17 → 0 in scope: அல்ல; / அல்ல, … / அல்லாமல் / a concessive
+  (இல்லாவிட்டாலும், இல்லையெனினும், எனினும்) where the English is "not always X,
+  but Y".
+- ஒத்தொலிப்பு 9 → 0: ஒத்திசை- for the verb, சிறப்புத் தொடர்பு for "temples
+  carry special resonance for X".
+- **Found on the same lines:** தனிப்பட்டதல்ல ("not *personal*") for "not
+  separate from", Purva Ashadha and Uttara Ashadha (→ தனியானதல்ல; one
+  correct use, "victory is never personal", kept); திசைதிருப்பும்
+  ("distracting") for "orienting" (→ திசைகாட்டும்); சுருக்கங்கள் ("summaries")
+  for "abstractions"; "ஆகமக் நூல்" for the Rigveda's Apas Sukta (→ வேதப் பகுதி);
+  "தடைகள், தடைகள்" doubled (→ தடைகள், இடையூறுகள்).
+- **Meaning-wrong words fixed outside scope** (ruled replacements already
+  exist): நிரல் அறிவியல்கள் ("program sciences") for "Occult Sciences" on
+  Jyeshtha, Purva Bhadra and Shatabhisha career cards (11 → மறைஞான); மரக்கால
+  on Shatabhisha (7, including a headline trait, "மரக்கால ஆழம்" for "Mystical
+  Depth" → மறைஞான). Dhanishtha's நிரல்பட வர்த்தகம் (algorithmic trading) is
+  correct and kept.
+
+### 11.7 Condition 4: the parity rows
+
+**47 non-Rohini rows → 3.** Every row was read in both languages, not triaged
+on the number. The three left are merges that keep the meaning (Anuradha Ketu
+expect, Mrigashira Saturn expect, Ashwini Sun focus). Health and safety lines
+first, as asked: Jyeshtha Ketu (autoimmune), Mula, Purva Ashadha and Revati
+Jupiter (physical care), Ardra and Mrigashira Mercury (nervous system,
+respiratory), Swati Ketu, Mrigashira Mars (the father's health), Ashwini Mars,
+Krittika Sun (eye health "even in infancy"), Purva Bhadra Moon, Uttara Ashadha
+Mercury.
+
+Reading both strings found errors inside *kept* sentences, which no count can
+see:
+- Ashwini Sun: அளவிட முடியாத ("immeasurable") for "measurable return".
+- Purva Ashadha Jupiter: மாற்று மருந்து ("alternative medicine") for
+  "antidote" (→ முறிவு மருந்து); and "their vision is the vision" garbled.
+- Krittika Sun: சிறப்பியல்பு ("speciality") for "perfectionism".
+- Hasta Ketu: வில் ("bow") for "arc". Revati Jupiter: ஒழுக்கம் ("discipline")
+  for "sentimentality", and நவீனதாக்குவது ("modernising").
+- Ashlesha Mercury: the parent-support sentence said something else entirely;
+  திணிக்க முடியாத for "insatiable".
+- **Mula Ketu focus:** the Tamil's second sentence (a Ketu–Jupiter note) had
+  no English twin, and the English's two sentences about the child had no
+  Tamil. Replaced with the English's two; the Tamil-only note is gone.
+- Jyeshtha Ketu focus: the reviewer's truncation case, restored in full.
+
+**Script (§7.4):** `dasa_prose_parity_worklist.mjs` now exits non-zero if any
+page's English and Tamil field counts differ, or differ from 3 × its dasas.
+Passes on all 27.
+
+### 11.8 The base pages, and a correction to §10.7
+
+**There is no நேயர் defect on the live base pages.** Every hit in
+`natchathiram-data.ts` (9, and the same 9 at HEAD) is inside **ஆஞ்சநேயர்** —
+the false positive the reviewer warned about in their §0. §10.7 recorded
+"நேயர் 11" there, and the reviewer's §8 relied on it. The three ஆரோக்ய are real and are
+fixed (→ ஆரோக்கிய). Rohini's two நேயர்களுக்கு are real; Rohini unchanged.
+
+### 11.9 Open, and a finding for the owner
+
+- **Personification (§1.2): not started.** The reviewer placed it last and
+  non-blocking. A heuristic (star name + honorific verb, no ஜாதகர், in scope)
+  finds about 100 candidate sentences, most on Hasta (13), Anuradha (10),
+  Punarvasu and Swati (9 each). Each needs a person's choice between neuter
+  and `<stem> ஜாதகர்`.
+- **தசகம் is not 0.** The reviewer's §8 says it is moot because the bare form
+  is gone; inflected forms (தசகங்களுக்கு, தசகங்களாக …) remain **40** times in
+  scope. Still held, for the §10.2 reason.
+- **Rohini:** unchanged. The reviewer's §8 stands: it is the least ready page.
+- **Condition-2 questions found while translating** (English, for the
+  astrologer): Ardra Ketu calls the Tirukkural a Shaiva scripture; Mrigashira
+  Ketu, in very old age, says "awareness of subtle presences may intensify",
+  which a family could read as explaining away confusion.
+- **Finding: no release condition covers the Tamil outside the dasa
+  sections.** Condition 1 covers *edited* Tamil; condition 2 covers the other
+  sections' *claims*, not their language. The reviewer's classes are there in
+  volume, untouched: அல்ல ஆனால் 27, practice-sense நடைமுறை 33, ஒத்தொலிப்பு 8,
+  தரிசனம் 6 (Chitra's trait cards), ஏனெனில் 1, across 20 pages. These sections
+  ship with every release. **Owner decision:** extend condition 1 to the whole
+  page's Tamil, or accept them as they are.
+
+**Gate:** the FSA-03 detector over all 27 pages' dasa regions, held or not:
+**0**. `natchathiram-dasa-prose`, `natchathiram-dasa-hold`, `natchathiram-data`,
+`nakshatra-display-name`, `nakshatra-display-boundary`, `rasi-display-boundary`
+and `natchathiram-dasa-timing`: 227 pass. `tsc --noEmit` clean. The parity
+script's new count assertion passes. **Blind spot:** none of these reads
+Tamil. Everything in §11 is our Tamil and unread, and the worklist still sees
+sentence count only. The rows it no longer lists were read by us, not by the
+reviewer.
