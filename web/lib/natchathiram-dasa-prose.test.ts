@@ -68,6 +68,7 @@ describe("dasa prose timing detector", () => {
     "சந்திர–ராகு அந்தர்தசை (சுமார் 8–9 வயது)",
     "நாற்பதுகளின் நடுவில் கவனிக்க வேண்டும்",
     "இருபது மாதங்கள்",
+    "பத்து ஆண்டுகள் நீடிக்கும்",
   ])("flags %s", (text) => {
     expect(dasaProseTimingClaims(text)).not.toEqual([]);
   });
@@ -76,6 +77,11 @@ describe("dasa prose timing detector", () => {
     "Moon–Rahu bhukti is the most turbulent sub-period of this dasha.",
     "Venus as rasi lord makes this window carry unusual warmth.",
     "சந்திர–ராகு புக்தி இந்த தசையின் கலக்கமான துணைக் காலம்.",
+    // பத்தாண்டு for தசகம் (reviewer §10) is the English "decades", which
+    // passes too: a span of life, not a length. பத்து ஆண்டுகள் is still a span.
+    "the network built across the earlier decades",
+    "முந்தைய பத்தாண்டுகளில் கட்டிய வலைப்பின்னல்",
+    "ஒவ்வொரு பத்தாண்டிலும் கேட்க வேண்டிய கேள்வி",
   ])("passes %s", (text) => {
     expect(dasaProseTimingClaims(text)).toEqual([]);
   });

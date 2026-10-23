@@ -23,6 +23,9 @@ export interface EventSummary {
 interface TamilCalendarContentProps {
   events: EventSummary[];
   categories: CalendarCategorySummary[];
+  year: number;
+  /** When set, a row of links to each event's page for that year. */
+  nextYear: number | null;
 }
 
 function pick(en: string, ta: string, lang: Lang) {
@@ -38,7 +41,7 @@ function formatDate(iso: string, lang: Lang): string {
 }
 
 // F7 part two - a Server Component; see lib/server-lang.ts.
-export async function TamilCalendarContent({ events, categories }: TamilCalendarContentProps) {
+export async function TamilCalendarContent({ events, categories, year, nextYear }: TamilCalendarContentProps) {
   const lang = await getServerLang();
 
   return (
@@ -52,15 +55,15 @@ export async function TamilCalendarContent({ events, categories }: TamilCalendar
             </p>
             <h1 className="cl-pub-h1">
               {pick(
-                "Tamil Calendar 2026 - Special Days & Dates",
-                "\u0ba4\u0bae\u0bbf\u0bb4\u0bcd \u0ba8\u0bbe\u0b9f\u0bcd\u0b95\u0bbe\u0b9f\u0bcd\u0b9f\u0bbf 2026 - \u0bb5\u0bbf\u0b9a\u0bc7\u0b9f \u0ba8\u0bbe\u0b9f\u0bcd\u0b95\u0bb3\u0bcd",
+                `Tamil Calendar ${year} - Special Days & Dates`,
+                `\u0ba4\u0bae\u0bbf\u0bb4\u0bcd \u0ba8\u0bbe\u0b9f\u0bcd\u0b95\u0bbe\u0b9f\u0bcd\u0b9f\u0bbf ${year} - \u0bb5\u0bbf\u0b9a\u0bc7\u0b9f \u0ba8\u0bbe\u0b9f\u0bcd\u0b95\u0bb3\u0bcd`,
                 lang,
               )}
             </h1>
             <p className="cl-pub-lead">
               {pick(
-                "Every Pournami, Amavasai, Pradosham, Ekadhasi and more for 2026 - with the next upcoming date, weekday and Tamil date.",
-                "2026-\u0b95\u0bcd\u0b95\u0bbe\u0ba9 \u0baa\u0bcc\u0bb0\u0bcd\u0ba3\u0bae\u0bbf, \u0b85\u0bae\u0bbe\u0bb5\u0bbe\u0b9a\u0bc8, \u0baa\u0bbf\u0bb0\u0ba4\u0bcb\u0bb7\u0bae\u0bcd, \u0b8f\u0b95\u0bbe\u0ba4\u0b9a\u0bbf \u0bae\u0bb1\u0bcd\u0bb1\u0bc1\u0bae\u0bcd \u0bae\u0bb1\u0bcd\u0bb1 \u0bb5\u0bbf\u0b9a\u0bc7\u0b9f \u0ba8\u0bbe\u0b9f\u0bcd\u0b95\u0bb3\u0bbf\u0ba9\u0bcd \u0baa\u0b9f\u0bcd\u0b9f\u0bbf\u0baf\u0bb2\u0bcd.",
+                `Every Pournami, Amavasai, Pradosham, Ekadhasi and more for ${year} - with the next upcoming date, weekday and Tamil date.`,
+                `${year}-\u0b95\u0bcd\u0b95\u0bbe\u0ba9 \u0baa\u0bcc\u0bb0\u0bcd\u0ba3\u0bae\u0bbf, \u0b85\u0bae\u0bbe\u0bb5\u0bbe\u0b9a\u0bc8, \u0baa\u0bbf\u0bb0\u0ba4\u0bcb\u0bb7\u0bae\u0bcd, \u0b8f\u0b95\u0bbe\u0ba4\u0b9a\u0bbf \u0bae\u0bb1\u0bcd\u0bb1\u0bc1\u0bae\u0bcd \u0bae\u0bb1\u0bcd\u0bb1 \u0bb5\u0bbf\u0b9a\u0bc7\u0b9f \u0ba8\u0bbe\u0b9f\u0bcd\u0b95\u0bb3\u0bbf\u0ba9\u0bcd \u0baa\u0b9f\u0bcd\u0b9f\u0bbf\u0baf\u0bb2\u0bcd.`,
                 lang,
               )}
             </p>
@@ -101,7 +104,7 @@ export async function TamilCalendarContent({ events, categories }: TamilCalendar
                       </div>
                       <div style={{ fontSize: "0.8rem", color: "var(--cl-ink-2)" }}>
                         <strong>{category.count}</strong>{" "}
-                        {pick("dates in 2026", "தேதிகள் - 2026", lang)}
+                        {pick(`dates in ${category.year}`, `தேதிகள் - ${category.year}`, lang)}
                         {category.nextDate && (
                           <>
                             {" "}
@@ -151,7 +154,7 @@ export async function TamilCalendarContent({ events, categories }: TamilCalendar
                     </div>
                     <div style={{ fontSize: "0.8rem", color: "var(--cl-ink-2)" }}>
                       <strong>{event.count}</strong>{" "}
-                      {pick("dates in 2026", "\u0ba8\u0bbe\u0b9f\u0bcd\u0b95\u0bb3\u0bcd - 2026", lang)}
+                      {pick(`dates in ${year}`, `\u0ba8\u0bbe\u0b9f\u0bcd\u0b95\u0bb3\u0bcd - ${year}`, lang)}
                       {event.nextDate && (
                         <>
                           {" "}
@@ -162,6 +165,19 @@ export async function TamilCalendarContent({ events, categories }: TamilCalendar
                   </Link>
                 ))}
               </div>
+            )}
+
+            {nextYear !== null && events.length > 0 && (
+              <nav aria-label={pick(`${nextYear} dates`, `${nextYear} நாட்கள்`, lang)} style={{ marginTop: "34px" }}>
+                <h2 className="cl-section-h2">{pick(`${nextYear} dates`, `${nextYear} நாட்கள்`, lang)}</h2>
+                <div className="cl-pub-related-links">
+                  {events.map((event) => (
+                    <Link key={event.key} href={`/tamil-calendar/${event.key}-${nextYear}`} className="cl-pub-related-link">
+                      {tLang(event.name, lang)} {nextYear}
+                    </Link>
+                  ))}
+                </div>
+              </nav>
             )}
           </div>
         </section>

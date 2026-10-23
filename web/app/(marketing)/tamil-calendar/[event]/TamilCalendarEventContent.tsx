@@ -45,6 +45,13 @@ export interface EventDetail {
 interface TamilCalendarEventContentProps {
   data: EventDetail | null;
   allEvents: EventSummary[];
+  /** The page's year, from its slug; `data.year` when the fetch succeeded. */
+  year: number;
+  /** This year in India. A past year's page points at this year's. */
+  currentYear: number;
+  /** Next year when the web serves it; this year's page links to it. */
+  nextYear: number | null;
+  eventKey: string;
 }
 
 function pick(en: string, ta: string, lang: Lang) {
@@ -69,7 +76,7 @@ function formatShort(iso: string, lang: Lang): string {
 }
 
 // F7 part two - a Server Component; see lib/server-lang.ts.
-export async function TamilCalendarEventContent({ data, allEvents }: TamilCalendarEventContentProps) {
+export async function TamilCalendarEventContent({ data, allEvents, year, currentYear, nextYear, eventKey }: TamilCalendarEventContentProps) {
   const lang = await getServerLang();
 
   if (!data) {
@@ -80,7 +87,7 @@ export async function TamilCalendarEventContent({ data, allEvents }: TamilCalend
           <section className="cl-pub-hero">
             <div className="cl-container">
               <h1 className="cl-pub-h1">
-                {pick("Tamil Calendar 2026", "\u0ba4\u0bae\u0bbf\u0bb4\u0bcd \u0ba8\u0bbe\u0b9f\u0bcd\u0b95\u0bbe\u0b9f\u0bcd\u0b9f\u0bbf 2026", lang)}
+                {pick(`Tamil Calendar ${year}`, `\u0ba4\u0bae\u0bbf\u0bb4\u0bcd \u0ba8\u0bbe\u0b9f\u0bcd\u0b95\u0bbe\u0b9f\u0bcd\u0b9f\u0bbf ${year}`, lang)}
               </h1>
               <p className="cl-pub-lead">
                 {pick(
@@ -114,10 +121,11 @@ export async function TamilCalendarEventContent({ data, allEvents }: TamilCalend
   const prevEvent = currentIdx > 0 ? navEvents[currentIdx - 1] : null;
   const nextEvent = currentIdx >= 0 && currentIdx < navEvents.length - 1 ? navEvents[currentIdx + 1] : null;
   const eventName = tLang(data.name, lang);
+  const isPastYear = year < currentYear;
 
   const faq = [
     {
-      q: pick(`When is the next ${eventName} in 2026?`, `2026-\u0bb2\u0bcd \u0b85\u0b9f\u0bc1\u0ba4\u0bcd\u0ba4 ${eventName} \u0b8e\u0baa\u0bcd\u0baa\u0bcb\u0ba4\u0bc1?`, lang),
+      q: pick(`When is the next ${eventName} in ${year}?`, `${year}-\u0bb2\u0bcd \u0b85\u0b9f\u0bc1\u0ba4\u0bcd\u0ba4 ${eventName} \u0b8e\u0baa\u0bcd\u0baa\u0bcb\u0ba4\u0bc1?`, lang),
       a: data.nextDate
         ? pick(
             `The next ${eventName} is on ${formatLong(data.nextDate, lang)}.`,
@@ -125,16 +133,16 @@ export async function TamilCalendarEventContent({ data, allEvents }: TamilCalend
             lang,
           )
         : pick(
-            `All ${eventName} dates for 2026 have passed; see the full list above.`,
-            `2026-\u0b95\u0bcd\u0b95\u0bbe\u0ba9 ${eventName} \u0ba8\u0bbe\u0b9f\u0bcd\u0b95\u0bb3\u0bcd \u0bae\u0bc1\u0b9f\u0bbf\u0ba8\u0bcd\u0ba4\u0bc1\u0bb5\u0bbf\u0b9f\u0bcd\u0b9f\u0ba9; \u0bae\u0bc1\u0bb4\u0bc1 \u0baa\u0b9f\u0bcd\u0b9f\u0bbf\u0baf\u0bb2\u0bc8 \u0bae\u0bc7\u0bb2\u0bc7 \u0baa\u0bbe\u0bb0\u0bcd\u0b95\u0bcd\u0b95\u0bb5\u0bc1\u0bae\u0bcd.`,
+            `All ${eventName} dates for ${year} have passed; see the full list above.`,
+            `${year}-\u0b95\u0bcd\u0b95\u0bbe\u0ba9 ${eventName} \u0ba8\u0bbe\u0b9f\u0bcd\u0b95\u0bb3\u0bcd \u0bae\u0bc1\u0b9f\u0bbf\u0ba8\u0bcd\u0ba4\u0bc1\u0bb5\u0bbf\u0b9f\u0bcd\u0b9f\u0ba9; \u0bae\u0bc1\u0bb4\u0bc1 \u0baa\u0b9f\u0bcd\u0b9f\u0bbf\u0baf\u0bb2\u0bc8 \u0bae\u0bc7\u0bb2\u0bc7 \u0baa\u0bbe\u0bb0\u0bcd\u0b95\u0bcd\u0b95\u0bb5\u0bc1\u0bae\u0bcd.`,
             lang,
           ),
     },
     {
-      q: pick(`How many ${eventName} days are there in 2026?`, `2026-\u0bb2\u0bcd ${eventName} \u0ba8\u0bbe\u0b9f\u0bcd\u0b95\u0bb3\u0bcd \u0b8e\u0ba4\u0bcd\u0ba4\u0ba9\u0bc8?`, lang),
+      q: pick(`How many ${eventName} days are there in ${year}?`, `${year}-\u0bb2\u0bcd ${eventName} \u0ba8\u0bbe\u0b9f\u0bcd\u0b95\u0bb3\u0bcd \u0b8e\u0ba4\u0bcd\u0ba4\u0ba9\u0bc8?`, lang),
       a: pick(
-        `There are ${data.count} ${eventName} dates in 2026.`,
-        `2026-\u0bb2\u0bcd ${data.count} ${eventName} \u0ba8\u0bbe\u0b9f\u0bcd\u0b95\u0bb3\u0bcd \u0b89\u0bb3\u0bcd\u0bb3\u0ba9.`,
+        `There are ${data.count} ${eventName} dates in ${year}.`,
+        `${year}-\u0bb2\u0bcd ${data.count} ${eventName} \u0ba8\u0bbe\u0b9f\u0bcd\u0b95\u0bb3\u0bcd \u0b89\u0bb3\u0bcd\u0bb3\u0ba9.`,
         lang,
       ),
     },
@@ -152,16 +160,23 @@ export async function TamilCalendarEventContent({ data, allEvents }: TamilCalend
           <div className="cl-container">
             <p className="cl-eyebrow">
               <Link href="/tamil-calendar" style={{ color: "inherit" }}>
-                {pick("Tamil Calendar 2026", "\u0ba4\u0bae\u0bbf\u0bb4\u0bcd \u0ba8\u0bbe\u0b9f\u0bcd\u0b95\u0bbe\u0b9f\u0bcd\u0b9f\u0bbf 2026", lang)}
+                {pick(`Tamil Calendar ${currentYear}`, `\u0ba4\u0bae\u0bbf\u0bb4\u0bcd \u0ba8\u0bbe\u0b9f\u0bcd\u0b95\u0bbe\u0b9f\u0bcd\u0b9f\u0bbf ${currentYear}`, lang)}
               </Link>{" "}
               &middot; {eventName}
             </p>
             <h1 className="cl-pub-h1">
-              {pick(`${eventName} 2026 Dates`, `${eventName} 2026 \u0ba8\u0bbe\u0b9f\u0bcd\u0b95\u0bb3\u0bcd`, lang)}
+              {pick(`${eventName} ${year} Dates`, `${eventName} ${year} \u0ba8\u0bbe\u0b9f\u0bcd\u0b95\u0bb3\u0bcd`, lang)}
             </h1>
             <p className="cl-pub-lead" style={{ marginBottom: "12px" }}>
               {tLang(data.summary, lang)}
             </p>
+            {isPastYear && (
+              <p className="cl-pub-lead" style={{ marginBottom: "12px" }}>
+                <Link href={`/tamil-calendar/${eventKey}-${currentYear}`}>
+                  {pick(`${eventName} ${currentYear} dates`, `${eventName} ${currentYear} \u0ba8\u0bbe\u0b9f\u0bcd\u0b95\u0bb3\u0bcd`, lang)} &rarr;
+                </Link>
+              </p>
+            )}
 
             {data.nextDate && (
               <div
@@ -280,16 +295,21 @@ export async function TamilCalendarEventContent({ data, allEvents }: TamilCalend
             <div className="cl-pub-related-links" style={{ marginTop: "1.5rem" }}>
               {prevEvent && (
                 <Link href={`/tamil-calendar/${prevEvent.slug}`} className="cl-pub-related-link">
-                  &larr; {tLang(prevEvent.name, lang)} 2026
+                  &larr; {tLang(prevEvent.name, lang)} {year}
                 </Link>
               )}
               {nextEvent && (
                 <Link href={`/tamil-calendar/${nextEvent.slug}`} className="cl-pub-related-link">
-                  {tLang(nextEvent.name, lang)} 2026 &rarr;
+                  {tLang(nextEvent.name, lang)} {year} &rarr;
+                </Link>
+              )}
+              {year === currentYear && nextYear !== null && (
+                <Link href={`/tamil-calendar/${eventKey}-${nextYear}`} className="cl-pub-related-link">
+                  {eventName} {nextYear} &rarr;
                 </Link>
               )}
               <Link href="/tamil-calendar" className="cl-pub-related-link">
-                {pick("All Tamil calendar 2026 days", "\u0b85\u0ba9\u0bc8\u0ba4\u0bcd\u0ba4\u0bc1 \u0ba4\u0bae\u0bbf\u0bb4\u0bcd \u0ba8\u0bbe\u0b9f\u0bcd\u0b95\u0bbe\u0b9f\u0bcd\u0b9f\u0bbf 2026 \u0ba8\u0bbe\u0b9f\u0bcd\u0b95\u0bb3\u0bcd", lang)}
+                {pick(`All Tamil calendar ${currentYear} days`, `\u0b85\u0ba9\u0bc8\u0ba4\u0bcd\u0ba4\u0bc1 \u0ba4\u0bae\u0bbf\u0bb4\u0bcd \u0ba8\u0bbe\u0b9f\u0bcd\u0b95\u0bbe\u0b9f\u0bcd\u0b9f\u0bbf ${currentYear} \u0ba8\u0bbe\u0b9f\u0bcd\u0b95\u0bb3\u0bcd`, lang)}
               </Link>
               <Link href="/muhurtham-naal" className="cl-pub-related-link">
                 {pick("Wedding muhurtham dates", "\u0ba4\u0bbf\u0bb0\u0bc1\u0bae\u0ba3 \u0bae\u0bc1\u0b95\u0bc2\u0bb0\u0bcd\u0ba4\u0bcd\u0ba4 \u0ba8\u0bbe\u0b9f\u0bcd\u0b95\u0bb3\u0bcd", lang)}

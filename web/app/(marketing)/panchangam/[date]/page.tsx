@@ -17,6 +17,7 @@ import { PanchangamShareCard } from "@/components/panchangam-share-card";
 import { ThirukanithamBadge } from "@/components/thirukanitham-badge";
 import { PanchangamDatePicker } from "@/components/panchangam-date-picker";
 import { backendUrl } from "@/lib/backend-url";
+import { servedCalendarYears } from "@/lib/tamil-calendar-years";
 
 const DEFAULT_LAT = "13.0827";
 const DEFAULT_LNG = "80.2707";
@@ -223,7 +224,7 @@ export default async function PanchangamDatePage({ params }: Props) {
 
             {data?.isKarinaal && (
               <Link
-                href="/tamil-calendar/karinaal-2026"
+                href={servedCalendarYears().includes(Number(date.slice(0, 4))) ? `/tamil-calendar/karinaal-${date.slice(0, 4)}` : "/tamil-calendar"}
                 style={{
                   display: "inline-flex", alignItems: "center", gap: "8px", marginTop: "16px",
                   padding: "8px 16px", borderRadius: "10px", textDecoration: "none",

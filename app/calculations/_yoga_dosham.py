@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import Collection, Iterable, Mapping
+from dataclasses import replace
 
 from app.calculations._yoga_helpers import (
     FEMALE_HIGH_ATTENTION_SEVVAI_HOUSES,
@@ -33,6 +34,7 @@ from app.calculations.astro import house_from_reference
 from app.calculations.chart_strength import DEBILITATION_RASI, EXALTATION_RASI, OWN_SIGN_RASI, SIGN_LORD
 from app.calculations.display_names import planet_en, planet_ta, rasi_en, rasi_ta
 from app.calculations.doctrine_options import DEFAULT_DOCTRINE, LONGITUDE_EPSILON, DoctrineOptions
+from app.calculations.neecha_bhanga import evaluate_neecha_bhanga
 
 _MOVABLE_LAGNAS = {1, 4, 7, 10}
 _FIXED_LAGNAS = {2, 5, 8, 11}
@@ -348,11 +350,37 @@ def detect_sevvai_dosham(
             cancellation_factors.append("partner_sevvai_unequal_weight")
             mitigation_score += 1
     if own_references and mars_rasi == DEBILITATION_RASI["MARS"]:
+        # B1b (23 Oct follow-up): debility is a **modifier**, not a
+        # cancellation, and carries no numeric weight — so no mitigation_score
+        # here. It cancels only under neechabhanga: the lord of Katakam, the
+        # sign of the debility (Chandra), or of Makaram, Mars's exaltation
+        # (Sani), in a kendra from Lagna or from the Moon. Lineage, no text
+        # named. Before this, debility alone cancelled in a two-chart reading.
         cancellation_factors.append("mars_debilitated_in_dosha_house")
-        if two_chart_reading:
+        # The canonical module, not a second copy of the rule: B1b's two
+        # conditions are its NB-a (lord of Katakam) and NB-b (lord of Makaram,
+        # Mars's exaltation). Its other verses are not authorised to cancel
+        # Sevvai -- R1 (23 Oct): "keep other independently sourced Neechabhanga
+        # conditions separate".
+        #
+        # O-19 is the open item for "kendra from the Moon" when the lord IS the
+        # Moon: always true, so the literal reading cancels every debilitated
+        # Sevvai, which is what B1b rules out. R1 settles it for debilitated
+        # Mars and explicitly declines to generalise, so the option is
+        # overridden here and its global default (the yoga path, debilitated
+        # Guru through NB-b) is left alone.
+        evaluation = evaluate_neecha_bhanga(
+            "MARS",
+            planet_rasi={graha: _planet_rasi(planets, graha) for graha in planets},
+            lagna_rasi=lagna_rasi,
+            d9_rasi_map=d9_rasi_map,
+            d9_lagna_rasi=d9_lagna_rasi,
+            options=replace(doctrine, o19_nb_moon_self_reference=False),
+        )
+        if {rule.rule_id for rule in evaluation.fired} & {"NB-a", "NB-b"}:
+            # §8 still stands: only a two-chart reading prints "Cancelled".
+            cancellation_factors.append("mars_neechabhanga")
             major_cancellation = True
-        else:
-            mitigation_score += 1
 
     is_present = bool(conditions_met) and not exempt_lagna
     # §8: only a two-chart reading can cancel; one or more reduction factors
@@ -397,7 +425,14 @@ def detect_sevvai_dosham(
         # Moon or Venus is the lighter reading (DD-17).
         primary_reference="from_lagna" in conditions_met,
     )
-    context_notes = ("sevvai_not_from_lagna",) if is_present and "from_lagna" not in conditions_met else ()
+    context_notes_list: list[str] = []
+    if is_present and "from_lagna" not in conditions_met:
+        context_notes_list.append("sevvai_not_from_lagna")
+    # B3 (23 Oct follow-up): the astrologer's own wording for what debility
+    # does, approved in both languages. Attached without counting (DD-17).
+    if "mars_debilitated_in_dosha_house" in cancellation_factors:
+        context_notes_list.append("sevvai_mars_debility_modifies")
+    context_notes = tuple(context_notes_list)
     reference_houses = tuple(
         ReferenceHouse(reference=ref, reference_rasi=ref_rasi, houses=(house,), counts=house in TAMIL_SEVVAI_HOUSES)
         for ref, ref_rasi, house in (

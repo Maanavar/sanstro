@@ -20,7 +20,7 @@ from app.calculations.festivals import (
     get_festivals_for_date,
 )
 from app.calculations.lunar_month import amanta_month_at, amavasai_month_for_day
-from app.calculations.observance_days import printed_tithi_day_on_or_after, select_in_solar_month
+from app.calculations.observance_days import jayanthi_yoga_day, printed_tithi_day_on_or_after, select_in_solar_month
 from app.calculations.panchangam import (
     _compute_subha_muhurtham_broad,
     _compute_subha_muhurtham_strict,
@@ -156,9 +156,10 @@ _SUNRISE_STARS_BEFORE_KARTHIGAI = frozenset({"BHARANI", "KARTHIGAI"})
 # in the tie-break, can sit there only if the sunrise tithi is Krishna
 # Shashthi..Dasami.
 _SUNRISE_TITHIS_NEAR_KRISHNA_ASHTAMI = frozenset({21, 22, 23, 24, 25})
-# Varalakshmi (§9.1): a Friday at most six days before the Pournami has a
-# bright-fortnight tithi of at least Saptami at sunrise.
-_SUNRISE_TITHIS_BEFORE_POURNAMI = frozenset(range(7, 16))
+# Varalakshmi (§9.1): a Friday at most seven days before the Pournami day has
+# a bright-fortnight tithi of at least Shashthi at sunrise (seven days is about
+# 86 degrees of elongation, and a fast Moon can put the sixth tithi there).
+_SUNRISE_TITHIS_BEFORE_POURNAMI = frozenset(range(6, 16))
 
 
 def _star_at_jd(jd: float) -> str:
@@ -221,6 +222,16 @@ def _observance_instants(snapshot) -> ObservanceInstants:
             values["previous_sunrise_tithi_number"] = _tithi_number_at_jd(
                 calculate_rise_transit_jd(sunrise_jd - 1.2, snapshot.latitude, snapshot.longitude, rise=True)
             )
+        # Shukla Chathurthi (§5): the first of two sunrises, or the day it falls
+        # in when it holds none. Both read the neighbours' sunrise tithis, and
+        # only a Tritiya or Chaturthi sunrise can be that day.
+        if snapshot.tithi_number in (3, 4):
+            values["previous_sunrise_tithi_number"] = _tithi_number_at_jd(rise_after(sunrise_jd - 1.2))
+            values["next_sunrise_tithi_number"] = _tithi_number_at_jd(rise_after(sunset_jd))
+        # A Dashami sunrise followed by a Dwadasi one holds a kshaya Ekadashi
+        # (§5); the aparahna block below covers Shukla Dashami (10).
+        if snapshot.tithi_number == 25:
+            values["next_sunrise_tithi_number"] = _tithi_number_at_jd(rise_after(sunset_jd))
         # Aparahna, with both neighbours' (they decide "two aparahnas" and
         # "none") and both neighbours' sunrise tithis (the fallback day).
         # Navami or Dasami can hold the afternoon only if the sunrise tithi is
@@ -243,6 +254,10 @@ def _observance_instants(snapshot) -> ObservanceInstants:
         # -1, 0 and +1, each with both civil dates it could be printed on.
         if snapshot.tithi_number in _SUNRISE_TITHIS_NEAR_KRISHNA_ASHTAMI:
             tz = snapshot.sunrise.tzinfo
+            # Computed first, so a failure here leaves no nights to judge by
+            # the Ashtami-only rule either.
+            values["jayanthi_yoga_day"] = jayanthi_yoga_day(snapshot.date_local, snapshot.timezone_name, lat, lng)
+            values["jayanthi_yoga_known"] = True
 
             def civil(jd: float) -> date:
                 return julian_day_to_utc_datetime(jd).astimezone(tz).date()
@@ -331,7 +346,10 @@ def _build_festivals(
     tithi_paksha: str | None = None,
     nakshatra_name: str | None = None,
     previous_day_snapshot=None,
+    computed_only: bool = False,
 ) -> list[PanchangamFestival]:
+    """The day's festivals; `computed_only` omits the hand-entered and curated
+    rows (`festivals.get_festivals_for_date`)."""
     try:
         tamil_month_index, tamil_day_of_month = tamil_solar_date(
             snapshot.date_local,
@@ -400,6 +418,7 @@ def _build_festivals(
             amavasai_lunar_month_index=amavasai_month.index if amavasai_month else None,
             amavasai_lunar_month_is_adhika=amavasai_month.is_adhika if amavasai_month else False,
             instants=instants,
+            computed_only=computed_only,
         )
     ]
 

@@ -51,6 +51,7 @@ export function calendarHubLd(
   events: readonly EventSummary[],
   lang: Lang,
   hubName: string,
+  year: number,
 ): Ld {
   return {
     "@context": "https://schema.org",
@@ -65,37 +66,38 @@ export function calendarHubLd(
       })),
       ...events.map((event) => ({
         "@type": "WebPage",
-        name: `${event.name[lang]} 2026`,
+        name: `${event.name[lang]} ${year}`,
         url: site(`/tamil-calendar/${event.slug}`, lang),
       })),
     ],
   };
 }
 
-/** The three-question FAQ for one recurring event ("Pournami 2026"). */
+/** The three-question FAQ for one recurring event ("Pournami 2027"). */
 export function eventFaqLd(data: EventDetail, lang: Lang): Ld {
   const name = data.name[lang];
+  const year = data.year;
   const next = data.nextDate ? dateLong(data.nextDate, lang) : null;
   const q =
     lang === "ta"
       ? [
           {
-            q: `2026-ல் அடுத்த ${name} எப்போது?`,
+            q: `${year}-ல் அடுத்த ${name} எப்போது?`,
             a: next
               ? `அடுத்த ${name} ${next} அன்று.`
-              : `2026-க்கான ${name} தேதிகள் அனைத்தும் முடிந்துவிட்டன; முழுப் பட்டியலை மேலே காணலாம்.`,
+              : `${year}-க்கான ${name} தேதிகள் அனைத்தும் முடிந்துவிட்டன; முழுப் பட்டியலை மேலே காணலாம்.`,
           },
-          { q: `2026-ல் ${name} எத்தனை நாட்கள் உள்ளன?`, a: `2026-ல் ${data.count} ${name} நாட்கள் உள்ளன.` },
+          { q: `${year}-ல் ${name} எத்தனை நாட்கள் உள்ளன?`, a: `${year}-ல் ${data.count} ${name} நாட்கள் உள்ளன.` },
           { q: `${name} என்றால் என்ன?`, a: `${data.summary.ta} ${data.significance.ta}` },
         ]
       : [
           {
-            q: `When is the next ${name} in 2026?`,
+            q: `When is the next ${name} in ${year}?`,
             a: next
               ? `The next ${name} is on ${next}.`
-              : `All ${name} dates for 2026 have passed; see the full list above.`,
+              : `All ${name} dates for ${year} have passed; see the full list above.`,
           },
-          { q: `How many ${name} days are there in 2026?`, a: `There are ${data.count} ${name} dates in 2026.` },
+          { q: `How many ${name} days are there in ${year}?`, a: `There are ${data.count} ${name} dates in ${year}.` },
           { q: `What is ${name} (${data.name.ta})?`, a: `${data.summary.en} ${data.significance.en}` },
         ];
   return {
@@ -114,7 +116,7 @@ export function eventItemListLd(data: EventDetail, lang: Lang): Ld {
   return {
     "@context": "https://schema.org",
     "@type": "ItemList",
-    name: lang === "ta" ? `${data.name.ta} 2026 தேதிகள்` : `${data.name.en} 2026 Dates`,
+    name: lang === "ta" ? `${data.name.ta} ${data.year} தேதிகள்` : `${data.name.en} ${data.year} Dates`,
     numberOfItems: data.count,
     itemListElement: data.dates.map((date, index) => ({
       "@type": "ListItem",

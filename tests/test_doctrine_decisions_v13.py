@@ -543,12 +543,20 @@ def test_sevvai_residual_aggravations_are_conditions_and_raise_strength() -> Non
     assert "mars_combust" not in combust.cancellation_factors
     assert "mars_joined_saturn_or_rahu" in joined.conditions_met
     assert "mars_joined_saturn_or_rahu" not in joined.cancellation_factors
-    # Sevvai sits in Kadagam, its debilitation: since §8 of the 2026-10-22
-    # round-two rulings that reduces a single chart one grade (it cancels only
-    # in matching), so the base reads WEAK and each aggravation lifts it one.
+    # Sevvai sits in Kadagam, its debilitation. Under §8 of the 2026-10-22
+    # round-two rulings that reduced a single chart one grade, so the base read
+    # WEAK. B1b of the 23 Oct follow-up removed the weight: debility is a
+    # modifier that carries no numeric reduction, so the base now reads PARTIAL
+    # and each aggravation still lifts it one, to STRONG. The marker is still
+    # reported, and the astrologer's own wording rides with it as a context note.
     assert "mars_debilitated_in_dosha_house" in base.cancellation_factors
-    assert base.strength == "WEAK"
-    assert combust.strength == joined.strength == "PARTIAL"
+    assert "sevvai_mars_debility_modifies" in base.context_notes
+    # Sani is 10th from the Moon, so the bhanga holds — and a single chart
+    # still never prints "cancelled" (§8), which is why the grade is unmoved.
+    assert "mars_neechabhanga" in base.cancellation_factors
+    assert base.is_cancelled is False
+    assert base.strength == "PARTIAL"
+    assert combust.strength == joined.strength == "STRONG"
 
 
 # O-2 / O-11 / O-17 / O-18 executable, dormant doctrine branches.

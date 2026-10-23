@@ -37,8 +37,10 @@ OBSERVANCES = [
     ("Vaigasi Visakam", VAIKASI, "star", "VISAKAM", "sunrise", True),
     ("Arudra Darisanam", MARGAZHI, "star", "THIRUVATHIRAI", "sunrise", True),
     ("Thiru Aadi Pooram", AADI, "star", "POORAM", "sunrise", False),
-    ("Aadi Krithigai", AADI, "star", "KARTHIGAI", "sunset", False),
-    ("Aadi Krithigai @sunrise", AADI, "star", "KARTHIGAI", "sunrise", False),
+    # Aadi Krithigai at sunrise since the answers of 23 Oct (Q2); the pradosham
+    # row stays for comparison.
+    ("Aadi Krithigai", AADI, "star", "KARTHIGAI", "sunrise", False),
+    ("Aadi Krithigai @pradosham", AADI, "star", "KARTHIGAI", "sunset", False),
     ("Karthigai Deepam", KARTHIGAI, "star", "KARTHIGAI", "sunset", False),
     ("Aadi Amavasai", AADI, "tithi", 30, "aparahna", False),
     ("Thai Amavasai", THAI, "tithi", 30, "aparahna", False),
@@ -55,7 +57,7 @@ EXPECTED = {
     "Maasi Magam": {2026: (3, 2)},
     "Thiru Aadi Pooram": {2026: (8, 14)},
 }
-EXPECTED["Aadi Krithigai @sunrise"] = EXPECTED["Aadi Krithigai"]
+EXPECTED["Aadi Krithigai @pradosham"] = EXPECTED["Aadi Krithigai"]
 
 
 def month_containing(year: int, rasi: int):
@@ -84,6 +86,8 @@ for name, rasi, kind, value, kala, family_a in OBSERVANCES:
     print(f"\n== {name} ({kind} {value} at {kala})")
     for year in range(y0, y1 + 1):
         span = month_containing(year, rasi)
+        # §3 throughout, so the MOVED column shows what the full-moon test
+        # decides; production uses it for Family A and Deepam (23 Oct, Q4/Q5).
         sel = select_in_solar_month(kind, value, kala, span.start, TZ, LAT, LON)
         cands = ", ".join(
             f"{c.day:%d %b}[{c.named_by}{'' if c.lunar_month_begins_in_solar_month else ',prev-lunar'}]"
