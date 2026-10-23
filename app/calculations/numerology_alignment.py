@@ -255,7 +255,7 @@ _NATURE_TA: dict[FunctionalNature, str] = {
     FunctionalNature.NEUTRAL: "இங்கே நடுநிலையானது",
     FunctionalNature.UPACHAYA: "உபசய அதிபதி — மெதுவாக வளரும் பலன்",
     FunctionalNature.MARAKA: "மாரக அதிபதி — இங்கே மாற்றத்தைக் குறிக்கும்",
-    FunctionalNature.DUSTHANA: "துஸ்தான அதிபதி — இங்கே உழைப்பு கேட்கும்",
+    FunctionalNature.DUSTHANA: "துஷ்டான அதிபதி — இங்கே உழைப்பு கேட்கும்",
 }
 
 

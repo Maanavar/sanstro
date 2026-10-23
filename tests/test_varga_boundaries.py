@@ -125,8 +125,10 @@ AMSA_STRIDE: dict[int, int] = {3: 4, 4: 3}
 
 
 def _stride(division: int, rasi: int) -> int:
-    if division == 60:
-        return 1 if rasi % 2 == 1 else -1
+    # F-VAR-01: D60 used to stride -1 for even signs. BPHS counts forward from
+    # the sign itself for every sign; the odd/even reversal in the text is the
+    # order of the sixty shashtiamsa *deity names*, not the sign mapping. The
+    # rasi argument is kept because a future varga may genuinely need it.
     return AMSA_STRIDE.get(division, 1)
 
 

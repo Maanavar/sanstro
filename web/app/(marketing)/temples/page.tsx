@@ -1,8 +1,10 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
+import { JsonLd } from "@/lib/json-ld";
 import type { Metadata } from "next";
 import { TempleIndexContent } from "./IndexContent";
 
-export const metadata: Metadata = {
-  title: "Famous Temples & Their Power — Navagraha, Rahu-Ketu & More | Vinaadi",
+const EN_METADATA: Metadata = {
+  title: "Famous Temples & Their Power — Navagraha, Rahu-Ketu & More",
   description:
     "A guide to the temples sought for specific blessings — the nine Navagraha temples for planetary peace, Thirunallar for Saturn, Rahu-Ketu sthalams, Vaitheeswaran Koil for health. What each temple is known for and which difficulty it addresses.",
   keywords: [
@@ -18,13 +20,17 @@ export const metadata: Metadata = {
   ],
   alternates: { canonical: "https://vinaadi.com/temples" },
   openGraph: {
-    title: "Famous Temples & Their Power — Navagraha, Rahu-Ketu & More | Vinaadi",
+    title: "Famous Temples & Their Power — Navagraha, Rahu-Ketu & More",
     description:
       "What each temple is known for, the deity worshipped, and which difficulty it traditionally addresses.",
     url: "https://vinaadi.com/temples",
     type: "website",
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/temples");
+}
 
 const JSONLD = {
   "@context": "https://schema.org",
@@ -44,7 +50,7 @@ const JSONLD = {
 export default function TemplesIndexPage() {
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSONLD) }} />
+      <JsonLd en={JSONLD} />
       <TempleIndexContent />
     </>
   );

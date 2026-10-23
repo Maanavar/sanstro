@@ -24,6 +24,7 @@ from app.db.session import get_db
 from app.models import BirthProfile, Chart
 from app.models.user import User
 from app.schemas.ask_vinaadi import (
+    AskVinaadiDailyStatus,
     AskVinaadiQuery,
     AskVinaadiResponse,
     AskVinaadiResponseData,
@@ -40,7 +41,7 @@ from app.services.ask_vinaadi_usage_service import (
 router = APIRouter()
 
 
-@router.get("/ask-vinaadi/daily-status", tags=["ask-vinaadi"])
+@router.get("/ask-vinaadi/daily-status", response_model=AskVinaadiDailyStatus, tags=["ask-vinaadi"])
 def ask_vinaadi_daily_status(
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),

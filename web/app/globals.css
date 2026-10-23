@@ -4,6 +4,20 @@
    Only web-specific, non-token values belong here.
    Run: node packages/design-tokens/build.js  to regenerate tokens.
    ─────────────────────────────────────────────────────────── */
+
+/* Metric-matched stand-in for Fraunces while it loads, named in --font-display
+   by app/layout.tsx. The values are the ones next/font/google generated for
+   Fraunces Regular; next/font/local would derive them from the self-hosted
+   file's default instance, which is Black, and size the fallback ~10% too big. */
+@font-face {
+  font-family: "Fraunces Fallback";
+  src: local("Times New Roman");
+  ascent-override: 84.71%;
+  descent-override: 22.09%;
+  line-gap-override: 0.00%;
+  size-adjust: 115.45%;
+}
+
 :root {
   /* Skeleton shimmer */
   --shimmer-base: rgba(255,255,255,0.07);
@@ -695,7 +709,7 @@ a {
   letter-spacing: 0.02em;
   color: var(--color-text, #e5e7eb);
   background: rgba(255, 255, 255, 0.06);
-  transition: background 180ms ease, border-color 180ms ease, transform 180ms ease;
+  transition: background 180ms var(--ease-nova, ease-in-out), border-color 180ms var(--ease-nova, ease-in-out), transform 180ms var(--ease-nova, ease-in-out);
 }
 
 .button:hover {
@@ -855,7 +869,7 @@ a {
   color: rgba(148, 163, 184, 1);
   white-space: nowrap;
   cursor: pointer;
-  transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+  transition: background 150ms var(--ease-nova, ease-in-out), border-color 150ms var(--ease-nova, ease-in-out), color 150ms var(--ease-nova, ease-in-out);
 }
 
 .site__tab:hover {
@@ -883,7 +897,7 @@ a {
   text-decoration: underline;
   text-underline-offset: 2px;
   font-family: inherit;
-  transition: color 0.12s;
+  transition: color 0.12s var(--ease-nova, ease-in-out);
 }
 .rectify-trigger-link:hover {
   color: #93c5fd;
@@ -1100,7 +1114,7 @@ a {
   padding: 0.6rem 0.9rem;
   color: var(--color-text, #e5e7eb);
   background: rgba(15, 20, 35, 0.75);
-  transition: border-color 150ms ease, box-shadow 150ms ease;
+  transition: border-color 150ms var(--ease-nova, ease-in-out), box-shadow 150ms var(--ease-nova, ease-in-out);
   outline: none;
   font-size: 0.82rem;
   line-height: 1.4;
@@ -1182,7 +1196,7 @@ button:focus-visible,
   border-radius: 1rem;
   border: 1px solid transparent;
   background: rgba(255, 255, 255, 0.03);
-  transition: background 150ms ease, border-color 150ms ease;
+  transition: background 150ms var(--ease-nova, ease-in-out), border-color 150ms var(--ease-nova, ease-in-out);
 }
 
 .vault-row:hover {
@@ -1342,7 +1356,7 @@ button:focus-visible,
   text-align: left;
   padding: 10px 12px;
   cursor: pointer;
-  transition: all 0.14s ease;
+  transition: all 0.14s var(--ease-nova, ease-in-out);
 }
 
 .settings-sidebtn:hover {
@@ -2199,7 +2213,7 @@ button:focus-visible,
   font-size: 0.78rem;
   font-weight: 500;
   color: var(--cl-ink-2);
-  transition: border-color 150ms ease;
+  transition: border-color 150ms var(--ease-nova, ease-in-out);
 }
 .cl-lang-toggle:hover { border-color: var(--cl-ink); }
 .cl-lang-toggle__active { color: var(--cl-ink); font-weight: 700; }

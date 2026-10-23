@@ -11,12 +11,18 @@ import type { ColorTokens } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
 import { TamilType, EnType } from "@/theme/typography";
 import { useI18n } from "@/hooks/useI18n";
-import { getChartFull } from "@/api/charts";
+import { getChartFull, jadhagamPdfPath, type JadhagamPdfDetail } from "@/api/charts";
 import { JadhagamChart, type JadhagamHouseData } from "@/components/JadhagamChart";
 import { ThirukanithamBadge } from "@/components/ThirukanithamBadge";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { ErrorCard } from "@/components/ErrorCard";
-import { RASI_LIST, type ChartCalculateResponseData } from "@vinaadi/shared";
+import {
+  RASI_LIST,
+  rasiDisplayName,
+  tNakshatraNumber,
+  tPlanetLord,
+  type ChartCalculateResponseData,
+} from "@vinaadi/shared";
 let Share: typeof import("react-native-share").default | null = null;
 // A static import would run at module load and crash Expo Go, where the
 // native bridge these JSI modules need does not exist. The require has to
@@ -108,17 +114,20 @@ export default function JadhagamDetailScreen() {
   });
 
   const chart = data?.data;
+  const janma = chart?.planets.find((p) => p.graha === "MOON") ?? null;
   const activeVargaMeta = useMemo(() => VARGA_OPTIONS.find((item) => item.key === activeVarga) ?? VARGA_OPTIONS[0], [activeVarga]);
   const activeVargaHasPlacements = useMemo(
     () => chart ? hasVargaPlacements(chart, activeVarga) : true,
     [chart, activeVarga]
   );
 
-  async function handleExportPdf() {
+  // `detail: "astrologer"` adds the full ledgers for the reader's own jyotishi
+  // (FTR-22). The URL shape lives in packages/shared (jadhagamPdfPath).
+  async function handleExportPdf(detail: JadhagamPdfDetail = "summary") {
     if (!id || isExporting) return;
     setIsExporting(true);
     try {
-      const res = await fetchWithAuth(`/charts/${id}/export/pdf?lang=${lang}`);
+      const res = await fetchWithAuth(jadhagamPdfPath(id, { lang: isTamil ? "ta" : "en", detail }));
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const buffer = await res.arrayBuffer();
       // Pure-JS base64 encoding - works on all RN platforms without btoa
@@ -136,7 +145,7 @@ export default function JadhagamDetailScreen() {
         title: isTamil ? "ஜாதகம் PDF" : "Jadhagam PDF",
         type: "application/pdf",
         url: `data:application/pdf;base64,${b64}`,
-        filename: `jadhagam-${id}.pdf`,
+        filename: detail === "astrologer" ? `jadhagam-${id}-astrologer.pdf` : `jadhagam-${id}.pdf`,
       });
     } catch {
       showError(isTamil ? "PDF ஏற்றுமதி தோல்வி. மீண்டும் முயற்சிக்கவும்" : "Could not export PDF. Please try again.");
@@ -217,9 +226,15 @@ export default function JadhagamDetailScreen() {
               </Text>
               <View style={styles.dataGrid}>
                 {[
-                  { label: isTamil ? "லக்னம்" : "Lagna", value: chart.lagna.rasiName },
-                  { label: isTamil ? "நட்சத்திரம்" : "Nakshatra", value: chart.lagna.nakshatraName },
-                  { label: isTamil ? "பாதம்" : "Pada", value: String(chart.lagna.pada) },
+                  // F-DSP-01 / display boundary: `rasiName` and
+                  // `nakshatraName` are the server's English renderings, so
+                  // they printed "Mithunam" at a Tamil reader. The
+                  // language-free keys sit right beside them in the payload.
+                  { label: isTamil ? "லக்னம்" : "Lagna", value: rasiDisplayName(chart.lagna.rasi, lang) },
+                  // நட்சத்திரம் unqualified is the janma star — the Moon's,
+                  // not the lagna's (FCA-05).
+                  { label: isTamil ? "நட்சத்திரம்" : "Nakshatra", value: tNakshatraNumber(janma?.nakshatra, lang) || "—" },
+                  { label: isTamil ? "பாதம்" : "Pada", value: janma ? String(janma.pada) : "—" },
                 ].map((item) => (
                   <View key={item.label} style={styles.datumCard}>
                     <Text style={styles.datumLabel}>{item.label}</Text>
@@ -247,7 +262,7 @@ export default function JadhagamDetailScreen() {
                     <Text style={[styles.planetName, {
                       fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular",
                     }]}>
-                      {p.graha}
+                      {tPlanetLord(p.graha, lang)}
                     </Text>
                     <Text style={styles.planetRasi}>{rasiNameForNumber(vargaRasiForPlanet(chart, p.graha, activeVarga), isTamil)}</Text>
                     {p.isRetrograde && (
@@ -260,31 +275,48 @@ export default function JadhagamDetailScreen() {
               </View>
             </View>
 
+            {/* Only when no birth time is on file — the same single entry web
+                keeps ("Don't know your birth time? Find it"). Offering to
+                "check" a known time would overstate a ranking that is not yet
+                chart-specific (capability reference §7.8). */}
+            {!chart.birthProfile.birthTimeLocal && (
+              <TouchableOpacity
+                style={styles.rectifyCard}
+                onPress={() => router.push(
+                  `/rectification?chartId=${encodeURIComponent(id)}&birthProfileId=${encodeURIComponent(chart.birthProfile.birthProfileId)}` as Href
+                )}
+                activeOpacity={0.85}
+              >
+                <View style={styles.rectifyBadge}>
+                  <Text style={styles.rectifyBadgeText}>BT</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.rectifyTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
+                    {isTamil ? "Birth Time Rectification" : "Birth Time Rectification"}
+                  </Text>
+                  <Text style={[styles.rectifySub, isTamil ? TamilType.caption : EnType.caption]}>
+                    Estimate a birth time from life events
+                  </Text>
+                </View>
+                <Text style={styles.rectifyArrow}>{">"}</Text>
+              </TouchableOpacity>
+            )}
+
+            {/* The Story reading (FTR-20) — same chapters and picks as the web. */}
             <TouchableOpacity
-              style={styles.rectifyCard}
-              onPress={() => router.push(
-                `/rectification?chartId=${encodeURIComponent(id)}&birthProfileId=${encodeURIComponent(chart.birthProfile.birthProfileId)}` as Href
-              )}
+              style={styles.exportBtn}
+              onPress={() => router.push({ pathname: "/reading/[id]", params: { id } })}
               activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel={isTamil ? "உங்கள் ஜாதக விளக்கம்" : "Read your chart"}
             >
-              <View style={styles.rectifyBadge}>
-                <Text style={styles.rectifyBadgeText}>BT</Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.rectifyTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
-                  {isTamil ? "Birth Time Rectification" : "Birth Time Rectification"}
-                </Text>
-                <Text style={[styles.rectifySub, isTamil ? TamilType.caption : EnType.caption]}>
-                  {chart.birthProfile.birthTimeLocal ? "Check this birth time against life events" : "Estimate a birth time from life events"}
-                </Text>
-              </View>
-              <Text style={styles.rectifyArrow}>{">"}</Text>
+              <Text style={styles.exportBtnText}>{isTamil ? "உங்கள் ஜாதக விளக்கம்" : "Read your chart"}</Text>
             </TouchableOpacity>
 
             {/* PDF Export */}
             <TouchableOpacity
               style={[styles.exportBtn, isExporting && styles.exportBtnDisabled]}
-              onPress={handleExportPdf}
+              onPress={() => handleExportPdf()}
               disabled={isExporting}
               activeOpacity={0.85}
               accessibilityRole="button"
@@ -294,6 +326,19 @@ export default function JadhagamDetailScreen() {
                 {isExporting
                   ? (isTamil ? "ஏற்றுமதி செய்கிறது..." : "Exporting...")
                   : (isTamil ? "PDF ஏற்றுமதி" : "Export as PDF")}
+              </Text>
+            </TouchableOpacity>
+            {/* New Tamil, pending native review. */}
+            <TouchableOpacity
+              style={[styles.exportBtn, isExporting && styles.exportBtnDisabled]}
+              onPress={() => handleExportPdf("astrologer")}
+              disabled={isExporting}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel={isTamil ? "உங்கள் ஜோதிடருக்கு முழு விவர PDF" : "Full-detail PDF for your astrologer"}
+            >
+              <Text style={styles.exportBtnText}>
+                {isTamil ? "உங்கள் ஜோதிடருக்கு PDF" : "PDF for your astrologer"}
               </Text>
             </TouchableOpacity>
 

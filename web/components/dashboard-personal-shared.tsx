@@ -6,25 +6,34 @@
 // downloadJadhagamPdf, GUIDANCE_REASON_KEYS, ChandrashtamaCard.
 
 import { useState } from "react";
+import { jadhagamPdfPath, type JadhagamPdfDetail } from "@vinaadi/shared/api/charts";
 import { DashboardLearnArticleModal } from "@/components/dashboard-learn-article-modal";
 import type { Lang } from "@/lib/i18n";
 
 export const GUIDANCE_REASON_KEYS = ["moonTransit", "dashaSupport", "panchangam", "gochar", "personalCaution"] as const;
 
-export async function downloadJadhagamPdf(chartId: string, selectedDate: string, lang: Lang): Promise<void> {
-  if (!chartId) return;
+/** `detail: "astrologer"` adds the Astrologer ledgers (FTR-22). Resolves
+ *  false when the download failed, so a caller can say so. */
+export async function downloadJadhagamPdf(
+  chartId: string,
+  selectedDate: string,
+  lang: Lang,
+  detail: JadhagamPdfDetail = "summary",
+): Promise<boolean> {
+  if (!chartId) return false;
   const asOf = selectedDate || new Date().toISOString().slice(0, 10);
-  const response = await fetch(`/api/backend/api/v1/charts/${chartId}/export/pdf?asOf=${asOf}&lang=${lang}`, {
+  const response = await fetch(`/api/backend/api/v1${jadhagamPdfPath(chartId, { asOf, lang, detail })}`, {
     credentials: "include",
   });
-  if (!response.ok) return;
+  if (!response.ok) return false;
   const blob = await response.blob();
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = `jadhagam-${chartId}.pdf`;
+  anchor.download = detail === "astrologer" ? `jadhagam-${chartId}-astrologer.pdf` : `jadhagam-${chartId}.pdf`;
   anchor.click();
   URL.revokeObjectURL(url);
+  return true;
 }
 
 const CHANDRASHTAMA_AVOID = {

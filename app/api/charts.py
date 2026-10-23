@@ -15,6 +15,8 @@ from app.calculations.tajaka import calculate_tajaka_chart
 from app.core.age_gate import is_married_settled, is_minor, is_past_prime_marriage_age
 from app.core.auth import get_current_user
 from app.core.chart_access import assert_chart_owner as _assert_chart_owner
+from app.core.clock import local_date
+from app.core.entitlements import require_feature
 from app.db.session import get_db
 from app.models import BirthProfile, Chart
 from app.models.chart_planet import ChartPlanet
@@ -35,6 +37,15 @@ from app.schemas.dasha import DashaTimelineResponse
 from app.schemas.dashboard_bundle import ChartDashboardBundleResponse
 from app.schemas.five_minute_reading import FiveMinuteReadingResponse
 from app.schemas.one_minute_reading import OneMinuteReadingResponse
+from app.schemas.secondary_dashas import (
+    AshtottariDashaResponse,
+    CharaDashaResponse,
+    ConditionalDashasResponse,
+    KalachakraDashaResponse,
+    YoginiDashaResponse,
+)
+from app.schemas.shadbala import ShadbalaResponse
+from app.schemas.varshaphala import VarshaphalaResponse
 from app.services.ashtottari_dasha_service import build_ashtottari_dasha_response
 from app.services.chart_explanation_service import build_chart_explanation
 from app.services.chart_service import (
@@ -53,6 +64,7 @@ from app.services.five_minute_reading_service import (
     require_five_minute_reading_enabled,
 )
 from app.services.kalachakra_dasha_service import build_kalachakra_dasha_response
+from app.services.location_service import resolve_effective_daily_timezone
 from app.services.one_minute_reading_service import (
     build_chart_context,
     build_one_minute_reading,
@@ -64,6 +76,11 @@ from app.services.tajaka_service import get_varshaphala
 from app.services.yogini_dasha_service import build_yogini_dasha_response
 
 router = APIRouter()
+
+
+def _profile_today(profile: BirthProfile) -> date:
+    """Astrology's default civil date follows the chart owner's daily place."""
+    return local_date(resolve_effective_daily_timezone(profile))
 
 
 def _load_chart_and_profile(session: Session, owner_user_id: UUID, chart_id: UUID) -> tuple[Chart | None, BirthProfile | None]:
@@ -109,9 +126,9 @@ def get_dasha(
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> DashaTimelineResponse:
-    _assert_chart_owner(session, chart_id, current_user)
+    _, profile = _assert_chart_owner(session, chart_id, current_user)
     if as_of is None:
-        as_of = date.today()
+        as_of = _profile_today(profile)
     return get_chart_dasha(session, chart_id, as_of, level=level)
 
 
@@ -128,11 +145,11 @@ def get_dashboard_bundle(
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> ChartDashboardBundleResponse:
-    _assert_chart_owner(session, chart_id, current_user)
+    _, profile = _assert_chart_owner(session, chart_id, current_user)
     return get_chart_dashboard_bundle(
         session,
         chart_id,
-        date_value or date.today(),
+        date_value or _profile_today(profile),
         owner_user_id=current_user.user_id,
         language=language,
     )
@@ -215,11 +232,11 @@ def get_explanation(
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> ChartExplanationResponse:
-    _assert_chart_owner(session, chart_id, current_user)
+    _, profile = _assert_chart_owner(session, chart_id, current_user)
     return build_chart_explanation(
         session,
         chart_id,
-        as_of=as_of or date.today(),
+        as_of=as_of or _profile_today(profile),
         peyarchi_window_days=peyarchi_window_days,
     )
 
@@ -233,7 +250,7 @@ def get_event_windows(
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> EventWindowsResponse:
-    chart, _ = _assert_chart_owner(session, chart_id, current_user)
+    chart, profile = _assert_chart_owner(session, chart_id, current_user)
 
     if from_year > to_year:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="fromYear must be <= toYear.")
@@ -247,9 +264,9 @@ def get_event_windows(
     alternative_framing: str | None = None
     hard_blocked = False
     if event == "MARRIAGE":
-        profile = session.get(BirthProfile, chart.birth_profile_id)
-        birth_age = date.today().year - profile.birth_date_local.year - (
-            (date.today().month, date.today().day) < (profile.birth_date_local.month, profile.birth_date_local.day)
+        today = _profile_today(profile)
+        birth_age = today.year - profile.birth_date_local.year - (
+            (today.month, today.day) < (profile.birth_date_local.month, profile.birth_date_local.day)
         )
         relationship_to_owner = "self"
         if profile.family_member_id is not None:
@@ -338,20 +355,24 @@ def export_chart_pdf(
     chart_id: UUID,
     as_of: date = Query(default=None, alias="asOf"),
     lang: str = Query(default="en", pattern="^(en|ta)$"),
+    # Additive (FTR-22): "astrologer" appends the full ledgers for a reader to
+    # hand to their own jyotishi. Omitted, the one-page snapshot is unchanged.
+    detail: str = Query(default="summary", pattern="^(summary|astrologer)$"),
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Response:
-    _assert_chart_owner(session, chart_id, current_user)
-    report_date = as_of or datetime.now(tz=UTC).date()
-    pdf_bytes = generate_chart_pdf(session, chart_id, report_date, lang=lang)
+    _, profile = _assert_chart_owner(session, chart_id, current_user)
+    report_date = as_of or _profile_today(profile)
+    pdf_bytes = generate_chart_pdf(session, chart_id, report_date, lang=lang, detail=detail)
+    suffix = "-astrologer" if detail == "astrologer" else ""
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="jadhagam-{chart_id}.pdf"'},
+        headers={"Content-Disposition": f'attachment; filename="jadhagam-{chart_id}{suffix}.pdf"'},
     )
 
 
-@router.get("/charts/{chart_id}/chara-dasha", tags=["charts"])
+@router.get("/charts/{chart_id}/chara-dasha", response_model=CharaDashaResponse, tags=["charts"])
 def get_chara_dasha(
     chart_id: UUID,
     session: Session = Depends(get_db),
@@ -395,7 +416,7 @@ def get_chara_dasha(
     }
 
 
-@router.get("/charts/{chart_id}/yogini-dasha", tags=["charts"])
+@router.get("/charts/{chart_id}/yogini-dasha", response_model=YoginiDashaResponse, tags=["charts"])
 def get_yogini_dasha(
     chart_id: UUID,
     as_of: date | None = Query(default=None, alias="asOf"),
@@ -414,7 +435,7 @@ def get_yogini_dasha(
     return {"success": True, "data": data}
 
 
-@router.get("/charts/{chart_id}/ashtottari-dasha", tags=["charts"])
+@router.get("/charts/{chart_id}/ashtottari-dasha", response_model=AshtottariDashaResponse, tags=["charts"])
 def get_ashtottari_dasha(
     chart_id: UUID,
     as_of: date | None = Query(default=None, alias="asOf"),
@@ -435,7 +456,7 @@ def get_ashtottari_dasha(
     return {"success": True, "data": data}
 
 
-@router.get("/charts/{chart_id}/kalachakra-dasha", tags=["charts"])
+@router.get("/charts/{chart_id}/kalachakra-dasha", response_model=KalachakraDashaResponse, tags=["charts"])
 def get_kalachakra_dasha(
     chart_id: UUID,
     as_of: date | None = Query(default=None, alias="asOf"),
@@ -457,7 +478,7 @@ def get_kalachakra_dasha(
     return {"success": True, "data": data}
 
 
-@router.get("/charts/{chart_id}/conditional-dashas", tags=["charts"])
+@router.get("/charts/{chart_id}/conditional-dashas", response_model=ConditionalDashasResponse, tags=["charts"])
 def get_conditional_dashas(
     chart_id: UUID,
     as_of: date | None = Query(default=None, alias="asOf"),
@@ -492,7 +513,7 @@ def get_solar_return(
     if chart is None or birth_profile is None:
         raise HTTPException(status_code=404, detail="Chart not found.")
 
-    return_year = year or date.today().year
+    return_year = year or _profile_today(birth_profile).year
     birth_year = birth_profile.birth_date_local.year
 
     sun_row = session.execute(
@@ -534,7 +555,12 @@ def get_solar_return(
     }
 
 
-@router.get("/charts/{chart_id}/varshaphala", tags=["charts"])
+@router.get(
+    "/charts/{chart_id}/varshaphala",
+    response_model=VarshaphalaResponse,
+    tags=["charts"],
+    dependencies=[Depends(require_feature("varshaphala_enabled"))],
+)
 def get_varshaphala_endpoint(
     chart_id: UUID,
     year: int = Query(..., ge=1900, le=2100),
@@ -549,7 +575,7 @@ def get_varshaphala_endpoint(
     return response.model_dump(mode="json", by_alias=True)
 
 
-@router.get("/charts/{chart_id}/shadbala", tags=["charts"])
+@router.get("/charts/{chart_id}/shadbala", response_model=ShadbalaResponse, tags=["charts"])
 def get_shadbala(
     chart_id: UUID,
     session: Session = Depends(get_db),

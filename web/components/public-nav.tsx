@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useId } from "react";
-import Link from "next/link";
+import { LocalizedLink as Link } from "@/components/localized-link";
 import Image from "next/image";
 import { LangToggle, useLang } from "@/components/lang-toggle";
 import { SiteSearch } from "@/components/site-search";
@@ -93,7 +93,7 @@ export function PublicNav() {
         <div className="cl-nav__inner">
           <Link href="/" className="cl-nav__brand" aria-label={mt(NAV.home, lang)}>
             <Image
-              src="/brand/vinaadi-symbol-icon.png"
+              src="/brand/vinaadi-symbol-icon-light.png"
               alt="" aria-hidden
               width={28} height={28}
               className="cl-nav__symbol" priority

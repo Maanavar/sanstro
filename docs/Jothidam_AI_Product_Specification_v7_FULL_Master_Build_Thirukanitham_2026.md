@@ -125,7 +125,7 @@ Step 1 — Convert Birth Time to UTC
 
 All planetary calculations must be anchored to UTC. Indian Standard Time (IST) is UTC + 5 hours 30 minutes. Formula: UTC = Birth Time (IST) − 05:30.
 
-Example: 8:15 AM IST = 02:45 UTC
+Example: 10:30 AM IST = 05:00 UTC
 
 Example: 3:32 PM IST = 10:02 UTC
 
@@ -133,7 +133,7 @@ Critical failure mode: Passing IST directly to the ephemeris library without con
 
 Step 2 — Compute Julian Day Number (JD)
 
-The Julian Day Number is the universal continuous time reference used by Swiss Ephemeris. It is computed from the UTC date and decimal hour. Swiss Ephemeris function: swe.julday(year, month, day, decimal_hour_UTC). Example: March 15 1993 at 02:45 UTC → JD 2449061.6146.
+The Julian Day Number is the universal continuous time reference used by Swiss Ephemeris. It is computed from the UTC date and decimal hour. Swiss Ephemeris function: swe.julday(year, month, day, decimal_hour_UTC). Example: January 1 2000 at 12:00 UTC → JD 2451545.0 (the J2000 epoch).
 
 Step 3 — Apply Lahiri (Thirukanitham) Ayanamsa
 

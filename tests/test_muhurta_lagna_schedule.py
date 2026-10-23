@@ -8,7 +8,8 @@ import pytest
 from app.calculations.astro import rasi_from_degree, utc_datetime_to_julian_day
 from app.calculations.ephemeris import calculate_lagna_degree
 from app.calculations.muhurta_engine import Verdict, lagna_sign_factor_at_window
-from app.calculations.panchangam import build_daylight_lagna_schedule, calculate_daily_panchangam
+from app.calculations.panchangam import build_daylight_lagna_schedule
+from app.services.panchangam_cache import calculate_daily_panchangam
 
 pytestmark = pytest.mark.no_db
 

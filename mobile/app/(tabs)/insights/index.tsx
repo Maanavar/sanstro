@@ -35,7 +35,7 @@ import { ShareCaptureView } from "@/components/share/ShareCaptureView";
 import { getPrimaryChartId } from "@/lib/userPrefs";
 import { biText } from "@/lib/i18n";
 import { scoreFillColor } from "@/lib/score";
-import { TIER_LIMITS, strings } from "@vinaadi/shared";
+import { TIER_LIMITS, strings, tPlanetLord } from "@vinaadi/shared";
 import type { GuestPrefs } from "@/features/guest/guestStore";
 import type { LifeAreaData } from "@/api/lifeAreas";
 import type { LifeEventWindow } from "@/api/lifeEvents";
@@ -87,7 +87,7 @@ export default function InsightsScreen() {
   const C = useColors();
   const styles = useMemo(() => makeStyles(C), [C]);
   const { lang, t } = useI18n();
-  const { tier } = useSession();
+  const { gateTier: tier } = useSession();
   const isAuthenticated = tier !== "guest";
   const isTamil = lang === "ta";
   const type = isTamil ? TamilType : EnType;
@@ -187,19 +187,19 @@ export default function InsightsScreen() {
             {dasha.isLoading ? (
               <SkeletonCard height={170} />
             ) : dasha.isError ? (
-              <ErrorCard message={isTamil ? "Could not load dasha data." : "Could not load dasha data."} onRetry={dasha.refetch} />
+              <ErrorCard message={isTamil ? "தசை விவரங்களை ஏற்ற முடியவில்லை." : "Could not load dasha data."} onRetry={dasha.refetch} />
             ) : currentDasha ? (
               <TouchableOpacity style={styles.dashaHero} activeOpacity={0.88} onPress={() => router.push("/dasha" as Href)}>
                 <Text style={styles.heroKicker}>{t(strings.insights.dasha_now)}</Text>
                 <Text style={[styles.heroLord, type.display]}>
-                  {isTamil ? currentDasha.current.mahadasha.lord : currentDasha.current.mahadasha.lord}
+                  {tPlanetLord(currentDasha.current.mahadasha.lord, lang)}
                 </Text>
                 <Text style={styles.heroSub}>
-                  {isTamil ? currentDasha.current.antardasha.lord : currentDasha.current.antardasha.lord} {t(strings.insights.antar_dasha)}
+                  {tPlanetLord(currentDasha.current.antardasha.lord, lang)} {t(strings.insights.antar_dasha)}
                 </Text>
                 <View style={styles.heroMetaRow}>
                   <Text style={styles.heroMeta}>{fmt(currentDasha.current.mahadasha.startDate)} - {fmt(currentDasha.current.mahadasha.endDate)}</Text>
-                  <Text style={styles.heroLink}>{isTamil ? "Timeline" : "Timeline"}</Text>
+                  <Text style={styles.heroLink}>{isTamil ? "காலவரிசை" : "Timeline"}</Text>
                 </View>
               </TouchableOpacity>
             ) : null}
@@ -208,7 +208,7 @@ export default function InsightsScreen() {
             {lifeAreas.isLoading ? (
               <SkeletonCard height={220} />
             ) : lifeAreas.isError ? (
-              <ErrorCard message={isTamil ? "Could not load life-area outlook." : "Could not load life-area outlook."} onRetry={lifeAreas.refetch} />
+              <ErrorCard message={isTamil ? "வாழ்க்கைப் பகுதிகளின் கணிப்பை ஏற்ற முடியவில்லை." : "Could not load life-area outlook."} onRetry={lifeAreas.refetch} />
             ) : (
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.areaRail} snapToInterval={292} decelerationRate="fast">
                 {areas.slice(0, 6).map((area) => (
@@ -405,6 +405,11 @@ function AreaStoryCard({ area, isTamil }: { area: LifeAreaData; isTamil: boolean
       <View style={styles.meterTrack}>
         <View style={[styles.meterFill, { width: `${Math.max(8, Math.min(area.score, 100))}%`, backgroundColor: tone }]} />
       </View>
+      {/* What the number means (owner-approved copy, 2026-10-01), read by the
+          server from this same score. Absent on cached payloads. */}
+      {area.scoreBandText ? (
+        <Text numberOfLines={2} style={styles.areaBand}>{biText(area.scoreBandText, isTamil)}</Text>
+      ) : null}
       <Text numberOfLines={4} style={styles.areaBody}>{biText(area.narrative, isTamil)}</Text>
       <View style={styles.nextBlock}>
         <Text style={styles.nextLabel}>{isTamil ? strings.insights.next_30_days.ta : strings.insights.next_30_days.en}</Text>
@@ -564,6 +569,7 @@ function makeStyles(C: ColorTokens) {
   areaTitle: { marginTop: S.md, color: C.textPrimary, fontFamily: "Inter_700Bold", fontSize: 18 },
   meterTrack: { height: 5, borderRadius: 999, backgroundColor: C.surfaceAlt, overflow: "hidden", marginTop: S.sm },
   meterFill: { height: 5, borderRadius: 999 },
+  areaBand: { marginTop: S.sm, color: C.textPrimary, fontFamily: "Inter_600SemiBold", fontSize: 13, lineHeight: 18 },
   areaBody: { marginTop: S.md, color: C.textSecond, fontFamily: "Inter_400Regular", fontSize: 13, lineHeight: 19 },
   nextBlock: { marginTop: "auto", borderTopWidth: 1, borderTopColor: C.divider, paddingTop: S.sm },
   nextLabel: { color: C.saffron, fontFamily: "Inter_700Bold", fontSize: 11, textTransform: "uppercase", letterSpacing: 0 },

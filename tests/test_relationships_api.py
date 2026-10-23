@@ -54,6 +54,90 @@ def test_relationship_synastry_endpoint_returns_score(
     assert isinstance(body["keyAspects"], list)
 
 
+def test_relationship_porutham_endpoint_returns_ten_poruthams(
+    client,
+    family_vault_payload_factory,
+    family_member_payload_factory,
+):
+    """The vault-member porutham route had no test at all, and F-POR-05's
+    change to `_assign_bride_groom` (which gained a third return value) missed
+    this one of its three call sites. Every request to this endpoint would
+    have raised "too many values to unpack" — 6415 passing tests did not
+    notice, and mypy caught it in CI.
+
+    Asserted on the shape a caller depends on rather than on scores: the point
+    is that the route executes end to end.
+    """
+    family_vault_id, member_id = _create_family_with_two_members(
+        client,
+        family_vault_payload_factory,
+        family_member_payload_factory,
+    )
+
+    # MARRIAGE is the context that reads all ten; GENERAL deliberately shows a
+    # smaller set, so both are exercised — a route that 500s does so either way.
+    marriage = client.get(
+        f"/api/v1/relationships/{member_id}/porutham",
+        params={"familyVaultId": family_vault_id, "compatibilityContext": "MARRIAGE"},
+    )
+    assert marriage.status_code == 200, marriage.text
+    body = marriage.json()["data"]
+    assert len(body["kutas"]) == 10
+    assert body["maxScore"] == 10
+    assert 0 <= body["totalScore"] <= 10
+    assert body["label"] in {"EXCELLENT", "GOOD", "AVERAGE", "CAUTION"}
+    assert body["contextNote"]["en"] and body["contextNote"]["ta"]
+    assert isinstance(body["rajjuDosha"], bool)
+    assert isinstance(body["vedhaDosha"], bool)
+
+    general = client.get(
+        f"/api/v1/relationships/{member_id}/porutham",
+        params={"familyVaultId": family_vault_id},
+    )
+    assert general.status_code == 200, general.text
+    assert 0 < len(general.json()["data"]["kutas"]) <= 10
+
+
+def test_porutham_response_carries_the_shashtashtaka_note(
+    client,
+    family_vault_payload_factory,
+    family_member_payload_factory,
+):
+    """F-POR-02 reached `PorutthamResult` and stopped there — a field with no
+    reader. This pins that it survives the shaping step, the schema and the
+    route.
+
+    Asserted on the field's *shape*, not on whether this particular synthetic
+    pair happens to be 6/8: the fixture's rasis are not chosen for it, and a
+    test that needed them to be would break whenever the fixture moved.
+    """
+    family_vault_id, member_id = _create_family_with_two_members(
+        client,
+        family_vault_payload_factory,
+        family_member_payload_factory,
+    )
+
+    response = client.get(
+        f"/api/v1/relationships/{member_id}/porutham",
+        params={"familyVaultId": family_vault_id, "compatibilityContext": "MARRIAGE"},
+    )
+    assert response.status_code == 200, response.text
+    note = response.json()["data"]["shashtashtaka"]
+    assert note is not None, "the note must reach the wire, not stop at the engine"
+    assert isinstance(note["present"], bool)
+    assert isinstance(note["directionalPass"], bool)
+    # The two inclusive counts between two signs always sum to 14 (or are both
+    # 1 for a same-sign pair), which is why one count detects either
+    # orientation — see shashtashtaka_relation's docstring.
+    total = note["countGirlToBoy"] + note["countBoyToGirl"]
+    assert total in {2, 14}, total
+    if note["present"]:
+        assert note["label"]["ta"] and note["note"]["ta"]
+        assert 6 in (note["countGirlToBoy"], note["countBoyToGirl"])
+    else:
+        assert note["label"]["ta"] == "" and note["label"]["en"] == ""
+
+
 def test_relationship_alerts_endpoint_filters_unread(
     client,
     family_vault_payload_factory,
@@ -224,6 +308,35 @@ def test_compatibility_intelligence_direct_pair_needs_no_family_vault(client):
         assert 1 <= identity["rasi"] <= 12
         assert 1 <= identity["nakshatra"] <= 27
         assert 1 <= identity["lagnaRasi"] <= 12
+
+
+def test_compatibility_intelligence_carries_the_shashtashtaka_note(client):
+    """F-POR-02 reached the Compatibility Intelligence *schema* and stopped
+    there — the field existed on `CompatibilityIntelligenceData` with no
+    producer at its one construction site, so it was permanently null while
+    looking wired. That is the same defect as a field with no reader, and a
+    schema-only addition cannot be seen by a typecheck.
+
+    This is the deepest marriage surface and the one carrying F-CI-01's label
+    caps, so a silent 6/8 pass is most exposed here.
+
+    Asserted on shape, not on whether this synthetic pair happens to be 6/8 —
+    same reasoning as `test_porutham_response_carries_the_shashtashtaka_note`.
+    `is not None` is what fails when the producer is missing.
+    """
+    response = client.post(
+        "/api/v1/relationships/compatibility-intelligence/direct",
+        json={"personA": _HAND_ENTERED_A, "personB": _HAND_ENTERED_B},
+    )
+    assert response.status_code == 200, response.text
+    note = response.json()["data"]["shashtashtaka"]
+    assert note is not None, "the note must reach the wire, not stop at the schema"
+    assert isinstance(note["present"], bool)
+    assert isinstance(note["directionalPass"], bool)
+    total = note["countGirlToBoy"] + note["countBoyToGirl"]
+    assert total in {2, 14}, total
+    # The disclosure must not have leaked into the verdict it sits beside.
+    assert 0 <= response.json()["data"]["overallScore"] <= 100
 
 
 def test_compatibility_intelligence_direct_pair_requires_sign_in(raw_client):

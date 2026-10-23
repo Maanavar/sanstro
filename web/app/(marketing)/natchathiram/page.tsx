@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { withTamilTwin } from "@/lib/localized-metadata";
+import { NATCHATHIRAM_INDEX_TA } from "@/lib/marketing-seo-ta";
 import { NatchathiramIndexContent } from "./NatchathiramIndexContent";
 
-export const metadata: Metadata = {
-  title: "27 Nakshathirams (நட்சத்திரங்கள்) — Personality, Career & dasa Guide | Vinaadi",
+const EN_METADATA: Metadata = {
+  title: "27 Nakshathirams (நட்சத்திரங்கள்) — Personality, Career & dasa Guide",
   description:
     "Complete guide to all 27 birth stars in Tamil Vedic astrology — personality traits, career strengths, family life, dasa timelines, and spiritual guidance. Based on Thirukanitham.",
   keywords: [
@@ -18,20 +20,24 @@ export const metadata: Metadata = {
   ],
   alternates: { canonical: "https://vinaadi.com/natchathiram" },
   openGraph: {
-    title: "27 Nakshathirams — Birth Star Profiles | Vinaadi",
+    title: "27 Nakshathirams — Birth Star Profiles",
     description:
       "Personality traits, career paths, dasa timelines and spiritual guidance for all 27 birth stars. Based on Thirukanitham Vedic astrology.",
     url: "https://vinaadi.com/natchathiram",
     type: "website",
-    images: [{ url: "/brand/vinaadi-og-image.png", width: 1200, height: 630, alt: "Vinaadi — Tamil Astrology" }],
+    images: [{ url: "/brand/vinaadi-og-image.jpg", width: 1200, height: 630, alt: "Vinaadi — Tamil Astrology" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "27 Nakshathirams — Birth Star Profiles | Vinaadi",
+    title: "27 Nakshathirams — Birth Star Profiles",
     description: "Personality traits, career paths, dasa timelines and spiritual guidance for all 27 birth stars. Based on Thirukanitham Vedic astrology.",
-    images: ["/brand/vinaadi-og-image.png"],
+    images: ["/brand/vinaadi-og-image.jpg"],
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/natchathiram", NATCHATHIRAM_INDEX_TA);
+}
 
 export default function NatchathiramIndexPage() {
   return <NatchathiramIndexContent />;

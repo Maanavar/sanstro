@@ -37,7 +37,7 @@ def test_every_house_has_colour_copy() -> None:
 def test_note_names_both_the_star_lord_and_its_house() -> None:
     """The whole point is the lord's *placement* — naming the lord alone is
     what the chart already did."""
-    _ta, en = nakshatra_lord_note("MERCURY", 24, "Sadayam", 11)
+    _ta, en = nakshatra_lord_note("MERCURY", 24, 11)
     assert "Rahu" in en
     assert "Sadayam" in en
     assert "house 11" in en
@@ -45,8 +45,8 @@ def test_note_names_both_the_star_lord_and_its_house() -> None:
 
 @pytest.mark.no_db
 def test_demanding_lord_house_adds_a_note_of_care() -> None:
-    _ta, gentle = nakshatra_lord_note("MERCURY", 24, "Sadayam", 11)
-    _ta2, demanding = nakshatra_lord_note("MERCURY", 24, "Sadayam", 8)
+    _ta, gentle = nakshatra_lord_note("MERCURY", 24, 11)
+    _ta2, demanding = nakshatra_lord_note("MERCURY", 24, 8)
     assert "patience" in demanding.lower()
     assert "patience" not in gentle.lower()
 
@@ -56,7 +56,7 @@ def test_planet_in_its_own_nakshatra_is_not_described_as_linked() -> None:
     """Sun rules Kirthigai; a self-ruled planet has no external modifier and the
     copy must not imply one."""
     assert nakshatra_lord(3) == "SUN"
-    _ta, en = nakshatra_lord_note("SUN", 3, "Kirthigai", 5)
+    _ta, en = nakshatra_lord_note("SUN", 3, 5)
     assert "own nakshatra" in en
     assert "ruled by Sun" not in en
 
@@ -65,7 +65,7 @@ def test_planet_in_its_own_nakshatra_is_not_described_as_linked() -> None:
 def test_unplotted_lord_states_linkage_without_claiming_direction() -> None:
     """With no house for the lord, the note may name the link but must not
     invent a placement."""
-    _ta, en = nakshatra_lord_note("MERCURY", 24, "Sadayam", None)
+    _ta, en = nakshatra_lord_note("MERCURY", 24, None)
     assert "Rahu" in en
     assert "house" not in en.lower()
 
@@ -74,6 +74,6 @@ def test_unplotted_lord_states_linkage_without_claiming_direction() -> None:
 def test_note_is_bilingual_for_every_nakshatra() -> None:
     for nakshatra in range(1, 28):
         for house in (None, 1, 6, 12):
-            ta, en = nakshatra_lord_note("MERCURY", nakshatra, "Star", house)
+            ta, en = nakshatra_lord_note("MERCURY", nakshatra, house)
             assert ta.strip(), f"nakshatra {nakshatra} house {house} has no Tamil note"
             assert en.strip(), f"nakshatra {nakshatra} house {house} has no English note"

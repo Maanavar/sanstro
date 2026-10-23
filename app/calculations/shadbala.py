@@ -36,11 +36,17 @@ from app.calculations.astro import (
     rasi_from_degree,
 )
 from app.calculations.chart_strength import (
-    _NATURAL_ENEMIES,
-    _NATURAL_FRIENDS,
     MOOLATRIKONA_ZONE,
     OWN_SIGN_RASI,
+    REL_ENEMY,
+    REL_FRIEND,
+    REL_GREAT_ENEMY,
+    REL_GREAT_FRIEND,
+    REL_NEUTRAL,
     SIGN_LORD,
+    compound_relationship,
+    natural_relationship,
+    temporary_relationship,
 )
 from app.calculations.divisional_charts import (
     compute_d2,
@@ -183,8 +189,10 @@ def _angular_sep(a: float, b: float) -> float:
 #   natural enemy  + temp enemy     = great enemy (Adhishatru)
 # ---------------------------------------------------------------------------
 
+# The relationship itself is defined once, in chart_strength (engine audit G1),
+# and shared with the production dignity score.
 _GREAT_FRIEND, _FRIEND, _NEUTRAL, _ENEMY, _GREAT_ENEMY = (
-    "GREAT_FRIEND", "FRIEND", "NEUTRAL", "ENEMY", "GREAT_ENEMY",
+    REL_GREAT_FRIEND, REL_FRIEND, REL_NEUTRAL, REL_ENEMY, REL_GREAT_ENEMY,
 )
 
 # Saptavargaja Virupa per compound-relationship grade (B.V. Raman).
@@ -199,33 +207,9 @@ _SAPTAVARGAJA_POINTS: dict[str, float] = {
 }
 
 
-def _natural_relation(planet: str, other: str) -> str:
-    if other in _NATURAL_FRIENDS.get(planet, frozenset()):
-        return _FRIEND
-    if other in _NATURAL_ENEMIES.get(planet, frozenset()):
-        return _ENEMY
-    return _NEUTRAL
-
-
-def _temporal_relation(planet_rasi: int, other_rasi: int) -> str:
-    house = house_from_reference(planet_rasi, other_rasi)
-    return _FRIEND if house in {2, 3, 4, 10, 11, 12} else _ENEMY
-
-
-def _compound_relation(planet: str, other: str, rasi_map: dict[str, int]) -> str:
-    nat = _natural_relation(planet, other)
-    temp = _temporal_relation(rasi_map[planet], rasi_map[other])
-    if nat == _FRIEND and temp == _FRIEND:
-        return _GREAT_FRIEND
-    if nat == _FRIEND and temp == _ENEMY:
-        return _NEUTRAL
-    if nat == _NEUTRAL and temp == _FRIEND:
-        return _FRIEND
-    if nat == _NEUTRAL and temp == _ENEMY:
-        return _ENEMY
-    if nat == _ENEMY and temp == _FRIEND:
-        return _NEUTRAL
-    return _GREAT_ENEMY  # natural enemy + temporal enemy
+_natural_relation = natural_relationship
+_temporal_relation = temporary_relationship
+_compound_relation = compound_relationship
 
 
 # ---------------------------------------------------------------------------
@@ -454,31 +438,67 @@ def _ayana_bala(planet: str, declination: float | None) -> float:
 # Chesta Bala (motional strength).
 # ---------------------------------------------------------------------------
 
+#: The classical eight-fold motional states (ashta-chesta) and their Virupas.
+#: Values are BPHS; the bands below are this engine's approximation of *which*
+#: state a planet is in, not of the values themselves.
+#:
+#: F-STR-01 — the direction used to be inverted. The old bands scored an
+#: accelerated planet **15** (the weakest) and a near-stationary one **45**,
+#: which is backwards twice over: classically a fast planet is Chara (45) or
+#: Atichara (30) and strong, while a stationary one is Vikala (15) and weak.
+#: Note also that Sama — mean speed — is the *weakest* state of all at 7.5,
+#: which the old three-band shape could not express at any setting.
+CHESTA_VIRUPA: dict[str, float] = {
+    "VAKRA": 60.0,       # retrograde
+    "ANUVAKRA": 30.0,    # retrograde turning direct again
+    "VIKALA": 15.0,      # stationary
+    "MANDA": 30.0,       # slow
+    "MANDATARA": 15.0,   # very slow
+    "SAMA": 7.5,         # mean speed
+    "CHARA": 45.0,       # fast
+    "ATICHARA": 30.0,    # very fast
+}
+
+
 def _chesta_bala(planet: str, inp: PlanetInput, ayana: float, paksha: float) -> float:
-    """Motional strength. BPHS special cases: the Sun's Chesta Bala equals
-    its Ayana Bala and the Moon's equals its Paksha Bala. For the five star
-    planets the full classical Chesta uses the seeghra-kendra (epicyclic
-    anomaly); this engine uses a documented speed-vs-mean approximation of the
-    eight-fold motional states (retrograde strongest, mean-speed medium,
-    accelerated weakest) — a known simplification pending a full epicyclic
-    implementation."""
+    """Motional strength, the eight-fold states (`CHESTA_VIRUPA`).
+
+    BPHS special cases: the Sun's Chesta Bala equals its Ayana Bala and the
+    Moon's equals its Paksha Bala.
+
+    For the five star planets the full classical Chesta uses the seeghra-kendra
+    (epicyclic anomaly). This engine approximates *which of the eight states*
+    a planet is in from its speed against its mean — a documented
+    simplification pending a full epicyclic implementation — and then takes the
+    classical Virupa for that state.
+
+    **Anuvakra cannot be told from Vakra here.** Distinguishing "retrograde"
+    from "retrograde and about to turn direct" needs the station instants, not
+    an instantaneous speed, so all retrograde motion is scored Vakra (60). That
+    over-credits the Anuvakra case by 30 Virupas and is listed with the other
+    known gaps rather than guessed at.
+    """
     if planet == "SUN":
         return ayana
     if planet == "MOON":
         return paksha
     if inp.is_retrograde:
-        return 60.0  # Vakra — strongest
+        return CHESTA_VIRUPA["VAKRA"]
     mean = _MEAN_DAILY_SPEED.get(planet)
     if mean is None:
-        return 30.0
+        return CHESTA_VIRUPA["MANDA"]
     ratio = abs(inp.speed_deg_per_day) / mean
     if ratio < 0.2:
-        return 45.0   # near-stationary (Vikala/Manda)
-    if ratio < 0.8:
-        return 30.0   # slow direct (Manda)
-    if ratio <= 1.2:
-        return 20.0   # about mean speed (Sama)
-    return 15.0       # accelerated (Chara/Atichara)
+        return CHESTA_VIRUPA["VIKALA"]       # all but stopped
+    if ratio < 0.5:
+        return CHESTA_VIRUPA["MANDATARA"]    # very slow
+    if ratio < 0.9:
+        return CHESTA_VIRUPA["MANDA"]        # slow
+    if ratio <= 1.1:
+        return CHESTA_VIRUPA["SAMA"]         # mean speed — classically weakest
+    if ratio <= 1.5:
+        return CHESTA_VIRUPA["CHARA"]        # fast
+    return CHESTA_VIRUPA["ATICHARA"]         # very fast
 
 
 # ---------------------------------------------------------------------------

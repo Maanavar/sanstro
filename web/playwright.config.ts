@@ -18,7 +18,7 @@ const E2E_FRONTEND_PORT = 3100;
 /**
  * Base URL is overridden by BASE_URL env var in CI / staging, or defaults
  * to the dedicated e2e frontend. When webServer is set below, Playwright
- * starts `next dev` itself so nothing needs to be running beforehand.
+ * starts the isolated copy-based stack so nothing needs to be running beforehand.
  */
 const BASE_URL = process.env.BASE_URL ?? `http://localhost:${E2E_FRONTEND_PORT}`;
 
@@ -30,9 +30,6 @@ const BASE_URL = process.env.BASE_URL ?? `http://localhost:${E2E_FRONTEND_PORT}`
 // family-vault counts (227 stray users / 81 stray family vaults found
 // 2026-07-28). See scripts/e2e-backend.ps1.
 const E2E_BACKEND_PORT = 8010;
-const E2E_DATABASE_URL =
-  process.env.E2E_DATABASE_URL ?? "postgresql://slw_admin:slw_dev_password@localhost:5433/vinaadi_e2e";
-
 export default defineConfig({
   testDir: ".",
   testMatch: ["e2e/**/*.spec.ts", "tests/**/*.spec.ts"],
@@ -63,29 +60,23 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"], reducedMotion: "reduce" },
     },
   ],
-  // Only spin up the dev server when not pointing at a real environment.
+  // Only spin up the isolated stack when not pointing at a real environment.
   // Set BASE_URL in CI to point at a preview deploy to skip this block.
   ...(!process.env.BASE_URL && {
-    webServer: [
-      {
-        // Dedicated backend on vinaadi_e2e — deliberately NOT the backend
-        // that dev.ps1 starts against vinaadi_dev.
-        command: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/e2e-backend.ps1 -Port ${E2E_BACKEND_PORT} -DatabaseUrl "${E2E_DATABASE_URL}"`,
-        url: `http://127.0.0.1:${E2E_BACKEND_PORT}/health`,
-        cwd: REPO_ROOT,
-        reuseExistingServer: !process.env.CI,
-        timeout: 120_000,
-      },
-      {
-        command: `npm run dev -- --port ${E2E_FRONTEND_PORT}`,
-        url: `http://localhost:${E2E_FRONTEND_PORT}`,
-        reuseExistingServer: !process.env.CI,
-        timeout: 120_000,
-        // Overrides web/.env.local's BACKEND_URL (:8000 → vinaadi_dev). This
-        // only applies when Playwright actually starts the server; global-setup
-        // is what catches the case where it didn't.
-        env: { BACKEND_URL: `http://127.0.0.1:${E2E_BACKEND_PORT}` },
-      },
-    ],
+    webServer: {
+      // The stack copies web/ before starting next dev, so Playwright cannot
+      // clean the owner's web/.next on :3000. The same action starts the
+      // dedicated backend and keeps both processes alive until Playwright
+      // stops this command.
+      command: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\ux-audit-stack.ps1 -Action serve -FrontendPort ${E2E_FRONTEND_PORT} -BackendPort ${E2E_BACKEND_PORT}`,
+      // Ready means the proxy reaches the backend, not just that next dev
+      // answers: global-setup fails hard if /api/backend/health is not up yet.
+      url: `http://localhost:${E2E_FRONTEND_PORT}/api/backend/health`,
+      cwd: REPO_ROOT,
+      reuseExistingServer: false,
+      // The stack waits up to 300s for the proxy after copying web/; a shorter
+      // limit here kills a cold start that would have succeeded.
+      timeout: 360_000,
+    },
   }),
 });

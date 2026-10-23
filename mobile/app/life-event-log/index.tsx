@@ -21,7 +21,7 @@ import { useSession } from "@/hooks/useSession";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { ErrorCard } from "@/components/ErrorCard";
 import { getPrimaryChartId } from "@/lib/userPrefs";
-import { TIER_LIMITS } from "@vinaadi/shared";
+import { TIER_LIMITS, tPlanetLord } from "@vinaadi/shared";
 import {
   getLifeEventLog,
   createLifeEventLogEntry,
@@ -73,7 +73,7 @@ export default function LifeEventLogScreen() {
   const C = useColors();
   const styles = useMemo(() => makeStyles(C), [C]);
   const { lang } = useI18n();
-  const { tier } = useSession();
+  const { gateTier: tier } = useSession();
   const isTamil = lang === "ta";
   const type = isTamil ? TamilType : EnType;
   const qc = useQueryClient();
@@ -319,11 +319,11 @@ function EventCard({
           <View style={styles.dashaRow}>
             <View style={styles.dashaChip}>
               <Text style={styles.dashaChipLabel}>{isTamil ? "மகாதசை" : "Maha"}</Text>
-              <Text style={styles.dashaChipValue}>{item.correlation.mahaLord}</Text>
+              <Text style={styles.dashaChipValue}>{tPlanetLord(item.correlation.mahaLord, isTamil ? "ta" : "en")}</Text>
             </View>
             <View style={styles.dashaChip}>
               <Text style={styles.dashaChipLabel}>{isTamil ? "அந்தர்" : "Antar"}</Text>
-              <Text style={styles.dashaChipValue}>{item.correlation.antarLord}</Text>
+              <Text style={styles.dashaChipValue}>{tPlanetLord(item.correlation.antarLord, isTamil ? "ta" : "en")}</Text>
             </View>
           </View>
           <Text style={[styles.correlationNarrative, type.body]}>

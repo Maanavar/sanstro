@@ -120,6 +120,16 @@ export function CelestialAmbientNova({ moon }: { moon?: MoonPhase | null }) {
     const id = setInterval(() => setHour(new Date().getHours()), 5 * 60 * 1000);
     return () => clearInterval(id);
   }, []);
+  // DXA-10 step 3: the layer carried `transition: opacity 600ms` and never
+  // faded, because it mounted at its final opacity — a transition needs a
+  // value to move from. One frame at 0 gives the sky the arrival the
+  // declaration always described.
+  const [lit, setLit] = useState(false);
+  useEffect(() => {
+    if (hour === null) return undefined;
+    const id = requestAnimationFrame(() => setLit(true));
+    return () => cancelAnimationFrame(id);
+  }, [hour]);
   const isLight = useIsLightTheme();
   if (hour === null) return null;
 
@@ -168,8 +178,8 @@ export function CelestialAmbientNova({ moon }: { moon?: MoonPhase | null }) {
         inset: 0,
         pointerEvents: "none",
         zIndex: 0,
-        opacity: AMBIENT_SKY_OPACITY,
-        transition: "opacity 600ms ease",
+        opacity: lit ? AMBIENT_SKY_OPACITY : 0,
+        transition: "opacity 600ms var(--ease-nova)",
         overflow: "hidden",
       }}
     >
@@ -437,9 +447,31 @@ export function HeroSkyBackdrop({ moon }: { moon: MoonPhase | null }) {
           light it takes the deep bronze gold and roughly double the alpha: the
           highlight gold at 0.055 was a hairline lighter than cream, i.e. the
           whole animation was running invisibly. */}
+      {/* Light was 0.1. The comment above records that 0.055 was "a hairline
+          lighter than cream, i.e. the whole animation was running invisibly"
+          and doubled it — but 0.1 deep-bronze on the old near-cream band was
+          still close enough to invisible that a 240s always-on rotation was
+          costing paint for nothing. 0.18 makes the mandala readable as texture
+          where the chakra sits, without competing with the type — which is all
+          in the lit left column, away from this corner.
+
+          PREMISE CORRECTED 2026-09-28. This value was first set with the
+          justification "the hero rework gives this corner real tonal depth
+          (--nova-hero-gradient now runs to a deep sepia stop with a gold
+          radial at 78%)". That was false when written: this component renders
+          inside `.nova-hero`, and `.nova-hero` was not using
+          --nova-hero-gradient at all — it carried its own local
+          surface-soft -> surface-3 ramp that shadowed the token. The retune
+          landed on a selector no element matched.
+
+          `.nova-hero` now does use the token, so the stated ground is finally
+          the real one and 0.18 sits on the depth it was chosen for. Recorded
+          rather than quietly deleted because the next reader would otherwise
+          inherit a conclusion whose premise was only made true afterwards.
+          See docs/THEME_VISIBILITY_AUDIT_2026-09-28.md §2. */}
       <RasiChakraBackdrop
         size={380}
-        opacity={isLight ? 0.1 : 0.055}
+        opacity={isLight ? 0.18 : 0.055}
         className="nova-hero-glyph"
         style={{ position: "absolute", top: "-120px", right: "-90px" }}
       />

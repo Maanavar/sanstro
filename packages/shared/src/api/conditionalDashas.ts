@@ -1,3 +1,4 @@
+import type * as Server from "../generated/api-types";
 import { getApiClient } from "./client";
 
 /**
@@ -15,53 +16,17 @@ import { getApiClient } from "./client";
  *
  * Backend: GET /charts/{id}/conditional-dashas
  * (app/services/conditional_dashas_service.py).
+ *
+ * Types are the server's own (A14 step 7), generated from the response model.
  */
-export interface ConditionalDashaPeriod {
-  level: "maha" | "antar";
-  lord: string;
-  years: number;
-  startDate: string;
-  endDate: string;
-}
-
-export interface ConditionalDashaSystem {
-  key: string;
-  nameEn: string;
-  nameTa: string;
-  totalYears: number;
-  applicabilityEn: string;
-  applicabilityTa: string;
-  openingLord: {
-    lord: string;
-    balanceYearsAtBirth: number;
-  };
-  current: {
-    mahadasha: ConditionalDashaPeriod;
-    antardasha: ConditionalDashaPeriod;
-  };
-  mahadashas: ConditionalDashaPeriod[];
-  antardashas: ConditionalDashaPeriod[];
-}
-
-export interface ConditionalDashaApplicabilityResult {
-  key: string;
-  // true = meets the classical condition, false = does not, null = needs review
-  // (missing datum or a genuine judgement call).
-  applicable: boolean | null;
-  reason: string;
-}
-
-export interface ConditionalDashasData {
-  chartId: string;
-  asOf: string;
-  dashas: ConditionalDashaSystem[];
-  applicability: {
-    paksha: "SHUKLA" | "KRISHNA";
-    isDayBirth: boolean | null;
-    isDayBirthApproximate: boolean;
-    results: ConditionalDashaApplicabilityResult[];
-  };
-}
+export type ConditionalDashaPeriod = Server.LordDashaPeriod;
+export type ConditionalDashaSystem = Server.ConditionalDashaTimelineData;
+/**
+ * `applicable`: true = meets the classical condition, false = does not,
+ * null = needs review (missing datum or a genuine judgement call).
+ */
+export type ConditionalDashaApplicabilityResult = Server.ConditionalDashaApplicabilityResult;
+export type ConditionalDashasData = Server.ConditionalDashasData;
 
 export const conditionalDashasKeys = {
   timeline: (chartId: string, asOf?: string) =>

@@ -8,7 +8,7 @@
 
 | # | Item | Decision | Priority |
 |---|------|----------|----------|
-| 1 | Sunrise definition | Hindu sunrise (disc center, no refraction) | 🔴 Critical — fix before launch |
+| 1 | Sunrise definition | **Apparent upper limb + refraction** (Drik / Rashtriya Panchang), re-ruled 2026-09-29 | ✅ Built + externally cross-checked; printed-publisher parity open (AR-5) |
 | 2 | Rahu/Ketu node | Mean node (default); true node as toggle | ✅ Keep as-is, document |
 | 3 | Ezharai Sani Murthi | Ingress-Moon-from-janma-rasi (default); pada rule as labeled variant | 🔴 Critical — change default |
 | 4 | Jaimini Rahu degree | 30° − advancement (BPHS/JHora standard) | 🔴 Critical — fix before launch |
@@ -21,21 +21,90 @@
 | 11 | `_graha_relation` compound friendship rule (CI Level 6) | Enemy in either direction → enemy; friend in both directions → friend; else neutral | 🟡 Important — Compatibility Intelligence report |
 | 12 | Rajju/Vedha veto on CI overall label | Hard-cap the headline label at CAUTION when Rajju or Vedha fails, regardless of the 0–100 weighted score | 🟡 Important — Compatibility Intelligence report; consistency with the shipped porutham-label veto |
 | 13 | Ashtakavarga bindu grid vs kāraka-relative readings | Grid is a measurement → shown ungated. Readings counted from a kāraka graha are claims about named relatives → gated to life-area cards, banded never counted | ✅ Ratified 2026-08-18 (P2-05); boundary enforced by test, not convention |
+| 14 | Durmuhurtham display polarity | Avoid for auspicious acts and new beginnings; not a blanket prohibition or whole-day verdict | ✅ Owner-delegated ruling 2026-09-23; rendered with scoped copy |
+| 15 | Sign-edge grahas and Lagna | Edge (±1°) and Baladi never both charged; the larger applies (`[PRODUCT]` scoring rule, confirmed 2026-10-01). No Baladi for Rahu/Ketu. A graha belongs only to its occupied sign. Lagna checked by recompute at ±5 (firm) / ±15 (soft) min; D9 Lagna at ±5 | ✅ Astrologer ruling 2026-09-23; built |
+| 16 | Maandhi vs Gulika | **Uttara-Kalamrita convention adopted:** two separate points. Maandhi = proportional nazhigai; Kuligai Kalam = the whole Saturn eighth-part; Gulika sphuta = ascendant at that part's END. BPHS/Prasna-Marga synonym tradition named and declined. Vaara is sunrise-bounded. Unknown birth time = unknown, not day | ✅ Owner ruling 2026-09-29, confirmed 2026-09-30; built, chart v1.4 |
 
 ---
 
 ## 1. Sunrise Definition
 
-**Decision:** Use **Hindu sunrise** — geometric rise of the Sun's **disc center**, **no atmospheric refraction** — as the default anchor for all sunrise-dependent calculations.
+> **REVISED 2026-09-29 by owner ruling. The original decision below was reversed.**
 
-**Rationale:** Every siddhantic definition of udaya (சூரிய உதயம்) is the geometric rise of the Sun's center. All major printed Tamil panchangams (Thirukanitham editions, Vakya, Manimekalai, Arcot, Sri Sankara) use this convention. The Swiss Ephemeris default (upper limb + refraction) shifts sunrise ~3 minutes earlier, causing visible mismatches with the panchangam on the user's wall. "Drik" in Thirukanitham refers to accuracy of planetary positions, not adoption of the observational horizon.
+**Decision (current):** Use **apparent sunrise/sunset** — the rise and set of the
+Sun's **upper limb**, **including standard atmospheric refraction** — as the
+default anchor for all sunrise-dependent calculations. This is Swiss Ephemeris's
+own default: no extra `rsmi` bits.
 
-**Scope — inherits this anchor:** Rahu kalam, Yamagandam, Gulikai, Horai, Udaya tithi, sunrise lagna, all eight kalam divisions, and Ekadashi observance logic (see §8).
+**Rationale:** Vinaadi's Thirukanitham engine follows the modern Drik
+astronomical convention represented by India's **Rashtriya Panchang** and by
+DrikPanchang's default. This is the convention essentially every published
+source a Vinaadi reader can check against uses, so it is what the app must show.
 
-**Implementation notes:**
-- Swiss Ephemeris flags: disable refraction, use disc center (`SE_BIT_NO_REFRACTION | SE_BIT_DISC_CENTER` with `swe.rise_trans`).
-- Optionally expose "observed sunrise" (refracted upper limb) as a labeled advanced toggle.
-- **Verification:** validate Rahu kalam and udaya tithi against at least two printed panchangams (e.g. Thirukanitham + Manimekalai or Arcot) across a spread of dates and latitudes.
+**Do not equate Swiss Ephemeris's `SE_BIT_HINDU_RISING` flag with the universal
+Thirukanitham standard.** That flag's name is a claim about Hindu practice, not
+a ratified standard, and the reversed decision below rested on exactly that
+conflation.
+
+**Scope — inherits this anchor:** Rahu Kalam, Yamagandam, Kuligai, Gowri
+Panchangam, Durmuhurtham, day and night Horai, all eight kalam divisions, udaya
+tithi/nakshatra, sunrise lagna, Chandrashtama's sunrise-sampled star, Ekadashi
+observance logic (§8), and the Tamil solar calendar's sunset cutoff.
+
+**Implementation:** `SunriseConvention.APPARENT_UPPER_LIMB` in
+`app/calculations/ephemeris.py`, exposed as
+`THIRUKANITHAM_SUNRISE_CONVENTION`. Exact instants are preserved internally;
+only the presentation boundary rounds, half-up, to the nearest minute
+(`astro.format_clock_hhmm`). The retired convention is retained as
+`SunriseConvention.GEOMETRIC_DISC_CENTER` — a named traditional variant, never
+the default, not reachable without asking for it by name.
+
+**Verification status:** the convention is externally cross-checked — exact
+match against DrikPanchang for 12 date/location cases (worst 40 s) and against
+an independent NOAA/Meeus implementation (worst 20 s). **Printed-publisher
+parity is a separate task and remains OPEN** (AR-5): validate representative
+dates against actual Vasan / Manimekalai / Arcot or other selected printed
+editions, with page citations, before claiming publisher parity. Tests:
+`tests/test_wi07_sunrise_validation_harness.py`, generator
+`scripts/sunrise_reference_crosscheck.py`.
+
+### Reversed decision, retained so the error is not repeated
+
+**Original decision (2026-07, WI-07 — WRONG):** geometric rise of the Sun's
+disc centre, no atmospheric refraction (`SE_BIT_HINDU_RISING`).
+
+**Original rationale, with the two false claims marked:**
+
+> Every siddhantic definition of udaya (சூரிய உதயம்) is the geometric rise of
+> the Sun's center. ~~All major printed Tamil panchangams (Thirukanitham
+> editions, Vakya, Manimekalai, Arcot, Sri Sankara) use this convention.~~
+> **[FALSE — asserted, never checked. Not one printed edition was consulted,
+> before the decision or in the two months after it.]** The Swiss Ephemeris
+> default (upper limb + refraction) shifts sunrise ~3 minutes earlier,
+> ~~causing visible mismatches with the panchangam on the user's wall~~
+> **[BACKWARDS — the disc-centre choice is what produced the visible
+> mismatch, against every source a reader could actually check].** "Drik" in
+> Thirukanitham refers to accuracy of planetary positions, not adoption of the
+> observational horizon. **[Not accepted: the ruling adopts the Drik
+> astronomical convention, Rashtriya Panchang's, as Vinaadi's.]**
+
+**How it was found, and why not sooner.** A user compared Tiruppur,
+2026-09-29: Vinaadi showed 6:12 am / 6:08 pm against 06:09 / 18:12 at
+timeanddate and everywhere else. The arithmetic had always been correct — the
+ephemeris reproduces the apparent values to the second. Only the definition was
+wrong, and it was wrong for two months in production.
+
+The §1 verification note above ("validate against at least two printed
+panchangams") was written at the same time as the decision and was **never
+performed**. The harness built for it held 12 reference slots at `None`, which
+*skipped* rather than failed, so the launch-gate line below could sit unticked
+indefinitely while the code shipped. Worse, the 2026-07-16 follow-up *did*
+observe that DrikPanchang was 3-6 minutes earlier on all 12 cases and recorded
+that as confirmation the conventions differed by design — treating the finding
+as a property to assert around. A consistent one-directional disagreement with
+every external source is evidence against your own inputs. See "Debugging
+discipline — suspect your own inputs" and "A gate proves its own check, not the
+item" in CLAUDE.md.
 
 ---
 
@@ -135,6 +204,63 @@
 
 **Rationale:** Silent disappearance of festivals in 2027 is worse than "feature unavailable."
 
+**Astrologer rulings 2026-10-22 — the governing moment** (`docs/REVIEW_REQUESTS_2026-10-22.md`). Two principles, to be applied to every observance, not only the ones asked about:
+
+1. **The moment that names an observance's day is the time of its principal worship.** Karthigai vratam: pradosham (sunset). Thiruvonam and Rohini vratams: the morning (sunrise). Sankatahara: moonrise. Ayudha Pooja, Saraswathi Pooja, Vijayadasami: aparahna. Tharpanam and all pitru karya (Mahalaya, Thai and Aadi Amavasai): aparahna. Krishna Jayanthi: nisheetha, the midpoint of the night. Karthigai Deepam: pradosham, with Krittika beside the Karthigai full moon. The printed monthly Amavasai and Pournami: sunrise. A star or tithi holding two of its moments takes the first (Sankatahara's two moonrises take the later: the fast ends at moonrise).
+2. **When the specific kala fails, fall back to suryodaya-vyapini — never to "most of the day".** Majority-of-day is not a kala recognised in nirnaya. It was the rule behind the Amavasai/Pournami day and has been removed (`panchangam.special_tithi_day_from_sunrises`).
+
+Recorded with them, not ruled: a tithi or star that holds **no** sunrise names the sunrise-to-sunrise day it falls in (Pournami, 20 Feb 2027; Poosam, 9 Feb 2028). Without it the sunrise rule gave those months no day at all.
+
+**Lock to the rule, not to an almanac's house style.** The same publisher's 2026 and 2027 editions disagree (Thiruvonam 8/13 against 13/13). The engine follows the siddhantic rule; an almanac is evidence about a rule, not the rule.
+
+**Karinaal lineage.** A Karinaal list is taken whole from one named lineage, never merged across sources; an omission in an aggregator is not a doctrinal exclusion. The list in `karinaal.KARINAAL_TAMIL_DAYS` agrees with the tamildailycalendar.com 2027 almanac in every month, Thai 10/16 included (adopted 2026-10-22), **except** Karthigai 7 and Margazhi 11, which the astrologer keeps. **The lineage it follows is not yet named** — see the follow-up in the review-requests file.
+
+### 8.1 Round two (astrologer, 2026-10-22, second answer) — kala, selection rules, confidence
+
+Source: the astrologer's "Festival & Calendar Doctrine Rulings — 22 Oct 2026" (second round), answering F1–F8 of `docs/REVIEW_REQUESTS_2026-10-22.md`. What was built, held and found is in the round-two section of that file. Each ruling carries the astrologer's confidence tag: **CLASSICAL** (settled nirnaya), **CONVENTION** (Vinaadi's chosen convention; lineages differ), **PROVISIONAL** (thin evidence; revisit). A CONVENTION or PROVISIONAL ruling is never presented to users as universal practice.
+
+**Kala (§0.3).** An observance is named by the civil day on which its kala, the moment of the principal worship, falls inside it. Majority-of-day is not a kala and is not used to name any observance (it survives only in daily *guidance* scoring, `dominant_*_number`, which names no festival).
+
+| Kala | Observances | Code |
+|---|---|---|
+| Sunrise | Thiruvonam, Rohini; printed Amavasai/Pournami; Thai Poosam, Maasi Magam, Panguni Uthiram, Vaigasi Visakam, Arudra Darisanam, Aadi Pooram; every generic fallback | `_NAKSHATRA_FESTIVALS`, `special_tithi_day_from_sunrises`, `SOLAR_MONTH_OBSERVANCES` |
+| Pradosham (sunset) | Karthigai vratam, Karthigai Deepam, Aadi Krithigai | `_sunset_star_names_day`, `SOLAR_MONTH_OBSERVANCES` |
+| Moonrise | Sankatahara Chathurthi | `_is_sankatahara_day` |
+| Aparahna | Ayudha/Saraswathi Pooja, Vijayadasami, Mahalaya, Thai and Aadi Amavasai | `_aparahna_names_day`, `SOLAR_MONTH_OBSERVANCES` |
+| Nisheetha | Krishna Jayanthi | `_jayanthi_night_selected` |
+
+**Universal fallback.** Where an observance's kala falls inside no day of its occurrence, the day it holds at sunrise, first of two. Where it holds no sunrise either, §5 below.
+
+**§5 Containment — CLASSICAL.** A tithi or star that begins after one sunrise and ends before the next belongs to that sunrise-to-sunrise day. It names the day only. It is reached only after no kala instant and no sunrise fell inside the occurrence, so it cannot override a kala satisfied on another day (`observance_days.name_day`, and the order of the branches in `_sunset_star_names_day` and `_sunrise_names_tithi_day`).
+
+**Selection rules.** Each states when it fires. `scripts/audit/yearly_observances_scan.py` prints the years each one fired over 2020–2045 (`festivals.SELECTION_RULES`, `rule_fires`). A tie-break firing in more than a handful of years is a bug report.
+
+| Rule | Tag | FIRES WHEN | EFFECT | OTHERWISE | Fired 2020–2045 |
+|---|---|---|---|---|---|
+| §3 duplicate tie-break | CONVENTION | the same star or special tithi is named on two days of one Tamil solar month | the one in the amanta month that **begins** inside the solar month | dormant; the single day stands | 1–5 years per festival (Aadi Pooram 5, Aadi Krithigai 4, Deepam 3, Aadi/Thai Amavasai 1 each); 13 years with any |
+| Family A full-moon tie-break (**held**, OPEN-3) | — | as above, for Thai Poosam, Maasi Magam, Panguni Uthiram, Vaigasi Visakam, Arudra | the one beside the solar month's own full moon | dormant | 2–3 years each. Gated behind the duplicate check (§9.3); it used to run as a filter every year |
+| §0.3 sunrise fallback | — | a sunset-kala star holds no sunset | the day it holds at sunrise | dormant | 7 years (2025, 2032, 2034, 2041, 2042, 2044, 2045) |
+| §5 containment | CLASSICAL | no kala instant and no sunrise inside the occurrence | the day containing it | dormant | 6 years (2020, 2021, 2028, 2037, 2040, 2045) |
+| §6 two aparahnas | CONVENTION | the tithi holds two aparahnas | the first | dormant | 13 years* |
+| §6 no aparahna | CONVENTION | the tithi holds no aparahna | the tithi at sunrise, first of two | dormant | 13 years* |
+| §2 Rohini tie-break | CLASSICAL | Krishna Ashtami holds two nisheethas, or none | Rohini's night; if neither, the later | dormant | 1 year (2021) |
+| §9.1 Varalakshmi | CLASSICAL | Shravana's Pournami day is a Friday | that Friday | the last Friday before the Pournami day | 3 years (2022, 2026, 2029) |
+| Sankatahara (FCA-04) | — | Chathurthi holds two moonrises / none | the later / the sunrise day | dormant | 7 / 16 years* |
+
+\* Not duplicate tie-breaks: kala outcomes over several observances a year (the six aparahna observances) or twelve a year (Sankatahara), so a year counts if any one of them fired. A tithi of 20–26 hours meets a daily instant twice, or not at all, routinely. Run 2026-10-22, `yearly_observances_scan.py 2020 2045`: 0 unreported problems.
+
+**§4 Karthigai Deepam — CLASSICAL.** The Karthigai month's Karthigai vratam: Krittika at pradosham, sunrise fallback, §3 for a duplicate. The Krittika–Pournami overlap condition is withdrawn. Recorded conflict, not chased: the publisher's 2027 almanac prints 12 Dec and its own festival list 11 Dec; 11 Dec is implemented. Hold the siddhantic rule; do not re-tune to a publisher edition.
+
+**§7 Karinaal — PROVISIONAL, Vinaadi working list.** `KARINAAL_TAMIL_DAYS` is *tamildailycalendar.com 2027* plus two days restored by the astrologer's ruling of 2026-10-22: **Karthigai 7** and **Margazhi 11**, each a separately documented Vinaadi exception. It is a merge of two sources and is **not** a lineage list; user-facing copy must not call it traditional or authenticated. Before launch it is replaced wholesale by a complete twelve-month table from one printed Thirukkanitha panchangam (OPEN-4), whichever way Thai, Karthigai 7 and Margazhi 11 fall. Not a launch blocker: Karinaal is a muhurtha-avoidance list, not a festival.
+
+**Withdrawn (§1) and deleted from the code:** Family B "nearest the Amavasai"; Aadi Amavasai "first occurrence"; the Deepam Krittika–Pournami overlap and "nearest Pournami" conditions; the two-Pournami nakshatra-at-completion test (never built); every majority-of-day selection.
+
+**Held, not built as written, pending the astrologer (round-two report):**
+- **§2 printed date (OPEN-1).** The night is computed as ruled. The printed date stays at the evening that opens the night (`festivals._JAYANTHI_LABEL`), because §2's nisheetha date matches 3 of its own 11 vectors (the evening 8, the sunrise day 7) and would move 2026 off the 4 Sep government holiday. Both dates are carried; switching is one line.
+- **Family A (OPEN-3).** §3 moves six dates (Thai Poosam, Maasi Magam, Panguni Uthiram 2033; Vaigasi Visakam 2022, 2030, 2041). As the ruling asks, reported before the proximity test is deleted.
+- **Aadi Krithigai kala (OPEN-2).** The engine already used pradosham. Pradosham matches the vectors 4/11; sunrise matches 10/11.
+- **§6 invariant vs §6 tie-break, 2045.** Built as ruled: Navami holds two aparahnas and takes the first (18 Oct); Dasami holds only the 20th's, so Vijayadasami is 20 Oct, not consecutive. The invariant holds in the other 25 years and is pinned with 2045 as the reported exception.
+
 ---
 
 ## 9. Tajaka Ithasala / Isarafa
@@ -229,11 +355,206 @@ A kāraka-relative reading is a claim about a named relative. Its failure mode i
 
 ---
 
+## 14. Durmuhurtham Is an Electional Avoid Window, Not a Whole-Day Verdict
+
+**Decision (owner-delegated, 2026-09-23):** Durmuhurtham belongs in the
+Panchangam avoid register when the reader is choosing an **auspicious act or a
+new beginning**. It must not be expanded into “this whole period is bad for all
+ordinary activity,” and it must never colour the whole civil day as adverse.
+If the UI has room for explanatory copy, use the limiting phrase: **“Avoid for
+auspicious / new beginnings”** / **“சுப / புதிய தொடக்கங்களுக்கு தவிர்க்கவும்.”**
+
+**Rationale.** The production table is a weekday-indexed electional exclusion,
+already verified against the seven supplied Chennai almanac entries. Its name
+and `is_good=False` flag establish that it is not a recommended muhurta, but do
+not justify turning a narrow electional rule into a fear-based general warning.
+This is also why it is not added to the mobile Rahu/Yama reminder preferences:
+those reminders are an explicit, separately ruled product contract.
+
+**Affected modules and surfaces.** The computation remains in
+`app/calculations/panchangam.py`; the wire contract remains
+`PanchangamKalam.durmuhurtham`. Renderers in the shared web Calendar/day drawer,
+muhurta evidence, signed-out Home/Panchangam tools, and mobile
+Today/Panchangam/planner may show the windows only with the scope above.
+Activity-specific muhurta scoring may continue to exclude overlap as an
+electional factor. Kuligai remains governed separately by its conditional
+activity table and must not be inferred from this decision.
+
+**Two consequences of the scope, both of which are part of the ruling.**
+
+1. **It joins the Nalla Neram overlap check, and Kuligai leaves it.**
+   `avoidSlotsForOverlap` in `dashboard-calendar-tab-nova.tsx` marks an
+   auspicious window that a binding avoid period runs through. Durmuhurtham
+   belongs there *because* it binds on auspicious work, which is exactly what a
+   Gowri Nalla Neram window is offered for — the two claims would otherwise
+   contradict each other on one card. Kuligai was removed from that list under
+   R7 for the mirror reason: it is not a prohibition, so it has no standing to
+   qualify a recommendation.
+2. **It paints one rung below Yamagandam, never above it.** A narrower rule
+   must not look graver than a general one. `DAY_TIMELINE_BAND_STYLE` carries a
+   dedicated `avoid-scoped` kind for it — same hue as `avoid`, lower intensity —
+   and `NovaAvoidStrip` reads its dot colours from that same table rather than
+   re-typing them, so the strip and the timeline cannot drift into two
+   disagreeing severity ramps a few pixels apart. Pinned by
+   `dashboard-calendar-tab-nova.test.tsx`.
+
+**Migration impact.** None. No stored chart changes, cache-version change or
+recalculation is required; the field is derived from date, weekday, sunrise and
+sunset and was already optional on cached Panchangam responses.
+
+**Sign-off.** The repository owner delegated the remaining product/doctrine
+call to the implementation owner on 2026-09-23 in the §4/§6/§5 completion
+request. This section records that delegated decision; it does not claim a new
+independent printed-source review beyond the seven-entry verification already
+recorded in `HOME_CALENDAR_CHARTS_PROPOSALS_2026-09-22.md`.
+
+---
+
+## 15. Sign-Edge Grahas and the Lagna Edge
+
+**Decision (astrologer ruling, 2026-09-23; queue item "Sign-edge grahas").**
+
+1. **One fact, one penalty (Q1).** A graha within 1° of a sign boundary is also
+   in the first or last 6° Baladi zone, so the flat rasi-sandhi term (−8) and
+   the Baladi avastha scaling both come from its degree in the sign. They are
+   never both charged. The larger applies: if the Baladi cost
+   (`dignity × (1 − multiplier) × 0.60 × 0.30`) exceeds 8, it stands and the
+   sandhi row reads 0 with the reason; otherwise the −8 applies and the Baladi
+   scaling is lifted for that graha.
+   *Note on the ruling's wording.* The ruling also said this is "the same as
+   letting sandhi replace Baladi inside its window". That holds only while the
+   Baladi cost is at most 8. It is exceeded when dignity ≥ ~60 in a Mrita zone:
+   an exalted graha in the first degree of an even sign costs 13.5. Where the
+   two readings differ, we followed the stated rule ("the larger"), which never
+   under-penalises.
+   **Confirmed 2026-10-01, and relabelled `[PRODUCT]`.** The astrologer keeps
+   max(sandhi, Baladi) to avoid double-scoring one degree fact, and asked that
+   it be stated as a product scoring rule. Classical texts give the two as
+   separate observations; they do not say how to combine them in a number.
+   "The larger" is Vinaadi's combination rule, not a classical one.
+2. **No Baladi for Rahu and Ketu (Q2).** Baladi is defined for the seven grahas;
+   the nodes are always retrograde, so a mechanical reading would run their
+   stages backwards. The scorer's multiplier is 1.0 for them, the
+   `strength_breakdown.baladi` label is `NEUTRAL`, and no avastha line is
+   narrated. Their strength comes through the dispositor and the node doctrine.
+   Jagradadi was not ruled on and is unchanged.
+3. **A graha belongs only to its occupied sign (Q3).** Consistent with §6
+   (whole-sign is the primary engine). Copy: *"It gives its sign and house
+   results only from ‹sign›. Nearness to the edge can lower its strength but
+   never moves it into ‹neighbour›."* The earlier word "fully" was dropped
+   because it read as "undiminished strength".
+4. **Lagna edge by recompute, in two tiers (Q4).** The Lagna is recomputed at
+   the birth time ± the window and the crossing found by bisection, never
+   inferred from a degree cutoff. ±5 min gives a firm warning ("this Lagna
+   depends on the precise birth time"). ±15 min gives a softer note, because
+   Indian birth times are commonly rounded to 5 or 15 minutes. A recorded
+   birth-time confidence wider than 15 min widens the soft tier. The **Navamsa
+   Lagna** is checked the same way at ±5 min only: a navamsa lasts about 13
+   minutes, so a ±15 window would flag every chart.
+
+**Measured frequency** (400 synthetic births, 8–30°N): Lagna firm 8%, Lagna soft
+19%, **D9 Lagna firm 76%**. The D9 figure is arithmetic, not a bug: a ±5 min
+window covers 10 of a navamsa's ~13 minutes. Whether to show that note on three
+charts in four is an open product question (see the queue item).
+
+**Affected modules.** `app/calculations/chart_strength.py`
+(`SANDHI_PENALTY`, `SANDHI_EDGE_DEGREES`, `_BALADI_EXEMPT`, the natal score);
+`app/calculations/lagna_edge.py`; `app/services/chart_explanation_service.py`
+(avastha facet, sandhi sentence, core-identity notes);
+`app/services/_chart_summary.py` (Jadhagam report core identity); wire fields
+`coreIdentity.lagnaEdgeNote` / `navamsaLagnaEdgeNote` on both responses.
+Tests: `tests/test_sign_edge_narration.py`.
+
+**Migration impact.** None stored: natal scores are recomputed when a persisted
+chart is read. Scores move for (a) edge grahas whose Baladi cost is below 8,
+which rise by that cost; (b) edge grahas whose Baladi cost is 8 or more, which
+rise by 8; (c) Rahu and Ketu outside the Yuva band, which rise. Daily guidance
+already cached for today keeps its old natal inputs until the day rolls over.
+The daily engine version was deliberately not bumped.
+
+---
+
+## 16. Maandhi and Gulika Are Two Points — the Uttara-Kalamrita Convention
+
+**Decision (owner ruling 2026-09-29, reviewed and confirmed 2026-09-30):**
+Vinaadi adopts the **Uttara-Kalamrita** distinction. Maandhi (மாந்தி) and
+Gulika/Kuligai are separately calculated:
+
+| | Rule | Where |
+|---|---|---|
+| **Maandhi** | Proportional nazhigai after the span's start, own day/night tables | `MAANDHI_DAY_NAZHIGAI` / `MAANDHI_NIGHT_NAZHIGAI`, `app/services/_chart_planets.py` |
+| **Kuligai Kalam** | The complete eighth-part of the span whose lord is Saturn — an interval with a duration | `KULIGAI_SLOT` / `KULIGAI_NIGHT_SLOT`, `app/calculations/panchangam.py` |
+| **Gulika sphuta** | The ascendant at the **END** of that eighth-part | Not currently exposed as a chart point |
+
+**This is a chosen textual tradition, not a universal rule of Jyotisha.** Some
+editions and commentaries of **Brihat Parashara Hora Shastra** state that Mandi
+is another name for Gulika, and the Prasna-Marga lineage is cited on the same
+side. Vinaadi deliberately does not follow that convention. Recorded this way per
+the standing rule that contested doctrine is a lineage choice — we chose
+Uttara-Kalamrita, we are not claiming the synonym tradition is an error.
+
+**Authorities, kept distinct so neither is over-claimed:**
+
+- **Uttara-Kalamrita** — authority for Maandhi ≠ Gulika, and for the sphuta being
+  the END of Saturn's part. Its worked Saturday example gives Maandhi at 2
+  nazhigai after sunrise and Gulika at 3¾.
+- **Phaladeepika** — authority for the Maandhi constants and the day/night
+  sequences, and for the proportional adjustment when a span is not 30 nazhigai.
+  It is **not** cited for the two points being universally separate.
+
+**Internal cross-check.** Saturday's Gulika slot is the 1st eighth-part, whose end
+is 1 × 3.75 = 3¾ nazhigai, against Maandhi's 2 — reproducing the Uttara-Kalamrita
+example exactly. No other reading of either table produces that pair (the START
+would be 0.0, i.e. sunrise itself). Across the week |Maandhi − Gulika_end| is a
+clean progression: 0.25 nazhigai on Sunday rising by 0.25 a day to 1.75 on
+Saturday. That single check validates both tables and fixes the convention, and
+it is pinned in `tests/test_gulika.py`.
+
+**On "30 nazhigai".** The constants are stated in nazhigai (~24 min) of a
+**30-nazhigai reference span** — half of the 60-nazhigai day-and-night, a nominal
+divisor rather than the length of any computed day. It is not the equinoctial day
+either: under the §1 apparent-upper-limb sunrise, the equinox day at 8–13°N runs
+12h06.8m, about 30.28 nazhigai. The constant is scaled to the true local span. Equivalently,
+and the way a Tamil practitioner states it, the constants are read in
+*proportional* nazhigai each worth 1/30th of the span. Same arithmetic, and the
+first phrasing is the one that survives a reader who knows a nazhigai is a fixed
+unit of time. `MAANDHI_REFERENCE_NAZHIGAI` is named for this.
+
+**Vaara boundary.** The governing vaara runs **sunrise to sunrise**. A birth after
+civil midnight but before local sunrise belongs to the *preceding* date's vaara
+and takes that vaara's night constant. Civil midnight must not move the weekday;
+crossing local sunrise must. Not a rounding-scale distinction: Wednesday's night
+constant is 26 and Tuesday's is 2.
+
+**Maandhi's standing as a body.** A shadow upagraha. It afflicts as a malefic
+where affliction is *interpretive* — yoga detection, and `compute_bhava_bala`'s
+occupancy and drishti terms, the bhava it occupies suffering for it being standard
+Tamil practice. It is excluded from every calculation reserved for real grahas:
+no Shadbala, no graha yuddha, no retrogression or combustion, and nathonnatha
+scores it identically day or night. Both directions of that boundary are pinned.
+
+**Day/night resolution.** One canonical sunrise feeds the vaara boundary, the
+day/night classification, the span and the constant — the same
+`THIRUKANITHAM_SUNRISE_CONVENTION` the panchangam uses (§1), passed explicitly at
+the call site rather than inherited from a parameter default. A birth with **no
+time on file** resolves to *unknown*, not to day: Kala Bala then scores
+nathonnatha at the midpoint. No doctrine assumes a daylight birth for an unknown
+time — classical practice rectifies the time first — so the fail-safe abstains.
+Chart calculation version **v1.4**.
+
+**Still open.** Whether to expose a Gulika sphuta as a chart point at all, and if
+so whether a *night* Gulika sphuta takes the end of the night eighth-part by the
+same rule. Nothing consumes either today and no ruling has been asked for. §1's
+printed-publisher parity (AR-5) remains open and is inherited here, since Maandhi
+rides on the same sunrise.
+
+---
+
 ## Launch Gate Checklist
 
 Before claiming traditional accuracy:
 
-- [ ] §1 Hindu sunrise implemented and validated against ≥2 printed panchangams
+- [~] §1 Apparent sunrise implemented (2026-09-29 ruling) and cross-checked against DrikPanchang + independent NOAA/Meeus; **still unvalidated against ≥2 printed panchangams** — that is what this box is for, and neither cross-check closes it
 - [ ] §3 Murthi default switched to ingress-Moon method
 - [ ] §4 Jaimini Rahu reversed degree + karaka scheme documented
 - [ ] §5 Standard Chara Dasha (parity, minus-one, own-sign 12, Scorpio/Aquarius strength resolution)
@@ -244,9 +565,25 @@ Already compliant: §2 mean node (add JHora-divergence doc note), §7 Jeevan/Net
 
 **Compatibility Intelligence (premium report) gates — not core-launch-blocking, but required before the CI report can be called doctrine-compliant:**
 
-- [ ] §10 Moon–Moon harmony table replaced with the ratified symmetric table, symmetry test passing
-- [ ] §11 `_graha_relation` compound rule fixed (enemy-either-direction, friend-both-directions, else neutral)
-- [ ] §12 CI overall label hard-capped at CAUTION on a Rajju/Vedha veto
+- [x] §10 Moon–Moon harmony table replaced with the ratified symmetric table, symmetry test passing
+- [x] §11 `_graha_relation` compound rule fixed (enemy-either-direction, friend-both-directions, else neutral)
+- [x] §12 CI overall label hard-capped at CAUTION on a Rajju/Vedha veto
+
+> **Closed 2026-10-13 (F-DOC-01).** All three had been implemented for months
+> while the boxes stayed empty — the same stale-conclusion failure AST-1 had in
+> `MASTER_FIX_LIST.md`. Each was re-verified against the live code before being
+> ticked, not closed from memory:
+>
+> | Gate | Check run | Result |
+> |---|---|---|
+> | §10 | `_moon_harmony_label(a, b) == _moon_harmony_label(b, a)` over all 144 rasi pairs | 0 asymmetric; 5/9 EXCELLENT, 6/8 TENSE, 7th GOOD, 2/12 MIXED |
+> | §11 | `_graha_relation` on a one-way enemy (Sun–Venus), a both-ways friend (Sun–Mars) and a self-pair | enemy / friend / friend |
+> | §12 | `tests/test_compatibility_intelligence.py::test_rajju_dosha_caps_overall_label_at_caution_despite_high_score` and the Vedha twin | both pass with a pre-cap score ≥ 65 |
+>
+> The same day's ground-truth audit added a **second** cap to §12's axis that
+> was *not* implemented — a live one-sided Chevvai dosham could still read
+> EXCELLENT (F-CI-01). That is now built to the astrologer's anchor cases #4
+> and #6; see `compatibility_intelligence.sevvai_label_cap`.
 
 ---
 

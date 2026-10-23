@@ -1,15 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
 
-import { getTamilMonths } from "@vinaadi/shared/api";
+import { getPanchangamDay, getPanchangamMonth, getTamilMonths } from "@vinaadi/shared/api";
 import type { TamilMonthSpanEntry } from "@vinaadi/shared/api";
 
 import { apiFetchJson } from "@/lib/api";
 import { useElapsedSeconds } from "@/hooks/useElapsedSeconds";
+import { almanacMuhurthamLabel } from "@/lib/almanac-muhurtham";
 import { t, tKarana, tNakshatra, tTithi, tWeekday, tYoga } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
-import type { ApiEnvelope, MuhurtaFactor, MuhurtaSlot, MuhurtaResponseData, PanchangamDailyResponseData } from "@/lib/types";
+import type { ApiEnvelope, MuhurtaFactor, MuhurtaSlot, MuhurtaResponseData, PanchangamDailyResponseData, PanchangamMonthlyData } from "@/lib/types";
 import { addDays, formatClockLabel, formatDateLabel, tamilMonthOnly, todayIso } from "@/lib/format";
 import { convertMuhurtaTime } from "@/lib/timezone";
 import { NovaSelect } from "./nova-select";
@@ -21,8 +22,40 @@ import { Segmented } from "./ui/segmented";
 import { ModalShell } from "./modal-shell";
 import { GlossaryTerm } from "./glossary-term";
 import type { GlossaryKey } from "@/lib/glossary";
+import type { NaalCouple, WeddingRole } from "@/lib/muhurtham-naal";
+import { MonthlyCalendarViewNova } from "./dashboard-calendar-monthly-nova";
 
 export type PanchangamOverlayLocation = Pick<MuhurtaResponseData["activityLocation"], "latitude" | "longitude" | "timezone">;
+
+export type MuhurtaDayDrawerComponentProps = {
+  date: string;
+  todayDate: string;
+  data: PanchangamDailyResponseData | null;
+  loading: boolean;
+  error: string | null;
+  lang: Lang;
+  onClose: () => void;
+  onOpenFull?: () => void;
+  onStepDay: (delta: number) => void;
+  lead?: ReactNode;
+  stepContext?: {
+    position: number;
+    total: number;
+    previousLabel: string;
+    nextLabel: string;
+  };
+  open?: boolean;
+  onExitComplete?: () => void;
+};
+
+/** Injected rather than imported, and only because of an import cycle:
+ *  `DayDetailDrawerNova` lives inside `dashboard-calendar-tab-nova.tsx`, which
+ *  imports `NovaPlanMuhurtaPanel`, which imports this file. The drawer is worth
+ *  its own module — its test file is already called
+ *  `dashboard-calendar-day-drawer-nova.test.tsx` — and extracting it would let
+ *  all three layers import it directly and delete this prop. Left as a separate
+ *  change so a ~200-line component move is not buried in a feature diff. */
+export type MuhurtaDayDrawerComponent = ComponentType<MuhurtaDayDrawerComponentProps>;
 
 /**
  * Nova re-skin of dashboard-muhurta-picker.tsx's DashboardMuhurtaPicker —
@@ -195,6 +228,91 @@ function formatMuhurtaDate(value: string, lang: Lang): string {
   return parsed.toLocaleDateString(lang === "ta" ? "ta-IN" : "en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
 }
 
+/**
+ * The almanac verdict on a wedding day, in Nova's tokens (§3 of
+ * docs/HOME_CALENDAR_CHARTS_PROPOSALS_2026-09-22.md).
+ *
+ * The words and the tone come from `almanacMuhurthamLabel`, which the public
+ * muhurta calculator also reads — two surfaces render the same wedding slots in
+ * two design systems, and a doctrine answer applied to one of them is the
+ * DXA-08 failure. This component is only the painting.
+ *
+ * It sits beside the score and never inside it: the astrologer's reading is that
+ * almanac membership is a **gate**, not a bonus point, and the limbs the
+ * almanac's compilers weighed are already priced in `factors`.
+ */
+export function AlmanacMuhurthamBadge({ slot, lang }: { slot: MuhurtaSlot; lang: Lang }) {
+  const label = almanacMuhurthamLabel(slot.almanacMuhurtham, lang);
+  if (!label) return null;
+
+  if (label.tone === "listed") {
+    return (
+      <span
+        data-almanac={label.status}
+        style={{
+          display: "inline-flex", alignItems: "center", gap: "var(--space-1_5)",
+          marginTop: "var(--space-1_5)", padding: "2px 8px",
+          border: "1px solid var(--color-high-border)", borderRadius: "var(--radius-pill)",
+          background: "var(--color-high-bg)", color: "var(--color-high)",
+          fontSize: "var(--text-xs)", fontWeight: 700, lineHeight: 1.5,
+        }}
+      >
+        {label.text}
+        {label.pirai && <span style={{ fontWeight: 500, opacity: 0.85 }}>{label.pirai}</span>}
+      </span>
+    );
+  }
+
+  return (
+    <div
+      data-almanac={label.status}
+      style={{ marginTop: "var(--space-1_5)", fontSize: "var(--text-xs)", color: "var(--color-faint)", lineHeight: 1.5 }}
+    >
+      {label.text}
+    </div>
+  );
+}
+
+function MuhurtaActivityLead({ slot, activityLabel, lang }: { slot: MuhurtaSlot; activityLabel: string; lang: Lang }) {
+  return (
+    <section aria-label={lang === "ta" ? "உங்கள் செயலுக்கான முடிவு" : "For your activity"} style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)", paddingBottom: "var(--space-4)", borderBottom: "1px solid var(--color-border)" }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "var(--space-4)", flexWrap: "wrap" }}>
+        <div style={{ minWidth: 0 }}>
+          <p style={{ margin: 0, fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-text-accent)" }}>
+            {lang === "ta" ? "உங்கள் செயலுக்காக" : "For your activity"}
+          </p>
+          <h3 style={{ margin: "4px 0 0", fontSize: "var(--text-lg)", color: "var(--color-text-strong)" }}>{activityLabel}</h3>
+          <p style={{ margin: "4px 0 0", fontSize: "var(--text-base)", color: "var(--color-muted)" }}>
+            {formatClockLabel(slot.timeStart, lang)} – {formatClockLabel(slot.timeEnd, lang)}
+          </p>
+          <AlmanacMuhurthamBadge slot={slot} lang={lang} />
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <span style={{ display: "block", fontFamily: "var(--font-display)", fontSize: "var(--text-2xl)", lineHeight: 1, fontWeight: 700, color: SCORE_COLOR(slot.score) }}>{slot.score.toFixed(1)}</span>
+          <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>{t("muhurta_score", lang)}</span>
+        </div>
+      </div>
+
+      <p style={{ margin: 0, fontSize: "var(--text-base)", lineHeight: 1.55, color: "var(--color-text)" }}>
+        {lang === "ta" ? slot.panchangamSupport.ta : slot.panchangamSupport.en}
+      </p>
+      {slot.dashaSupport && (
+        <p style={{ margin: 0, fontSize: "var(--text-sm)", lineHeight: 1.55, color: "var(--color-muted)" }}>
+          <strong>{lang === "ta" ? "தசை ஆதரவு: " : "Dasha support: "}</strong>
+          {lang === "ta" ? slot.dashaSupport.ta : slot.dashaSupport.en}
+        </p>
+      )}
+      {slot.horaSupport && (
+        <p style={{ margin: 0, fontSize: "var(--text-sm)", lineHeight: 1.55, color: "var(--color-muted)" }}>
+          <strong>{lang === "ta" ? "ஹோரை: " : "Hora: "}</strong>
+          {lang === "ta" ? slot.horaSupport.ta : slot.horaSupport.en}
+        </p>
+      )}
+      {(slot.factors?.length ?? 0) > 0 && <FactorList factors={slot.factors ?? []} lang={lang} />}
+    </section>
+  );
+}
+
 function NovaMuhurtaCard({
   slot,
   lang,
@@ -241,7 +359,9 @@ function NovaMuhurtaCard({
           {slot.tamilDate && (
             <div style={{ fontSize: "var(--text-base)", color: "var(--color-text-accent)", fontWeight: 600 }}>{lang === "ta" ? slot.tamilDate.ta : slot.tamilDate.en}</div>
           )}
-          <div style={{ fontSize: "var(--text-base)", color: "var(--color-muted)" }}>{formatClockLabel(slot.timeStart)} - {formatClockLabel(slot.timeEnd)}</div>
+          <div style={{ fontSize: "var(--text-base)", color: "var(--color-muted)" }}>{formatClockLabel(slot.timeStart, lang)} - {formatClockLabel(slot.timeEnd, lang)}</div>
+          {/* Beside the score, never inside it (§3). */}
+          <AlmanacMuhurthamBadge slot={slot} lang={lang} />
           {slot.traditionalMonthNotices && slot.traditionalMonthNotices.length > 0 && (
             <div style={{ marginTop: "8px", padding: "6px 8px", border: "1px solid var(--color-mid-border)", borderRadius: "var(--radius-sm)", background: "var(--color-surface-soft)", color: "var(--color-text)", fontSize: "var(--text-sm)", lineHeight: 1.45 }}>
               {slot.traditionalMonthNotices.map((notice, index) => (
@@ -314,7 +434,14 @@ function NovaMuhurtaCard({
 
 /** Compact, read-only Panchangam inspector for a date already shown by Muhurta.
  * It intentionally uses the activity location, rather than the profile location,
- * so the calendar facts and the chosen muhurta are always about the same place. */
+ * so the calendar facts and the chosen muhurta are always about the same place.
+ *
+ * SUPERSEDED, and it has no callers. Every date that used to open it now opens
+ * `MuhurtaDayDetailDrawer`, which shows the same almanac facts plus the result
+ * that opened them. It is retained only because removing a file or an export is
+ * the owner's call, not a drive-by. Do not extend it: it renders nowhere, so an
+ * addition here is untested by construction and reads to the next author as a
+ * live doctrine surface worth copying. Make the change in the drawer instead. */
 export function MuhurtaPanchangamOverlay({
   date,
   location,
@@ -352,8 +479,8 @@ export function MuhurtaPanchangamOverlay({
     return () => controller.abort();
   }, [date, location.latitude, location.longitude, location.timezone]);
 
-  const timing = (slot: { start: string; end: string }) => `${formatClockLabel(slot.start)} – ${formatClockLabel(slot.end)}`;
-  const limbUntil = (value: string) => formatClockLabel(value);
+  const timing = (slot: { start: string; end: string }) => `${formatClockLabel(slot.start, lang)} – ${formatClockLabel(slot.end, lang)}`;
+  const limbUntil = (value: string) => formatClockLabel(value, lang);
 
   return (
     <ModalShell
@@ -392,7 +519,7 @@ export function MuhurtaPanchangamOverlay({
               </p>
               {data.tamilDate && <p style={{ margin: "4px 0 0", fontSize: "var(--text-sm)", color: "var(--color-text-accent)" }}>{lang === "ta" ? data.tamilDate.ta : data.tamilDate.en}</p>}
               <p style={{ margin: "6px 0 0", fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>
-                {t("label_sunrise", lang)} {formatClockLabel(data.sunrise)} · {t("label_sunset", lang)} {formatClockLabel(data.sunset)}
+                {t("label_sunrise", lang)} {formatClockLabel(data.sunrise, lang)} · {t("label_sunset", lang)} {formatClockLabel(data.sunset, lang)}
               </p>
             </div>
 
@@ -445,11 +572,123 @@ export function MuhurtaPanchangamOverlay({
   );
 }
 
+/** The shared monthly-calendar day drawer, fed with the activity location.
+ *
+ * Each caller owns the lead content and the ordered result dates. That keeps a
+ * quick-scan score, a detailed-election score, and a published-naal score in
+ * their own contexts; the drawer never blends two ranking engines on one
+ * screen. Panchangam data comes through the existing shared wrapper rather
+ * than adding another direct fetch path.
+ */
+export function MuhurtaDayDetailDrawer({
+  date,
+  location,
+  resultDates,
+  lang,
+  lead,
+  onDateChange,
+  onClose,
+  DayDrawer,
+}: {
+  date: string;
+  location: PanchangamOverlayLocation;
+  resultDates: readonly string[];
+  lang: Lang;
+  lead: ReactNode;
+  onDateChange: (date: string) => void;
+  onClose: () => void;
+  DayDrawer: MuhurtaDayDrawerComponent;
+}) {
+  const [data, setData] = useState<PanchangamDailyResponseData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [open, setOpen] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setData(null);
+    setError(null);
+    setLoading(true);
+    Promise.resolve()
+      .then(() => getPanchangamDay(date, { lat: location.latitude, lng: location.longitude, tz: location.timezone }))
+      .then((response) => { if (!cancelled) setData(response.data); })
+      .catch((requestError: unknown) => {
+        if (!cancelled) setError(requestError instanceof Error ? requestError.message : "");
+      })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [date, location.latitude, location.longitude, location.timezone]);
+
+  // One entry per date. A result list is ranked, so the same day can appear
+  // twice with two windows; stepping by slot would then land on the date it
+  // started from and the drawer would look frozen. Position and total count
+  // *days*, which is what the arrows actually move through.
+  const steppableDates = useMemo(() => [...new Set(resultDates)], [resultDates]);
+  const index = steppableDates.indexOf(date);
+  const step = (delta: number) => {
+    if (index < 0) return;
+    const next = steppableDates[index + delta];
+    if (next) onDateChange(next);
+  };
+
+  return (
+    <DayDrawer
+      date={date}
+      todayDate={todayIso()}
+      data={data}
+      loading={loading}
+      error={error}
+      lang={lang}
+      open={open}
+      onClose={() => setOpen(false)}
+      onExitComplete={onClose}
+      onStepDay={step}
+      lead={lead}
+      // A date outside the list has no place in it, so it reports no position
+      // rather than claiming to be the first result. Both arrows then disable
+      // instead of jumping somewhere the reader did not ask for.
+      stepContext={{
+        position: index < 0 ? 0 : index + 1,
+        total: steppableDates.length,
+        previousLabel: lang === "ta" ? "முந்தைய முடிவு" : "Previous result",
+        nextLabel: lang === "ta" ? "அடுத்த முடிவு" : "Next result",
+      }}
+    />
+  );
+}
+
+/** The panel's answer to "whose charts decide a wedding?". Read only when the
+ *  selected activity is MARRIAGE — the couple ruling was made for a wedding. */
+export type PickerWedding = {
+  couple: NaalCouple | null;
+  subjectRole: WeddingRole;
+  partnerName: string | null;
+};
+
 interface Props {
   lang: Lang;
   chartId: string | null;
+  DayDrawer: MuhurtaDayDrawerComponent;
   initialActivity?: string;
   initialDateFrom?: string;
+  wedding?: PickerWedding;
+}
+
+const WEDDING_ACTIVITY = "MARRIAGE";
+
+/** The couple/role query parameters for a wedding search, and nothing otherwise.
+ *
+ *  A solo role still travels: naming the one chart as the bride is what lets
+ *  Ch. XIV p.79's Jupiter rule be applied to it, exactly as in the Tools finder. */
+export function withWeddingParams(params: URLSearchParams, activity: string, wedding: PickerWedding | undefined): URLSearchParams {
+  if (activity !== WEDDING_ACTIVITY || !wedding) return params;
+  if (wedding.couple) {
+    params.set("partnerChartId", wedding.couple.partnerChartId);
+    params.set("subjectRole", wedding.couple.subjectRole);
+  } else if (wedding.subjectRole !== "PERSON") {
+    params.set("subjectRole", wedding.subjectRole);
+  }
+  return params;
 }
 
 const DEFAULT_SEARCH_RANGE_DAYS = 30;
@@ -562,10 +801,16 @@ function byScoreDesc(slots: MuhurtaSlot[]): MuhurtaSlot[] {
   return [...slots].sort((a, b) => b.score - a.score);
 }
 
-export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateFrom }: Props) {
+type ResultView = "list" | "calendar";
+
+export function NovaMuhurtaPicker({ lang, chartId, DayDrawer, initialActivity, initialDateFrom, wedding }: Props) {
   const today = todayIso();
   const [activity, setActivity] = useState(initialActivity ?? "");
   const [pakshaFilter, setPakshaFilter] = useState<"" | "SHUKLA" | "KRISHNA">("");
+  // §3: the almanac list is a gate most families apply before they look at a
+  // score, so it is offered as a filter beside the paksha one rather than as a
+  // sort. Wedding-only — the sourced sheets are wedding sheets.
+  const [almanacOnly, setAlmanacOnly] = useState(false);
   // A preset date arrives as one specific day, which only the explicit range
   // can express — a month mode would silently widen the very date the user
   // just clicked in the shortlist above.
@@ -592,6 +837,12 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
   const [checkingDate, setCheckingDate] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [panchangamRequest, setPanchangamRequest] = useState<{ date: string; location: PanchangamOverlayLocation } | null>(null);
+  const [resultView, setResultView] = useState<ResultView>("list");
+  const [resultMarkersOn, setResultMarkersOn] = useState(true);
+  const [resultMonth, setResultMonth] = useState(() => ({ year: Number(today.slice(0, 4)), month: Number(today.slice(5, 7)) }));
+  const [resultMonthData, setResultMonthData] = useState<PanchangamMonthlyData | null>(null);
+  const [resultMonthLoading, setResultMonthLoading] = useState(false);
+  const [resultMonthError, setResultMonthError] = useState<string | null>(null);
   const [compareCityQuery, setCompareCityQuery] = useState("");
   const [compareCity, setCompareCity] = useState<CityEntry | null>(null);
   // Where the activity happens, which is not always where the person was born.
@@ -607,6 +858,18 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
   useEffect(() => {
     if (initialActivity) setActivity(initialActivity);
   }, [initialActivity]);
+
+  // A wedding result belongs to the charts it was scored against. Changing the
+  // partner or a role above must not leave a one-chart list standing under a
+  // two-chart heading, so both results are cleared and the reader searches again.
+  const weddingKey = activity === WEDDING_ACTIVITY
+    ? `${wedding?.couple?.partnerChartId ?? ""}|${wedding?.couple?.subjectRole ?? wedding?.subjectRole ?? ""}`
+    : "";
+  useEffect(() => {
+    setResult(null);
+    setAssessment(null);
+    setAssessmentLocation(null);
+  }, [weddingKey]);
   useEffect(() => {
     if (initialDateFrom) {
       setSearchMode("range");
@@ -713,8 +976,17 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
     setAssessmentLocation(null);
     try {
       const chunks = await Promise.all(searchDateRanges(searched).map(async ({ from, to }) => {
-        const params = withActivityLocation(new URLSearchParams({ activity, dateFrom: from, dateTo: to }));
+        const params = withWeddingParams(
+          withActivityLocation(new URLSearchParams({ activity, dateFrom: from, dateTo: to })),
+          activity,
+          wedding,
+        );
         if (pakshaFilter) params.set("paksha", pakshaFilter);
+        // Gated on the activity as well as the toggle. The control is hidden for
+        // anything but a wedding, but a stale `true` left behind by an activity
+        // switch would 422 the search rather than quietly widen it, and the
+        // reader would see a network error for a filter they cannot see.
+        if (almanacOnly && activity === WEDDING_ACTIVITY) params.set("almanacOnly", "true");
         return apiFetchJson<ApiEnvelope<MuhurtaResponseData>>(`/api/v1/charts/${chartId}/muhurta?${params}`);
       }));
       const firstResult = chunks[0]?.data;
@@ -744,8 +1016,12 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
     setAssessment(null);
     setAssessmentLocation(null);
     try {
-      const params = withActivityLocation(
-        new URLSearchParams({ activity, dateFrom: checkDate, dateTo: checkDate, includeExcluded: "true" }),
+      const params = withWeddingParams(
+        withActivityLocation(
+          new URLSearchParams({ activity, dateFrom: checkDate, dateTo: checkDate, includeExcluded: "true" }),
+        ),
+        activity,
+        wedding,
       );
       const json = await apiFetchJson<ApiEnvelope<MuhurtaResponseData>>(`/api/v1/charts/${chartId}/muhurta?${params}`);
       setAssessment(json.data.slots[0] ?? null);
@@ -802,12 +1078,86 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
   // An unknown key (a stale selection, or none) falls back to the whole list
   // rather than rendering an empty result the user cannot explain.
   const selectedMonthGroup = tamilMonthGroups.find((group) => group.key === tamilMonthKey) ?? null;
-  const visibleGroups = selectedMonthGroup ? [selectedMonthGroup] : tamilMonthGroups;
-  const visibleSlots = byScoreDesc(visibleGroups.flatMap((group) => group.slots));
+  const visibleGroups = useMemo(
+    () => (selectedMonthGroup ? [selectedMonthGroup] : tamilMonthGroups),
+    [selectedMonthGroup, tamilMonthGroups],
+  );
+  // Memoised on `visibleGroups`, not on its own output: `byScoreDesc` and
+  // `flatMap` return a fresh array every render, so a `[visibleSlots]`
+  // dependency memoises nothing and hands the month grid a new Set each pass.
+  const visibleSlots = useMemo(() => byScoreDesc(visibleGroups.flatMap((group) => group.slots)), [visibleGroups]);
+  const visibleResultDates = useMemo(() => visibleSlots.map((slot) => slot.date), [visibleSlots]);
+  const visibleFirstResultDate = visibleResultDates[0];
+  const visibleResultDateSet = useMemo(() => new Set(visibleResultDates), [visibleResultDates]);
+
+  /** Which result opened the drawer, and which dates its arrows step through.
+   *
+   *  Two independent paths reach this drawer and they do NOT share a result
+   *  list. The search results are ranked slots; "check a specific date" is a
+   *  single day the reader typed, which is almost never one of them. Resolving
+   *  the slot from the search list alone made that second button do nothing at
+   *  all — the state updated and no drawer rendered. Each path therefore
+   *  carries its own slot and its own step list, and neither borrows the
+   *  other's score. */
+  const drawerContext = useMemo(() => {
+    if (!panchangamRequest) return null;
+    const fromResults = visibleSlots.find((slot) => slot.date === panchangamRequest.date);
+    if (fromResults) return { slot: fromResults, dates: visibleResultDates };
+    if (assessment && assessment.date === panchangamRequest.date) {
+      // One checked day: both arrows are endpoints, so both render disabled.
+      return { slot: assessment, dates: [assessment.date] };
+    }
+    return null;
+  }, [panchangamRequest, visibleSlots, visibleResultDates, assessment]);
   // A single-month result has nothing to filter or split, so the whole control
   // row stays out of the way.
   const showTamilMonthControls = tamilMonthGroups.length > 1;
   const groupedView = showTamilMonthControls && groupByTamilMonth && !selectedMonthGroup;
+
+  useEffect(() => {
+    if (!visibleFirstResultDate) return;
+    setResultMonth({ year: Number(visibleFirstResultDate.slice(0, 4)), month: Number(visibleFirstResultDate.slice(5, 7)) });
+  }, [visibleFirstResultDate]);
+
+  // Keyed on the request, not on the view: toggling List → Calendar → List →
+  // Calendar asked the API for the same month every time and blanked the grid
+  // in between. A month already in hand for this location is simply shown.
+  const resultMonthKey = result
+    ? `${resultMonth.year}-${resultMonth.month}@${result.activityLocation.latitude},${result.activityLocation.longitude},${result.activityLocation.timezone}`
+    : null;
+  const loadedResultMonthKey = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (resultView !== "calendar" || !result || !resultMonthKey) return;
+    if (loadedResultMonthKey.current === resultMonthKey) return;
+    let cancelled = false;
+    setResultMonthData(null);
+    setResultMonthError(null);
+    setResultMonthLoading(true);
+    Promise.resolve()
+      .then(() => getPanchangamMonth(resultMonth.year, resultMonth.month, {
+        lat: result.activityLocation.latitude,
+        lng: result.activityLocation.longitude,
+        tz: result.activityLocation.timezone,
+      }))
+      .then((response) => {
+        if (cancelled) return;
+        setResultMonthData(response.data);
+        // Only a month actually in hand counts as loaded, so a failed request
+        // is retried on the next visit rather than remembered as fetched.
+        loadedResultMonthKey.current = resultMonthKey;
+      })
+      .catch((requestError: unknown) => {
+        if (!cancelled) setResultMonthError(requestError instanceof Error ? requestError.message : "");
+      })
+      .finally(() => { if (!cancelled) setResultMonthLoading(false); });
+    return () => { cancelled = true; };
+  }, [resultView, result, resultMonthKey, resultMonth.year, resultMonth.month]);
+
+  const stepResultMonth = (delta: number) => {
+    const next = new Date(resultMonth.year, resultMonth.month - 1 + delta, 1);
+    setResultMonth({ year: next.getFullYear(), month: next.getMonth() + 1 });
+  };
 
   return (
     <div ref={rootRef} style={{ padding: "var(--space-4) var(--space-5)", borderRadius: "var(--radius-md)", background: "var(--color-surface)", border: "1px solid var(--color-border)", fontFamily: "var(--font-body)" }}>
@@ -891,6 +1241,23 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
           </>
         )}
 
+        {activity === WEDDING_ACTIVITY && (
+          <FieldShell
+            label={lang === "ta" ? "பஞ்சாங்க நாள்" : "Almanac list"}
+            style={{ flex: "1 1 190px" }}
+          >
+            <NovaSelect
+              value={almanacOnly ? "ONLY" : ""}
+              onChange={(value) => setAlmanacOnly(value === "ONLY")}
+              ariaLabel={lang === "ta" ? "பஞ்சாங்க முகூர்த்த நாள் வடிகட்டி" : "Almanac muhurtham day filter"}
+              options={[
+                { value: "", label: lang === "ta" ? "அனைத்து நாட்களும்" : "All days" },
+                { value: "ONLY", label: lang === "ta" ? "பஞ்சாங்க நாட்கள் மட்டும்" : "Almanac days only" },
+              ]}
+            />
+          </FieldShell>
+        )}
+
         <FieldShell label={lang === "ta" ? "பிறை" : "Lunar fortnight"} style={{ flex: "1 1 160px" }}>
           <NovaSelect
             value={pakshaFilter}
@@ -948,6 +1315,22 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
           lang === "ta" ? "தேட ஒரு காலகட்டத்தைத் தேர்ந்தெடுக்கவும்." : "Choose a period to search."
         )}
       </p>
+
+      {/* Whose charts a wedding search reads, stated where the search is run.
+          The choice itself lives once, above this panel; without this line a
+          reader scrolled down to the results has no way to tell a one-chart
+          wedding list from a two-chart one. */}
+      {activity === WEDDING_ACTIVITY && wedding && (
+        <p style={{ margin: "-6px 0 14px", fontSize: "var(--text-sm)", color: wedding.couple ? "var(--color-text)" : "var(--color-muted)", lineHeight: 1.5 }}>
+          {wedding.couple
+            ? (lang === "ta"
+              ? `இரு ஜாதகங்களுக்கும் சரிபார்க்கப்படுகிறது — இந்த ஜாதகம்${wedding.partnerName ? ` மற்றும் ${wedding.partnerName}` : ""}. இருவரில் ஒருவருக்குச் சந்திராஷ்டமம் இருந்தால் அந்நாள் நீக்கப்படும்.`
+              : `Checked for both charts — this chart${wedding.partnerName ? ` and ${wedding.partnerName}` : " and your partner's"}. Chandrashtama for either of you rules a day out.`)
+            : (lang === "ta"
+              ? "இந்த ஜாதகத்துக்கு மட்டுமே சரிபார்க்கப்படுகிறது. இருவருக்கும் சரிபார்க்க, மேலே \"மணமகள் & மணமகன்\" என்பதைத் தேர்ந்தெடுக்கவும்."
+              : "Checked for this chart only. Choose \"Bride and groom\" above to check both of you.")}
+        </p>
+      )}
 
       {(() => {
         // Sits with the inputs, not with the results, because it changes what is
@@ -1060,6 +1443,18 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
             {selectedMonthGroup && <span style={{ color: "var(--color-text-accent)", fontWeight: 600 }}> · {tamilMonthLabel(selectedMonthGroup)}</span>}
           </p>
 
+          <div style={{ marginBottom: "var(--space-4)" }}>
+            <Segmented<ResultView>
+              value={resultView}
+              onChange={setResultView}
+              ariaLabel={lang === "ta" ? "முகூர்த்த முடிவுகளின் காட்சி" : "Muhurta result view"}
+              options={[
+                { key: "list", label: lang === "ta" ? "பட்டியல்" : "List" },
+                { key: "calendar", label: lang === "ta" ? "நாட்காட்டி" : "Calendar" },
+              ]}
+            />
+          </div>
+
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "var(--space-2)", marginBottom: "14px", padding: "10px 12px", background: "var(--color-surface-soft)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)" }}>
             <span style={{ color: "var(--color-faint)", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase" }}>{lang === "ta" ? "இடம்" : "Results calculated for"}</span>
             <strong style={{ color: "var(--color-text)", fontSize: "var(--text-base)" }}>{result.activityLocation.place}</strong>
@@ -1123,8 +1518,9 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
             </div>
           )}
 
-          {groupedView
-            ? visibleGroups.map((group) => (
+          {resultView === "list" ? (
+            groupedView
+              ? visibleGroups.map((group) => (
                 <div key={group.key} style={{ marginBottom: "18px" }}>
                   <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "var(--space-2)", marginBottom: "8px", paddingBottom: "6px", borderBottom: "1px solid var(--color-border)" }}>
                     <span style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-accent)" }}>{tamilMonthLabel(group)}</span>
@@ -1147,8 +1543,8 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
                     />
                   ))}
                 </div>
-              ))
-            : visibleSlots.map((slot, i) => (
+                ))
+              : visibleSlots.map((slot, i) => (
                 <NovaMuhurtaCard
                   key={`${slot.date}-${i}`}
                   slot={slot}
@@ -1157,7 +1553,39 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
                   compareCity={compareCity}
                   onOpenPanchangam={(date) => openPanchangam(date, result.activityLocation)}
                 />
-              ))}
+                ))
+          ) : (
+            <MonthlyCalendarViewNova
+              lang={lang}
+              year={resultMonth.year}
+              month={resultMonth.month}
+              monthly={resultMonthData}
+              isLoading={resultMonthLoading}
+              error={resultMonthError}
+              hasLocation
+              selectedDate={drawerContext?.slot.date ?? visibleSlots[0]?.date ?? result.dateFrom}
+              previewDate={drawerContext?.slot.date ?? null}
+              todayDate={today}
+              onPrevMonth={() => stepResultMonth(-1)}
+              onNextMonth={() => stepResultMonth(1)}
+              showQuickJumps={false}
+              onSelectDate={(date) => openPanchangam(date, result.activityLocation)}
+              selectableDates={visibleResultDateSet}
+              focusDays={{
+                label: lang === "ta" ? (selectedActivity?.ta ?? "இந்தச் செயல்") : (selectedActivity?.en ?? "this activity"),
+                on: resultMarkersOn,
+                onToggle: () => setResultMarkersOn((on) => !on),
+                dates: visibleResultDateSet,
+                loading: false,
+                failed: false,
+                chipLabel: lang === "ta" ? "தேடல் முடிவுகள்" : "Search results",
+                cellLabel: lang === "ta" ? "இந்தச் செயலுக்கான முகூர்த்த முடிவு" : "Muhurta result for this activity",
+                note: lang === "ta"
+                  ? "குறியிடப்பட்ட நாட்கள் மட்டுமே இந்த விரிவான முகூர்த்தத் தேடலின் முடிவுகள் — அவற்றைத் திறக்கலாம். மற்ற நாட்கள் படிக்கக் காட்டப்படுகின்றன; விரைவு தேடலின் மதிப்பெண் இங்கே கலக்கப்படவில்லை."
+                  : "Only the marked dates are results of this detailed muhurta search, and only those open. Other days are shown to read; the quick-scan score is not blended into this view.",
+              }}
+            />
+          )}
         </div>
       )}
 
@@ -1167,12 +1595,22 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
         </p>
       )}
 
-      {panchangamRequest && (
-        <MuhurtaPanchangamOverlay
+      {panchangamRequest && drawerContext && (
+        <MuhurtaDayDetailDrawer
           date={panchangamRequest.date}
           location={panchangamRequest.location}
+          resultDates={drawerContext.dates}
           lang={lang}
+          lead={(
+            <MuhurtaActivityLead
+              slot={drawerContext.slot}
+              activityLabel={selectedActivity ? (lang === "ta" ? selectedActivity.ta : selectedActivity.en) : (lang === "ta" ? "இந்தச் செயல்" : "this activity")}
+              lang={lang}
+            />
+          )}
+          onDateChange={(date) => setPanchangamRequest({ ...panchangamRequest, date })}
           onClose={() => setPanchangamRequest(null)}
+          DayDrawer={DayDrawer}
         />
       )}
     </div>

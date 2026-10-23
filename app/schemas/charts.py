@@ -6,12 +6,18 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.constants.versions import CHART_CALCULATION_VERSION
 from app.schemas.birth_profiles import BirthProfileResponse
 
 
 class ChartCalculateRequest(BaseModel):
     birth_profile_id: UUID = Field(alias="birthProfileId")
-    calculation_version: str = Field(default="thirukanitham-2026-v1", alias="calculationVersion")
+    #: Accepted and IGNORED. The engine version is the server's answer, not the
+    #: client's — `_chart_persist.calculate_chart` does not forward this. It
+    #: stays in the model because the config below is extra="forbid", so removing
+    #: it would 400 every deployed client that still sends it (web did, with a
+    #: literal two revisions behind). See app/constants/versions.py.
+    calculation_version: str = Field(default=CHART_CALCULATION_VERSION, alias="calculationVersion")
     force_recalculate: bool = Field(default=False, alias="forceRecalculate")
 
     model_config = ConfigDict(populate_by_name=True, extra="forbid")
@@ -32,6 +38,7 @@ class LagnaPosition(BaseModel):
     nakshatra: int
     nakshatra_name: str = Field(alias="nakshatraName")
     pada: int
+    d9_rasi: int = Field(alias="d9Rasi")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -70,6 +77,19 @@ class PlanetPosition(BaseModel):
     is_combust: bool = Field(alias="isCombust")
     is_cazimi: bool = Field(default=False, alias="isCazimi")
     d9_rasi: int = Field(alias="d9Rasi")
+    # Deliberately has no default. "NEUTRAL_SIGN" is a doctrinal claim about a
+    # graha, not an "unset" marker, so defaulting to it would let a construction
+    # site that forgets the field ship a wrong dignity silently instead of
+    # failing at author time. Every caller derives it with
+    # `chart_strength.d9_dignity_label(graha, d9_rasi)`.
+    d9_dignity: Literal[
+        "EXALTED",
+        "OWN_SIGN",
+        "FRIEND_SIGN",
+        "NEUTRAL_SIGN",
+        "ENEMY_SIGN",
+        "DEBILITATED",
+    ] = Field(alias="d9Dignity")
     is_vargottama: bool = Field(alias="isVargottama")
     show_retrograde_badge: bool = Field(alias="showRetrogradeBadge")
     strength_score: int = Field(default=0, alias="strengthScore")
@@ -94,6 +114,21 @@ class PlanetPosition(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class YogaPeakWindow(BaseModel):
+    """The running Antaram (Pratyantar), when its lord also formed this yoga.
+
+    Ruling 2026-09-23: Antaram never activates a yoga on its own; inside a
+    period the Maha or Antar lord has already activated, it marks the sharpest
+    sub-window.
+    """
+
+    start: date
+    end: date
+    antaram_lord: str = Field(alias="antaramLord")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class ChartYogaInsight(BaseModel):
     name: str
     is_present: bool = Field(alias="isPresent")
@@ -110,6 +145,31 @@ class ChartYogaInsight(BaseModel):
     # to "" so an unmapped code renders as a hidden line, never a raw enum.
     effect_ta: str = Field(default="", alias="effectTa")
     effect_en: str = Field(default="", alias="effectEn")
+    # Nullable and additive: clients that do not render it lose nothing.
+    peak_window: YogaPeakWindow | None = Field(default=None, alias="peakWindow")
+    # DD-15 timing state: "STRONG" (strongly activated), "MODERATE" (moderately
+    # activated, including by a secondary activator) or "NONE" (present, not a
+    # dominant influence this period). Additive; replaces nothing.
+    activation_tier: str = Field(default="NONE", alias="activationTier")
+    # O-25 (2026-10-05): the forming grahas' structural reach — a Vinaadi
+    # tie-break for the Top-3 yoga lists, not classical doctrine. One integer,
+    # lexicographic: houses ruled ×100, houses occupied ×10, +1 when the Lagna
+    # or its lord takes part (`_chart_build._structural_reach`). Additive.
+    structural_reach: int = Field(default=0, alias="structuralReach")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class DoshamReferenceHouse(BaseModel):
+    """One reference point a dosham was counted from (DD-17). Language-free:
+    surfaces render the rasi through their own localiser."""
+
+    reference: str  # LAGNA | MOON | VENUS | D9_LAGNA
+    reference_rasi: int = Field(alias="referenceRasi")
+    #: Mars's house, or the Rahu house then the Ketu house.
+    houses: list[int]
+    #: Whether that placement falls in the dosham's houses from this reference.
+    counts: bool
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -135,6 +195,17 @@ class ChartDoshamInsight(BaseModel):
     explanation_how_en: str = Field(default="", alias="explanationHowEn")
     variant_ta: str = Field(default="", alias="variantTa")
     variant_en: str = Field(default="", alias="variantEn")
+    # DD-17 (2026-10-06). Defaults keep an older cached payload valid.
+    #: Grade before any mitigation: STRONG | PARTIAL | WEAK, "" when not formed.
+    formation_strength: str = Field(default="", alias="formationStrength")
+    #: What remains: NONE | MILD | MODERATE | STRONG. Never NONE when present.
+    residual: str = "NONE"
+    #: Facts that shape the reading without moving the grade.
+    context_notes: list[str] = Field(default_factory=list, alias="contextNotes")
+    reference_houses: list[DoshamReferenceHouse] = Field(default_factory=list, alias="referenceHouses")
+    #: What this placement tends to bring in this chart (e.g. Ketu in the 2nd).
+    meaning_ta: str = Field(default="", alias="meaningTa")
+    meaning_en: str = Field(default="", alias="meaningEn")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -276,6 +347,10 @@ class JadhagamReportCoreIdentity(BaseModel):
     janma_pada: int = Field(alias="janmaPada")
     current_mahadasha: str = Field(alias="currentMahadasha")
     current_antardasha: str = Field(alias="currentAntardasha")
+    # Same note as the chart explanation's core identity: set only when a few
+    # minutes of birth-time error would change the Lagna sign.
+    lagna_edge_note: ChartSummaryText | None = Field(default=None, alias="lagnaEdgeNote")
+    navamsa_lagna_edge_note: ChartSummaryText | None = Field(default=None, alias="navamsaLagnaEdgeNote")
 
     model_config = ConfigDict(populate_by_name=True)
 

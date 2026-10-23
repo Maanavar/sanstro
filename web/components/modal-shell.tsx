@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
+import { Presence } from "./ui/presence";
 
 /**
  * Shared modal behavior (DASH-05) — the dialog semantics drawer-panel.tsx and
@@ -33,6 +34,8 @@ export function ModalShell({
   panelClassName?: string;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(true);
+  const requestClose = useCallback(() => setOpen(false), []);
 
   useEffect(() => {
     const prevFocus = document.activeElement as HTMLElement | null;
@@ -40,7 +43,7 @@ export function ModalShell({
 
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") {
-        onClose();
+        requestClose();
         return;
       }
       if (e.key !== "Tab") return;
@@ -63,7 +66,7 @@ export function ModalShell({
       document.removeEventListener("keydown", onKeyDown);
       prevFocus?.focus();
     };
-  }, [onClose]);
+  }, [requestClose]);
 
   const defaultOverlayStyle: React.CSSProperties | undefined = overlayClassName
     ? undefined
@@ -76,18 +79,20 @@ export function ModalShell({
       };
 
   return (
-    <div
+    <Presence
+      open={open}
+      onExitComplete={onClose}
       role="dialog"
       aria-modal="true"
       aria-label={label}
       className={overlayClassName}
       style={{ ...defaultOverlayStyle, ...overlayStyle }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onClick={(e) => { if (e.target === e.currentTarget) requestClose(); }}
     >
       <div ref={panelRef} tabIndex={-1} className={panelClassName} style={{ outline: "none", ...panelStyle }}>
         {children}
       </div>
-    </div>
+    </Presence>
   );
 }
 

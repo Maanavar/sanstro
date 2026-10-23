@@ -1,14 +1,30 @@
 name: Mobile CI
 
+# A15: the filter used to be mobile/** + packages/shared/** only, so a lockfile
+# bump, a workspace override, a design-token change or an edit to this very
+# workflow ran no mobile check at all. The root files below decide what mobile
+# resolves and installs; packages/** covers design-tokens as well as shared.
+# (main has no branch protection as of 2026-10-08, so a path-skipped run cannot
+# leave a required check pending — revisit this filter if one is made required.)
 on:
   push:
     paths:
       - "mobile/**"
-      - "packages/shared/**"
+      - "packages/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".npmrc"
+      - ".github/workflows/mobile.yml"
   pull_request:
     paths:
       - "mobile/**"
-      - "packages/shared/**"
+      - "packages/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".npmrc"
+      - ".github/workflows/mobile.yml"
 
 concurrency:
   group: mobile-${{ github.ref }}
@@ -16,8 +32,13 @@ concurrency:
 
 jobs:
   check:
+    # The display name is kept although the job now also runs Jest: it is the
+    # status-check name, and renaming it would orphan any check that is later
+    # made required under the old name.
     name: Type-check + lint
     runs-on: ubuntu-latest
+    # Measured under 1 min before Jest; the full Jest run is ~20 s locally.
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -46,11 +67,19 @@ jobs:
       - name: Lint mobile
         run: pnpm -F mobile lint
 
+      # A15: the 167 utility, React-context and screen tests (Phase 1's A02/A07/
+      # A08 lifecycle tests among them) never ran in CI. Stable 4 of 4 local
+      # runs on 2026-10-08, slowest test 1.2 s against Jest's 5 s default, no
+      # open-handle warning — so no --forceExit and no raised timeout.
+      - name: Test mobile (Jest)
+        run: pnpm -F mobile test --ci
+
   build:
     name: EAS production build
     runs-on: ubuntu-latest
     needs: check
     if: github.ref == 'refs/heads/main'
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 

@@ -75,11 +75,11 @@ test.afterAll(async () => {
 });
 
 /**
- * Backdrop-click the first-run modals shut.
+ * Close the first-run modals.
  *
- * Deliberately not clicking "Skip for now": on the focus picker that button
- * fires a real PATCH /settings/life-mode, which can sit saving; the backdrop
- * path is pure client state (same reasoning as nova-sweep.spec.ts).
+ * The focus picker's "Skip for now" closes at once and saves BALANCED in the
+ * background (life-focus plan, Phase 0), so it never waits on the PATCH and
+ * the picker stays gone. Any other first-run modal: backdrop click.
  *
  * `settle` waits for a dialog that has not mounted YET rather than returning
  * immediately when none is visible — the focus picker re-appears a beat after a
@@ -94,7 +94,9 @@ async function dismissDialogs(attempts = 12, settleMs = 0) {
       await page.waitForTimeout(300);
       if (!(await dialog.isVisible().catch(() => false))) return;
     }
-    await dialog.click({ position: { x: 3, y: 3 }, force: true }).catch(() => {});
+    const skip = dialog.getByRole("button", { name: /^(Skip for now|இப்போது தவிர்க்கவும்)$/ });
+    if (await skip.isVisible().catch(() => false)) await skip.click({ timeout: 3_000 }).catch(() => {});
+    else await dialog.click({ position: { x: 3, y: 3 }, force: true }).catch(() => {});
     await page.waitForTimeout(400);
   }
 }

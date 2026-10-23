@@ -1,8 +1,15 @@
 import { describe, expect, it } from "vitest";
 
-import { activeLimb, formatOwnChandrashtamaWindow, parseHmToMinutes } from "./dashboard-calendar-shared";
+import { activeLimb, formatOwnChandrashtamaWindow, parseHmToMinutes, resolveTamilDate } from "./dashboard-calendar-shared";
 
 const hm = (value: string) => parseHmToMinutes(value);
+
+describe("resolveTamilDate", () => {
+  it("hides the Tamil date until the server supplies it (D6)", () => {
+    expect(resolveTamilDate(undefined, "2026-09-17", "en")).toBe("");
+    expect(resolveTamilDate(undefined, "2026-09-17", "ta")).toBe("");
+  });
+});
 
 describe("activeLimb", () => {
   // Regression: 2026-07-20 Chennai. Saptami runs from before sunrise (05:55)

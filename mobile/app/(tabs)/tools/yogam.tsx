@@ -23,7 +23,13 @@ import {
 import { getYogam } from "@/api/tools";
 import { getPrimaryChartId } from "@/lib/userPrefs";
 import type { ChartYogaInsight } from "@vinaadi/shared/types";
-import { displayName, isAdverseYoga } from "@vinaadi/shared/yogaDisplay";
+import {
+  displayName,
+  isAdverseYoga,
+  presentInBirthChartLabel,
+  yogaActivationLabel,
+  yogaActivationState,
+} from "@vinaadi/shared/yogaDisplay";
 
 /**
  * Strength is not valence. `STRONG` on a Kemadruma means the isolation pattern is
@@ -59,6 +65,26 @@ function yogaMeaning(yoga: ChartYogaInsight, isTamil: boolean): string {
   return isTamil ? yoga.descriptionTa : yoga.descriptionEn;
 }
 
+/**
+ * DD-15's four timing states (DOCTRINE_DECISIONS v1.3), shared with web through
+ * `yogaActivationState`. A present yoga the running dasha does not light is
+ * "not a dominant influence in the current period" — never "dormant".
+ */
+function activationSentence(yoga: ChartYogaInsight): string {
+  const state = yogaActivationState(yoga);
+  const label = yogaActivationLabel(state, "en");
+  switch (state) {
+    case "STRONGLY_ACTIVATED":
+      return `${label}: the planets that form this yoga rule the running dasha period.`;
+    case "MODERATELY_ACTIVATED":
+      return `${label}: a planet tied to this yoga rules the running dasha or bhukti.`;
+    case "NOT_DOMINANT":
+      return `${presentInBirthChartLabel("en")}. ${label}.`;
+    default:
+      return "This yoga does not form in the birth chart.";
+  }
+}
+
 function yogaHowCheckedItems(yoga: ChartYogaInsight): WhyItem[] {
   return [
     { label: "Yoga name", value: displayName(yoga.name, "en") },
@@ -67,12 +93,7 @@ function yogaHowCheckedItems(yoga: ChartYogaInsight): WhyItem[] {
     // the effect first. Basis (the mechanism) stays, one line below.
     ...(yoga.effectEn?.trim() ? [{ label: "What it means", value: yoga.effectEn }] : []),
     { label: "Basis", value: yoga.descriptionEn },
-    {
-      label: "Dasha activation",
-      value: yoga.dashaActivated
-        ? "A dasha lord tied to this yoga is currently running, so it is active now."
-        : "No current dasha lord activates this yoga, so it is formed but dormant.",
-    },
+    { label: "Dasha activation", value: activationSentence(yoga) },
     // Only claim the yoga is a highlight when it is one. See ADVERSE_YOGAS.
     ...(isAdverseYoga(yoga.name)
       ? [{

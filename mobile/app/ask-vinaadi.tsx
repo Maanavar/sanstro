@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, Sparkles, FolderOpen } from "lucide-react-native";
 import {
   ActivityIndicator,
@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useColors } from "@/hooks/useColors";
 import type { ColorTokens } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
@@ -21,12 +21,16 @@ import { TamilType, EnType } from "@/theme/typography";
 import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "@/hooks/useSession";
 import { getDailyStatus, askVinaadi } from "@/api/askVinaadi";
+import { ApiError } from "@/api/client";
+import { useLifeFocus } from "@/hooks/useLifeFocus";
+import { askChipsForMode } from "@vinaadi/shared/lifeFocus";
+import { askAllowanceRefilled, askLimitMessage } from "@vinaadi/shared/askAllowance";
+import { trackEvent } from "@/lib/analytics";
+import { accountKey } from "@/lib/queryKeys";
 
-const SUGGESTED_QUESTIONS = [
-  { ta: "திருமணம் எப்போது?", en: "When will I get married?" },
-  { ta: "தொழில் மாற்றம் சரியா?", en: "Is a career change right for me?" },
-  { ta: "இந்த ஆண்டு எப்படி?", en: "How is this year for me?" },
-];
+// The chips follow the reader's life focus, the same three web shows
+// (LIFE_MODE_ASK_CHIPS in @vinaadi/shared; Life focus Phase 3). Until the
+// focus loads, or with none chosen, they are the BALANCED three.
 
 interface ChatMessage {
   id: string;
@@ -42,7 +46,7 @@ export default function AskVinaadiScreen() {
   const styles = useMemo(() => makeStyles(C), [C]);
   const { lang } = useI18n();
   const isTamil = lang === "ta";
-  const { tier } = useSession();
+  const { gateTier: tier } = useSession();
   const { chartId: _chartId } = useLocalSearchParams<{ chartId?: string }>();
   const chartId = Array.isArray(_chartId) ? _chartId[0] : _chartId;
 
@@ -51,17 +55,42 @@ export default function AskVinaadiScreen() {
   const [isSending, setIsSending] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
 
+  const queryClient = useQueryClient();
+  const statusKey = accountKey("ask-vinaadi-status");
   const { data: statusData } = useQuery({
-    queryKey: ["ask-vinaadi-status"],
+    queryKey: statusKey,
     queryFn: getDailyStatus,
     staleTime: 1000 * 60,
     enabled: tier !== "guest",
   });
 
-  const questionsUsed = statusData?.questionsUsedToday ?? 0;
-  const dailyLimit = statusData?.dailyLimit ?? 5;
+  const { mode: focusMode } = useLifeFocus();
+  const suggestedQuestions = askChipsForMode(focusMode);
+
+  // The server's own count decides the limit. This used to compare
+  // `questionsUsedToday` — a field the status route never sends — against a
+  // fallback of 5, so `atLimit` was always false and the limit bar never showed.
+  // A count from before the reset instant no longer blocks: the server decides.
   const chipsLeft = statusData?.chipsRemaining;
-  const atLimit = questionsUsed >= dailyLimit;
+  const atLimit =
+    chipsLeft !== null && chipsLeft !== undefined && chipsLeft <= 0 && !askAllowanceRefilled(statusData?.resetsAt);
+  // Same rule as web: no upgrade to a subscriber, and none in the open beta,
+  // which promised every feature unlocked.
+  const canUpgrade = statusData !== undefined && !statusData.isPremium && !statusData.openBeta;
+  const limitText = statusData ? askLimitMessage(statusData, lang, canUpgrade) : "";
+
+  // While blocked, nothing re-renders at the reset on its own. Re-read the
+  // status when it arrives. setTimeout overflows past 2^31-1 ms.
+  const resetsAt = statusData?.resetsAt;
+  useEffect(() => {
+    if (!atLimit || !resetsAt) return;
+    const wait = Date.parse(resetsAt) - Date.now();
+    if (!(wait > 0)) return;
+    const timer = setTimeout(() => {
+      void queryClient.invalidateQueries({ queryKey: accountKey("ask-vinaadi-status") });
+    }, Math.min(wait + 1000, 2_147_483_647));
+    return () => clearTimeout(timer);
+  }, [atLimit, resetsAt, queryClient]);
 
   // Gate: guests and registered users without a chartId need to go create a chart first
   if (tier === "guest") {
@@ -166,11 +195,16 @@ export default function AskVinaadiScreen() {
       setMessages((prev) => [...prev, assistantMsg]);
     } catch (err: unknown) {
       const status = err instanceof Error && "status" in err ? (err as { status: number }).status : 0;
+      const code = err instanceof ApiError ? err.apiError?.code : undefined;
       let errText = isTamil ? "பிழை ஏற்பட்டது. மீண்டும் முயற்சிக்கவும்." : "Something went wrong. Please try again.";
-      if (status === 429) {
-        errText = isTamil
-          ? `இன்று ${dailyLimit} கேள்விகள் முடிந்தன. நாளை மீண்டும் கேளுங்கள்.`
-          : `Daily limit of ${dailyLimit} questions reached. Come back tomorrow.`;
+      if (code === "RATE_LIMITED" && err instanceof ApiError && err.apiError) {
+        // Also a 429, but "slow down", not a spent quota.
+        errText = isTamil ? err.apiError.message.ta : err.apiError.message.en;
+      } else if (status === 429) {
+        // Re-read the status so the limit bar appears with the server's
+        // count and reset time; until it lands, say what we already know.
+        void queryClient.invalidateQueries({ queryKey: statusKey });
+        if (limitText) errText = limitText;
       }
       const errMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -283,11 +317,18 @@ export default function AskVinaadiScreen() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.chipsRow}
           >
-            {SUGGESTED_QUESTIONS.map((q, i) => (
+            {suggestedQuestions.map((q, i) => (
               <TouchableOpacity
                 key={i}
                 style={styles.suggestChip}
-                onPress={() => sendMessage(isTamil ? q.ta : q.en, true)}
+                onPress={() => {
+                  trackEvent("life_focus_ask_chip_tapped", {
+                    focus: focusMode,
+                    surface: "mobile",
+                    chip_index: i,
+                  });
+                  void sendMessage(isTamil ? q.ta : q.en, true);
+                }}
                 disabled={atLimit}
                 activeOpacity={0.85}
               >
@@ -339,11 +380,9 @@ export default function AskVinaadiScreen() {
         {atLimit && (
           <View style={styles.limitBar}>
             <Text style={[styles.limitBarText, isTamil ? TamilType.caption : EnType.caption]}>
-              {isTamil
-                ? `இன்று ${dailyLimit} கேள்விகள் முடிந்தன. நாளை மீண்டும் கேளுங்கள்.`
-                : `Daily limit of ${dailyLimit} questions reached. Come back tomorrow.`}
+              {limitText}
             </Text>
-            {tier !== "premium" && (
+            {canUpgrade && (
               <TouchableOpacity onPress={() => router.push("/premium")}>
                 <Text style={styles.limitUpgradeText}>
                   {isTamil ? "Premium →" : "Premium →"}

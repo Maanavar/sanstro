@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.calculations.astro import house_from_reference, julian_day_to_utc_datetime, resolve_rasi
 from app.calculations.display_names import planet_en, planet_ta
 from app.calculations.tajaka import calculate_tajaka_chart
+from app.constants.versions import API_RESPONSE_VERSION
 from app.models import BirthProfile, Chart
 from app.models.chart_planet import ChartPlanet
 from app.schemas.varshaphala import (
@@ -125,15 +126,20 @@ def get_varshaphala(
         if score >= 70:
             ta = f"{karaka_ta} இந்த ஆண்டு {karaka_house}-ஆம் வீட்டில் இருப்பதால் இந்தத் துறையில் முன்னேற்ற வாய்ப்பு அதிகம்."
             en = f"With {karaka_en} placed in house {karaka_house} this year, this area is strongly supportive for progress."
-            months = [2, 4, 6, 9, 11]
         elif score >= 50:
             ta = f"{karaka_ta} {karaka_house}-ஆம் வீட்டில் இருப்பதால் கலப்பு பலன் — திட்டமிட்டு சென்றால் முன்னேற்றம் சாத்தியம்."
             en = f"{karaka_en} in house {karaka_house} gives mixed results this year; progress is possible with planning."
-            months = [3, 5, 8, 10]
         else:
             ta = f"{karaka_ta} {karaka_house}-ஆம் வீட்டில் இருப்பதால் இந்த ஆண்டு கவனமாக செயல்பட வேண்டிய துறை."
             en = f"With {karaka_en} in house {karaka_house}, this area needs caution and disciplined action this year."
-            months = [1, 7, 12]
+        # FSA-17 (owner ruling 2026-10-21): favourable months are HIDDEN. They
+        # were a constant per score band — every area scoring >= 70 on every
+        # chart got [2, 4, 6, 9, 11] — so two brothers saw identical months on a
+        # paid feature. The field stays (it is a four-surface wire contract) and
+        # is always empty. Bring months back only when they are derived from
+        # the individual's chart by a method written down and ruled on FIRST;
+        # never by swapping in another plausible-looking formula.
+        months: list[int] = []
 
         area_outlook.append(
             VarshaphalaAreaOutlook(
@@ -175,7 +181,7 @@ def get_varshaphala(
         success=True,
         data=data,
         meta={
-            "calculationVersion": "thirukanitham-2026-v1",
+            "calculationVersion": API_RESPONSE_VERSION,
             "generatedAt": datetime.now(tz=UTC),
         },
     )

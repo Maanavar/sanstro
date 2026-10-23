@@ -22,7 +22,9 @@ import {
   YOGA_REMEDIES,
   yogaReadingStatus,
   yogaReadingStatusLabel,
+  yogaFactorHeading,
 } from "./dashboard-yoga-dosham-panel";
+import { yogaActivationLabel, yogaActivationState } from "@vinaadi/shared/yogaDisplay";
 import { NovaAskEntryChip, NovaAttributeBand, NovaDetailBreadcrumb, NovaDetailHero, novaDetailCardStyle } from "./dashboard-explore-detail-nova";
 import { Card, Kicker } from "./ui";
 
@@ -261,8 +263,10 @@ export function DashboardExploreYogamNova({
     { ta: yoga.descriptionTa, en: yoga.descriptionEn },
     { ta: yoga.effectTa, en: yoga.effectEn },
   );
-  const whyText = buildWhyText(yoga.conditionsMet, yoga.cancellationFactors, yoga.isPresent, false, yoga.dashaActivated, lang);
-  const powerText = operating ? getYogaPowerContext(yoga.name, yoga.strength, yoga.dashaActivated, lang) : null;
+  const activationState = yogaActivationState(yoga);
+  // Present: the conditions are listed below. Absent: the factor list is.
+  const whyText = buildWhyText(yoga.conditionsMet, yoga.cancellationFactors, yoga.isPresent, false, false, lang, { listsShown: yoga.isPresent || (yoga.cancellationFactors?.length ?? 0) > 0 });
+  const powerText = operating ? getYogaPowerContext(yoga.name, yoga.strength, activationState, lang) : null;
 
   const ownStatusLabel = yogaStatusLabel(yoga, lang);
   const ownStatusColor = yogaStatusColor(yoga);
@@ -313,8 +317,9 @@ export function DashboardExploreYogamNova({
           { label: lang === "ta" ? "பலம்" : "Strength", value: strengthBand(yoga.strength, yoga.isPresent, lang) },
           {
             label: lang === "ta" ? "தசை" : "Dasha",
-            value: yoga.dashaActivated
-              ? (lang === "ta" ? "இப்போது செயல்பாட்டில்" : "Active now")
+            // DD-15: one of the four shared states, never "dormant".
+            value: yoga.isPresent
+              ? yogaActivationLabel(yogaActivationState(yoga), lang)
               : (lang === "ta" ? "இப்போது செயல்படவில்லை" : "Not active now"),
           },
           {
@@ -329,16 +334,11 @@ export function DashboardExploreYogamNova({
 
         {/* LEFT */}
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-          <Card>
-            <Kicker>{lang === "ta" ? "இது உண்மையில் என்ன பொருள்" : "What it actually means"}</Kicker>
-            <p style={{ margin: 0, fontFamily: "var(--font-nova-prose, var(--font-body))", fontSize: "var(--text-base)", lineHeight: 1.7, color: "var(--color-text)" }}>
-              {astroText(whatText)}
-            </p>
-          </Card>
-
+          {/* "What it actually means" repeated the hero's prose word for word
+              (both `whatText`); the hero keeps it. */}
           <Card>
             <Kicker>{lang === "ta" ? "ஏன் உங்கள் ஜாதகத்தில் உள்ளது" : "Why your chart has this"}</Kicker>
-            <p style={{ margin: 0, fontSize: "var(--text-base)", lineHeight: 1.6, color: "var(--color-text)" }}>{astroText(whyText)}</p>
+            {whyText && <p style={{ margin: 0, fontSize: "var(--text-base)", lineHeight: 1.6, color: "var(--color-text)" }}>{astroText(whyText)}</p>}
             {yoga.isPresent && yoga.conditionsMet.length > 0 && (
               <ul style={{ margin: 0, paddingLeft: "var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
                 {yoga.conditionsMet.map((c, i) => (
@@ -349,7 +349,7 @@ export function DashboardExploreYogamNova({
             {yoga.cancellationFactors.length > 0 && (
               <div style={{ marginTop: "4px" }}>
                 <p style={{ margin: "0 0 6px", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                  {lang === "ta" ? "நிவர்த்தி காரணங்கள்" : "Cancellation factors"}
+                  {yogaFactorHeading(yoga.cancellationFactors, lang)}
                 </p>
                 <ul style={{ margin: 0, paddingLeft: "var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
                   {yoga.cancellationFactors.map((c, i) => (
@@ -361,16 +361,17 @@ export function DashboardExploreYogamNova({
           </Card>
 
           {yoga.isPresent && powerText && (
-            <Card variant="accent" style={{ background: "linear-gradient(120deg, var(--color-accent-muted), transparent)" }}>
+            <Card variant="accent" style={{ backgroundColor: "var(--color-surface)", backgroundImage: "linear-gradient(120deg, var(--color-accent-muted), transparent)" }}>
               <Kicker color="var(--color-accent-strong)">{lang === "ta" ? "உங்கள் ஜாதகத்தில்" : "In your chart"}</Kicker>
               <p style={{ margin: 0, fontSize: "var(--text-base)", lineHeight: 1.6, color: "var(--color-text)" }}>{astroText(powerText)}</p>
               <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap", alignItems: "center" }}>
                 <span style={{ fontSize: "var(--text-xs)", color: "var(--color-text)", background: "color-mix(in srgb, var(--color-text-strong) 5%, transparent)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)" }}>
                   {lang === "ta" ? "பலம்" : "Strength"} · {strengthBand(yoga.strength, true, lang)}
                 </span>
-                {yoga.dashaActivated && (
+                {yogaActivationState(yoga) !== "NOT_DOMINANT" && (
                   <span style={{ fontSize: "var(--text-xs)", color: "var(--color-text)", background: "color-mix(in srgb, var(--color-text-strong) 5%, transparent)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)" }}>
-                    {lang === "ta" ? "இப்போது செயலில் உள்ளது (உங்கள் தற்போதைய கிரக காலம் இதைத் தூண்டுகிறது)" : "Active right now (your current planetary period is triggering it)"}
+                    {yogaActivationLabel(yogaActivationState(yoga), lang)}
+                    {lang === "ta" ? " (உங்கள் தற்போதைய கிரக காலம் இதைத் தூண்டுகிறது)" : " (your current planetary period is triggering it)"}
                   </span>
                 )}
                 <button

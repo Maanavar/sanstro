@@ -166,8 +166,8 @@ export const PPU_REPORT_PRODUCTS = {
     priceINR: 59,
     label: { ta: "நடுத்தர அறிக்கை", en: "Standard Report" },
     description: {
-      ta: "கிரக நிலை, விரிவான தசா, அடிப்படை வருஷபலன்",
-      en: "Planetary positions, full dasha, basic varshaphala",
+      ta: "கிரக நிலை, விரிவான தசா, அடிப்படை வருடப்பலன்",
+      en: "Planetary positions, full dasha, basic annual chart (Varuda Palan)",
     },
   },
   DETAILED_5PAGE: {
@@ -254,6 +254,20 @@ export type SubscriptionPlan = keyof typeof SUBSCRIPTION_PLANS;
 
 export function getTierLimits(tier: Tier): TierLimits {
   return TIER_LIMITS[tier];
+}
+
+/**
+ * The tier whose limits a signed-in client should apply.
+ *
+ * During the open beta (`MeResponse.openBeta`) the server holds every signed-in
+ * account to premium's features (app/core/subscription.py::limits_for_user), so
+ * the client must unlock the same — otherwise a screen shows a lock the server
+ * would not enforce. Guests are never lifted: the beta is for accounts.
+ * `tier` itself stays the subscription fact; this is only for gating.
+ */
+export function effectiveTier(tier: Tier, openBeta: boolean | undefined): Tier {
+  if (tier === "guest") return tier;
+  return openBeta ? "premium" : tier;
 }
 
 export function canAccess(tier: Tier, feature: keyof TierLimits): boolean {

@@ -1,7 +1,9 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
+import { JsonLd } from "@/lib/json-ld";
 import type { Metadata } from "next";
 import { BabyNameFinderContent } from "./BabyNameFinderContent";
 
-export const metadata: Metadata = {
+const EN_METADATA: Metadata = {
   title: "Tamil Baby Name Finder — Nakshatra Pada Names (Draft)",
   description:
     "Enter a date, time and place of birth and get baby names matched to the birth-nakshatra pada, ranked by Fortune Alignment against that chart — no account needed. In active development — names and the underlying pada table are both unverified drafts, shown for preview only.",
@@ -27,6 +29,10 @@ export const metadata: Metadata = {
       "Nakshatra-pada baby names from birth details, ranked by Fortune Alignment. Preview only — pending astrologer and native-speaker review.",
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/tools/baby-name-finder");
+}
 
 const FAQ_JSONLD = {
   "@context": "https://schema.org",
@@ -70,10 +76,7 @@ const FAQ_JSONLD = {
 export default function BabyNameFinderPage() {
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSONLD) }}
-      />
+      <JsonLd en={FAQ_JSONLD} />
       <BabyNameFinderContent />
     </>
   );

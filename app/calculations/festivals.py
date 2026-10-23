@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
+from contextlib import contextmanager
+from contextvars import ContextVar
+from dataclasses import dataclass
 from datetime import date
 from typing import Literal
 
@@ -83,11 +87,11 @@ _YEARLY_FESTIVALS: dict[int, list[FestivalEntry]] = {
         # 15:07 IST, hours before sunset under either sunrise definition).
         # These three remain hardcoded (not in Doctrine §8's starter rule
         # set) — only their dates were corrected, not their reckoning.
-        ("01-13", "Bhogi", "hindu"),
+        # FCA-08: Bhogi / Mattu Pongal / Kaanum Pongal are now derived from
+        # Thai 1 (`_yearly_observances`), which is 15 Jan 2026 by owner ruling;
+        # the hindu rows that stood here were a day early. Gazetted rows stay.
         ("01-15", "Pongal", "tamilnadu_govt"),
-        ("01-15", "Mattu Pongal", "hindu"),
         ("01-16", "Thiruvalluvar Day", "tamilnadu_govt"),
-        ("01-16", "Kaanum Pongal / Uzhavar Thirunal", "hindu"),
         ("01-17", "Uzhavar Thirunal", "tamilnadu_govt"),
         ("02-01", "Thai Poosam", "tamilnadu_govt"),
         ("04-14", "Tamil New Year (Puthandu) / Ambedkar Jayanti", "tamilnadu_govt"),
@@ -208,6 +212,91 @@ def has_gazetted_coverage(year: int) -> bool:
     """
     return year in GAZETTED_FESTIVAL_YEARS
 
+
+# ---------------------------------------------------------------------------
+# Selection rules and when they fire (rulings 2026-10-22 round two, §0.1).
+#
+# Three first-round defects shared one cause: a tie-break implemented as a
+# filter, running in years with nothing to break a tie between. Every rule
+# below that can move or choose a day says when it fires, and records each
+# firing, so the audit (scripts/audit/yearly_observances_scan.py) can count
+# the years each one actually fired. A tie-break firing in more than a handful
+# of years is a bug report, not a result. Mirrored, with confidence tags, in
+# docs/DOCTRINE_DECISIONS_V1.md §8.1.
+# ---------------------------------------------------------------------------
+SELECTION_RULES: dict[str, str] = {
+    "solar_month.duplicate_tie_break": (
+        "FIRES WHEN: a star (or special tithi) is named on two days of one Tamil solar month "
+        "EFFECT: the one in the amanta month that begins inside the solar month "
+        "OTHERWISE: dormant; the single day stands"
+    ),
+    "solar_month.full_moon_tie_break": (
+        "FIRES WHEN: a Family A star is named on two days of its solar month "
+        "EFFECT: the one beside the solar month's own full moon (held pending OPEN-3) "
+        "OTHERWISE: dormant; the single day stands"
+    ),
+    "kala.sunrise_fallback": (
+        "FIRES WHEN: a sunset-kala star holds no sunset "
+        "EFFECT: the day it holds at sunrise (§0.3 universal fallback) "
+        "OTHERWISE: dormant; the pradosham day stands"
+    ),
+    "contained.names_day": (
+        "FIRES WHEN: a star or tithi holds no kala instant and no sunrise "
+        "EFFECT: the sunrise-to-sunrise day containing it (§5; names the day only) "
+        "OTHERWISE: dormant"
+    ),
+    "aparahna.two_aparahnas_first": (
+        "FIRES WHEN: the tithi holds two aparahnas "
+        "EFFECT: the first (§6) "
+        "OTHERWISE: dormant; the one aparahna day stands"
+    ),
+    "aparahna.none_sunrise_fallback": (
+        "FIRES WHEN: the tithi holds no aparahna "
+        "EFFECT: the tithi at sunrise, first of two (§6) "
+        "OTHERWISE: dormant"
+    ),
+    "jayanthi.rohini_tie_break": (
+        "FIRES WHEN: Krishna Ashtami holds two nisheethas, or none "
+        "EFFECT: the night with Rohini at nisheetha; if neither, the later (§2) "
+        "OTHERWISE: dormant; the one Ashtami night stands"
+    ),
+    "sankatahara.two_moonrises_later": (
+        "FIRES WHEN: Krishna Chaturthi holds two moonrises EFFECT: the later (FCA-04) OTHERWISE: dormant"
+    ),
+    "sankatahara.no_moonrise_sunrise": (
+        "FIRES WHEN: Krishna Chaturthi holds no moonrise EFFECT: the sunrise-Chaturthi day (FCA-04) "
+        "OTHERWISE: dormant"
+    ),
+    "varalakshmi.pournami_is_friday": (
+        "FIRES WHEN: Shravana's Pournami day is a Friday EFFECT: that Friday (§9.1) "
+        "OTHERWISE: dormant; the last Friday before it"
+    ),
+}
+
+_rule_sink: ContextVar[list[str] | None] = ContextVar("festival_rule_sink", default=None)
+
+
+@contextmanager
+def rule_fires() -> Iterator[list[str]]:
+    """Collect the `SELECTION_RULES` that fire while festivals are computed.
+
+    For the audit's per-rule fire count (§0.1); production never opens one,
+    so recording costs one context-variable read.
+    """
+    sink: list[str] = []
+    token = _rule_sink.set(sink)
+    try:
+        yield sink
+    finally:
+        _rule_sink.reset(token)
+
+
+def _fired(rule: str) -> None:
+    sink = _rule_sink.get()
+    if sink is not None:
+        sink.append(rule)
+
+
 # ---------------------------------------------------------------------------
 # Nakshatra-based festivals (nakshatra name → festival) — every year
 # ---------------------------------------------------------------------------
@@ -219,6 +308,267 @@ _NAKSHATRA_FESTIVALS: dict[str, str] = {
     # astrology.py, nakshatra_content.py) — this row silently never fired.
     "KARTHIGAI":  "Karthigai Vratam",
 }
+
+# FCA-04 — which instant names a star day. Measured against the owner-supplied
+# 2027 almanac (scripts/audit/almanac_2027_vs_engine.py): Karthigai vratam is
+# the star at SUNSET (13/13; the sunrise star matched 7/13 and was always a day
+# late), while Thiruvonam vratam is the star at SUNRISE (13/13; sunset 8/13).
+# Two observance classes, two instants — recorded as that almanac's practice,
+# for the astrologer to confirm, not as the other reading being wrong. Rohini
+# has no almanac row to measure and stays on sunrise.
+_SUNSET_STAR_VRATAMS = frozenset({"KARTHIGAI"})
+
+
+@dataclass(frozen=True, slots=True)
+class NisheethaNight:
+    """One night, at its nisheetha (§2): the tithi and star then — the
+    computation — and the two civil dates it could be printed on — the label.
+    Kept as separate fields so the label rule can change without touching
+    the computation."""
+
+    tithi_number: int
+    nakshatra_name: str
+    evening_date: date  # the civil date of the sunset that opens the night
+    nisheetha_date: date  # the civil date of the nisheetha instant
+
+
+@dataclass(frozen=True, slots=True)
+class ObservanceInstants:
+    """Panchangam values read at instants other than this day's sunrise.
+
+    Every field is optional. A missing value never falls back to the sunrise
+    value: the observance that needs it is omitted (thinner, never wrong) or,
+    for the "previous" fields, the first-of-two dedup is simply skipped.
+
+    * ``sunset_nakshatra_name`` / ``previous_sunset_nakshatra_name`` — the star
+      at this and the previous civil day's sunset (Karthigai vratam).
+    * ``previous_sunrise_nakshatra_name`` — the star at the previous sunrise. A
+      star spanning two sunrises is observed on the first (the almanac lists
+      one Thiruvonam day where the sunrise rule found two).
+    * ``moonrise_tithi_number`` (+ the previous and next day's) — the tithi
+      at moonrise. Sankatahara Chaturthi is a chandrodaya vrata: the fast ends
+      at moonrise, so Krishna Chaturthi must hold then. The sunrise rule
+      matched the 2027 almanac 5/12; see ``_is_sankatahara_day``.
+    * ``previous_nishita_tithi_number`` — the tithi at the previous midnight,
+      so a Chaturdashi holding two midnights names one Sivarathiri, the first.
+    """
+
+    sunset_nakshatra_name: str | None = None
+    previous_sunset_nakshatra_name: str | None = None
+    previous_sunrise_nakshatra_name: str | None = None
+    moonrise_tithi_number: int | None = None
+    previous_moonrise_tithi_number: int | None = None
+    next_moonrise_tithi_number: int | None = None
+    previous_nishita_tithi_number: int | None = None
+    # FCA-07 — the yearly observances that existed only as 2026 rows.
+    previous_sunrise_tithi_number: int | None = None
+    # The next sunrise's tithi: a tithi holding neither sunrise is kshaya.
+    next_sunrise_tithi_number: int | None = None
+    # Midpoint of aparahna, the fourth fifth of daytime. Ayudha Pooja and
+    # Vijayadasami are aparahna observances: the 2027 almanac prints Ayudha
+    # Pooja on 8 Oct, when Navami holds the afternoon, though the sunrise
+    # tithi is still Ashtami (the 2026 rows show the same pattern).
+    aparahna_tithi_number: int | None = None
+    # Whether this is the last civil day of its Tamil month (Bhogi is the last
+    # day of Margazhi, the eve of Thai 1).
+    tamil_month_ends_today: bool = False
+    # Ruling 2026-10-22 Q6 — tharpanam is the Amavasai at aparahna; the
+    # neighbours' aparahna settle "two aparahnas" and "none".
+    previous_aparahna_tithi_number: int | None = None
+    next_aparahna_tithi_number: int | None = None
+    # Krishna Jayanthi (§2) — the four nights opening on the evenings of this
+    # day -2, -1, 0 and +1. The night is judged at nisheetha (true midnight,
+    # the midpoint of sunset to sunrise); the label goes on the civil date of
+    # that instant, which can be this day or the one before.
+    nisheetha_nights: tuple[NisheethaNight, ...] = ()
+    # A star that holds no sunrise (it begins and ends between this sunrise and
+    # the next) is contained in this day (§5).
+    kshaya_nakshatra_name: str | None = None
+    # §3 — the solar-month observances (`SOLAR_MONTH_OBSERVANCES`) whose day
+    # is this one, decided over the whole solar month by
+    # `observance_days.select_in_solar_month`; and those whose duplicate
+    # tie-break fired to choose it.
+    solar_month_observances: frozenset[str] = frozenset()
+    solar_month_tie_breaks: frozenset[str] = frozenset()
+    # (name, how its day was named: observance_days.NamedBy), so the month
+    # resolver's fallbacks are counted by the audit like the day rules' (§0.1).
+    solar_month_named_by: frozenset[tuple[str, str]] = frozenset()
+    # §9.1 — civil days from this one to the printed Pournami (sunrise rule)
+    # that follows it. Computed for Fridays in the bright fortnight only.
+    days_until_pournami_day: int | None = None
+
+
+_KRISHNA_CHATURTHI = 19
+
+
+def _is_sankatahara_day(sunrise_tithi_number: int, instants: ObservanceInstants) -> bool:
+    """Krishna Chaturthi at moonrise, with the almanac's two tie-breaks (FCA-04).
+
+    The 2027 almanac settles both edge cases a moonrise rule meets:
+
+    * Chaturthi holds **two** moonrises (23 and 24 May 2027) — the almanac
+      takes the later day.
+    * Chaturthi holds **neither** (it began after the 23 Feb moonrise and
+      ended before the 24 Feb one) — the almanac takes the day Chaturthi rules
+      at sunrise.
+
+    With both, this matches the almanac 12/12. Derived from those two rows and
+    recorded as that almanac's convention for the astrologer to confirm. With a
+    neighbour's moonrise unknown, the tie-break is skipped, not guessed.
+    """
+    today = instants.moonrise_tithi_number
+    if today == _KRISHNA_CHATURTHI:
+        if instants.next_moonrise_tithi_number == _KRISHNA_CHATURTHI:
+            return False
+        if instants.previous_moonrise_tithi_number == _KRISHNA_CHATURTHI:
+            _fired("sankatahara.two_moonrises_later")
+        return True
+    named = (
+        sunrise_tithi_number == _KRISHNA_CHATURTHI
+        and today is not None
+        and instants.previous_moonrise_tithi_number is not None
+        and instants.previous_moonrise_tithi_number != _KRISHNA_CHATURTHI
+    )
+    if named:
+        _fired("sankatahara.no_moonrise_sunrise")
+    return named
+
+
+_KRISHNA_ASHTAMI = 23
+
+
+def _jayanthi_night_selected(before: NisheethaNight, tonight: NisheethaNight, after: NisheethaNight) -> bool:
+    """Whether `tonight` is the Krishna Jayanthi night (§2, CLASSICAL).
+
+    Krishna Ashtami at nisheetha. When Ashtami holds two nisheethas, or none
+    (it begins after one and ends before the next), the two nights bracketing
+    it compete: the one with Rohini at nisheetha wins; if Rohini is at
+    neither, the later. "Later" in both branches. Rohini at *both* is not
+    ruled and takes the later night, the same default as neither.
+    """
+    rohini_tonight = tonight.nakshatra_name.upper() == "ROHINI"
+    if tonight.tithi_number == _KRISHNA_ASHTAMI and _KRISHNA_ASHTAMI not in (before.tithi_number, after.tithi_number):
+        return True
+    # Tonight is the EARLIER of a competing pair: wins only on Rohini alone.
+    if (tonight.tithi_number == after.tithi_number == _KRISHNA_ASHTAMI) or (
+        tonight.tithi_number < _KRISHNA_ASHTAMI < after.tithi_number
+    ):
+        won = rohini_tonight and after.nakshatra_name.upper() != "ROHINI"
+    # Tonight is the LATER of a pair: wins unless the earlier has Rohini alone.
+    elif (tonight.tithi_number == before.tithi_number == _KRISHNA_ASHTAMI) or (
+        before.tithi_number < _KRISHNA_ASHTAMI < tonight.tithi_number
+    ):
+        won = not (before.nakshatra_name.upper() == "ROHINI" and not rohini_tonight)
+    else:
+        return False
+    if won:
+        _fired("jayanthi.rohini_tie_break")
+    return won
+
+
+#: Which civil date prints the Jayanthi night — HELD (§2 / OPEN-1). §2 rules
+#: the date of the nisheetha instant ("nisheetha_date": 24->25 Aug 2027 prints
+#: 25 Aug). Against its own 2023-2033 acceptance vectors that matches 3 of 11;
+#: the evening that opens the night (the label before round two) matches 8,
+#: and the day Ashtami holds at sunrise 7; every vector is one of the last two
+#: and no one rule gives all eleven (scripts/audit/jayanthi_label_scan.py).
+#: The nisheetha label would also move 2026 off the 4 Sep government holiday.
+#: Held at the evening until the astrologer answers.
+_JAYANTHI_LABEL: Literal["evening_date", "nisheetha_date"] = "evening_date"
+
+
+def _is_krishna_jayanthi(day: date, instants: ObservanceInstants) -> bool:
+    """Krishna Jayanthi is printed on `day` (§2).
+
+    The night is chosen by `_jayanthi_night_selected` (the computation); the
+    printed date is `_JAYANTHI_LABEL` of that night (the label). Under the
+    nisheetha label either middle night can land on `day`, since nisheetha
+    falls after 00:00 at Chennai and before it further east.
+    """
+    nights = instants.nisheetha_nights
+    if len(nights) != 4:
+        return False
+    return any(
+        getattr(nights[i], _JAYANTHI_LABEL) == day
+        and _jayanthi_night_selected(nights[i - 1], nights[i], nights[i + 1])
+        for i in (1, 2)
+    )
+
+
+def _aparahna_names_day(tithi: int, sunrise_names_day: bool, instants: ObservanceInstants) -> bool:
+    """`tithi` at aparahna names this day (§6, CONVENTION) — the kala of
+    tharpanam, Ayudha Pooja and Vijayadasami.
+
+    Two aparahnas: the first — the kala was satisfied twice, which is not a
+    failed check; taking the first keeps Ayudha Pooja and Vijayadasami on
+    consecutive days. No aparahna: the tithi at sunrise, `sunrise_names_day`
+    (Vijayadasami 2022, when Dasami held no afternoon). Unknown neighbours
+    omit the observance.
+    """
+    today = instants.aparahna_tithi_number
+    before, after = instants.previous_aparahna_tithi_number, instants.next_aparahna_tithi_number
+    if today is None or before is None or after is None:
+        return False
+    if today == tithi:
+        if before == tithi:
+            return False
+        if after == tithi:
+            _fired("aparahna.two_aparahnas_first")
+        return True
+    if tithi in (before, after):
+        return False
+    if sunrise_names_day:
+        _fired("aparahna.none_sunrise_fallback")
+    return sunrise_names_day
+
+
+def _sunrise_names_tithi_day(tithi: int, sunrise_tithi: int, instants: ObservanceInstants) -> bool:
+    """`tithi` at sunrise, first of two; a kshaya tithi names the day it falls
+    in (§5) — the rule `panchangam.special_tithi_day_from_sunrises` applies to
+    the Amavasai and Pournami (Q6)."""
+    before, after = instants.previous_sunrise_tithi_number, instants.next_sunrise_tithi_number
+    if sunrise_tithi == tithi:
+        return before is not None and before != tithi
+    contained = sunrise_tithi == tithi - 1 and after == tithi + 1
+    if contained:
+        _fired("contained.names_day")
+    return contained
+
+
+def _is_tharpanam_amavasai(special_tithi_day_number: int | None, instants: ObservanceInstants) -> bool:
+    """The Amavasai of tharpanam and pitru karya: the one at aparahna (ruling Q6).
+
+    Tharpanam is performed in aparahna, so aparahna names the day — which is
+    why the 2027 almanac gives Mahalaya on 29 Sep while printing the monthly
+    Amavasai on 30 Sep.
+    """
+    return _aparahna_names_day(30, special_tithi_day_number == 30, instants)
+
+
+def _sunset_star_names_day(star: str, sunrise_star: str, instants: ObservanceInstants) -> bool:
+    """`star` at pradosham names the day, first of two sunsets (§0.3) — the
+    Karthigai vratam, and with it Karthigai Deepam (§4).
+
+    If the star holds no sunset (4 Dec 2025: Krittika began after the 3 Dec
+    sunset and ended before the 4 Dec one), the universal fallback: the day it
+    holds at sunrise, first of two; and a star holding no sunrise either is
+    the day that contains it (§5).
+    """
+    if instants.sunset_nakshatra_name is None or instants.previous_sunset_nakshatra_name is None:
+        return False
+    if instants.sunset_nakshatra_name.upper() == star:
+        return instants.previous_sunset_nakshatra_name.upper() != star
+    if instants.previous_sunset_nakshatra_name.upper() == star:
+        return False
+    if (instants.kshaya_nakshatra_name or "").upper() == star:
+        _fired("contained.names_day")
+        return True
+    # Holding neither neighbouring sunset, a star at this sunrise holds no
+    # other sunrise either: the first of two is automatic.
+    if sunrise_star == star:
+        _fired("kala.sunrise_fallback")
+        return True
+    return False
 
 # ---------------------------------------------------------------------------
 # Tamil solar month indices (matching tamil_calendar.TAMIL_MONTHS ordering:
@@ -240,6 +590,58 @@ _MONTH_PANGUNI = 11
 _WEEKDAY_TUESDAY = "TUESDAY"
 _WEEKDAY_SATURDAY = "SATURDAY"
 
+# ---------------------------------------------------------------------------
+# Amanta lunar month indices (app/calculations/lunar_month.py: 0=Chaitra ..
+# 11=Phalguna). FCA-01: the festivals below that are named by a LUNAR month
+# key on these, never on the solar Tamil month — a solar month can hold a
+# given tithi zero, one or two times. Duplicated as plain ints, like the solar
+# indices above, so this module stays free of ephemeris imports.
+# ---------------------------------------------------------------------------
+_LUNAR_SHRAVANA = 4
+_LUNAR_BHADRAPADA = 5
+_LUNAR_ASHVINA = 6
+_LUNAR_KARTIKA = 7
+_LUNAR_MAGHA = 10
+
+@dataclass(frozen=True, slots=True)
+class SolarMonthObservance:
+    """A yearly observance named by a star (or special tithi) in one Tamil
+    solar month. Its day is decided over the whole month, not day by day:
+    `observance_days.select_in_solar_month` names each occurrence's day by
+    `kala` (§0.3) and breaks a duplicate by `tie_break` (§3)."""
+
+    name: str
+    tamil_month: int
+    kind: Literal["star", "tithi"]
+    value: str | int
+    kala: Literal["sunrise", "sunset", "aparahna"]
+    # "lunar_month" is §3. "full_moon_month" is the Family A proximity test,
+    # gated behind the duplicate check (§9.3) and held until OPEN-3 is
+    # answered: under §3, six Family A dates in 2020-2045 move
+    # (scripts/audit/solar_month_tiebreak_scan.py), and the ruling asks for
+    # those to be reported before the proximity test is deleted.
+    tie_break: Literal["lunar_month", "full_moon_month"] = "lunar_month"
+
+
+#: Rulings 2026-10-22, round two, §3/§4. Family A (Thai Poosam .. Arudra) are
+#: the stars opposite the month's Sun, at sunrise, the generic kala.
+#: Karthigai Deepam is the Karthigai month's Karthigai vratam (§4) and Aadi
+#: Krithigai the Aadi month's (OPEN-2: the 2023-2033 vectors fit sunrise
+#: 10/11 and pradosham 4/11 -- pradosham is what §0.3 rules and is kept).
+#: Tharpanam Amavasais are at aparahna (§6).
+SOLAR_MONTH_OBSERVANCES: tuple[SolarMonthObservance, ...] = (
+    SolarMonthObservance("Thai Poosam", _MONTH_THAI, "star", "POOSAM", "sunrise", "full_moon_month"),
+    SolarMonthObservance("Maasi Magam", _MONTH_MAASI, "star", "MAGAM", "sunrise", "full_moon_month"),
+    SolarMonthObservance("Panguni Uthiram", _MONTH_PANGUNI, "star", "UTHIRAM", "sunrise", "full_moon_month"),
+    SolarMonthObservance("Vaigasi Visakam", _MONTH_VAIKASI, "star", "VISAKAM", "sunrise", "full_moon_month"),
+    SolarMonthObservance("Arudra Darisanam", _MONTH_MARGAZHI, "star", "THIRUVATHIRAI", "sunrise", "full_moon_month"),
+    SolarMonthObservance("Thiru Aadi Pooram", _MONTH_AADI, "star", "POORAM", "sunrise"),
+    SolarMonthObservance("Aadi Krithigai", _MONTH_AADI, "star", "KARTHIGAI", "sunset"),
+    SolarMonthObservance("Karthigai Deepam", _MONTH_KARTHIGAI, "star", "KARTHIGAI", "sunset"),
+    SolarMonthObservance("Aadi Amavasai", _MONTH_AADI, "tithi", 30, "aparahna"),
+    SolarMonthObservance("Thai Amavasai", _MONTH_THAI, "tithi", 30, "aparahna"),
+)
+
 
 def _recurring_tithi_festivals(
     tithi_number: int,
@@ -253,6 +655,12 @@ def _recurring_tithi_festivals(
     tamil_day_of_month: int | None = None,
     previous_day_tithi_number: int | None = None,
     previous_day_tithi_paksha: str | None = None,
+    lunar_month_index: int | None = None,
+    lunar_month_is_adhika: bool = False,
+    amavasai_lunar_month_index: int | None = None,
+    amavasai_lunar_month_is_adhika: bool = False,
+    instants: ObservanceInstants | None = None,
+    day: date | None = None,
 ) -> list[dict]:
     """Recurring festivals defined by tithi/paksha/weekday/Tamil-month/nakshatra
     combinations rather than fixed Gregorian dates — these recur every lunar
@@ -273,10 +681,24 @@ def _recurring_tithi_festivals(
     two-consecutive-sunrise dedup below. Omit them (default None) to skip that
     dedup, which just means an unusually long Ekadashi tithi could be labeled
     on both sunrises it governs, instead of only the first (Smarta rule).
+
+    ``lunar_month_index``/``lunar_month_is_adhika`` (FCA-01) are the amanta
+    lunar month in force at sunrise; ``amavasai_lunar_month_index`` and its flag
+    are the lunation the day's dominant Amavasai closes (see
+    ``lunar_month.amavasai_month_for_day``). The lunar-month festivals —
+    Vinayagar Chaturthi, Skanda Sashti, Sivarathiri, Deepavali, Mahalaya
+    Amavasai and Krishna Jayanthi — fire only
+    when the lunar month is supplied and is not adhika. Omitting it makes the
+    calendar thinner, never wrong: the solar-month rule they used before is
+    known to misdate 16 festival-years in 2020-2045.
     """
     results: list[dict] = []
+
+    def in_lunar_month(month: int) -> bool:
+        return lunar_month_index == month and not lunar_month_is_adhika
+
+    instants = instants or ObservanceInstants()
     tithi_in_paksha = tithi_number if tithi_number <= 15 else tithi_number - 15
-    nk_upper = nakshatra_name.upper()
 
     # Pradhosam — trayodashi (13th tithi) of either paksha, judged at pradhosha-kalam
     # (sunset). On Saturdays the specific observance name replaces the generic one to
@@ -324,52 +746,73 @@ def _recurring_tithi_festivals(
     # occurrence was labeled at all (ordinary Krishna Chaturthi fell through to
     # the bare "Chathurthi" name); the Tuesday occurrence is additionally the
     # highest-merit "Angarki" variant, not the only occasion that counts.
-    if tithi_in_paksha == 4:
-        if tithi_paksha == "KRISHNA":
-            if weekday == _WEEKDAY_TUESDAY:
-                results.append({"name": "Angarki Sankatahara Chaturthi", "category": "hindu"})
-            else:
-                results.append({"name": "Sankatahara Chaturthi", "category": "hindu"})
+    #
+    # Sankatahara is judged at MOONRISE, not sunrise (FCA-04 — see
+    # ObservanceInstants). Krishna Chaturthi = tithi 19.
+    if _is_sankatahara_day(tithi_number, instants):
+        if weekday == _WEEKDAY_TUESDAY:
+            results.append({"name": "Angarki Sankatahara Chaturthi", "category": "hindu"})
         else:
-            results.append({"name": "Chathurthi", "category": "hindu"})
-            if tamil_month_index == _MONTH_AAVANI:
-                results.append({"name": "Vinayagar Chaturthi", "category": "hindu"})
+            results.append({"name": "Sankatahara Chaturthi", "category": "hindu"})
+    if tithi_in_paksha == 4 and tithi_paksha == "SHUKLA":
+        results.append({"name": "Chathurthi", "category": "hindu"})
+        # Bhadrapada Shukla Chaturthi (FCA-01). It was "Shukla Chaturthi in
+        # solar Aavani", which named 20 Aug 2023 when Tamil Nadu observed
+        # 18 Sep (G.O. 528).
+        if in_lunar_month(_LUNAR_BHADRAPADA):
+            results.append({"name": "Vinayagar Chaturthi", "category": "hindu"})
 
-    # Sashti — 6th tithi, Shukla paksha (Skanda Sashti tradition). The Aippasi
-    # occurrence is the flagship Skanda Sashti (L-13) — Tamil users search for
-    # it by that name, not the generic "Sashti".
+    # Sashti — 6th tithi, Shukla paksha (Skanda Sashti tradition). The flagship
+    # Skanda Sashti (L-13) is the Sashti after Deepavali's new moon — Kartika
+    # Shukla Sashti (FCA-01). Tamil calendars call it the Aippasi Sashti because
+    # it usually falls in solar Aippasi, but keying on solar Aippasi put it a
+    # month early in 5 years of 2020-2045 and dropped it entirely in 2031.
     if tithi_in_paksha == 6 and tithi_paksha == "SHUKLA":
         results.append({"name": "Sashti", "category": "hindu"})
-        if tamil_month_index == _MONTH_AIPPASI:
+        if in_lunar_month(_LUNAR_KARTIKA):
             results.append({"name": "Skanda Sashti", "category": "hindu"})
 
     # Theipirai Ashtami — 8th tithi, Krishna paksha (waning-fortnight Ashtami).
-    # Aavani + Krishna Ashtami is additionally Krishna Jayanthi. Simplification
-    # (documented, not guessed): doctrine notes a "Rohini preference" tie-break
-    # for the rare case where Ashtami spans two Aavani sunrises with only one
-    # coinciding with Rohini nakshatra — not implemented; every Aavani Krishna
-    # Ashtami is labeled, matching this function's existing udaya-only pattern
-    # for every other tithi-anchored observance.
     if tithi_in_paksha == 8 and tithi_paksha == "KRISHNA":
         results.append({"name": "Theipirai Ashtami", "category": "hindu"})
-        if tamil_month_index == _MONTH_AAVANI:
-            results.append({"name": "Krishna Jayanthi", "category": "hindu"})
+    # Krishna Jayanthi — Gokulashtami: Krishna Ashtami of the lunar month
+    # Shravana, at true midnight (ruling 2026-10-22 Q1; §2 of round two). It
+    # replaced Sri Jayanthi (the Krishna Ashtami of solar Aavani) and the
+    # switch between the two. Tamil Nadu kept 11-12 Aug 2020 while the Sun was
+    # still in Katakam, a date the solar reckoning cannot reach; and a lunar
+    # month holds one Krishna Ashtami, where solar Aavani 2033 held two. The
+    # lunar month is the printed day's; the new moon is a week from either
+    # date the night could be printed on.
+    if in_lunar_month(_LUNAR_SHRAVANA) and day is not None and _is_krishna_jayanthi(day, instants):
+        results.append({"name": "Krishna Jayanthi", "category": "hindu"})
 
-    # Sivarathiri — 14th tithi, Krishna paksha, in the Tamil month of Maasi,
-    # judged at nishita-kalam (local midnight), not the sunrise tithi (M-2):
-    # Krishna Chaturdashi is defined by the tithi prevailing at midnight, and
-    # on the true vrata day the sunrise tithi is usually still Trayodashi.
+    # Sivarathiri — Magha Krishna Chaturdashi (FCA-01; was "Krishna
+    # Chaturdashi in solar Maasi", which named 13 Mar 2029 for an 11 Feb
+    # festival and labelled 2037 twice), judged at nishita-kalam (local
+    # midnight), not the sunrise tithi (M-2): Krishna Chaturdashi is defined by
+    # the tithi prevailing at midnight, and on the true vrata day the sunrise
+    # tithi is usually still Trayodashi. The lunar month is the one in force at
+    # sunrise — no new moon can fall between that sunrise and a midnight that
+    # still reads Chaturdashi.
     nishita_tithi = nishita_tithi_number or tithi_number
     nishita_in_paksha = nishita_tithi if nishita_tithi <= 15 else nishita_tithi - 15
     nishita_paksha = "SHUKLA" if nishita_tithi <= 15 else "KRISHNA"
-    if (
-        nishita_in_paksha == 14
-        and nishita_paksha == "KRISHNA"
-        and tamil_month_index == _MONTH_MAASI
-    ):
-        results.append({"name": "Sivarathiri", "category": "hindu"})
+    #
+    # Every other month's Krishna Chaturdashi at nishita is Masa Sivarathiri
+    # (FCA-07: it was not computed at all; the 2027 almanac lists all 13, and
+    # this rule reproduces 13/13). A Chaturdashi holding two midnights names
+    # one Sivarathiri — the first, as the almanac does.
+    repeated_midnight = instants.previous_nishita_tithi_number == 29
+    if nishita_in_paksha == 14 and nishita_paksha == "KRISHNA" and not repeated_midnight:
+        if in_lunar_month(_LUNAR_MAGHA):
+            results.append({"name": "Sivarathiri", "category": "hindu"})
+        else:
+            results.append({"name": "Masa Sivarathiri", "category": "hindu"})
 
-    # Deepavali (TN) — Aippasi, Krishna Chaturdashi (Naraka Chaturdashi).
+    # Deepavali (TN) — Ashvina Krishna Chaturdashi (Naraka Chaturdashi), the
+    # day before the new moon that opens Kartika. FCA-01: was "Krishna
+    # Chaturdashi in solar Aippasi", which gave 2028 a second, false Deepavali
+    # on 15 Nov.
     # Simplification (documented, not guessed): observed classically at the
     # tithi prevailing shortly before dawn specifically (abhyanga snanam),
     # not necessarily the udaya tithi; this function uses the same
@@ -377,47 +820,60 @@ def _recurring_tithi_festivals(
     # modeling a separate pre-dawn instant. Named plain "Deepavali" (not
     # "...Naraka Chaturdashi") so it dedupes by name with the govt-holiday
     # hardcode rows for the same date instead of rendering as two rows.
-    if (
-        tithi_in_paksha == 14
-        and tithi_paksha == "KRISHNA"
-        and tamil_month_index == _MONTH_AIPPASI
-    ):
+    if tithi_in_paksha == 14 and tithi_paksha == "KRISHNA" and in_lunar_month(_LUNAR_ASHVINA):
         results.append({"name": "Deepavali", "category": "hindu"})
 
     # Festivals anchored to the dominant Pournami (15) / Amavasai (30) day —
     # gated on special_tithi_day_number so they fire only on the civil day
     # where that tithi actually dominates, not on adjacent spillover days.
-    if special_tithi_day_number == 15:
-        if nk_upper == "CHITHIRAI":
-            results.append({"name": "Chitra Pournami", "category": "hindu"})
-        if tamil_month_index == _MONTH_MAASI and nk_upper == "MAGAM":
-            results.append({"name": "Maasi Magam", "category": "hindu"})
-        if tamil_month_index == _MONTH_PANGUNI and nk_upper == "UTHIRAM":
-            results.append({"name": "Panguni Uthiram", "category": "hindu"})
+    #
+    # F-FES-01 — these three were all AND-gated on "the star AND the full moon
+    # fall on the same civil day", which is the exact bug class L-14 fixed for
+    # Karthigai Deepam below: in a year where the two split across two days the
+    # festival silently disappeared. Each is now keyed on its own rule.
+    #
+    # **Chitra Pournami is the Chithirai-month Pournami, whatever the star.**
+    # It used to test `nk_upper == "CHITHIRAI"` — the Chitra *nakshatra* — and
+    # never checked the Tamil month at all, so it could fire on a Chitra-star
+    # full moon in any month and miss the Chithirai full moon it is named for.
+    if special_tithi_day_number == 15 and tamil_month_index == _MONTH_CHITHIRAI:
+        results.append({"name": "Chitra Pournami", "category": "hindu"})
 
-    # Karthigai Deepam — nakshatra-anchored (L-14): the classical rule is the
-    # Krittika day of the Karthigai month, with full-moon proximity merely
-    # descriptive, not a hard requirement. The previous pournami-dominant-day
-    # AND-gate silently dropped the festival in kshaya years where Krittika's
-    # governing sunrise didn't land on the same civil day as the dominant
-    # Pournami tithi. Known, accepted edge case: on the rare month where
-    # Krittika's ~day-long span covers two consecutive sunrises, both days
-    # label Karthigai Deepam rather than picking one via cross-day state this
-    # per-day function doesn't have (same class of simplification as the
-    # Ashtami/Rohini tie-break noted above).
-    if tamil_month_index == _MONTH_KARTHIGAI and nk_upper == "KARTHIGAI":
-        results.append({"name": "Karthigai Deepam", "category": "hindu"})
+    # Solar-month star and tharpanam observances (§3, §4): decided over the
+    # whole month by the service, which passes the ones that fall today. One
+    # day a year each: never both occurrences of a duplicated star. Neither
+    # AND-gates on the Pournami *day* (the L-14 / F-FES-01 defect).
+    named_by = dict(instants.solar_month_named_by)
+    for observance in SOLAR_MONTH_OBSERVANCES:
+        if observance.name in instants.solar_month_observances:
+            if observance.name in instants.solar_month_tie_breaks:
+                _fired(
+                    "solar_month.duplicate_tie_break"
+                    if observance.tie_break == "lunar_month"
+                    else "solar_month.full_moon_tie_break"
+                )
+            how = named_by.get(observance.name)
+            if how == "contained":
+                _fired("contained.names_day")
+            elif how == "sunrise":
+                _fired("aparahna.none_sunrise_fallback" if observance.kala == "aparahna" else "kala.sunrise_fallback")
+            elif how == "kala_two" and observance.kala == "aparahna":
+                _fired("aparahna.two_aparahnas_first")
+            results.append({"name": observance.name, "category": "hindu"})
 
-    if special_tithi_day_number == 30 and tamil_month_index == _MONTH_PURATTASI:
+    results.extend(_yearly_observances(
+        tithi_number, weekday, tamil_month_index, tamil_day_of_month, in_lunar_month, instants,
+    ))
+
+    # Mahalaya Amavasai closes Pitru Paksha — the Amavasai that ends Bhadrapada
+    # (FCA-01). Solar Purattasi held two Amavasais in 2020 and 2039, and the
+    # old rule labelled both. A tharpanam day, so dated at aparahna (Q6).
+    if (
+        _is_tharpanam_amavasai(special_tithi_day_number, instants)
+        and amavasai_lunar_month_index == _LUNAR_BHADRAPADA
+        and not amavasai_lunar_month_is_adhika
+    ):
         results.append({"name": "Mahalaya Amavasai", "category": "hindu"})
-
-    # Vaigasi Visakam — Moon in Visakam nakshatra during the Tamil month of Vaikasi.
-    if tamil_month_index == _MONTH_VAIKASI and nk_upper == "VISAKAM":
-        results.append({"name": "Vaigasi Visakam", "category": "hindu"})
-
-    # Thai Poosam — Thai month, Poosam nakshatra day.
-    if tamil_month_index == _MONTH_THAI and nk_upper == "POOSAM":
-        results.append({"name": "Thai Poosam", "category": "hindu"})
 
     # Solar-day yearly festivals (fixed Tamil-month + day-of-month, not
     # tithi-anchored) — need the Tamil calendar day-of-month, not just month.
@@ -428,6 +884,75 @@ def _recurring_tithi_festivals(
             results.append({"name": "Thai Pongal", "category": "hindu"})
         if tamil_month_index == _MONTH_AADI and tamil_day_of_month == 18:
             results.append({"name": "Aadi Perukku", "category": "hindu"})
+
+    return results
+
+
+def _yearly_observances(
+    tithi_number: int,
+    weekday: str | None,
+    tamil_month_index: int | None,
+    tamil_day_of_month: int | None,
+    in_lunar_month,
+    instants: ObservanceInstants,
+) -> list[dict]:
+    """FCA-07 — yearly observances that existed only as 2026 data rows.
+
+    `app/data/calendar_categories_2026.py` was the only source for these, so
+    every one of them vanished from every calendar on 1 Jan 2027. Each is now a
+    rule, named exactly as the 2026 rows name it so the two dedupe, and checked
+    against the owner-supplied 2027 almanac and the 2026 rows
+    (tests/test_festivals.py). Solar-month observances key on the solar month,
+    lunar ones on the amanta month — the FCA-01 distinction.
+    """
+    results: list[dict] = []
+
+    # Pongal week, from Thai 1 (which stays in _recurring_tithi_festivals).
+    if tamil_month_index == _MONTH_MARGAZHI and instants.tamil_month_ends_today:
+        results.append({"name": "Bhogi", "category": "hindu"})
+    if tamil_month_index == _MONTH_THAI and tamil_day_of_month == 2:
+        results.append({"name": "Mattu Pongal", "category": "hindu"})
+    if tamil_month_index == _MONTH_THAI and tamil_day_of_month == 3:
+        results.append({"name": "Kaanum Pongal", "category": "hindu"})
+
+    # Thai and Aadi Amavasai, Aadi Pooram and Aadi Krithigai are solar-month
+    # observances: see SOLAR_MONTH_OBSERVANCES.
+
+    # Navarathiri — lunar Ashvina. It begins on the first sunrise of the
+    # month: Prathama at sunrise (Dvitiya if Prathama was kshaya) with the
+    # previous sunrise still in the dark fortnight.
+    if (
+        in_lunar_month(_LUNAR_ASHVINA)
+        and tithi_number in (1, 2)
+        and instants.previous_sunrise_tithi_number in (29, 30)
+    ):
+        results.append({"name": "Navarathiri Begins", "category": "hindu"})
+    if in_lunar_month(_LUNAR_ASHVINA) and _aparahna_names_day(
+        9, _sunrise_names_tithi_day(9, tithi_number, instants), instants
+    ):
+        results.append({"name": "Saraswathi Poojai", "category": "hindu"})
+        results.append({"name": "Ayudha Pooja", "category": "hindu"})
+    if in_lunar_month(_LUNAR_ASHVINA) and _aparahna_names_day(
+        10, _sunrise_names_tithi_day(10, tithi_number, instants), instants
+    ):
+        results.append({"name": "Vijayadasami", "category": "hindu"})
+
+    # Varalakshmi Vratham (§9.1, CLASSICAL) — the last Friday before the
+    # Pournami of Shravana (Tamil "Aavani"), or the Pournami itself if that
+    # day is a Friday. The old window, "a Friday with Shukla 8..14 at sunrise",
+    # admitted two Fridays in 2025 (1 and 8 Aug). The Pournami day is the
+    # printed one (sunrise rule, Q6). This moves 2026 from the curated 21 Aug
+    # to Friday 28 Aug, the Pournami itself -- reported, not hidden.
+    days_to_pournami = instants.days_until_pournami_day
+    if (
+        in_lunar_month(_LUNAR_SHRAVANA)
+        and weekday == "FRIDAY"
+        and days_to_pournami is not None
+        and 0 <= days_to_pournami <= 6
+    ):
+        if days_to_pournami == 0:
+            _fired("varalakshmi.pournami_is_friday")
+        results.append({"name": "Varalakshmi Vratham", "category": "hindu"})
 
     return results
 
@@ -445,6 +970,11 @@ def get_festivals_for_date(
     tamil_day_of_month: int | None = None,
     previous_day_tithi_number: int | None = None,
     previous_day_tithi_paksha: str | None = None,
+    lunar_month_index: int | None = None,
+    lunar_month_is_adhika: bool = False,
+    amavasai_lunar_month_index: int | None = None,
+    amavasai_lunar_month_is_adhika: bool = False,
+    instants: ObservanceInstants | None = None,
 ) -> list[dict]:
     """Return list of {name, category} dicts for the given date + panchangam state."""
     results: list[dict] = []
@@ -467,10 +997,17 @@ def get_festivals_for_date(
         category = event.tags[0] if event.tags else "observance"
         results.append({"name": event.name_en, "category": category, "tags": list(event.tags)})
 
-    # Nakshatra-based
+    # Nakshatra-based — each at its own instant (FCA-04), first of two days.
+    # A sunset vratam whose star holds no sunset falls back to sunrise (§0.3).
     nk_upper = nakshatra_name.upper()
+    star_instants = instants or ObservanceInstants()
     for nk_key, name in _NAKSHATRA_FESTIVALS.items():
-        if nk_key == nk_upper:
+        if nk_key in _SUNSET_STAR_VRATAMS:
+            named = _sunset_star_names_day(nk_key, nk_upper, star_instants)
+        else:
+            previous = (star_instants.previous_sunrise_nakshatra_name or "").upper()
+            named = nk_upper == nk_key and previous != nk_key
+        if named:
             results.append({"name": name, "category": "hindu"})
 
     # Recurring tithi/paksha/weekday/Tamil-month combinations
@@ -487,6 +1024,12 @@ def get_festivals_for_date(
             tamil_day_of_month,
             previous_day_tithi_number,
             previous_day_tithi_paksha,
+            lunar_month_index=lunar_month_index,
+            lunar_month_is_adhika=lunar_month_is_adhika,
+            amavasai_lunar_month_index=amavasai_lunar_month_index,
+            amavasai_lunar_month_is_adhika=amavasai_lunar_month_is_adhika,
+            instants=instants,
+            day=d,
         )
     )
 

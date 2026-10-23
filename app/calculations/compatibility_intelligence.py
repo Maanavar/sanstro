@@ -39,11 +39,12 @@ that by rescaling the layer dataclasses: their ranges are on the wire.
 """
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
-from app.calculations._yoga_dosham import detect_sevvai_dosham
+from app.calculations._yoga_dosham import detect_rahu_ketu_dosham, detect_sevvai_dosham
 from app.calculations.astro import utc_datetime_to_julian_day
 from app.calculations.chart_strength import (
     _NATURAL_ENEMIES,
@@ -54,6 +55,9 @@ from app.calculations.chart_strength import (
 )
 from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.display_names import planet_en, planet_ta
+from app.calculations.dosha_samyam import compare_marriage_doshams, papa_samyam
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Internal helpers
@@ -69,6 +73,17 @@ from app.calculations.display_names import planet_en, planet_ta
 #: — a change here that misses that file renders every bar against the wrong
 #: denominator while the numbers stay right, which is the hardest kind of wrong
 #: to spot. Update both or neither.
+#:
+#: **F-CI-04 — `dasha_harmony` is a standing layer, not a property of the two
+#: charts.** It scores the two *current* mahadasha lords, so the same couple's
+#: composite moves by up to 11 points depending on the day the report is run.
+#: Classical matching is a property of the charts; dasha belongs to marriage
+#: *timing*. It is kept in the composite and **labelled** rather than dropped,
+#: which is the audit's first option: removing 15 of 100 points is a
+#: redistribution of every other weight and needs its own ruling against a
+#: measured composite distribution, exactly as the 80/65/50 rung retune does.
+#: Every surface showing this layer names it as the current period, and
+#: `DashaHarmony` carries the maha end dates so a reader can see when it moves.
 COMPATIBILITY_LAYER_MAX: dict[str, int] = {
     "porutham": 35,
     "seventh_house": 20,
@@ -182,8 +197,17 @@ class DashaHarmony:
 @dataclass(frozen=True, slots=True)
 class EmotionalCompatibility:
     moon_moon_harmony: str   # EXCELLENT / GOOD / MIXED / TENSE
+    # F-CI-05: this is measured Venus A <-> Venus B, NOT Venus-to-Mars. The
+    # wire name `venusMarsHarmony` is kept because it is on the contract
+    # across four surfaces; every user-facing label already says "Venus"
+    # alone. Do not add a Venus-Mars reading under this field - give it its
+    # own one.
     venus_mars_harmony: str  # STRONG / GOOD / MIXED / TENSE
-    communication_note: str
+    # F-DSP-01: one note, both languages. It was a single English string and
+    # the panel rendered it unconditionally, so Tamil readers got an English
+    # sentence under a Tamil heading.
+    communication_note_en: str
+    communication_note_ta: str
     note_en: str
     note_ta: str
     score: int               # 0-10
@@ -256,13 +280,28 @@ class CompatibilityIntelligenceResult:
 # is_cancelled for the same chart (WI-13).
 # ---------------------------------------------------------------------------
 
-def _compute_sevvai(snap: Any) -> SevvaiDoshamDetail:
+def _sevvai_references(snap: Any) -> list[str]:
+    """The `from_*` references a chart's own Sevvai dosham stands on, or none."""
+    result = detect_sevvai_dosham({p.graha: p.rasi for p in snap.data.planets}, snap.data.lagna.rasi)
+    return [c for c in result.conditions_met if c.startswith("from_")] if result.is_present else []
+
+
+def _compute_sevvai(snap: Any, partner: Any | None = None) -> SevvaiDoshamDetail:
+    """`partner` makes this a two-chart reading, the only kind that can cancel
+    (rulings 2026-10-22 round two, §8): dosha samyam of comparable weight, or
+    Mars debilitated in Katakam in the dosha house. It replaced a mutual
+    cancellation that fired whenever both charts carried any Sevvai at all."""
     mars = _get_planet(snap, "MARS")
     lagna_rasi = snap.data.lagna.rasi
     planets_rasi_map = {p.graha: p.rasi for p in snap.data.planets}
     gender = getattr(snap.data.birth_profile, "gender_for_traditional_rules", None)
 
-    result = detect_sevvai_dosham(planets_rasi_map, lagna_rasi, gender=gender)
+    result = detect_sevvai_dosham(
+        planets_rasi_map,
+        lagna_rasi,
+        gender=gender,
+        partner_sevvai_references=_sevvai_references(partner) if partner is not None else None,
+    )
 
     if not result.is_present:
         severity, score = "NONE", 5
@@ -341,29 +380,160 @@ def sevvai_risk_lines(
     return risks_en, risks_ta
 
 
-def _apply_mutual_sevvai_cancellation(a: SevvaiDoshamDetail, b: SevvaiDoshamDetail) -> tuple[SevvaiDoshamDetail, SevvaiDoshamDetail]:
-    """Both persons having uncancelled Sevvai Dosham cancels each other out."""
-    if (
-        a.has_dosham and not a.is_cancelled
-        and b.has_dosham and not b.is_cancelled
-    ):
-        a = SevvaiDoshamDetail(
-            has_dosham=a.has_dosham, mars_house=a.mars_house, is_cancelled=True,
-            severity="NONE",
-            cancellation_reasons=["Both partners have Sevvai Dosham — mutual cancellation applies"],
-            note_en="Both partners have Sevvai Dosham — mutual cancellation applies per classical rules.",
-            note_ta="இரு நபர்களுக்கும் செவ்வாய் தோஷம் உள்ளது — பாரம்பரிய விதிப்படி பரஸ்பர நீக்கம் ஏற்படுகிறது.",
-            score=4,
+def marriage_samyam_lines(snap_a: Any, snap_b: Any) -> tuple[list[str], list[str]]:
+    """DD-03 samyam lines, (english, tamil). Report text only: no score moves.
+
+    `rahu_ketu_samyam` is its own concept, kept apart from the Sevvai mutual
+    cancellation above and from papa samyam. Cross-samyam (O-3) is off by
+    default, so its line appears only when that open item is switched on.
+    """
+    def doshams(snap: Any) -> tuple[Any, Any]:
+        planets = {p.graha: p.rasi for p in snap.data.planets}
+        lagna = snap.data.lagna.rasi
+        gender = getattr(snap.data.birth_profile, "gender_for_traditional_rules", None)
+        return detect_rahu_ketu_dosham(planets, lagna), detect_sevvai_dosham(planets, lagna, gender=gender)
+
+    rk_a, sv_a = doshams(snap_a)
+    rk_b, sv_b = doshams(snap_b)
+    samyam = compare_marriage_doshams(rk_a, rk_b, sv_a, sv_b)
+    lines_en: list[str] = []
+    lines_ta: list[str] = []
+    if samyam.rahu_ketu:
+        lines_en.append("Rahu-Ketu samyam: both charts carry a comparable Rahu-Ketu marriage axis, so it is balanced for porutham")
+        lines_ta.append("ராகு-கேது சாம்யம்: இரு ஜாதகங்களிலும் ஒத்த ராகு-கேது திருமண அச்சு உள்ளதால் பொருத்தத்தில் சமன்படுகிறது")
+    if samyam.cross:
+        lines_en.append("Cross-samyam: Rahu-Ketu in one chart is balanced by Sevvai in the other (astrologer view)")
+        lines_ta.append("குறுக்கு சாம்யம்: ஒரு ஜாதகத்தின் ராகு-கேது மற்றதின் செவ்வாயால் சமன்படுகிறது (ஜோதிடர் பார்வை)")
+    return lines_en, lines_ta
+
+
+def papa_samyam_lines(
+    snap_a: Any, snap_b: Any, sevvai_a_is_boy: bool = True
+) -> tuple[list[str], list[str], list[str], list[str]]:
+    """பாப சாம்யம் lines: ``(strengths_en, strengths_ta, risks_en, risks_ta)``.
+
+    F-CI-03. A standard part of Tamil jadhaga porutham the report omitted
+    entirely: families who bring two jadhagams to a jothidar expect this check,
+    and its absence read as a clean result.
+
+    Report text only, no score. The composite's weights are a separate
+    decision; shipping a new check and a silent numeric effect in one change
+    would make neither attributable (the same reasoning the layer-weight
+    comment records for the 80/65/50 rungs).
+
+    `sevvai_a_is_boy` carries the direction, because papa samyam is not
+    symmetric — practice asks the **boy's** papa points to be at least the
+    girl's. Defaults to the caller's own A=boy convention.
+    """
+    def chart(snap: Any) -> tuple[dict[str, int], int]:
+        return {p.graha: p.rasi for p in snap.data.planets}, snap.data.lagna.rasi
+
+    try:
+        a_planets, a_lagna = chart(snap_a)
+        b_planets, b_lagna = chart(snap_b)
+    except (AttributeError, KeyError, TypeError):
+        # One new check must not be able to take down the whole report. This
+        # is NOT the silent omission F-CI-03 was about: that was a check we
+        # never wrote, whereas this is a chart we could not read, and it is
+        # logged rather than swallowed. If it fires in production the fix is
+        # the snapshot, not this branch.
+        logger.warning("papa samyam skipped: could not read both chart snapshots", exc_info=True)
+        return [], [], [], []
+    if sevvai_a_is_boy:
+        result = papa_samyam(a_planets, a_lagna, b_planets, b_lagna)
+    else:
+        result = papa_samyam(b_planets, b_lagna, a_planets, a_lagna)
+
+    detail_en = f"(boy {result.boy.total}, girl {result.girl.total})"
+    detail_ta = f"(மாப்பிள்ளை {result.boy.total}, பெண் {result.girl.total})"
+    if result.balanced:
+        return (
+            [f"Papa samyam agrees - the malefic load is balanced between the charts {detail_en}"],
+            [f"பாப சாம்யம் உள்ளது - இரு ஜாதகங்களிலும் பாப கிரக பலம் சமனாக உள்ளது {detail_ta}"],
+            [],
+            [],
         )
-        b = SevvaiDoshamDetail(
-            has_dosham=b.has_dosham, mars_house=b.mars_house, is_cancelled=True,
-            severity="NONE",
-            cancellation_reasons=["Both partners have Sevvai Dosham — mutual cancellation applies"],
-            note_en="Both partners have Sevvai Dosham — mutual cancellation applies per classical rules.",
-            note_ta="இரு நபர்களுக்கும் செவ்வாய் தோஷம் உள்ளது — பாரம்பரிய விதிப்படி பரஸ்பர நீக்கம் ஏற்படுகிறது.",
-            score=4,
+    return (
+        [],
+        [],
+        [
+            f"Papa samyam falls short by {result.shortfall} {detail_en} - traditional practice "
+            "asks the groom's malefic count to be at least the bride's; an experienced "
+            "astrologer should weigh this against the rest of the reading"
+        ],
+        [
+            f"பாப சாம்யம் குறைகிறது {detail_ta} - மரபுப்படி "
+            "மாப்பிள்ளையின் பாப பலம் பெண்ணின் பாப பலத்திற்கு குறையாமல் இருக்க "
+            "வேண்டும்; அனுபவமிக்க ஜோதிடரிடம் ஆலோசிக்கவும்"
+        ],
+    )
+
+
+_LABEL_RUNGS = ("CAUTION", "AVERAGE", "GOOD", "EXCELLENT")
+
+
+def sevvai_label_cap(
+    sevvai_a: SevvaiDoshamDetail, sevvai_b: SevvaiDoshamDetail
+) -> tuple[str | None, str, str]:
+    """F-CI-01 - the dosha-samyam cap the 2026-08-31 anchors asked for.
+
+    Tamil practice after Rajju is **dosha samyam**: a chart carrying an
+    uncancelled Chevvai dosham is matched with another dosham chart, not with
+    a clear one. The composite only ever charged it 5 of 100 points, so a
+    one-sided STRONG active dosham could still read EXCELLENT while the risk
+    list said the opposite.
+
+    The astrologer's own anchor cases (docs/RULINGS_2026-08-31_MADHYAMA_HALF_POINT.md
+    Q1b) fix the two rungs, and they are caps on the *label* only - the 0-100
+    score and the full breakdown are untouched, exactly as the Rajju/Vedha veto
+    beside this one works:
+
+    * anchor #6 - present and **not** cancelled -> **AVERAGE** ("the live
+      dosham holds it here despite a respectable count").
+    * anchor #4 - present and **cancelled** -> **GOOD** ("present-but-cancelled
+      caps an otherwise-excellent match one rung down").
+
+    Returns ``(cap_label_or_None, reason_en, reason_ta)``; the reason is what
+    makes the summary cause-aware, so a capped report never claims every layer
+    points in favour.
+
+    Mutual cancellation runs *before* this (``_apply_mutual_sevvai_cancellation``),
+    so two uncancelled doshams arrive here as two cancelled ones and take the
+    GOOD rung - which is the samyam reading: the match is workable, but it is
+    not the dosham-free EXCELLENT.
+    """
+    active = [p for p, sv in (("A", sevvai_a), ("B", sevvai_b)) if sv.has_dosham and not sv.is_cancelled]
+    cancelled = [p for p, sv in (("A", sevvai_a), ("B", sevvai_b)) if sv.has_dosham and sv.is_cancelled]
+
+    if active:
+        who_en = " and ".join(f"Person {p}" for p in active)
+        who_ta = " மற்றும் ".join(f"நபர் {p}" for p in active)
+        return (
+            "AVERAGE",
+            f"{who_en} carries a live, uncancelled Sevvai Dosham, so the reading is held at "
+            "Average however the other layers score - traditional practice matches such a "
+            "chart with another dosham chart.",
+            f"{who_ta}-க்கு நிவர்த்தி ஆகாத செவ்வாய் தோஷம் உள்ளதால், மற்ற அடுக்குகள் எப்படி இருந்தாலும் "
+            "இந்த பிணைப்பு சராசரியாகவே குறிக்கப்படுகிறது.",
         )
-    return a, b
+    if cancelled:
+        who_en = " and ".join(f"Person {p}" for p in cancelled)
+        who_ta = " மற்றும் ".join(f"நபர் {p}" for p in cancelled)
+        return (
+            "GOOD",
+            f"{who_en} has a Sevvai Dosham that protective factors cancel - reduced, not "
+            "absent, so the reading is held one rung below the top band.",
+            f"{who_ta}-க்கு செவ்வாய் தோஷம் உள்ளது, நிவர்த்தி காரணங்கள் உள்ளன — "
+            "குறைந்துள்ளது, இல்லாமல் இல்லை. ஆகவே உச்ச நிலையிலிருந்து ஒரு படி கீழ் நிறுத்தப்படுகிறது.",
+        )
+    return None, "", ""
+
+
+def apply_label_cap(label: str, cap: str | None) -> str:
+    """Lower ``label`` to ``cap`` when the cap is the stricter of the two."""
+    if cap is None:
+        return label
+    return cap if _LABEL_RUNGS.index(cap) < _LABEL_RUNGS.index(label) else label
 
 
 # ---------------------------------------------------------------------------
@@ -742,10 +912,16 @@ def _compute_emotional_compatibility(snap_a: Any, snap_b: Any) -> EmotionalCompa
     score = max(0, min(10, score))
 
     moon_diff_desc = (moon_b.rasi - moon_a.rasi) % 12 + 1  # noqa: F841 — retained scaffolding for future moon-distance note
-    communication_note = (
+    easy_wavelength = moon_harmony in {"EXCELLENT", "GOOD"}
+    communication_note_en = (
         "Natural emotional wavelength — communication will feel effortless."
-        if moon_harmony in {"EXCELLENT", "GOOD"}
+        if easy_wavelength
         else "Different emotional styles — intentional communication and empathy bridge the gap."
+    )
+    communication_note_ta = (
+        "இயல்பான உணர்வுத் தாளம் — உரையாடல் எளிதாக இருக்கும்."
+        if easy_wavelength
+        else "வெவ்வேறு உணர்வு முறைகள் — திட்டமிட்ட உரையாடலும் பரிவும் இடைவெளியை இணைக்கும்."
     )
 
     _HARMONY_TA = {
@@ -786,7 +962,8 @@ def _compute_emotional_compatibility(snap_a: Any, snap_b: Any) -> EmotionalCompa
     return EmotionalCompatibility(
         moon_moon_harmony=moon_harmony,
         venus_mars_harmony=venus_mars_harmony,
-        communication_note=communication_note,
+        communication_note_en=communication_note_en,
+        communication_note_ta=communication_note_ta,
         note_en=note_en,
         note_ta=note_ta,
         score=score,
@@ -823,9 +1000,8 @@ def compute_compatibility_intelligence(
     navamsa = _compute_navamsa(snap_a, snap_b)
 
     # Layer 5: Dosham
-    sevvai_a = _compute_sevvai(snap_a)
-    sevvai_b = _compute_sevvai(snap_b)
-    sevvai_a, sevvai_b = _apply_mutual_sevvai_cancellation(sevvai_a, sevvai_b)
+    sevvai_a = _compute_sevvai(snap_a, partner=snap_b)
+    sevvai_b = _compute_sevvai(snap_b, partner=snap_a)
     dosham_pts = sevvai_a.score + sevvai_b.score  # 0-10 (5 each max)
 
     # Nadi dosha penalty
@@ -905,6 +1081,15 @@ def compute_compatibility_intelligence(
     if porutham_result.rajju_dosha or porutham_result.vedha_dosha:
         overall_label = "CAUTION"
 
+    # F-CI-01 - the dosha-samyam cap, the second half of the 2026-08-31 ruling.
+    # Rajju/Vedha above cap at CAUTION; a live Sevvai dosham caps at AVERAGE
+    # (anchor #6) and a cancelled one at GOOD (anchor #4). Caps compose: the
+    # strictest wins, and none of them moves `overall_score`.
+    sevvai_cap, cap_reason_en, cap_reason_ta = sevvai_label_cap(sevvai_a, sevvai_b)
+    label_before_sevvai_cap = overall_label
+    overall_label = apply_label_cap(overall_label, sevvai_cap)
+    sevvai_cap_applied = overall_label != label_before_sevvai_cap
+
     # Strengths and risks
     strengths_en: list[str] = []
     strengths_ta: list[str] = []
@@ -946,9 +1131,29 @@ def compute_compatibility_intelligence(
     risks_en.extend(sevvai_risks_en)
     risks_ta.extend(sevvai_risks_ta)
 
-    if porutham_result.rajju_dosha:
-        risks_en.append("Rajju Dosha is present — health/longevity remedies advised")
-        risks_ta.append("ரஜ்ஜு தோஷம் உள்ளது — ஆரோக்யம்/ஆயுள் பரிகாரம் பரிந்துரை")
+    samyam_en, samyam_ta = marriage_samyam_lines(snap_a, snap_b)
+    strengths_en.extend(samyam_en)
+    strengths_ta.extend(samyam_ta)
+
+    # F-CI-03: papa samyam, which the report used to omit silently.
+    papa_s_en, papa_s_ta, papa_r_en, papa_r_ta = papa_samyam_lines(snap_a, snap_b)
+    strengths_en.extend(papa_s_en)
+    strengths_ta.extend(papa_s_ta)
+    risks_en.extend(papa_r_en)
+    risks_ta.extend(papa_r_ta)
+
+    # F-CI-02: EC-RULING-06 excised the lifespan framing from the porutham
+    # engine; it survived here, in the module that engine's tone sweep does
+    # not reach. Rajju is now stated as the hard gate it is, in advisory
+    # voice, naming neither health nor lifespan. Vedha, which caps the label
+    # identically, had no line at all - a capped report could not say why.
+    for _gate_on, _gate_en, _gate_ta in (
+        (porutham_result.rajju_dosha, "Rajju", "ரஜ்ஜு"),
+        (porutham_result.vedha_dosha, "Vedha", "வேதை"),
+    ):
+        if _gate_on:
+            risks_en.append(_gate_en + " porutham does not agree — a traditional hard gate; an experienced astrologer should review this pairing before it is settled")
+            risks_ta.append(_gate_ta + " பொருத்தம் இல்லை — இது பாரம்பரிய முதன்மை விதி; முடிவு எடுப்பதற்கு முன் அனுபவமிக்க ஜோதிடரிடம் ஆலோசிக்கவும்")
 
     if emotional.score >= 8:
         moon_harmony_summary_ta = {
@@ -1003,6 +1208,13 @@ def compute_compatibility_intelligence(
             "பல இணக்க அடுக்குகளில் மோதல்கள் காணப்படுகின்றன. தொடர்வதற்கு முன் "
             "அனுபவமிக்க ஜோதிட ஆலோசனை மற்றும் பரிகார திட்டமிடல் பரிந்துரைக்கப்படுகிறது."
         )
+
+    # F-CI-01: a capped report must say why. Without this the GOOD/AVERAGE
+    # wording ("most compatibility layers align well") reads as a comment on
+    # the layers when it is actually the dosham holding the rung down.
+    if sevvai_cap_applied:
+        summary_en = f"{summary_en} {cap_reason_en}"
+        summary_ta = f"{summary_ta} {cap_reason_ta}"
 
     return CompatibilityIntelligenceResult(
         person_a_name=person_a_name,

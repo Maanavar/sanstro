@@ -1,7 +1,9 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
+import { JsonLd } from "@/lib/json-ld";
 import type { Metadata } from "next";
 import { PanchangamPageContent } from "./PanchangamPageContent";
 
-export const metadata: Metadata = {
+const EN_METADATA: Metadata = {
   title: "Tamil Panchangam Today — Tithi, Birth Star, Rahu Kalam & Nalla Neram",
   description:
     "Get today's Tamil panchangam with Tithi, Vara, Birth Star, Yoga, Karana, Rahu Kalam, Nalla Neram, and Muhurtham timings. Free Thirukanitham-based daily panchangam for any city worldwide.",
@@ -31,6 +33,10 @@ export const metadata: Metadata = {
     description: "Free Thirukanitham-based daily panchangam. Tithi, Birth Star, Rahu Kalam, Nalla Neram for any city.",
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/tools/daily-panchangam-planner");
+}
 
 const FAQ_JSONLD = {
   "@context": "https://schema.org",
@@ -82,10 +88,7 @@ const FAQ_JSONLD = {
 export default function PanchangamPlannerPage() {
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSONLD) }}
-      />
+      <JsonLd en={FAQ_JSONLD} />
       <PanchangamPageContent />
     </>
   );

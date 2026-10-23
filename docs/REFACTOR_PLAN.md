@@ -144,6 +144,12 @@ everything; the endpoint shrinks to one delete + audit log.
 
 **Effort:** 0.5d audit now, 1d migration later. **Risk:** low.
 
+**DONE 2026-10-08:** step 3 landed — `PyJWT==2.15.1` replaces `python-jose`
+(and its `ecdsa`/`rsa`/`pyasn1`/`six` tree) in `app/core/auth.py` and
+`app/middleware.py`; CI's pip-audit runs with no ignores. Sessions issued by
+python-jose keep verifying (`tests/test_jwt_library.py`). Status and evidence:
+`docs/MASTER_FIX_LIST.md`, Phase 3.
+
 ---
 
 ### 1.3 Bump `starlette` off 1.0.0 — **DONE 2026-09-02**

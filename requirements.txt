@@ -9,22 +9,20 @@
 alembic==1.18.4
 annotated-types==0.7.0
 anthropic==0.109.1
-anyio==4.13.0
+# 4.13.0 → 4.14.2 on 2026-10-02 for PYSEC-2026-4024/-4025 (pip-audit). Every
+# consumer here (starlette 1.3.1, httpx, anthropic) allows anyio <5.
+anyio==4.14.2
 APScheduler==3.11.2
 bcrypt==5.0.0
-certifi==2026.5.20
+# 2026.5.20 → 2026.10.19 on 2026-10-21 for PYSEC-2026-4320 (pip-audit). CA bundle
+# only; consumed through requests/httpx.
+certifi==2026.10.19
 cffi==2.0.0
 charset-normalizer==3.4.7
 click==8.4.0
 colorama==0.4.6
 cryptography==50.0.0
 distro==1.9.0
-# ecdsa carries the Minerva timing side-channel (GHSA-wj6h-64fc-37mp / CVE-2024-23342)
-# with no upstream fix. It is a transitive dep of python-jose; we only sign/verify with
-# HS256 (HMAC), so ecdsa is never on the signing path. The advisory is ignored in the
-# pip-audit CI step for that reason. Removing it requires dropping python-jose (see
-# REFACTOR_PLAN 1.2: migrate to pyjwt).
-ecdsa==0.19.2
 fastapi==0.136.1
 greenlet==3.5.1
 h11==0.16.0
@@ -37,20 +35,25 @@ Mako==1.3.12
 MarkupSafe==3.0.3
 packaging==26.2
 passlib==1.7.4
-pillow==12.3.0
+# 12.3.0 → 13.0.0 on 2026-10-21 for CVE-2026-112895 (pip-audit). A major bump,
+# so checked rather than assumed: nothing in app/, scripts/ or tests/ imports PIL;
+# pillow is here only for reportlab 4.5.1, which requires `pillow>=9.0.0` with no
+# upper bound. The PDF export suites are the evidence (see the commit).
+pillow==13.0.0
 psycopg2-binary==2.9.12
-pyasn1==0.6.4
 pycparser==3.0
 pydantic==2.13.4
 pydantic-settings==2.14.2
 pydantic_core==2.46.4
+# Replaced python-jose (+ ecdsa, rsa, pyasn1, six) on 2026-10-08 — REFACTOR_PLAN
+# 1.2. Also a dependency of redis 5.3, which this lock had left unpinned — the
+# venv carried 2.13.0, which has 14 advisories (PYSEC-2026-4140..4183, fixed by
+# 2.15.0). 2.15.1 is the latest release as of 2026-10-08.
+PyJWT==2.15.1
 python-dotenv==1.2.2
-python-jose==3.5.0
 PyYAML==6.0.3
 redis==5.3.1
 reportlab==4.5.1
-rsa==4.9.1
-six==1.17.0
 sniffio==1.3.1
 SQLAlchemy==2.0.49
 # Bumped 1.0.0 → 1.3.1 on 2026-09-02, clearing five advisories (PYSEC-2026-161,

@@ -53,7 +53,7 @@ def test_find_career_windows_with_support(monkeypatch):
     monkeypatch.setattr("app.calculations.event_windows.calculate_sidereal_planets", fake_snapshot)
 
     # lagna_rasi=1 → 10th house rasi = 10 (Magaram)
-    chart = ChartData(lagna_rasi=1, moon_longitude=0.0, birth_jd=2449061.0)
+    chart = ChartData(lagna_rasi=1, moon_longitude=0.0, birth_jd=2447313.0)
     windows = find_career_windows(chart, 2026, 2026)
     assert len(windows) == 1
     assert windows[0].event == "CAREER"
@@ -75,7 +75,7 @@ def test_find_career_windows_no_dasha_support(monkeypatch):
     monkeypatch.setattr("app.calculations.event_windows.calculate_vimshottari_timeline", fake_timeline)
     monkeypatch.setattr("app.calculations.event_windows.calculate_sidereal_planets", fake_snapshot)
 
-    chart = ChartData(lagna_rasi=1, moon_longitude=0.0, birth_jd=2449061.0)
+    chart = ChartData(lagna_rasi=1, moon_longitude=0.0, birth_jd=2447313.0)
     windows = find_career_windows(chart, 2026, 2026)
     assert windows == []
 
@@ -91,7 +91,7 @@ def test_find_career_windows_no_transit_support(monkeypatch):
     monkeypatch.setattr("app.calculations.event_windows.calculate_vimshottari_timeline", fake_timeline)
     monkeypatch.setattr("app.calculations.event_windows.calculate_sidereal_planets", fake_snapshot)
 
-    chart = ChartData(lagna_rasi=1, moon_longitude=0.0, birth_jd=2449061.0)
+    chart = ChartData(lagna_rasi=1, moon_longitude=0.0, birth_jd=2447313.0)
     windows = find_career_windows(chart, 2026, 2026)
     assert windows == []
 
@@ -111,7 +111,7 @@ def test_find_finance_windows_with_support(monkeypatch):
     monkeypatch.setattr("app.calculations.event_windows.calculate_vimshottari_timeline", fake_timeline)
     monkeypatch.setattr("app.calculations.event_windows.calculate_sidereal_planets", fake_snapshot)
 
-    chart = ChartData(lagna_rasi=1, moon_longitude=0.0, birth_jd=2449061.0)
+    chart = ChartData(lagna_rasi=1, moon_longitude=0.0, birth_jd=2447313.0)
     windows = find_finance_windows(chart, 2026, 2026)
     assert len(windows) == 1
     assert windows[0].event == "FINANCE"
@@ -131,7 +131,7 @@ def test_find_finance_windows_no_support(monkeypatch):
     monkeypatch.setattr("app.calculations.event_windows.calculate_vimshottari_timeline", fake_timeline)
     monkeypatch.setattr("app.calculations.event_windows.calculate_sidereal_planets", fake_snapshot)
 
-    chart = ChartData(lagna_rasi=1, moon_longitude=0.0, birth_jd=2449061.0)
+    chart = ChartData(lagna_rasi=1, moon_longitude=0.0, birth_jd=2447313.0)
     windows = find_finance_windows(chart, 2026, 2026)
     assert windows == []
 
@@ -147,7 +147,7 @@ def test_find_finance_windows_11th_lord_active(monkeypatch):
     monkeypatch.setattr("app.calculations.event_windows.calculate_vimshottari_timeline", fake_timeline)
     monkeypatch.setattr("app.calculations.event_windows.calculate_sidereal_planets", fake_snapshot)
 
-    chart = ChartData(lagna_rasi=2, moon_longitude=30.0, birth_jd=2449061.0)
+    chart = ChartData(lagna_rasi=2, moon_longitude=30.0, birth_jd=2447313.0)
     windows = find_finance_windows(chart, 2026, 2026)
     assert len(windows) == 1
 
@@ -166,7 +166,7 @@ def test_find_event_windows_marriage(monkeypatch):
     monkeypatch.setattr("app.calculations.event_windows.calculate_vimshottari_timeline", fake_timeline)
     monkeypatch.setattr("app.calculations.event_windows.calculate_sidereal_planets", fake_snapshot)
 
-    chart = ChartData(lagna_rasi=1, moon_longitude=0.0, birth_jd=2449061.0)
+    chart = ChartData(lagna_rasi=1, moon_longitude=0.0, birth_jd=2447313.0)
     windows = find_event_windows(chart, "MARRIAGE", 2026, 2026)
     assert all(w.event == "MARRIAGE" for w in windows)
 
@@ -181,7 +181,7 @@ def test_find_event_windows_career(monkeypatch):
     monkeypatch.setattr("app.calculations.event_windows.calculate_vimshottari_timeline", fake_timeline)
     monkeypatch.setattr("app.calculations.event_windows.calculate_sidereal_planets", fake_snapshot)
 
-    chart = ChartData(lagna_rasi=1, moon_longitude=0.0, birth_jd=2449061.0)
+    chart = ChartData(lagna_rasi=1, moon_longitude=0.0, birth_jd=2447313.0)
     windows = find_event_windows(chart, "CAREER", 2026, 2026)
     assert all(w.event == "CAREER" for w in windows)
 
@@ -196,13 +196,13 @@ def test_find_event_windows_finance(monkeypatch):
     monkeypatch.setattr("app.calculations.event_windows.calculate_vimshottari_timeline", fake_timeline)
     monkeypatch.setattr("app.calculations.event_windows.calculate_sidereal_planets", fake_snapshot)
 
-    chart = ChartData(lagna_rasi=1, moon_longitude=0.0, birth_jd=2449061.0)
+    chart = ChartData(lagna_rasi=1, moon_longitude=0.0, birth_jd=2447313.0)
     windows = find_event_windows(chart, "FINANCE", 2026, 2026)
     assert all(w.event == "FINANCE" for w in windows)
 
 
 def test_find_event_windows_invalid_type():
-    chart = ChartData(lagna_rasi=1, moon_longitude=0.0, birth_jd=2449061.0)
+    chart = ChartData(lagna_rasi=1, moon_longitude=0.0, birth_jd=2447313.0)
     with pytest.raises(ValueError, match="Unknown event type"):
         find_event_windows(chart, "INVALID", 2026, 2026)  # type: ignore[arg-type]
 
@@ -225,7 +225,7 @@ def test_find_event_windows_multi_year_sorted(monkeypatch):
     monkeypatch.setattr("app.calculations.event_windows.calculate_vimshottari_timeline", fake_timeline)
     monkeypatch.setattr("app.calculations.event_windows.calculate_sidereal_planets", fake_snapshot)
 
-    chart = ChartData(lagna_rasi=1, moon_longitude=0.0, birth_jd=2449061.0)
+    chart = ChartData(lagna_rasi=1, moon_longitude=0.0, birth_jd=2447313.0)
     windows = find_career_windows(chart, 2026, 2028)
     scores = [w.score for w in windows]
     assert scores == sorted(scores, reverse=True)

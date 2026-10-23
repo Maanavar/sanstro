@@ -3,15 +3,19 @@
 import { useState } from "react";
 import { Sun, Flame, Sparkles } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import Link from "next/link";
+import { LocalizedLink as Link } from "@/components/localized-link";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { useLang } from "@/components/lang-toggle";
 import { mt, NATCHATHIRAM_DETAIL, NATCHATHIRAM_VISUAL } from "@/lib/marketing-i18n";
+import { tPlanetLord } from "@/lib/i18n";
 import { NakshatraSigil, RasiGlyph } from "@/components/astro-symbols";
 import type { NatchathiramEntry } from "@/lib/natchathiram-data";
 import { JYOTISH_TERM_EN, NATCHATHIRAM_EN_FACTS } from "@/lib/natchathiram-data-en";
 import { romanNakshathiramLabel, romanNakshathiramName, tamilizeAstroEnglish } from "@/lib/tamil-astro";
+import type { MahadashaTiming, NakshatraDasaTimings } from "@/lib/generated/natchathiram-dasa-timings";
+import { BhuktiTable, DASA_TIMING_NOTE, mahadashaSpanLabel } from "@/components/natchathiram-dasa-timing";
+import { nakshatraDisplayName } from "@/lib/nakshatra-display-name";
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -29,7 +33,12 @@ export interface NatchathiramVisualData {
   careerAbilities: { label: string; score: number }[];
   careerClusters: { symbol: string; title: string; desc: string }[];
   modernApps: { symbol: string; title: string; desc: string }[];
-  dashaTimeline: { planet: string; period: string; ageRange?: string; theme: string; detail?: DashaDetail }[];
+  /**
+   * Prose only, in the engine's mahadasha order. No timing field: every length,
+   * age and bhukti time is rendered from the generated engine timings (FSA-03),
+   * and `planet` must equal the engine's lord at the same index.
+   */
+  dashaTimeline: { planet: string; theme: string; detail?: DashaDetail }[];
   spirituality: { title: string; desc: string }[];
   guidance: string;
   compatibleEn: string[];
@@ -267,15 +276,17 @@ function IconCircle({
 
 // ── Dasha detail panel ────────────────────────────────────────────────────
 
+// "At This Age" was itself an age claim — the age a dasha arrives at is a range.
 const DASHA_SECTION_LABELS = {
-  en: { expect: "At This Age", navigate: "Be Alert", focus: "Remedy & Opportunity" },
-  ta: { expect: "இந்த வயதில்", navigate: "கவனம் தேவை", focus: "நிவாரணம் & வாய்ப்பு" },
+  en: { expect: "What to Expect", navigate: "Be Alert", focus: "Remedy & Opportunity" },
+  ta: { expect: "இந்த தசையில்", navigate: "கவனம் தேவை", focus: "நிவாரணம் & வாய்ப்பு" },
 } as const;
 
 function DashaDetailPanel({
-  entry, color, lang, onClose,
+  entry, timing, color, lang, onClose,
 }: {
-  entry: { planet: string; period: string; ageRange?: string; theme: string; detail: DashaDetail };
+  entry: { planet: string; theme: string; detail: DashaDetail };
+  timing: MahadashaTiming;
   color: string;
   lang: "en" | "ta";
   onClose: () => void;
@@ -292,7 +303,7 @@ function DashaDetailPanel({
       padding: "1.75rem 2rem",
       boxShadow: `0 4px 24px ${color}15`,
       position: "relative",
-      animation: "dashaPanelIn 0.22s ease",
+      animation: "dashaPanelIn 0.22s var(--ease-nova)",
     }}>
       <style>{`@keyframes dashaPanelIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }`}</style>
 
@@ -315,9 +326,9 @@ function DashaDetailPanel({
           {glyph}
         </div>
         <div>
-          <p style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700, color: T.ink }}>{entry.planet} Dasha</p>
+          <p style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700, color: T.ink }}>{lang === "ta" ? `${tPlanetLord(entry.planet, lang)} தசை` : `${entry.planet} Dasha`}</p>
           <p style={{ margin: 0, fontSize: "0.8rem", color, fontWeight: 600 }}>
-            {entry.period}{entry.ageRange ? ` · ${entry.ageRange}` : ""} &mdash; {entry.theme}
+            {mahadashaSpanLabel(timing, lang)} &mdash; {entry.theme}
           </p>
         </div>
       </div>
@@ -341,6 +352,8 @@ function DashaDetailPanel({
           </div>
         ))}
       </div>
+
+      <BhuktiTable md={timing} lang={lang} color={color} />
     </div>
   );
 }
@@ -350,9 +363,12 @@ function DashaDetailPanel({
 interface Props {
   data: NatchathiramEntry;
   visual: NatchathiramVisualData;
+  /** This star's engine timings — passed in by the server page, so the client
+   *  bundle carries one star's numbers rather than all 27. */
+  timings: NakshatraDasaTimings;
 }
 
-export function NatchathiramVisualContent({ data, visual }: Props) {
+export function NatchathiramVisualContent({ data, visual, timings }: Props) {
   const [lang] = useLang();
   const d = NATCHATHIRAM_DETAIL;
   const v = NATCHATHIRAM_VISUAL;
@@ -456,22 +472,11 @@ export function NatchathiramVisualContent({ data, visual }: Props) {
 
               {/* Left — title + at-a-glance */}
               <div className="cl-pub-hero__copy">
+                {/* §8.4 Option A: Tamil name first, Sanskrit in brackets, page's script.
+                    The English H1 used to repeat itself in capitals underneath; a
+                    screen reader read the name twice. */}
                 <h1 className="cl-pub-h1">
-                  {lang === "ta" ? (
-                    <>
-                      {data.name_ta} நட்சத்திரம்
-                      <span style={{ display:"block", fontSize:"clamp(0.9rem,1.8vw,1.15rem)", color:"var(--cl-muted)", fontFamily:"var(--cl-font-sans)", fontWeight:500, letterSpacing:"0.12em", textTransform:"uppercase", marginTop:"0.4rem" }}>
-                        {englishLabel.toUpperCase()}
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      {englishLabel}
-                      <span style={{ display:"block", fontSize:"clamp(0.95rem,2vw,1.25rem)", color:"var(--cl-muted)", fontFamily:"var(--cl-font-sans)", fontWeight:500, letterSpacing:"0.14em", textTransform:"uppercase", marginTop:"0.4rem" }}>
-                        {englishLabel.toUpperCase()}
-                      </span>
-                    </>
-                  )}
+                  {nakshatraDisplayName(data.number, lang === "ta" ? "ta" : "en")}
                 </h1>
                 <p className="cl-pub-lead">
                   {lang === "ta"
@@ -505,21 +510,20 @@ export function NatchathiramVisualContent({ data, visual }: Props) {
                       {mtv(v.natch_profile)} &middot; {lang==="ta" ? data.rasi_ta.toUpperCase() : data.rasi_en.toUpperCase()}
                     </p>
                     <div style={{ display:"flex", justifyContent:"center", marginBottom:"1.25rem" }}>
-                      <NakshatraSigil number={data.number} name={englishName} size="lg" />
+                      <NakshatraSigil number={data.number} name={englishName} nameTa={data.name_ta} size="lg" />
                     </div>
                     <p style={{ fontSize:"0.6rem", textTransform:"uppercase", letterSpacing:"0.12em", color:T.muted, margin:"0 0 0.2rem", fontWeight:600 }}>
                       {mtv(v.better_star)}
                     </p>
                     {lang === "ta" ? (
                       <>
-                        <p style={{ fontFamily:"var(--cl-font-display)", fontSize:"1.6rem", fontWeight:600, color:T.ink, margin:"0 0 0.1rem", letterSpacing:"-0.02em" }}>{data.name_ta}</p>
-                        <p style={{ fontSize:"0.85rem", color:T.muted, margin:"0 0 1.5rem" }}>{englishLabel}</p>
+                        <p style={{ fontFamily:"var(--cl-font-display)", fontSize:"1.6rem", fontWeight:600, color:T.ink, margin:"0 0 1.5rem", letterSpacing:"-0.02em" }}>{data.name_ta}</p>
                       </>
                     ) : (
                       <p style={{ fontFamily:"var(--cl-font-display)", fontSize:"1.6rem", fontWeight:600, color:T.ink, margin:"0 0 1.5rem", letterSpacing:"-0.02em" }}>{englishName}</p>
                     )}
                     <div style={{ display:"inline-flex", alignItems:"center", gap:"0.75rem", background:T.surface, border:`1px solid ${T.border}`, borderRadius:12, padding:"0.75rem 1.25rem" }}>
-                      <RasiGlyph rasi={data.rasi_en} label={data.rasi_en} size="md" />
+                      <RasiGlyph rasi={data.rasi_en} label={lang === "ta" ? data.rasi_ta : data.rasi_en} size="md" />
                       <div style={{ textAlign:"left" }}>
                         <p style={{ fontSize:"0.58rem", textTransform:"uppercase", letterSpacing:"0.12em", color:T.muted, margin:0, fontWeight:600 }}>{mtv(v.rasi_label)}</p>
                         <p style={{ fontWeight:700, color:T.ink, margin:"0.1rem 0 0.05rem", fontSize:"1rem" }}>
@@ -542,7 +546,7 @@ export function NatchathiramVisualContent({ data, visual }: Props) {
               {facts.map((f, i) => (
                 <div key={f.label} style={{ background:T.surface, border:`1px solid ${T.border}`, borderRadius:12, padding:"1.1rem 1.25rem", boxShadow:`0 1px 4px ${T.accentA10}` }}>
                   <div style={{ marginBottom:"0.6rem" }}>
-                    {i === 0 ? <RasiGlyph rasi={data.rasi_en} label={data.rasi_en} size="sm" /> : <FactIcon type={f.icon} />}
+                    {i === 0 ? <RasiGlyph rasi={data.rasi_en} label={lang === "ta" ? data.rasi_ta : data.rasi_en} size="sm" /> : <FactIcon type={f.icon} />}
                   </div>
                   <p style={{ fontSize:"0.6rem", textTransform:"uppercase", letterSpacing:"0.11em", color:T.muted, margin:"0 0 0.25rem", fontWeight:600 }}>{f.label}</p>
                   <p style={{ fontWeight:700, fontSize:"0.92rem", color:T.ink, margin:0 }}>{f.value}</p>
@@ -726,9 +730,7 @@ export function NatchathiramVisualContent({ data, visual }: Props) {
               <SectionHeading>{mtv(d.sec_dasha)}</SectionHeading>
               <p className="cl-band__lead" style={{ marginTop:"-0.5rem" }}>{mtv(v.dasha_lead)}</p>
               <p style={{ fontSize:"0.74rem", color:T.muted, margin:"-0.25rem 0 1.5rem", fontStyle:"italic", lineHeight:1.5 }}>
-                {lang === "ta"
-                  ? "* முதல் தசை கால அளவு பிறந்த நேரத்தைப் பொறுத்து குறையலாம் — இது அனைவருக்கும் பொதுவானது."
-                  : "* First dasha duration varies by birth position — most are born mid-cycle with fewer years remaining."}
+                {DASA_TIMING_NOTE[lang === "ta" ? "ta" : "en"]}
               </p>
             </div>
             <div style={{ overflowX:"auto", paddingBottom:"0.5rem", paddingTop:"0.75rem" }}>
@@ -748,7 +750,7 @@ export function NatchathiramVisualContent({ data, visual }: Props) {
                       <button
                         onClick={() => setSelectedDasha(isSelected ? null : i)}
                         aria-expanded={isSelected}
-                        aria-label={`${entry.planet} dasha details`}
+                        aria-label={lang === "ta" ? `${tPlanetLord(entry.planet, lang)} தசை விவரங்கள்` : `${entry.planet} dasha details`}
                         style={{
                           width:46, height:46, borderRadius:"50%",
                           background: isSelected ? `${col}30` : `${col}18`,
@@ -758,15 +760,16 @@ export function NatchathiramVisualContent({ data, visual }: Props) {
                           fontSize:"1.1rem", color:col,
                           boxShadow: isSelected ? `0 0 0 4px ${col}20, 0 4px 12px ${col}30` : `0 2px 8px ${col}20`,
                           cursor: hasDetail ? "pointer" : "default",
-                          transition:"all 0.18s ease",
+                          transition:"all 0.18s var(--ease-nova)",
                           transform: isSelected ? "scale(1.12)" : "scale(1)",
                         }}
                       >
                         {glyph}
                       </button>
-                      <p style={{ fontSize:"0.82rem", fontWeight:700, color: isSelected ? col : T.ink, margin:"0 0 0.15rem", transition:"color 0.18s" }}>{entry.planet}</p>
-                      <p style={{ fontSize:"0.7rem", color:T.accent, margin:"0 0 0.1rem", fontWeight:700 }}>{entry.period}</p>
-                      {entry.ageRange && <p style={{ fontSize:"0.62rem", color:T.muted, margin:"0 0 0.2rem", fontWeight:500 }}>{entry.ageRange}</p>}
+                      <p style={{ fontSize:"0.82rem", fontWeight:700, color: isSelected ? col : T.ink, margin:"0 0 0.15rem", transition:"color 0.18s" }}>{lang === "ta" ? tPlanetLord(entry.planet, lang) : entry.planet}</p>
+                      <p style={{ fontSize:"0.66rem", color:T.accent, margin:"0 0 0.2rem", fontWeight:600, lineHeight:1.35 }}>
+                        {mahadashaSpanLabel(timings.mahadashas[i], lang === "ta" ? "ta" : "en")}
+                      </p>
                       <p style={{ fontSize:"0.66rem", color:T.muted, margin:0, lineHeight:1.4, padding:"0 0.2rem" }}>{entry.theme}</p>
                       {hasDetail && (
                         <p style={{ fontSize:"0.6rem", color: isSelected ? col : T.muted, margin:"0.3rem 0 0", fontWeight:600, letterSpacing:"0.04em", transition:"color 0.18s" }}>
@@ -790,6 +793,7 @@ export function NatchathiramVisualContent({ data, visual }: Props) {
               return (
                 <DashaDetailPanel
                   entry={{ ...entry, detail }}
+                  timing={timings.mahadashas[selectedDasha]}
                   color={col}
                   lang={lang as "en" | "ta"}
                   onClose={() => setSelectedDasha(null)}

@@ -33,7 +33,7 @@ from app.calculations.muhurta_engine import (
     display_score,
     score_day,
 )
-from app.calculations.panchangam import calculate_daily_panchangam
+from app.services.panchangam_cache import calculate_daily_panchangam
 
 # Chennai — a location, not a person.
 LATITUDE, LONGITUDE, TIMEZONE = 13.0827, 80.2707, "Asia/Kolkata"

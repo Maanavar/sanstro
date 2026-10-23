@@ -24,7 +24,18 @@ export function formatDateLabel(isoDate: string): string {
   }).format(new Date(`${isoDate}T00:00:00Z`));
 }
 
-export function formatClockLabel(value: string): string {
+/** Tamil almanac period-word for a 24h hour. The word comes BEFORE the number
+ *  ("மதியம் 1:42"), never a Latin am/pm. Buckets per the 2026-09-17 doctrine
+ *  ruling: காலை 5–11:59, மதியம் 12–15:59, மாலை 16–18:59, இரவு 19 onward.
+ *  00:00–04:59 is also இரவு — the ruling did not name that span. */
+export function tamilDayPeriod(h24: number): string {
+  if (h24 >= 5 && h24 < 12) return "காலை";
+  if (h24 >= 12 && h24 < 16) return "மதியம்";
+  if (h24 >= 16 && h24 < 19) return "மாலை";
+  return "இரவு";
+}
+
+export function formatClockLabel(value: string, lang: "en" | "ta" = "en"): string {
   const timePart = value.includes("T") ? value.split("T")[1] : value;
   const [hhStr = "", mmStr = "00"] = (timePart ?? "").split(":");
   const hh = Number.parseInt(hhStr, 10);
@@ -32,9 +43,23 @@ export function formatClockLabel(value: string): string {
   if (!Number.isFinite(hh) || !Number.isFinite(mm)) return value.slice(0, 5);
   const h24 = ((hh % 24) + 24) % 24;
   const m = ((mm % 60) + 60) % 60;
-  const period = h24 < 12 ? "am" : "pm";
   const h12 = h24 % 12 || 12;
-  return `${h12}:${String(m).padStart(2, "0")} ${period}`;
+  const clock = `${h12}:${String(m).padStart(2, "0")}`;
+  if (lang === "ta") return `${tamilDayPeriod(h24)} ${clock}`;
+  return `${clock} ${h24 < 12 ? "am" : "pm"}`;
+}
+
+/** Hour-only label for tight spots (axis ticks, "best window 6 am"):
+ *  "6 am" / "காலை 6". Same period-word buckets as `formatClockLabel`. */
+export function formatClockHour(value: string, lang: "en" | "ta" = "en"): string {
+  return formatClockLabel(value, lang).replace(/:\d{2}(?= |$)/, "");
+}
+
+/** A start–end clock range. English keeps the tight "1:42 pm–3:18 pm"; Tamil
+ *  spaces the dash because each end carries its own period-word. */
+export function formatClockRange(start: string, end: string, lang: "en" | "ta" = "en"): string {
+  const sep = lang === "ta" ? " – " : "–";
+  return `${formatClockLabel(start, lang)}${sep}${formatClockLabel(end, lang)}`;
 }
 
 export function formatDateTimeLabel(value: string | null | undefined): string {

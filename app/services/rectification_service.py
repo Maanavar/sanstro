@@ -114,7 +114,7 @@ def estimate_birth_time(
     owner_user_id: UUID,
 ) -> RectificationResultData:
     profile = session.get(BirthProfile, birth_profile_id)
-    if profile is None:
+    if profile is None or profile.deleted_at is not None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Birth profile not found.")
     if profile.owner_user_id != owner_user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
@@ -174,8 +174,27 @@ def apply_rectified_time(
     selected_time_str: str,
     owner_user_id: UUID,
 ) -> BirthProfile:
+    """Write the chosen birth time **through the one path the engine reads**.
+
+    This used to set `birth_time_local` and commit, which changed the time the
+    profile displays and nothing else: `birth_datetime_utc` — the column the
+    chart builder, daily scoring, Shadbala and the push cron read in preference
+    to the local parts — kept the old instant, the persisted chart kept the old
+    lagna, and cached daily scores kept the old dasha. The user was told "Birth
+    time updated" while every reading stayed on the old time (FCA-03).
+
+    `apply_birth_profile_changes` is the function that already refreshes the UTC
+    instant, drops daily scores and recalculates, so the write goes through it.
+    """
+    # Imported here: birth_profile_service imports the chart stack, which this
+    # module's estimate path does not need at import time.
+    from app.constants.versions import CHART_CALCULATION_VERSION
+    from app.services.birth_profile_service import apply_birth_profile_changes
+
     profile = session.get(BirthProfile, birth_profile_id)
-    if profile is None:
+    # 404 for missing *and* soft-deleted, before the ownership check — the same
+    # order the birth-profile routes use.
+    if profile is None or profile.deleted_at is not None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Birth profile not found.")
     if profile.owner_user_id != owner_user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
@@ -185,9 +204,17 @@ def apply_rectified_time(
     except ValueError:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Invalid time format. Expected HH:MM.") from None
 
-    profile.birth_time_local = parsed
-    profile.birth_time_source = "ESTIMATED_RECTIFIED"
-    profile.birth_time_confidence_minutes = 30
+    apply_birth_profile_changes(
+        session,
+        profile,
+        {
+            "birth_time_local": parsed,
+            "birth_time_source": "ESTIMATED_RECTIFIED",
+            "birth_time_confidence_minutes": 30,
+        },
+        recalculate=True,
+        calculation_version=CHART_CALCULATION_VERSION,
+    )
     session.commit()
     session.refresh(profile)
     return profile

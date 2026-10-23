@@ -111,7 +111,7 @@ column would still be unreadable if the escrowed key were the wrong one.
 ### 2.1 Take a backup
 
 ```powershell
-docker exec slw-postgres pg_dump -U slw_admin vinaadi_dev > backup_$(Get-Date -Format 'yyyyMMdd_HHmm').sql
+docker exec vinaadi-postgres pg_dump -U slw_admin vinaadi_dev > backup_$(Get-Date -Format 'yyyyMMdd_HHmm').sql
 ```
 
 Production is the same command against the production container and database.
@@ -119,7 +119,7 @@ Production is the same command against the production container and database.
 ### 2.2 Create a scratch database
 
 ```powershell
-docker exec slw-postgres psql -U slw_admin -d postgres -c "CREATE DATABASE vinaadi_restore_check;"
+docker exec vinaadi-postgres psql -U slw_admin -d postgres -c "CREATE DATABASE vinaadi_restore_check;"
 ```
 
 The name matters. `verify_restore.py` refuses any database whose name does not
@@ -133,9 +133,9 @@ rather than on the operator.
 ```powershell
 $env:JOTHIDAM_ENCRYPTION_KEYS = "<paste the key retrieved FROM ESCROW>"
 python -m scripts.verify_restore `
-  --scratch-url "postgresql://slw_admin:slw_dev_password@localhost:5432/vinaadi_restore_check" `
+  --scratch-url "postgresql://slw_admin:slw_dev_password@localhost:5434/vinaadi_restore_check" `
   --dump backup_20260903_1400.sql `
-  --docker-container slw-postgres
+  --docker-container vinaadi-postgres
 ```
 
 Expected output, and note that no decrypted value ever appears — the script
@@ -194,7 +194,7 @@ Run `python -m scripts.rotate_encryption_key`, then `--verify`.
 ### 2.5 Clean up
 
 ```powershell
-docker exec slw-postgres psql -U slw_admin -d postgres -c "DROP DATABASE vinaadi_restore_check;"
+docker exec vinaadi-postgres psql -U slw_admin -d postgres -c "DROP DATABASE vinaadi_restore_check;"
 ```
 
 Delete the dump file too — it is plaintext for everything that is not

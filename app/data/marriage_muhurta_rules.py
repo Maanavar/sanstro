@@ -263,10 +263,19 @@ MARRIAGE_INAUSPICIOUS_LUNAR_MONTHS: frozenset[str] = frozenset(
 # "If Jupiter transits the 3rd/4th/6th/8th/10th/12th from Janma-Rasi at
 # marriage, [the] bride dies or becomes [a] widow. Marry in the 5th/6th/7th
 # year of the bride when Jupiter [is] well-placed." An extremely severe
-# traditional claim — this constant carries the doctrine as stated; whether
-# and how literally to surface it in user-facing copy is a product decision
-# for whoever wires this into the engine, not decided here.
+# traditional claim — this constant carries the doctrine as stated. The
+# adverse-house half is wired as a softened penalty (owner ruling 2026-09-12,
+# `muhurta_engine.marriage_jupiter_gochara_factor`).
 MARRIAGE_JUPITER_ADVERSE_HOUSES_FROM_MOON: frozenset[int] = frozenset({3, 4, 6, 8, 10, 12})
+# PERMANENTLY REFUSED (2026-09-15). Recorded so the extraction stays faithful to
+# p.79, and so nobody wires it. "The 5th/6th/7th year of the bride" prescribes the
+# marriage of a child of four to six, which is a crime under the Prohibition of
+# Child Marriage Act, 2006 (India) and everywhere this product is used. It was
+# once listed as blocked because "no request carries an age"; that was never the
+# real blocker — a saved bride's chart has her birth date, so the age is one
+# subtraction away. The answer is not "later", it is "never". A guard in
+# tests/test_marriage_muhurta_doctrine.py fails if anything under app/ reads it.
+# See docs/MUHURTA_COUPLE_OPEN_ITEMS_2026-09-15.md §2.
 MARRIAGE_JUPITER_FAVOURABLE_BRIDE_AGE_YEARS: tuple[int, ...] = (5, 6, 7)
 
 # ── 10. Snaana (pre-marriage ceremonial bath) sub-rite (p.68, CONFIRMED_EXACT) ─

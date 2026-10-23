@@ -17,7 +17,7 @@ import { getPanchangamDay } from "@/api/panchangam";
 import { loadGuestPrefs } from "@/features/guest/guestStore";
 import type { GuestPrefs } from "@/features/guest/guestStore";
 import type { PanchangamDailyResponseData } from "@vinaadi/shared";
-import { tKarana, tNakshatra, tTithi, tYoga } from "@vinaadi/shared";
+import { tFestival, tKarana, tNakshatra, tTithi, tYoga } from "@vinaadi/shared";
 
 const TZ = "Asia/Kolkata";
 
@@ -212,7 +212,7 @@ export default function DailyPanchangamToolScreen() {
             {p.subhaMuhurtham.isSubha && (
               <View style={styles.subhaBanner}>
                 <Text style={[styles.subhaBannerText, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
-                  {isTamil ? "✓ இன்று சுப முகூர்த்த நாள்" : "✓ Auspicious Muhurtham Day"}
+                  {isTamil ? "✓ இன்று நல்ல நாள்" : "✓ A good day for new starts"}
                 </Text>
               </View>
             )}
@@ -223,7 +223,7 @@ export default function DailyPanchangamToolScreen() {
                 {p.festivals.map((f, i) => (
                   <View key={i} style={styles.festivalTag}>
                     <Text style={[styles.festivalText, { fontFamily: isTamil ? "NotoSansTamil_600SemiBold" : "Inter_600SemiBold" }]}>
-                      {f.name}
+                      {tFestival(f.name, lang)}
                     </Text>
                   </View>
                 ))}
@@ -298,9 +298,30 @@ export default function DailyPanchangamToolScreen() {
               <TimeBar label="Yamagandam" labelTa="யமகண்டம்"
                 start={p.kalam.yamagandam.start} end={p.kalam.yamagandam.end}
                 color={C.alert} C={C} isTamil={isTamil} styles={styles} />
-              <TimeBar label="Kuligai" labelTa="குளிகை"
-                start={p.kalam.kuligai.start} end={p.kalam.kuligai.end}
-                color={C.caution} C={C} isTamil={isTamil} styles={styles} />
+              {(p.kalam.durmuhurtham ?? []).map((slot, index) => (
+                <TimeBar key={`dur-${index}`}
+                  label="Durmuhurtham · avoid auspicious/new beginnings"
+                  labelTa="துர்முகூர்த்தம் · சுப / புதிய தொடக்கங்களுக்கு தவிர்க்கவும்"
+                  start={slot.start} end={slot.end}
+                  color={C.alert} C={C} isTamil={isTamil} styles={styles} />
+              ))}
+
+              <View style={styles.timeDivider} />
+
+              {/* Contextual — Kuligai is neither a general avoid nor a generic best time. */}
+              <Text style={[styles.timeGroupLabel, { color: C.skyBlue, fontFamily: "Inter_600SemiBold" }]}>
+                {isTamil ? "செயலைப் பொறுத்த நேரம்" : "Activity-dependent"}
+              </Text>
+              <TimeBar
+                label="Kuligai · for activities meant to repeat, continue or grow"
+                labelTa="குளிகை · மீண்டும் நிகழ, தொடர அல்லது வளர வேண்டிய செயல்களுக்கு"
+                start={p.kalam.kuligai.start}
+                end={p.kalam.kuligai.end}
+                color={C.skyBlue}
+                C={C}
+                isTamil={isTamil}
+                styles={styles}
+              />
 
               <View style={styles.timeDivider} />
 

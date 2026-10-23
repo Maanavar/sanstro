@@ -88,3 +88,71 @@ def test_none_strength_defaults_do_not_crash():
 def test_every_navagraha_has_a_reminder_weekday():
     for planet in ("SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN", "RAHU", "KETU"):
         assert PLANET_REMEDY_WEEKDAY[planet] in _ALL_WEEKDAYS
+
+
+@pytest.mark.no_db
+def test_every_remedy_carries_both_safety_notes():
+    """The module header says the fasting caution AND the no-guarantee note
+    must accompany every remedy. `get_remedy` attached only the first, and the
+    life-areas `structuredRemedy` has no response-level disclaimer to cover it."""
+    from app.calculations.functional_nature import FunctionalNature
+    from app.calculations.remedies import GUARANTEE_NOTE_EN, GUARANTEE_NOTE_TA, get_remedy
+
+    for planet in ("SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN", "RAHU", "KETU"):
+        for nature in FunctionalNature:
+            payload = get_remedy(planet, nature, "MILD")
+            assert payload["guarantee_note_ta"] == GUARANTEE_NOTE_TA
+            assert payload["guarantee_note_en"] == GUARANTEE_NOTE_EN
+            assert payload["fasting_caution_en"]
+
+
+@pytest.mark.no_db
+def test_strong_area_gets_a_maintain_practice_not_a_remedy():
+    """Owner ruling 2026-10-01: a parikaram is for a difficulty, not a blessing."""
+    from app.calculations.remedies import AREA_REMEDY_SCORE_CEILING, MAINTAIN_PRACTICE_EN, get_area_remedy
+
+    out = get_area_remedy("career", ["SATURN", "SUN"], ARIES_LAGNA, {}, score=AREA_REMEDY_SCORE_CEILING)
+    assert out["kind"] == "MAINTAIN"
+    assert out["primary_planet"] is None and out["remedy"] is None
+    assert out["practice_en"] == MAINTAIN_PRACTICE_EN
+
+
+@pytest.mark.no_db
+def test_area_needing_care_gets_a_remedy_for_its_weakest_karaka():
+    from app.calculations.remedies import AREA_REMEDY_SCORE_CEILING, get_area_remedy
+
+    out = get_area_remedy("career", ["SATURN", "SUN"], ARIES_LAGNA, {}, score=AREA_REMEDY_SCORE_CEILING - 1)
+    assert out["kind"] == "REMEDY"
+    assert out["primary_planet"] == "SATURN"
+    assert out["remedy"]["severity"] == "MODERATE"
+    assert out["remedy"]["guarantee_note_en"]
+
+
+@pytest.mark.no_db
+def test_no_weak_planet_means_no_jupiter_fallback():
+    """It used to name Guru whenever no karaka was passed, whatever the area."""
+    from app.calculations.remedies import get_area_remedy
+
+    out = get_area_remedy("career", [], ARIES_LAGNA, {}, score=10)
+    assert out["primary_planet"] is None
+    assert out["remedy"] is None
+
+
+@pytest.mark.no_db
+def test_gemstone_is_never_prescribed_only_referenced():
+    """Owner ruling 2026-10-01. No planet, in no functional role, is prescribed a
+    stone. A benefic role may *name* it as a traditional reference with the
+    consult-an-astrologer note; a malefic role, and Saturn/Rahu/Ketu in any role,
+    names none."""
+    from app.calculations.functional_nature import FunctionalNature
+    from app.calculations.remedies import GEMSTONE_NOTE_EN, get_remedy
+
+    malefic = {FunctionalNature.DUSTHANA, FunctionalNature.MARAKA}
+    for planet in ("SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN", "RAHU", "KETU"):
+        for nature in FunctionalNature:
+            payload = get_remedy(planet, nature, "MILD")
+            assert payload["is_gemstone_prescribed"] is False
+            assert payload["gemstone_note_en"] == GEMSTONE_NOTE_EN
+            named = payload["gemstone_en"] is not None
+            assert named == (nature not in malefic and planet not in {"SATURN", "RAHU", "KETU"}), (planet, nature)
+            assert "prescrib" not in payload["reason_en"].lower()

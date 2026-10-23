@@ -8,6 +8,7 @@ fixture identity used across the suite.
 from __future__ import annotations
 
 import pytest
+from sqlalchemy import text
 
 BIRTH_PROFILE_PAYLOAD = {
     "ownerUserId": "33333333-3333-3333-3333-333333333333",
@@ -102,6 +103,37 @@ def test_dashboard_bundle_isolates_a_failing_section(client, chart_id, monkeypat
     # Neighboring sections are unaffected.
     assert data["dailyGuidance"] is not None
     assert data["panchangam"] is not None
+
+
+def test_dashboard_bundle_recovers_after_real_postgres_statement_failure(
+    client, chart_id, monkeypatch
+):
+    """A11: a failed SQL statement must not poison later optional sections.
+
+    PostgreSQL marks the whole transaction failed after this error.  This is
+    intentionally a real statement failure rather than a mocked exception so
+    the test proves transaction isolation, not merely exception handling.
+    """
+    import app.services.dashboard_bundle_service as bundle_service
+
+    def broken_daily_guidance(session, *args, **kwargs):
+        session.execute(text("SELECT * FROM a11_table_that_must_not_exist"))
+
+    monkeypatch.setattr(bundle_service, "get_daily_guidance", broken_daily_guidance)
+
+    response = client.get(
+        f"/api/v1/charts/{chart_id}/dashboard-bundle",
+        params={"date": "2026-07-13"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["dailyGuidance"] is None
+    assert data["errors"]["dailyGuidance"] == "ProgrammingError"
+    # Both the immediately following and a later DB-backed section prove that
+    # PostgreSQL's aborted transaction state did not cascade through the bundle.
+    assert data["dailyGuidanceRange"] is not None
+    assert data["transit"] is not None
 
 
 def test_dashboard_bundle_unknown_chart_404s(client):

@@ -134,10 +134,10 @@ export const NATCHATHIRAM_EN: Record<string, NatchathiramEnSections> = {
     dasha: [
       "Bharani natives are born in Venus dasha. When Venus operates in the early years, it tends to bring comfort and prosperity to the household — vehicles, jewelry, clothing, and material wellbeing may increase.",
       "Since Venus dasha completes early, deep romantic experiences are less common in childhood. True transformative love or significant relationships more often manifest during the Moon dasha period.",
-      "The Moon dasha is one of the most important periods — roughly ages 21 to 31. Education completing, employment beginning, marriage, birth of children, family disputes, job changes, and relationship challenges all tend to converge. The emotional turbulence of Moon as the mind-significator makes this period vivid and formative.",
+      "The Moon dasha is one of the most important periods. The age it arrives at depends on the birth balance (see the table above); when it falls in early adulthood, education completing, employment beginning, marriage, birth of children, family disputes, job changes, and relationship challenges all tend to converge. The emotional turbulence of Moon as the mind-significator makes this period vivid and formative.",
       "During Mars dasha, those who drive or travel frequently should exercise heightened caution. Sharp objects, fire, electricity, and small accidents require watchfulness — especially when Saturn or Ketu sub-periods coincide.",
       "Rahu dasha calls for maximum vigilance — health challenges, debt traps, financial deception, and seemingly profitable ventures that lead to complications are risks worth watching carefully.",
-      "Jupiter dasha from around age 56 to 72 tends to unfold with relative grace — pension, retirement savings, property transactions, children taking on household responsibilities, and the arrival of grandchildren mark this beautiful phase.",
+      "Jupiter dasha, arriving in mature years, tends to unfold with relative grace — pension, retirement savings, property transactions, children taking on household responsibilities, and the arrival of grandchildren mark this beautiful phase.",
     ],
     spiritual: [
       "Homa, yagna, and fire worship are especially beneficial for Bharani natives. Participating in temple homas and performing an annual Ganapati Homa at home brings auspicious energy.",
@@ -173,10 +173,10 @@ export const NATCHATHIRAM_EN: Record<string, NatchathiramEnSections> = {
     dasha: [
       "Krittika natives are born in Sun dasha. The early Sun dasha often brings prestige and advancement to the father, and respect and authority to the elder males in the family.",
       "Moon dasha follows — associated with the growth years and education. With a well-placed Moon, the child grows healthy, learns well, and develops a strong constitution.",
-      "Mars dasha is pivotal — occurring roughly between ages 13 and 20, this period can be transformative. Home changes, land acquisitions, moving to a new house, taking on responsibility for siblings — these are characteristic events. Since Mars carries the karma of this native, this dasha lays the life's foundations.",
-      "Rahu dasha, lasting about 18 years from around age 20, is considered particularly challenging for Krittika. Health issues, mental stress, marital conflict, debt, litigation, and professional competition can arise. Money may arrive, but peace may remain elusive. Patience, clarity, and financial discipline are essential.",
+      "Mars dasha is pivotal — beginning in the school years and running into early adulthood, this period can be transformative. Home changes, land acquisitions, moving to a new house, taking on responsibility for siblings — these are characteristic events. Since Mars carries the karma of this native, this dasha lays the life's foundations.",
+      "Rahu dasha, which follows Mars dasha, is considered particularly challenging for Krittika. Health issues, mental stress, marital conflict, debt, litigation, and professional competition can arise. Money may arrive, but peace may remain elusive. Patience, clarity, and financial discipline are essential.",
       "Jupiter dasha generally brings relief and progress — when well-positioned, children bring pride, family grows, and financial stability improves.",
-      "Saturn dasha from around age 54 requires close attention to physical health. Lethargy is the enemy during this period — the body must be kept active. Walking, household work, and physical activity through honest labor are considered particularly beneficial during Saturn's long cycle.",
+      "Saturn dasha, arriving in mature years, requires close attention to physical health. Lethargy is the enemy during this period — the body must be kept active. Walking, household work, and physical activity through honest labor are considered particularly beneficial during Saturn's long cycle.",
     ],
     spiritual: [
       "Deepa worship — the worship of sacred fire — is of the highest importance for Krittika natives. The Karthigai Deepam darshan at Thiruvannamalai, the annual girivalam of Arunachala, worship at Palani Murugan temple, and devotion to Shiva and Murugan all support spiritual growth.",
@@ -212,9 +212,9 @@ export const NATCHATHIRAM_EN: Record<string, NatchathiramEnSections> = {
       "In marriage and partnership, Rohini natives find harmony with compatible tara-bala nakshatras. Mrigashira, Punarvasu, and Ayilyam are traditionally considered good marriage matches; Krittika, Uttara, and Uttarashadha may also make good life partners or business collaborators.",
     ],
     dasha: [
-      "Rohini natives are born during Moon dasha. As they grow, the household tends to see increasing prosperity. Around ages 20 to 35, Rahu dasha arrives — bringing the intensity of romance, marriage, relationship complexity, and the possibility of misplaced decisions. Marriage matching must be conducted with particular care during this window.",
+      "Rohini natives are born during Moon dasha. As they grow, the household tends to see increasing prosperity. Depending on the birth balance, Rahu dasha begins in childhood or adolescence and runs into early adulthood — bringing the intensity of romance, marriage, relationship complexity, and the possibility of misplaced decisions. Marriage matching must be conducted with particular care during this window.",
       "Rohini natives often carry some form of heartache in the realm of love — not marrying who one wished, marrying someone who does not meet expectations, or a significant heartbreak. Paradoxically, when early love disappointments have already occurred, the subsequent marriage often settles into greater stability.",
-      "From around age 35, Jupiter dasha arrives. For Taurus, Jupiter rules the 8th and 11th houses — a mixed portfolio. Progress comes, but through obstacles and perseverance. Family building, children, professional establishment, home acquisition, and life stability are the central themes.",
+      "Jupiter dasha follows Rahu dasha. For Taurus, Jupiter rules the eighth and eleventh houses — a mixed portfolio. Progress comes, but through obstacles and perseverance. Family building, children, professional establishment, home acquisition, and life stability are the central themes.",
     ],
     spiritual: [
       "For Rohini natives seeking immediate grace, the sixth nakshatra from Rohini is Ayilyam — associated with Varahi Amman, Adishesha, and serpent deities. Worship of Varahi Amman, Vishnu resting on the serpent, serpent-adorned Ganesha, Shiva, and Bhairava are considered auspicious.",
@@ -251,8 +251,8 @@ export const NATCHATHIRAM_EN: Record<string, NatchathiramEnSections> = {
       "Marriage is generally considered to proceed well for Mrigashira, unless serious Naga dosha, Pitru dosha, or multiple severe afflictions exist in the chart. Careful horoscope matching and appropriate remedies allow most complications to be addressed.",
     ],
     dasha: [
-      "Mrigashira natives begin with Mars dasha. As they move from school into early adulthood, Rahu dasha tends to begin. This period in youth can bring romantic attractions, emotional confusion, and potentially hasty decisions. Parents should provide strong guidance if Rahu dasha arrives between ages 15 and 20.",
-      "Around marriage age, Jupiter dasha begins. For Mrigashira in Gemini, Jupiter dasha may allow a harmonious marriage to unfold. However, for those born in the first two padas in Taurus, Jupiter — as the 8th lord — demands especially careful astrological matching and auspicious timing for the wedding.",
+      "Mrigashira natives begin with Mars dasha. Rahu dasha begins in childhood and runs into early adulthood. This period in youth can bring romantic attractions, emotional confusion, and potentially hasty decisions. Parents should provide strong guidance through the adolescent years that fall within Rahu dasha.",
+      "Around marriage age, Jupiter dasha begins. For Mrigashira in Gemini, Jupiter dasha may allow a harmonious marriage to unfold. However, for those born in the first two padas in Taurus, Jupiter — as the eighth lord — demands especially careful astrological matching and auspicious timing for the wedding.",
       "When life requires a turning point, visiting temples associated with siddhas, Murugan, Shiva, or great lineage gurus brings powerful support and is considered especially transformative for Mrigashira natives.",
     ],
     spiritual: [
@@ -415,9 +415,9 @@ export const NATCHATHIRAM_EN: Record<string, NatchathiramEnSections> = {
       "Married life may bring some challenges. Very high expectations of a partner, and a possessive streak, can wear a relationship down. But where the match is genuinely compatible, they are capable of sustaining an unusually deep bond for a lifetime. Openness and honesty in a relationship matter greatly to them.",
     ],
     dasha: [
-      "Ashlesha natives are born in Mercury dasha, which runs for 17 years (the exact length shifting slightly with the birth pada and degree). Education, early intellectual growth, gathering of knowledge, and one's circle of friends develop mainly during this Mercury period — a youth marked by curiosity across many subjects.",
-      "Mercury dasha is followed by Ketu dasha, 7 years long. This period can bring sudden changes and shifts in direction. Spiritual interest may deepen, and changes may occur within the family. It is wise to avoid unnecessary expenses during Ketu dasha.",
-      "Venus dasha, 20 years long, is when marriage, family, career growth, and creativity tend to flourish — generally a favourable period for Ashlesha natives, often bringing property such as a house or vehicle. The Sun dasha that follows, 6 years long, tends to bring government favour and support from those in authority.",
+      "Ashlesha natives are born in Mercury dasha. How much of it remains at birth depends on the birth pada and degree — anything from nearly all of it to almost none (see the table above). Where it runs long, education, early intellectual growth, gathering of knowledge, and one's circle of friends develop mainly during this Mercury period — a youth marked by curiosity across many subjects.",
+      "Mercury dasha is followed by Ketu dasha. This period can bring sudden changes and shifts in direction. Spiritual interest may deepen, and changes may occur within the family. It is wise to avoid unnecessary expenses during Ketu dasha.",
+      "Venus dasha is when marriage, family, career growth, and creativity tend to flourish — generally a favourable period for Ashlesha natives, often bringing property such as a house or vehicle. The Sun dasha that follows tends to bring government favour and support from those in authority.",
     ],
     spiritual: [
       "Naga worship is very important for Ashlesha natives. Worshipping serpent deities such as Nagaraja, Naga Kanni, Adishesha, and Vasuki is especially significant. Observing a fast and worshipping the naga deity on Naga Panchami day is beneficial. Worship at naga-deity temples such as Nagercoil, Thirunageswaram, and Vettaikaraiyan brings excellent results.",
@@ -453,9 +453,9 @@ export const NATCHATHIRAM_EN: Record<string, NatchathiramEnSections> = {
       "In married life, Magha natives prefer a dignified, respectable atmosphere. They wish for their partner to be a source of pride for them in society. Because they care about advancing the family lineage, they invest heavily in their children's education and success.",
     ],
     dasha: [
-      "Magha natives are born in Ketu dasha, which runs for 7 years — though depending on the birth pada and degree, Ketu dasha may last only a few months. During Ketu dasha, family changes, a spiritual atmosphere at home, or a strong bond with grandparents may appear in childhood.",
-      "Ketu dasha is followed by Venus dasha, 20 years long. Major life events — education, romance, marriage, and the start of a career — tend to happen during this period, which also tends to bring good comforts, a vehicle, or a home.",
-      "The Sun dasha that follows runs for 6 years. Since the Sun rules Leo, Sun dasha tends to bring Magha natives government favour, career advancement, and social recognition — a period of rising fame and authority in their work. The Moon dasha of 10 years that follows brings focus to family, mental wellbeing, and the bond with the mother.",
+      "Magha natives are born in Ketu dasha; depending on the birth pada and degree, what remains of it at birth may be nearly all of it or only a few months. During Ketu dasha, family changes, a spiritual atmosphere at home, or a strong bond with grandparents may appear in childhood.",
+      "Ketu dasha is followed by Venus dasha. Major life events — education, romance, marriage, and the start of a career — tend to happen during this period, which also tends to bring good comforts, a vehicle, or a home.",
+      "Sun dasha follows. Since the Sun rules Leo, Sun dasha tends to bring Magha natives government favour, career advancement, and social recognition — a period of rising fame and authority in their work. The Moon dasha that follows brings focus to family, mental wellbeing, and the bond with the mother.",
     ],
     spiritual: [
       "Ancestor worship matters greatly to Magha natives. Regularly performing tarpanam, sraddham, and other pitru rites protects their family line. Performing tarpanam at ancestral pilgrimage sites such as Gaya, Rameswaram, or Kashi brings especially good results.",
@@ -491,9 +491,9 @@ export const NATCHATHIRAM_EN: Record<string, NatchathiramEnSections> = {
       "They need to be careful with money. A 'spend today, worry about tomorrow later' attitude can appear in them. Without attention to saving and investment, financial strain can follow — spending in proportion to income is an important habit for them to build.",
     ],
     dasha: [
-      "Purva Phalguni natives are born in Venus dasha, which runs for 20 years — though depending on the birth pada and degree, it can last anywhere from 5 to 20 years. Education, youth, artistic interest, and romance tend to feature heavily during Venus dasha — a happy start to life is a hallmark of this star.",
-      "Venus dasha is followed by Sun dasha, 6 years long. Since the Sun rules Leo, Sun dasha brings Purva Phalguni natives government favour, career advancement, position, and major decisions — a period when important career changes tend to occur.",
-      "The Moon dasha of 10 years that follows brings focus to family, the bond with the mother, mental wellbeing, and emotional matters. For those already married, childbirth and family growth may occur during Moon dasha. The Mars dasha of 7 years that follows brings hard work, career expansion, and the acquisition of property.",
+      "Purva Phalguni natives are born in Venus dasha; depending on the birth pada and degree, what remains of it at birth can be anything from almost none of it to all of it. Where it runs long, education, youth, artistic interest, and romance tend to feature heavily during Venus dasha — a happy start to life is a hallmark of this star.",
+      "Venus dasha is followed by Sun dasha. Since the Sun rules Leo, Sun dasha brings Purva Phalguni natives government favour, career advancement, position, and major decisions — a period when important career changes tend to occur.",
+      "The Moon dasha that follows brings focus to family, the bond with the mother, mental wellbeing, and emotional matters. For those already married, childbirth and family growth may occur during Moon dasha. The Mars dasha that follows brings hard work, career expansion, and the acquisition of property.",
     ],
     spiritual: [
       "Worship of Mahalakshmi is especially favourable for Purva Phalguni natives. Because of Venus's rulership, Friday Mahalakshmi puja, Thiruvilakku (lamp) worship, and reciting the Lalitha Sahasranamam bring excellent results.",
@@ -919,7 +919,7 @@ export const NATCHATHIRAM_EN: Record<string, NatchathiramEnSections> = {
     ],
     dasha: [
       "Shravana natives are born in Moon dasha. The Moon's early influence makes the home environment, the mother, and emotional atmosphere the defining context of early development.",
-      "Mars dasha brings action and drive — Shravana's patient listening suddenly has a strong motor. This is often when Shravana natives begin establishing themselves professionally.",
+      "Mars dasha brings action and drive — Shravana's patient listening suddenly has a strong motor. This is often when Shravana natives first test their independence.",
       "Rahu, Jupiter, Saturn, Mercury, Ketu, and Venus dashas follow. Saturn's own dasha tends to be a period of significant consolidation and institutional building for Shravana — the patient, sustained effort that Saturn demands is precisely what Shravana does well.",
     ],
     spiritual: [
@@ -998,7 +998,7 @@ export const NATCHATHIRAM_EN: Record<string, NatchathiramEnSections> = {
     dasha: [
       "Shatabhisha natives are born in Rahu dasha. Rahu's wide-ranging, boundary-crossing energy characterizes the early life — an unusual environment, unconventional early experiences, or early immersion in multiple worlds.",
       "Jupiter dasha brings philosophical depth and a search for the meaning behind the unusual experiences of the Rahu years. Many Shatabhisha natives arrive at their true calling during Jupiter's period.",
-      "Saturn, Mercury, Ketu, Venus, Sun, Moon, and Mars dashas follow in their sequence — each bringing their characteristic textures to the wide-ranging Shatabhisha life.",
+      "Saturn dasha follows Jupiter dasha. Saturn, lord of Kumbha rasi, is associated with responsibility, discipline, patience and long-term effort; in this dasha, career growth, family responsibilities and decisions about property may come to the fore. Its results vary with the individual horoscope and Saturn's placement in it. Mercury, Ketu, Venus, Sun, Moon, and Mars dashas follow in their sequence.",
     ],
     spiritual: [
       "Varuna worship — the deity of cosmic law, vast waters, and divine healing — is the core spiritual practice for Shatabhisha. Offering prayer facing the ocean or a vast body of water, maintaining personal integrity (Varuna's primary requirement), and engaging in genuine healing practice are the living forms of this worship.",

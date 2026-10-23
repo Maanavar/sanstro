@@ -6,6 +6,7 @@ import { ArrowRight } from "lucide-react";
 import { formatClockLabel, formatDateLabel, scoreColor } from "@/lib/format";
 import { t, tNakshatra, tPlanetLord, tTithi, tYoga } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
+import { rasiDisplayName } from "@/lib/chart-utils";
 import { compareSynastry } from "@vinaadi/shared/api/relationships";
 import type {
   ChartDoshamInsight,
@@ -18,7 +19,8 @@ import type {
 import type { MemberChart } from "@/hooks/useFamilyData";
 import { RasiChart, NavamsaChart } from "./dashboard-charts";
 import { DASHA_COLORS } from "./dashboard-dasha";
-import { YOGA_DISPLAY } from "./dashboard-yoga-dosham-panel";
+import { displayName, doshamStanding, yogaStanding } from "./dashboard-yoga-dosham-panel";
+import { doshamVerdictLine } from "@vinaadi/shared/doshamReckoning";
 import { NovaScoreDial, NovaProgressBar } from "./dashboard-ui-nova";
 import { Card, Kicker } from "./ui";
 
@@ -126,7 +128,7 @@ function NovaMemberRelationshipsCard({
       {bestFamilyWindow && (
         <div style={{ fontSize: "var(--text-sm)", lineHeight: 1.5, color: "var(--color-muted)", background: "var(--color-accent-muted)", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-3)", marginTop: "2px" }}>
           {lang === "ta" ? "குடும்பத்துடன் சிறந்த பகிர்ந்த நேரம் " : "Best shared window with family "}
-          <b style={{ color: "var(--color-accent-strong)" }}>{formatClockLabel(bestFamilyWindow.start)} – {formatClockLabel(bestFamilyWindow.end)}</b>.
+          <b style={{ color: "var(--color-accent-strong)" }}>{formatClockLabel(bestFamilyWindow.start, lang)} – {formatClockLabel(bestFamilyWindow.end, lang)}</b>.
         </div>
       )}
     </NovaCard>
@@ -148,10 +150,30 @@ export type DashboardFamilyMemberNovaProps = {
   onNext: (() => void) | null;
   prevName: string | null;
   nextName: string | null;
-  onEdit: () => void;
-  onDelete: () => void;
+  /** Undefined = no such action for this person. The owner's own row has a
+   *  synthetic familyMemberId that the member endpoints cannot address. */
+  onEdit?: () => void;
+  onDelete?: () => void;
   deleting: boolean;
 };
+
+/** Shared chrome for the two header actions. Small and quiet — they sit beside
+ *  the member's name, not in a toolbar — but unmistakably controls: a border, a
+ *  surface and a hit area, which bare underlined text gave neither. */
+function memberActionStyle(opts?: { destructive?: boolean; disabled?: boolean }): React.CSSProperties {
+  const destructive = opts?.destructive ?? false;
+  return {
+    display: "inline-flex", alignItems: "center", justifyContent: "center",
+    minHeight: "28px", padding: "var(--space-1) var(--space-3)",
+    fontSize: "var(--text-xs)", fontWeight: 600, fontFamily: "inherit",
+    color: destructive ? "var(--color-low)" : "var(--color-text)",
+    background: "var(--color-surface)",
+    border: `1px solid ${destructive ? "var(--color-low-border)" : "var(--color-border-strong)"}`,
+    borderRadius: "var(--radius-sm)",
+    cursor: opts?.disabled ? "default" : "pointer",
+    opacity: opts?.disabled ? 0.5 : 1,
+  };
+}
 
 export function DashboardFamilyMemberNova({
   lang,
@@ -189,10 +211,10 @@ export function DashboardFamilyMemberNova({
   const identityLine = chart
     ? [
         formatDateLabel(chart.birthProfile.birthDateLocal),
-        chart.birthProfile.birthTimeLocal ? formatClockLabel(chart.birthProfile.birthTimeLocal) : null,
+        chart.birthProfile.birthTimeLocal ? formatClockLabel(chart.birthProfile.birthTimeLocal, lang) : null,
         chart.birthProfile.birthPlace,
       ].filter(Boolean).join(" · ") +
-      (summary ? ` — ${summary.lagnaRasi} ${t("label_lagnam", lang)} · ${summary.moonRasi} ${t("label_janma_rasi", lang)}${summary.janmaNakshatra ? ` · ${summary.janmaNakshatra}` : ""}` : "")
+      (summary ? ` — ${rasiDisplayName(summary.lagnaRasi, lang)} ${t("label_lagnam", lang)} · ${rasiDisplayName(summary.moonRasi, lang)} ${t("label_janma_rasi", lang)}${summary.janmaNakshatra ? ` · ${tNakshatra(summary.janmaNakshatra, lang)}` : ""}` : "")
     : "";
 
   const dasaLine = dasha
@@ -205,7 +227,7 @@ export function DashboardFamilyMemberNova({
     ? sani.confirmationSentence
     : isChandrashtama
       ? (lang === "ta" ? "இன்று சந்திராஷ்டமம் — கவனமாக இருக்கவும்." : "Chandrashtama today — proceed with care.")
-      : (lang === "ta" ? "இன்று பெரிய கிரகநகர்வு எச்சரிக்கை இல்லை." : "No major transit caution today.");
+      : (lang === "ta" ? "இன்று பெரிய கோச்சார எச்சரிக்கை இல்லை." : "No major transit caution today.");
 
   const upcomingMaha = dasha
     ? dasha.timeline
@@ -224,18 +246,25 @@ export function DashboardFamilyMemberNova({
   const presentYogas: ChartYogaInsight[] = (chart?.yogas ?? []).filter((y) => y.isPresent);
   const presentDoshams: ChartDoshamInsight[] = (chart?.doshams ?? []).filter((d) => d.isPresent);
   const activeCount = presentYogas.length + presentDoshams.length;
+  // Names through the localiser and standing through the shared helpers. The
+  // dosham row used to print `d.label` — the engine status enum
+  // ("SEVVAI_DOSHAM_WITH_NIVARTHI") — and gave every present yoga, adverse ones
+  // included, the same green tone. A mitigated dosham now reads
+  // "Mitigated · mild residual", never as cleared (DD-17).
   const combinedInsights = [
     ...presentYogas.map((y) => ({
       type: "YOGA" as const,
-      name: YOGA_DISPLAY[y.name] ? (lang === "ta" ? YOGA_DISPLAY[y.name]!.ta : YOGA_DISPLAY[y.name]!.en) : y.name.replaceAll("_", " "),
+      name: displayName(y.name, lang),
       desc: lang === "ta" ? y.descriptionTa : y.descriptionEn,
-      cancelled: false,
+      standing: yogaStanding(y, lang),
     })),
     ...presentDoshams.map((d) => ({
       type: "DOSHAM" as const,
-      name: d.label || d.name.replaceAll("_", " "),
-      desc: lang === "ta" ? d.descriptionTa : d.descriptionEn,
-      cancelled: d.isCancelled,
+      name: displayName(d.name, lang),
+      // L2 verdict for Sevvai / Rahu–Ketu, else the chart-specific meaning,
+      // else the engine description (plan 2026-10-06).
+      desc: doshamVerdictLine(d, lang) || (lang === "ta" ? d.meaningTa : d.meaningEn) || (lang === "ta" ? d.descriptionTa : d.descriptionEn),
+      standing: doshamStanding(d, lang),
     })),
   ];
   const visibleInsights = showAllYogas ? combinedInsights : combinedInsights.slice(0, 3);
@@ -276,12 +305,23 @@ export function DashboardFamilyMemberNova({
                 {relationLabel}
               </span>
             )}
-            <button type="button" onClick={onEdit} style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", textDecoration: "underline" }}>
-              {lang === "ta" ? "திருத்து" : "Edit"}
-            </button>
-            <button type="button" disabled={deleting} onClick={onDelete} style={{ fontSize: "var(--text-xs)", color: "var(--color-low)", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", textDecoration: "underline", opacity: deleting ? 0.5 : 1 }}>
-              {deleting ? "…" : (lang === "ta" ? "நீக்கு" : "Remove")}
-            </button>
+            {/* Both were bare underlined text at --text-xs, and Edit was
+                additionally --color-muted, so the only control here that looked
+                like one was the destructive one — readers reported finding
+                Remove and concluding no Edit existed. Given real chrome, and
+                Edit ahead of Remove in the tab order, which is also the order of
+                likelihood. */}
+            {onEdit && (
+              <button type="button" onClick={onEdit} style={memberActionStyle()}>
+                {lang === "ta" ? "திருத்து" : "Edit"}
+              </button>
+            )}
+            {onDelete && (
+              <button type="button" disabled={deleting} onClick={onDelete}
+                style={memberActionStyle({ destructive: true, disabled: deleting })}>
+                {deleting ? "…" : (lang === "ta" ? "நீக்கு" : "Remove")}
+              </button>
+            )}
           </div>
           {identityLine && <div style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)", marginTop: "3px" }}>{identityLine}</div>}
         </div>
@@ -300,12 +340,12 @@ export function DashboardFamilyMemberNova({
       <div className="nova-grid-anticipation" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "var(--space-3)" }}>
         <TimingCard
           label={lang === "ta" ? "சிறந்த நேரம்" : "Best window"}
-          value={bestWindow ? `${formatClockLabel(bestWindow.start)} – ${formatClockLabel(bestWindow.end)}` : "—"}
+          value={bestWindow ? `${formatClockLabel(bestWindow.start, lang)} – ${formatClockLabel(bestWindow.end, lang)}` : "—"}
           color="var(--color-high)" borderColor="var(--color-high-border)" bgColor="var(--color-high-bg)"
         />
         <TimingCard
           label={lang === "ta" ? "ராகு காலம்" : "Rahu Kalam"}
-          value={panchangam ? `${formatClockLabel(panchangam.kalam.rahuKalam.start)} – ${formatClockLabel(panchangam.kalam.rahuKalam.end)}` : "—"}
+          value={panchangam ? `${formatClockLabel(panchangam.kalam.rahuKalam.start, lang)} – ${formatClockLabel(panchangam.kalam.rahuKalam.end, lang)}` : "—"}
           color="var(--color-low)" borderColor="var(--color-low-border)" bgColor="var(--color-low-bg)"
         />
         <TimingCard
@@ -358,7 +398,7 @@ export function DashboardFamilyMemberNova({
               )}
               <div style={{ display: "flex", gap: "var(--space-2_5)", fontSize: "var(--text-sm)", lineHeight: 1.55, color: "var(--color-muted)" }}>
                 <span style={{ flexShrink: 0, width: "6px", height: "6px", borderRadius: "var(--radius-pill)", background: "var(--color-accent)", marginTop: "6px" }} />
-                <span><b style={{ color: "var(--color-text-strong)" }}>{lang === "ta" ? "கிரகநகர்வு" : "Transit"}</b> — {transitLine}</span>
+                <span><b style={{ color: "var(--color-text-strong)" }}>{lang === "ta" ? "கோச்சாரம்" : "Transit"}</b> — <span data-server-prose={sani?.moonBasedCycle.isActive || undefined}>{transitLine}</span></span>
               </div>
             </div>
             <div style={{ marginTop: "auto", background: "linear-gradient(135deg, var(--color-accent-muted), transparent)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-3_5)" }}>
@@ -446,7 +486,7 @@ export function DashboardFamilyMemberNova({
                     return (
                       <tr key={planet.graha} style={{ borderBottom: "1px solid color-mix(in srgb, var(--color-text-strong) 7%, transparent)" }}>
                         <td style={{ padding: "var(--space-2_5) var(--space-3)", fontWeight: 700, color: DASHA_COLORS[planet.graha] ?? "var(--color-accent-secondary)" }}>{tPlanetLord(planet.graha, lang)}</td>
-                        <td style={{ padding: "var(--space-2_5) var(--space-3)", color: "var(--color-text)" }}>{planet.rasiName}</td>
+                        <td style={{ padding: "var(--space-2_5) var(--space-3)", color: "var(--color-text)" }}>{rasiDisplayName(planet.rasi, lang)}</td>
                         <td style={{ padding: "var(--space-2_5) var(--space-3)", color: "var(--color-text)" }}>{planet.houseFromLagna}</td>
                         {showAllPlanets && <td style={{ padding: "var(--space-2_5) var(--space-3)", color: "var(--color-text)" }}>{planet.degreeInRasi.toFixed(2)}°</td>}
                         <td style={{ padding: "var(--space-2_5) var(--space-3)" }}>
@@ -475,21 +515,25 @@ export function DashboardFamilyMemberNova({
         <NovaCard>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
             <Kicker>{lang === "ta" ? "யோகங்கள் & தோஷங்கள்" : "Yogas & Doshams"}</Kicker>
-            <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>{activeCount} {lang === "ta" ? "செயலில்" : "active"}</span>
+            {/* "Active" is reserved for dasha timing (yogaDisplay.ts); this counts what the chart holds. */}
+            <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>{activeCount} {lang === "ta" ? "உள்ளன" : "present"}</span>
           </div>
           {combinedInsights.length === 0 ? (
             <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>{t("yogas_empty", lang)}</p>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
               {visibleInsights.map((item, i) => {
-                const isYoga = item.type === "YOGA";
-                const tone = isYoga ? "high" : item.cancelled ? "mid" : "low";
+                const tone = item.standing.tone === "good" ? "high" : item.standing.tone === "caution" ? "low" : "mid";
                 const badgeColor = tone === "high" ? "var(--color-high)" : tone === "mid" ? "var(--color-mid)" : "var(--color-low)";
+                const kind = item.type === "YOGA"
+                  ? (lang === "ta" ? "யோகம்" : "Yoga")
+                  : (lang === "ta" ? "தோஷம்" : "Dosham");
                 return (
-                  <Card key={`${item.type}-${item.name}-${i}`} variant={tone} style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "var(--space-2_5)", borderRadius: "var(--radius-sm)", padding: "var(--space-2_5) var(--space-3)" }}>
-                    <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-on-accent)", background: badgeColor, borderRadius: "var(--radius-sm)", padding: "var(--space-0_75) var(--space-2)", flexShrink: 0 }}>{item.type}</span>
-                    <span style={{ fontSize: "var(--text-sm)", fontWeight: 600, flex: 1 }}>{item.name}</span>
-                    <span style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", textAlign: "right" }}>{item.desc}</span>
+                  <Card key={`${item.type}-${item.name}-${i}`} variant={tone} style={{ display: "flex", flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: "var(--space-2_5)", borderRadius: "var(--radius-sm)", padding: "var(--space-2_5) var(--space-3)" }}>
+                    <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-on-accent)", background: badgeColor, borderRadius: "var(--radius-sm)", padding: "var(--space-0_75) var(--space-2)", flexShrink: 0 }}>{kind}</span>
+                    <span style={{ fontSize: "var(--text-sm)", fontWeight: 600, flex: "1 1 140px", minWidth: 0 }}>{item.name}</span>
+                    <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: badgeColor, flexShrink: 0 }}>{item.standing.label}</span>
+                    <span style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", flexBasis: "100%" }}>{item.desc}</span>
                   </Card>
                 );
               })}

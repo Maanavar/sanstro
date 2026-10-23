@@ -24,8 +24,8 @@ The 10 Poruthams (Tamil → calculation rule):
   6. Rasi       (ராசி)            — pass unless 6th or 8th position (Shashtashtaka) between rasis
   7. Rasiyathipathi (ராசியாதிபதி) — FAIL if either rasi lord regards the other as an enemy (one-way enmity fails)
   8. Vasya      (வாஸ்யம்)         — at least one rasi must be vasya of the other
-  9. Rajju      (ராஜ்ஜு)          — same Rajju group = VETO (see RAJJU_SOURCE_TEXT_CATEGORY)
- 10. Vedha      (வேதம்)           — Vedha nakshatra pair = VETO
+  9. Rajju      (ரஜ்ஜு)          — same Rajju group = VETO (see RAJJU_SOURCE_TEXT_CATEGORY)
+ 10. Vedha      (வேதை)           — Vedha nakshatra pair = VETO
 
 Nakshatra numbers are 1-indexed (1 = Aswini … 27 = Revathi).
 """
@@ -538,6 +538,96 @@ def _rasi_score(rasi_boy: int, rasi_girl: int) -> int:
     return 1
 
 
+# ── F-POR-02 — ஷஷ்டாஷ்டகம், both orientations (ruled 2026-10-13) ───────────
+#
+# The two inclusive counts between two different signs always sum to 14, so a
+# girl->boy count of 6 is a boy->girl count of 8 and vice versa. The set {6, 8}
+# is therefore closed under the swap, and testing **one** direction tests both.
+# Written down because "detect it in either orientation" reads like it needs two
+# tests, and the second one cannot fire — a future reader adding it would be
+# adding dead branch, which is how `RASI_EXCEPTION_GAP` above got its name.
+_SHASHTASHTAKA_COUNTS = frozenset({6, 8})
+
+_SHASHTASHTAKA_LABEL_EN = "Shashtashtaka (6/8) — further examination advised"
+_SHASHTASHTAKA_LABEL_TA = "ஷஷ்டாஷ்டகக் குறை — மேலாய்வு தேவை"
+
+# Tamil copy verbatim from the 2026-10-13 ruling. Do not paraphrase it: it was
+# supplied as the approved wording, and it already carries the advisory voice the
+# standing directive requires (it advises an examination, it does not decide).
+_SHASHTASHTAKA_NOTE_TA = (
+    "இருவரின் ராசிகளும் ஆறு–எட்டு (ஷஷ்டாஷ்டகம்) தொடர்பில் அமைந்துள்ளன. தமிழகத் "
+    "திருமணப் பொருத்த மரபில் இது கவனிக்க வேண்டிய அமைப்பாகக் கருதப்படுகிறது. முழு "
+    "ஜாதகத்தில் ஏழாம் பாவம், அதன் அதிபதி, சுக்கிரன், செவ்வாய் நிலை மற்றும் பிற "
+    "பொருத்தங்களையும் சேர்த்துப் பரிசீலிக்க வேண்டும்."
+)
+_SHASHTASHTAKA_NOTE_EN = (
+    "The two Moon signs stand in a six–eight (Shashtashtaka) relation. Tamil "
+    "marriage-matching practice treats this as an arrangement to be looked at "
+    "closely. It should be considered alongside the seventh house and its lord, "
+    "the positions of Venus and Mars, and the other poruthams, in both full "
+    "horoscopes."
+)
+
+
+def shashtashtaka_relation(boy_rasi: int, girl_rasi: int) -> ShashtashtakaNote:
+    """ஷஷ்டாஷ்டகம் between the Moon signs, detected in either orientation.
+
+    **This is additive disclosure and changes no number.** It does not touch
+    `_rasi_score`, the ten kuta scores, `total_score`, the band label or the
+    Rajju/Vedha veto. That restraint is the ruling, not an implementation
+    convenience; three parts of it say so:
+
+    * *"Do not silently give it a full pass."* — hence the note.
+    * *"Do not automatically equate it with complete marriage rejection."* —
+      hence not a fail and not a veto.
+    * *"Retain the existing Kalaprakasika directional result as a separately
+      identified textual interpretation until the actual page is re-examined."*
+      — hence `_rasi_score` is untouched and `directional_pass` records what it
+      said. The ruling is explicit that it *"cannot definitively overturn your
+      earlier page-74 ruling without seeing that passage itself"*, and that this
+      is *"a Tamil-practice compatibility safeguard, not a claim that
+      Kalaprakasika has been mistranslated"*. A change to `_rasi_score` here
+      would overturn EC-RULING-01 by implication.
+
+    **The silent-pass population is larger than the audit assumed.** 24 of the
+    144 rasi combinations are Shashtashtaka — 12 at count 6, 12 at count 8 — and
+    measured over all 144, **18 of the 24 still pass Rasi today**:
+
+    ====================  =========  =========  ===============================
+    girl->boy count       passes     fails      why
+    ====================  =========  =========  ===============================
+    8                     12         0          outside `_RASI_ADVERSE_COUNTS`
+    6                     6          6          adverse, but the **enumerated
+                                                exception pairs** (A-5,
+                                                p.74) lift half of them
+    ====================  =========  =========  ===============================
+
+    So the audit's framing — "the 8th passes" — understated it. Count 6 is
+    adverse *in general* and is still lifted to a full pass for six pairings by
+    `_rasi_exception_lifts`, which was approved on a different question
+    (restoring missing passes) and had no reason to consider Shashtashtaka. Both
+    halves therefore need the note, and 18/144 is the population carrying the
+    "your app says pass, my jothidar says fail" exposure.
+
+    Same-sign couples (count 1) are not Shashtashtaka and are routed out, in
+    keeping with `_rasi_score` treating count 1 as its own rule.
+    """
+    count_girl_to_boy = _inclusive_rasi_count(girl_rasi, boy_rasi)
+    count_boy_to_girl = _inclusive_rasi_count(boy_rasi, girl_rasi)
+    present = count_girl_to_boy in _SHASHTASHTAKA_COUNTS
+
+    return ShashtashtakaNote(
+        present=present,
+        count_girl_to_boy=count_girl_to_boy,
+        count_boy_to_girl=count_boy_to_girl,
+        directional_pass=_rasi_score(boy_rasi, girl_rasi) == 1,
+        label_en=_SHASHTASHTAKA_LABEL_EN if present else "",
+        label_ta=_SHASHTASHTAKA_LABEL_TA if present else "",
+        note_en=_SHASHTASHTAKA_NOTE_EN if present else "",
+        note_ta=_SHASHTASHTAKA_NOTE_TA if present else "",
+    )
+
+
 def _graha_maitri_kuta(rasi_boy: int, rasi_girl: int) -> int:
     """Rasiyathipathi: FAIL if either rasi lord considers the other an enemy."""
     lb = SIGN_LORD[rasi_boy]
@@ -630,6 +720,28 @@ class KutaResult:
 
 
 @dataclass(frozen=True, slots=True)
+class ShashtashtakaNote:
+    """ஷஷ்டாஷ்டகம் (6/8) between the two Moon signs, in **either** orientation.
+
+    A disclosure, never a verdict. `present` does not reduce a score, flip a
+    label, or add a veto — see `shashtashtaka_relation` for why the ruling draws
+    that line, and `directional_pass` for the case it exists to catch.
+    """
+
+    present: bool
+    count_girl_to_boy: int
+    count_boy_to_girl: int
+    #: What the retained Kalaprakasika directional rule said on its own. When
+    #: `present and directional_pass` the couple is being passed on Rasi while
+    #: standing in a 6/8 relation — the exposure the 2026-10-13 ruling is about.
+    directional_pass: bool
+    label_en: str
+    label_ta: str
+    note_en: str
+    note_ta: str
+
+
+@dataclass(frozen=True, slots=True)
 class PorutthamResult:
     kutas: list[KutaResult]
     total_score: float  # 0–10, in halves (a .5 can only come from a madhyama)
@@ -641,6 +753,10 @@ class PorutthamResult:
     nadi_dosha: dict[str, object]
     summary_en: str
     summary_ta: str
+    #: F-POR-02. Disclosure only — it is deliberately NOT folded into
+    #: `total_score`, `label` or the veto. A consumer that renders it must render
+    #: it as a note beside the Rasi row, not as a verdict.
+    shashtashtaka: ShashtashtakaNote
 
 
 # ---------------------------------------------------------------------------
@@ -719,10 +835,10 @@ _NADI_CLOSING_CLAUSE_EN = (
 )
 _NADI_CLOSING_CLAUSE_TA = (
     "இது நாடி ஆட்சேபனையை மட்டுமே நீக்குகிறது. மற்ற கட்டாய பொருத்தங்கள் "
-    "(ராஜ்ஜு, வேதம், மகேந்திரம், யோனி போன்றவை) தனித்தனியாக மதிப்பிடப்படுகின்றன."
+    "(ரஜ்ஜு, வேதை, மகேந்திரம், யோனி போன்றவை) தனித்தனியாக மதிப்பிடப்படுகின்றன."
 )
 _NADI_RAJJU_WARNING_EN = "Rajju Dosha still applies regardless of the Nadi outcome above."
-_NADI_RAJJU_WARNING_TA = "மேலே உள்ள நாடி முடிவைப் பொருட்படுத்தாமல் ராஜ்ஜு தோஷம் இன்னும் பொருந்தும்."
+_NADI_RAJJU_WARNING_TA = "மேலே உள்ள நாடி முடிவைப் பொருட்படுத்தாமல் ரஜ்ஜு தோஷம் இன்னும் பொருந்தும்."
 
 
 def _rasi_lords_mutually_friendly(rasi_a: int, rasi_b: int) -> bool:
@@ -876,7 +992,7 @@ def compute_porutham(
         "Dinam": "தினம்", "Ganam": "கணம்", "Mahendra": "மகேந்திரம்",
         "Stree Dirgha": "ஸ்திரீ தீர்கம்", "Yoni": "யோனி", "Rasi": "ராசி",
         "Graha Maitri": "ராசியாதிபதி", "Vasya": "வாஸ்யம்",
-        "Rajju": "ராஜ்ஜு", "Vedha": "வேதம்",
+        "Rajju": "ரஜ்ஜு", "Vedha": "வேதை",
     }
 
     # An authored madhyama band, per porutham. Only Sthree Deergham carries one
@@ -937,7 +1053,79 @@ def compute_porutham(
     )
 
     label = porutham_band_label(total)
-    if label == "EXCELLENT":
+    # A Rajju/Vedha veto is inauspicious regardless of the numeric score — the
+    # label must reflect that at the source, not rely on every consumer to
+    # re-derive it from rajju_dosha/vedha_dosha themselves (2026-07 audit A-4).
+    #
+    # KI-01: the veto is decided BEFORE the summary is chosen. The summary used
+    # to come from the score band first and the veto only relabelled it
+    # afterwards, so an 8/10 with Rajju failing read CAUTION yet opened
+    # "Traditionally considered a suitable match" — 604 of the 11,664
+    # star/pada pairings, in both languages.
+    vetoed = rajju_dosha or vedha_dosha
+    if vetoed and label != "CAUTION":
+        # Doctrine §12: the number stands, then a governing line — the count
+        # does not override the dosha. Tamil wording from the native review of
+        # 2026-10-12 (docs/TAMIL_REVIEW_SHEET_2026-10-12.md, B-01..B-03): a
+        # finding and advice, never a decision taken for the family, and no
+        # "முடிவு:" label. English says the same thing.
+        prefix_en = f"Tamil 10-Porutham: {total_str}/10 — "
+        prefix_ta = f"தமிழ் 10 பொருத்தம்: {total_str}/10 — "
+        # One closing line for every surface that shows this summary
+        # (calculator, dashboard, mobile). It replaced the dashboard's
+        # PORUTHAM_VERDICT.blockerTail sentence, so no screen says it twice.
+        closing_en = (
+            "Before deciding on the marriage, it is best to have an experienced astrologer "
+            "examine both full horoscopes alongside the star matching."
+        )
+        closing_ta = (
+            "திருமணம் குறித்து முடிவெடுப்பதற்கு முன், நட்சத்திரப் பொருத்தங்களுடன் இருவரின் "
+            "முழு ஜாதகங்களையும் அனுபவமுள்ள ஜோதிடரிடம் ஆராய்வது நல்லது."
+        )
+        if rajju_dosha and vedha_dosha:
+            # B-02, verbatim. It closes on its own advice, so no closing line.
+            summary_en = (
+                f"{prefix_en}Neither Rajju nor Vedha is met. Traditional astrology counts both as "
+                "important poruthams, so it is best to decide on the marriage only after examining "
+                "the full horoscopes."
+            )
+            summary_ta = (
+                f"{prefix_ta}ரஜ்ஜு மற்றும் வேதை ஆகிய இரண்டு பொருத்தங்களும் அமையவில்லை. பாரம்பரிய "
+                "ஜோதிடத்தில் இவை முக்கியமான பொருத்தங்களாகக் கருதப்படுகின்றன. எனவே முழு "
+                "ஜாதகத்தையும் ஆராய்ந்த பிறகே திருமணம் குறித்து முடிவெடுப்பது நல்லது."
+            )
+        else:
+            name_en = "Rajju" if rajju_dosha else "Vedha"
+            name_ta = _names_ta[name_en]
+            # வேதை takes the doubled ப் in a compound (வேதைப் பொருத்தம்);
+            # ரஜ்ஜு, ending in உ, does not.
+            lack_ta = "ரஜ்ஜு பொருத்தமின்மையை" if rajju_dosha else "வேதைப் பொருத்தமின்மையை"
+            if label == "AVERAGE":
+                # B-03.
+                summary_en = (
+                    f"{prefix_en}{name_en} is not met, and the other poruthams are met only in part, "
+                    f"so by traditional astrology this match needs extra care. {closing_en}"
+                )
+                summary_ta = (
+                    f"{prefix_ta}{name_ta} பொருத்தம் இல்லை. மற்ற பொருத்தங்களும் ஓரளவிற்கே "
+                    "அமைந்துள்ளன. எனவே பாரம்பரிய ஜோதிட அடிப்படையில் இந்தப் பொருத்தத்தில் கூடுதல் "
+                    f"கவனம் தேவை. {closing_ta}"
+                )
+            else:
+                # B-01.
+                summary_en = (
+                    f"{prefix_en}Most poruthams are met, but {name_en} is not. Traditional astrology "
+                    f"holds that the others, however many, do not make up for a missing {name_en}, "
+                    f"so this match needs extra care. {closing_en}"
+                )
+                summary_ta = (
+                    f"{prefix_ta}பெரும்பாலான பொருத்தங்கள் அமைந்துள்ளன. ஆனால் {name_ta} பொருத்தம் "
+                    f"இல்லை. மற்ற பொருத்தங்கள் அதிகமாக இருந்தாலும், {lack_ta} அவை ஈடுசெய்யாது "
+                    "என்பது பாரம்பரிய ஜோதிடக் கருத்து. எனவே இந்தப் பொருத்தத்தில் கூடுதல் கவனம் "
+                    f"தேவை. {closing_ta}"
+                )
+        label = "CAUTION"
+    elif label == "EXCELLENT":
         summary_en = (
             f"Tamil 10-Porutham: {total_str}/10 — Outstanding compatibility across all poruthams. "
             "Traditionally considered a highly auspicious match."
@@ -996,7 +1184,7 @@ def compute_porutham(
             "guidance addresses directly."
         )
         suffix_ta = (
-            " ⚠ ராஜ்ஜு பொருத்தம் இல்லை: இருவரும் ஒரே ராஜ்ஜு வகுப்பைச் சேர்ந்தவர்கள் — "
+            " ⚠ ரஜ்ஜு பொருத்தம் இல்லை: இருவரும் ஒரே ரஜ்ஜு வகுப்பைச் சேர்ந்தவர்கள் — "
             "தமிழ்ப் பொருத்தத்தில் வலிமையான ஆட்சேபனைகளுள் ஒன்று; பரிகாரத்தால் "
             "நேரடியாகக் கவனிக்கப்படுவது."
         )
@@ -1005,15 +1193,9 @@ def compute_porutham(
 
     if vedha_dosha:
         suffix_en = " ⚠ Vedha Dosha: these nakshatras form a vedha pair — traditionally considered inauspicious."
-        suffix_ta = " ⚠ வேத தோஷம்: இந்த நட்சத்திரங்கள் வேத ஜோடி — பாரம்பரியமாக சாதகமற்றதாக கருதப்படுகிறது."
+        suffix_ta = " ⚠ வேதை தோஷம்: இந்த நட்சத்திரங்கள் வேதை ஜோடி — பாரம்பரியமாக சாதகமற்றதாக கருதப்படுகிறது."
         summary_en += suffix_en
         summary_ta += suffix_ta
-
-    # A Rajju/Vedha veto is inauspicious regardless of the numeric score — the
-    # label must reflect that at the source, not rely on every consumer to
-    # re-derive it from rajju_dosha/vedha_dosha themselves (2026-07 audit A-4).
-    if (rajju_dosha or vedha_dosha) and label != "CAUTION":
-        label = "CAUTION"
 
     return PorutthamResult(
         kutas=kutas,
@@ -1026,4 +1208,5 @@ def compute_porutham(
         nadi_dosha=nadi_dosha,
         summary_en=summary_en,
         summary_ta=summary_ta,
+        shashtashtaka=shashtashtaka_relation(boy_rasi, girl_rasi),
     )

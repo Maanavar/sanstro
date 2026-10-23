@@ -19,6 +19,7 @@ import { ErrorCard } from "@/components/ErrorCard";
 import { ThirukanithamBadge } from "@/components/ThirukanithamBadge";
 import { getPrimaryChartId } from "@/lib/userPrefs";
 import { getShadbala, shadbalaKeys, type PlanetShadbala } from "@/api/shadbala";
+import { tPlanetLord } from "@vinaadi/shared";
 
 const PLANET_LABELS: Record<string, { en: string; ta: string }> = {
   SUN: { en: "Sun", ta: "சூரியன்" },
@@ -124,7 +125,7 @@ function PlanetRow({ p, isTamil }: { p: PlanetShadbala; isTamil: boolean }) {
   return (
     <View style={styles.planetCard}>
       <View style={styles.planetHeader}>
-        <Text style={styles.planetName}>{isTamil ? label?.ta ?? p.graha : label?.en ?? p.graha}</Text>
+        <Text style={styles.planetName}>{label ? (isTamil ? label.ta : label.en) : tPlanetLord(p.graha, isTamil ? "ta" : "en")}</Text>
         <View style={[styles.verdict, p.isStrong ? styles.verdictStrong : styles.verdictWeak]}>
           <Text style={[styles.verdictText, p.isStrong ? styles.verdictTextStrong : styles.verdictTextWeak]}>
             {p.isStrong ? (isTamil ? "பலம்" : "Strong") : (isTamil ? "பலவீனம்" : "Weak")}

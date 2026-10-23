@@ -20,6 +20,8 @@ class PredictionScoreInput:
     antar_lord_functional_nature: str
     maha_lord_house_connection: bool
     antar_lord_house_connection: bool
+    #: Natal composite strength (0-100) of the Mahadasha lord. Scales L3 around
+    #: the neutral 50 — see `_maha_strength_multiplier`.
     maha_lord_strength: int
     maturation_multiplier: float
     varga_confirmation: int
@@ -30,6 +32,11 @@ class PredictionScoreInput:
     is_ashtama_sani: bool
     bav_delta: int
     sav_delta: int
+    # F-SAT-02: அர்த்தாஷ்டம சனி is a named, serious period to a Tamil reader,
+    # but it reached the score only through the generic `saturn_house_score`.
+    # Defaults False (and sits down here with the other defaulted fields) so an
+    # un-updated caller scores exactly as before.
+    is_ardhashtama_sani: bool = False
     # EC-RULING-05. Both default to None, meaning "the caller did not evaluate
     # this", which is deliberately NOT the same as "no segmentation applies" or
     # "no mitigation applies". A caller that supplies neither gets exactly the
@@ -61,22 +68,48 @@ class PredictionScoreResult:
 # EC-RULING-05 (A26 + A25). The cost of Sade Sati by where in the ninety months
 # the native actually is, then reduced by each stated mitigation.
 #
-# The old model charged a flat 4 for all seven and a half years. The traditional
-# division says the middle thirty-five months are *comparatively favourable*, so
-# charging them the same as the opening sixteen was wrong about roughly half the
-# cycle. FAVOURABLE is priced at 1 rather than 0 — the cycle is still running and
-# the reading should not pretend otherwise — while the short acute window closing
-# Janma Sani costs more than the old flat rate ever did.
+# The old model charged a flat 4 for all seven and a half years, which is wrong
+# about the shape of the cycle. It is now priced by the three named phases, with
+# **ஜென்ம சனி the heaviest** — F-SAT-01.
 #
-# The unsegmented value stays 4 exactly, so a caller that has not been updated
-# scores identically to before.
+# The keys this replaced (DIFFICULT / FAVOURABLE / ACUTE / MIXED) came from an
+# unverified month division under which months 17-51 scored **1**, the lightest
+# in the table — less than Ashtama Sani (3) and less than the opening of Viraya
+# Sani (5) — while covering most of Janma Sani. See `sade_sati._SEGMENTS`.
+#
+# Pada Sani is 3 rather than 1: the cycle is still running and the reading
+# should not pretend otherwise, which was the right half of the old FAVOURABLE
+# reasoning. The unsegmented value stays 4 exactly, so a caller that has not
+# been updated scores identically to before, and 4 still sits between the
+# phases rather than outside them.
+#
+# **These three numbers are Vinaadi's interpretive model, not scriptural values**
+# (ruled 2026-10-13). What tradition supplies is the *ordering* — ஜென்ம சனி is the
+# heaviest phase of ஏழரை சனி, which every Tamil rasi-palan column reads that way,
+# and which `test_sade_sati.py::test_janma_sani_is_the_heaviest_phase_everywhere_
+# in_it` pins. The magnitudes 6 / 4 / 3 are this engine's own weighting and no
+# text has been produced for them. Do not cite them as classical in copy, in docs
+# or in a future ruling request, and do not treat the ordering test as evidence
+# for the spacing: it would pass for 6/5/4 or 9/4/2 equally.
 _SADE_SATI_PENALTY_BY_SEVERITY: dict[str, int] = {
-    "DIFFICULT": 5,
-    "FAVOURABLE": 1,
-    "ACUTE": 7,
-    "MIXED": 3,
+    "VIRAYA": 4,
+    "JANMA": 6,
+    "PADA": 3,
 }
 _SADE_SATI_UNSEGMENTED_PENALTY = 4
+
+#: The other two named Saturn periods. F-SAT-02: `prediction_score` deducted
+#: for Sade Sati and Ashtama only, so Ardhashtama — which Tamil readers see as
+#: a named, serious period — was priced at nothing beyond the generic
+#: `saturn_house_score` every Saturn house already gets. Named periods are now
+#: consistent: each carries an explicit cost.
+#:
+#: Ardhashtama is the lighter of the two ("half-ashtama"), so it sits below
+#: Ashtama and below every phase of Sade Sati. Kandaka (4/7/10) keeps its
+#: existing per-life-area deduction in `life_areas_service`, which is a
+#: different shape of rule and is not duplicated here.
+_ASHTAMA_SANI_PENALTY = 3
+_ARDHASHTAMA_SANI_PENALTY = 2
 
 #: Each established mitigation lifts one point off, floored so that a mitigated
 #: cycle is lighter but never free — the transit is still happening.
@@ -108,18 +141,45 @@ _FN_DASHA_SCORE = {
     "DUSTHANA": 3,
 }
 
-# Tamil lead adjectives align with the shared verdict lexicon (C-5,
-# app/calculations/verdict_lexicon.py): EXCEPTIONAL → மிகச் சிறந்த (excellent
-# root), GOOD → நல்ல, MIXED → கலப்பான. STRONG / DIFFICULT / VERY_WEAK keep
-# distinct words since this scale has more tiers than the 4-rung ladder.
+# Owner-approved copy, 2026-10-01. The previous lines told a reader facing a
+# surgery, a resignation or a large investment to "act fully" and "proceed with
+# confidence"; a timing score can favour preparation, never command the act.
+# Every Tamil line is in the polite register (the DIFFICULT band used the
+# informal singular காத்திரு). The codes are unchanged — they are the stable key.
 _INTERPRETATION_SCALE = [
-    (91, "EXCEPTIONAL", "மிகச் சிறந்த காலம் — முழு நடவடிக்கை எடுக்கவும்", "Exceptional period — act fully, rare alignment"),
-    (76, "STRONG", "வலிமையான ஆதரவு — நம்பிக்கையுடன் முன்னேறவும்", "Strong support — proceed with confidence"),
-    (61, "GOOD", "நல்ல வாய்ப்பு — முயற்சியுடன் நல்ல பலன் கிடைக்கும்", "Good chance — result comes with sustained effort"),
-    (41, "MIXED", "கலப்பான பலன் — கவனமான திட்டமிடல் தேவை", "Mixed — plan carefully, avoid impulsive decisions"),
-    (21, "DIFFICULT", "சவாலான காலம் — மேலும் நல்ல சந்தர்ப்பத்திற்காக காத்திரு", "Difficult — conserve energy, wait for better window"),
-    (0, "VERY_WEAK", "இப்போது இந்த விஷயத்தில் பெரிய ஆபத்தை தவிர்க்கவும்", "Avoid major risk in this area during this period"),
+    (91, "EXCEPTIONAL", "மிகவும் சாதகமான காலம் — நன்றாகத் தயாராகி முன்னேறுங்கள்", "Very supportive time — move forward with preparation"),
+    (76, "STRONG", "சாதகமான காலம் — தொடர் முயற்சிக்குப் பலன் உண்டு", "Supportive — steady effort tends to pay off"),
+    (61, "GOOD", "நல்ல காலம் — தொடர்ந்த முயற்சியுடன் பலன் கிடைக்கும்", "Good — results come with sustained effort"),
+    (41, "MIXED", "கலப்பான காலம் — கவனமாகத் திட்டமிடுங்கள்", "Mixed — plan carefully, keep options open"),
+    (21, "DIFFICULT", "கவனம் தேவை — பெரிய முடிவுகளுக்கு முன் தயாராகுங்கள்", "Needs care — prepare before big commitments"),
+    (0, "VERY_WEAK", "நிதானம் தேவை — தவிர்க்கக்கூடிய அபாயங்களைத் தள்ளிவையுங்கள்", "Go slow — postpone avoidable risks here"),
 ]
+
+#: The lowest score the copy calls supportive ("Good — results come with
+#: sustained effort"). The life-area remedy reads this same line, so a card can
+#: never print "plan carefully" above "this area is well supported".
+SUPPORTIVE_SCORE_FLOOR = 61
+
+
+def interpret_score(total: int) -> tuple[str, str, str]:
+    """(code, Tamil, English) for a 0-100 score — one scale for every surface."""
+    for floor, code, ta, en in _INTERPRETATION_SCALE:
+        if total >= floor:
+            return code, ta, en
+    _floor, code, ta, en = _INTERPRETATION_SCALE[-1]
+    return code, ta, en
+
+
+#: How far the Mahadasha lord's natal strength scales the dasha layer (owner
+#: ruling 2026-10-01: a strong dasha lord gives its promise fully, a weak one
+#: partly or late). Centred on the neutral score 50 so an average lord leaves
+#: L3 exactly as before; a 0-strength lord takes 20% off, a 100 adds 20%.
+_MAHA_STRENGTH_SWING = 0.20
+
+
+def _maha_strength_multiplier(maha_lord_strength: int) -> float:
+    strength = max(0, min(100, maha_lord_strength))
+    return 1.0 + _MAHA_STRENGTH_SWING * (strength - 50) / 50
 
 
 def compute_prediction_score(
@@ -140,10 +200,18 @@ def compute_prediction_score(
     lord_norm = inp.house_lord_strength / 100.0
     karak_norm = inp.karaka_strength / 100.0
     l1 = round(lord_norm * 14 + karak_norm * 8)
-    l1 += _YOGA_STRENGTH_BONUS.get(inp.yoga_strength, 0)
-    dosham_pen = _DOSHAM_PENALTY.get(inp.dosham_strength, 0)
-    if inp.dosham_present and inp.dosham_cancelled:
-        dosham_pen = dosham_pen // 2
+    # Presence gates both terms. The strength was read on its own before, so an
+    # absent yoga labelled STRONG added 8 and an absent dosham labelled STRONG
+    # took 10 — detectors label absent results WEAK, not NONE. The one live
+    # caller passes consistent pairs, so no current score moves; this stops the
+    # next caller that forwards a detector result from inventing a promise.
+    if inp.yoga_present:
+        l1 += _YOGA_STRENGTH_BONUS.get(inp.yoga_strength, 0)
+    dosham_pen = 0
+    if inp.dosham_present:
+        dosham_pen = _DOSHAM_PENALTY.get(inp.dosham_strength, 0)
+        if inp.dosham_cancelled:
+            dosham_pen = dosham_pen // 2
     l1 = max(0, min(30, l1 + dosham_pen))
 
     if use_reasoning_gate:
@@ -156,11 +224,7 @@ def compute_prediction_score(
         if not gate.proceeds_to_timing:
             # D1 veto: the chart does not promise this — timing is not consulted.
             total = min(l1, 10) if gate.grade is GateGrade.BLOCKED else min(l1, 20)
-            interp = _INTERPRETATION_SCALE[-1]
-            for row in _INTERPRETATION_SCALE:
-                if total >= row[0]:
-                    interp = row
-                    break
+            interp = (None, *interpret_score(total))
             return PredictionScoreResult(
                 total=total,
                 l1_birth_promise=l1,
@@ -192,7 +256,7 @@ def compute_prediction_score(
         l3 += 4
     if inp.antar_lord_house_connection:
         l3 += 2
-    l3 = round(l3 * inp.maturation_multiplier)
+    l3 = round(l3 * inp.maturation_multiplier * _maha_strength_multiplier(inp.maha_lord_strength))
     l3 = max(0, min(25, l3))
 
     l4 = max(0, min(10, inp.varga_confirmation + 5))
@@ -204,7 +268,9 @@ def compute_prediction_score(
     if inp.is_sade_sati:
         l5 -= _sade_sati_penalty(inp.sade_sati_severity, inp.sade_sati_mitigation_count)
     if inp.is_ashtama_sani:
-        l5 -= 3
+        l5 -= _ASHTAMA_SANI_PENALTY
+    if inp.is_ardhashtama_sani:
+        l5 -= _ARDHASHTAMA_SANI_PENALTY
     l5 = max(0, min(15, l5))
 
     l6 = max(0, min(5, 3 + inp.bav_delta // 2 + inp.sav_delta // 2))
@@ -221,11 +287,7 @@ def compute_prediction_score(
     else:
         total = max(0, min(100, l1 + l2 + l3 + l4 + l5 + l6))
 
-    interp = _INTERPRETATION_SCALE[-1]
-    for row in _INTERPRETATION_SCALE:
-        if total >= row[0]:
-            interp = row
-            break
+    interp = (None, *interpret_score(total))
 
     return PredictionScoreResult(
         total=total,

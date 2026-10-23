@@ -3983,14 +3983,14 @@
     {
       "file": "web/components/dashboard-hybrid-parts.tsx",
       "line": 1475,
-      "en": "planets in Kendra / Trikona",
-      "ta": "கேந்திர/திரிகோணத்தில் கிரகங்கள்"
+      "en": "planets in Kendra (1·4·7·10)",
+      "ta": "கேந்திரத்தில் (1·4·7·10) கிரகங்கள்"
     },
     {
       "file": "web/components/dashboard-hybrid-parts.tsx",
       "line": 1479,
       "en": "planets in Dusthana (6·8·12)",
-      "ta": "துஸ்தானத்தில் (6·8·12) கிரகங்கள்"
+      "ta": "துஷ்டானத்தில் (6·8·12) கிரகங்கள்"
     },
     {
       "file": "web/components/dashboard-hybrid-parts.tsx",

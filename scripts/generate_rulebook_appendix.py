@@ -521,14 +521,18 @@ raises the condition, and each hit is recorded by name (`from_lagna`,
 {{{", ".join(str(h) for h in sorted(YH.TAMIL_SEVVAI_HOUSES))}}} — including the
 1st, per the standard Tamil set (`docs/SEVVAIRAGU.MD` section 4.1).
 
-**Gender-weighted high-attention houses** raise severity rather than presence:
+**Gender-weighted houses — astrologer / porutham view only** (DD-05, v1.3). They
+are recorded in `DoshamResult.astrologer_markers` and never reach a consumer
+surface, which uses one sentence for every chart:
 
 - female: {{{", ".join(str(h) for h in sorted(YH.FEMALE_HIGH_ATTENTION_SEVVAI_HOUSES))}}}
 - male: {{{", ".join(str(h) for h in sorted(YH.MALE_HIGH_ATTENTION_SEVVAI_HOUSES))}}}
 
 **Cancellation / mitigation factors, each worth one point:** Mars in own sign;
-Mars exalted; Kadagam or Simmam Lagna (Mars yogakaraka — a major cancellation);
-Mars as Lagna lord in the 1st or 2nd for Mesham/Viruchigam Lagna (major); benefic
+Mars exalted; Kadagam or Simmam Lagna — the traditional Tamil exception, applied
+as a strong mitigation (one grade off and one point, never a cancellation on its
+own; DD-06, open item O-6); Mars as Lagna lord in the 1st or 2nd for
+Mesham/Viruchigam Lagna (major; open item O-18); benefic
 association from {{{", ".join(sorted(YH.SEVVAI_BENEFIC_REDUCERS))}}}; and the
 house-sign nivarthi table below. Two uncancelled charts cancel each other
 (`_apply_mutual_sevvai_cancellation`).
@@ -537,9 +541,15 @@ house-sign nivarthi table below. Two uncancelled charts cancel each other
 
 {_table(["Mars house", "Exempt if Mars in rasi"], [[str(h), ", ".join(_rasi(r) for r in sorted(sigs))] for h, sigs in sorted(YH.HOUSE_SIGN_NIVARTHI.items())])}
 
-**`DOS-02` Rahu/Ketu marriage attention houses:**
-{{{", ".join(str(h) for h in sorted(YH.RAHU_KETU_MARRIAGE_HOUSES))}}}.
-Sarpa-related houses: {{{", ".join(str(h) for h in sorted(YH.RAHU_KETU_SARPA_HOUSES))}}}.
+**`DOS-02` Rahu/Ketu marriage axis (DD-03, v1.3):** a node in house
+{{{", ".join(str(h) for h in sorted(YH.RAHU_KETU_MARRIAGE_HOUSES))}}} from Lagna,
+reported as one axis finding (1/7 or 2/8). Houses 5 and 9 are no longer read
+here (DD-04). Severity starts at Moderate; each aggravation (a node with the 7th
+lord, with Venus, with the Moon; malefic influence on the 7th; the axis also
+from the Moon or Venus, O-1) adds a grade, each mitigation (Guru joining or
+aspecting a node; Guru aspecting the 7th or its lord; a strong 7th lord on 1/7;
+a strong 8th lord or benefic on the 8th on 2/8) removes one. Net 2+ Strong, 1
+Moderate, 0 Mild, below 0 mitigated. Nothing locks the grade.
 """
 
 
@@ -558,6 +568,10 @@ def _yoga_activation_cell(rule) -> str:
         return "— (not detected)"
     if rule.yoga_name.endswith("_CAUTION"):
         return "n/a — not scored"
+    if rule.per_chart_activation:
+        # Resolved per chart into `YogaResult.key_grahas`, which beats the
+        # static table — so an empty table here does not mean dormant.
+        return f"Per chart: {rule.per_chart_activation}"
     effective = YR.activation_key_planets().get(rule.yoga_name, [])
     if not effective:
         return "**none — dormant-capped**"
@@ -633,8 +647,11 @@ are the exception: display-only, no strength, no activation, no scoring reach.
 raises a present yoga above the dormant rung. **"none — dormant-capped" means
 the yoga's activation score can never exceed `round(strength_base × 0.45)`**, no
 matter which dasha runs. That is a live behaviour, disclosed here rather than
-hidden. Where the true key grahas are lagna-dependent (Raja, Dhana, Vipareetha)
-the listed set is a `[PRODUCT]` approximation and the row says so.
+hidden. **"Per chart"** means the activating grahas are resolved for each chart
+from the planets that formed it (astrologer ruling 2026-09-23) — Raja Yoga, the
+yogakaraka, Amala, Adhi and Daridra. Where the true key grahas are still
+lagna-dependent but tabled statically (Dhana, Vipareetha) the listed set is a
+`[PRODUCT]` approximation and the row says so.
 
 ### Index
 

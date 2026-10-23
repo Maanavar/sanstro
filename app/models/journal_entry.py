@@ -7,7 +7,7 @@ from sqlalchemy import JSON, Date, ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
-from app.services.encryption import EncryptedString
+from app.db.encrypted_types import EncryptedString
 
 
 class JournalEntry(TimestampMixin, Base):

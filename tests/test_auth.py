@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 
-from jose import jwt
+import jwt
 
 from app.core.auth import create_access_token
 from app.core.config import get_settings

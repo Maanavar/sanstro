@@ -417,6 +417,69 @@ def test_layering_reorders_within_a_band() -> None:
     assert layered[0].slot.score == 70.0, "the astrology's own score is never overwritten"
 
 
+# ── Couple mode: the weaker number is priced (owner ruling R1) ──────────────
+def _ranking_with(root: int, position: int, base: tuple[int, ...]) -> tuple[int, ...]:
+    """``base`` with ``root`` moved to 0-based ``position`` — still all nine."""
+    rest = [n for n in base if n != root]
+    return tuple(rest[:position] + [root] + rest[position:])
+
+
+def test_couple_numerology_prices_the_lower_adjustment() -> None:
+    favourable = favourable_numbers_for(7)
+    ideal = _first_day_with_root(favourable[0])
+    partner = svc.NumerologySubject(favourable_numbers=tuple(reversed(favourable)))
+
+    (row,) = svc.layer_onto_naal_matches(
+        [_FakeMatch(ideal, 70, recommended=True)], favourable_numbers=favourable, partner=partner
+    )
+    assert [r.numerology.adjustment for r in row.readings] == [8, -8]
+    assert [r.governs for r in row.readings] == [False, True]
+    assert row.numerology is row.readings[1].numerology
+    assert row.adjusted_score == 62  # 70 - 8, the partner's number
+
+
+def test_a_bonus_only_one_partner_earns_is_not_credited() -> None:
+    favourable = favourable_numbers_for(7)
+    ideal = _first_day_with_root(favourable[0])
+    # The partner ranks this date's number 5th of 9 — a neutral 0.
+    neutral = svc.NumerologySubject(favourable_numbers=_ranking_with(favourable[0], 4, favourable))
+
+    (row,) = svc.layer_onto_naal_matches(
+        [_FakeMatch(ideal, 70, recommended=True)], favourable_numbers=favourable, partner=neutral
+    )
+    assert row.adjusted_score == 70
+
+
+def test_an_identical_partner_changes_nothing_but_the_readings() -> None:
+    favourable = favourable_numbers_for(7)
+    days = [_first_day_with_root(root) for root in (1, 5, 9)]
+    matches = [_FakeMatch(d, 60, recommended=True) for d in days]
+
+    solo = svc.layer_onto_naal_matches(matches, favourable_numbers=favourable)
+    both = svc.layer_onto_naal_matches(
+        matches, favourable_numbers=favourable,
+        partner=svc.NumerologySubject(favourable_numbers=favourable),
+    )
+    assert [r.adjusted_score for r in both] == [r.adjusted_score for r in solo]
+    assert all([x.governs for x in r.readings] == [True, False] for r in both)
+    assert all(len(r.readings) == 1 and r.readings[0].governs for r in solo)
+
+
+def test_couple_numerology_still_cannot_lift_an_unrecommended_date() -> None:
+    favourable = favourable_numbers_for(7)
+    ideal = _first_day_with_root(favourable[0])
+    poor = _first_day_with_root(favourable[-1])
+    flagged = _FakeMatch(ideal, 95, recommended=False)
+    clean = _FakeMatch(poor, 40, recommended=True)
+
+    layered = svc.layer_onto_naal_matches(
+        [flagged, clean], favourable_numbers=favourable,
+        partner=svc.NumerologySubject(favourable_numbers=favourable),
+    )
+    assert layered[0].match is clean
+    assert all(r.numerology.adjustment <= 0 for r in layered[1].readings)
+
+
 def test_configured_epoch_reads_the_flag() -> None:
     from app.services import feature_flags
 

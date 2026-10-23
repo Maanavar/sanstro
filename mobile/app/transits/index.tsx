@@ -30,7 +30,10 @@ function impactColor(impact: "good" | "neutral" | "challenging"): string {
 
 function impactLabel(impact: "good" | "neutral" | "challenging", isTamil: boolean): string {
   if (impact === "good") return isTamil ? "சாதகம்" : "Favorable";
-  if (impact === "challenging") return isTamil ? "பாதகம்" : "Challenging";
+  // "Needs care", not "Challenging"/பாதகம் (adverse): under ruling D2 every Sani
+  // house outside 3/6/11 lands here, Sade Sati included, and the astrologer
+  // asked that the surface not use catastrophic wording.
+  if (impact === "challenging") return isTamil ? "கவனம் தேவை" : "Needs care";
   return isTamil ? "நடுத்தரம்" : "Neutral";
 }
 

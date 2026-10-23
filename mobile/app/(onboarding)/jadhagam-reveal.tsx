@@ -14,6 +14,7 @@ import { JadhagamChart, type JadhagamHouseData } from "@/components/JadhagamChar
 import { AnimatedEmptyState } from "@/components/AnimatedEmptyState";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import type { ChartCalculateResponseData } from "@vinaadi/shared";
+import { SITE_HOST, rasiDisplayName, tNakshatraNumber } from "@vinaadi/shared";
 import { PPU_REPORT_PRODUCTS } from "@vinaadi/shared/constants";
 
 const PLANET_SHORT_TA: Record<string, string> = {
@@ -54,6 +55,7 @@ export default function JadhagamRevealScreen() {
   });
 
   const chart = data?.data;
+  const janma = chart?.planets.find((p) => p.graha === "MOON") ?? null;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -74,7 +76,7 @@ export default function JadhagamRevealScreen() {
         <View style={styles.chartCard}>
           <View style={styles.chartHeader}>
             <Text style={[styles.chartTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
-              {isTamil ? "ரோஜா சக்கரம்" : "Rasi Chart"}
+              {isTamil ? "ராசி சக்கரம்" : "Rasi Chart"}
             </Text>
             <ThirukanithamBadge />
           </View>
@@ -99,9 +101,11 @@ export default function JadhagamRevealScreen() {
           {chart && (
             <View style={styles.keyGrid}>
               {[
-                { label: isTamil ? "லக்னம்" : "Lagna", value: chart.lagna.rasiName },
-                { label: isTamil ? "நட்சத்திரம்" : "Nakshatra", value: chart.lagna.nakshatraName },
-                { label: isTamil ? "பாதம்" : "Pada", value: `${chart.lagna.pada}` },
+                // நட்சத்திரம் unqualified is the janma star — the Moon's, not
+                // the lagna's — so the star and pada cells read the Moon.
+                { label: isTamil ? "லக்னம்" : "Lagna", value: rasiDisplayName(chart.lagna.rasi, lang) },
+                { label: isTamil ? "நட்சத்திரம்" : "Nakshatra", value: tNakshatraNumber(janma?.nakshatra, lang) || "—" },
+                { label: isTamil ? "பாதம்" : "Pada", value: janma ? `${janma.pada}` : "—" },
               ].map((item) => (
                 <View key={item.label} style={styles.keyDatum}>
                   <Text style={styles.keyLabel}>{item.label}</Text>
@@ -125,8 +129,8 @@ export default function JadhagamRevealScreen() {
           onPress={async () => {
             trackEvent("share_card_opened");
             const message = isTamil
-              ? "விநாடி AI மூலம் திருக்கணித ஜாதகம் பெற்றேன்! உங்கள் ஜாதகத்தையும் பாருங்கள்: vinaadi.app"
-              : "Just got my Thirukanitham jadhagam on Vinaadi! Check yours: vinaadi.app";
+              ? `விநாடி மூலம் திருக்கணித ஜாதகம் பெற்றேன்! உங்கள் ஜாதகத்தையும் பாருங்கள்: ${SITE_HOST}`
+              : `Just got my Thirukanitham jadhagam on Vinaadi! Check yours: ${SITE_HOST}`;
             try {
               const result = await Share.share({ message });
               if (result.action === Share.sharedAction) trackEvent("share_card_shared");

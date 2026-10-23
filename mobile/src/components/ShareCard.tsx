@@ -12,6 +12,7 @@ import React, { forwardRef, useImperativeHandle, useRef } from "react";
 import { Platform, StyleSheet, Text, View } from "react-native";
 import { C } from "@/theme/colors";
 import { S, RADIUS } from "@/theme/spacing";
+import { SITE_HOST } from "@vinaadi/shared";
 
 export interface ShareCardProps {
   tamilDate: string;
@@ -102,7 +103,7 @@ export const ShareCard = forwardRef<ShareCardRef, ShareCardProps>(
           )}
 
           {/* Footer */}
-          <Text style={styles.footer}>vinaadi.app</Text>
+          <Text style={styles.footer}>{SITE_HOST}</Text>
         </View>
       </View>
     );

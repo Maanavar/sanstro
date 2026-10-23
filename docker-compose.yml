@@ -1,17 +1,27 @@
-version: "3.9"
+# Local development infrastructure for Vinaadi only.
+#
+# The dev database used to live inside `slw-postgres`, a container owned by a
+# different project (C:\Users\senth\Downloads\SLW). That project's compose file
+# owns the volume, so a `docker compose down -v` there would have deleted
+# vinaadi_dev. Since 2026-10-13 Vinaadi runs its own dev Postgres on :5434 and
+# `slw-postgres` / `slw-adminer` on :5432 / :8081 belong to SLW alone.
+# See docs/ENVIRONMENT_AND_DUPLICATE_AUDIT_2026-10-13.md.
 
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: slw-postgres
+    container_name: vinaadi-postgres
+    restart: unless-stopped
     environment:
       POSTGRES_DB: vinaadi_dev
       POSTGRES_USER: slw_admin
       POSTGRES_PASSWORD: slw_dev_password
     ports:
-      - "5432:5432"
+      # Loopback only: a dev database with a published password has no
+      # business listening on the LAN.
+      - "127.0.0.1:5434:5432"
     volumes:
-      - slw_postgres_data:/var/lib/postgresql/data
+      - vinaadi_dev_pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U slw_admin -d vinaadi_dev"]
       interval: 10s
@@ -21,6 +31,7 @@ services:
   postgres_test:
     image: postgres:16-alpine
     container_name: slw-postgres-test
+    restart: unless-stopped
     environment:
       POSTGRES_DB: vinaadi_test
       POSTGRES_USER: slw_admin
@@ -35,25 +46,21 @@ services:
       timeout: 5s
       retries: 5
 
-  adminer:
-    image: adminer:4
-    container_name: slw-adminer
-    ports:
-      - "8081:8080"
-    depends_on:
-      - postgres
-
   mailhog:
     image: mailhog/mailhog:latest
     container_name: slw-mailhog
+    restart: unless-stopped
     ports:
       - "1025:1025"
       - "8025:8025"
-    restart: unless-stopped
 
 volumes:
-  slw_postgres_data:
+  # External on purpose: neither `docker compose down -v` here nor in any other
+  # project can delete the real dev data. Create once with
+  #   docker volume create vinaadi_dev_pgdata
+  vinaadi_dev_pgdata:
     external: true
-    name: slw_slw_postgres_data
+    name: vinaadi_dev_pgdata
+  # Test data is disposable (conftest wipes it every run).
   slw_postgres_test_data:
     external: false

@@ -1,0 +1,1965 @@
+# Dashboard Experience Audit and Execution Plan (2026-09-17)
+
+**What this is.** A product-design / creative-direction audit of the signed-in
+dashboard. It asks whether every page, and every moment *between* pages, feels
+like a world-class product. It is also a **work order**: Part B is written so
+that a coding agent can pick up any item, implement it, and prove it done.
+
+**Status:**
+- Audit complete; owner decisions D1–D6 taken 2026-09-17 (§0).
+- Wave 0 is complete (DXA-40, DXA-11, DXA-36, DXA-34; see §13). **Wave 1 is
+  complete** as of 2026-09-18: DXA-01, 02, 03, 04, 05, 07, 08, 38, 41, 10 and
+  DXA-09's stripe and echo have all landed. DXA-09's emoji third is Wave 3 and
+  waits on DXA-24's glyph set, so that item stays `[~]`.
+- Measuring tools exist: `web/scripts/ux-audit.mjs` (CLI),
+  `web/e2e/dashboard-experience.spec.ts` (Playwright, with a regression
+  ratchet) and `scripts/ux-audit-stack.ps1` (§11). Baseline: 36 of 44 gates failing (§12).
+
+**Scope:** `/dashboard/*`, which covers Today, Calendar, Family & Charts, Goals,
+Life Areas, Tools, Understand (Explore), Journal and Settings, plus the shared
+chrome, the overlays and phone width. The astrology engine and marketing pages
+are out of scope.
+
+**Method.**
+- **Rendered pages.** 152 screenshots and filmstrips of a synthetic account
+  ("Audit Sample", fictitious birth data) on the isolated e2e stack: frontend
+  :3100, backend :8010, database `vinaadi_e2e`.
+- **Themes and widths.** Dark 1440 px, light 1440 px, phone 390 px, and reduced
+  motion.
+- **In-page probes.** Layout shift, a 100 ms load timeline, per-frame
+  opacity/transform through tab switches, `document.getAnimations()`, hover and
+  press style diffs from real pointer moves, and a computed-style census.
+- **Source cross-check.** Every finding was traced to code.
+- **Re-runnable.** The same probes are now `web/scripts/ux-audit.mjs`, which
+  prints a PASS/FAIL gate for each item. The baseline is in §12.
+
+**Caveat.** The stack runs `next dev`, so absolute timings are dev-inflated.
+Dev does not change *ordering*, *copy shown during loading*, *layout-shift
+sources*, *which surfaces have hover/press/presence states*, or *colours*.
+Every P0 is one of those. Items that need a production build say so.
+
+Status legend: `[ ]` open · `[x]` done · `[~]` partial / blocked, reason stated.
+
+---
+
+## 0. Owner decisions (2026-09-17), binding
+
+| # | Question | Decision | Lands in |
+|---|---|---|---|
+| D1 | What does bare `/dashboard` open? | **Always Today.** No last-tab restore. Deep links (`/dashboard/<tab>`) still land where they name. | DXA-02 |
+| D2 | Phone navigation | **Bottom tab bar** on phones: Today · Calendar · Family · Goals · More. More opens a sheet with Life Areas, Tools, Understand, Journal and Settings. A compact top bar hides on scroll-down. | DXA-27 |
+| D3 | Ambient loops | **Static page sky; motion only inside the Today hero.** Every infinite animation outside `.nova-hero` stops. Loading indicators (skeleton shimmer, spinners) are not ambient and stay. | DXA-17 |
+| D4 | Family's two stacked readings | **One reading with a length switch** (2 min / 4 min). | DXA-37 |
+| D5 | Touch-target sizing | **Delegated to the auditor, decided:** size follows the device, hit area follows the finger. Details and rationale in DXA-39. | DXA-39 |
+| D6 | Tamil date before data arrives | **Hidden.** No client approximation is ever shown; a width-reserved placeholder holds the space. | DXA-38 |
+
+---
+
+# Part A: The audit
+
+## 1. Verdict
+
+| Dimension | Grade | One line |
+|---|---|---|
+| Visual composition of key screens | **A−** | Today hero, score dial, calendar landscape header and the Family harmony card are genuinely premium. |
+| Freshness | **B−** | The celestial system is distinctive. Mock-up leftovers ("5L", "coming soon", "Draft: pending review"), raw enums and emoji date it. |
+| System consistency | **C+** | 86% of styling is inline, so pages render 11–15 font sizes, up to 9 corner radii and two motion languages. |
+| Interaction feedback and motion | **C** | Good tokens and tab fade, but **0 of 20** measured clickable cards/buttons react to hover or press; 1 of 3 top-bar popovers animates; nothing animates out. |
+| Loading and continuity | **D** | Today renders then swaps tab; "Create a birth profile" shows to set-up users; cream skeletons on navy; the page height changes 10–11 times in one load. |
+| Phone | **C** | No horizontal overflow, but the pinned header takes 180–197 px (21–23%) of an 844 px screen, grows as data arrives, and a tab label is overprinted. |
+
+**Overall: C+.** *The screens are designed; the experience between the screens
+is not.* Almost every fix is cheap, and none needs a new visual direction: the
+direction exists and is simply not applied everywhere.
+
+## 2. What already works (keep it, build on it)
+
+- **Today hero** (`.nova-hero*`): masthead, name, briefing, best window, score,
+  key timings. Correct, calm hierarchy.
+- **`NovaScoreDial`**: gradient arc, glow, draw-on, count-up; reduced motion
+  respected.
+- **Calendar landscape header** (`.nova-cal-landscape`): the most editorial
+  image in the product.
+- **Reading typography**: the `.om` reading surface is deliberately "not a
+  card" (`dashboard-nova.css:3484-3499`), with prose on its own register.
+- **Motion foundation**: `EASE_NOVA`/`DUR` (`web/lib/motion.ts`) with CSS twins.
+  `TabPane` runs 240 ms and honours reduced motion. The nav indicator glides.
+- **Light ("Warm") theme** is coherent.
+- **No horizontal overflow** at 390 px.
+
+## 3. Root causes
+
+1. **Styling lives in `style={{…}}`**: 3,573 in the 87 `dashboard-*.tsx` files,
+   against 583 `className=`. Inline styles cannot express `:hover`, `:active`,
+   `:focus-visible` or media queries. That is why feedback is missing and sizes
+   drift.
+2. **Loading has one state where it needs three.** "Not loaded yet" renders as
+   "empty".
+3. **Presence is enter-only.** Nothing uses `AnimatePresence`; overlays, tools,
+   sub-views and disclosures hard-cut.
+4. **No reserved space**, so late-mounting chrome and cards push everything
+   around.
+5. **Legacy palettes and primitives leak**: the Classic cream skeleton, and
+   `Surface`/`Metric`/`Chip` rendering raw enums inside Nova.
+
+---
+
+## 4. Items
+
+Each item carries a header line:
+- **Ready:** whether an agent can finish it alone (§9).
+- **Wave** (§13).
+- **Needs:** the items it depends on.
+- **Review:** who must see it before it counts as done:
+  - `—`: the gates and tests are enough;
+  - `shots`: the owner sees before/after screenshots;
+  - `Tamil`: the owner signs off new Tamil copy in chat;
+  - `astrologer`: doctrine-sensitive.
+
+It also carries a **Gate** line: the `ux-audit` check that proves it (§12).
+
+**A Gate is a measurement, not the definition of done.** Before recording a
+PASS, run the gate once with your fix *removed* and confirm it fails — three
+items here have been recorded green by a check that could not fail (DXA-05's
+pending hero made DXA-07's hero gate pass either way; DXA-08's `UPPER_CASE`
+regex could not see the correctly-cased half of its own defect). Then write down
+what the check cannot see. Two blind spots apply to every item in this file,
+because they are properties of the harness, not of any one gate:
+- `ux-audit-core.mjs` switches **top-level tab panes only**. Overlays, sub-tools,
+  generated reports and anything needing a second click are never rendered, so
+  no gate in §12 has ever measured them.
+- It pins the account to `lang: "en"`. **No gate here has ever run in Tamil.**
+  For any copy, naming or localisation item, check Tamil by hand and say so.
+
+### P0: trust and continuity
+
+#### DXA-01 `[x] 2026-09-17` Loading placeholders flash the Classic cream palette on the dark theme
+Done: DXA-01 skeleton bar/card contrast, dark 9.95 → 1.22 PASS; light 1.30 → 1.18 PASS; metrics `web/e2e/.artifacts/ux-audit-202609171621`; commit 8fa8917 (chart-corner tint and probe follow-up in the next commit).
+Ready: yes · Wave 1 · Needs: — · Review: shots
+- **Problem:** `web/app/dashboard/dashboard.css:726-758` forces
+  `.cd-main-content .skel { background: var(--panel-tan, #D4C8AE) }` and a
+  `--panel-tan-light` card border. Its premise, "the dashboard shell has a fixed
+  cream background", died with the Nova migration. `--panel-tan` is not bridged
+  under Nova.
+- **Evidence:** dark probe: bar `rgb(212,200,174)` on card `rgb(26,30,49)`,
+  contrast **9.95** (a quiet placeholder is 1.05–1.6). See `load-06.jpg` and
+  `phone-today-viewport.png`.
+- **Fix:**
+  1. Re-point the block to Nova tokens:
+     - bar `color-mix(in srgb, var(--color-text-strong) 8%, transparent)`;
+     - shimmer peak `… 14%`;
+     - card `var(--color-surface)`;
+     - border `var(--color-border)`.
+  2. Same for `.cd-skeleton` (`dashboard.css:704`).
+  3. Update the stale comment.
+- **Files:** `web/app/dashboard/dashboard.css`.
+- **Gate:** `DXA-01` contrast within 1.05–1.6, dark **and** light.
+
+#### DXA-02 `[x] 2026-09-17` `/dashboard` renders Today, then switches to the last-used tab (D1: Today is home)
+Done: DXA-02 destinations `personal → calendar` → `personal`; the tab is neither restored nor persisted any more; Glossary keeps its plain `/dashboard` link (now Today; `router.back()` would fail on direct visits); metrics `web/test-results/dxa02/…/ux-audit`; commit `aff3f73`. **Open:** deleting the now-unused `sanitizeRestoredTab` + its tests awaits owner approval.
+Ready: yes · Wave 1 · Needs: — · Review: —
+- **Problem:** the first render is Today (`dashboard-workspace.tsx:349`). The
+  localStorage restore runs after `/auth/me` (`:796-801`) and swaps the tab.
+  Login lands on bare `/dashboard`, so every returning user sees the swap.
+- **Evidence:** `load-06…10.jpg` (Today), then `load-11.jpg` (Understand). The
+  harness reports destinations `personal → calendar`.
+- **Fix (D1):**
+  1. In the hydration effect, stop restoring `activeTab`: drop the
+     `sanitizeRestoredTab` branch. Keep restoring everything else (date, vault,
+     profile ids, form state, lang).
+  2. The path and the legacy `?tab=` still win exactly as today.
+  3. `sanitizeRestoredTab` (`web/lib/dashboard-tabs.ts`) and its tests may
+     become unused. Removing them is a deletion: ask the owner first, and do it
+     last.
+  4. Update the footer comment that says Glossary's "Back to dashboard …
+     restores the last tab" (`dashboard-workspace.tsx:2193-2206`). Glossary
+     returns to Today now; if returning to the previous tab matters, use
+     `router.back()` there.
+- **Files:** `web/components/dashboard-workspace.tsx`; possibly
+  `web/app/dashboard/glossary/*`.
+- **Tests:** a workspace/unit test that bare `/dashboard` with a stored
+  `activeTab: "calendar"` stays on Today. Existing `dashboard-tabs.test.ts`
+  stays green.
+- **Gate:** `DXA-02` one destination, `personal`.
+
+#### DXA-03 `[x] 2026-09-17` "Empty" copy shown while data is still loading
+Done: DXA-03 false-empty `697–9907 ms` → `never`. `usePersonalData.personalPending` / `useFamilyData.familyPending` + shared `PendingPlaceholder`; wired into the Today glance cards, the hero name and lede, Quick Links (`needsProfile` waits for the lookup), the Calendar day view, the monthly view and its rail. Side effects: Understand CLS 0.73 → 0.49; DXA-06 skeleton frames 80 → 125 (INFO; placeholders now count). **Follow-up, not in this gate:** `NovaChartCard` / `NovaGuidanceCard` (`dashboard-today-deepdive-extras-nova.tsx`, used on Life Areas and Family & Charts) still show `chart_no_profile` / `guidance_empty` while a selected member loads. Metrics `web/test-results/dxa03/…/ux-audit`; commit `bf502e8`.
+Ready: yes · Wave 1 · Needs: — · Review: shots
+- **Problem:**
+  - `needsProfile = !personal.birthProfileId` (`dashboard-workspace.tsx:671`)
+    is true during the lookup, so Quick Links greys three tiles and setup copy
+    shows.
+  - Empty-state strings render during loading: `chart_no_profile`,
+    `guidance_empty`, `panja_empty` (`web/lib/i18n.ts:293,319,446`), and "No
+    family members yet" (`dashboard-today-glance-nova.tsx:1008`).
+  - The Calendar rail shows "Nothing matches the selected filters" beside
+    "Loading monthly panchangam…".
+  - The hero shows the sun without a name.
+- **Evidence:** cold load of `/dashboard/today`: false-empty copy from ~2–6 s
+  to ~14 s (two dev runs). See `today-load-04.jpg`,
+  `phone-calendar-viewport.png`, `dark-calendar-monthly.png`. On phone the
+  placeholder state was still on screen when the page otherwise looked settled
+  (`ux-audit-202609171257/phone-today.png`).
+- **Fix:**
+  1. `needsProfile = personal.birthProfileLookupDone && !personal.birthProfileId`.
+  2. Every consumer of a nullable data prop distinguishes *loading* from
+     *empty*. Pass `birthProfileLookupDone`, or a per-section status, down.
+     Loading renders a shape-matched placeholder in the final layout; the empty
+     copy renders only after a completed lookup found nothing.
+  3. For the Calendar rail, show the empty line only when the month's request
+     has resolved.
+- **Files:** `dashboard-workspace.tsx`, `dashboard-today-tab-nova.tsx`,
+  `dashboard-today-glance-nova.tsx`, `dashboard-calendar-tab-nova.tsx`,
+  `dashboard-calendar-monthly-nova.tsx` (+ panels).
+- **Tests:** RTL for glance cards: loading props render the placeholder, not
+  the empty copy.
+- **Gate:** `DXA-03` never.
+
+#### DXA-04 `[x] 2026-09-17` "A few steps to get started" flashes for finished users
+Done: DXA-04 `bare:true today:true` → `bare:false today:false`; Journal and Settings banner also gone. `onboardingDone` is `boolean | null` starting `null`, the gate waits for `family.vaultsReady`, and the banner renders only on `=== false`. Presence animation (step 3 of the fix) waits for DXA-13's primitive. Metrics `web/test-results/dxa04/…/ux-audit`; commit `b6ea1bf`.
+Ready: yes · Wave 1 · Needs: — · Review: —
+- **Problem:** `onboardingDone` starts `false`. The gate effect
+  (`dashboard-workspace.tsx:944-955`) treats a not-yet-fetched vault list as "no
+  members". The banner (`:1719`) therefore shows, then disappears and shifts the
+  page ~130 px. On Journal and Settings it stayed on screen after the page had
+  settled.
+- **Fix:**
+  1. Expose `vaultsReady: vaultsQuery.isFetched` from
+     `web/hooks/useFamilyData.ts` (next to `busyVaults`, line ~340).
+  2. Make `onboardingDone` `boolean | null`, starting `null`. Decide it only when
+     `personal.birthProfileLookupDone && family.vaultsReady`.
+  3. Render the banner only when `=== false`, with height+opacity presence
+     (DXA-13).
+- **Gate:** `DXA-04` false (bare and Today loads).
+
+#### DXA-05 `[x] 2026-09-18` Layout instability on load
+**Reserve re-pinned 2026-09-21 (E-4f, commit `29dfedc`).** E-4's kit buttons
+restored the owner's one-row best-window card, and the loaded en/1440 hero fell
+620 → 580 (same-clock A/B against the pre-E-4 file); `pending hero within 8px
+of loaded` read 621 → 580 FAIL. All six reserve cells were re-measured with the
+new `web/scripts/hero-inventory-probe.mjs` (en 1392/731/580, ta 1645/796/691 at
+390/860/1440 — the ungated cells had already drifted before E-4) and the
+pending window skeleton drops its second reason line at three columns in
+English. Now **580 → 580 PASS** (`i1-final-run1`), and **691 → 691 PASS in
+Tamil** (`n2-ta-run3`). **Known data dependence:** a best window with two
+two-digit hours wraps the actions and loads at 620 — see DXA-45.
+Done: CLS Today 0.77 → **0.0058**, Understand 0.82 → **0.0031**, top-bar /
+sub-bar shifts 2 → **0**, pending hero 592 → 592 (**+0px**); metrics
+`web/e2e/.artifacts/ux-audit-202609171942/`; commit `7824022`.
+Ready: yes · Wave 1 · Needs: — · Review: shots
+- **Evidence:** over two dev runs: CLS **0.77–0.92** (Today) and **0.82–1.00**
+  (Understand); document height changed 7–10 times; 2–3 shifts inside the top
+  bar. Sources:
+  - `footer.cd-footer` / `div.nova-sky`: panes resize as they mount.
+  - `button.cd-tab--more`: the Ask pill mounts only when `chartId` exists
+    (`dashboard-workspace.tsx:1648`) and pushes More ~225 px.
+  - `div.cd-subbar__right`: status text, vault picker and chart line mount late.
+  - Understand: the birth-star card arrives last and is inserted first.
+  - Today: the glance rows move when the reading and the board mount.
+- **Fix:**
+  1. Always render the Ask pill, disabled until a chart exists.
+  2. Give the sub-bar fixed slots with placeholders. "Data refreshed" becomes a
+     transient toast, not chrome text.
+  3. Give each pane a `min-height` equal to its last rendered height
+     (`ResizeObserver`, stored per tab in memory).
+  4. Render Understand's cards in final order with placeholders.
+  5. Reserve the reading slot on Today.
+- **Gate:** `DXA-05` CLS < 0.1 on both loads; top-bar shifts 0.
+- **What was built (2026-09-18).** Fixes 1, 2, 4 and 5 as written. Fix 3 —
+  every pane's last rendered height, remembered — was **not** built and is not
+  needed: a remembered height is a floor that can exceed the day's actual
+  content, and then the hero *shrinks* onto it, which is the same shift with
+  the sign flipped. Instead the pending hero renders the *shape* of what it is
+  waiting for (three clamped briefing lines, the chips row, the best-window
+  card, a 172px dial, the rail's two cards), so its height is the loaded
+  height by construction. Measured pending vs loaded at 1440: **592 / 592**
+  (en), **641 / 640** (ta).
+  - `ssr: false` on Today's lazy pane. With SSR on, the server sent the whole
+    ~1,200px pane and hydration replaced it with a ~900px fallback until the
+    chunk arrived — a 300px shrink at ~2.5s. The pane carries no server data
+    (every hook fetches client-side), so SSR bought only that swap.
+  - `NovaClampedText`'s overflow test moved to `useLayoutEffect`. It decides
+    whether "Read more" exists, and that button is ~25px tall: measured after
+    paint, it appeared a frame late and pushed everything below the hero.
+  - The almanac masthead's four limbs hold their slots. On a phone it grew
+    38px → 100px when they landed — the topmost shift on the page, and
+    invisible at 1440 where the row never wraps. D6 still governs the content:
+    the slots reserve space and say nothing.
+  - **New finding, fixed here:** `dashboard-workspace.tsx` initialised its
+    `lang` state to `"en"` and stamped it onto `<html lang>`, so a Tamil
+    reader's dashboard painted in **English** and flipped a second later, when
+    localStorage and then the DB preference landed — re-flowing the tab strip,
+    the Ask pill and the sub-bar to Tamil's longer words. It now starts from
+    the language the page was rendered in (`useLang()`, seeded from the
+    request cookie in `app/layout.tsx`). This was two of the three shifts left
+    on a Tamil load; a Tamil cold load is now **0.0031**.
+- **Still moves, deliberately left:** the page sky's five `.nova-sky__star`
+  specks, positioned as a percentage of a document that grows as sections
+  mount (0.003 per load, the whole remaining figure). The sky is authored to
+  sprinkle the full scroll height; pinning it to the viewport would change a
+  design decision to buy 3% of the CLS budget. See DXA-10 / DXA-17, which
+  already own the page sky.
+- **Reserve numbers.** `.nova-hero-skel--*` and `--nova-hero-reserve` in
+  `dashboard-nova.css` hold measured heights per width **and per language**
+  (Tamil sets the same content on more lines): they are what the pre-JS lazy
+  fallback and the pending hero stand on. Because such numbers go stale
+  silently, the measurement is now a gate of its own — `DXA-05 pending hero
+  within 8px of loaded`, ratcheted — so a copy or structure change that opens
+  the gap fails the audit instead of quietly shipping a jump. It measures en
+  at 1440; the ta and phone values were measured by hand (pending vs loaded:
+  641/640 ta at 1440 · 857/857 en and 898/932 ta at 860 · 1466/1466 en and
+  1642/1632 ta at 390) and are not gated. Two are loose: Tamil at 860 is 34px
+  short, and Tamil on a phone overshoots by 10px (a shrink) — both inside a
+  hero that is already taller than the viewport there, so what moves is below
+  the fold.
+
+#### DXA-07 `[x] 2026-09-21` Changing the date collapses Today while the new day loads
+~~Done: DXA-07 stale pane body text holds AA on light **3.41:1 → 10.47:1**;
+negative metrics `web/e2e/.artifacts/w3-stale-aa-negative-r8/`; passing metrics
+`web/e2e/.artifacts/w3-stale-aa-pass-r3/`; commit `1ea20e0`.~~
+Struck 2026-09-21 (E-1): probe did not enter the stale state; masthead text
+fell to ≈2.9:1 (measured 3.03:1).
+OD-3 assumption (2026-09-21): proceeded with the work order's recommended
+chrome-only dim. ~~Borders, accent fills and the hero masthead soften while body
+copy stays at full opacity;~~ the 2 px progress hairline is unchanged.
+~~**Gate blind spot:** the light probe forces the loaded English Today pane's
+stale CSS state and samples the hero briefing. The Today phase separately
+proves that the runtime stale state appears and resolves; this contrast gate
+does not inspect every text node, nested tool or Tamil rendering.~~
+Struck 2026-09-21 (E-1): the probe did not force the stale state. It re-applied
+a stylesheet `opacity` found on `.nova-today-pane[data-stale]`, which the fix
+had moved onto the masthead, so it measured an undimmed pane — and it sampled
+one briefing paragraph, never the masthead.
+Done: DXA-07 stale pane text holds AA on light **min 3.03:1 → min 5.10:1**
+(n=91); negative metrics `web/e2e/.artifacts/e1-stale-aa-negative/`; passing
+metrics `web/e2e/.artifacts/e1-stale-aa-pass/`; commit `cd193bf`.
+- **What E-1 changed (2026-09-21).** The probe now drives the real state: it
+  holds the next day's `dashboard-bundle` request (delayed, never failed),
+  changes the date, waits for the app's own `[data-stale]`, and measures every
+  visible element in the pane with a direct non-empty text node against its
+  own WCAG threshold (large text 3:1, else 4.5:1), compositing through
+  ancestor backgrounds and opacity groups. Its negative control failed on the
+  first run, on the unfixed tree: the limb labels "Star"/"Tithi" 3.03:1, the
+  Tamil date 3.37:1, the date line 4.19:1. The gate key is unchanged.
+- **The token dims never worked.** `--color-border: color-mix(… var(--color-border) …)`
+  declared on the pane is a custom-property cycle, which computes to the
+  guaranteed-invalid value: the probe read all three tokens as empty inside
+  the stale pane. Borders and accent fills reading them were dropped, not
+  dimmed. The dims are now computed on the pane (`--stale-*`) and applied to
+  its children, and resolve to the intended `color-mix()`.
+- **Design now:** no `opacity` on anything carrying text. Only non-text marks
+  dim: borders and the accent fill (tokens above) and icons (`svg.lucide` and
+  the masthead glyphs, 0.5). `aria-busy="true"` was already set while stale.
+  The stale cue is now quieter than the 0.6 pane dim was; a visible
+  "Loading…" label would be a new Tamil string and waits for the owner.
+- **Gate blind spot:** English only, light theme only, Today pane only; nested
+  overlays opened from the pane are not measured. Background images and
+  gradients (the hero's sky) and anything a sibling paints underneath are not
+  composited — backgrounds come from the ancestor chain only.
+Done: Today pane **3,515 → 1,513 px (0.43)** → **3,515 → 3,515 (1.00)**, the
+selected day arrives (`data-day` = 2026-09-19), hero 592 → 592. A/B on one
+account, same probe, same stack: `web/e2e/.artifacts/ux-audit-dxa07-negative10/`
+(fix removed) vs `…-final/`; the held moment is
+`…/dxa07-stale-dark-t600.png`. Commit `08ced8e`.
+Ready: yes · Wave 1 · Needs: — · Review: shots
+- **Problem:** the bundle is `useQuery` keyed on `(chartId, selectedDate)`
+  (`web/hooks/usePersonalData.ts:271-276`). A new date means a new key, so data
+  is `undefined` and the page collapses.
+- **Evidence:** hero **590 → 264 px**, page **4,029 → 1,376 px** within 78 ms,
+  staying collapsed until the response.
+- **Fix:**
+  1. `placeholderData: keepPreviousData` (TanStack v5) on the bundle query (and
+     on the week-ahead and dasha-story queries, which share the date).
+  2. Expose `isPlaceholderData` as `personal.isShowingPreviousDay`. While it is
+     true, dim the Today pane to 0.6 and show a 2 px progress hairline under
+     the sub-bar.
+  3. **Trap:** `dashboard-today-ribbon-nova.tsx` keys its page-turn on
+     `selectedDate`. With placeholder data it would animate the *old* day under
+     the new key. Key it on `panchangam.dateLocal` (the data's own date).
+  4. Scores count from the old value (`useCountUp` already does).
+- **Gate:** `DXA-07` hero keeps ≥ 90% height.
+- **What was built (2026-09-18).** All four steps as written, plus three things
+  the item did not name.
+  - **Every date-keyed query, not three.** Ambient alerts, peyarchi report,
+    life-area insights and both family queries carry the date too, so leaving
+    them bare would have kept the collapse in the Family Today card and
+    dropped the top bar's alert count to 0 and back — a shift inside the
+    chrome DXA-05 had just stopped moving.
+  - **The pane now reads the day off the data, not off the picker**
+    (`dataDate = panchangam?.dateLocal ?? selectedDate`). Without it the
+    masthead prints the *new* date over the *old* day's star and tithi for the
+    length of the fetch, and every "is this window running now?" comparison
+    runs against a date the data does not cover. The ribbon's page-turn key
+    (trap 3) falls out of the same rule.
+  - **`lifeAreaInsights` waits for the real bundle** (`!isShowingPreviousDay`
+    in its `enabled`). That query seeds its life-areas from the bundle instead
+    of refetching them (DASH-16), so firing it against a held previous day
+    would have cached *yesterday's* life areas under today's key — for the
+    session. This is the one place where holding old data is not free.
+  - **An error ends the held state** (`isPlaceholderData && !isError`).
+    TanStack keeps a placeholder in place after a failed fetch, so without
+    this the pane would sit dimmed under a sweeping progress line forever and
+    never say why. On an error the previous day stays, still labelled as that
+    day, and the existing failure path talks: error toast, the sub-bar's error
+    slot, the retry chip.
+- **The hero gate could no longer see this item.** DXA-05's pending hero
+  stands at the loaded height by construction, so the hero measured **592 →
+  592 with and without the fix** — a PASS either way. What still collapsed was
+  everything below it. The gate is now three:
+  `DXA-07 Today pane keeps ≥ 90% height through a date change` (the one that
+  discriminates: 0.43 vs 1.00), the original hero check, and
+  `DXA-07 the selected day replaces the held one`, which reads `data-day` off
+  the pane — because a page that holds the old day *forever* and a page that
+  replaces it look identical to a gate that only measures height.
+- **The probe was wrong in four ways, each of which passed the gate.** Written
+  down because every one of them produced a green run against a broken build:
+  1. **No precondition.** It measured whatever was on screen. A day that never
+     loaded is a placeholder page measured against a placeholder page: ratio
+     1.00, proving nothing.
+  2. **`settle()` is not a load.** It gives up after ~32 s; this stack needs
+     ~11 s to fill the pane after a cold compile, and the run that timed out
+     was measured half-built.
+  3. **`documentElement.scrollHeight` is not the page.** The dashboard scrolls
+     an inner element, so that number read 4,074 against a 3,515 px pane and
+     wandered between 1,459 and 4,074 within one run. Both the gate and the
+     "settled" check now measure the pane's own box.
+  4. **The baseline was read after the input was dispatched.** In the same
+     synchronous block, React had already collapsed the pane: the baseline
+     captured 1,513 px — the collapsed value — and the gate then compared the
+     collapse against itself and passed. This is the one that made the
+     negative check pass three times in a row and sent the investigation after
+     the app instead of the probe.
+- **Left deliberately.** `useMonthlyPanchangam` is keyed on `(year, month)` and
+  collapses the Calendar grid the same way on a month change. Same class, same
+  one-line fix, but it is the Calendar's surface and its own skeleton story —
+  not folded in here silently.
+- **For the owner.** The 0.6 dim is as ruled and reads well on dark (see the
+  shot). On the light theme the same wash is heavier and drops body text under
+  AA for the ~1 s it is on. If that is not wanted, 0.75 with the hairline
+  unchanged carries the same message; say the word and it is one number.
+
+#### DXA-08 `[x] 2026-09-18` Raw enums and "None" rendered as copy
+Done: DXA-08 no raw enums / 'None' / upper-case rasi names FAIL (`ARDHASHTAMA_SANI`; `MITHUNAM`, `DHANUSU`, `MANDHI`, and Gochar rasi codes) → PASS (`none (None×0)`); negative (fix removed) metrics `web/e2e/.artifacts/ux-audit-dxa08-negative-final2/`, passing metrics `web/e2e/.artifacts/ux-audit-dxa08-final4/`; commit `0e7c269`.
+Ready: yes · Wave 1 · Needs: — · Review: —
+- **N-1b / W-7b (2026-09-21, commit `6fd9ed9`).** The five other doubled
+  families (lord/graha, nakshatra, tithi, yoga, karana) now have a source
+  ratchet, `web/lib/astro-name-display-boundary.test.ts`, keyed on *renders*
+  (a `.lord` read as a key is legitimate everywhere). They had been recorded
+  clean on 2026-09-19; its first run found live leaks, now fixed — raw lords
+  in the compatibility panel (in both languages), the life-event log and the
+  Annual Wrapped share card, and raw English star names in the marketing
+  Jadhagam tool's Tamil-only table. Negative control: a scratch
+  `{period.lord}` render failed naming its file. **Gaps:** `.tsx` only; a
+  render split across lines or built with `+` is not matched; `title=` /
+  `aria-label=` are caught here but invisible to any browser text probe.
+- **Problem:** `NovaGocharCard` (`dashboard-today-deepdive-extras-nova.tsx:397-410`)
+  renders **"ARDHASHTAMA_SANI"** (`moonBasedCycle.type`), **"Chandrashtamam:
+  None"** and **"SUN · KANNI"**. Upper-case rasi names also reach the planet
+  orbs, the planet table and the member tiles.
+- **Fix:**
+  - `saniCycleName(type, lang)` (already used by Family).
+  - Graha and rasi display names from
+    `packages/shared/src/i18n/panchangam-names.ts` or the existing `t*` helpers.
+  - "Not today" in place of `label_none`.
+  - Title-case rasi names in the display layer.
+  - The upper-case rasi inside the backend `confirmationSentence` is a separate
+    backend change: text only, no shape change. Grep `narrative_engine.py` per
+    the almanac-naming rule. Record it; do not mix it into this change.
+- **Gate:** `DXA-08` no enums, no "None", no upper-case rasi names.
+- **What was built (2026-09-18):**
+  - Added `rasiDisplayName`, the display-layer adapter for numeric and legacy
+    string rasis. It selects the active language's almanac name (Tamil in Tamil,
+    title-case English in English) and now covers Gochar chips, the hero and
+    settings summaries, planet orbs/tables, and Family member/charts tiles.
+  - Reused `saniCycleName` for Saturn-cycle copy and added the active-language
+    `label_not_today` (`Not today` / `இன்று இல்லை`) instead of rendering an enum or
+    `label_none`. The Tamil addition awaits the normal Tamil-copy sign-off.
+  - The browser gate now examines direct UI labels and facts rather than
+    server-authored prose, so it ratchets this frontend result without claiming
+    a backend prose change.
+  - **Backend follow-up not done:** the upper-case-rasi
+    `confirmationSentence` is still server text (the live construction is in
+    `app/services/transit_service.py`, not `narrative_engine.py`); it needs its
+    own text-only backend change, with no response-shape change. The
+    server-authored chart gist observed in Family is likewise deliberately
+    untouched.
+- **Completed on review (2026-09-18, second pass, commit `0794f82`):** the PASS above was real for
+  what the gate walks and too narrow for what the item claims. The gate greps
+  for `UPPER_CASE`, so it only ever saw half the defect. The other half is
+  `rasiName` — the same sign, correctly title-cased, in English — which prints
+  `Mithunam` at a Tamil reader and trips no regex. Nine surfaces were still live
+  behind the green tick, six of them outside the tab sweep entirely (they need a
+  chart-cell click, a sub-tool or a report to render):
+  - Explain overlay (`dashboard-chart-explanation.tsx`) — `coreIdentity.lagnaRasi`
+    / `.moonRasi` / `.janmaNakshatra`. The loading fallback two lines below each
+    already called the localiser; only the loaded path, which is what a reader
+    actually sees, did not.
+  - Jadhagam report (`dashboard-jadhagam-report-panel.tsx`) — the same three plus
+    both dasha lords, rendered as raw graha codes.
+  - Porutham (`dashboard-tools-porutham-nova.tsx`), synastry
+    (`compatibility-intelligence-panel.tsx`), Kalachakra
+    (`dashboard-kalachakra-dasha-panel.tsx`, whose `rasiName ?? rasiCode`
+    printed the raw enum whenever the name was null), the Calendar lagnam row,
+    both solar-return tiles, Varshaphala (`yearLord` and the aspect tags were
+    raw graha codes in both languages) and the rectification wizard.
+  All now read the numeric `rasi` through `rasiDisplayName`, which was widened to
+  resolve all three shapes the backend sends for one sign — number, `rasiName`
+  ("Mithunam") and `rasiCode` ("MITHUNAM") — plus a Tamil-script name, so English
+  mode no longer leaks Tamil either (the DXA-09 ruling).
+- **Gate added:** `web/lib/rasi-display-boundary.test.ts`, a two-direction source
+  ratchet keyed on the *field being read*, not on its casing — the check the
+  browser regex could not be. Verified against the fix removed: it fails and
+  names the file. A Tamil-mode browser pass was considered and not built: the
+  harness pins the account to `lang: "en"` (`ux-audit-core.mjs`), so it would be a
+  second full walk, and it would still only catch the surfaces it clicks — which
+  is exactly how six of these nine stayed hidden.
+- **Still open:** the duplicated rasi tables in the marketing print tools
+  (`JadhagamTool`, `PoruthamTool`) use their own transliterations ("Mesha" vs
+  "Mesham") and are deliberately Tamil-only sheets; consolidating them is a
+  separate pass, not this one. The dashboard's third and fourth copies
+  (`TAMIL_RASI_NAMES`, `dashboard-calendar-shared`) are gone — both now read the
+  canonical tables in `lib/chart-utils`.
+
+#### DXA-09 `[~] 2026-09-18` Owner-ruling violations still on screen
+**W-8 / N-2 (2026-09-21, commit `29dfedc`): a Tamil (`ta`) audit phase.** Own
+contexts; sets Tamil through the settings PATCH and FAILs every check as
+"not measurable" unless `<html lang>` is `ta` (negative control with
+`UX_AUDIT_TA_LANG=en`: 4/4 FAIL, `web/e2e/.artifacts/n2-ta-negative-en/`);
+clicks tabs by a new language-free `data-tab`. Gates: `DXA-09 page renders in
+Tamil (ta)`, `DXA-05 pending hero within 8px of loaded (ta)` (691 → 691 PASS),
+`DXA-27 phone: no horizontal overflow (ta)` (none, PASS), and the mirror of the
+English check, `DXA-09 no English text in Tamil mode (ta)` — **FAIL, with real
+findings** (`web/e2e/.artifacts/n2-ta-run1/`): raw enums in Tamil prose
+(`UTHIRADAM`, `RAHU KALAM`, `MEENAM`, `DHANUSU`, `SATURN`, `BALANCED`, `FLAT`,
+`NEUTRAL` — Calendar, Family, Life Areas), English weekdays (Family) and month
+names in dates (Today, Calendar), "📍 birth location ▾" (Calendar), English
+article titles (Understand), "இதில் · Calendar தாவல்" (Tools — now DXA-43), and
+"PDF" twice (loanword; owner's call). None of the `(ta)` gates is ratcheted.
+**Blind spot:** top-level panes only; the allowlist exempts only the account's
+own English names and the brand.
+Done (stripe + echo): `no accent stripes` Family 1 → **0 PASS**; `no Tamil text in
+English mode` `tools: TOOLS · கருவிகள் | திருமணப் பொருத்தம்` → **0 PASS**. Negative
+(fix removed) metrics `web/e2e/.artifacts/ux-audit-202609180620/`; passing metrics
+`web/e2e/.artifacts/ux-audit-202609180653/`; commit `a8e10a1`. **Emoji third still open** — Wave 3,
+blocked on DXA-24's glyph set; its gate still FAILs and is deliberately not in
+`MUST_PASS`.
+- **What the gate cannot see, checked by hand:**
+  - the harness pins `lang: "en"`, so the Tamil half of the echo — the kicker
+    reading `கருவிகள் · கருவிகள்`, the same word twice, the shape the owner
+    flagged on the Family kicker — was never measured by any run in this file.
+    `components/dashboard-tools-tab-nova.test.tsx` now renders the tab in BOTH
+    languages: English contains no Tamil codepoint at all, Tamil shows the
+    kicker once and no second name for the hero tool. Verified against the fix
+    removed: both cases fail.
+  - the stripe probe walks top-level panes only, and a `borderInlineStart` is
+    invisible to a `border-left` grep — the two blind spots that let this one
+    live. `web/lib/accent-stripe-boundary.test.ts` is a two-direction source
+    ratchet over `components/dashboard-*.tsx` and `app/dashboard/`, keyed on
+    every spelling and on the width, with two survivors declared and reasoned
+    (the dasha timeline spine; `.om__rewritten`, a blockquote rule on a `<p>`).
+    Verified against the fix removed: it fails and names the file.
+- **Found while there, NOT fixed (outside the item):** `metaTa` for the
+  Panchangam Planner reads `இதில் · Calendar தாவல்` — English inside Tamil mode, the
+  mirror of this item and outside every gate here; and the Compatibility tool
+  card and the Porutham hero share one Tamil name (`பொருத்தம் / இணக்கம்`),
+  so Tamil mode offers two differently-scoped tools under the same title.
+Ready: stripe and echo, yes; emoji, partial (see DXA-24) · Wave 1 (stripe, echo) / Wave 3 (emoji) · Review: —
+- **Accent stripe:** `dashboard-family-charts-hybrid.tsx:1233` uses
+  `borderInlineStart: 3px solid ${accent}` on the birth-condition cards.
+  - Replace it with a full 1 px `--color-*-border` border; the tone rides the
+    chip.
+  - Replace the undefined `--color-text-secondary` with `--color-text`.
+- **Bilingual echo:** `dashboard-tools-tab-nova.tsx:334` renders "Tools ·
+  கருவிகள்" (Tamil mode: "கருவிகள் · கருவிகள்"); `:356` always prints
+  "திருமணப் பொருத்தம்". Active language only.
+- **Emoji and text glyphs as icons:** 34 source lines, for example "🪔 Remedies",
+  "🕒", "👋" (Family), "🕊" (Journal), "📍", "📅/🗓️" (Calendar segmented),
+  `dashboard-hybrid-parts.tsx:241` "💼💰🧠", and the calendar legend
+  🌟🌕🌑🐘🦚🪷🪔🎉🚫. Also text glyphs used as icons: "↻ ◇ ✎ + ⤓ ★ ▾ ☀ →".
+  - Replace with Lucide where an equivalent exists, and `MiniMoonGlyph` for moon
+    phases.
+  - Deity or festival marks with no Lucide equivalent wait for DXA-24's glyph
+    set. Do not invent icons.
+- **Gate:** `DXA-09` stripes 0, Tamil-in-English 0, emoji/glyphs 0.
+
+#### DXA-10 `[x] 2026-09-18` The page starfield shows through titles and translucent cards
+Done: `no page-sky star inside a text line` 1 → **0 of 64 PASS**; `no star through a
+translucent surface` 7 → **0 of 64 PASS**. Negative (no fix in the tree) metrics
+`web/e2e/.artifacts/ux-audit-202609180638/`; passing metrics
+`web/e2e/.artifacts/ux-audit-202609180701/`, which regressed no other gate
+(diffed gate-by-gate against `ux-audit-202609180653/`). Review shots — Tamil,
+light and 390 px — in `web/e2e/.artifacts/dxa09-10-review/`. **Taken alone:
+DXA-17 is untouched**, the page stars keep `nova-celestial__star`, so Wave 2
+still has that item whole (owner's call, 2026-09-18). Commit `a8e10a1`.
+
+- **This gate could not fail, and was passing before any fix.** The page sky
+  draws stars only from dusk (`showStars = isLight || tod === "night" || tod ===
+  "dusk"`), so a run at 11:37 and again at 11:50 IST counted **zero** stars and
+  reported `0 / 0 PASS` on the unfixed tree
+  (`ux-audit-202609180607/`, `ux-audit-202609180620/`). The §12 baseline of
+  `2 / 6` was taken at 18:39 IST. That is the fourth item in this file recorded
+  green by a check that could not fail, so the gate was rebuilt before the item
+  was touched:
+  - a new `sky` phase pins the clock (`setFixedTime` — not `install`, which also
+    freezes the timers React needs — plus an explicit `timezoneId`) to 21:30
+    IST, in its own context so no other phase's day moves;
+  - it reports `starsRendered`, and the gate **fails as "not measurable"**
+    rather than passing when the sky painted nothing, or when a pane did not
+    render (the same rule DXA-07 already follows);
+  - it switches tabs by **clicking**, never `goto`. A per-tab `goto` on this dev
+    stack re-issues the CSP nonce, every lazy tab chunk is refused (DXA-35) and
+    the pane renders EMPTY — the first version of the phase reported "10 of 17
+    stars through a translucent surface" on Goals with a blank starfield in the
+    screenshot beside it;
+  - the occlusion test now reads a gradient's own stops. `backgroundColor`
+    alone called `.nova-hero` see-through — it paints
+    `linear-gradient(135deg, #1A1E31, #0A0E20)`, two solid colours, over a
+    transparent colour — and blamed it for nine stars it in fact hides.
+- **What the rebuilt gate still cannot see, checked by hand:**
+  - "in text" means the star's centre lands inside a **glyph box**. The Goals
+    title star sat just *after* "confidence.", inside the line box but past the
+    last glyph, so the probe scored it 0 both before and after. Confirmed by eye
+    instead: `ux-audit-202609180636/sky-goals.png` (star in the title line, one
+    under the subtitle) against `ux-audit-202609180701/sky-goals.png` (both
+    gone, the open-space stars below the cards kept).
+  - the phase walks `TABS` only — Journal and Settings are not in it, so the
+    audit's "dot after '30+ entries.' on Journal" is unmeasured either way.
+  - it runs dark only, and the light canvas shows stars at **every** hour
+    (`isLight ||`), so light is strictly more exposed than the theme the gate
+    tests. Checked by hand: `dxa09-10-review/en-light-tools.png`.
+- **Fix, against the three steps:**
+  1. *Mask the stars out of the content column.* Not literally possible as
+     written: `.nova-sky` is `inset: 0` of `.cd-page`, and `.cd-page` **is** the
+     content column, so it has no side gutters to retreat into. What the
+     rendered pages show is that the defect is vertical, not horizontal — every
+     tab opens with a kicker, an H1 and a subtitle on bare ground, and that is
+     where a star lands in a title. `.nova-sky__stars` now carries a
+     `mask-image` that fades the field in below that band, measured in the
+     column's own scroll space (top of the PAGE, not of the screen). Note this
+     inverts the audit's phrasing: the "top crown" is exactly where every page
+     title sits, so keeping stars in it is the defect.
+  2. *Cards sit on opaque surfaces.* Six Nova card surfaces were written
+     `background: linear-gradient(120deg, <tint>, transparent)` — a wash with no
+     ground under it. They keep the wash and now paint it over
+     `--color-surface`. Ending the gradient on an opaque colour is **not**
+     enough and was tried first: the tint stop is itself translucent
+     (`--color-accent-muted` is `rgba(214,168,95,0.12)`), so the sky still came
+     through the tinted end — measured, still 7 of 64.
+  3. *The sky fades in.* It carried `transition: opacity 600ms` and mounted at
+     its final opacity, so the transition had nothing to move from. One frame at
+     0 now gives it the arrival the declaration always described, on
+     `var(--ease-nova)` rather than the bare `ease` it used to name.
+- **Found while there, NOT fixed (outside the item):** the Family birth-condition
+  cards render `INFO` severity in the `mid` (caution) chip tone — "Sankranti
+  Birth" and "Dagda Rasi" are neutral notes wearing a warning colour. The chip
+  mapping is untouched by DXA-09, which only moved the border onto it.
+Ready: yes · Wave 1 · Needs: DXA-17 (same component) · Review: shots
+- **Evidence:**
+  - A star sits between two words of the Goals title ("Plan·with confidence").
+  - Specks inside the Tools hero card (`linear-gradient(…, transparent)`).
+  - A dot after "30+ entries." on Journal.
+  - Harness, tops of the tabs: 2 stars inside text lines, 6 visible through
+    translucent surfaces.
+- **Fix:**
+  1. Mask `.nova-sky__stars` out of the content column. Stars live only in the
+     gutters and the top crown.
+  2. Headers and cards sit on opaque or blurred surfaces.
+  3. The sky fades in on mount: today it pops, and its
+     `transition: opacity 600ms` never fires
+     (`celestial-ambient-nova.tsx:172`).
+- **Gate:** `DXA-10` stars in text 0; stars through a translucent surface 0.
+- **Re-baseline 2026-09-17:** the probe used to read `color(srgb … / a)` (how
+  Chromium serializes `color-mix()` with transparency) as opaque, so it
+  undercounted. With that fixed, "through a translucent surface" reads 12 (was
+  6) and "in text" 2. Compare against these, not the §12 table.
+
+#### DXA-11 `[x] 2026-09-17` Reduced motion does not reach Framer layout animations
+Done: DXA-11 indicator transforms 3 → 1; pane opacity 1 → 1; metrics `web/e2e/.artifacts/ux-audit-202609171446`; commit 929f317
+Ready: yes · Wave 0 · Needs: — · Review: —
+- **Evidence:** ~~with `reducedMotion: "reduce"` the nav indicator still slides
+  for ~270 ms.~~ `TabPane` was correctly instant; MotionConfig and the reduced-
+  motion indicator guard now leave the pane at opacity `1` and the indicator at
+  one transform state.
+- **Fix:**
+  1. Wrap the workspace render in
+     `<MotionConfig reducedMotion="user" transition={{ duration: DUR.base, ease: EASE_NOVA }}>`.
+     This covers every `motion.*`, including `layoutId`.
+  2. Fix the stale "keep this LAST" comment on the CSS guard
+     (`dashboard-nova.css:3837`); ~600 lines follow it, and it wins through
+     `!important`.
+- **Gate:** `DXA-11` indicator transforms ≤ 1; pane opacity only `1`.
+
+#### DXA-41 `[x] 2026-09-18` Top-bar menus ignore a page click and Escape
+Done: DXA-41 More / notifications / account `Esc only / neither / neither` → `Escape + page click` PASS; negative (fix removed) metrics `web/e2e/.artifacts/ux-audit-202609180552/`, passing metrics `web/e2e/.artifacts/ux-audit-202609180557/`; commit `c8852ee`.
+Ready: yes · Wave 1 · Needs: — · Review: —
+- **Problem:** the "click outside to close" layer `.cd-overlay`
+  (`dashboard.css:199-210`, `position: fixed; inset: 0`) is rendered inside
+  `.cd-topbar`. That element has `backdrop-filter: blur(14px)`
+  (`dashboard.css:96`), and a backdrop filter makes it the containing block for
+  fixed descendants. The layer is therefore only as big as the header.
+- **Evidence (probe, 1440 × 900):**
+  - notifications and account-menu overlay rect **1440 × 93** at top 0;
+  - after a click on the page body both menus **stay open**, and the click
+    reaches the control underneath (a button, a textarea);
+  - **Escape does nothing**;
+  - they close only on a click inside the header;
+  - the first harness run timed out on the next menu because the open overlay
+    covered its trigger.
+- **Why:** a menu that cannot be dismissed where the user is looking, and that
+  lets a stray click act on the page behind it, feels broken.
+- **Fix:**
+  1. Render popover and overlay through a portal to `.cd-shell`, as
+     `DrawerPanel` already does, so the layer really covers the viewport and
+     swallows the dismissing click. Alternatively, drop the layer and close on a
+     document `pointerdown` outside trigger and menu.
+  2. Add Escape handling to the notifications popover and the account menu,
+     returning focus to the trigger (the More menu already does this).
+  3. Pair with DXA-13 `Presence`.
+- **Gate:** `DXA-41` every overlay closes on Escape and on a page click.
+
+### P1: make it feel alive
+
+#### DXA-12 `[x] 2026-09-21` Clickable surfaces give no hover or press feedback
+Done: DXA-12 hover 19/71 → 71/71, press 18/71 → 71/71 (3 runs on one build:
+71/71 · 71/71 · 71/71 each; population census 106/106 · 106/106); negative
+metrics `web/e2e/.artifacts/i1-negative-class2/` (Tools tiles reverted: 59/71
+· 59/71 FAIL); passing metrics `web/e2e/.artifacts/i1-final-run1/`, `-run2/`,
+`-run3/`, `i1-final-census/`; commits `dfdbbef` (E-4), `29dfedc` (I-1).
+- **How it closed (E-4 + I-1, 2026-09-21).** W-6 had reached 70/71 by putting
+  the card lift on things that are not cards. That was reverted in favour of
+  the owner-approved OD-4 taxonomy (§6): cards lift; kit buttons shift their
+  own colour (no shadow, never on ghost); text links take colour + underline
+  and dim on press (new `.ui-link`); rows and disclosure headers take a
+  background tint (`components/interaction-kinds.css`, reachable from
+  `/login`); the select takes a strong border and a pressed tint. Twelve
+  buttons that wore a bare kit class over full inline styles were converted to
+  a real variant with the inline visuals removed.
+- **What the sample hid.** A population census (`--hover-max 999`) found 106
+  eligible surfaces, not 71, and four Family buttons with no feedback at all;
+  run 1 of three caught the remedy chips' missing press, invisible to runs
+  whose sample skipped them. Both fixed before the three counted runs.
+- **The probe changed.** It also reads `text-decoration` and `opacity` — the
+  two properties OD-4's link treatment uses — so it sees more real feedback;
+  it does not loosen what counts as feedback.
+- **Ratchet:** `hover`'s first — all three keys are in `MUST_PASS`.
+- **Gate blind spot:** the gate samples up to 16 surfaces per pane (71 is a
+  sample; the census is the population, run once), English only, top-level
+  panes only, mouse only (touch press and keyboard focus not measured), dark
+  theme only. The row tint is quiet by design (6% of `--color-text-strong`,
+  ~+13 per channel on dark); pixel diffs confirm it renders in both themes.
+~~DXA-12 `[~]`~~ (heading was `[~]` until 2026-09-21)
+W-5 completed 2026-09-21: reduced motion now removes the card's vertical
+travel while retaining its shadow and strong-border affordance. The same split
+was applied to the matching `.nova-interactive` rule found in the required
+sweep. **Negative control:** the new reduced-motion hover probe read **0/3
+FAIL** with the old combined media query
+(`web/e2e/.artifacts/w5-reduced-hover-negative/`); restored, it reads **3/3
+PASS** (`web/e2e/.artifacts/w5-reduced-hover-pass/`). **Not covered:** the gate
+samples three English Today `.ui-card--interactive` cards in the dark theme; it
+does not inspect `.nova-interactive`, other panes, light theme, Tamil, keyboard
+focus, or touch press feedback. DXA-12 remains `[~]` until W-6 closes the
+whole-pane hover and press counts.
+Done: DXA-12 reduced motion keeps colour/shadow hover feedback 0/3 → 3/3;
+negative metrics `web/e2e/.artifacts/w5-reduced-hover-negative/`; passing
+metrics `web/e2e/.artifacts/w5-reduced-hover-pass/`; commit `b4285f3`.
+Status correction 2026-09-18: the recorded 8/8 result had four empty panes;
+the ratchet was removed pending whole-pane measurement, negative control, and
+stable browser runs. The historical completion claim below is superseded.
+Done: real-pointer hover **2/22 → 8/8** and press **0/22 → 8/8** in
+`web/e2e/.artifacts/ux-audit-202609181930/`; ratcheted in
+`dashboard-experience.spec.ts`. The sample intentionally caps the visible
+surfaces; it does not prove hover feedback for off-screen controls or Tamil.
+Ready: yes · Wave 2 · Needs: DXA-19 (tokens), DXA-39 · Review: shots
+- **Evidence (real pointer):**
+  - Today hero buttons: 0/3;
+  - Quick Links: 0/8;
+  - Tools cards: 0/4;
+  - Family actions: 0/5;
+  - press feedback: 0 everywhere.
+
+  The harness baseline across Today, Tools, Family, Understand and Calendar is
+  2/22 hover and 0/22 press. `.nova-interactive` (`dashboard-nova.css:2448`)
+  has **zero** callers, and `.ui-card` has no hover rule.
+- **Fix:**
+  1. A kit `Pressable` (`web/components/ui/pressable.tsx`) that renders
+     `button` or `a` with `.ui-pressable`.
+  2. `.ui-card--interactive` for `button.ui-card`.
+  3. Press states on `.ui-btn`/`.ui-pill`.
+  4. Hover and press specs in §6.
+  5. Convert: Quick Links, Tools cards and the Porutham hero, Family
+     `HyActionButton`, Understand library tiles, hero buttons.
+- **Gate:** `DXA-12` hover ≥ 95%, press 100%.
+
+#### DXA-13 `[x] 2026-09-19` Overlays hard-cut in, and nothing animates out
+Closed 2026-09-19: all four `DrawerPanel` callers carry `open`, `ModalShell` and
+the three hero popovers retain through their exit, and the dismiss layer now
+shares the overlay's lifetime — which is what the earlier flapping was.
+**Negative control:** with `Presence`'s transition set to `duration: 0`, all
+five gates went `enter:false exit:false`
+(`web/e2e/.artifacts/ux-audit-wave2-negative/`); restored, all five pass
+(`ux-audit-wave2-after/`), and held over five consecutive `overlays` runs
+(`ux-audit-wave2-after-2…5`). DXA-41 held green across all five.
+**Not covered:** the gate drives five representative overlays; anything
+*inside* an overlay is outside the harness by construction, and no run has been
+made in Tamil.
+**OD-2 ruling, 2026-09-21:** `Presence` intentionally uses `DUR.base` and
+`EASE_NOVA` in both directions. The product chose one settle curve as its house
+style; the retired exit tokens in §6 are not implementation drift.
+Status correction 2026-09-18: later overlay runs flapped and only one drawer
+caller was converted; the ratchet was removed pending retained lifecycles and
+five stable browser runs. The historical completion claim below is superseded.
+Done: More, notifications, account, Ask Vinaadi, and the day drawer each
+recorded an animated enter and exit in
+`web/e2e/.artifacts/ux-audit-202609181335/`; all five are ratcheted. The gate
+only samples those five representative overlays, so generic modal appearances
+remain a manual review surface; commit `af20604`.
+Ready: yes · Wave 2 · Needs: DXA-19 · Review: shots
+- **Evidence:**
+  - More menu: 120 ms entrance (good).
+  - Notifications (`dashboard-hero.tsx:484`), account menu (`:591`) and
+    `ModalShell`: no entrance.
+  - `DrawerPanel`: CSS entrance, no exit (it has no `open` prop; its parent
+    unmounts it).
+  - No `AnimatePresence` exists anywhere.
+- **Fix:**
+  1. A `Presence` primitive (`web/components/ui/presence.tsx`, kept out of the
+     barrel because it pulls Framer) with the §6 overlay specs.
+  2. Used by `ModalShell`, the three popovers, `DrawerPanel` (add an `open`
+     prop) and the Ask panel.
+  3. Popovers get `--elev-3` and `transform-origin` at their trigger.
+- **Gate:** `DXA-13` enter and exit on every overlay.
+
+#### DXA-14 `[x] 2026-09-19` Tools, sub-views and view switches hard-cut; segmented selection repaints
+Done: DXA-14 three view switches `animated:false` → `animated:true`; negative
+metrics `web/e2e/.artifacts/ux-audit-dxa14-negative2/`; passing metrics
+`web/e2e/.artifacts/ux-audit-wave2-after/`; commit `af20604`.
+Closed 2026-09-19. `ViewSwap` is applied at 14 sites (Tools hub ⇄ tool,
+Understand hub ⇄ detail, Calendar, Plan, Life Areas, the reading switch), and
+`Segmented` has its per-instance sliding thumb.
+**Gate added 2026-09-19** — the item had none, and was twice reported by eye.
+`ViewSwap` carries `data-view-swap` / `data-view-key` purely so the gate has
+something to select: the crossfade is an inline transform framer writes, with
+no class and no CSS animation name to match.
+**Negative control:** with the crossfade set to `duration: 0`, all three panes
+reported `animated:false` against a real key change
+(`web/e2e/.artifacts/ux-audit-dxa14-negative2/`); restored, all three pass
+(`ux-audit-wave2-after/`).
+**That control also caught a defect in the gate itself.** The first version
+matched any animation *inside* the swapped panel, and Life Areas reveals its
+groups on entry (DXA-18) — so it reported `animated:true` with the crossfade
+removed. It now matches the swap element only. A gate run solely against a
+working fix would have shipped that.
+**Not covered:** three panes, English only; a switch not driven by a
+`Segmented` is unmeasured, and the `measurable` gate fails loudly rather than
+averaging a blank pane away.
+Superseded —
+Partial 2026-09-18: Tools hub ↔ tool now uses `ViewSwap`, and kit
+`Segmented` has its per-instance sliding thumb. The remaining
+Segmented-driven panels and Understand hub ↔ detail still need the shared
+transition; do not ratchet this item yet.
+Ready: yes · Wave 2 · Needs: — · Review: shots
+- **Evidence:** opening Numerology: no animation. Calendar "Best Dates": none.
+  Goals and Life Areas sub-tabs: none.
+- **Fix:**
+  1. A `ViewSwap` primitive (crossfade plus a 4 px settle, 180 ms in / 120 ms
+     out) for the Tools hub ⇄ tool swap, every `Segmented`-driven view and the
+     Understand hub ⇄ detail.
+  2. `Segmented` gets a **sliding thumb**: `motion.span` with a per-instance
+     `layoutId` from `useId()`.
+- **Gate:** none yet. Manual: each switch shows one crossfade in
+  `getAnimations()`; add a harness check when implementing.
+
+#### DXA-15 `[x] 2026-09-18` Disclosures pop open and shut
+Done: the body stays mounted after its first open and transitions with grid
+rows plus opacity; `collapsible-section.test.tsx` verifies the retained body
+and the existing scroll-anchor behavior; commit `af20604`. This unit proof
+cannot inspect the browser's rendered transition curve.
+Ready: yes · Wave 2 · Needs: — · Review: —
+- **Problem:** `CollapsibleSection` renders `{open && …}`
+  (`collapsible-section.tsx:61`).
+- **Fix:** keep the body mounted after first open. Animate
+  `grid-template-rows: 0fr → 1fr` plus opacity (240 ms, `--ease-nova`). Keep the
+  scroll-anchor pin.
+- **Tests:** the existing collapsible behaviour, and
+  `e2e/dashboard-render-pass.spec.ts`, which reads `aria-expanded`.
+
+#### DXA-06 `[ ]` First visit to each tab fades a skeleton in, then hard-cuts
+Ready: partial (implementation yes; acceptance needs a production build, see DXA-35) · Wave 2 · Needs: DXA-01, DXA-05, DXA-14
+- **Evidence:** after a reload the incoming pane fades 0 → 1 while showing the
+  12-node generic skeleton. Content replaces it with no transition (Calendar
+  544 ms, Tools 756 ms, Family 954 ms; dev). Document height jumps
+  940 → 2,575 / 8,109 px.
+- **Fix:**
+  1. A `TAB_LOADERS` map used both by each `dynamic(() => TAB_LOADERS.x())` and
+     by a prefetcher (`requestIdleCallback` after Today settles, plus nav
+     `pointerenter`/`focus`).
+  2. Tab-shaped skeletons in Nova colours.
+  3. Crossfade skeleton → content with a `DataSwap` primitive (§6), inside the
+     DXA-05 `min-height`.
+- **Gate:** `DXA-06` zero full-opacity skeleton frames. It is **INFO under
+  `next dev`** and **gating with `--prod`**.
+- **First production measurement (2026-09-21, N-3):** **8 frames — FAIL**
+  (`web/e2e/.artifacts/n3-prod-load-tabs/`): Calendar 7 (content at 344 ms),
+  Tools 1 (300 ms); Family, Goals, Life Areas and Understand 0. Item not
+  started; this is its baseline.
+
+#### DXA-16 `[x] 2026-09-19` Motion token drift
+**Guard scope widened 2026-09-21 (N-1a / W-7a, commit `6fd9ed9`):** the source
+guard now scans every `.tsx` under `components/ui/` — the four motion
+primitives (`presence`, `pressable`, `segmented-thumb`, `view-swap`) had been
+outside it — plus `collapsible-section`, `modal-shell`, `drawer-panel`,
+`life-area-card`, `nova-select`. Negative control: `opacity 120ms ease` in
+`presence.tsx` failed naming the file. `scripts/` is now linted (N-1c).
+Closed 2026-09-19. Two checks, deliberately complementary:
+`web/lib/dashboard-motion-source.test.ts` greps the dashboard source
+(`app/globals.css`, `app/dashboard/*.css`, `components/*.css`, the dashboard
+components), and the browser census reads what actually computes.
+**Neither alone is sufficient, and that is the finding worth keeping.** The
+last three failing runs of 2026-09-18 were transitions with *no timing
+function at all* — `transition: "opacity 0.15s"` in `dashboard-share-card.tsx`,
+`"background .15s, color .15s"` in `dashboard-settings-rail.tsx`. Those compute
+to `ease` but contain no `ease` token, so the source grep cannot see them by
+construction; the census caught them. A future reader tempted to drop the
+browser half should read this line first.
+**Negative control:** the `.ui-card` transition reverted to bare `ease` turned
+the census to `ease` (`web/e2e/.artifacts/ux-audit-wave2-negative/`); restored,
+`tokens only` (`ux-audit-wave2-after/`). The source guard was separately
+controlled by adding a scratch `components/*.css` carrying `120ms ease`, which
+it caught by file and by string.
+**Not covered:** the census only tallies elements with a non-zero
+`transition-duration` on a visited top-level pane — no `animation-timing-function`,
+no unvisited nested tool, no Tamil. The source grep is what covers animations.
+Superseded —
+Status correction 2026-09-18: a universal `!important` timing rule made the
+browser census constant; the ratchet was removed pending source-level coverage.
+The historical completion claim below is superseded.
+Done: dashboard transition census is **tokens only** in
+`web/e2e/.artifacts/ux-audit-202609181344/`, now ratcheted. The census samples
+rendered tab panes; it cannot see an unvisited nested tool or reduced-motion
+override; commit `af20604`.
+Ready: yes · Wave 2 · Needs: — · Review: —
+- **Evidence:**
+  - Family: 29 of 31 transitions on generic `ease`.
+  - 30+ literals (`150ms ease`, `0.2s ease`, `200ms ease-out`) in the dashboard
+    CSS and inline styles.
+  - `NovaProgressBar` animates `width` (`dashboard-ui-nova.tsx:356`).
+  - `max-height` transition at `dashboard-globals.css:389`.
+- **Fix:**
+  1. Codemod to `var(--dur-*) var(--ease-nova)`; exits use `--ease-exit` (§6).
+  2. Progress bars use `transform: scaleX()` with a draw-on.
+  3. Add a guard grep for `\d+m?s ease\b` in the dashboard CSS and components.
+- **Gate:** `DXA-16` tokens only.
+
+#### DXA-17 `[x] 2026-09-18` Ambient loops outside the hero (D3: static page sky)
+Done: **0** non-hero infinite animations in
+`web/e2e/.artifacts/ux-audit-202609181344/`, now ratcheted. The loop census
+enumerates document animations rather than filtering by viewport, but still
+does not inspect an unmounted deferred view; commit `af20604`.
+Ready: yes · Wave 2 · Needs: — · Review: shots
+- **Evidence:**
+  - 20 twinkling page stars;
+  - `hy-float` × 10 planet orbs;
+  - `hy-glow` × 2;
+  - `hy-ring-pulse`, which animates **`box-shadow`** every frame on the harmony
+    card (`dashboard-nova.css:2885`, `dashboard-family-charts-hybrid.tsx:936`);
+  - `nova-pulse-dot` on Calendar (`dashboard-calendar-tab-nova.tsx:393`);
+  - `nova-cal-today-travel` on the month grid;
+  - the `DeepDiveOrbitGlyph` spin and glow in "Why this prediction"
+    (`dashboard-today-tab-nova.tsx:1543`).
+- **Fix (D3):** outside `.nova-hero`, no infinite animation.
+  1. Page stars become static (drop the `nova-celestial__star` class on the page
+     sky, keep the dots).
+  2. Remove `hy-float`, `hy-glow` and `hy-ring-pulse` usage.
+  3. The Calendar today cell keeps its steady ring (the reduced-motion frame
+     becomes the only frame).
+  4. The calendar pulse dot becomes static.
+  5. `DeepDiveOrbitGlyph` renders without `spin` and without breathing.
+  6. Inside the hero, the sky, chakra and live-state pulse dots stay.
+  7. Loading indicators (`shimmer`, `om-pulse`, spinners) stay.
+- **Gate:** `DXA-17` zero loops outside the hero; none paint `box-shadow`.
+
+#### DXA-18 `[ ]` Long pages have no reading choreography
+Partial 2026-09-18: section-level reveal now wraps Family `HySection` output
+and Life Areas groups. Understand's library and Today remain, so this item is
+not complete or gated yet.
+Ready: yes · Wave 2 · Needs: DXA-17 · Review: shots
+- **Evidence:** `NovaReveal` and `NovaFadeIn` have one caller each. Family
+  (8.8–10.4k px), Life Areas and Today are static on scroll.
+- **Fix:** a section-level `Reveal` (§6) on `HySection`, the Life Areas groups
+  and the Understand library. Once per session; headings and cards only, never
+  table rows or chart cells.
+
+#### DXA-37 `[x] 2026-09-18` One reading with a length switch (D4)
+Done: commit `4c41ef9`. **Owner-approved 2026-09-18** in the browser, which
+covers both halves of its `shots + Tamil` review — the switch labels
+"2 நிமிடம்" / "4 நிமிடம்" and the tablist "வாசிப்பு நேரம்" are
+signed off. Gate `Family shows exactly one reading` **2 → 1 PASS**;
+full-harness metrics
+`web/e2e/.artifacts/ux-audit-202609180924/`, review shots
+`web/e2e/.artifacts/dxa37-39-review/`. ~~`[~]` not `[x]`: a review marker is never dated without an
+explicit "approved".~~ Struck 2026-09-21 (W-10 / I-2): the explicit approval
+arrived (`11020e8`), which is why the heading is dated `[x]`; the sentence
+predates it and contradicted the heading above it.
+
+- **Tamil, decided under delegation, not guessed.** Switch labels are
+  **"2 நிமிடம்" / "4 நிமிடம்"**, the tablist is
+  **"வாசிப்பு நேரம்"**. The singular after a numeral is this app's own
+  established convention — `${m} நிமிடம்` in `lib/public-today.ts` and
+  mobile's inbox, "15 நிமிட வித்தியாசம்" in `lib/i18n.ts`, "90 நிமிடம்"
+  in the glossary. The plural (நிமிடங்கள்) appears only where the number is
+  spelled out in prose, which is the register of the H2 beside the control
+  ("இரண்டு நிமிடங்களில்"). Control and title differ on purpose. Say so
+  if you read it differently; it is one constant.
+- **Structure.** `DashboardChartReading` holds BOTH fetches (new hooks
+  `useOneMinuteReading` / `useFiveMinuteReading`) and hands each view its data,
+  so toggling never re-requests. The `.om` markup the two readings shared *by
+  copy* now lives once in `dashboard-reading-shell.tsx`; the long reading's
+  component is 70 lines. `ViewSwap` (DXA-14's primitive) is built in
+  `components/ui/view-swap.tsx` and pins the reading's own top across the swap.
+- **Steps 1–9, as built:** (1) done — one `section.om`, kit `Segmented` in the
+  header. (2) done. (3) done — no switch at all when the long reading 404s.
+  (4) done — `vinaadi-reading-length`, default 2 min. (5) done. (6) done — both
+  titles and both labels read one `READING_MINUTES` constant, so a re-measured
+  reading cannot advertise two numbers for itself. (7) done — the
+  pending-question machinery stays with the short reading and now renders
+  through the shared shell. (8) done — Today is untouched. (9) done — `.om__next`
+  and the recap link take a Lucide `ArrowRight`; the "→" glyphs are gone.
+- **DXA-14 is NOT done by this.** Only its `ViewSwap` primitive exists. The Tools
+  hub ⇄ tool swap, the other `Segmented`-driven views, the Understand hub ⇄
+  detail and the `Segmented` sliding thumb are all still open.
+- **Step 5's anchor was built, measured, and removed.** The item asked to pin the
+  header across the swap because the long body is ~2x taller. With the page
+  scroll settled it moves the reading's top by **0px in both directions**: a view
+  grows and shrinks BELOW its own header, so the header does not move. The one
+  case that could jump — the browser clamping the scroll when a shrink makes the
+  page shorter than the current offset — needs the swap within a viewport of the
+  page bottom, and a reader cannot click a control they cannot see (on Family the
+  reading sits ~8,000px above the end of the page). Taken out rather than left in
+  looking load-bearing; `ui/view-swap.tsx` records the measurement so DXA-14 does
+  not re-derive it.
+  - The first "867px drift in English, 518px in Tamil" reading was **the probe**,
+    not the product: the baseline was taken while a smooth `scrollIntoView` was
+    still in flight. Settle the scroll before measuring anything on this page.
+- **What the tests cannot see:** the RTL suite mocks `ViewSwap` — framer keeps an
+  exiting view mounted, so unmocked it would render two sections in jsdom and
+  the count assertions would be measuring the mock. The crossfade is therefore a
+  **browser-only** check; shots below.
+- **Behaviour change worth knowing:** switching to 4 min stops the two-minute
+  reading's read-marking for that visit (its observer needs the section in the
+  DOM), so Today may still show that reading in full. Family does not collapse
+  either way — `collapseWhenRead` is Today-only.
+- **One gate moved the wrong way, and it is not worth chasing here:** using the
+  shared `Segmented` brings its own 11px track radius (`dashboard-nova.css`)
+  onto Family, so `DXA-22` counts **9 → 10** there. Still FAIL either way; the
+  off-scale value is pre-existing in the kit primitive and consolidating it is
+  DXA-22's own scope. `DXA-28` reads 4.63 against the previous run's 2.63 — that
+  earlier run is the outlier (the §12 baseline is 4.55), not a regression.
+- **`showBasis` resets across a switch.** Each length has its own disclosure
+  text; not worth a shared controlled prop.
+Ready: yes · Wave 2 · Needs: DXA-14 · Review: shots + Tamil
+- **Problem:** Family renders `DashboardOneMinuteReading` ("Your chart in two
+  minutes") and `DashboardFiveMinuteReading` ("… four minutes") stacked
+  (`dashboard-family-charts-hybrid.tsx:1074,1081`). The second repeats the
+  first's beats at twice the length.
+- **Fix:**
+  1. New `DashboardChartReading` (`web/components/dashboard-chart-reading.tsx`)
+     renders **one** `.om` reading with a kit `Segmented` in its header:
+     "2 min" / "4 min".
+  2. Extract the fetch logic of both components into hooks
+     (`useOneMinuteReading`, `useFiveMinuteReading`). Use the existing shared
+     wrappers (`@vinaadi/shared/api/oneMinuteReading`, `…/fiveMinuteReading`);
+     no new direct fetches.
+  3. Show the switch **only when the four-minute reading loaded**. That
+     endpoint 404s for any register other than "self" and when its flag is off;
+     in those cases render the two-minute reading alone with no switch.
+  4. Default to 2 min. Remember the choice per viewer in `localStorage`
+     (`vinaadi-reading-length`).
+  5. Swap with `ViewSwap`. Pin the header's viewport position across the swap:
+     the 4-min body is ~2× taller (reuse `CollapsibleSection`'s anchor
+     technique).
+  6. The H2 follows the selection and keeps the measured names ("two minutes",
+     "four minutes"). The naming rule `minutes = round(median EN words / 118)`
+     stays authoritative, and the switch labels use the same numbers.
+  7. The two-minute view keeps its pending-question (marital status) machinery.
+  8. **Today is unchanged:** it still renders `DashboardOneMinuteReading` with
+     `collapseWhenRead`.
+  9. Replace the "→" in `.om__next` with a Lucide arrow (DXA-09).
+- **Tamil:** switch labels (proposed "2 நிமிடம்" / "4 நிமிடம்") need the owner's
+  sign-off in chat before shipping.
+- **Tests:**
+  - new RTL: no switch when the four-minute call 404s; switching changes the
+    title; the choice persists.
+  - keep `dashboard-one-minute-reading.test.tsx` green (`deferUntilVisible`,
+    `collapseWhenRead`).
+- **Gate:** add `readingSections` to the harness pane checks: Family shows
+  exactly one `section.om`.
+
+#### DXA-38 `[x] 2026-09-18` Tamil date hidden until the server answers (D6)
+Done: `resolveTamilDate(undefined, …)` returns `""` (negative with the fallback restored: `Purattasi 1`); Calendar and drawer reserve an `aria-hidden` 8ch blank slot and Family drops the empty segment. Tamil browser check: loaded server value rendered in `web/e2e/.artifacts/dxa38-tamil-calendar.png`; pending-state Tamil RTL check passes. `getTamilMonthDate` and `TAMIL_MONTH_STARTS` retained without deletion approval; eslint does not flag them (re-confirmed 2026-09-18 on the changed files with `--max-warnings=0`). Commit `1b22e36`.
+Ready: yes · Wave 1 · Needs: — · Review: astrologer (informational)
+- **Problem:** `resolveTamilDate` falls back to `getTamilMonthDate`
+  (`dashboard-calendar-shared.tsx:109-119`). That is a year-independent table
+  its own comment admits is a day off for Karthigai, Thai and Panguni in 2026.
+  It was also off on 17 Sept 2026: fallback **"Purattasi 1"**, server
+  **"Aavani 31"**.
+- **Fix (D6):**
+  1. `resolveTamilDate` returns `""` when there is no server value.
+  2. Callers render a width-reserved, `aria-hidden` placeholder (≈ 8ch)
+     instead:
+     - `dashboard-calendar-tab-nova.tsx:778, 1174`;
+     - `dashboard-family-charts-hybrid.tsx:752`, where the date line drops the
+       segment when it is empty.
+  3. `getTamilMonthDate` and `TAMIL_MONTH_STARTS` become unused. Removing them
+     is a deletion: ask the owner first. If eslint flags them before approval,
+     say so in the handoff instead of deleting them.
+- **Tests:** a unit test that `resolveTamilDate(undefined, …)` returns `""`.
+
+#### DXA-39 `[x] 2026-09-18` Touch-target policy (D5, decided by the auditor)
+Done: commit `bea29ea`. **Owner-approved 2026-09-18**, checked in the browser
+on their own touchscreen laptop — the one review this file cannot self-serve,
+and the review that matters here: the promise of D5 is that a hybrid laptop
+looks *unchanged*, which only that device can confirm. The Calendar rail
+heading buttons going 28px → 32px (below) was seen and accepted.
+
+- **Measured, three device classes** (real browser, the real stylesheet):
+
+  | control | mouse-only | hybrid laptop (visual / hit) | phone |
+  |---|---|---|---|
+  | `.ui-btn` | 38px | **38px** / 46px | 44px |
+  | `.ui-btn--sm` | 32px | **32px** / 46px | 44px |
+  | `.ui-pill` | 32px | **32px** / 46px | 44px |
+  | `button.ui-chip` | 28px | **28px** / 46px | 44px |
+  | `.ui-segmented__btn` | 34px | **34px** / 44px | 44px |
+  | `.ui-toggle` | 22px | **22px** / 46px | 22px |
+
+  Zero controls change size on a hybrid, and every hit area clears 44px. That
+  is D5 exactly: the owner's laptop should look **identical** to any other
+  laptop, and only the phone column should grow.
+- **Gate:** `web/app/dashboard/touch-policy.test.ts` (node env) parses the
+  stylesheet and fails on the SHAPE, not on any one rule — a coarse-pointer
+  query that does not exclude hover and sets a size-affecting property, a
+  `min-height` on `.ui-toggle`, or a phone block missing its 44px floor.
+  Verified against the pre-fix stylesheet: 3 of its 4 cases fail.
+- **What that gate cannot see, checked by hand:** it reads CSS text, so it
+  cannot know whether the slop actually *renders* 44px. The inset is derived,
+  `calc((var(--touch-target) - 100%) / -2)`, and the table above is a browser
+  measuring it. Chromium cannot emulate a hybrid (CDP `setEmulatedMedia`
+  ignores pointer/hover features — it reported the same media state for all
+  three profiles — and `hasTouch: true` produces `pointer: coarse` +
+  `hover: none`, i.e. a phone), so the hybrid column comes from forcing the
+  `any-pointer` rules on and confirming the layout does not move.
+- **One visible change on the owner's laptop, and it is the point of the
+  review:** the Calendar rail's panel-heading buttons go 28px → 32px. A
+  `(pointer: coarse) and (hover: hover)` rule was pinning them to 28px — a
+  counterweight to the bare 44px rule, and it overshot, since the kit's own
+  `--sm` is 32px. With the bare rule gone the counterweight goes too, and a
+  hybrid laptop now renders what every other laptop renders. That rule was
+  described in this item as already complying; it did not.
+- **Also fixed, rule 4:** `button.ui-chip` measured **23px** on every pointer —
+  under WCAG 2.5.8 AA's 24px, never mind D5's 28px floor. It now has a 28px
+  base. `span.ui-chip` (a static label, which `Chip` renders when it has no
+  handler) is untouched.
+Ready: yes · Wave 2 · Needs: — · Review: shots (owner's own touchscreen laptop)
+- **Decision: size follows the device, hit area follows the finger.**
+  1. **Phones and tablets**, `@media (pointer: coarse) and (hover: none)`: 44 px
+     minimum *visual* height on `.ui-btn`, `.ui-pill`, `.ui-segmented__btn`,
+     `button.ui-chip`, `.om__basis-toggle`, `.om__ask-btn` and
+     `.om-recap__link`.
+  2. **Touch-capable laptops**, `@media (any-pointer: coarse)`: no layout change.
+     Compact controls get an invisible **hit slop** instead:
+     - `position: relative` plus `::after { content: ""; position: absolute; inset: -8px -2px; }`;
+     - vertical slop only, so neighbours in a row never overlap;
+     - use `::before` where `::after` is taken.
+  3. **`.ui-toggle` never takes `min-height`.** Its 38 × 22 track is the
+     control; the bare `(pointer: coarse)` rule today stretches it to 44 px tall
+     on a touch laptop. It gets the hit slop.
+  4. **Everywhere**, interactive controls stay ≥ 28 px visually (WCAG 2.5.8 AA
+     asks 24). Kit buttons are 38 px (small: 32 px).
+- **Why:** phones need Apple's 44 pt and have the vertical room. The owner
+  reviews on a touch laptop driven by a mouse, where a bare `(pointer: coarse)`
+  floor bloated the Calendar rail on 15 Sep 2026. A hit slop gives a finger the
+  same 44 px target on that device without moving a pixel, and a hybrid device
+  gets correct targets without a layout designed for thumbs.
+- **Fix:** move the two bare rules (`dashboard-nova.css:3476-3482`,
+  `:3831-3835`) under the policy above. The Calendar blocks at `:2293-2304`
+  already comply.
+- **Tests:** new `web/app/dashboard/touch-policy.test.ts` (node env) parses
+  `dashboard-nova.css` and fails if any `@media` prelude containing
+  `pointer: coarse` without `hover: none` sets `min-height`, `min-width`,
+  `height`, `width` or `padding`.
+- **Gate:** that test; phone screenshots show 44 px controls.
+
+### P1: visual system
+
+#### DXA-19 `[x] 2026-09-18` No elevation system
+Done: card census is **91 flat → 0 flat** in
+`web/e2e/.artifacts/ux-audit-202609181344/`, now ratcheted. The classifier
+covers `.ui-card` / card surfaces; a novel ad-hoc surface still needs review;
+commit `af20604`.
+Ready: yes · Wave 2 (first) · Needs: — · Review: shots
+- **Evidence:**
+  - `.ui-card` is flat (`dashboard-nova.css:2921`); the harness counts **91
+    flat cards** across the tabs.
+  - `--nova-card-shadow` reaches only legacy `.surface`, and
+    `--nova-hover-shadow` only the unused `.nova-interactive`.
+  - Popovers use the Classic `--color-shadow-warm` (brown at 16%,
+    `dashboard.css:24,318`), which vanishes on navy.
+- **Fix:** tokens in both theme blocks of `dashboard-nova.css`, built from the
+  existing `--nova-card-shadow` / `--nova-hover-shadow` values:
+  - `--elev-1` (resting card): 1 px inner top highlight + contact shadow;
+  - `--elev-2` (hover or raised);
+  - `--elev-3` (overlay): deep shadow + `--color-border-strong` +
+    `backdrop-filter: blur(16px) saturate(140%)`.
+
+  Map the kit `Card` variants, `.ui-card--interactive:hover`, `.cd-dropdown`
+  and `.cd-alerts-popover` to them.
+- **Gate:** `DXA-19` zero flat cards.
+
+#### DXA-20 `[ ]` One spacing value everywhere, so no rhythm
+Ready: yes · Wave 3 · Review: shots
+- **Evidence:** Today stacks 8 sections at a uniform 16 px
+  (`dashboard-today-tab-nova.tsx:530`). Five section titles are 16 px system
+  type and one ("Why this prediction?") is 20 px gold display.
+- **Fix:**
+  1. `--rhythm-tight` 12, `--rhythm-group` 24, `--rhythm-section` 56 (48 below
+     760 px).
+  2. Chapters open with the kit `SectionHeader` (eyebrow + title + optional
+     action). Today's chapters: Your day · Decide · Your period · People · Why.
+- **Gate:** `DXA-20` top-level gaps ⊆ {12, 24, 48, 56}.
+
+#### DXA-21 `[ ]` Type scale not honoured
+Ready: yes · Wave 3 · Review: shots
+- **Evidence:**
+  - Distinct sizes: Today 11, Family 15, Life Areas 12, including 10.37, 12.5,
+    13.12, 14.62, 30.4 and 39.04 px.
+  - 10 px text: 121 nodes on Family, 107 on Life Areas.
+  - H2 sizes range from 11 to 35 px across pages.
+- **Fix:**
+  1. Heading roles: page 35 (`--display-md`), chapter 26, card 20, eyebrow
+     11 / 0.14em.
+  2. Snap literals to `--text-*` (A+ playbook codemod).
+  3. Retire `--text-2xs` from content.
+  4. Where 13 px snaps to 14 px, flag the site in the handoff (the playbook's
+     open per-site judgement).
+- **Gate:** `DXA-21` ≤ 8 sizes, none < 11 px.
+
+#### DXA-22 `[ ]` Corner radii drift
+Ready: yes · Wave 3 · Review: —
+- **Evidence:** Family renders 1, 3, 8, 10, 12, 14, 16 and 20 px plus 999 and
+  9999.
+- **Fix:** 8 (controls), 14 (cards), 20 (hero/panel), pill.
+- **Gate:** `DXA-22` ≤ 4.
+
+#### DXA-23 `[ ]` Accent drift, and a surface that should be a token
+Ready: yes · Wave 3 · Review: shots
+- **Evidence:**
+  - "Turn on reminders" (gold fill) beside "More remedies" (purple outline).
+  - The Settings kicker is purple where every other page uses gold.
+  - Journal's "Save Entry" is a one-off dark outlined button.
+- **Correction to the first draft:** the reading card's warm surface is
+  **intentional** (`dashboard-nova.css:3484-3499`, "Deliberately NOT a Card").
+  Keep it; name it.
+- **Fix:**
+  1. Accent grammar: gold acts, purple explains, and siblings never mix
+     accents.
+  2. `--color-surface-reading` defined in both themes and used by `.om`.
+  3. Journal uses the kit primary button.
+- **Gate:** manual: button census shows primary / secondary / ghost only.
+
+#### DXA-24 `[~]` Icon system (custom astrology glyphs need design approval)
+Ready: partial · Wave 3 · Review: owner design approval for custom glyphs
+- **Agent part:** Lucide for all UI affordances; one 36 px icon "well"
+  component shared by Quick Links, Tools and Understand.
+- **Blocked part:** a drawn set for 9 grahas, 12 rasis and the panchangam limbs
+  (1.75 px stroke to match Lucide). Needs an approved design. An agent must not
+  invent it. Unblocks DXA-09's remaining emoji and DXA-33.
+
+#### DXA-25 `[ ]` Chips stretched into bars
+Ready: yes · Wave 3 · Review: —
+- **Evidence:** the "Created" chip in Settings spans 350 px; the "Sankranti
+  Birth" / "Dagda Rasi" chips span their card. This is the column-flex stretch.
+- **Fix:** `.ui-chip { align-self: flex-start; width: fit-content; }`.
+
+#### DXA-26 `[ ]` Freshness: leftovers and copy that reads unfinished
+Ready: yes (EN) · Wave 3 · Review: Tamil for any new Tamil copy
+- "**5L**" is hard-coded on every limb row (`dashboard-calendar-tab-nova.tsx:1575`)
+  under "**Five Limbs**" (`:1561`), which lists **eight** rows. Remove the tag;
+  retitle to "Panchangam today".
+- "**Recent results** — coming soon" card (`dashboard-tools-tab-nova.tsx:391-401`):
+  remove it until the feature exists. Removing JSX is not a file deletion.
+- "**Draft: pending astrologer and native-speaker review**" in the Baby Name
+  Finder description (`:223`): the user-facing copy drops it (the review status
+  stays tracked in docs).
+- Phrasing:
+  - "Remaining 0 nazhigai 0 vinadi · 6:01 am until";
+  - "10:48 am active since" → "since 10:48 am";
+  - "A shared, care required day." (grammar);
+  - the kicker "Transits & Events" above the Panchangam view.
+- The sub-bar's permanent "✓ Personal data refreshed…" moves to a toast
+  (DXA-05).
+- **Three clocks disagree at dusk:**
+  - the greeting turns "evening" at 17:00 (`greetingWord`);
+  - the name ornament stays a sun until a hard-coded 18:00
+    (`dashboard-today-tab-nova.tsx:680`);
+  - the hero sky turns to dusk at 17:00 using the *browser* clock
+    (`celestial-ambient-nova.tsx:388`), not the panchangam zone.
+
+  Drive all three from `panchangam.sunrise`/`sunset` in the panchangam zone
+  (`web/lib/tz.ts`).
+- The Family 7-day outlook draws 38–52 as near-identical bars. Use a dot/line
+  on a visible 0–100 scale (`dataviz` guidance).
+- Planet orbs: 10 bodies in a 9-column grid orphan **Mandhi**. Use a 5 × 2
+  layout at desktop.
+
+### P1: phone
+
+#### DXA-27 `[ ]` Phone chrome takes a fifth of the screen (D2: bottom tab bar)
+Ready: yes · Wave 3 · Needs: DXA-02, DXA-13 · Review: shots
+- **Evidence:**
+  - At 390 × 844 the top bar is three rows plus a growing sub-bar, all pinned:
+    **180–197 CSS px (21–23%)**, measured by the harness.
+    ~~"~45%"~~: the first draft read 2× device-pixel screenshots as CSS pixels.
+  - Content shows through the sub-bar.
+  - "Goals" is overprinted by the scroll chevron ("G>a").
+  - No `scroll-padding-top` anywhere. Family anchors use a fixed 72 px, less
+    than the 93 px desktop header. WCAG 2.4.11 (AA) risk.
+- **Fix (D2):**
+  1. Below 760 px, a **bottom tab bar** (Today, Calendar, Family, Goals, More)
+     with `env(safe-area-inset-bottom)`. The top strip is hidden at that width.
+  2. **More** opens a sheet (DXA-13 `Presence`) with Life Areas, Tools,
+     Understand, Journal and Settings.
+  3. The compact top bar (wordmark, Ask, avatar) hides on scroll-down and
+     returns on scroll-up (transform only).
+  4. Sub-bar identity moves into the avatar sheet.
+  5. `html { scroll-padding-top: var(--cd-header-h) }` from a measured custom
+     property; anchors drop their fixed 72 px.
+  6. Replace the overprinting chevron with an edge fade.
+- **Tests:** `e2e/mobile-density-order.spec.ts` scopes by `button.cd-tab`.
+  Update it deliberately and say so.
+- **Gate:** `DXA-27` pinned top ≤ 120 px, bottom bar present, no overprinted
+  labels, no overflow.
+
+#### DXA-28 `[ ]` Phone Today opens with ~1,000 px of Quick Links
+Ready: yes · Wave 3 · Review: shots
+- **Evidence:** 8 tiles in two columns come before any daily content; the
+  activity board starts **4.55 screens** down.
+- **Fix:** below 560 px, a single-row snap scroller of compact tiles with an
+  edge fade.
+- **Gate:** `DXA-28` activity board within 2.5 screens.
+
+### P2: signature moments
+
+#### DXA-29 `[~]` One signature for "the day changed"
+Ready: partial (build behind a flag, owner reviews a rendered preview) · Wave 4 · Needs: DXA-07
+- The ribbon page-turn, the hero glyph arc and the score count become one
+  choreographed beat (§6, "date change"). It plays for the date picker, the
+  week dots and the evening preview.
+
+#### DXA-30 `[ ]` Score reveal as a sequence
+Ready: yes · Wave 4 · Review: shots
+- Ring draw (900 ms) → number lands → verdict fades in at +300 ms → "Why this
+  prediction" at +450 ms. Reduced motion shows the final state.
+
+#### DXA-31 `[~]` Shared-element continuity
+Ready: partial · Wave 4 · Needs: DXA-14 · Review: shots
+- `document.startViewTransition` with `view-transition-name` for:
+  - Quick Link → tool header;
+  - member card → member reading;
+  - calendar day → drawer;
+  - library tile → detail.
+
+  Progressive enhancement: fall back to `ViewSwap`; off under reduced motion.
+
+#### DXA-32 `[~]` Login curtain → dashboard hand-off
+Ready: partial · Wave 4 · Needs: DXA-02, DXA-03 · Review: shots
+- **Evidence:** the curtain (`login-welcome-nova.tsx`) pushes to `/dashboard`,
+  which shows ~0.75 s of empty shell, then a skeleton, then content.
+- **Fix:** prefetch the Today bundle during the curtain; hold it until the
+  bundle resolves (cap 2.5 s); crossfade into a rendered Today.
+
+#### DXA-33 `[~]` Carry-over art work (blocked on assets)
+Ready: no · Needs: DXA-24 design
+- The birth chart still uses two-letter chips (`dark-family-s6.png`).
+- `web/public/deities/` holds only a README.
+- Calendar art is 1–3.6 KB placeholders except `moonlit-temple.png`.
+
+### P3: guardrails and verification
+
+#### DXA-34 `[x] 2026-09-17` Make the audit repeatable
+Done: DXA-34 spec `VISUAL_AUDIT=1` load,tabs,reduced 1 passed (2.9 min), 6 ratcheted gates; unset → skipped; negative check (renamed key) → fails as MISSING; CLI after refactor DXA-11 PASS×2; metrics `web/e2e/.artifacts/ux-audit-wave0-recheck`, `ux-audit-dxa34-cli`; commit `15cc983`
+Ready: yes · Wave 0
+- **Done 2026-09-17:**
+  - `web/scripts/ux-audit.mjs` (every gate in §12);
+  - `scripts/ux-audit-stack.ps1` (isolated stack up / down / status).
+- ~~**Remaining:** a CI-safe Playwright port (`web/e2e/dashboard-experience.spec.ts`,
+  skipped unless `VISUAL_AUDIT=1`). Blocked on DXA-40, because the Playwright
+  web server is destructive locally.~~ DXA-40 landed; the port is done:
+  - the probes and gates moved to `web/scripts/ux-audit-core.mjs` (types in
+    `ux-audit-core.d.mts`); `ux-audit.mjs` is now a thin CLI over it, so the
+    CLI and the spec cannot drift;
+  - `web/e2e/dashboard-experience.spec.ts` runs the same audit, skipped unless
+    `VISUAL_AUDIT=1` (CI does not set it), with `retries: 0` and a 30 min cap;
+  - it refuses any backend but e2e (`assertE2eBackend`), attaches
+    `metrics.json` and `gates.txt`, and annotates every failing gate as
+    "open gate" without failing on it;
+  - **ratchet:** gates in its `MUST_PASS` map pass today and fail the test if
+    they regress (or go missing while their phase ran). Add an item's gates
+    there when it lands (§15).
+
+#### DXA-35 `[~]` Verify in a production build
+Ready: partial · Wave 4 · Needs: a prod mode for the stack
+- **Dev console noise:** CSP violations on every lazy tab chunk
+  (`script-src … 'strict-dynamic'`). Coincident with them, Today's
+  server-rendered pane was replaced by a skeleton and then re-rendered. Also a
+  hydration attribute-mismatch warning. Confirm or dismiss both with
+  `next build && next start` before treating either as real.
+- **To do that:**
+  1. Add `-Mode prod` to `scripts/ux-audit-stack.ps1`: `next build`, then
+     `next start` in the copy.
+  2. Production CSP adds `upgrade-insecure-requests` (`web/lib/security-headers.ts:120`).
+     If that breaks plain-http localhost, record it and verify on the staging
+     preview instead. Do not weaken production headers to make a local check
+     pass.
+- **Measured 2026-09-21 (N-3 / W-9) — still `[~]`.** `next build` in the
+  isolated copy (`artifacts/ux-stack/web/.next`, 113 s, exit 0), served by
+  `next start` on :3100 against the e2e backend (proxy reported `e2e`); the
+  owner's :3000 was not involved. Done by hand, not yet as `-Mode prod`.
+  - **Barrel:** framer-motion is in exactly one chunk (`301-*.js`, found by its
+    `framerAppearId` / `animateChanges` literals). It first-loads on 3 of 137
+    routes — `/admin`, `/login` (welcome animation) and the dashboard
+    `(workspace)` layout (nav indicator) — all direct motion users. The kit's
+    two chunks (loaded by the Explore and Tools tab imports) contain no framer
+    and co-load none (`react-loadable-manifest.json`). `Pressable`, `Presence`
+    and `SegmentedThumb` remain outside `components/ui/index.ts`. **No
+    regression.**
+  - **`upgrade-insecure-requests`** is present and did **not** break plain-http
+    localhost.
+  - **CSP refusals are real in production, not dev noise:** a `--prod` run of
+    `load,tabs` logged 13 `script-src 'self' 'nonce-…' 'strict-dynamic'`
+    violations on lazy chunk loads (`web/e2e/.artifacts/n3-prod-load-tabs/`).
+    Tabs still rendered (DXA-14 panes measurable, DXA-37 one reading), so a
+    retry path succeeds, but the refusals need a diagnosis — which loader
+    inserts these scripts without inherited trust. Not diagnosed here; headers
+    not weakened. The hydration-mismatch warning was not seen in this run.
+  - **Blind spot:** one run of two phases; the harness truncates console
+    messages at 240 chars; the `-Mode prod` stack action is still not built.
+
+#### DXA-36 `[x] 2026-09-17` Hygiene
+Done: DXA-36 hygiene check `}@keyframes` 1 → 0; `nova-cal-reveal` literal `200ms ease-out` → Nova tokens; metrics `web/e2e/.artifacts/ux-audit-202609171446`; commit 929f317
+Ready: yes · Wave 0
+- ~~`dashboard-nova.css:1825`: `}@keyframes nova-cal-reveal` sits on a rule's
+  line.~~ It was split into its own rule line.
+- ~~`nova-cal-reveal` uses `200ms ease-out` (DXA-16).~~ It now uses the Nova
+  `--motion-nav` and `--ease-nova` tokens.
+
+#### DXA-40 `[x] 2026-09-17` The local Playwright web server wipes the owner's running dev build
+Done: DXA-40 safety acceptance `web/.next` listing unchanged (320 → 320), owner :3000 stayed available; metrics `web/test-results/`; commit 929f317
+Ready: yes · Wave 0 · Review: —
+- **Problem:** `next dev` runs `clean()` on start, deleting everything in
+  `.next` except `cache` (`next/dist/server/dev/hot-reloader-webpack.js`).
+  ~~`web/playwright.config.ts` starts `npm run dev -- --port 3100` inside `web/`.~~
+  It now delegates to the isolated copy-based `serve` stack.
+  So any local e2e run wipes the build of a dev server already on :3000.
+  - CI is unaffected: it only runs e2e against `E2E_BASE_URL`.
+- **Why not a second `distDir`:** `next-env.d.ts` references
+  `./.next/types/routes.d.ts`. A different `distDir` rewrites that tracked file
+  and needs tsconfig and `.gitignore` edits.
+- **Fix:**
+  1. Add `-Action serve` to `scripts/ux-audit-stack.ps1`: `up`, then block until
+     the process is stopped, then `down`.
+  2. Point `playwright.config.ts`'s local `webServer` at it, so Playwright owns
+     an isolated copy instead of `web/` (the combined action starts both the
+     frontend and backend).
+  3. Keep `global-setup.ts`'s environment guard.
+- **Acceptance:** with a dev server on :3000, a full local Playwright run leaves
+  `web/.next` untouched (compare a file listing before and after) and :3000
+  keeps serving.
+
+#### DXA-42 `[ ]` World observances are sent as Tamil-only names (backend)
+Ready: yes · Wave 3 · Needs: API-contract change across four surfaces
+- **Problem:** `_WORLD_OBSERVANCES` (`app/calculations/festivals.py:24-49`)
+  sends 24 observance days under a Tamil-only `name` — no language-free key,
+  no English field. CLAUDE.md's display boundary says to send a key and
+  localise on the client.
+- **Stopgap in place (E-3 / OD-5, 2026-09-21):** `web/lib/observance-names.ts`
+  maps all 24 by exact Tamil name, and `observance-names.test.ts` reads
+  `festivals.py` and fails naming any Tamil name missing from the map. Unknown
+  Tamil-named *festivals* still fall back to the word "Festival".
+- **Fix:** send a language-free key per observance (and per festival), render
+  it through a localiser. Touches `app/api/`, `packages/shared/src/api/`,
+  `mobile/src/api/`, `web/` — grep all four for callers first.
+- **Also seen:** `05-01` carries both "May Day (Labour Day)" in
+  `_FIXED_FESTIVALS` and உலக தொழிலாளர் தினம் in the observances, so English
+  mode shows two chips for one day. Backend data; not fixed here.
+
+#### DXA-43 `[ ]` Panchangam Planner's Tamil meta line prints "Calendar" in English
+Ready: yes · Wave 3 · Needs: owner sign-off on the Tamil string
+- **Problem:** `metaTa: "இதில் · Calendar தாவல்"`
+  (`web/components/dashboard-tools-tab-nova.tsx:183`) — English inside Tamil
+  mode. Found by DXA-09 and left outside its scope; given an ID by W-8.
+- **Fix:** the Tamil tab name the nav already uses (`t("tab_calendar", "ta")`),
+  listed for owner sign-off. **Gate:** `DXA-09 no English text in Tamil mode (ta)`.
+
+#### DXA-44 `[ ]` Two different tools share one Tamil title
+Ready: partial · Wave 3 · Needs: owner naming decision
+- **Problem:** the Tools tab's Porutham hero ("Marriage Porutham",
+  `dashboard-tools-tab-nova.tsx:369`) and its Compatibility card
+  ("Compatibility", `:208`) are both **பொருத்தம் / இணக்கம்** in Tamil, as is the
+  Family compatibility card (`dashboard-family-charts-hybrid.tsx:1542`). Tamil
+  mode offers two differently-scoped tools under one name. Found by DXA-09;
+  given an ID by W-8.
+- **Fix:** distinct Tamil names (e.g. திருமணப் பொருத்தம் for the marriage tool,
+  following almanac usage), owner-approved before merge.
+
+#### DXA-45 `[ ]` The loaded Today hero's height depends on the day's best-window time
+Ready: partial · Wave 3 · Needs: owner design call
+- **Problem (measured 2026-09-21, E-4f):** the best-window card holds its time
+  and its two actions on one row (owner ask 2026-09-07) and wraps them when the
+  column cannot hold both. At 1440 px in English, "5:01 pm – 6:01 pm", "6:01 am
+  – 7:31 am" and "1:32 pm – 3:02 pm" fit (hero 580 px); "10:31 am – 12:01 pm"
+  and "11:37 am – 12:26 pm" wrap (hero 620 px). At 1200 px every time wraps
+  (650); at 1920 none do. Measured by injecting each time into the live card.
+- **Consequence:** no single `--nova-hero-reserve` matches both, so on a day
+  whose best window has two two-digit hours the pending hero is 40 px short
+  and `DXA-05 pending hero within 8px of loaded` FAILs — a true positive (a
+  real 40 px grow on arrival), not flake. Before E-4 the oversized W-6 buttons
+  always wrapped, which hid this. The reserve now matches the one-row layout.
+- **Options for the owner:** (a) accept, and let the gate report those days;
+  (b) always two rows at ≥1200 (deterministic; undoes the 09-07 ask);
+  (c) a time size small enough that the widest time fits at ≥1440.
+
+---
+
+## 5. Page-by-page direction
+
+| Page | Now | What makes it world-class |
+|---|---|---|
+| **Global chrome** | B− | Stable top bar (05); popovers with elevation and presence (13, 19); status as toast; phone bottom bar (27). |
+| **Today** | A− craft / C experience | Chapters with rhythm (20); pressable tiles (12); keep-previous-day date change and one signature beat (07, 29); score sequence (30); no false-empty (03). |
+| **Calendar** | B+ | Keep the landscape header and reuse its treatment for other page headers. Remove "5L" and fix the title (26); fill the empty band above the sun arc; sliding segmented thumb and view crossfade (14); day → drawer continuity (31). |
+| **Family & Charts** | B− | One reading with a length switch (37); no stripe or emoji (09); static orbs (17); section reveals (18); title-case rasis (08); outlook chart and Mandhi fix (26); a sticky in-page index (Overview · Members · Charts · Periods · Remedies) for a 9–10k px page. |
+| **Goals** | C+ | An illustrated first-goal moment with 3 suggested goals as pressable cards; move the unrelated "Family & Charts" header button; star fix (10). |
+| **Life Areas** | C+ | Retire the legacy gochar card (08); shorten "Chart patterns (Yogas) & Difficult placements (Doshams)" to "Yogas & Doshams"; move the member switch into the header row. |
+| **Tools** | B− | Pressable cards with elevation (12, 19); no echo, draft note or coming-soon card (09, 26); opaque hero (10); hub → tool continuity (14, 31). |
+| **Understand** | B | Stable card order (05); pressable library tiles; hub → detail transition. |
+| **Journal** | B− | Reserved prompt chips instead of "Loading prompts…" (03); kit primary Save; no dove emoji; 180 ms saved confirmation. |
+| **Settings** | C+ | Set-up users open on Account, not onboarding copy; gold kicker and fitted chips (23, 25); a real skeleton for "Loading your birth profiles…". |
+| **Phone** | C | DXA-27 and DXA-28. |
+
+## 6. Motion system v2: the choreography spec
+
+Binding principles (from 2026-08-20):
+- motion orients, connects, reveals, or marks meaning;
+- one lead per change;
+- ≤ 8 px travel;
+- ~~enter on `--ease-nova`, exit faster on `--ease-exit`;~~ **Superseded
+  2026-09-21 (OD-2 path B):** one `--ease-nova` settle curve is the house
+  style for both directions. This is a lineage choice for a simpler system,
+  not a claim that faster exits are wrong.
+- reduced motion keeps meaning and drops travel.
+
+New tokens (CSS in `dashboard-nova.css` beside `--dur-*`; JS twins in
+`web/lib/motion.ts`):
+- ~~`--dur-press: 90ms`~~ **Retired 2026-09-21 with OD-2 path B;** existing
+  duration tokens remain the shared scale.
+- ~~`--dur-exit: 140ms`~~ **Retired 2026-09-21 with OD-2 path B.**
+- ~~`--ease-exit: cubic-bezier(0.4, 0, 1, 1)`~~ **Retired 2026-09-21 with
+  OD-2 path B.**
+
+| Moment | Trigger | What moves | Duration / easing | Reduced motion |
+|---|---|---|---|---|
+| Tab switch (warm) | nav click | incoming pane opacity 0→1, y 6→0 | 200 ms, ease-nova | instant |
+| Tab switch (cold) | chunk not ready | tab-shaped skeleton → content crossfade | 160 ms | instant swap |
+| Nav indicator | nav click | `layoutId` glide | 240 ms, ease-nova | none (MotionConfig) |
+| Segmented thumb | sub-view change | `layoutId` glide | 220 ms, ease-nova | none |
+| Sub-view / tool swap | segmented, tool open | crossfade + y 4→0 | 180 ms in / 120 ms out — **confirmed in code 2026-09-21** (`ViewSwap`: `0.18` in, `DUR.fast` exit); the one asymmetric pair left under OD-2 path B, kept pending an owner call | instant |
+| Hover (card) | pointer enter, `hover: hover` | y −2, `--elev-1`→`--elev-2`, border → strong | ~~180 ms~~ travel 120 ms (`--motion-toggle`), shadow/border 240 ms (`--motion-nav`), ease-nova | colour/shadow only |
+| Press (card) | pointer down | scale 0.985 | ~~90 ms; release 180 ms~~ 120 ms both ways (`--motion-toggle`, ease-nova) | none |
+| Press (button) | pointer down | scale 0.97 | ~~90 ms~~ 120 ms both ways (`--motion-toggle`, ease-nova) | none |
+| Popover | open / close | opacity + y −4 + scale 0.98, origin = trigger | ~~160 in / 120 out~~ 240 ms both ways (`Presence`, `DUR.base`, `EASE_NOVA`) | opacity 80 ms |
+| Modal | open / close | ~~backdrop 160 ms; panel y 8 + scale 0.98~~ overlay and panel together: opacity + y −4 + scale 0.98 (`ModalShell` → `Presence`) | ~~240 in / 160 out~~ 240 ms both ways (`DUR.base`) | opacity only |
+| Drawer / sheet | open / close | ~~x 24→0 (sheet: y 24→0) + opacity~~ opacity + y −4 + scale 0.98 (`DrawerPanel` → `Presence`) | ~~240 in / 180 out~~ 240 ms both ways (`DUR.base`) | opacity only |
+| Disclosure | toggle | grid-rows 0fr→1fr + opacity; chevron 180° | ~~240 / 180 ms~~ rows 240 ms (`--dur-base`), body opacity 120 ms (`--dur-fast`), same both ways; chevron 140 ms | instant |
+| Data arrival | fetch resolves | placeholder → content crossfade | 200 ms | instant |
+| Numbers | first reveal or change | count from previous value | 600–900 ms | final value |
+| Date change | picker, week dot | ~~old day at 0.6 while loading;~~ old day held at full text contrast while loading (borders, accent fill and icons dim — DXA-07 / E-1); then x 10→0 + fade; glyph arc | 280 ms | instant |
+| Score | first reveal | ring → number → verdict (+300 ms) → link (+450 ms) | 900 ms | static |
+| Toast | save, refresh | y 12→0 + fade; 4 s | 200 ms | fade |
+| Scroll reveal | section enters view | once per session, opacity + y 8, stagger 50 ms, ≤ 5 per group | 360 ms | none |
+| Ambient | idle | **Today hero only** (D3); opacity/transform; paused off-screen | 3–240 s | frozen |
+
+Struck durations above (E-5, 2026-09-21): OD-2 path B, 2026-09-21: one settle
+curve and one duration per direction pair. Each replacement value was read off
+the code (`web/lib/motion.ts`, `components/ui/presence.tsx`,
+`components/ui/view-swap.tsx`, `collapsible-section.tsx`, the `.ui-card` /
+`.ui-btn` / `.collapsible__body` rules), not off this table.
+
+**OD-4 ruling — hover/press treatment per kind of surface (owner-approved
+2026-09-21).** The card lift is for cards. W-6 had applied it to planet rows,
+disclosure headers and the select; the owner approved this taxonomy instead:
+
+| Kind | Rest → hover | Press | Reduced motion |
+|---|---|---|---|
+| Card / tile (whole surface navigates or opens) | lift −2 px, `--elev-1`→`--elev-2`, border → strong | scale 0.985 | shadow + border only |
+| Button (kit `.ui-btn--*`) | variant's own background/border shift; **no shadow on ghost** | scale 0.97 | unchanged (no travel involved) |
+| Text link / inline action | colour → `--color-accent-strong`, underline | none beyond colour; or opacity 0.8 | unchanged |
+| List row / disclosure header | background tint (`--color-surface-soft` or equivalent) — **no lift, no shadow** | background one step deeper | unchanged |
+| Select trigger | border → strong | background tint | unchanged |
+
+**Budgets:**
+- Feedback starts within 100 ms.
+- View changes finish within 240 ms.
+- Only the score and the login curtain exceed 400 ms.
+- Never animate `width`, `height` or `top`, and never loop `box-shadow` or
+  `filter`.
+
+**Primitives to build.** All live in `web/components/ui/`. Any that import
+Framer stay **out of the barrel** (`index.ts`); import them directly.
+- `Pressable`
+- `Presence`
+- `ViewSwap`
+- `DataSwap`
+- `Reveal` (rename of `NovaReveal`)
+- the `Segmented` thumb
+- plus `<MotionConfig>` at the workspace root.
+
+## 7. Visual system v2
+
+- **Surfaces:** base `--color-bg` → card `--color-surface` + `--elev-1` →
+  raised `--color-surface-soft` + `--elev-2` → overlay + `--elev-3` + blur.
+  The reading surface is `--color-surface-reading`. No translucent card over
+  the sky.
+- **Rhythm:** 12 / 24 / 56. Chapters use `SectionHeader`.
+- **Type:** Fraunces for display (page 35, chapter 26), system UI for
+  interface, Source Serif 4 for reading only. 11 px floor.
+- **Radius:** 8 / 14 / 20 / pill.
+- **Accent grammar:** gold acts, purple explains, semantic colours report.
+- **Icons:** Lucide plus an approved astrology set. No emoji, no text glyphs.
+- **Sky:** hero plus a static page crown; stars in gutters only.
+- **Headers:** reuse the calendar's feathered-art header (same palette and
+  mask, one image per page) once art exists.
+
+## 8. Status of the earlier audits (re-verified 2026-09-17)
+
+| Earlier item | Status |
+|---|---|
+| 08-20 P0.1: TabPane 240 ms + reduced motion | **Done** (`dashboard-workspace.tsx:307-309`) |
+| 08-20: indicator glide, not spring | **Done**; the reduced-motion leak is DXA-11 |
+| 08-20 P0.2: align CSS timing tokens | **Open**, DXA-16 |
+| 08-20 P0.3: shared presence / selection / crossfade / press primitives | **Partial**, DXA-12/13/14 |
+| 08-20 P0.4: motion QA check | **Partial**: harness done; CI port DXA-34 |
+| 08-20: no loops in reading content | **Open**, DXA-17 (D3 widens it) |
+| 07-18 #1: birth-chart visual upgrade | **Open**, DXA-33 |
+| 07-18 #5: deity / calendar art | **Open**, DXA-33 |
+| 07-18 #7: `day-strip.tsx` | **Closed** (the file no longer exists) |
+
+---
+
+# Part B: Execution guide for coding agents
+
+## 9. Can an agent pick this up?
+
+**Mostly yes.** An agent that follows this part can finish the **32 of 41**
+items marked **Ready: yes** and prove each with a gate or a stated check. The
+other 9 need a production build, another item first, or something only the
+owner can give:
+
+| Needs | Items |
+|---|---|
+| A production build to *prove* the fix (implementation itself is agent work) | DXA-06, DXA-35 |
+| Another item first | DXA-09 emoji part (needs DXA-24's glyphs) |
+| Owner review of a rendered preview before it ships | DXA-29, DXA-31, DXA-32 (and every item marked `Review: shots`, as a final look) |
+| The owner's sign-off on new Tamil copy, in chat | DXA-37 labels, any Tamil in DXA-26 |
+| Approved design assets; an agent must not invent them | DXA-24 (custom glyphs), DXA-33 |
+| A per-file deletion approval | removing `sanitizeRestoredTab` (DXA-02), `getTamilMonthDate` (DXA-38), any dead file |
+
+What made the first draft insufficient, fixed in this revision:
+- open decisions (now §0);
+- no way to prove "done" (now the harness and gates);
+- the harness lived only in a gitignored folder on one machine (now
+  `web/scripts/`);
+- environment traps that silently corrupt a run (now §11 and §14).
+
+## 10. Rules of engagement
+
+1. **Read `CLAUDE.md` first.** PowerShell from `D:\sanstro`, DB safety, the
+   four-surface API contract, synthetic fixtures only.
+2. **One item per change** (or a group this doc lists together). No drive-by
+   cleanups: grandfathered direct fetches in `web/` stay unless the item says
+   otherwise.
+3. **Owner rulings are binding:**
+   - no accent left border, including `borderInlineStart`;
+   - active language only;
+   - no emoji or text-glyph icons;
+   - Tamil almanac naming;
+   - Tamil clock period-words (மதியம் 1:42, never "pm"; no em-dash in Tamil
+     copy);
+   - Nova is the only colour and type source;
+   - no Tailwind, shadcn or Radix;
+   - never take palettes, fonts or section orders from the `ui-ux-pro-max`
+     skill.
+4. **Tamil copy:** list every new or changed Tamil string in the handoff for the
+   owner's sign-off. Never date a review marker without an explicit "approved".
+5. **Doctrine-sensitive values** (dates, anything the engine computes): no
+   client approximations. If the server has no value, show nothing (D6).
+6. **Frontend-only by default.** A backend text fix goes in its own change
+   after a grep of all four API surfaces. New endpoints get a shared wrapper.
+7. **Deletion last, and one question per file** (or per dead function/table).
+8. **Keep `web/components/ui/index.ts` lean.** Framer-based primitives are
+   imported directly.
+9. **Never overwrite an existing test file** with a whole-file write. Check
+   `git status`, then edit or append. Update tests that assert old copy; add
+   tests for new behaviour.
+10. **Do not commit unless asked.** This branch carries many unrelated
+    uncommitted changes, so stage only your own paths (`git add <paths>`),
+    never `-A`.
+11. **Report honestly:** gate values before and after, failures as failures,
+    skipped checks named.
+
+## 11. Environment: rendering signed-in pages safely
+
+- **Never start `next dev` inside `web/` while the owner's :3000 server runs.**
+  It deletes `web/.next` (DXA-40).
+- **A local `playwright test` is safe** since DXA-40: its `webServer` runs
+  `ux-audit-stack.ps1 -Action serve`, which builds from the copy and tears the
+  stack down when Playwright exits. Do not run it while a manual `up` stack is
+  holding :3100/:8010; `serve` refuses busy ports.
+- **Isolated stack**, run from `D:\sanstro`:
+  ```powershell
+  powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ux-audit-stack.ps1 -Action up
+  node web\scripts\ux-audit.mjs                     # all phases, ~7-10 min on next dev
+  node web\scripts\ux-audit.mjs --phases load,tabs  # a subset
+  powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ux-audit-stack.ps1 -Action down
+  ```
+  Phases: `load, tabs, today, hover, overlays, reduced, light, phone, sky`.
+  `sky` (added 2026-09-18, DXA-10) opens its own context and pins the clock to
+  21:30 IST, because the page starfield only paints from dusk — measured in
+  daylight its gates passed with nothing fixed.
+- **Same audit as a Playwright test** (DXA-34), with the ratchet:
+  ```powershell
+  Set-Location D:\sanstro\web
+  $env:VISUAL_AUDIT = "1"
+  $env:VISUAL_AUDIT_PHASES = "load,tabs,reduced"   # optional; default all
+  npx playwright test e2e/dashboard-experience.spec.ts --project=chromium
+  ```
+  With no `BASE_URL`, Playwright starts and stops the stack itself (`serve`).
+  If a manual `up` stack is already running, set
+  `$env:BASE_URL = "http://localhost:3100"` so Playwright reuses it instead.
+  - `up` copies `web/` to `artifacts\ux-stack\web` (gitignored), links
+    `node_modules`/`packages`, starts :8010 (`vinaadi_e2e`) and :3100, and
+    refuses to finish unless the proxy reports `environment: e2e`.
+  - Code changes are picked up only by re-running `up`. Run `down` first, then
+    `up` again.
+  - `down` stops only the processes it recorded and removes the links.
+  - Never `Remove-Item -Recurse` `artifacts\ux-stack` while links exist.
+- **The harness refuses any backend but e2e.** It registers a fresh
+  `ux-audit-*@e2e.test` account each run. Use `--email` to reuse one.
+- **Address Today as `/dashboard/today`** until DXA-02 lands; bare `/dashboard`
+  restores another tab.
+- **Dev-console CSP chunk warnings** are DXA-35's question, not your bug, unless
+  reproduced in a production build.
+
+## 12. Verification ladder, definition of done, baseline
+
+**For every item, in `D:\sanstro\web`:**
+1. `.\node_modules\.bin\tsc.CMD --noEmit`
+2. `.\node_modules\.bin\vitest.CMD run` (targeted first, then full before
+   handoff)
+3. `.\node_modules\.bin\eslint.CMD <changed files> --max-warnings=0`
+4. Isolated stack `up` → `node web\scripts\ux-audit.mjs --phases <relevant>` →
+   compare the item's gate to the baseline below → `down`.
+5. Visual items: before/after screenshots in dark, light and 390 px. Motion
+   items: also a reduced-motion run.
+
+**Done means all of these:**
+- the item's gate passes (or its stated manual check is met);
+- no other gate regressed against the baseline;
+- tsc, vitest and eslint are green, with tests added or updated;
+- new Tamil strings are listed for sign-off;
+- the item is marked `[x] YYYY-MM-DD`, with the gate value and the metrics
+  folder path, in this file.
+
+**Wave 2 close-out baseline, 2026-09-21**
+(`web/e2e/.artifacts/w2-full-2026-09-21-r3/metrics.json`, started
+`2026-09-21T05:17:54.442Z`, isolated `next dev`, 483 s, all nine phases):
+**10 FAIL · 39 PASS · 3 INFO.** All 38 `MUST_PASS` keys passed. The first full
+run (`w2-full-2026-09-21-r2`) exposed and negatively controls two regressions:
+the pending hero was 29 px short and a Tamil-only observance name rendered in
+English mode. Timings and CLS move between dev runs, so compare pass/fail, not
+decimals. The 2026-09-17 column is retained as history rather than overwritten.
+The date and metrics folder in the fourth-column heading apply to every row;
+the two source-only rows identify their 2026-09-21 recheck in the cell.
+
+**Wave 2 close-out run, 2026-09-21 afternoon**
+(`web/e2e/.artifacts/final-full-2026-09-21/`, isolated `next dev`, 606 s, all
+ten phases including the new `ta`): **11 FAIL · 44 PASS · 3 INFO.** Of 43
+`MUST_PASS` keys, 42 passed. The one that did not, `DXA-05 no top-bar /
+sub-bar shifts` (1, a 0.0002 reflow of `.cd-subbar__status`, the "✓
+Panchangam computed …" line in `dashboard-hero.tsx:756`), did **not reproduce**:
+0 in two immediate `load` re-runs (`final-load-recheck1/`, `-2/`) and in every
+`load` run earlier that day. Recorded as an intermittent a ratcheted gate can
+throw under load, not as fixed; the lead is that status line's late-arriving
+text. Moved gates carry their close-out value in the cell ("close-out …").
+New since `r3`: the rebuilt DXA-07 stale-text gate, the three hover keys and
+four `(ta)` gates.
+
+| Gate | Check | 2026-09-17 baseline | 2026-09-21 result (`w2-full-2026-09-21-r3`) |
+|---|---|---|---|
+| DXA-01 | skeleton bar/card contrast, dark (1.05–1.6) | 9.95 FAIL | **1.22 PASS** |
+| DXA-01 | same, light | 1.30 PASS | **1.18 PASS** |
+| DXA-02 | bare `/dashboard` shows one destination | personal → calendar FAIL | **personal PASS** |
+| DXA-03 | no empty-state copy while loading (Today) | 1,947–13,800 ms FAIL | **never PASS** |
+| DXA-04 | no onboarding banner for a set-up account | seen (bare and Today) FAIL | **bare:false today:false PASS** |
+| DXA-05 | CLS < 0.1, Today cold load | 0.77 FAIL | **0.0002 PASS** |
+| DXA-05 | no top-bar / sub-bar shifts | 2 FAIL | **0 PASS** |
+| DXA-05 | document height changes during load | 7 INFO | **7 INFO** |
+| DXA-05 | pending hero within 8px of loaded | not listed | **621 → 621 (+0px) PASS**; close-out **580 → 580 PASS** (reserve re-pinned, E-4f) |
+| DXA-05 | CLS < 0.1, Understand cold load | 0.82 FAIL | **0 PASS** |
+| DXA-06 | full-opacity skeleton frames on first tab visits | 78 INFO | **165 INFO** (gates with `--prod`); close-out 122 INFO; **`--prod` 8 FAIL** (`n3-prod-load-tabs`) |
+| DXA-07 | hero keeps ≥ 90% height through a date change | 0.45 FAIL | **1 PASS** |
+| DXA-07 | Today pane keeps ≥ 90% height through a date change | 0.43 FAIL (added 09-18) | **1 PASS** |
+| DXA-07 | the selected day replaces the held one | added 09-18 | **2026-09-22 PASS** |
+| DXA-07 | stale pane body text holds AA on light (every text node, real stale state) | min 3.03:1 FAIL (E-1 negative, 2026-09-21) | **min 5.10:1, n=91 PASS** (`e1-stale-aa-pass`) |
+| DXA-08 | no raw enums / "None" / upper-case rasi names | `ARDHASHTAMA_SANI`; `MITHUNAM`, `DHANUSU`, … | **none (None×0) PASS** |
+| DXA-08 | no rasi name read off the response (source ratchet) | 9 surfaces (added 09-18) | **PASS** (2026-09-21 source test) |
+| DXA-09 | no accent stripes | Family: 1 | **0 PASS** |
+| DXA-09 | no Tamil in English mode | Tools echo + "திருமணப் பொருத்தம்" | **0 PASS** |
+| DXA-09 | no emoji / text glyphs as icons | Calendar, Family, Journal, Today | **FAIL**: Calendar, Family, Journal and Personal; OD-1 / Wave 3 |
+| DXA-10 | no page-sky star inside a text line | 2 — see note | **0 of 64 PASS** |
+| DXA-10 | no star through a translucent surface | 6 — see note | **0 of 64 PASS** |
+| DXA-11 | reduced motion: indicator does not move | 3 transforms FAIL | **1 PASS** |
+| DXA-11 | reduced motion: pane without a fade | 1 PASS | **1 PASS** |
+| DXA-12 | reduced motion keeps colour/shadow hover feedback | added 2026-09-21 | **3 / 3 PASS** (`w5-reduced-hover-pass`) |
+| DXA-12 | hover feedback ≥ 95% | 2 / 22 FAIL | **19 / 71 FAIL**; close-out **71 / 71 PASS** (census 106 / 106) |
+| DXA-12 | press feedback = 100% | 0 / 22 FAIL | **18 / 71 FAIL**; close-out **71 / 71 PASS** (census 106 / 106) |
+| DXA-12 | every hover pane yielded surfaces | added 09-18 | **all panes measured PASS** |
+| DXA-13 | overlay more-menu: enter + exit animation | none exit | **enter:true exit:true PASS** |
+| DXA-13 | overlay notifications: enter + exit animation | none exit | **enter:true exit:true PASS** |
+| DXA-13 | overlay account-menu: enter + exit animation | none exit | **enter:true exit:true PASS** |
+| DXA-13 | overlay ask-vinaadi: enter + exit animation | none exit | **enter:true exit:true PASS** |
+| DXA-13 | overlay day-drawer: enter + exit animation | none exit | **enter:true exit:true PASS** |
+| DXA-14 | every view-swap pane was measurable | added 09-19 | **3 panes PASS** |
+| DXA-14 | view switch life-areas: crossfades | no animation | **animated:true PASS** |
+| DXA-14 | view switch plan: crossfades | no animation | **animated:true PASS** |
+| DXA-14 | view switch calendar: crossfades | no animation | **animated:true PASS** |
+| DXA-16 | Nova easing tokens only | `ease` present | **tokens only PASS** |
+| DXA-17 | no infinite animation outside the hero | 0 | **0 PASS** |
+| DXA-19 | cards resolve an elevation shadow | 0 flat | **0 flat PASS** |
+| DXA-20 | top-level gaps ⊆ {12, 24, 48, 56} | 16, 20, 24, 48 FAIL | **16, 20, 24, 36, 48, 60 FAIL**; close-out 4, 16, 20, 24, 28, 36, 48, 60 FAIL (4 and 28 new; not bisected) |
+| DXA-21 | ≤ 8 font sizes, none < 11 px | 15 sizes, 240 tiny FAIL | **max 15, tiny 240 FAIL** |
+| DXA-22 | ≤ 4 corner radii | 9 FAIL | **10 FAIL**; close-out 11 FAIL (likely the kit button's literal 9 px radius, now on converted buttons that used `--radius-sm`) |
+| DXA-27 | pinned top chrome ≤ 120 px (scrolled) | 197 px FAIL | **197 px FAIL** |
+| DXA-27 | bottom tab bar present | 0 px FAIL | **0 px FAIL** |
+| DXA-27 | no overprinted tab labels | Goals / Life Areas FAIL | **Today:Goals; Calendar:Goals; Family:Life Areas; Tools:Goals FAIL** |
+| DXA-27 | no horizontal overflow | none PASS | **none PASS** |
+| DXA-09 | page renders in Tamil (ta) | added 09-21 (W-8) | close-out **ta PASS**; negative (forced `en`) FAIL |
+| DXA-05 | pending hero within 8px of loaded (ta) | added 09-21 | `n2-ta-run3` **691 → 691 PASS**; close-out 691 → 673 FAIL (clock-dependent loaded height, DXA-45); not ratcheted |
+| DXA-27 | phone: no horizontal overflow (ta) | added 09-21 | close-out **none PASS**; not ratcheted |
+| DXA-09 | no English text in Tamil mode (ta) | added 09-21 | close-out **FAIL** — raw enums, English dates and weekdays, "Calendar தாவல்" (see DXA-09); not ratcheted |
+| DXA-28 | activity board within 2.5 screens | 4.55 FAIL | **4.69 FAIL**; close-out 2.69 FAIL |
+| DXA-37 | Family shows exactly one reading | 2 | **1 PASS** |
+| DXA-39 | touch policy: no size change on a hybrid | added 09-18 | **PASS** (2026-09-21 source test; owner hardware approval remains `11020e8`) |
+| DXA-41 | overlay more-menu: closes on Escape and on a page click | Esc only | **escape:true page-click:true PASS** |
+| DXA-41 | overlay notifications: closes on Escape and on a page click | neither | **escape:true page-click:true PASS** |
+| DXA-41 | overlay account-menu: closes on Escape and on a page click | neither | **escape:true page-click:true PASS** |
+| DXA-41 | overlay ask-vinaadi: closes on Escape and on a page click | both work | **escape:true page-click:true PASS** |
+| DXA-41 | overlay day-drawer: closes on Escape and on a page click | both work | **escape:true page-click:true PASS** |
+| — | console errors (dev CSP chunk warnings included) | 20 INFO | **5 INFO** |
+
+**DXA-12's baseline and its current value are not the same measurement.** The
+`2 / 22` baseline came from a probe that sampled only controls already inside
+the viewport and reached each tab by `page.goto`, so four of six panes returned
+*nothing* and a later run read `8 / 8` as 100%. Since 2026-09-18 the probe
+scrolls each candidate into view, settles `window.scrollY` before sampling, and
+switches tabs by clicking; the denominator is 71, and a pane that yields no
+surfaces now fails its own gate rather than passing silently. The W-2 close-out
+value is `19 / 71` hover and `18 / 71` press; compare against a denominator of
+71, never against the 22.
+
+**The two DXA-10 rows are not comparable to a later run.** They were taken at
+18:39 IST, and the page sky paints stars only from dusk — the same gates read
+`0 / 0 PASS` on the *unfixed* tree at 11:37 and 11:50 IST. Since 2026-09-18 they
+come from the `sky` phase, which pins the clock to 21:30, refuses the
+measurement when the sky painted nothing or a pane did not render, and reads a
+gradient's own stops rather than its `backgroundColor`. Its own before/after is
+`1 / 7` → `0 / 0`, of 64 stars rendered. See DXA-10.
+
+## 13. Waves and dependencies
+
+Status correction 2026-09-18: the Wave 2 completion language in the historical
+table below is superseded; current recovery status is tracked in
+`WAVE2_REMEDIATION_2026-09-18.md` until its browser checks are reproduced.
+
+| Wave | Items, in order | Why this order |
+|---|---|---|
+| 0: tooling and safety (**done 2026-09-17**) | DXA-40, DXA-11, DXA-36, DXA-34 | a safe referee first; MotionConfig unblocks all motion work |
+| 1: trust | DXA-01, 02, 03, 04, 05, 07, 08, 09 (stripe, echo), 38, 41, 10 | the broken moments users see on every visit |
+| 2: feel | **12, 13, 14, 15, 16, 17, 19, 37, 39 done**; remaining: **18 → 06** | 13, 14 and 16 closed 2026-09-19, each with a negative control on disk. ~~DXA-12 is the one item here that needs design work rather than plumbing: 18/71 hover, 17/71 press~~ DXA-12 closed 2026-09-21 under the OD-4 taxonomy: 71/71 hover and press over three runs, 106/106 across the population, ratcheted; its `Review: shots` are in `i1-kind-shots/` — the blanket `!important` rule that once made it read 8/8 is gone and must not come back. DXA-06 now has a production baseline (8 frames, FAIL) |
+| 3: finish | DXA-20, 21, 22, 23, 24 (Lucide part), 25, 26, 09 (emoji), 27, 28; new: 42 (backend observance key), 43, 44 (Tamil strings, owner sign-off), 45 (hero data dependence, owner call) | rhythm and type after the primitives exist; the phone bar after D1 and `Presence`. 24's commission brief: `docs/GLYPH_COMMISSION_BRIEF_2026-09-21.md` |
+| 4: signature | DXA-30, 29, 31, 32, 35; 33 when assets exist | each behind an owner-reviewed preview |
+
+## 14. Traps that have already cost this repo time
+
+- **`<Card>` is already a column flexbox.** A horizontal card needs
+  `flexDirection: "row"` explicitly, or `flex-basis` applies to height.
+- **Framer layout animations ignore the CSS reduced-motion guard.** Gate them
+  in JS (`MotionConfig`).
+- **Source search misses built names and logical properties.**
+  `as-rasi--${tone}` and `borderInlineStart` are invisible to naive greps.
+  Verify in the render.
+- **Never round-trip source through PowerShell.** It adds a BOM and garbles
+  Tamil. Use the editor tool; Tamil files stay UTF-8 without BOM.
+- **A gate that measures a change must read its baseline before the change.**
+  DXA-07's probe read the "before" height in the same block as the input
+  dispatch but after it, so on a broken build it compared the collapse against
+  itself and passed — three negative checks in a row, each of which sent the
+  investigation after the app. Related: this dashboard does not scroll the
+  document, so `documentElement.scrollHeight` is not the page's height;
+  measure the pane's own box. See DXA-07's "the probe was wrong in four ways".
+- **Hero test anchors constrain markup:**
+  - `getByText(/Best window/).closest("div")` must contain the window time;
+  - `getByText(/^Avoid window$/).closest("div").parentElement` is the avoid
+    card.
+- **`dashboard-workspace.test.tsx` matches the source text** of the
+  `hasVisitedReading` effect. Keep that effect's shape.
+- **`pointer: coarse` matches the owner's laptop** (DXA-39).
+- **A local test failure is not authoritative.** Another session's pytest can
+  drop the test schema mid-run; check for competing runs; CI decides.
+- **Playwright's `reuseExistingServer` reuses whatever sits on :3100.**
+  `global-setup.ts` guards the database, not your code version.
+- **The first-run focus picker can mount late and eat clicks** on new accounts.
+  The harness pre-sets the life mode.
+
+## 15. Status-update protocol
+
+When an item is done, edit its heading line in §4 in place:
+`[ ]` → `[x] 2026-MM-DD`. Add one line under the header: `Done: <gate> <before>
+→ <after>; metrics <folder>; commit <sha or "uncommitted">`. Add the item's
+passing gates to `MUST_PASS` in `web/e2e/dashboard-experience.spec.ts` in the
+same change, keyed `<id> <check>` exactly as the gate table prints them. Partial
+progress uses `[~]` with the blocking reason. Do not delete findings; strike through
+text that stopped being true and say why.
+
+## 16. Evidence index
+
+First audit pass: `web/e2e/.artifacts/dashboard-experience-audit-2026-09-17/`
+(gitignored).
+- `load-00…17.jpg`: bare `/dashboard` cold load; the restore swap happens at
+  frames 10 → 11.
+- `today-load-00…15.jpg`: `/dashboard/today` cold load.
+- `today-*.png`: Today settled; `today-next-day.png`: after a date change.
+- `dark-<tab>-*.png`, `light-*.png`, `phone-*.png`: every destination per theme
+  and width.
+- `overlay-*.png`, `switch-*.jpg`, `dial-*.png`.
+- `metrics*.json`: raw probes of the first pass.
+- `harness/`: the first-pass scripts, superseded by `web/scripts/ux-audit.mjs`.
+
+Baseline run of the tracked harness:
+`web/e2e/.artifacts/ux-audit-202609171309/` (gitignored). The earlier run
+`ux-audit-202609171257/` predates two probe fixes (easing parse, star
+occlusion) and a hung overlay close; do not compare against it.
+
+Known invalid measurements in the first pass, excluded above:
+- its "Today" section shots are Understand (the DXA-02 restore);
+- its Understand hover census measured hidden Tools buttons;
+- its first date-change probe did not change the date.

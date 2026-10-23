@@ -153,6 +153,12 @@ class PanchangamKalam(BaseModel):
     gowri_panchangam: list[PanchangamSlot] = Field(default_factory=list, alias="gowriPanchangam")
     nalla_neram: list[PanchangamSlot] = Field(alias="nallaNeram")
     gowri_nalla_neram: list[PanchangamSlot] = Field(alias="gowriNallaNeram")
+    #: The day's Durmuhurtham windows, 1-2 of the fifteen equal daylight
+    #: muhurtas by weekday. Computed since 2026-08-16 and cached with the rest
+    #: of the snapshot, but withheld from this response until 2026-09-22.
+    #: Defaults to empty so a client reading an older cached payload, or one
+    #: built before this field existed, still validates.
+    durmuhurtham: list[PanchangamSlot] = Field(default_factory=list)
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -269,6 +275,11 @@ class PanchangamSpecialTithiDay(BaseModel):
 class PanchangamDailyResponseData(BaseModel):
     date_local: date = Field(alias="dateLocal")
     tamil_date: BiText | None = Field(alias="tamilDate", default=None)
+    # FCA-02: "published" when the Tamil date is the almanac's own boundary,
+    # "computed" when it falls back to the sunset rule (outside published
+    # coverage). A computed date must not be shown as the
+    # almanac's.
+    tamil_date_source: Literal["published", "computed"] | None = Field(alias="tamilDateSource", default=None)
     location: PanchangamLocation
     sunrise: str
     sunset: str
@@ -348,6 +359,11 @@ class PanchangamMonthlyQuery(BaseModel):
 class PanchangamMonthDayEntry(BaseModel):
     date_local: date = Field(alias="dateLocal")
     tamil_date: BiText | None = Field(alias="tamilDate", default=None)
+    # FCA-02: "published" when the Tamil date is the almanac's own boundary,
+    # "computed" when it falls back to the sunset rule (outside published
+    # coverage). A computed date must not be shown as the
+    # almanac's.
+    tamil_date_source: Literal["published", "computed"] | None = Field(alias="tamilDateSource", default=None)
     weekday: str
     tithi_number: int = Field(alias="tithiNumber")
     tithi_name: str = Field(alias="tithiName")

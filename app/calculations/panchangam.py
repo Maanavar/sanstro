@@ -5,14 +5,11 @@ from collections.abc import Collection, Iterator, Sequence
 from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime, timedelta
 
-from sqlalchemy import delete, select
-from sqlalchemy.dialects.postgresql import insert as pg_insert
-from sqlalchemy.orm import Session
-
 from app.calculations.astro import (
     RASI_NAMES,
     chandrashtama_janma_angle,
     chandrashtama_janma_nakshatra,
+    format_clock_hhmm,
     julian_day_to_utc_datetime,
     nakshatra_from_degree,
     normalize_longitude,
@@ -30,7 +27,6 @@ from app.calculations.ephemeris import (
 )
 from app.constants.astrology import NAKSHATRA_NAMES
 from app.data.durmuhurtham_rules import DURMUHURTHAM_DAYLIGHT_INDICES
-from app.models.panchangam_cache import PanchangamCache
 
 logger = logging.getLogger(__name__)
 
@@ -113,6 +109,26 @@ WEEKDAY_LORDS = {
 RAHU_SLOT = {6: 8, 0: 2, 1: 7, 2: 5, 3: 6, 4: 4, 5: 3}
 YAMA_SLOT = {6: 5, 0: 4, 1: 3, 2: 2, 3: 1, 4: 7, 5: 6}
 KULIGAI_SLOT = {6: 7, 0: 6, 1: 5, 2: 4, 3: 3, 4: 2, 5: 1}
+# Night Gulika: sunset -> next sunrise in 8 equal parts, rulership beginning
+# from the lord of the FIFTH weekday hence (inclusive), Saturn's portion being
+# Gulika. Sunday -> Saturday = [3, 2, 1, 7, 6, 5, 4].
+#
+# Derivation, Sunday: the 5th weekday from Sunday is Thursday, so the parts run
+# Jupiter, Venus, Saturn -> Saturn is the 3rd. Wednesday: 5th is Sunday, so
+# Sun, Moon, Mars, Mercury, Jupiter, Venus, Saturn -> Saturn is the 7th.
+#
+# This corrects a `day_slot + 4` wrapped modulo 8 form that used to live in
+# app/services/_chart_planets.py under a Maandhi name. That form coincides with
+# the rule above only for Sunday, Monday and Tuesday, where the sum exceeds 8
+# and wraps; for Wednesday through Saturday it was one part late, and it put
+# Wednesday on the 8th part, which under this rule has NO lord at all and so
+# can never be Saturn's. Only three of the seven weekdays were ever right.
+#
+# Gulika is NOT Maandhi. Maandhi is a proportional nazhigai measure with its
+# own constants (`MAANDHI_DAY_NAZHIGAI` in app/services/_chart_planets.py) and
+# is deliberately not derived from any eighth-part slot — owner ruling
+# 2026-09-29. Do not alias the two.
+KULIGAI_NIGHT_SLOT = {6: 3, 0: 2, 1: 1, 2: 7, 3: 6, 4: 5, 5: 4}
 # Gowri Panchangam full engine tables. Day slots run sunrise->sunset; night slots
 # run sunset->next sunrise. Names are kept normalized for API consumers.
 # Traditional Gowri Panchangam kala names, per the project's frozen spec
@@ -440,7 +456,6 @@ AMIRDHADHI_YOGAM_TABLE = {
     5: ("C", "C", "C", "A", "C", "C", "C", "C", "M", "A", "C", "M", "M", "M", "C", "C", "C", "C", "C", "C", "C", "C", "C", "A", "M", "C", "P"),  # Sat
 }
 
-PANCHANGAM_CACHE_TTL_HOURS = 24
 DEFAULT_AYANAMSA_TYPE = "LAHIRI"
 # v22: persist the civil-day dominant tithi/nakshatra/yoga numbers in the cached
 # record so the monthly calendar reads them instead of re-walking the ephemeris.
@@ -556,8 +571,32 @@ DEFAULT_AYANAMSA_TYPE = "LAHIRI"
 # corrected, and snapshots now carry the affected star AT SUNRISE, which is what
 # the personal Chandrashtama flag reads. A warmed cache would otherwise keep
 # serving the old boundaries to a flag that now depends on them being right.
-PANCHANGAM_CACHE_DATA_VERSION = 46
-DOMINANT_SPECIAL_TITHIS = {15, 30}
+# v47 (2026-09-29, owner ruling superseding WI-07's original choice):
+# sunrise/sunset reverted from SE_BIT_HINDU_RISING (disc centre, no refraction)
+# to Swiss Ephemeris's standard APPARENT upper-limb + refraction event — the
+# modern Drik convention of India's Rashtriya Panchang and DrikPanchang's
+# default. v33 had adopted disc-centre on the premise that it "matches every
+# printed Tamil panchangam"; that premise was never verified against any
+# printed edition, and it put every published value ~3.5 min out at both ends.
+# Sunrise moves ~3.5 min EARLIER and sunset ~3.5 min LATER, so the day
+# lengthens ~7 min and every subdivision of it shifts: Rahu Kalam, Yamagandam,
+# Kuligai, all eight kalam divisions, Gowri Panchangam, Durmuhurtham, day and
+# night horai, udaya tithi/nakshatra, sunrise lagna, Chandrashtama's
+# sunrise-sampled star, and the Tamil solar calendar's sunset cutoff. Udaya
+# tithi/nakshatra can therefore land on a DIFFERENT value on days where the
+# boundary falls inside that 3.5-minute band, which can move a festival or an
+# Ekadashi by a day. Cached snapshots must recompute.
+# v48 (2026-10-01, owner ruling): the Swiss Ephemeris data files are bundled and
+# loaded (`ephemeris.EPHEMERIS_PATH`); every snapshot before this was computed on
+# the Moshier analytic fallback. Measured: Moon within 0.88", sunrise 3 ms, so a
+# limb boundary moves by about 1-2 s — enough to flip a minute-rounded time when
+# the instant sits on a half-minute. Small, but cached values are now from a
+# different ephemeris than fresh ones, so they recompute.
+# v49 (2026-10-22, astrologer ruling Q6): `special_tithi_day_number` — the day
+# called Amavasai or Pournami — is the tithi at sunrise (first of two), not the
+# civil day the tithi fills most of. It moves by a day about five times a year,
+# and every cached snapshot carries the old answer.
+PANCHANGAM_CACHE_DATA_VERSION = 49
 
 # Fixed weekday clock-table Nalla Neram windows. NOTE (2026-07-17): the daily
 # panchangam no longer uses this table — its Nalla Neram is now derived from the
@@ -836,7 +875,8 @@ class PanchangamSnapshot:
 
 
 def _format_hhmm(moment: datetime) -> str:
-    return moment.strftime("%H:%M")
+    """Nearest-minute, not truncated — see astro.round_to_nearest_minute."""
+    return format_clock_hhmm(moment)
 
 
 def _angle_continuous(angle_fn, jd_start: float, jd: float, base_angle: float) -> float:
@@ -911,15 +951,6 @@ def _yoga_number_at_jd(jd: float) -> int:
     return int((_yoga_angle_at_jd(jd) + 1e-9) // (40 / 3)) + 1
 
 
-def _civil_day_bounds_jd(date_local: date, timezone_name: str) -> tuple[float, float]:
-    timezone_obj = resolve_timezone(timezone_name)
-    start_local = datetime.combine(date_local, datetime.min.time(), tzinfo=timezone_obj)
-    end_local = start_local + timedelta(days=1)
-    start_jd = utc_datetime_to_julian_day(start_local.astimezone(UTC))
-    end_jd = utc_datetime_to_julian_day(end_local.astimezone(UTC))
-    return start_jd, end_jd
-
-
 def _solar_day_bounds_jd(
     date_local: date,
     timezone_name: str,
@@ -930,9 +961,7 @@ def _solar_day_bounds_jd(
     divides limbs across.
 
     A Tamil almanac page for a date covers that date's sunrise to the next, which
-    is why every span list on the snapshot is bounded this way. `_civil_day_bounds_jd`
-    above exists for the few markers that genuinely are civil-day questions
-    (Amavasai/Pournami tagging, which the calendar prints against a date).
+    is why every span list on the snapshot is bounded this way.
     """
     timezone_obj = resolve_timezone(timezone_name)
     local_midnight = datetime.combine(date_local, datetime.min.time(), tzinfo=timezone_obj)
@@ -945,48 +974,6 @@ def _solar_day_bounds_jd(
         rise=True,
     )
     return sunrise_jd, next_sunrise_jd
-
-
-def _state_durations_for_civil_day(
-    date_local: date,
-    timezone_name: str,
-    *,
-    value_at_jd,
-    boundary_at_jd,
-    max_transitions: int,
-) -> tuple[dict[int, float], int]:
-    start_jd, end_jd = _civil_day_bounds_jd(date_local, timezone_name)
-    noon_value = int(value_at_jd((start_jd + end_jd) / 2))
-
-    durations: dict[int, float] = {}
-    cursor = start_jd
-    for _ in range(max_transitions):
-        if cursor >= end_jd - 1e-10:
-            break
-        current_value = int(value_at_jd(cursor))
-        next_boundary = boundary_at_jd(cursor)
-        interval_end = min(next_boundary, end_jd)
-        durations[current_value] = durations.get(current_value, 0.0) + max(0.0, interval_end - cursor) * 86400.0
-        if next_boundary >= end_jd:
-            break
-        cursor = min(next_boundary + 1e-8, end_jd)
-
-    return durations, noon_value
-
-
-def _special_tithi_durations_for_civil_day(
-    date_local: date,
-    timezone_name: str,
-) -> dict[int, float]:
-    durations, _ = _state_durations_for_civil_day(
-        date_local,
-        timezone_name,
-        value_at_jd=_tithi_number_at_jd,
-        boundary_at_jd=lambda jd: _find_next_boundary_jd(jd, _tithi_angle_at_jd, 12.0),
-        max_transitions=8,
-    )
-    durations = {number: durations.get(number, 0.0) for number in DOMINANT_SPECIAL_TITHIS}
-    return durations
 
 
 def _karana_index_at_jd(jd: float) -> int:
@@ -1142,32 +1129,33 @@ def limb_weighted(spans: Sequence[PanchangamLimbSpan], value_fn) -> float:
     return sum(value_fn(span) * span.fraction for span in spans) / total
 
 
-def dominant_special_tithi_for_civil_day(
-    date_local: date,
-    timezone_name: str,
+def special_tithi_day_from_sunrises(
+    sunrise_tithi: int,
+    previous_sunrise_tithi: int,
+    next_sunrise_tithi: int,
 ) -> int | None:
-    """Return Amavasai/Pournami only for the civil date with the longest span."""
-    current = _special_tithi_durations_for_civil_day(date_local, timezone_name)
-    active_specials = {
-        tithi_number
-        for tithi_number, duration in current.items()
-        if duration > 0
-    }
-    if not active_specials:
-        return None
+    """The day called "the Pournami" (15) or "the Amavasai" (30), or None.
 
-    previous = _special_tithi_durations_for_civil_day(date_local - timedelta(days=1), timezone_name)
-    following = _special_tithi_durations_for_civil_day(date_local + timedelta(days=1), timezone_name)
+    Astrologer ruling 2026-10-22 (Q6): the printed Amavasai/Pournami is the
+    tithi in force at sunrise (suryodaya-vyapini); if it holds two sunrises,
+    the first. This replaced "the civil day the tithi fills most of", which
+    no nirnaya text recognises and which ran a day early five times against
+    the 2027 almanac (scripts/audit/almanac_2027_vs_engine.py).
 
-    candidates: list[tuple[float, int]] = []
-    for tithi_number in active_specials:
-        duration = current[tithi_number]
-        if duration >= previous[tithi_number] and duration >= following[tithi_number]:
-            candidates.append((duration, tithi_number))
+    A kshaya tithi holds no sunrise: it begins and ends between two of them.
+    It is then the day it falls in, the one sunrise-to-sunrise day that holds
+    it (Pournami, 20 Feb 2027: the almanac's day, and the rule above alone
+    gave that month none). Not ruled — the ruling covers one and two sunrises.
 
-    if not candidates:
-        return None
-    return max(candidates)[1]
+    Tharpanam is a different question (Mahalaya, Thai and Aadi Amavasai): the
+    Amavasai at aparahna. See `festivals._is_tharpanam_amavasai`.
+    """
+    for special in (15, 30):
+        if sunrise_tithi == special and previous_sunrise_tithi != special:
+            return special
+        if sunrise_tithi == special - 1 and next_sunrise_tithi == special % 30 + 1:
+            return special
+    return None
 
 
 def _tithi_name(number: int) -> str:
@@ -1491,6 +1479,17 @@ def _compute_nalla_neram(
 # to tithi); standardized on the classical Rikta set here. Ashtami (8) is
 # deliberately excluded from this set — it's Jaya group, not Rikta.
 RIKTA_TITHIS_IN_PAKSHA = {4, 9, 14}
+
+# F-PAN-01. Rikta is Sanskrit tithi-group theory and Ashtami is not in it —
+# which is correct, and was also the wrong question. Tamil practice avoids
+# **அஷ்டமி and நவமி together** for any subha karyam and every Tamil calendar
+# marks them; Navami is already Rikta, Ashtami was not excluded anywhere, so
+# the day-quality flag called an Ashtami a good day for new work.
+#
+# Kept as its own set rather than added to RIKTA_TITHIS_IN_PAKSHA: that set is
+# cited as the classical Rikta triad in four other places, and quietly growing
+# it to four would make the citation false everywhere it is read.
+TAMIL_AVOIDED_TITHIS_IN_PAKSHA = {8}
 MUHURTHAM_BLOCKED_WEEKDAYS = {1, 5}  # Tuesday, Saturday
 
 
@@ -1504,9 +1503,25 @@ def _compute_subha_muhurtham_broad(
     nakshatra_name: str,
     weekday_index: int,
 ) -> tuple[bool, str]:
-    """Nakshatra-led Subha Muhurtham check matching how published Tamil almanacs list
-    wedding-muhurtham dates — the day's nakshatra is the deciding factor, while
-    Tuesday, Saturday, Amavasai, and the Rikta tithis (4th/9th/14th) are excluded."""
+    """A broad "good day for ordinary new work" check — **not** a wedding
+    muhurtham day.
+
+    F-PAN-01: this flag drove a badge reading "சுபமுகூர்த்த நாள்", which to a
+    Tamil reader means a *wedding-muhurtham day*. It is not that, and cannot
+    be: it counts Poosam — the one star Tamil practice excludes for marriage
+    outright, and which our own marriage engine already excludes via the
+    Kalaprakasika 11-star list — along with Chithirai, Avittam, Thiruvonam,
+    Ashwini and Punarpoosam, none of which are marriage stars. It also knows
+    nothing of the no-wedding months, Karinaal, or Krishna-paksha tithis after
+    Ashtami.
+
+    The authoritative wedding list is the almanac's `muhurtham_naals`, which
+    the muhurtham-naal service uses. Every surface rendering *this* flag says
+    "நல்ல நாள் / good day", never முகூர்த்தம்.
+
+    What it does check: the day's nakshatra decides, with Tuesday, Saturday,
+    Amavasai, the Rikta tithis (4th/9th/14th) and Ashtami excluded.
+    """
     tithi_in_paksha = tithi_number if tithi_number <= 15 else tithi_number - 15
 
     if weekday_index in MUHURTHAM_BLOCKED_WEEKDAYS:
@@ -1515,6 +1530,8 @@ def _compute_subha_muhurtham_broad(
         return False, "Inauspicious: Amavasai tithi"
     if tithi_in_paksha in RIKTA_TITHIS_IN_PAKSHA:
         return False, f"Inauspicious: {_tithi_name(tithi_number)} (Rikta tithi)"
+    if tithi_in_paksha in TAMIL_AVOIDED_TITHIS_IN_PAKSHA:
+        return False, f"Inauspicious: {_tithi_name(tithi_number)} (avoided for subha karyam)"
 
     if nakshatra_name in SUBHA_NAKSHATRAS:
         return True, f"Auspicious: {nakshatra_name} nakshatra"
@@ -1557,9 +1574,12 @@ def _compute_subha_muhurtham_strict(
     else:
         inauspicious.append("inauspicious nakshatra")
 
-    # Amavasai (30) and the classical Rikta tithis (4th/9th/14th) are always inauspicious
+    # Amavasai (30), the classical Rikta tithis (4th/9th/14th) and Ashtami are
+    # always inauspicious (F-PAN-01 for the Ashtami half).
     if tithi_in_paksha in RIKTA_TITHIS_IN_PAKSHA or tithi_number == 30:
         inauspicious.append("Rikta tithi / Amavasai")
+    if tithi_in_paksha in TAMIL_AVOIDED_TITHIS_IN_PAKSHA:
+        inauspicious.append("Ashtami")
 
     is_subha = len(inauspicious) == 0 and len(reasons) >= 2
     if is_subha:
@@ -1787,7 +1807,7 @@ def _chandrashtamam_janma_nakshatra_windows(
     # half or three-quarters of the way through a star, never at its edge, and
     # the shortest possible piece is 3°20' of Moon motion — five hours and up.
     #
-    # `moon_rasi_spans` is passed in by `calculate_daily_panchangam`, which has
+    # `moon_rasi_spans` is passed in by `compute_daily_panchangam`, which has
     # already walked exactly this limb over exactly these bounds — the same
     # search twice was 50 ms of the 604 ms a cold day costs, and two independent
     # walks could in principle disagree. Standalone callers pass nothing and pay
@@ -1875,21 +1895,16 @@ def build_daylight_lagna_schedule(snapshot: PanchangamSnapshot) -> tuple[Panchan
     return tuple(windows)
 
 
-def with_daylight_lagna_schedule(
-    snapshot: PanchangamSnapshot,
-    *,
-    session: Session | None = None,
-) -> PanchangamSnapshot:
-    """Attach and persist the lazily calculated daylight lagna schedule."""
+def attach_daylight_lagna_schedule(snapshot: PanchangamSnapshot) -> PanchangamSnapshot:
+    """The snapshot with its lazily calculated daylight lagna schedule attached.
+
+    Returns the snapshot unchanged when it already has one. Persisting the
+    enriched snapshot is the cache's job —
+    ``app.services.panchangam_cache.with_daylight_lagna_schedule``.
+    """
     if snapshot.lagna_schedule:
         return snapshot
-    enriched = replace(snapshot, lagna_schedule=build_daylight_lagna_schedule(snapshot))
-    if session is not None:
-        try:
-            _store_cached_snapshot(session, enriched, DEFAULT_AYANAMSA_TYPE)
-        except Exception as exc:
-            logger.warning("Failed to cache lagna schedule for %s: %s", snapshot.date_local, exc)
-    return enriched
+    return replace(snapshot, lagna_schedule=build_daylight_lagna_schedule(snapshot))
 
 
 def _calculate_positions_at_sunrise(jd_ut: float) -> tuple[float, float, tuple[str, ...]]:
@@ -2227,115 +2242,18 @@ def _deserialize_snapshot(data: dict) -> PanchangamSnapshot:
     )
 
 
-def _load_cached_snapshot(
-    session: Session,
-    date_local: date,
-    latitude: float,
-    longitude: float,
-    ayanamsa_type: str,
-) -> PanchangamSnapshot | None:
-    row = session.execute(
-        select(PanchangamCache).where(
-            PanchangamCache.cache_date == date_local,
-            PanchangamCache.latitude == round(latitude, 6),
-            PanchangamCache.longitude == round(longitude, 6),
-            PanchangamCache.ayanamsa_type == ayanamsa_type,
-        )
-    ).scalar_one_or_none()
-    if row is None:
-        return None
-    if row.created_at < datetime.now(tz=UTC) - timedelta(hours=PANCHANGAM_CACHE_TTL_HOURS):
-        return None
-    if int(row.data.get("schema_version", 1)) != PANCHANGAM_CACHE_DATA_VERSION:
-        return None
-    return _deserialize_snapshot(row.data)
-
-
-def _load_cached_snapshots_in_range(
-    session: Session,
-    start_date: date,
-    end_date: date,
-    latitude: float,
-    longitude: float,
-    ayanamsa_type: str,
-) -> dict[date, PanchangamSnapshot]:
-    rows = session.execute(
-        select(PanchangamCache).where(
-            PanchangamCache.cache_date >= start_date,
-            PanchangamCache.cache_date <= end_date,
-            PanchangamCache.latitude == round(latitude, 6),
-            PanchangamCache.longitude == round(longitude, 6),
-            PanchangamCache.ayanamsa_type == ayanamsa_type,
-        )
-    ).scalars()
-
-    snapshots: dict[date, PanchangamSnapshot] = {}
-    cutoff = datetime.now(tz=UTC) - timedelta(hours=PANCHANGAM_CACHE_TTL_HOURS)
-    for row in rows:
-        if row.created_at < cutoff:
-            continue
-        if int(row.data.get("schema_version", 1)) != PANCHANGAM_CACHE_DATA_VERSION:
-            continue
-        snapshots[row.cache_date] = _deserialize_snapshot(row.data)
-    return snapshots
-
-
-def purge_expired_panchangam_cache(session: Session) -> int:
-    result = session.execute(
-        delete(PanchangamCache).where(PanchangamCache.expires_at < datetime.now(tz=UTC))
-    )
-    # Avoid committing here: this helper is called from read paths and should not
-    # flush or commit unrelated pending ORM changes in the caller's session.
-    return int(result.rowcount or 0)
-
-
-def _store_cached_snapshot(
-    session: Session,
-    snapshot: PanchangamSnapshot,
-    ayanamsa_type: str,
-) -> None:
-    latitude = round(snapshot.latitude, 6)
-    longitude = round(snapshot.longitude, 6)
-    payload = _serialize_snapshot(snapshot)
-    session.execute(
-        pg_insert(PanchangamCache)
-        .values(
-            cache_date=snapshot.date_local,
-            latitude=latitude,
-            longitude=longitude,
-            ayanamsa_type=ayanamsa_type,
-            data=payload,
-        )
-        .on_conflict_do_update(
-            constraint="uq_panchangam_cache_key",
-            set_={
-                "data": payload,
-                "created_at": datetime.now(tz=UTC),
-                "expires_at": datetime.now(tz=UTC) + timedelta(days=90),
-            },
-        )
-    )
-
-
-def calculate_daily_panchangam(
+def compute_daily_panchangam(
     date_local: date,
     latitude: float,
     longitude: float,
     timezone_name: str,
-    *,
-    session: Session | None = None,
-    use_cache: bool = True,
 ) -> PanchangamSnapshot:
-    if use_cache and session is not None:
-        try:
-            purge_expired_panchangam_cache(session)
-            cached = _load_cached_snapshot(session, date_local, latitude, longitude, DEFAULT_AYANAMSA_TYPE)
-            if cached is not None:
-                return cached
-        except Exception as exc:
-            logger.warning(f"Panchangam cache read/purge failed; falling back to computation: {exc}")
-            use_cache = False
+    """One civil day's panchangam, computed from the ephemeris. No cache.
 
+    Callers that hold a database session want the read-through cache in
+    ``app.services.panchangam_cache.calculate_daily_panchangam``, which calls
+    this on a miss.
+    """
     timezone_obj = resolve_timezone(timezone_name)
     local_midnight = datetime.combine(date_local, datetime.min.time(), tzinfo=timezone_obj)
     jd_start = utc_datetime_to_julian_day(local_midnight.astimezone(UTC))
@@ -2448,7 +2366,17 @@ def calculate_daily_panchangam(
     moon_phase_label = _moon_phase_label(tithi_paksha)
     tithi_next_number, tithi_next_name, tithi_next_paksha = _next_tithi(tithi_number)
     nakshatra_next_name = _next_nakshatra_name(nakshatra_number)
-    special_tithi_day_number = dominant_special_tithi_for_civil_day(date_local, timezone_name)
+    previous_sunrise_jd = calculate_rise_transit_jd(
+        utc_datetime_to_julian_day((local_midnight - timedelta(days=1)).astimezone(UTC)),
+        latitude,
+        longitude,
+        rise=True,
+    )
+    special_tithi_day_number = special_tithi_day_from_sunrises(
+        tithi_number,
+        _tithi_number_at_jd(previous_sunrise_jd),
+        _tithi_number_at_jd(next_sunrise_jd),
+    )
 
     soolam_direction = SOOLAM_DIRECTION[weekday_index]
     soolam_parigaram = SOOLAM_PARIGARAM_BY_DIRECTION[soolam_direction]
@@ -2625,92 +2553,41 @@ def calculate_daily_panchangam(
         pradhosham_tithi_number=pradhosham_tithi_number,
         nishita_tithi_number=nishita_tithi_number,
     )
-
-    if use_cache and session is not None:
-        try:
-            _store_cached_snapshot(session, snapshot, DEFAULT_AYANAMSA_TYPE)
-        except Exception as exc:
-            logger.warning(f"Failed to store panchangam cache for {date_local}: {exc}")
     return snapshot
 
 
-def calculate_daily_panchangam_range(
+def compute_daily_panchangam_range(
     start_date: date,
     end_date: date,
     latitude: float,
     longitude: float,
     timezone_name: str,
     *,
-    session: Session | None = None,
     only: Collection[date] | None = None,
 ) -> dict[date, PanchangamSnapshot]:
-    """Compute panchangam snapshots for a date range with batched cache I/O.
+    """Each civil day's panchangam over a range, computed. No cache.
 
-    Replaces the per-day SELECT + DELETE that ``calculate_daily_panchangam``
-    performs when called in a loop (e.g. for a monthly calendar) with a single
-    bulk SELECT covering the whole range and a single purge call. Cache misses
-    fall back to the regular per-day computation, which also stores its result.
+    ``only`` restricts computation to the dates a caller needs; dates outside
+    the range are ignored. A polar-latitude range can contain days with no
+    sunrise/sunset: those are omitted from the result (the monthly grid skips
+    them) rather than failing the whole range.
 
-    ``only`` restricts computation to the dates a caller actually needs, while
-    the cache SELECT still covers the whole range in one query. A caller with
-    SPARSE dates must pass it: the curated muhurtham sheet is ~55 dates spread
-    across a year, and filling the contiguous range between them computed ~360
-    days to answer about 55. That is invisible on a warm cache and a wall on a
-    cold one — a panchangam day costs ~600 ms, so the muhurtham-naals endpoint
-    spent ~220 s and returned 502 at the proxy's 300 s limit the first time it
-    was asked for a year whose snapshots had been invalidated (2026-09-09, by a
-    cache-version bump). Dates outside the range are ignored, not fetched.
+    The batched read-through cache over a range is
+    ``app.services.panchangam_cache.calculate_daily_panchangam_range``.
     """
     wanted = None if only is None else set(only)
-    # A polar-latitude range can contain some days with no sunrise/sunset. Those
-    # days are simply omitted from the result (the monthly grid skips them) rather
-    # than failing the whole range — the caller iterates whatever days came back.
-    if session is None:
-        snapshots: dict[date, PanchangamSnapshot] = {}
-        for current in _date_range(start_date, end_date):
-            if wanted is not None and current not in wanted:
-                continue
-            try:
-                snapshots[current] = calculate_daily_panchangam(
-                    current, latitude, longitude, timezone_name, session=None,
-                )
-            except RiseTransitUndefinedError:
-                logger.info("Skipping %s: no sunrise/sunset at this location (polar day/night)", current)
-        return snapshots
-
-    try:
-        purge_expired_panchangam_cache(session)
-        cached = _load_cached_snapshots_in_range(
-            session, start_date, end_date, latitude, longitude, DEFAULT_AYANAMSA_TYPE,
-        )
-    except Exception as exc:
-        logger.warning(f"Panchangam cache read/purge failed for range; computing all: {exc}")
-        cached = {}
-
-    snapshots = {}
-    for current in _date_range(start_date, end_date):
+    snapshots: dict[date, PanchangamSnapshot] = {}
+    for current in date_range(start_date, end_date):
         if wanted is not None and current not in wanted:
             continue
-        existing = cached.get(current)
-        if existing is not None:
-            snapshots[current] = existing
-            continue
         try:
-            computed = calculate_daily_panchangam(
-                current, latitude, longitude, timezone_name, session=session, use_cache=False,
-            )
+            snapshots[current] = compute_daily_panchangam(current, latitude, longitude, timezone_name)
         except RiseTransitUndefinedError:
             logger.info("Skipping %s: no sunrise/sunset at this location (polar day/night)", current)
-            continue
-        try:
-            _store_cached_snapshot(session, computed, DEFAULT_AYANAMSA_TYPE)
-        except Exception as exc:
-            logger.warning(f"Failed to store panchangam cache for {current}: {exc}")
-        snapshots[current] = computed
     return snapshots
 
 
-def _date_range(start_date: date, end_date: date) -> Iterator[date]:
+def date_range(start_date: date, end_date: date) -> Iterator[date]:
     current = start_date
     while current <= end_date:
         yield current

@@ -3,3 +3,5 @@
 *.sh text eol=lf
 docker/entrypoint.sh text eol=lf
 Dockerfile text eol=lf
+# Swiss Ephemeris data files: never let autocrlf touch a byte.
+*.se1 binary

@@ -7,18 +7,17 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
  *
  * These read the rendered page rather than its structure, because the three
  * things worth guarding here are all things a type check cannot see: that the
- * page speaks the account's language (it was English-only while `useSession()`
- * already knew the language), that it asks for more than the popover's default
+ * page speaks the active product language, that it asks for more than the popover's default
  * page (or "full" means nothing), and that read/unread is filterable.
  */
 const apiFetchJson = vi.fn();
-const session = { hydrated: true, lang: "en" as "en" | "ta" };
+let lang: "en" | "ta" = "en";
 
 vi.mock("@/lib/api", () => ({
   apiFetchJson: (...args: unknown[]) => apiFetchJson(...args),
   readErrorMessage: (e: unknown) => String(e),
 }));
-vi.mock("@/hooks/useSession", () => ({ useSession: () => session }));
+vi.mock("@/components/lang-toggle", () => ({ useLang: () => [lang, vi.fn()] }));
 
 import NotificationsPage from "./page";
 
@@ -66,7 +65,7 @@ function inbox(data = ITEMS) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  session.lang = "en";
+  lang = "en";
   apiFetchJson.mockResolvedValue(inbox());
 });
 
@@ -118,7 +117,7 @@ describe("Notification inbox page", () => {
   });
 
   it("speaks the account language, not English by default", async () => {
-    session.lang = "ta";
+    lang = "ta";
     render(<NotificationsPage />);
     await screen.findByText("Nalla neram this morning");
 

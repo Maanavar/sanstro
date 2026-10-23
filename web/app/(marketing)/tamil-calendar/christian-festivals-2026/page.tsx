@@ -1,13 +1,15 @@
 import { CalendarCategoryContent } from "../CalendarCategoryContent";
+import { JsonLd } from "@/lib/json-ld";
+import { categoryItemListLd } from "../calendar-jsonld";
 import {
   fetchCalendarCategories,
   fetchCalendarCategory,
-  metadataForCategory,
+  localizedCategoryMetadata,
 } from "../calendar-category-api";
 
 const SLUG = "christian-festivals-2026" as const;
 
-export const metadata = metadataForCategory(SLUG);
+export const generateMetadata = () => localizedCategoryMetadata(SLUG);
 
 export default async function ChristianFestivalsPage() {
   const [data, categories] = await Promise.all([
@@ -15,24 +17,10 @@ export default async function ChristianFestivalsPage() {
     fetchCalendarCategories(),
   ]);
 
-  const itemListJsonld = data
-    ? {
-        "@context": "https://schema.org",
-        "@type": "ItemList",
-        name: data.title.en,
-        numberOfItems: data.count,
-        itemListElement: data.events.map((event, index) => ({
-          "@type": "ListItem",
-          position: index + 1,
-          name: `${event.name.en} - ${event.date}`,
-          url: `https://vinaadi.com/panchangam/${event.date}`,
-        })),
-      }
-    : null;
 
   return (
     <>
-      {itemListJsonld && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonld) }} />}
+      {data && <JsonLd en={categoryItemListLd(data, "en")} ta={categoryItemListLd(data, "ta")} />}
       <CalendarCategoryContent data={data} categories={categories} />
     </>
   );

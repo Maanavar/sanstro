@@ -7,6 +7,7 @@ from sqlalchemy import JSON, CheckConstraint, DateTime, ForeignKey, Index, Integ
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
+from app.db.encrypted_types import EncryptedFloat
 
 
 class Chart(TimestampMixin, Base):
@@ -33,9 +34,9 @@ class Chart(TimestampMixin, Base):
     house_system_primary: Mapped[str] = mapped_column(
         String(32), nullable=False, default="WHOLE_SIGN", server_default=text("'WHOLE_SIGN'")
     )
-    julian_day: Mapped[float] = mapped_column(Numeric(16, 8), nullable=False)
+    julian_day: Mapped[float] = mapped_column(EncryptedFloat, nullable=False)
     lagna_rasi: Mapped[str] = mapped_column(String(32), nullable=False)
-    lagna_longitude: Mapped[float] = mapped_column(Numeric(12, 8), nullable=False)
+    lagna_longitude: Mapped[float] = mapped_column(EncryptedFloat, nullable=False)
     moon_rasi: Mapped[str] = mapped_column(String(32), nullable=False)
     janma_nakshatra: Mapped[str] = mapped_column(String(32), nullable=False)
     janma_pada: Mapped[int] = mapped_column(Integer, nullable=False)

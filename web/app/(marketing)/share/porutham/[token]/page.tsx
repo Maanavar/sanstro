@@ -1,17 +1,18 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { LocalizedLink as Link } from "@/components/localized-link";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { scoreColorPct } from "@/lib/format";
 import { madhyamaLabel, madhyamaGloss, hasMadhyama } from "@/lib/kuta-grade";
 import type { PoruthamShareViewData } from "@vinaadi/shared/api/porutham-shares";
 import type { KutaGrade } from "@vinaadi/shared";
-
-const BACKEND_URL = process.env.BACKEND_URL ?? "http://127.0.0.1:8000";
+import { backendUrl } from "@/lib/backend-url";
+import { tNakshatra } from "@/lib/i18n";
+import { ShashtashtakaNoteCard } from "@/components/shashtashtaka-note";
 
 async function fetchShare(token: string): Promise<PoruthamShareViewData | null> {
   try {
-    const res = await fetch(`${BACKEND_URL}/api/v1/porutham-shares/${encodeURIComponent(token)}`, { cache: "no-store" });
+    const res = await fetch(`${backendUrl()}/api/v1/porutham-shares/${encodeURIComponent(token)}`, { cache: "no-store" });
     if (!res.ok) return null;
     const json = (await res.json()) as { success?: boolean; data?: PoruthamShareViewData };
     return json.data ?? null;
@@ -25,10 +26,12 @@ type Props = { params: Promise<{ token: string }> };
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { token } = await params;
   const data = await fetchShare(token);
-  if (!data) return { title: "Porutham Result | Vinaadi AI" };
+  // Private to the couple who shared it, found or not — the not-found branch
+  // used to drop `noindex` and inherit the homepage's canonical.
+  if (!data) return { title: "Porutham Result", robots: { index: false, follow: false } };
 
   const names = [data.labelA, data.labelB].filter(Boolean).join(" & ") || "This match";
-  const title = `${names} — ${data.totalScore}/${data.maxScore} Porutham | Vinaadi AI`;
+  const title = `${names} — ${data.totalScore}/${data.maxScore} Porutham`;
   const description = data.summary.en || "View this Tamil marriage porutham (compatibility) result — shared via Vinaadi AI.";
 
   return {
@@ -86,7 +89,9 @@ export default async function PoruthamSharePage({ params }: Props) {
               <p className="cl-pub-lead" style={{ marginBottom: "24px" }}>
                 The porutham result may have been revoked, or the share link has expired (links last 30 days).
               </p>
-              <Link href="/dashboard" className="cl-btn cl-btn--solid">Go to Vinaadi AI →</Link>
+              {/* Still useful to whoever opened a dead link: the calculator is
+                  free and needs no account. */}
+              <Link href="/tools/marriage-porutham-calculator" className="cl-btn cl-btn--solid">Check a porutham yourself →</Link>
             </div>
           </section>
         </main>
@@ -138,6 +143,8 @@ export default async function PoruthamSharePage({ params }: Props) {
                     {data.nadiDosha.hasNadiDosha && <span style={{ fontSize: "0.65rem", fontWeight: 700, padding: "4px 10px", borderRadius: "6px", background: "rgba(248,113,113,0.12)", color: "#e5484d", border: "1px solid rgba(248,113,113,0.3)" }}>⚠ Nadi Dosha</span>}
                   </div>
                 )}
+                {/* F-POR-02: a disclosure beside the verdict, never part of it. */}
+                <ShashtashtakaNoteCard note={data.shashtashtaka} lang="en" />
               </div>
               <div style={{ flex: 1, minWidth: "240px" }}>
                 <p style={{ margin: 0, fontSize: "0.92rem", color: "var(--cl-ink)", lineHeight: 1.6 }}>
@@ -162,13 +169,13 @@ export default async function PoruthamSharePage({ params }: Props) {
                 <p style={{ margin: "0 0 2px", fontSize: "0.65rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--cl-muted)" }}>
                   {data.labelA || "Person A"} Nakshatra
                 </p>
-                <p style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: "var(--cl-ink)" }}>{data.boyNakshatraName}</p>
+                <p style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: "var(--cl-ink)" }}>{tNakshatra(data.boyNakshatraName, "en")}</p>
               </div>
               <div>
                 <p style={{ margin: "0 0 2px", fontSize: "0.65rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--cl-muted)" }}>
                   {data.labelB || "Person B"} Nakshatra
                 </p>
-                <p style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: "var(--cl-ink)" }}>{data.girlNakshatraName}</p>
+                <p style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: "var(--cl-ink)" }}>{tNakshatra(data.girlNakshatraName, "en")}</p>
               </div>
             </div>
 
@@ -201,7 +208,9 @@ export default async function PoruthamSharePage({ params }: Props) {
               <h2 className="cl-cta-strip__title">Check your own compatibility</h2>
               <p className="cl-cta-strip__body">Create a free account for the full compatibility intelligence report, charts, and daily guidance.</p>
             </div>
-            <Link href="/dashboard" className="cl-btn cl-btn--solid">Get started free →</Link>
+            {/* Straight to the signup form: /dashboard bounces a visitor
+                with no session through a redirect first. */}
+            <Link href="/login?mode=signup" className="cl-btn cl-btn--solid">Get started free →</Link>
           </div>
         </section>
       </main>

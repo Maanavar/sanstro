@@ -261,9 +261,10 @@ def test_nadi_v2_tamil_strings_native_reviewed_locked():
     )
     assert _NADI_CLOSING_CLAUSE_TA == (
         "இது நாடி ஆட்சேபனையை மட்டுமே நீக்குகிறது. மற்ற கட்டாய பொருத்தங்கள் "
-        "(ராஜ்ஜு, வேதம், மகேந்திரம், யோனி போன்றவை) தனித்தனியாக மதிப்பிடப்படுகின்றன."
+        "(ரஜ்ஜு, வேதை, மகேந்திரம், யோனி போன்றவை) தனித்தனியாக மதிப்பிடப்படுகின்றன."
     )
-    assert _NADI_RAJJU_WARNING_TA == "மேலே உள்ள நாடி முடிவைப் பொருட்படுத்தாமல் ராஜ்ஜு தோஷம் இன்னும் பொருந்தும்."
+    # Spellings locked by the 2026-10-12 native review (C-01, C-02).
+    assert _NADI_RAJJU_WARNING_TA == "மேலே உள்ள நாடி முடிவைப் பொருட்படுத்தாமல் ரஜ்ஜு தோஷம் இன்னும் பொருந்தும்."
 
 
 def test_nadi_note_ta_composes_reviewed_fragments_in_order():

@@ -16,6 +16,7 @@ import { ErrorCard } from "@/components/ErrorCard";
 import { askPrasna, type PrasnaOutlook, type PrasnaQuestionArea } from "@/api/tools";
 import { getChartFull } from "@/api/charts";
 import { getPrimaryChartId } from "@/lib/userPrefs";
+import { tNakshatra } from "@vinaadi/shared";
 
 /**
  * Prasna reads the sky at the moment the question is asked, for the place the
@@ -173,7 +174,7 @@ export default function PrashanScreen() {
 
             <View style={styles.metaRow}>
               <MetaChip label={isTamil ? "லக்னம்" : "Lagna"} value={result.prasnaLagnaName} />
-              <MetaChip label={isTamil ? "நட்சத்திரம்" : "Moon star"} value={result.moonNakshatraName} />
+              <MetaChip label={isTamil ? "நட்சத்திரம்" : "Moon star"} value={tNakshatra(result.moonNakshatraName, lang)} />
               <MetaChip label={isTamil ? "காரகன்" : "Karaka"} value={`${result.karaka} (H${result.karakaHouse})`} />
             </View>
 

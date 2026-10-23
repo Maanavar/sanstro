@@ -67,10 +67,25 @@ def test_chart_calculate_endpoint_uses_persisted_birth_profile(client, birth_pro
         body["data"]["lagna"]["absoluteLongitude"] % 360,
         abs=1e-9,
     )
+    assert body["data"]["lagna"]["d9Rasi"] == navamsa_rasi_from_degree(
+        body["data"]["lagna"]["absoluteLongitude"]
+    )
+    d9_dignities = {
+        "EXALTED",
+        "OWN_SIGN",
+        "FRIEND_SIGN",
+        "NEUTRAL_SIGN",
+        "ENEMY_SIGN",
+        "DEBILITATED",
+    }
     for planet in planets.values():
         assert planet["houseFromLagna"] in range(1, 13)
         assert planet["d9Rasi"] == navamsa_rasi_from_degree(planet["absoluteLongitude"])
+        assert planet["d9Dignity"] in d9_dignities
         assert "showRetrogradeBadge" in planet
+    assert planets["RAHU"]["d9Dignity"] == "NEUTRAL_SIGN"
+    assert planets["KETU"]["d9Dignity"] == "NEUTRAL_SIGN"
+    assert planets["MANDHI"]["d9Dignity"] == "NEUTRAL_SIGN"
     assert planets["KETU"]["absoluteLongitude"] == pytest.approx(
         (planets["RAHU"]["absoluteLongitude"] + 180.0) % 360.0,
         abs=1e-9,
@@ -393,6 +408,21 @@ def test_varshaphala_area_outlook_scores_vary_by_area(client, birth_profile_payl
         "CAREER", "RELATIONSHIPS", "HEALTH", "WEALTH", "EDUCATION",
         "CHILDREN", "PROPERTY", "FOREIGN", "LITIGATION", "SPIRITUALITY",
     }
+
+
+def test_varshaphala_never_sends_favourable_months_fsa17(client, birth_profile_payload_factory):
+    # FSA-17 (owner ruling 2026-10-21): favourable months were a constant per
+    # score band — every area scoring >= 70 on every chart got [2, 4, 6, 9, 11].
+    # Hidden until derived from the individual chart by a method ruled on first.
+    # The field stays on the wire, always empty, so no client breaks.
+    created = client.post("/api/v1/birth-profiles", json=birth_profile_payload_factory()).json()
+    chart_id = created["data"]["chartId"]
+    for year in (2025, 2026, 2027):
+        response = client.get(f"/api/v1/charts/{chart_id}/varshaphala", params={"year": year})
+        assert response.status_code == 200
+        area_outlook = response.json()["data"]["areaOutlook"]
+        assert area_outlook
+        assert all(row["favourableMonths"] == [] for row in area_outlook), area_outlook
 
 
 def test_varshaphala_area_outlook_scores_ignore_itthasala_isarafa_wi18(

@@ -45,6 +45,7 @@ from app.schemas.auth import (
     ResetPasswordRequest,
     UpdateUserSettingsRequest,
 )
+from app.services.acquisition_service import apply_first_touch
 from app.services.email_service import (
     enqueue_existing_account_registration_email,
     enqueue_password_reset_email,
@@ -265,18 +266,7 @@ def register(
 ) -> RegisterResponse:
     client_ip = _get_client_ip(request)
 
-    allowed, retry_after = _throttler.check(
-        AuthThrottleAction.REGISTER,
-        ip=client_ip,
-        account_identifier=payload.email.lower(),
-    )
-    if not allowed:
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Too many registration attempts. Please try again later.",
-            headers={"Retry-After": str(retry_after)},
-        )
-
+    _throttler.enforce(AuthThrottleAction.REGISTER, ip=client_ip, account_identifier=payload.email.lower())
     existing = session.query(User).filter(User.email == payload.email).first()
     if existing is not None:
         # Match the bcrypt work done for new registrations so duplicate attempts are
@@ -298,6 +288,7 @@ def register(
         consent_given_at=datetime.now(UTC),
         consent_policy_version=CURRENT_POLICY_VERSION,
     )
+    apply_first_touch(user, request)
     session.add(user)
     session.flush()
     return RegisterResponse(detail=_REGISTER_NEUTRAL_DETAIL)
@@ -312,18 +303,7 @@ def login(
 ) -> AuthUserResponse:
     client_ip = _get_client_ip(request)
 
-    allowed, retry_after = _throttler.check(
-        AuthThrottleAction.LOGIN,
-        ip=client_ip,
-        account_identifier=payload.email.lower(),
-    )
-    if not allowed:
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Too many login attempts. Please try again later.",
-            headers={"Retry-After": str(retry_after)},
-        )
-
+    _throttler.enforce(AuthThrottleAction.LOGIN, ip=client_ip, account_identifier=payload.email.lower())
     user = session.query(User).filter(User.email == payload.email).first()
     invalid_credentials = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -484,18 +464,7 @@ def forgot_password(
 ) -> ForgotPasswordResponse:
     client_ip = _get_client_ip(request)
 
-    allowed, retry_after = _throttler.check(
-        AuthThrottleAction.FORGOT_PASSWORD,
-        ip=client_ip,
-        account_identifier=payload.email.lower(),
-    )
-    if not allowed:
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Too many password reset attempts. Please try again later.",
-            headers={"Retry-After": str(retry_after)},
-        )
-
+    _throttler.enforce(AuthThrottleAction.FORGOT_PASSWORD, ip=client_ip, account_identifier=payload.email.lower())
     user = session.query(User).filter(User.email == payload.email).first()
     if user and user.email:
         reset_token = _issue_password_reset_token(session, user)
@@ -571,14 +540,7 @@ def oauth_google_start(request: Request, response: Response) -> RedirectResponse
         )
 
     client_ip = _get_client_ip(request)
-    allowed, retry_after = _throttler.check(AuthThrottleAction.OAUTH, ip=client_ip)
-    if not allowed:
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Too many sign-in attempts. Please try again later.",
-            headers={"Retry-After": str(retry_after)},
-        )
-
+    _throttler.enforce(AuthThrottleAction.OAUTH, ip=client_ip)
     state = secrets.token_urlsafe(32)
     params = {
         "client_id": settings.google_client_id,
@@ -618,14 +580,7 @@ def oauth_google_callback(
         return login_error_redirect
 
     client_ip = _get_client_ip(request)
-    allowed, retry_after = _throttler.check(AuthThrottleAction.OAUTH, ip=client_ip)
-    if not allowed:
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Too many sign-in attempts. Please try again later.",
-            headers={"Retry-After": str(retry_after)},
-        )
-
+    _throttler.enforce(AuthThrottleAction.OAUTH, ip=client_ip)
     cookie_state = request.cookies.get(_OAUTH_STATE_COOKIE)
     if not code or not state or not cookie_state or state != cookie_state:
         return login_error_redirect
@@ -656,6 +611,9 @@ def oauth_google_callback(
             user.google_sub = google_sub
         else:
             user = User(user_id=uuid4(), email=email, google_sub=google_sub)
+            # New accounts only: linking Google to an existing account must
+            # not rewrite where that account originally came from.
+            apply_first_touch(user, request)
             session.add(user)
         session.flush()
 

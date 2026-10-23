@@ -95,6 +95,25 @@ DOMAIN_RUNGS: dict[str, dict[str, VerdictRung]] = {
         "MIXED": VerdictRung.BALANCED,
         "CAUTION": VerdictRung.CAUTION,
     },
+    # The Compatibility Intelligence sub-layer harmony vocabulary (navamsa,
+    # dasha, Moon-Moon, Venus). F-DSP-01: these reached Tamil readers as raw
+    # engine keys ("STRONG", "SUPPORTIVE") because the panel put the enum
+    # straight into a <Badge text=...>. One enum, several layers emit from it,
+    # so it is one table here rather than one map per panel.
+    "harmony": {
+        "EXCELLENT": VerdictRung.EXCELLENT,
+        "STRONG": VerdictRung.EXCELLENT,
+        "SUPPORTIVE": VerdictRung.GOOD,
+        "GOOD": VerdictRung.GOOD,
+        "MODERATE": VerdictRung.BALANCED,
+        "MIXED": VerdictRung.BALANCED,
+        "NEUTRAL": VerdictRung.BALANCED,
+        "TENSE": VerdictRung.CAUTION,
+        "CHALLENGING": VerdictRung.CAUTION,
+        "WEAK": VerdictRung.CAUTION,
+    },
+    # Dosham severity is not a quality verdict, so it has no rung of its own —
+    # it is here only for its display words (VERDICT_PHRASE below).
 }
 
 # Composed verdict phrase shown to the user, per domain label — (ta, en).
@@ -123,6 +142,29 @@ VERDICT_PHRASE: dict[str, dict[str, tuple[str, str]]] = {
         "EXCELLENT": ("மிகச் சிறந்த காலகட்டம்", "Excellent period"),
         "MIXED": ("கலப்பான காலகட்டம்", "Mixed period"),
         "CAUTION": ("கவனம் தேவை", "Needs care"),
+    },
+    # Sub-layer harmony (F-DSP-01). The noun is இணக்கம், matching the
+    # "synastry" row above, which is the same idea at report level.
+    "harmony": {
+        "EXCELLENT": ("மிகச் சிறந்த இணக்கம்", "Excellent harmony"),
+        "STRONG": ("வலுவான இணக்கம்", "Strong harmony"),
+        "SUPPORTIVE": ("ஆதரவான இணக்கம்", "Supportive"),
+        "GOOD": ("நல்ல இணக்கம்", "Good harmony"),
+        "MODERATE": ("நடுத்தர இணக்கம்", "Moderate harmony"),
+        "MIXED": ("கலப்பான இணக்கம்", "Mixed harmony"),
+        "NEUTRAL": ("நடுநிலை", "Neutral"),
+        "TENSE": ("இறுக்கமான இணக்கம்", "Tense"),
+        "CHALLENGING": ("சவாலான இணக்கம்", "Challenging"),
+        "WEAK": ("பலவீனமான இணக்கம்", "Weak harmony"),
+    },
+    # Dosham severity — a magnitude, not a verdict, so it is deliberately not
+    # in DOMAIN_RUNGS. It is rendered on the Sevvai badge, which printed the
+    # bare "SEVERE"/"MODERATE" key at Tamil readers before F-DSP-01.
+    "dosham_severity": {
+        "SEVERE": ("தீவிரம்", "Severe"),
+        "MODERATE": ("நடுத்தரம்", "Moderate"),
+        "MILD": ("லேசானது", "Mild"),
+        "NONE": ("இல்லை", "None"),
     },
 }
 

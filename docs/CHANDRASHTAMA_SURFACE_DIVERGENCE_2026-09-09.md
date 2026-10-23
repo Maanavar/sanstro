@@ -1445,3 +1445,46 @@ them.
   only those minutes. The tile has a branch for it that names no figure, and this
   measurement is what says the branch is reached. Whether the copy should say
   more on those days is a wording decision, not a code one.
+
+## 17. D11 recorded as a reasoned choice (owner ruling 2026-10-21)
+
+Recorded so the definition is not reopened without new evidence. Source:
+[`OWNER_RULINGS_FSA_2026-10-21.md`](OWNER_RULINGS_FSA_2026-10-21.md) §2.
+
+**The rule.** Chandrashtama is the Moon transiting the **8th rasi** from the
+janma rasi, resolved to the janma star for the day the almanac names (D11, §13;
+two registers, §16). It is not the 8th *nakshatra* from the janma nakshatra.
+
+**Why, in the owner's words.** An owner ruling on 2026-10-21 first stated
+"8th nakshatra from janma nakshatra". The owner withdrew it the same day as a
+straight error, not loose phrasing:
+
+> If a rule marks an "8th from birth" as adverse while the classical system
+> marks that same position favourable, the two 8ths are being counted in
+> different units — rasis in one, nakshatras in the other.
+
+The 8th star from the janma star is Tarabalam's 8th tara, **Mitra**, a
+favourable position. Counted in rasis, the 8th is about 210° away (roughly 16
+stars); counted in stars, it is about 93°. Following the sentence literally
+would have moved every user's Chandrashtama by about a week, onto a friendly
+day.
+
+**Why the rasi rule is right structurally, not only doctrinally.** Chandrashtama
+is the 8th position of the same twelve-rasi Chandra gochara table the
+panchangam already uses: favourable 1, 3, 6, 7, 10, 11; adverse 2, 4, 5, 8, 9,
+12, per `gochara_scores.GOCHARA_FAVOURABLE_FROM_MOON["MOON"]`. One table serves
+both. For that reason the public tool was **not** split into separate
+Chandrashtama and gochara tools; its 8th row is labelled as the Chandrashtama
+position. Tarabalam stays a separate, third reckoning.
+
+**The qualification, recorded so it is not overstated.** This establishes D11
+as Vinaadi's rule and as the mainstream Tamil reckoning. It does **not**
+establish that every lineage defines Chandrashtama from the rasi; some work it
+from the nakshatra. If that is ever wanted, it arrives as a declared,
+user-visible tradition-profile parameter, per the 2026-10-21 governing
+principle. It is never a silent change to this rule.
+
+**Reopen only if** a printed source shows a lineage this product serves using
+the nakshatra reckoning *and* the owner asks for it as a profile. A sentence in
+a ruling that counts in different units is not such evidence. This one was
+caught by checking it against Tarabalam before anything shipped.

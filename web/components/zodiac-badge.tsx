@@ -13,8 +13,10 @@ import { zodiacImageSrc } from "@/lib/zodiac-images";
  * never a broken image.
  *
  * The border colour resolves against `--cl-border` (marketing/tools surfaces),
- * then `--color-border` (dashboard shell), then a neutral literal, so the same
- * badge looks right on both design systems.
+ * then `--color-border` (dashboard shell), then a neutral literal. On light
+ * grounds the `vn-gem` class adds a bronze-gold setting (`--gem-ring`, drawn
+ * as an outline over the border) so the dark gem reads as a set stone, not a
+ * hole (IMG-08).
  */
 export function ZodiacBadge({
   rasi,
@@ -38,6 +40,7 @@ export function ZodiacBadge({
     <img
       src={src}
       alt=""
+      className="vn-gem"
       width={size}
       height={size}
       // Eager, not lazy: these are tiny and the sign artwork is the whole point of

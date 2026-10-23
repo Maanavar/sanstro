@@ -31,6 +31,7 @@ import { ShareCaptureView } from "@/components/share/ShareCaptureView";
 import { loadQuickJournalEntries, type QuickJournalEntry } from "@/features/journal/journalStore";
 import { getPrimaryChartId } from "@/lib/userPrefs";
 import { scoreFillColor } from "@/lib/score";
+import { tPlanetLord } from "@vinaadi/shared";
 
 const CURRENT_YEAR = new Date().getFullYear();
 const YEAR_OPTIONS = [CURRENT_YEAR, CURRENT_YEAR - 1, CURRENT_YEAR - 2].filter((year) => year >= 2024);
@@ -242,7 +243,7 @@ function Hero({
       <Text style={styles.heroKicker}>Your year in Vinaadi</Text>
       <Text style={styles.heroYear}>{data.year}</Text>
       <Text style={styles.heroBody}>
-        {data.totalDaysScored} scored days, {data.highDays} high days, and {data.dominantDashaLord} as the dominant dasha signal.
+        {data.totalDaysScored} scored days, {data.highDays} high days, and {tPlanetLord(data.dominantDashaLord, "en")} as the dominant dasha signal.
       </Text>
       <View style={styles.heroMetaRow}>
         <Text style={styles.heroMeta}>{entriesForYear} journal moments</Text>
@@ -350,7 +351,7 @@ function StatsSummary({ data }: { data: AnnualWrappedData }) {
     { label: "Average", value: `${data.averageScore}/100`, color: scoreFillColor(data.averageScore) },
     { label: "Peak", value: `${data.peakScore}`, sub: dateLabel(data.peakDate), color: scoreFillColor(data.peakScore) },
     { label: "Caution", value: String(data.cautionDays), color: C.caution },
-    { label: "Dasha", value: data.dominantDashaLord, color: C.saffron },
+    { label: "Dasha", value: tPlanetLord(data.dominantDashaLord, "en"), color: C.saffron },
   ];
 
   return (

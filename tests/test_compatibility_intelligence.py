@@ -312,7 +312,7 @@ _STRONG_DASHA = DashaHarmony(
 )
 _STRONG_EMOTIONAL = EmotionalCompatibility(
     moon_moon_harmony="EXCELLENT", venus_mars_harmony="STRONG",
-    communication_note="", note_en="", note_ta="", score=10,
+    communication_note_en="", communication_note_ta="", note_en="", note_ta="", score=10,
 )
 
 
@@ -322,10 +322,15 @@ def _stub_strong_layers(monkeypatch: pytest.MonkeyPatch) -> None:
     isolates the WI-21 label-cap logic from needing real chart snapshots."""
     monkeypatch.setattr(ci_module, "_compute_chart_marriage_strength", lambda snap: _STRONG_STRENGTH)
     monkeypatch.setattr(ci_module, "_compute_navamsa", lambda a, b: _STRONG_NAVAMSA)
-    monkeypatch.setattr(ci_module, "_compute_sevvai", lambda snap: _STRONG_SEVVAI)
-    monkeypatch.setattr(ci_module, "_apply_mutual_sevvai_cancellation", lambda a, b: (a, b))
+    monkeypatch.setattr(ci_module, "_compute_sevvai", lambda snap, partner=None: _STRONG_SEVVAI)
     monkeypatch.setattr(ci_module, "_compute_dasha_harmony", lambda a, b, jd: _STRONG_DASHA)
     monkeypatch.setattr(ci_module, "_compute_emotional_compatibility", lambda a, b: _STRONG_EMOTIONAL)
+    # DD-03 samyam lines read real snapshots; text only, no score effect.
+    monkeypatch.setattr(ci_module, "marriage_samyam_lines", lambda a, b: ([], []))
+    # F-CI-03's papa samyam reads real snapshots too, and these tests pass a
+    # bare SimpleNamespace. Stubbed for the same reason, so a label-cap test
+    # fails only on the label cap.
+    monkeypatch.setattr(ci_module, "papa_samyam_lines", lambda a, b, *_: ([], [], [], []))
 
 
 def _fake_porutham_result(*, rajju_dosha: bool, vedha_dosha: bool) -> SimpleNamespace:
@@ -366,3 +371,121 @@ def test_no_veto_overall_label_reflects_score_normally(monkeypatch):
         porutham_result=porutham_result, synastry_score=100,
     )
     assert result.overall_label == "EXCELLENT"
+
+
+# ---------------------------------------------------------------------------
+# F-CI-01 — dosha samyam caps the label (anchors #4 and #6, 2026-08-31).
+# The sub-layers stay stubbed to their strongest values, so the score stays in
+# the EXCELLENT band and only the Sevvai state varies: that is what makes the
+# cap, and not the arithmetic, the thing under test.
+# ---------------------------------------------------------------------------
+
+_LIVE_SEVVAI = SevvaiDoshamDetail(
+    has_dosham=True, mars_house=7, is_cancelled=False, severity="SEVERE",
+    cancellation_reasons=[], note_en="", note_ta="", score=0,
+)
+_CANCELLED_SEVVAI = SevvaiDoshamDetail(
+    has_dosham=True, mars_house=7, is_cancelled=True, severity="NONE",
+    cancellation_reasons=["Jupiter aspects Mars"], note_en="", note_ta="", score=4,
+)
+
+
+def _one_sided(monkeypatch: pytest.MonkeyPatch, sevvai_a: SevvaiDoshamDetail) -> None:
+    """Person A carries `sevvai_a`; person B is clear."""
+    seen: list[object] = []
+
+    def _compute(snap, partner=None):
+        seen.append(snap)
+        return sevvai_a if len(seen) == 1 else _STRONG_SEVVAI
+
+    monkeypatch.setattr(ci_module, "_compute_sevvai", _compute)
+
+
+def test_one_sided_live_sevvai_caps_label_at_average(monkeypatch):
+    """Anchor #6: an uncancelled dosham on one side holds the reading at
+    AVERAGE however the other layers score. Before this, the dosham layer was
+    worth 5 of 100 and a worked 84/100 still read EXCELLENT."""
+    _stub_strong_layers(monkeypatch)
+    _one_sided(monkeypatch, _LIVE_SEVVAI)
+    result = compute_compatibility_intelligence(
+        snap_a=SimpleNamespace(), snap_b=SimpleNamespace(),
+        porutham_result=_fake_porutham_result(rajju_dosha=False, vedha_dosha=False),
+        synastry_score=100,
+    )
+    assert result.overall_score >= 80, "the cap must bite on a score that would otherwise read EXCELLENT"
+    assert result.overall_label == "AVERAGE"
+    assert "uncancelled Sevvai Dosham" in result.summary_en
+    assert "செவ்வாய் தோஷம்" in result.summary_ta
+
+
+def test_one_sided_cancelled_sevvai_caps_label_one_rung_down(monkeypatch):
+    """Anchor #4: present-but-cancelled caps an otherwise-excellent match at
+    GOOD, and the family is told it was cancelled, not that it was absent."""
+    _stub_strong_layers(monkeypatch)
+    _one_sided(monkeypatch, _CANCELLED_SEVVAI)
+    result = compute_compatibility_intelligence(
+        snap_a=SimpleNamespace(), snap_b=SimpleNamespace(),
+        porutham_result=_fake_porutham_result(rajju_dosha=False, vedha_dosha=False),
+        synastry_score=100,
+    )
+    assert result.overall_score >= 80
+    assert result.overall_label == "GOOD"
+    assert "reduced, not" in result.summary_en
+
+
+def test_rajju_veto_still_outranks_the_sevvai_cap(monkeypatch):
+    """Caps compose and the strictest wins — a Rajju failure alongside a
+    cancelled dosham must still read CAUTION, not GOOD."""
+    _stub_strong_layers(monkeypatch)
+    _one_sided(monkeypatch, _CANCELLED_SEVVAI)
+    result = compute_compatibility_intelligence(
+        snap_a=SimpleNamespace(), snap_b=SimpleNamespace(),
+        porutham_result=_fake_porutham_result(rajju_dosha=True, vedha_dosha=False),
+        synastry_score=100,
+    )
+    assert result.overall_label == "CAUTION"
+
+
+def test_clear_charts_are_not_capped(monkeypatch):
+    """The fix must not quietly demote every match: with no dosham on either
+    side the EXCELLENT band is still reachable (this is the run-it-without-
+    the-fix check — it passes before and after, and the two above do not)."""
+    _stub_strong_layers(monkeypatch)
+    result = compute_compatibility_intelligence(
+        snap_a=SimpleNamespace(), snap_b=SimpleNamespace(),
+        porutham_result=_fake_porutham_result(rajju_dosha=False, vedha_dosha=False),
+        synastry_score=100,
+    )
+    assert result.overall_label == "EXCELLENT"
+    assert "Sevvai" not in result.summary_en
+
+
+# ---------------------------------------------------------------------------
+# F-CI-02 — EC-RULING-06's banned lifespan framing, and the silent Vedha cap.
+# ---------------------------------------------------------------------------
+
+def test_rajju_risk_line_names_neither_lifespan_nor_health(monkeypatch):
+    _stub_strong_layers(monkeypatch)
+    result = compute_compatibility_intelligence(
+        snap_a=SimpleNamespace(), snap_b=SimpleNamespace(),
+        porutham_result=_fake_porutham_result(rajju_dosha=True, vedha_dosha=False),
+        synastry_score=100,
+    )
+    joined_en = " ".join(result.risks_en)
+    joined_ta = " ".join(result.risks_ta)
+    assert "ஆயுள்" not in joined_ta, "EC-RULING-06 excised the lifespan framing"
+    assert "longevity" not in joined_en.lower()
+    assert "ரஜ்ஜு" in joined_ta
+
+
+def test_vedha_cap_states_its_own_reason(monkeypatch):
+    """Vedha caps the label at CAUTION identically to Rajju but had no risk
+    line, so a capped report could not say why it was capped."""
+    _stub_strong_layers(monkeypatch)
+    result = compute_compatibility_intelligence(
+        snap_a=SimpleNamespace(), snap_b=SimpleNamespace(),
+        porutham_result=_fake_porutham_result(rajju_dosha=False, vedha_dosha=True),
+        synastry_score=100,
+    )
+    assert any("Vedha" in r for r in result.risks_en)
+    assert any("வேதை" in r for r in result.risks_ta)

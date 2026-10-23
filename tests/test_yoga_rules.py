@@ -47,6 +47,15 @@ RULEBOOK = REPO_ROOT / "docs" / "VINAADI_ASTROLOGY_RULEBOOK_FOR_EXTERNAL_REVIEW.
 APPENDIX = REPO_ROOT / "docs" / "VINAADI_RULEBOOK_TABLE_APPENDIX.md"
 
 _RULE_ID_SHAPE = re.compile(r"^YOG-[A-Z]{2,4}-\d{2}$")
+#: Emitted codes the suffix rule cannot see (DD-02, v1.3).
+_NON_SUFFIXED_CODES = frozenset({
+    "BHAGYA_SUPPORT",
+    "LAKSHMI_YOGA_PHALADEEPIKA",
+    "GAJA_KESARI_PARASHARA",
+    "ADHI_BASE",
+    "ADHI_RAJA_GRADE",
+    "NEECHA_NIVARTHI",  # O-13, v1.7
+})
 
 
 def _emitted_yoga_codes() -> set[str]:
@@ -55,7 +64,7 @@ def _emitted_yoga_codes() -> set[str]:
     for filename in _DETECTOR_SOURCES:
         source = (_CALC_DIR / filename).read_text(encoding="utf-8")
         for match in re.findall(r'"([A-Z][A-Z0-9_]{2,})"', source):
-            if match.endswith("_YOGA") or match.endswith("_CAUTION"):
+            if match.endswith("_YOGA") or match.endswith("_CAUTION") or match in _NON_SUFFIXED_CODES:
                 codes.add(match)
     return codes
 

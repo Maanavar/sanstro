@@ -1,3 +1,8 @@
+/** The Settings rail's nine sections. A TYPE-only import, so the rail — a
+ *  "use client" component — is erased at build time and this module stays the
+ *  dependency-free slug vocabulary it has always been. */
+import type { SettingsSectionId } from "@/components/dashboard-settings-rail";
+
 /**
  * The one shared dashboard Tab union (DASH-11). This type used to be
  * copy-pasted into dashboard-workspace / dashboard-hero / dashboard-explore-
@@ -149,6 +154,37 @@ const TOOL_SLUGS: Record<DashboardTool, string> = {
   babynames: "baby-name-finder",
 };
 
+/**
+ * Settings section id → URL segment, same readability rule again: the slug
+ * follows the RAIL LABEL, not the internal id (`context` is "Life context",
+ * `danger` is "Danger Zone"). Nine sections shared one address until now, so
+ * "change your notification time" was a URL nobody could send.
+ *
+ * Typed as a total `Record`, which is the ratchet: adding a section to
+ * `SettingsSectionId` without giving it a slug here is a compile error, not a
+ * section that silently falls back to the default.
+ */
+const SETTINGS_SECTION_SLUGS: Record<SettingsSectionId, string> = {
+  setup: "setup",
+  account: "account",
+  context: "life-context",
+  experience: "experience",
+  appearance: "appearance",
+  notifications: "notifications",
+  journal: "journal",
+  privacy: "privacy",
+  danger: "danger-zone",
+};
+
+/** Where bare `/dashboard/settings` lands. Unlike `/dashboard` — which is
+ *  canonically Today and stays bare — Settings has no "main" section, so the
+ *  URL always names one and the bare path is an inbound alias for this. */
+export const DEFAULT_SETTINGS_SECTION: SettingsSectionId = "setup";
+
+const SETTINGS_SECTION_BY_SLUG: Record<string, SettingsSectionId> = Object.fromEntries(
+  Object.entries(SETTINGS_SECTION_SLUGS).map(([id, slug]) => [slug, id as SettingsSectionId]),
+);
+
 const TAB_BY_SLUG: Record<string, Tab> = {
   ...TAB_SLUG_ALIASES,
   ...Object.fromEntries(
@@ -167,20 +203,33 @@ export function isDashboardTool(value: unknown): value is DashboardTool {
   return typeof value === "string" && value in TOOL_SLUGS;
 }
 
+/** The third path segment, whose meaning depends on the tab above it. Only
+ *  `tools` and `settings` have one; every other tab is one segment deep. */
+export type DashboardDetail = {
+  tool?: DashboardTool | null;
+  section?: SettingsSectionId | null;
+};
+
 /**
  * Builds the canonical URL path for a dashboard destination.
  *
  * `/dashboard` (Today) · `/dashboard/calendar` · `/dashboard/tools` ·
- * `/dashboard/tools/numerology`.
+ * `/dashboard/tools/numerology` · `/dashboard/settings/notifications`.
  *
- * A tool segment is only ever appended under `tools` — no other tab hosts one,
- * and emitting e.g. `/dashboard/calendar/numerology` would advertise a
- * destination that cannot be re-entered.
+ * A detail segment is only ever appended under the tab that owns it — `tool`
+ * under `tools`, `section` under `settings`. Emitting e.g.
+ * `/dashboard/calendar/numerology` would advertise a destination that cannot
+ * be re-entered.
  */
-export function dashboardPath(tab: Tab, tool?: DashboardTool | null): string {
+export function dashboardPath(tab: Tab, detail?: DashboardDetail | null): string {
   const slug = TAB_SLUGS[tab];
   if (!slug) return DASHBOARD_BASE_PATH;
-  if (tab === "tools" && tool) return `${DASHBOARD_BASE_PATH}/${slug}/${TOOL_SLUGS[tool]}`;
+  if (tab === "tools" && detail?.tool) {
+    return `${DASHBOARD_BASE_PATH}/${slug}/${TOOL_SLUGS[detail.tool]}`;
+  }
+  if (tab === "settings" && detail?.section) {
+    return `${DASHBOARD_BASE_PATH}/${slug}/${SETTINGS_SECTION_SLUGS[detail.section]}`;
+  }
   return `${DASHBOARD_BASE_PATH}/${slug}`;
 }
 
@@ -193,6 +242,11 @@ export type DashboardRoute = {
    *  longer describes it). */
   tab: Tab | null;
   tool: DashboardTool | null;
+  /** Only ever set under `settings`. null means the path named no section (or
+   *  named one that does not exist) — the caller falls back to
+   *  `DEFAULT_SETTINGS_SECTION`, and the outbound sync then writes the
+   *  canonical path back. */
+  section: SettingsSectionId | null;
 };
 
 /**
@@ -204,7 +258,7 @@ export type DashboardRoute = {
  * canonical path), not to an error screen.
  */
 export function parseDashboardPath(pathname: string, options: { qaEnabled: boolean }): DashboardRoute {
-  const none: DashboardRoute = { tab: null, tool: null };
+  const none: DashboardRoute = { tab: null, tool: null, section: null };
   const segments = pathname.split("/").filter(Boolean);
   if (segments[0] !== "dashboard") return none;
 
@@ -213,8 +267,13 @@ export function parseDashboardPath(pathname: string, options: { qaEnabled: boole
   const tab = TAB_BY_SLUG[tabSlug];
   if (!tab) return none;
   if (tab === "qa" && !options.qaEnabled) return none;
-  if (tab !== "tools") return { tab, tool: null };
 
-  const toolSlug = segments[2];
-  return { tab, tool: (toolSlug && TOOL_BY_SLUG[toolSlug]) || null };
+  const detailSlug = segments[2];
+  if (tab === "tools") {
+    return { tab, tool: (detailSlug && TOOL_BY_SLUG[detailSlug]) || null, section: null };
+  }
+  if (tab === "settings") {
+    return { tab, tool: null, section: (detailSlug && SETTINGS_SECTION_BY_SLUG[detailSlug]) || null };
+  }
+  return { tab, tool: null, section: null };
 }

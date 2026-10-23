@@ -51,7 +51,7 @@ from app.calculations.tamil_calendar import tamil_solar_date
 from app.schemas.muhurta import MuhurtaSlot
 from app.services.feature_flags import get_flag
 from app.services.muhurta_service import find_best_muhurta_slots
-from app.services.muhurtham_naal_service import MuhurthamNaalMatch, match_muhurtham_naals
+from app.services.muhurtham_naal_service import BiLabel, MuhurthamNaalMatch, match_muhurtham_naals
 from app.services.numerology_service import (
     NumerologyChartContext,
     load_chart_context,
@@ -64,7 +64,9 @@ __all__ = [
     "LuckyDate",
     "LuckyDates",
     "MarriageDates",
+    "NumerologyDateReading",
     "NumerologyNaalMatch",
+    "NumerologySubject",
     "chithirai_start",
     "configured_epoch",
     "cycle_for",
@@ -189,10 +191,32 @@ class LuckyDates:
 
 
 @dataclass(frozen=True, slots=True)
+class NumerologySubject:
+    """One chart's inputs to a date's numerology. ``who`` heads a couple's reading."""
+
+    favourable_numbers: tuple[int, ...]
+    birth_date: date | None = None
+    chithirai_start_for: ChithiraiResolver | None = None
+    who: BiLabel | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class NumerologyDateReading:
+    """One chart's numerology for one date. Exactly one per match governs."""
+
+    who: BiLabel | None
+    numerology: DateNumerology
+    governs: bool
+
+
+@dataclass(frozen=True, slots=True)
 class NumerologyNaalMatch:
     match: MuhurthamNaalMatch
+    #: The governing reading — the one whose adjustment is in ``adjusted_score``.
     numerology: DateNumerology
     adjusted_score: float
+    #: One per chart, in request order.
+    readings: tuple[NumerologyDateReading, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -205,6 +229,8 @@ class MarriageDates:
     #: chandrashtama rasi, counts, source) — passed through unchanged.
     chart_context: dict
     calculation_version: str = CALCULATION_VERSION
+    #: The partner's own ranking, couple mode only.
+    partner_favourable_numbers: tuple[int, ...] | None = None
 
 
 def layer_onto_muhurta_slots(
@@ -254,6 +280,8 @@ def layer_onto_naal_matches(
     birth_date: date | None = None,
     epoch: PersonalYearEpoch = PersonalYearEpoch.BIRTHDAY,
     chithirai_start_for: ChithiraiResolver | None = None,
+    subject_who: BiLabel | None = None,
+    partner: NumerologySubject | None = None,
 ) -> list[NumerologyNaalMatch]:
     """Annotate and re-rank curated muhurtham naals (NUM-43).
 
@@ -261,22 +289,50 @@ def layer_onto_naal_matches(
     promote a chandrashtama or avoid-tara date into the recommended set, and the
     sort key puts recommended dates ahead of the rest before any number is
     consulted.
+
+    With a ``partner`` each date is read against both charts' own rankings and
+    the **lower** adjustment is the one priced — owner ruling 2026-09-12 (R1),
+    the same rule the naal list under it already applies to Tara Bala. A bonus
+    only one partner's numbers give is therefore not credited, and a penalty
+    only one partner's numbers give is. On a tie the first chart's reading is
+    marked as governing, which changes no number.
     """
-    layered: list[NumerologyNaalMatch] = []
-    for match in matches:
-        numerology = score_date(
-            date.fromisoformat(match.naal.date),
+    subjects = [
+        NumerologySubject(
             favourable_numbers=favourable_numbers,
             birth_date=birth_date,
-            epoch=epoch,
             chithirai_start_for=chithirai_start_for,
-            has_astrological_caution=not match.is_recommended,
+            who=subject_who,
         )
+    ]
+    if partner is not None:
+        subjects.append(partner)
+
+    layered: list[NumerologyNaalMatch] = []
+    for match in matches:
+        day = date.fromisoformat(match.naal.date)
+        scored = [
+            score_date(
+                day,
+                favourable_numbers=subject.favourable_numbers,
+                birth_date=subject.birth_date,
+                epoch=epoch,
+                chithirai_start_for=subject.chithirai_start_for,
+                has_astrological_caution=not match.is_recommended,
+            )
+            for subject in subjects
+        ]
+        adjustments = [numerology.adjustment for numerology in scored]
+        governing = adjustments.index(min(adjustments))
         layered.append(
             NumerologyNaalMatch(
                 match=match,
-                numerology=numerology,
-                adjusted_score=match.match_score + numerology.adjustment,
+                numerology=scored[governing],
+                adjusted_score=match.match_score + adjustments[governing],
+                readings=tuple(
+                    NumerologyDateReading(who=subject.who, numerology=numerology, governs=i == governing)
+                    for i, (subject, numerology) in enumerate(zip(subjects, scored, strict=True))
+                ),
             )
         )
 
@@ -366,21 +422,43 @@ def marriage_dates_for_chart(
     session: Session,
     *,
     recommended_only: bool = False,
+    partner_chart_id: UUID | None = None,
+    subject_role: str | None = None,
 ) -> MarriageDates:
-    """Curated muhurtham naals for a year, re-ranked by numerology (NUM-43)."""
+    """Curated muhurtham naals for a year, re-ranked by numerology (NUM-43).
+
+    With ``partner_chart_id`` the naal verdicts are the couple's (see
+    ``match_muhurtham_naals``) and the numerology layered on them is too: each
+    partner's own favourable numbers and personal day, weaker side priced.
+    """
     require_numerology_enabled()
     ctx = load_chart_context(session, chart_id)
     matches, context = match_muhurtham_naals(
-        chart_id, year, session, recommended_only=recommended_only
+        chart_id, year, session,
+        recommended_only=recommended_only,
+        partner_chart_id=partner_chart_id,
+        subject_role=subject_role,
     )
 
     favourable, epoch, chithirai = _favourable_and_epoch(ctx)
+    partner: NumerologySubject | None = None
+    if partner_chart_id is not None:
+        partner_ctx = load_chart_context(session, partner_chart_id)
+        partner_favourable, _, partner_chithirai = _favourable_and_epoch(partner_ctx)
+        partner = NumerologySubject(
+            favourable_numbers=partner_favourable,
+            birth_date=partner_ctx.birth_date,
+            chithirai_start_for=partner_chithirai,
+            who=context["partner"]["who"],
+        )
     layered = layer_onto_naal_matches(
         matches,
         favourable_numbers=favourable,
         birth_date=ctx.birth_date,
         epoch=epoch,
         chithirai_start_for=chithirai,
+        subject_who=context.get("subject_who"),
+        partner=partner,
     )
     return MarriageDates(
         year=year,
@@ -388,4 +466,5 @@ def marriage_dates_for_chart(
         epoch=epoch,
         matches=tuple(layered),
         chart_context=context,
+        partner_favourable_numbers=None if partner is None else partner.favourable_numbers,
     )

@@ -179,6 +179,113 @@ class RemedyFocus(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class PersonalPalanArea(BaseModel):
+    """One life area of the personal palan. `area` is a language-free key
+    (CAREER, BUSINESS, MONEY, FAMILY, LOVE, HEALTH, EDUCATION, TRAVEL,
+    DOCUMENTS, FRIENDS, COMMUNICATION, MIND); clients label it themselves."""
+
+    area: str
+    polarity: str  # FAVOURABLE | MIXED | CAUTION
+    text: DailyGuidanceText
+    # The season's one clause for this area (Sani / Guru / Rahu), if any.
+    period_note: DailyGuidanceText | None = Field(default=None, alias="periodNote")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class PersonalPalanSegment(BaseModel):
+    kind: str  # OVERALL | PERIOD | AREA | TIME | STRENGTH | ADVICE | WORSHIP | CLOSING
+    area: str | None = None
+    text: DailyGuidanceText
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class PersonalPalanLucky(BaseModel):
+    """Lucky colour, number and direction (ruling R9). All three belong to
+    one graha, and `text` names it and the rule for each."""
+
+    graha: str  # key; clients render it with tPlanetLord
+    source: str  # BEST_HORA | WEEKDAY
+    colour: DailyGuidanceText
+    number: int
+    # Withheld (null) when the graha's direction is the day's Soolam.
+    direction: str | None = None  # EAST | SOUTH_EAST | … | NORTH_EAST
+    direction_name: DailyGuidanceText | None = Field(default=None, alias="directionName")
+    soolam: str | None = None  # EAST | WEST | NORTH | SOUTH
+    soolam_name: DailyGuidanceText | None = Field(default=None, alias="soolamName")
+    text: DailyGuidanceText
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class PersonalPalanPeriod(BaseModel):
+    """The slow layers the day is read against. Keys, not names: clients
+    localise the lords (`tPlanetLord`) and the Sani cycle (`saniCycleName`)."""
+
+    maha_lord: str = Field(alias="mahaLord")
+    antar_lord: str = Field(alias="antarLord")
+    sani_cycle: str | None = Field(default=None, alias="saniCycle")
+    kandaka_house: int | None = Field(default=None, alias="kandakaHouse")
+    guru_house: int = Field(alias="guruHouse")  # houses counted from the natal Moon
+    saturn_house: int = Field(alias="saturnHouse")
+    rahu_house: int = Field(alias="rahuHouse")
+    antar_houses: list[int] = Field(alias="antarHouses")  # from the lagna
+    antar_transit_house: int = Field(alias="antarTransitHouse")
+    antar_transit_supportive: bool = Field(alias="antarTransitSupportive")
+    text: DailyGuidanceText
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class PersonalPalanBasis(BaseModel):
+    """What the palan was read from, so a reader can check it."""
+
+    moon_house: int = Field(alias="moonHouse")  # Moon's house from the janma rasi
+    tara: int  # 1..9 from the janma star
+    tara_name: DailyGuidanceText = Field(alias="taraName")
+    is_chandrashtama: bool = Field(alias="isChandrashtama")
+    text: DailyGuidanceText
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class PersonalPalan(BaseModel):
+    """இன்றைய பலன் · உங்கள் ஜாதகப்படி (proposal §5, R6).
+
+    `overallPolarity` is read off this response's own `label`, never scored
+    separately. `bestWindow` is the hero's featured window. Lucky aspects are
+    absent by ruling R9. `reviewStatus` is OWNER_COMMISSIONED_DRAFT until the
+    outside astrologer and native-Tamil reviews in
+    docs/PERSONAL_PALAN_CONTENT_REVIEW_2026-09-23.md are recorded.
+    """
+
+    content_version: str = Field(alias="contentVersion")
+    review_status: str = Field(alias="reviewStatus")
+    overall_polarity: str = Field(alias="overallPolarity")
+    overall: DailyGuidanceText
+    areas: list[PersonalPalanArea]
+    advice: DailyGuidanceText
+    worship: DailyGuidanceText
+    closing: DailyGuidanceText
+    strength: DailyGuidanceText | None = None
+    watch: DailyGuidanceText | None = None
+    opportunity_area: str | None = Field(default=None, alias="opportunityArea")
+    caution_area: str | None = Field(default=None, alias="cautionArea")
+    best_window: DailyGuidanceWindow | None = Field(default=None, alias="bestWindow")
+    basis: PersonalPalanBasis
+    period: PersonalPalanPeriod | None = None
+    # Areas the running bhukti lord brings forward; they lead the card.
+    dasha_areas: list[str] = Field(default_factory=list, alias="dashaAreas")
+    # The same palan as a TV-presenter transcript, in speaking order. Segments
+    # so a voice reader can pause and a surface can highlight; the greeting
+    # with the person's name is the client's.
+    transcript: list[PersonalPalanSegment] = Field(default_factory=list)
+    lucky: PersonalPalanLucky | None = None
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class DailyGuidanceData(BaseModel):
     chart_id: UUID = Field(alias="chartId")
     date_local: date = Field(alias="dateLocal")
@@ -251,6 +358,9 @@ class DailyGuidanceData(BaseModel):
     chandrashtama_rasi: int | None = Field(default=None, alias="chandrashtamaRasi")
     saturn_cycle_alert: str | None = Field(default=None, alias="saturnCycleAlert")
     activity_board: DailyActivityBoardData | None = Field(default=None, alias="activityBoard")
+    # Additive: null on rows cached before it existed. A single-date read
+    # (`get_daily_guidance`) recomputes such a row rather than serving the gap.
+    personal_palan: PersonalPalan | None = Field(default=None, alias="personalPalan")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -354,6 +464,9 @@ class ActivityTimingData(BaseModel):
     )
     date_result: ActivityTimingDayResult | None = Field(default=None, alias="dateResult")
     daily_location: ActivityTimingLocation | None = Field(default=None, alias="dailyLocation")
+    # A wedding scan for a couple: the partner's chart. Every score above is then
+    # the lower of the two charts' and every reason names whose Tara it read.
+    partner_chart_id: UUID | None = Field(default=None, alias="partnerChartId")
 
     model_config = ConfigDict(populate_by_name=True)
 

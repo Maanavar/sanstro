@@ -78,7 +78,20 @@ BAV_TABLE: dict[str, dict[str, list[int]]] = {
         "JUPITER": [6, 8, 11, 12],
         "VENUS":   [1, 2, 3, 4, 5, 8, 9, 11],
         "SATURN":  [1, 2, 4, 7, 8, 9, 10, 11],
-        "LAGNA":   [1, 3, 5, 6, 9, 10, 11],  # Phala Deepika (Tamil primary source)
+        # F-ASV-01, ruled 2026-10-13. This read [1, 3, 5, 6, 9, 10, 11] attributed
+        # to "Phala Deepika (Tamil primary source)". It is the MERCURY-from-MERCURY
+        # row above with the 12 dropped — the **same** duplicated-row transcription
+        # error already corrected one block up at Mars-from-Lagna, not a lineage
+        # variant, so the attribution was papering over a typo.
+        #
+        # Why it outlived the Mars one: dropping the 12 leaves seven houses, so
+        # Mercury still distributes 54 and Sarva still totals 337. The gate that
+        # caught Mars was a *total* check (41 -> 39, 339 -> 337) and is blind here
+        # by construction. The ruling's own instruction was to identify the
+        # contributor key before swapping constants; the key is Lagna, and the
+        # classical Lagna-to-Mercury row is below. `tests/test_ashtakavarga_
+        # golden.py` now pins all 56 rows by value, not by total.
+        "LAGNA":   [1, 2, 4, 6, 8, 10, 11],
     },
     "JUPITER": {
         "SUN":     [1, 2, 3, 4, 7, 8, 9, 10, 11],

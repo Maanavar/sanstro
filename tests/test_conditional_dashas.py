@@ -431,12 +431,12 @@ def test_selector_indeterminate_when_data_missing() -> None:
 
 
 # --------------------------------------------------------------------------- #
-# Real-ephemeris anchor (T003 reference chart, shared with the other dashas)  #
+# Real-ephemeris anchor (synthetic T003 chart, shared with the other dashas)  #
 # --------------------------------------------------------------------------- #
 
-# Moon at 240.01137891 deg -> nakshatra 19 (Moola, starts at 240.0 deg), the
+# Moon at 240.01252726 deg -> nakshatra 19 (Moola, starts at 240.0 deg), the
 # same T003 reference chart used by test_ashtottari_dasha / test_yogini_dasha.
-_T003_MOON_LONGITUDE = 240.01137891
+_T003_MOON_LONGITUDE = 240.01252726
 
 
 def test_t003_opening_lords_are_deterministic() -> None:
@@ -457,7 +457,7 @@ def test_t003_opening_lords_are_deterministic() -> None:
 
 
 def test_t003_dwisaptati_opens_at_moola_with_near_full_balance() -> None:
-    # Moon is 0.011 deg into Moola, which is Dwisaptati's start nakshatra, so
+    # Moon is 0.0125 deg into Moola, which is Dwisaptati's start nakshatra, so
     # the opening SUN bhukti is essentially full (9 years).
     lord, balance, _ = calculate_opening(
         CONDITIONAL_DASHA_SYSTEMS["dwisaptati_sama"], _T003_MOON_LONGITUDE, BIRTH_JD

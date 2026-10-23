@@ -165,7 +165,7 @@ For India after standard IST adoption:
 
 ```text
 UTC = IST - 05:30
-08:15 IST = 02:45 UTC
+10:30 IST = 05:00 UTC
 15:32 IST = 10:02 UTC
 ```
 

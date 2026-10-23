@@ -13,8 +13,11 @@ import { useI18n } from "@/hooks/useI18n";
 import { useOfflineStatus } from "@/hooks/useOfflineStatus";
 import { ToastProvider } from "@/context/ToastContext";
 import { ConfirmProvider } from "@/context/ConfirmContext";
-import { queryClient, asyncStoragePersister } from "@/lib/queryClient";
-import { getTokens, clearTokens } from "@/lib/secureStore";
+import { queryClient, sessionPersister, PERSIST_BUSTER } from "@/lib/queryClient";
+import { getTokens } from "@/lib/secureStore";
+import { beginAuthenticatedSession, endSession } from "@/state/sessionTransition";
+import { syncPurchaseIdentity } from "@/lib/purchaseIdentity";
+import { currentGeneration } from "@/lib/sessionIdentity";
 import { initAnalytics, setAnalyticsConsent, setUser } from "@/lib/analytics";
 import { loadGuestPrefs } from "@/features/guest/guestStore";
 import { ENV } from "@/lib/env";
@@ -91,15 +94,33 @@ function RootNavigation() {
 
         const me = await getMe();
 
-        // Sync RevenueCat user identity and determine effective tier.
-        // RC is the source of truth for subscription status. If RC confirms no
-        // active "premium" entitlement but the backend tier still says "premium",
-        // treat the user as "registered" — the subscription likely expired and
-        // the backend webhook hasn't fired yet.
+        // Establish the session identity BEFORE anything reads or writes this
+        // account's private cache (A02 step 7). Until this call the process has
+        // no user, so the persister has no namespace and queries cannot
+        // restore — which is the point: on a warm start with another account's
+        // bytes still on the device, nothing of theirs can be hydrated.
+        await beginAuthenticatedSession(me.userId);
+
+        // Determine the effective tier. RC is the source of truth for
+        // subscription status: if RC confirms no active "premium" entitlement
+        // but the backend tier still says "premium", treat the user as
+        // "registered" — the subscription likely expired and the backend
+        // webhook hasn't fired yet.
+        //
+        // The bind itself is NOT done here any more. It used to be
+        // `purchases.logIn(me.userId)` on this line, inside a mount-only
+        // effect, which is the whole of A04: interactive login never bound the
+        // SDK and sign-out never unbound it. `beginAuthenticatedSession` above
+        // owns it now, via src/lib/purchaseIdentity.ts.
+        //
+        // Awaited rather than assumed: the coordinator fires the bind without
+        // waiting, and `getCustomerInfo()` below is only meaningful once it has
+        // landed. The call is coalesced, so this joins the coordinator's bind
+        // instead of starting a second one.
         const purchases = Purchases;
         if (rcKey && purchases) {
           try {
-            await purchases.logIn(me.userId);
+            await syncPurchaseIdentity(me.userId, currentGeneration());
             const ci = await purchases.getCustomerInfo();
             const hasPremium = !!ci.entitlements.active["premium"];
             const effectiveTier = hasPremium
@@ -112,7 +133,8 @@ function RootNavigation() {
           // the backend. `?? null` makes that explicit instead of storing
           // `undefined` in a slot typed `string | null`.
           { userId: me.userId, email: me.email, displayName: me.displayName ?? null },
-              effectiveTier
+              effectiveTier,
+              me.openBeta
             );
             setUser(me.userId);
             return;
@@ -126,14 +148,19 @@ function RootNavigation() {
           // the backend. `?? null` makes that explicit instead of storing
           // `undefined` in a slot typed `string | null`.
           { userId: me.userId, email: me.email, displayName: me.displayName ?? null },
-          me.tier
+          me.tier,
+          me.openBeta
         );
         setUser(me.userId);
       } catch (err: unknown) {
         const isUnauth =
           err instanceof Error && "status" in err && (err as { status: number }).status === 401;
         if (isUnauth) {
-          await clearTokens();
+          // Stored credentials resolved to nothing. This used to clear only the
+          // tokens, which left any persisted cache on the device and the
+          // in-memory cache intact for the next account to read (A02).
+          // revokeRemote: false — the server has already rejected them.
+          await endSession({ revokeRemote: false });
         }
         clearSession();
       } finally {
@@ -179,9 +206,18 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
+      {/*
+        Still mounted above SessionProvider, which is why the cache outlives
+        every session and why A02 needed a coordinator rather than a tidier
+        tree: the provider must not remount on a sign-in, or every account
+        switch would throw away a warm cache and refetch everything. The
+        persister resolves the account per call instead (see queryClient.ts),
+        and `buster` makes the library discard a cache written under an older
+        retention policy before it hydrates it.
+      */}
       <PersistQueryClientProvider
         client={queryClient}
-        persistOptions={{ persister: asyncStoragePersister }}
+        persistOptions={{ persister: sessionPersister, buster: PERSIST_BUSTER }}
       >
         <SessionProvider>
           <LanguageProvider>

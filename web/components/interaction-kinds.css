@@ -1,0 +1,61 @@
+/* ── OD-4 · hover/press for rows, disclosure headers and select triggers ─────
+   Owner-approved 2026-09-21 (docs/DASHBOARD_EXPERIENCE_AUDIT_2026-09-17.md §6).
+   Cards (`.ui-card--interactive`), kit buttons (`.ui-btn--*`), pills and text
+   links (`.ui-link`) keep their treatments in the COMPONENT KIT section of
+   app/dashboard/dashboard-nova.css. These two kinds live here because their
+   importers are shared: Surface (dashboard-ui.tsx) and CollapsibleSection are
+   reachable from /login through GuestChartModal, which never loads
+   dashboard-nova.css — a class defined only there is unstyled on that route
+   and fails lib/css-surface-boundary.test.ts. Component CSS travels with its
+   importer.
+
+   Neither kind moves, so reduced motion has nothing to remove. */
+
+/* Row / disclosure header: a background tint — never the card lift or an
+   elevation shadow (W-6 had put the lift on these; E-4). Press goes one step
+   deeper. A row with its own resting colour (an open planet row) sets
+   `--ui-row-base` and the tint mixes over it rather than replacing it. */
+.ui-disclosure-trigger {
+  --ui-row-base: transparent;
+  --ui-row-fill: var(--ui-row-base);
+  background-color: var(--ui-row-fill);
+  border: 0;
+  cursor: pointer;
+  transition:
+    background-color var(--motion-nav, 240ms) var(--ease-nova, ease-out),
+    box-shadow var(--motion-nav, 240ms) var(--ease-nova, ease-out);
+}
+@media (hover: hover) {
+  .ui-disclosure-trigger:hover:not(:disabled) {
+    --ui-row-fill: color-mix(in srgb, var(--ui-row-base) 94%, var(--color-text-strong, currentColor));
+  }
+}
+.ui-disclosure-trigger:active:not(:disabled) {
+  --ui-row-fill: color-mix(in srgb, var(--ui-row-base) 89%, var(--color-text-strong, currentColor));
+}
+/* Headers with no padding of their own (Surface, CollapsibleSection) would
+   wear the tint flush against their text. The spread carries the same fill
+   6px past the box without moving anything — it is the tint, not a shadow. */
+.ui-disclosure-trigger--flush {
+  border-radius: var(--radius-sm, 6px);
+  box-shadow: 0 0 0 6px var(--ui-row-fill);
+}
+
+/* Select trigger: border → strong on hover, background tint on press. The
+   resting border and fill used to be inline on NovaSelect, where they beat
+   any hover rule; they live here now so the states can apply. */
+.ui-select-trigger {
+  border: 1.5px solid var(--color-border);
+  background-color: var(--color-surface-soft, var(--color-surface));
+  transition:
+    border-color var(--motion-nav, 240ms) var(--ease-nova, ease-out),
+    background-color var(--motion-nav, 240ms) var(--ease-nova, ease-out);
+}
+@media (hover: hover) {
+  .ui-select-trigger:hover:not(:disabled) {
+    border-color: var(--color-border-strong);
+  }
+}
+.ui-select-trigger:active:not(:disabled) {
+  background-color: color-mix(in srgb, var(--color-surface-soft, var(--color-surface)) 92%, var(--color-text-strong, currentColor));
+}

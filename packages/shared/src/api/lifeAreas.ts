@@ -19,6 +19,11 @@ export interface LifeAreaData {
   narrative: BiText;
   remedy: BiText;
   next30DayOutlook: BiText;
+  /** See the full type in types/index.ts (owner rulings 2026-10-01). Absent on
+   *  cached payloads and whenever the area claims no score. */
+  remedyKind?: "REMEDY" | "MAINTAIN" | null;
+  scoreBand?: "EXCEPTIONAL" | "STRONG" | "GOOD" | "MIXED" | "DIFFICULT" | "VERY_WEAK" | null;
+  scoreBandText?: BiText | null;
 }
 
 export interface LifeAreasData {
@@ -35,8 +40,11 @@ export function getLifeAreas(
   chartId: string,
   date: string,
 ): Promise<{ success: boolean; data: LifeAreasData }> {
+  // The route reads `asOf` (app/api/life_areas.py). This sent `date`, which the
+  // backend ignored, so it fell back to the server's own date.today() — UTC in
+  // the API image, i.e. yesterday for an Indian reader from 00:00 to 05:30.
   return getApiClient().get(
     `/charts/${encodeURIComponent(chartId)}/life-areas`,
-    { date },
+    { asOf: date },
   ) as Promise<{ success: boolean; data: LifeAreasData }>;
 }

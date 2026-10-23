@@ -16,6 +16,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 
 from app.calculations.astro import house_from_reference
+from app.calculations.doctrine_options import LONGITUDE_EPSILON
 
 ASPECT_HOUSES: dict[str, frozenset[int]] = {
     "MARS": frozenset({4, 7, 8}),
@@ -115,18 +116,62 @@ def aspect_target_rasis(planet: str, source_rasi: int) -> list[int]:
     )
 
 
+#: Legacy convention (DD-12): the Moon counts as benefic only once it is at
+#: least this far from the Sun, on either side. OFF by default; Tier B/C.
+MOON_LEGACY_BENEFIC_ELONGATION = 72.0
+
+
+def moon_is_natural_benefic(elongation: float, *, legacy_72_degree: bool = False) -> bool:
+    """Is the Moon a natural benefic at this Sun–Moon elongation? (DD-12)
+
+    ``elongation`` is ``(Moon − Sun) mod 360``. The boundaries are exact, tested
+    with ``LONGITUDE_EPSILON`` only to survive float rounding:
+
+    * exactly 0°  — amavasya, the darkest Moon: **not** benefic;
+    * (0°, 180°)  — Shukla paksha: benefic;
+    * exactly 180° — pournami, the brightest Moon: benefic;
+    * (180°, 360°) — Krishna paksha: malefic / reduced beneficence.
+
+    This is the binary label. Paksha Bala (`shadbala._paksha_bala`) carries the
+    continuous strength, so a reading never jumps from "strong benefic" to
+    "malefic" without a gradient underneath it.
+
+    ``legacy_72_degree`` switches to the older convention: benefic once the Moon
+    is at least 72° from the Sun on either side, and not otherwise. Off by
+    default and kept only so a lineage that uses it can be served.
+    """
+    e = elongation % 360.0
+    if e <= LONGITUDE_EPSILON or 360.0 - e <= LONGITUDE_EPSILON:
+        return False
+    if abs(e - 180.0) <= LONGITUDE_EPSILON:
+        return True
+    if legacy_72_degree:
+        distance = min(e, 360.0 - e)
+        return distance >= MOON_LEGACY_BENEFIC_ELONGATION - LONGITUDE_EPSILON
+    return e < 180.0
+
+
 def effective_natural_class(
     planet: str,
     planet_rasis: Mapping[str, int],
     *,
     paksha_is_shukla: bool | None = None,
+    planet_scores: Mapping[str, int] | None = None,
 ) -> str:
     """Return the chart-contextual natural class: ``BENEFIC`` or ``MALEFIC``.
+
+    ``paksha_is_shukla`` answers one question here: *is the Moon benefic?* Pass
+    `moon_is_natural_benefic(...)` when degrees are known, which applies DD-12's
+    exact amavasya/pournami boundaries.
 
     Moon is benefic only in Shukla paksha. Mercury takes the colour of its
     company: a malefic sharing its rasi makes it malefic, a benefic keeps it
     benefic — and **Mercury with no company at all stays BENEFIC** (ruled
-    2026-08-31).
+    2026-08-31). Joined by **both** a benefic and a malefic, Mercury follows the
+    stronger side when ``planet_scores`` is given (DD-12, Tier C), comparing the
+    strongest graha on each side: the benefic side must be strictly stronger to
+    keep it benefic. Without scores, or on a tie, any malefic company turns it,
+    as before.
 
     That last clause is a correction, not a preference. It shipped as MALEFIC
     and neither classical reading of Budha supports that:
@@ -169,8 +214,16 @@ def effective_natural_class(
     if mercury_rasi is None:
         return "BENEFIC"
     associates = [p for p, rasi in planet_rasis.items() if p != "MERCURY" and rasi == mercury_rasi]
-    if any(effective_natural_class(p, planet_rasis, paksha_is_shukla=paksha_is_shukla) == "MALEFIC" for p in associates):
-        return "MALEFIC"
-    # Benefic company, and empty company, both leave Budha benefic. Only a
-    # malefic sharing the rasi turns it — see the docstring.
-    return "BENEFIC"
+    classes = {p: effective_natural_class(p, planet_rasis, paksha_is_shukla=paksha_is_shukla) for p in associates}
+    malefics = [p for p, cls in classes.items() if cls == "MALEFIC"]
+    if not malefics:
+        # Benefic company, and empty company, both leave Budha benefic. Only a
+        # malefic sharing the rasi turns it — see the docstring.
+        return "BENEFIC"
+    benefics = [p for p, cls in classes.items() if cls == "BENEFIC"]
+    if benefics and planet_scores is not None:
+        strongest_malefic = max(planet_scores.get(p, 50) for p in malefics)
+        strongest_benefic = max(planet_scores.get(p, 50) for p in benefics)
+        if strongest_benefic > strongest_malefic:
+            return "BENEFIC"
+    return "MALEFIC"

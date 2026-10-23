@@ -1,9 +1,24 @@
-import Link from "next/link";
+import type { Metadata } from "next";
+import { withTamilTwin } from "@/lib/localized-metadata";
+import { LocalizedLink as Link } from "@/components/localized-link";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { getServerLang } from "@/lib/server-lang";
 import { TopicSymbolPanel } from "@/components/astro-symbols";
 import { TRUST_ABOUT, mt } from "@/lib/marketing-i18n";
+import { pageMetadata } from "@/lib/page-metadata";
+
+const EN_METADATA = pageMetadata({
+  path: "/trust/about-vinaadi",
+  title: "About Vinaadi — Calm, Method-Transparent Tamil Astrology",
+  absolute: true,
+  description:
+    "Why Vinaadi exists: Tamil astrology for real decisions, built on Thirukanitham, explained without fear, and designed for families.",
+});
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/trust/about-vinaadi");
+}
 
 // F7 part two - a Server Component; see lib/server-lang.ts.
 export default async function AboutPage() {
@@ -27,10 +42,10 @@ export default async function AboutPage() {
 
   const DIFFERENCES = [
     { title: lang === "en" ? "Thirukanitham precision."       : "திருக்கணிதத் துல்லியம்.",          body: lang === "en" ? "Every calculation uses the Tamil standard — Lahiri ayanamsa, Drik ephemeris, traditional South Indian chart format."                                                    : "ஒவ்வொரு கணக்கீடும் தமிழ் ஜோதிடத்தில் பயன்படுத்தப்படும் தரநிலையையே பின்பற்றுகிறது: லாகிரி அயனாம்சம், திரிக் கோளக்கணிதம், தென்னிந்திய ஜாதக வடிவம்." },
-    { title: lang === "en" ? "Assistant-first, not tool-first." : "முதலில் வழிகாட்டல்.", body: lang === "en" ? "The daily reading integrates chart, dasa, transits, and panchangam together. Tools are available when needed but do not define the experience."                              : "தினசரி வாசிப்பில் ஜாதகம், தசை, கிரகநகர்வு, பஞ்சாங்கம் அனைத்தும் ஒன்றாக சேர்கின்றன. கருவிகள் இருக்கின்றன; ஆனால் அனுபவத்தை அவை மட்டுமே நிர்ணயிக்கவில்லை." },
+    { title: lang === "en" ? "Assistant-first, not tool-first." : "முதலில் வழிகாட்டல்.", body: lang === "en" ? "The daily reading integrates chart, dasa, transits, and panchangam together. Tools are available when needed but do not define the experience."                              : "தினசரி வாசிப்பில் ஜாதகம், தசை, கோச்சாரம், பஞ்சாங்கம் அனைத்தும் ஒன்றாக சேர்கின்றன. கருவிகள் இருக்கின்றன; ஆனால் அனுபவத்தை அவை மட்டுமே நிர்ணயிக்கவில்லை." },
     { title: lang === "en" ? "Family-aware."                   : "குடும்பம் மையம்.",                body: lang === "en" ? "Most astrology products stop at individual readings. Vinaadi is designed for the way Tamil families actually use astrology — together."                                        : "பல ஜோதிட சேவைகள் ஒருவரின் வாசிப்பில் முடிந்து விடுகின்றன. விநாடி குடும்பமாக சேர்ந்து பார்க்கவும், ஆலோசிக்கவும், முடிவு எடுக்கவும் வடிவமைக்கப்பட்டுள்ளது." },
     { title: lang === "en" ? "Calm language."                  : "அமைதியான சொல் நடை.",                 body: lang === "en" ? "No doom language. No fear-based predictions. Every signal includes reasoning. Users understand what the reading is based on."                                              : "பயமுறுத்தும் சொற்கள் இல்லை. அச்சத்தை தூண்டும் கணிப்புகள் இல்லை. ஒவ்வொரு சுட்டிக்கும் காரணம் காட்டப்படும்; வாசிப்பு எதின் அடிப்படையில் வருகிறது என்பதையும் பயனர் புரிந்து கொள்ள முடியும்." },
-    { title: lang === "en" ? "Transparent reasoning."          : "வெளிப்படையான காரணம்.",           body: lang === "en" ? "Vinaadi shows you why a day scores the way it does. Dasa period quality, transit influences, panchangam quality — all visible."                                           : "ஒரு நாள் ஏன் அப்படிப் படிக்கப்படுகிறது என்பதை விநாடி மறைக்காது. தசை தரம், கிரகநகர்வு தாக்கம், பஞ்சாங்க நிலை ஆகியவை தெளிவாகக் காட்டப்படும்." },
+    { title: lang === "en" ? "Transparent reasoning."          : "வெளிப்படையான காரணம்.",           body: lang === "en" ? "Vinaadi shows you why a day scores the way it does. Dasa period quality, transit influences, panchangam quality — all visible."                                           : "ஒரு நாள் ஏன் அப்படிப் படிக்கப்படுகிறது என்பதை விநாடி மறைக்காது. தசை தரம், கோச்சார தாக்கம், பஞ்சாங்க நிலை ஆகியவை தெளிவாகக் காட்டப்படும்." },
   ];
 
   return (
@@ -87,7 +102,7 @@ export default async function AboutPage() {
                 <h2 id="what-vinaadi-is">{lang === "en" ? "What Vinaadi is" : "விநாடி என்ன"}</h2>
                 <p>{lang === "en"
                   ? "Vinaadi is an assistant. It reads your chart, tracks your dasa, monitors transits, computes a daily panchangam, and gives you one quiet reading every morning — a score, a best window, a caution window, and a brief interpretation in plain language."
-                  : "விநாடி ஒரு உதவியாளர். உங்கள் ஜாதகத்தைப் படிக்கிறது, தசை முன்னேற்றத்தை கவனிக்கிறது, கிரகநகர்வை பார்க்கிறது, தின பஞ்சாங்கத்தை கணக்கிடுகிறது, ஒவ்வொரு காலையும் ஒரு அமைதியான வாசிப்பைத் தருகிறது: ஒரு மதிப்பெண், நல்ல நேரம், கவன நேரம், எளிய விளக்கம்."}</p>
+                  : "விநாடி ஒரு உதவியாளர். உங்கள் ஜாதகத்தைப் படிக்கிறது, தசை முன்னேற்றத்தை கவனிக்கிறது, கோச்சாரத்தை பார்க்கிறது, தின பஞ்சாங்கத்தை கணக்கிடுகிறது, ஒவ்வொரு காலையும் ஒரு அமைதியான வாசிப்பைத் தருகிறது: ஒரு மதிப்பெண், நல்ல நேரம், கவன நேரம், எளிய விளக்கம்."}</p>
                 <p>{lang === "en"
                   ? "When you need a specific tool — porutham matching, jadhagam generation, birth time rectification, or panchangam — those tools are part of the same assistant."
                   : "பொருத்தம் பார்க்கவும், ஜாதகம் உருவாக்கவும், பிறந்த நேரத்தைத் திருத்தவும், பஞ்சாங்கத்தைப் பார்க்கவும் வேண்டுமென்றால், அவையும் இதே உதவியாளருக்குள் இருக்கின்றன."}</p>

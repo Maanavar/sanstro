@@ -1,9 +1,11 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
+import { JsonLd, articleTa, faqPageLd } from "@/lib/json-ld";
 import type { Metadata } from "next";
 import { DOSHAM_KALATHRA_FAQ } from "@/lib/marketing-i18n";
 import { KalathraDoshamContent } from "./PageContent";
 
-export const metadata: Metadata = {
-  title: "Kalathra Dosham — Marriage Affliction, Meaning, Chart Check & Pariharam | Vinaadi",
+const EN_METADATA: Metadata = {
+  title: "Kalathra Dosham — Marriage Affliction, Meaning, Chart Check & Pariharam",
   description:
     "Kalathra dosham covers any malefic (Saturn, Mars, Rahu, Ketu, Sun) pressing the 7th house, its lord, or Venus. Learn how it differs from Sevvai dosham, how to read your chart for marriage timing, when it eases, and the traditional pariharam.",
   keywords: [
@@ -33,15 +35,12 @@ export const metadata: Metadata = {
   },
 };
 
-const FAQ_JSONLD = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: DOSHAM_KALATHRA_FAQ.map((f) => ({
-    "@type": "Question",
-    name: f.q.en,
-    acceptedAnswer: { "@type": "Answer", text: f.a.en },
-  })),
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/dosham/kalathra-dosham");
+}
+
+const FAQ_JSONLD = faqPageLd(DOSHAM_KALATHRA_FAQ, "en");
+const FAQ_JSONLD_TA = faqPageLd(DOSHAM_KALATHRA_FAQ, "ta");
 
 const ARTICLE_JSONLD = {
   "@context": "https://schema.org",
@@ -56,8 +55,8 @@ const ARTICLE_JSONLD = {
 export default function KalathraDoshamPage() {
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ARTICLE_JSONLD) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSONLD) }} />
+      <JsonLd en={ARTICLE_JSONLD} ta={articleTa(ARTICLE_JSONLD)} />
+      <JsonLd en={FAQ_JSONLD} ta={FAQ_JSONLD_TA} />
       <KalathraDoshamContent />
     </>
   );

@@ -27,14 +27,15 @@ from app.calculations.muhurta_engine import (
     SOURCED_ACTIVITIES,
     Subject,
     Verdict,
+    lagna_sign_factor_at_window,
     resolve_rule_source,
     score_day,
     unscored_dimensions_for,
 )
-from app.calculations.panchangam import calculate_daily_panchangam
 from app.data import kalaprakasika_samskara_rules as kps
 from app.data import kalaprakasika_treasure_rules as kp21
 from app.data.muhurta_activity_registry import ACTIVITY_RULES
+from app.services.panchangam_cache import calculate_daily_panchangam
 
 # Chennai — a location, not a person.
 LATITUDE, LONGITUDE, TIMEZONE = 13.0827, 80.2707, "Asia/Kolkata"
@@ -90,8 +91,10 @@ def test_no_scored_factor_reports_unsourced_where_a_table_exists(
         assert _factor(day, "KARANA") is not None
     if entry.vara_good or entry.vara_avoid:
         assert _factor(day, "VARA") is not None
-    if entry.lagna_best or entry.lagna_avoid:
-        assert _factor(day, "LAGNA_SIGN_AT_SUNRISE") is not None
+    # The lagna table is read at the elected moment, never off the day (FSA-01).
+    assert _factor(day, "LAGNA_SIGN_AT_SUNRISE") is None
+    if entry.lagna_best or entry.lagna_avoid or entry.lagna_conditional:
+        assert all(lagna_sign_factor_at_window(activity, rasi) is not None for rasi in range(1, 13))
 
 
 @pytest.mark.parametrize("activity", _ALL_NEW)
@@ -338,20 +341,21 @@ def test_the_land_purchase_weekday_bonus_names_its_unverified_condition(
     pytest.fail("the sweep never hit a favoured land-purchase weekday")
 
 
-def test_naming_common_signs_score_neutral_with_the_condition_stated(
-    snapshots,
-) -> None:
+def test_naming_common_signs_score_neutral_with_the_condition_stated() -> None:
     """Common signs are approved "when occupied by a benefic" — unverifiable
-    from a day snapshot, so they must not earn the best-sign bonus."""
-    for snap in snapshots:
-        if snap.lagna_rasi_number not in kps.NAMING_LAGNA_CONDITIONAL:
-            continue
-        factor = _factor(score_day(snap, "NAMING_CEREMONY", None), "LAGNA_SIGN_AT_SUNRISE")
+    from the window lagna alone, so they must not earn the best-sign bonus.
+
+    Checked on every conditional sign at the elected moment. This case used to
+    live only on the sunrise-lagna path, which FSA-01 removed; it had to move,
+    not disappear."""
+    assert kps.NAMING_LAGNA_CONDITIONAL
+    for rasi in kps.NAMING_LAGNA_CONDITIONAL:
+        factor = lagna_sign_factor_at_window("NAMING_CEREMONY", rasi)
+        assert factor is not None
         assert factor.verdict is Verdict.NEUTRAL
         assert factor.contribution == 0.0
         assert "benefic" in factor.reason_en
-        return
-    pytest.fail("the sweep never rose in a common sign")
+        assert "சுபகிரகம்" in factor.reason_ta
 
 
 @pytest.mark.parametrize("activity", _ALL_NEW)
@@ -406,7 +410,7 @@ def test_the_unlabelled_subject_path_keeps_latin_out_of_the_tamil_copy(
     unlabelled = Subject(janma_nakshatra=4, janma_rasi=2, lagna_rasi=5)
     latin = re.compile(r"[A-Za-z]{3,}")
     scored = {
-        "NAKSHATRA", "TITHI", "KARANA", "VARA", "LAGNA_SIGN_AT_SUNRISE",
+        "NAKSHATRA", "TITHI", "KARANA", "VARA",
         "CHANDRA_BALA", "TARA_BALA", "JANMA_NAKSHATRA",
     }
     for activity in _ALL_NEW:
@@ -416,6 +420,13 @@ def test_the_unlabelled_subject_path_keeps_latin_out_of_the_tamil_copy(
                     continue
                 assert not latin.search(factor.reason_ta), (
                     f"{activity}/{factor.factor}: Latin text in Tamil copy — {factor.reason_ta}"
+                )
+        # The lagna factor is built at the elected moment, not from a day.
+        for rasi in range(1, 13):
+            window = lagna_sign_factor_at_window(activity, rasi)
+            if window is not None:
+                assert not latin.search(window.reason_ta), (
+                    f"{activity}/LAGNA_SIGN_AT_WINDOW: Latin text in Tamil copy — {window.reason_ta}"
                 )
 
 

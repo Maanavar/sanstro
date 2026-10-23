@@ -30,10 +30,11 @@ panchangam_prewarm        – 02:10 UTC daily
 
 ## Run modes
 
-### Single-box (default)
+### Single-box development (explicit opt-in)
 
-APScheduler runs inside the FastAPI lifespan.  This is the default when
-`JOTHIDAM_RUN_SCHEDULER_IN_WEB` is not set (or is `true`).
+Development may run APScheduler inside the FastAPI lifespan by explicitly
+setting `JOTHIDAM_RUN_SCHEDULER_IN_WEB=true`. Production and staging APIs refuse
+that setting so deployment ownership cannot silently become mixed.
 
 ```
 uvicorn app.main:app --workers 4
@@ -42,10 +43,10 @@ uvicorn app.main:app --workers 4
 No extra process needed.  The advisory lock (`app/core/leader_lock.py`) ensures
 exactly one of the four Uvicorn workers fires each job.
 
-### Dedicated worker (scaled / container deploy)
+### Dedicated worker (production default)
 
 1. Set `JOTHIDAM_RUN_SCHEDULER_IN_WEB=false` on every API container.
-2. Start exactly one (or more, for HA) scheduler container:
+2. Start the supervised scheduler container:
 
 ```bash
 python -m app.worker
@@ -89,9 +90,9 @@ See `docs/SEC1_SECRET_CUSTODY_RULING.md` §5.2.
 The default errs toward demanding more, deliberately: an unset or misspelled
 role must never let an HTTP process boot without a JWT secret.
 
-You can run multiple worker replicas — only the one that wins the PostgreSQL
-advisory lock fires jobs; the rest idle as followers and take over automatically
-if the leader crashes.
+The supplied production Compose stack starts one worker. A worker that cannot
+acquire leadership, or later loses the lock-owning PostgreSQL session, exits
+non-zero so supervision restarts it. It never idles as a healthy follower.
 
 ## Leader election
 
@@ -99,10 +100,14 @@ if the leader crashes.
 PostgreSQL advisory lock (`pg_try_advisory_lock`) at startup.
 
 - **Wins the lock** → starts APScheduler, runs jobs.
-- **Loses the lock** → logs `"running as follower"` and serves requests (API) or
-  idles (worker).
-- **Leader crashes** → the DB connection drops, which automatically releases the
-  session-level lock; the next follower that restarts wins it.
+- **Worker loses the lock or its original DB session** → exits non-zero; container
+  supervision restarts it.
+- **Leader crashes** → the DB connection releases the lock automatically; the
+  restarted worker reacquires it.
+
+Every successful leadership-check cycle updates `scheduler_heartbeats`. The
+worker health probe requires a fresh leader heartbeat; its age is bounded by
+`JOTHIDAM_SCHEDULER_HEARTBEAT_MAX_AGE_SECONDS`.
 
 On SQLite (tests / offline dev) advisory locks do not exist; `SchedulerLease`
 always returns `True` (single process, always leader).
@@ -130,9 +135,9 @@ This works regardless of which process owns the scheduler because
 
 | Scenario | Outcome |
 |---|---|
-| Leader worker crashes | Advisory lock released automatically; follower takes over on restart |
-| DB connection lost mid-job | Job logs `push_cron_user_error`; summary counts the error; next hourly run retries |
-| APScheduler not installed | Startup logs a warning; scheduler disabled; no cron runs |
+| Leader worker crashes | Advisory lock releases; supervision restarts and reacquires it |
+| DB lock connection is lost | Leadership monitor fails the worker; supervision restarts it |
+| APScheduler not installed | Worker exits non-zero; health remains failed |
 | `_dispatch_for_user` raises per-user exception | Caught; `errors` counter incremented; other users unaffected |
 
 ## Relevant files
@@ -144,3 +149,4 @@ This works regardless of which process owns the scheduler because
 | `app/core/leader_lock.py` | PostgreSQL advisory lock |
 | `app/worker.py` | Standalone worker entrypoint |
 | `app/main.py` | In-web scheduler (lifespan) |
+| `app/worker_health.py` | Durable-heartbeat worker health probe |

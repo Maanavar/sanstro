@@ -49,7 +49,7 @@ available before relying on it.
 from __future__ import annotations
 
 from datetime import UTC, date, datetime, time, timedelta
-from typing import NamedTuple
+from typing import Literal, NamedTuple
 from zoneinfo import ZoneInfo
 
 from app.calculations.astro import (
@@ -65,7 +65,7 @@ from app.calculations.ephemeris import calculate_rise_transit_jd
 # index derived below is meaningless against a tropical longitude, and the bare
 # name does not say which it is, so the alias says it here where it is used.
 from app.calculations.ephemeris import sun_longitude_at_jd as _sun_sidereal_longitude_at_jd
-from app.data.tamil_calendar_authority import published_month_start_date
+from app.data.tamil_calendar_authority import last_published_month_start, published_month_start_date
 
 # Index 0 == Mesha == Chithirai
 TAMIL_MONTHS: list[tuple[str, str]] = [
@@ -180,7 +180,10 @@ def month_start_date_for_sankranti(
     boundary rather than remove it.
     """
     sankranti_date = julian_day_to_utc_datetime(sankranti_jd).astimezone(tz).date()
-    if rasi is not None and tz.key == "Asia/Kolkata":
+    # Published starts apply in every timezone (owner ruling 2026-10-22). They
+    # used to apply to Asia/Kolkata only, so a reader in Singapore got a
+    # recomputed Tamil date even inside published coverage.
+    if rasi is not None:
         published_start = published_month_start_date(
             gregorian_year=sankranti_date.year,
             rasi=rasi,
@@ -202,6 +205,12 @@ def tamil_solar_date(d: date, timezone_name: str, latitude: float, longitude: fl
     civil day on which that month began is decided by
     `month_start_date_for_sankranti`.
     """
+    rasi, month_start_date = _tamil_month_start(d, timezone_name, latitude, longitude)
+    return rasi, (d - month_start_date).days + 1
+
+
+def _tamil_month_start(d: date, timezone_name: str, latitude: float, longitude: float) -> tuple[int, date]:
+    """(month index, first civil day of that month) for civil date `d`."""
     tz = ZoneInfo(timezone_name)
     sunset_jd = _sunset_jd(d, tz, latitude, longitude)
     rasi = _sun_rasi_index_at_jd(sunset_jd)
@@ -223,8 +232,53 @@ def tamil_solar_date(d: date, timezone_name: str, latitude: float, longitude: fl
             rasi,
         )
 
-    day_of_month = (d - month_start_date).days + 1
-    return rasi, day_of_month
+    # The opposite case: a published start can fall *before* the Sun reaches
+    # the new rasi at sunset — Aani 2027's sankranti is 18:55 IST on 15 Jun,
+    # after sunset, yet the almanac opens Aani on the 15th. Without this the day
+    # would read "Vaikasi 32".
+    next_rasi = (rasi + 1) % 12
+    published_next = published_month_start_date(gregorian_year=d.year, rasi=next_rasi)
+    if published_next is not None and month_start_date < published_next <= d:
+        rasi, month_start_date = next_rasi, published_next
+
+    return rasi, month_start_date
+
+
+TamilDateSource = Literal["published", "computed"]
+
+# No Tamil month is shorter than 29 days, so days 1-28 of a published month are
+# fully determined even when the following boundary is not yet published.
+_DAYS_CERTAIN_WITHOUT_NEXT_BOUNDARY = 28
+
+
+def tamil_date_source(d: date, timezone_name: str, latitude: float, longitude: float) -> TamilDateSource:
+    """Whether the Tamil date for `d` comes from a published almanac or the rule.
+
+    "published" only when the day's month start is a published boundary *and*
+    either the next boundary is published too or the day is early enough in
+    its month that the next boundary cannot reach it. Everything else is
+    "computed", and must never be presented as the almanac's date (FCA-02).
+    The answer does not depend on the timezone: published starts apply
+    everywhere (owner ruling 2026-10-22).
+    """
+    rasi, month_start = _tamil_month_start(d, timezone_name, latitude, longitude)
+    if published_month_start_date(gregorian_year=month_start.year, rasi=rasi) != month_start:
+        return "computed"
+    if (d - month_start).days + 1 <= _DAYS_CERTAIN_WITHOUT_NEXT_BOUNDARY:
+        return "published"
+    next_rasi = (rasi + 1) % 12
+    for year in (month_start.year, month_start.year + 1):
+        # Must be the boundary *after* this month: Margazhi's next rasi is
+        # Thai, and last January's Thai is published too.
+        published_next = published_month_start_date(gregorian_year=year, rasi=next_rasi)
+        if published_next is not None and published_next > month_start:
+            return "published"
+    return "computed"
+
+
+def published_tamil_calendar_covers_through() -> date:
+    """Last civil date whose Tamil date is certainly published (see above)."""
+    return last_published_month_start() + timedelta(days=_DAYS_CERTAIN_WITHOUT_NEXT_BOUNDARY - 1)
 
 
 def format_tamil_date(d: date, timezone_name: str, latitude: float, longitude: float) -> tuple[str, str]:

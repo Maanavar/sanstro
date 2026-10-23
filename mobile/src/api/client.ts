@@ -1,6 +1,8 @@
 import { router } from "expo-router";
-import { getTokens, setTokens, clearTokens } from "@/lib/secureStore";
+import { getTokens, setTokens } from "@/lib/secureStore";
+import { isTokenPair } from "@/lib/tokenPair";
 import { ENV } from "@/lib/env";
+import { currentGeneration, isCurrentGeneration } from "@/lib/sessionIdentity";
 import {
   apiErrorDetail,
   initApiClient,
@@ -34,7 +36,7 @@ function appendQuery(path: string, params?: ApiQueryParams): string {
 // Single-flight 401 refresh - all concurrent 401s share one refresh Promise
 let _refreshPromise: Promise<void> | null = null;
 
-async function rotateTokens(): Promise<void> {
+async function rotateTokens(generation: number): Promise<void> {
   const stored = await getTokens();
   if (!stored) throw new Error("no refresh token");
 
@@ -46,11 +48,21 @@ async function rotateTokens(): Promise<void> {
 
   if (!res.ok) throw new Error("refresh failed");
 
-  const json = (await res.json()) as {
-    accessToken: string;
-    refreshToken: string;
-    expiresIn: number;
-  };
+  // Checked, not cast (A14 step 8): this body goes straight into SecureStore,
+  // which writes the two keys separately. A 200 carrying only an access token
+  // would keep the old refresh token — already rotated, i.e. revoked — and the
+  // next refresh would present it, which the backend treats as token theft and
+  // answers by revoking every session (A03). Anything but two non-empty token
+  // strings is a failed refresh: nothing is written and the session ends.
+  const json: unknown = await res.json();
+  if (!isTokenPair(json)) throw new Error("refresh returned a malformed token pair");
+
+  // A logout that landed while this was in flight must not be undone by it.
+  // Writing these would hand the next (signed-out, or different) session a
+  // working credential pair for the previous account — A02's invariant, on the
+  // one code path most likely to violate it, because it is the only one that
+  // writes credentials without a user action.
+  if (!isCurrentGeneration(generation)) throw new SessionChangedError();
 
   await setTokens({
     accessToken: json.accessToken,
@@ -58,13 +70,41 @@ async function rotateTokens(): Promise<void> {
   });
 }
 
-function getRefreshPromise(): Promise<void> {
+class SessionChangedError extends Error {
+  constructor() {
+    super("session changed during refresh");
+    this.name = "SessionChangedError";
+  }
+}
+
+function getRefreshPromise(generation: number): Promise<void> {
   if (!_refreshPromise) {
-    _refreshPromise = rotateTokens().finally(() => {
+    _refreshPromise = rotateTokens(generation).finally(() => {
       _refreshPromise = null;
     });
   }
   return _refreshPromise;
+}
+
+/**
+ * The session is over and no retry can help.
+ *
+ * Routed through the A02 coordinator rather than the old `clearTokens()` +
+ * `router.replace()` pair, so a server-side revocation ends with the same end
+ * state as pressing Sign out: cache cleared, persisted cache removed,
+ * preferences and analytics identity dropped. Clearing only the tokens left the
+ * previous account's data in a cache the next sign-in would read.
+ */
+async function endSessionTerminally(): Promise<void> {
+  // Required lazily to break a genuine import cycle: the coordinator revokes
+  // the session through @/api/auth, which is built on this module. Resolved at
+  // call time, by which point every module in the cycle is initialised.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { endSession } = require("@/state/sessionTransition") as typeof import("@/state/sessionTransition");
+  // revokeRemote: false — a 401 means the server has already stopped accepting
+  // these credentials, and calling logout() would re-enter this same client.
+  await endSession({ revokeRemote: false });
+  router.replace("/(auth)/login");
 }
 
 function generateRequestId(): string {
@@ -79,10 +119,7 @@ function generateRequestId(): string {
   });
 }
 
-export async function fetchWithAuth(
-  url: string,
-  init: RequestInit = {},
-): Promise<Response> {
+async function sendOnce(url: string, init: RequestInit): Promise<Response> {
   const tokens = await getTokens();
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -91,18 +128,66 @@ export async function fetchWithAuth(
   };
   if (tokens) headers["Authorization"] = `Bearer ${tokens.accessToken}`;
 
-  const res = await fetch(buildApiUrl(url), { ...init, headers });
+  return fetch(buildApiUrl(url), { ...init, headers });
+}
 
-  if (res.status !== 401) return res;
+/**
+ * Send a request, and on a 401 refresh ONCE and replay ONCE.
+ *
+ * A08. This used to end with `return fetchWithAuth(url, init)` — a tail call to
+ * itself with nothing recording that the request had already spent its one
+ * refresh. A resource that answers 401 for any reason other than an expired
+ * access token (revoked session, changed permission, server bug) therefore
+ * looped without bound, rotating the refresh token on every pass. Running the
+ * pre-fix client against a persistently-401 resource ends in
+ * `FATAL ERROR: JavaScript heap out of memory`; the audit's probe only looked
+ * bounded because the probe itself failed the fifth refresh on purpose.
+ *
+ * Rotation makes the loop worse than a spin: each rotation revokes the previous
+ * refresh token, so the loop burns the token family, and a concurrent genuine
+ * request can then present a revoked token — which the backend reads as a theft
+ * signal and answers by revoking everything and bumping `token_version` (A03).
+ * A client retry bug could sign the user out of every device.
+ *
+ * Not implemented here, and not claimed: request deadlines and cancellation
+ * (A08 step 7). The bound is on attempts, not on time.
+ */
+export async function fetchWithAuth(
+  url: string,
+  init: RequestInit = {},
+): Promise<Response> {
+  // Which login lifecycle this request belongs to. Captured before the first
+  // send, compared before anything is written or replayed.
+  const generation = currentGeneration();
+
+  const first = await sendOnce(url, init);
+  if (first.status !== 401) return first;
+
+  // A logout or account switch landed while this was in flight. Its result is
+  // nobody's business now: do not refresh, do not replay, and above all do not
+  // run the teardown again on the new session's behalf.
+  if (!isCurrentGeneration(generation)) return first;
 
   try {
-    await getRefreshPromise();
-    return fetchWithAuth(url, init);
+    await getRefreshPromise(generation);
   } catch {
-    await clearTokens();
-    router.replace("/(auth)/login");
-    return res;
+    // Distinguishing a rejected refresh token from a network failure is A08
+    // step 8 and needs the error classification this client does not yet have.
+    // Until then a failed refresh is treated as terminal, which is the
+    // pre-existing behaviour and errs toward signing out.
+    if (isCurrentGeneration(generation)) await endSessionTerminally();
+    return first;
   }
+
+  if (!isCurrentGeneration(generation)) return first;
+
+  const replayed = await sendOnce(url, init);
+  if (replayed.status !== 401) return replayed;
+
+  // The refresh succeeded and the resource still says no. More refreshes cannot
+  // change that; this is the terminal outcome the old recursion never reached.
+  if (isCurrentGeneration(generation)) await endSessionTerminally();
+  return replayed;
 }
 
 export async function apiGet<T>(url: string, params?: ApiQueryParams): Promise<T> {

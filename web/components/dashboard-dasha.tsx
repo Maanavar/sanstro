@@ -190,7 +190,7 @@ export function DashaTimeline({
             return (
               <div
                 key={`bar-${period.lord}-${period.startDate}`}
-                title={`${period.lord} ${String(period.startDate).slice(0, 4)}-${String(period.endDate).slice(0, 4)}`}
+                title={`${tPlanetLord(period.lord, lang)} ${String(period.startDate).slice(0, 4)}-${String(period.endDate).slice(0, 4)}`}
                 style={{
                   position: "absolute",
                   left: `${left}%`,

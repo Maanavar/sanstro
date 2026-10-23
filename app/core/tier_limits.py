@@ -6,7 +6,7 @@ All numeric Infinity values are represented as math.inf here.
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Literal
 
 Tier = Literal["guest", "registered", "premium"]
@@ -127,6 +127,23 @@ TIER_LIMITS: dict[str, TierLimits] = {
 }
 
 
+# Open beta — what a signed-in account without a subscription gets while
+# `settings.open_beta` is on. Premium's features, because /beta promises that
+# every feature is unlocked. Deliberately NOT a TIER_LIMITS key: it is not a tier
+# anyone buys, and TIER_LIMITS is pinned to tiers.ts by tests/test_tier_parity.py.
+#
+# The one departure is Ask Vinaadi. It is the only feature that costs money per
+# call, so it keeps a daily fair-use cap instead of premium's monthly allowance,
+# and that cap is the registered one — the beta costs no more per user than the
+# free tier already did.
+OPEN_BETA_LIMITS = replace(
+    TIER_LIMITS["premium"],
+    ask_vinaadi_daily_limit=TIER_LIMITS["registered"].ask_vinaadi_daily_limit,
+    ask_vinaadi_monthly_limit=None,
+    ask_vinaadi_topup_enabled=False,
+)
+
+
 # Pay-per-use product IDs must match packages/shared/src/constants/tiers.ts PPU_* constants.
 PPU_REPORT_IDS = {
     "1page":  "vinaadi.ppu.report.1page",
@@ -158,4 +175,9 @@ def ask_vinaadi_limit_for_tier(tier: str) -> tuple[int | None, int | None]:
     Exactly one of the two will be non-None.
     """
     lim = get_limits(tier)
+    return lim.ask_vinaadi_daily_limit, lim.ask_vinaadi_monthly_limit
+
+
+def ask_vinaadi_limits(lim: TierLimits) -> tuple[int | None, int | None]:
+    """(daily_limit, monthly_limit) for an already-resolved limit set."""
     return lim.ask_vinaadi_daily_limit, lim.ask_vinaadi_monthly_limit

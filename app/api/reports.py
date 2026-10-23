@@ -7,12 +7,11 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user, require_csrf_header
-from app.core.subscription import is_premium
+from app.core.subscription import limits_for_user
 from app.core.tier_limits import (
     PPU_PORUTHAM_IDS,
     PPU_REPORT_IDS,
     PPU_TOPUP_IDS,
-    get_limits,
 )
 from app.db.session import get_db
 from app.models.user import User
@@ -55,8 +54,7 @@ def purchase_report(
     Payment processing is not yet live; this endpoint validates the request,
     records purchase intent, and returns a reference_id for tracking.
     """
-    tier = "premium" if is_premium(current_user.user_id, session) else "registered"
-    limits = get_limits(tier)
+    limits = limits_for_user(current_user.user_id, session)
     if not limits.pay_per_use_enabled:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

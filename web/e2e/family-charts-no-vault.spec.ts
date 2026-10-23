@@ -95,8 +95,8 @@ test("Family & Charts renders the owner's own reading with no family vault", asy
   // The section this bug blanked out entirely — no skeleton, no placeholder,
   // just an absent subtree — so its heading appearing is the actual signal.
   await expect(
-    page.getByRole("heading", { name: /Full technical reading/i }),
-    "the Full technical reading section did not render for an owner with no family vault",
+    page.getByRole("heading", { name: /Full chart reading/i }),
+    "the Full chart reading section did not render for an owner with no family vault",
   ).toBeVisible({ timeout: 60_000 });
 
   // T5: the member-overview block ("Vanakkam, <name>") sits ABOVE the

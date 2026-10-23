@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
+import { withTamilTwin } from "@/lib/localized-metadata";
+import { JsonLd } from "@/lib/json-ld";
+import { muhurthamNaalTa } from "@/lib/marketing-seo-ta";
+import { taUrl } from "@/lib/ta-routes";
 import { LATEST_MUHURTHAM_NAAL_YEAR } from "@/lib/muhurtham-naal";
 import { MuhurthamNaalContent } from "./MuhurthamNaalContent";
 
 const SITE = "https://vinaadi.com";
 
 export function metadataForMuhurthamYear(year: number, path = "/muhurtham-naal"): Metadata {
-  const title = `${year} Tamil Muhurtham Naal (Wedding Dates) - Verified Almanac List | Vinaadi`;
+  const title = `${year} Tamil Muhurtham Naal (Wedding Dates) - Verified Almanac List`;
   const description =
     `All auspicious Tamil muhurtham (wedding) dates for ${year} from the published almanac, with weekday, Tamil date, pirai, nakshatra and nalla neram for each. Sign in to find the dates that best match your birth star.`;
 
@@ -37,30 +41,47 @@ export function metadataForMuhurthamYear(year: number, path = "/muhurtham-naal")
   };
 }
 
-export function jsonLdForMuhurthamYear(year: number, path = "/muhurtham-naal") {
+/**
+ * The CollectionPage block for a muhurtham year, in one language (GRW-06). The
+ * Tamil name and description are the page's own Tamil metadata, so the
+ * structured data says what the `<title>` says.
+ */
+export function jsonLdForMuhurthamYear(year: number, path = "/muhurtham-naal", lang: "en" | "ta" = "en") {
+  const ta = lang === "ta";
+  const url = ta ? taUrl(`${SITE}${path}`) : `${SITE}${path}`;
+  const copy = muhurthamNaalTa(year);
   return {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
-    name: `${year} Tamil Muhurtham Naal (Wedding Dates)`,
-    url: `${SITE}${path}`,
-    description: `The published ${year} Tamil muhurtham (wedding) date list with weekday, Tamil date, pirai and nakshatra.`,
+    name: ta ? copy.title : `${year} Tamil Muhurtham Naal (Wedding Dates)`,
+    url,
+    description: ta
+      ? copy.description
+      : `The published ${year} Tamil muhurtham (wedding) date list with weekday, Tamil date, pirai and nakshatra.`,
+    inLanguage: lang,
     breadcrumb: {
       "@type": "BreadcrumbList",
       itemListElement: [
-        { "@type": "ListItem", position: 1, name: "Home", item: SITE },
-        { "@type": "ListItem", position: 2, name: `Muhurtham Naal ${year}`, item: `${SITE}${path}` },
+        { "@type": "ListItem", position: 1, name: ta ? "முகப்பு" : "Home", item: ta ? taUrl(SITE) : SITE },
+        { "@type": "ListItem", position: 2, name: ta ? `முகூர்த்த நாள் ${year}` : `Muhurtham Naal ${year}`, item: url },
       ],
     },
   };
 }
 
-export const metadata = metadataForMuhurthamYear(LATEST_MUHURTHAM_NAAL_YEAR);
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(
+    metadataForMuhurthamYear(LATEST_MUHURTHAM_NAAL_YEAR),
+    "/muhurtham-naal",
+    muhurthamNaalTa(LATEST_MUHURTHAM_NAAL_YEAR),
+  );
+}
 
 export default function MuhurthamNaalPage() {
-  const jsonLd = jsonLdForMuhurthamYear(LATEST_MUHURTHAM_NAAL_YEAR);
+  const year = LATEST_MUHURTHAM_NAAL_YEAR;
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <JsonLd en={jsonLdForMuhurthamYear(year)} ta={jsonLdForMuhurthamYear(year, "/muhurtham-naal", "ta")} />
       <MuhurthamNaalContent year={LATEST_MUHURTHAM_NAAL_YEAR} />
     </>
   );

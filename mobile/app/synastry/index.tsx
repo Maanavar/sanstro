@@ -23,12 +23,13 @@ import { biText } from "@/lib/i18n";
 import { TIER_LIMITS } from "@vinaadi/shared";
 import { listFamilyVaults, getFamilyVaultToday, type FamilyMemberDayView } from "@/api/familyVault";
 import { getRelationshipSynastry, type SynastryData } from "@/api/relationships";
+import { accountKey } from "@/lib/queryKeys";
 
 export default function SynastryScreen() {
   const C = useColors();
   const styles = useMemo(() => makeStyles(C), [C]);
   const { lang } = useI18n();
-  const { tier } = useSession();
+  const { gateTier: tier } = useSession();
   const isTamil = lang === "ta";
   const type = isTamil ? TamilType : EnType;
 
@@ -36,7 +37,7 @@ export default function SynastryScreen() {
   const [selectedMember, setSelectedMember] = useState<FamilyMemberDayView | null>(null);
 
   const vaults = useQuery({
-    queryKey: ["family-vaults"],
+    queryKey: accountKey("family-vaults"),
     queryFn: listFamilyVaults,
     enabled: TIER_LIMITS[tier].synastryEnabled,
     staleTime: 1000 * 60 * 5,

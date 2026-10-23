@@ -1,6 +1,8 @@
 import { getRandomBytesAsync } from "expo-crypto";
 import * as SecureStore from "expo-secure-store";
 
+import { isTokenPair } from "./tokenPair";
+
 const KEYS = {
   ACCESS_TOKEN:  "vinaadi_access_token",
   REFRESH_TOKEN: "vinaadi_refresh_token",
@@ -21,7 +23,15 @@ export async function getTokens(): Promise<StoredTokens | null> {
   return { accessToken, refreshToken };
 }
 
+/**
+ * Checked before either key is written (A14 step 8). Login, register and
+ * refresh all pass server-supplied tokens here, and the two writes are
+ * separate: a pair with one bad half would store the good half beside a stale
+ * other half — for refresh, a token the server has already revoked, which the
+ * backend treats as theft and answers by revoking every session (A03).
+ */
 export async function setTokens(tokens: StoredTokens): Promise<void> {
+  if (!isTokenPair(tokens)) throw new Error("refusing to store a malformed token pair");
   await Promise.all([
     SecureStore.setItemAsync(KEYS.ACCESS_TOKEN, tokens.accessToken),
     SecureStore.setItemAsync(KEYS.REFRESH_TOKEN, tokens.refreshToken),

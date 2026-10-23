@@ -3,6 +3,7 @@ import pytest
 from app.calculations.yogas import (
     detect_adhi_yoga,
     detect_badhaka_dosham,
+    detect_bhagya_support,
     detect_chandala_yoga,
     detect_daridra_yoga,
     detect_daridra_yoga_proxy,
@@ -89,7 +90,13 @@ def test_t090_sevvai_dosham_detection():
     assert result.is_present is True
 
 
-def test_t091_sevvai_dosham_cancellation_for_certain_lagna():
+def test_t091_sevvai_dosham_mesham_lagna_mars_in_the_2nd():
+    """O-18 (owner, 2026-10-03, upheld by §8 of the round-two rulings): the
+    Mesham/Viruchigam-lagna exception is a strong mitigation, so it reads
+    present, reduced. The option's old "full_cancellation" value no longer
+    cancels: §8 allows two cancellations, both two-chart."""
+    from app.calculations.doctrine_options import DoctrineOptions
+
     planets = {
         "SUN": 3,
         "MOON": 4,
@@ -103,24 +110,70 @@ def test_t091_sevvai_dosham_cancellation_for_certain_lagna():
     }
     result = detect_sevvai_dosham(planets, lagna_rasi=1)
     assert result.is_present is True
-    assert result.is_cancelled is True
+    assert result.is_cancelled is False
+    assert "mars_lagna_lord_mitigation" in result.cancellation_factors
+    legacy = detect_sevvai_dosham(planets, lagna_rasi=1, doctrine=DoctrineOptions(o18_aries_scorpio_sevvai="full_cancellation"))
+    assert legacy.is_cancelled is False
 
 
-def test_t091_both_partners_have_sevvai_dosham_cancellation():
-    planets = {
-        "SUN": 3,
-        "MOON": 4,
-        "MARS": 7,
-        "MERCURY": 2,
-        "JUPITER": 5,
-        "VENUS": 6,
-        "SATURN": 9,
-        "RAHU": 11,
-        "KETU": 5,
-    }
-    result = detect_sevvai_dosham(planets, lagna_rasi=2, partner_has_sevvai_dosham=True)
+# Rishabam lagna, Mars in Thulam: 4th from the Moon (Kadagam) and 2nd from
+# Venus (Kanni) — two references, not the Lagna.
+_SEVVAI_FROM_MOON_AND_VENUS = {
+    "SUN": 3, "MOON": 4, "MARS": 7, "MERCURY": 2, "JUPITER": 5,
+    "VENUS": 6, "SATURN": 9, "RAHU": 11, "KETU": 5,
+}
+
+
+def test_t091_dosha_samyam_of_comparable_weight_cancels():
+    """§8 condition 1: the partner carries Sevvai too, also from two or more
+    references. Only a two-chart reading can say so."""
+    assert {"from_moon", "from_venus"} <= set(detect_sevvai_dosham(_SEVVAI_FROM_MOON_AND_VENUS, lagna_rasi=2).conditions_met)
+    result = detect_sevvai_dosham(
+        _SEVVAI_FROM_MOON_AND_VENUS, lagna_rasi=2, partner_sevvai_references=["from_moon", "from_venus"]
+    )
     assert result.is_present is True
     assert result.is_cancelled is True
+    assert "both_partners_have_sevvai" in result.cancellation_factors
+
+
+def test_t091_dosha_samyam_against_a_lighter_placement_only_reduces():
+    """§8: a severe placement against a trivial one does not cancel — the
+    partner's Sevvai counted from Venus alone is not of comparable weight."""
+    result = detect_sevvai_dosham(_SEVVAI_FROM_MOON_AND_VENUS, lagna_rasi=2, partner_sevvai_references=["from_venus"])
+    assert result.is_cancelled is False
+    assert "partner_sevvai_unequal_weight" in result.cancellation_factors
+    assert result.strength != result.formation_strength
+
+
+def test_mars_debilitated_in_the_dosha_house_cancels_only_with_a_second_chart():
+    """§8 condition 2, beside the hard constraint that a single-chart reading
+    never prints "cancelled": Mars in Katakam (debilitated), 7th from a
+    Makaram lagna, reads present, reduced alone and cancelled in a match."""
+    planets = {
+        "SUN": 1, "MOON": 12, "MARS": 4, "MERCURY": 2, "JUPITER": 6,
+        "VENUS": 2, "SATURN": 9, "RAHU": 11, "KETU": 5,
+    }
+    single = detect_sevvai_dosham(planets, lagna_rasi=10)
+    assert single.is_present is True
+    assert single.is_cancelled is False
+    assert "mars_debilitated_in_dosha_house" in single.cancellation_factors
+    matched = detect_sevvai_dosham(planets, lagna_rasi=10, partner_sevvai_references=[])
+    assert matched.is_cancelled is True
+
+
+def test_a_single_chart_never_reads_cancelled():
+    """§8 hard constraint, swept: every Lagna and every Mars/Jupiter/Moon/Venus
+    placement on a fixed background; no single-chart Sevvai reads cancelled."""
+    for lagna in range(1, 13):
+        for mars in range(1, 13):
+            for jupiter in range(1, 13):
+                for moon_venus in range(1, 13):
+                    planets = {
+                        "SUN": 1, "MOON": moon_venus, "MARS": mars, "MERCURY": 2,
+                        "JUPITER": jupiter, "VENUS": moon_venus, "SATURN": 9, "RAHU": 11, "KETU": 5,
+                    }
+                    result = detect_sevvai_dosham(planets, lagna_rasi=lagna)
+                    assert not result.is_cancelled, (lagna, mars, jupiter, moon_venus)
 
 
 def test_t092_sevvai_dosham_from_lagna_moon_venus():
@@ -320,7 +373,9 @@ def test_rahu_ketu_dosham_detects_sensitive_houses():
     assert result.strength in {"PARTIAL", "STRONG"}
 
 
-def test_rahu_ketu_sarpa_naga_label_for_5_9_axis():
+def test_rahu_ketu_5_9_axis_is_not_a_marriage_dosham():
+    """DD-03/DD-04 (v1.3): houses 5 and 9 left this detector. Node-in-5th is read
+    in the progeny analysis (Putra Sarpa), the 9th under dharma/father."""
     planets = {
         "SUN": 3,
         "MOON": 4,
@@ -333,9 +388,9 @@ def test_rahu_ketu_sarpa_naga_label_for_5_9_axis():
         "KETU": 11,
     }
     result = detect_rahu_ketu_dosham(planets, lagna_rasi=1)
-    assert result.is_present is True
-    assert result.label == "SARPA_NAGA_DOSHAM_CANDIDATE"
-    assert result.category == "SARPA_NAGA"
+    assert result.is_present is False
+    assert result.label == "NO_RAHU_KETU_DOSHAM"
+    assert result.conditions_met == []
 
 
 def test_rahu_ketu_incomplete_data_label():
@@ -352,6 +407,16 @@ def test_rahu_ketu_incomplete_data_label():
     result = detect_rahu_ketu_dosham(planets, lagna_rasi=1)
     assert result.label == "INCOMPLETE_DATA"
     assert "KETU" in result.missing_data
+
+
+def test_sevvai_without_jupiter_is_incomplete_not_a_crash():
+    """Jupiter's drishti on Mars is one of Sevvai's cancellations, so the
+    detector reads it. It used to validate only Mars/Moon/Venus and then raise
+    KeyError on a chart without Jupiter."""
+    result = detect_sevvai_dosham({"MARS": 1, "MOON": 2, "VENUS": 3}, 1)
+    assert result.label == "INCOMPLETE_DATA"
+    assert result.is_present is False
+    assert result.missing_data == ["JUPITER"]
 
 
 def test_pitru_dosham_detects_sun_node_pattern():
@@ -390,17 +455,28 @@ SCENARIO_LAGNA = 1  # Mesham
 
 
 def test_sevvai_scenario_mesha_lagna_8th_mars_female():
-    """Spec §19.2: Mars 8th from Lagna (Viruchigam), own sign + Guru 5th aspect = SEVVAI_DOSHAM_WITH_NIVARTHI."""
+    """Spec §19.2: Mars 8th from Lagna (Viruchigam), own sign + Guru 5th aspect.
+
+    The spec read SEVVAI_DOSHAM_WITH_NIVARTHI: two minor factors cancelled it.
+    Astrologer ruling 2026-10-22 (Q8): minors reduce and never cancel, so it is
+    present, reduced — one grade below its STRONG formation. The same ruling
+    lists own sign as a MAJOR factor, which would cancel it; that half
+    reverses O-18 and waits for the owner (O-33). This is the case that flips.
+    """
     result = detect_sevvai_dosham(SCENARIO_PLANETS, SCENARIO_LAGNA, gender="female")
     assert result.is_present is True
-    assert result.label == "SEVVAI_DOSHAM_WITH_NIVARTHI"
+    assert result.is_cancelled is False
+    assert result.label == "ACTIVE_SEVVAI_DOSHAM"
+    assert (result.formation_strength, result.strength) == ("STRONG", "PARTIAL")
     assert "from_lagna" in result.conditions_met
     # Mars is in Viruchigam = own sign
     assert "mars_own_sign" in result.cancellation_factors
     # Jupiter in Kadagam(4) aspects Viruchigam(8) by 5th aspect
     assert "jupiter_aspect_on_mars" in result.cancellation_factors
-    # Female chart — extra severity note must be present
-    assert "female_high_attention_house" in result.conditions_met
+    # DD-05 (v1.3): gender weighting is astrologer/porutham-only — recorded
+    # beside the result, never among the consumer-facing triggers.
+    assert "female_high_attention_house" not in result.conditions_met
+    assert "female_weighted_house_8_from_lagna" in result.astrologer_markers
     # Moon in Magaram(10): Mars is 11th from Moon, so no dosham from Moon
     assert "from_moon" not in result.conditions_met
 
@@ -425,7 +501,12 @@ def test_sevvai_house_sign_nivarthi_2nd_house_mithunam():
 
 
 def test_sevvai_mars_dispositor_kendra_trikona():
-    """Spec §6.7: Mars in Thulaam(7), lord of Thulaam is Venus. Venus in kendra from Mars → dispositor nivarthi."""
+    """Spec §6.7: Mars in Thulaam(7), lord of Thulaam is Venus. Venus in kendra from Mars → dispositor nivarthi.
+
+    O-26 (DD-17, 2026-10-06): the rule has no printed source and is off by
+    default, so it is exercised here under its restoring option. The default
+    is pinned in tests/test_doctrine_decisions_dd17.py."""
+    from app.calculations.doctrine_options import DoctrineOptions
     # Lagna=Mesham(1), Mars=Thulaam(7). Sign lord of Thulaam=VENUS.
     # Put Venus in Mesham(1) → house_from(Thulaam=7, Mesham=1) = 7th → kendra.
     planets = {
@@ -439,12 +520,14 @@ def test_sevvai_mars_dispositor_kendra_trikona():
         "RAHU": 11,
         "KETU": 5,
     }
-    result = detect_sevvai_dosham(planets, lagna_rasi=1)
+    result = detect_sevvai_dosham(planets, lagna_rasi=1, doctrine=DoctrineOptions(o26_sevvai_dispositor_mitigation="from_mars"))
     assert "mars_dispositor_kendra_trikona" in result.cancellation_factors
 
 
-def test_sevvai_jupiter_conjunct_mars_major_cancellation():
-    """Spec §6.5: Jupiter and Mars in same rasi → major cancellation."""
+def test_sevvai_jupiter_conjunct_mars_reduces_and_never_cancels():
+    """Spec §6.5 made Guru joining Mars a major cancellation. Rulings
+    2026-10-22 round two, §8: cancellation is two conditions only, both
+    two-chart, and this is neither — it reduces."""
     planets = {
         "SUN": 3,
         "MOON": 5,
@@ -458,11 +541,16 @@ def test_sevvai_jupiter_conjunct_mars_major_cancellation():
     }
     result = detect_sevvai_dosham(planets, lagna_rasi=1)
     assert "jupiter_conjunct_mars" in result.cancellation_factors
-    assert result.is_cancelled is True
+    assert result.is_present is True
+    assert result.is_cancelled is False
+    assert result.strength != result.formation_strength  # reduced, one grade
 
 
 def test_sevvai_kadagam_lagna_yogakaraka():
-    """Spec §6.8: Kadagam(4) lagna — Mars is yogakaraka (5th+10th lord) → major cancellation."""
+    """DD-06 (v1.3): the Kadagam/Simmam exception is a strong mitigation, never a
+    major cancellation. Here Guru also aspects the 7th lord. That used to make
+    two mitigations and so nivarthi; since the 2026-10-22 ruling (Q8) minors
+    never cancel, so it is present, reduced — and reduced once, not twice."""
     planets = {
         "SUN": 3,
         "MOON": 5,
@@ -475,8 +563,14 @@ def test_sevvai_kadagam_lagna_yogakaraka():
         "KETU": 5,
     }
     result = detect_sevvai_dosham(planets, lagna_rasi=4)
-    assert "mars_yogakaraka_lagna" in result.cancellation_factors
-    assert result.is_cancelled is True
+    assert "tamil_sevvai_exception_cancer_leo" in result.cancellation_factors
+    assert "jupiter_aspects_seventh_lord" in result.cancellation_factors
+    assert result.is_present is True
+    assert result.is_cancelled is False
+    # 8th from the Lagna: a STRONG formation, reduced one grade — and raised
+    # back by Rahu sharing Mars's rasi (the aggravation step runs after).
+    assert "mars_joined_saturn_or_rahu" in result.conditions_met
+    assert (result.formation_strength, result.strength) == ("STRONG", "STRONG")
 
 
 def test_sevvai_benefic_association_mars():
@@ -510,28 +604,33 @@ def test_sevvai_gender_male_high_attention():
         "KETU": 5,
     }
     result = detect_sevvai_dosham(planets, lagna_rasi=1, gender="male")
-    assert "male_high_attention_house" in result.conditions_met
+    # DD-05: astrologer view only.
+    assert "male_high_attention_house" not in result.conditions_met
+    assert "male_weighted_house_7_from_lagna" in result.astrologer_markers
 
 
 def test_rahu_ketu_node_afflicts_moon():
-    """Spec §11.2: Rahu conjunct Moon → node_afflicts_moon detected."""
+    """DD-03: a node joined with the Moon aggravates a formed axis one grade.
+    (Rahu in the 5th no longer forms the axis, so the node sits in the 7th.)"""
     planets = {
         "SUN": 3,
-        "MOON": 5,
-        "MARS": 7,
+        "MOON": 7,
+        "MARS": 4,
         "MERCURY": 6,
         "JUPITER": 9,
         "VENUS": 2,
         "SATURN": 10,
-        "RAHU": 5,   # same rasi as Moon
-        "KETU": 11,
+        "RAHU": 7,   # same rasi as Moon, 7th from Mesham
+        "KETU": 1,
     }
     result = detect_rahu_ketu_dosham(planets, lagna_rasi=1)
     assert "node_afflicts_moon" in result.conditions_met
 
 
-def test_rahu_ketu_upachaya_noted():
-    """Spec §13.4: Rahu in 3rd (upachaya) — rahu_ketu_upachaya noted but not marriage dosham."""
+def test_rahu_ketu_upachaya_is_no_finding():
+    """DD-03: Rahu in the 3rd forms no axis, so nothing is recorded — the old
+    `rahu_ketu_upachaya` note sat in "Triggered factors" on a chart with no
+    dosham (fix-spec F1)."""
     planets = {
         "SUN": 3,
         "MOON": 5,
@@ -544,13 +643,13 @@ def test_rahu_ketu_upachaya_noted():
         "KETU": 9,   # 9th — sarpa candidate
     }
     result = detect_rahu_ketu_dosham(planets, lagna_rasi=1)
-    assert "rahu_ketu_upachaya" in result.conditions_met
-    # Rahu in 3rd is NOT a marriage house — should not create marriage candidate
-    assert "rahu_in_marriage_house" not in result.conditions_met
+    assert result.is_present is False
+    assert result.conditions_met == []
 
 
-def test_rahu_ketu_female_high_attention_8th():
-    """Spec §14.2: Female chart, Ketu in 8th → female_high_attention_house flagged."""
+def test_rahu_ketu_gender_markers_are_gone():
+    """DD-05 (v1.3): the Rahu–Ketu gender markers are removed from DD-03. If they
+    return at all they belong to porutham.papa_samyam."""
     planets = {
         "SUN": 3,
         "MOON": 5,
@@ -562,9 +661,12 @@ def test_rahu_ketu_female_high_attention_8th():
         "RAHU": 2,
         "KETU": 8,   # 8th house — marriage house + female attention
     }
-    result = detect_rahu_ketu_dosham(planets, lagna_rasi=1, gender="female")
-    assert "female_high_attention_house" in result.conditions_met
-    assert result.is_present is True
+    female = detect_rahu_ketu_dosham(planets, lagna_rasi=1, gender="female")
+    male = detect_rahu_ketu_dosham(planets, lagna_rasi=1, gender="male")
+    assert female.is_present is True
+    assert "rahu_ketu_axis_2_8" in female.conditions_met
+    assert not any("attention" in c for c in female.conditions_met)
+    assert (female.strength, female.label, female.conditions_met) == (male.strength, male.label, male.conditions_met)
 
 
 def test_sakata_kemadruma_and_chandala_detect():
@@ -600,12 +702,20 @@ def test_adhi_daridra_lakshmi_vasumati_and_sunapha_family():
     assert detect_daridra_yoga(daridra_planets, lagna_rasi=8, planet_scores={"MERCURY": 30}).is_present is False
     assert detect_daridra_yoga_proxy(daridra_planets, lagna_rasi=8, planet_scores={"MERCURY": 30}).is_present is True
 
-    lakshmi_planets = {"MOON": 5, "MARS": 9, "JUPITER": 5}
+    # DD-02 (v1.3): the 9th lord must be in a kendra AND in its own, moolatrikona
+    # or exaltation sign. Mesham lagna: Guru (9th lord) exalted in Kadagam, the
+    # 4th; Sevvai (lagna lord) in its own Mesham with a strong composite.
+    lakshmi_planets = {"MOON": 5, "MARS": 1, "JUPITER": 4}
     assert detect_lakshmi_yoga(
         lakshmi_planets,
         lagna_rasi=1,
         planet_scores={"MARS": 80, "MOON": 75, "JUPITER": 78},
     ).is_present is True
+    # The old fixture — Guru in Simham, a trikona without dignity — is now
+    # Fortune support, never Lakshmi Yoga.
+    old = {"MOON": 5, "MARS": 9, "JUPITER": 5}
+    assert detect_lakshmi_yoga(old, lagna_rasi=1, planet_scores={"MARS": 80, "JUPITER": 78}).is_present is False
+    assert detect_bhagya_support(old, lagna_rasi=1, planet_scores={"MARS": 80, "JUPITER": 78}) is not None
 
     assert detect_vasumati_yoga(
         {"MOON": 1, "JUPITER": 3, "VENUS": 6, "MERCURY": 10}, moon_rasi=1, lagna_rasi=1,
@@ -683,10 +793,11 @@ def test_new_doshams_kalathra_putra_badhaka():
 
 # ── Batch A: dosham presentational fixes ─────────────────────────────────────
 
-def test_l4_d9_seventh_lord_strong_is_a_cancellation_not_a_trigger():
-    """L-4: d9_seventh_lord_strong is a protective marker and must render
-    under cancellation_factors, never under conditions_met ("Triggered
-    factors")."""
+def test_l4_rahu_ketu_mitigations_are_never_triggers():
+    """L-4, restated for DD-03 (v1.3): every mitigation renders under
+    cancellation_factors, never under conditions_met ("Triggered factors").
+    The Navamsa 7th-lord tests are no longer in DD-03's mitigation table, so a
+    strong D9 7th lord is not read at all."""
     from app.calculations.yogas import detect_rahu_ketu_dosham
 
     planets = {"RAHU": 1, "KETU": 7, "VENUS": 5, "JUPITER": 3}
@@ -697,8 +808,11 @@ def test_l4_d9_seventh_lord_strong_is_a_cancellation_not_a_trigger():
         d9_lagna_rasi=1,
     )
     assert result.is_present is True
-    assert "d9_seventh_lord_strong" in result.cancellation_factors
+    assert "d9_seventh_lord_strong" not in result.cancellation_factors
     assert "d9_seventh_lord_strong" not in result.conditions_met
+    mitigations = {"guru_joins_or_aspects_node", "guru_aspects_seventh_or_its_lord",
+                   "strong_seventh_lord", "strong_eighth_lord_or_benefic_on_eighth"}
+    assert not mitigations & set(result.conditions_met)
 
 
 def test_l5_putra_sarpa_flags_nodes_occupying_fifth_house_itself():
@@ -737,18 +851,22 @@ def test_l2_parivartana_second_eleventh_exchange_grades_maha():
     assert results[0].sub_type == "MAHA"
 
 
-def test_l3_raja_yoga_detects_kendra_lord_special_aspect_onto_trikona_lord():
-    """L-3: the trikona<->kendra link must also fire when only the KENDRA
-    lord casts a special aspect (Mars/Jupiter/Saturn) onto the trikona
-    lord — not only the reverse direction."""
-    # Lagna=1: Sun (5th/trikona lord) at rasi 5; Saturn (10th/kendra lord) at
-    # rasi 8. Saturn's 10th-house special aspect (count 10 from rasi 8) lands
-    # on rasi 5, but Sun (no special aspect, default 7th only) does not
-    # aspect back — the pre-fix trikona-lord-only check would have missed
-    # this pair entirely.
-    planets = {"SUN": 5, "SATURN": 8, "MARS": 6, "MOON": 6, "VENUS": 6, "JUPITER": 6}
+def test_l3_one_way_special_aspect_links_only_under_o15():
+    """DD-07 (v1.3) reads the link as conjunction, **mutual** aspect or exchange.
+    Audit L-3's one-way special aspect no longer forms the yoga by default; it
+    is open item O-15 and returns only with that switch on."""
+    # Lagna=1: Sun (5th/trikona lord) at rasi 4; Mars (lagna lord, so a
+    # kendra lord) at rasi 1. Mars's 4th-house special aspect lands on rasi 4,
+    # but Sun (7th only) aspects rasi 10, not back. Until v1.7 this used Sani
+    # (10th lord) — the 2026-10-03 ruling excludes Mesham Sani (10+11) from
+    # Raja Yoga, so the one-way pair is now the lagna lord's.
+    from app.calculations.doctrine_options import DoctrineOptions
+
+    planets = {"SUN": 4, "MARS": 1, "SATURN": 6, "MOON": 6, "VENUS": 6, "JUPITER": 6}
     results = detect_raja_yoga(planets, lagna_rasi=1)
-    assert any(r.is_present and "SUN_SATURN_link" in r.conditions_met for r in results)
+    assert not any("SUN_MARS_link" in r.conditions_met for r in results)
+    one_way = detect_raja_yoga(planets, lagna_rasi=1, doctrine=DoctrineOptions(o15_raja_one_way_aspect=True))
+    assert any(r.is_present and "SUN_MARS_link" in r.conditions_met for r in one_way)
 
 
 def test_l6_daridra_conditions_met_reflects_only_fired_triggers():
@@ -871,25 +989,29 @@ def test_d05_sasa_yoga_saturn_own_sign_kendra():
 
 @pytest.mark.no_db
 def test_d05_raja_yoga_ninth_tenth_lord_conjunction():
-    """9th lord (Jupiter) and 10th lord (Saturn) conjunct for Mesha lagna → Raja Yoga."""
-    # Mesha(1) lagna: 9th house = Dhanu(9) lord = JUPITER; 10th house = Makara(10) lord = SATURN
+    """9th lord (Mercury) and 10th lord (Moon) conjunct for Thulam lagna → Raja Yoga.
+
+    Until v1.7 this used Mesha's 9th/10th lords, Guru and Sani. BPHS 34 names
+    that pair as giving no auspicious result by mere association, and the
+    2026-10-03 ruling vetoes it (see test_doctrine_decisions_v17.py)."""
+    # Thulam(7): 9th house = Mithuna(3) lord = MERCURY; 10th = Kataka(4) lord = MOON
     planets = {
-        "SUN": 3, "MOON": 4, "MARS": 1, "MERCURY": 2,
-        "JUPITER": 5, "VENUS": 6, "SATURN": 5,  # Jupiter and Saturn conjunct in Simha(5)
+        "SUN": 2, "MOON": 5, "MARS": 1, "MERCURY": 5,  # Mercury and Moon conjunct in Simha(5)
+        "JUPITER": 12, "VENUS": 6, "SATURN": 10,
         "RAHU": 11, "KETU": 5,
     }
-    results = detect_raja_yoga(planets, lagna_rasi=1)
-    assert any(r.is_present and "JUPITER_SATURN_link" in r.conditions_met for r in results)
+    results = detect_raja_yoga(planets, lagna_rasi=7)
+    assert any(r.is_present and "MERCURY_MOON_link" in r.conditions_met for r in results)
 
 
 @pytest.mark.no_db
 def test_d05_raja_yoga_ninth_tenth_lord_mutual_seventh():
-    """9th lord (Jupiter) and 10th lord (Saturn) in mutual 7th → Raja Yoga via aspect."""
-    # Mesha(1): Jupiter=9th lord, Saturn=10th lord. Put them 7 apart: Jupiter=1, Saturn=7.
+    """9th lord (Mercury) and 10th lord (Moon) in mutual 7th → Raja Yoga via aspect."""
+    # Thulam(7): Mercury=9th lord, Moon=10th lord. Put them 7 apart: Mercury=1, Moon=7.
     planets = {
-        "SUN": 3, "MOON": 4, "MARS": 8, "MERCURY": 2,
-        "JUPITER": 1, "VENUS": 6, "SATURN": 7,
+        "SUN": 2, "MOON": 7, "MARS": 8, "MERCURY": 1,
+        "JUPITER": 12, "VENUS": 6, "SATURN": 10,
         "RAHU": 11, "KETU": 5,
     }
-    results = detect_raja_yoga(planets, lagna_rasi=1)
-    assert any(r.is_present for r in results)
+    results = detect_raja_yoga(planets, lagna_rasi=7)
+    assert any(r.is_present and "MERCURY_MOON_link" in r.conditions_met for r in results)

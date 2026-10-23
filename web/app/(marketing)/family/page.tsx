@@ -1,8 +1,23 @@
-import Link from "next/link";
+import type { Metadata } from "next";
+import { withTamilTwin } from "@/lib/localized-metadata";
+import { LocalizedLink as Link } from "@/components/localized-link";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { getServerLang } from "@/lib/server-lang";
 import { FAMILY_PAGE, mt } from "@/lib/marketing-i18n";
+import { pageMetadata } from "@/lib/page-metadata";
+
+const EN_METADATA = pageMetadata({
+  path: "/family",
+  title: "Family Vault — Tamil Astrology for the Whole Family",
+  description:
+    "Save the birth charts of the people you plan with, see each person's day at a glance, and check compatibility — private to your account.",
+  keywords: ["family vault", "family horoscope", "family jadhagam app"],
+});
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/family");
+}
 
 const MEMBER_SAMPLES = [
   { name: "Amma",    score: 78, band: "high", rasi: "Rishabam" },

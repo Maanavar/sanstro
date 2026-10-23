@@ -1,9 +1,9 @@
 from datetime import date
 
+from app.calculations.life_area_prediction_models import LifeAreaPrediction
 from app.services.age_phase_service import get_active_life_phases
 from app.services.career_service import CareerAssessmentInput, assess_career_prediction
 from app.services.health_service import HealthAssessmentInput, assess_health_prediction
-from app.services.life_area_prediction_models import LifeAreaPrediction
 from app.services.marriage_service import MarriageAssessmentInput, assess_marriage_prediction
 from app.services.wealth_service import WealthAssessmentInput, assess_wealth_prediction
 

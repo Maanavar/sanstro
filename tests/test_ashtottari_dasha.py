@@ -19,15 +19,14 @@ from app.calculations.dasha import JULIAN_YEAR_DAYS
 
 pytestmark = pytest.mark.no_db
 
-# Same T003 reference chart used by test_golden_validation.py,
-# test_jaimini_karakas.py, and test_yogini_dasha.py (1993-03-15 08:15 IST,
-# longitudes cross-verified to within 0.1 deg against a second ephemeris
-# source).
-_T003_MOON_LONGITUDE = 240.01137891
+# Same synthetic T003 reference chart as test_golden_validation.py,
+# test_jaimini_karakas.py and test_dasha.py: 1988-06-01 15:44 IST, not a
+# real person's birth. Swiss Ephemeris output pinned as a regression value.
+_T003_MOON_LONGITUDE = 240.01252726
 
 
 def _t003_birth_jd() -> float:
-    dt_utc = local_datetime_to_utc(datetime(1993, 3, 15, 8, 15), "Asia/Kolkata")
+    dt_utc = local_datetime_to_utc(datetime(1988, 6, 1, 15, 44), "Asia/Kolkata")
     return utc_datetime_to_julian_day(dt_utc)
 
 
@@ -79,15 +78,15 @@ def test_nak_lord_keeps_raman_v1_not_bphs_santhanam_v2() -> None:
 
 
 def test_opening_ashtottari_against_t003_reference_chart() -> None:
-    # Moon at 240.01137891 deg -> nakshatra 19 (Moola, 240.0-253.33 deg).
+    # Moon at 240.01252726 deg -> nakshatra 19 (Moola, 240.0-253.33 deg).
     # Ardra-adi table: NAK_LORD[19] = MERCURY (17 years).
-    # fraction_elapsed = 0.01137891 / 13.33333 = 0.00085342
-    # balance_years = (1 - 0.00085342) * 17 = 16.98549189
+    # fraction_elapsed = 0.01252726 / 13.33333 = 0.00093954
+    # balance_years = (1 - 0.00093954) * 17 = 16.98402774
     birth_jd = _t003_birth_jd()
     opening_lord, balance_years, opening_end_jd = calculate_opening_ashtottari(_T003_MOON_LONGITUDE, birth_jd)
 
     assert opening_lord == "MERCURY"
-    assert balance_years == pytest.approx(16.98549189, abs=1e-4)
+    assert balance_years == pytest.approx(16.98402774, abs=1e-4)
     assert opening_end_jd == pytest.approx(birth_jd + balance_years * JULIAN_YEAR_DAYS)
 
 

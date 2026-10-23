@@ -13,9 +13,10 @@ from app.calculations.ephemeris import (
 )
 
 
-def test_sidereal_planets_from_documented_birth_datetime():
+def test_sidereal_planets_from_synthetic_reference_datetime():
+    # Synthetic T003 chart, 1988-06-01 15:44 IST — not a real person's birth.
     birth_datetime_utc = local_datetime_to_utc(
-        datetime(1993, 3, 15, 8, 15),
+        datetime(1988, 6, 1, 15, 44),
         "Asia/Kolkata",
     )
     jd_ut = utc_datetime_to_julian_day(birth_datetime_utc)
@@ -24,12 +25,12 @@ def test_sidereal_planets_from_documented_birth_datetime():
 
     assert snapshot.backend in {"pyswisseph", "swisseph-ffi"}
     assert snapshot.ayanamsa == "LAHIRI"
-    assert snapshot.ayanamsa_value_degrees == pytest.approx(23.76211742, abs=0.01)
+    assert snapshot.ayanamsa_value_degrees == pytest.approx(23.69528030, abs=0.01)
     assert snapshot.jd_ut == jd_ut
-    assert snapshot.bodies["SUN"].absolute_longitude == pytest.approx(330.76342508, abs=0.01)
-    assert snapshot.bodies["MOON"].absolute_longitude == pytest.approx(240.01137891, abs=0.01)
-    assert snapshot.bodies["RAHU"].absolute_longitude == pytest.approx(232.78702194, abs=0.01)
-    assert snapshot.bodies["KETU"].absolute_longitude == pytest.approx(52.78702194, abs=0.01)
+    assert snapshot.bodies["SUN"].absolute_longitude == pytest.approx(47.43402212, abs=0.01)
+    assert snapshot.bodies["MOON"].absolute_longitude == pytest.approx(240.01252726, abs=0.01)
+    assert snapshot.bodies["RAHU"].absolute_longitude == pytest.approx(325.40055158, abs=0.01)
+    assert snapshot.bodies["KETU"].absolute_longitude == pytest.approx(145.40055158, abs=0.01)
     assert snapshot.bodies["SUN"].is_retrograde is False
     assert snapshot.bodies["SUN"].show_retrograde_badge is False
     assert snapshot.bodies["MOON"].show_retrograde_badge is False
@@ -38,7 +39,9 @@ def test_sidereal_planets_from_documented_birth_datetime():
     assert snapshot.bodies["MERCURY"].is_retrograde is True
     assert snapshot.bodies["MERCURY"].show_retrograde_badge is True
     assert snapshot.bodies["VENUS"].is_retrograde is True
-    assert snapshot.bodies["JUPITER"].is_retrograde is True
+    assert snapshot.bodies["SATURN"].is_retrograde is True
+    assert snapshot.bodies["SATURN"].show_retrograde_badge is True
+    assert snapshot.bodies["JUPITER"].is_retrograde is False
     assert snapshot.bodies["KETU"].absolute_longitude == pytest.approx(
         (snapshot.bodies["RAHU"].absolute_longitude + 180.0) % 360.0,
         abs=1e-9,
@@ -80,7 +83,7 @@ def test_sun_moon_shortcut_matches_the_full_snapshot_exactly():
     """
     for month in range(1, 13):
         birth_datetime_utc = local_datetime_to_utc(
-            datetime(1993, month, 15, 8, 15),
+            datetime(1988, month, 1, 15, 44),
             "Asia/Kolkata",
         )
         jd_ut = utc_datetime_to_julian_day(birth_datetime_utc)
@@ -164,7 +167,11 @@ def test_module_backend_calls_rise_trans_with_the_pyswisseph_signature(
     assert recorded["body"] == 0
     # geopos is (longitude, latitude, altitude) — eastern/northern positive.
     assert recorded["geopos"] == (80.2707, 13.0827, 0.0)
-    assert recorded["rsmi"] == expected_direction_bit | ephemeris._RSMI_HINDU_RISING
+    # The ruled default adds NO extra rsmi bits (apparent upper limb +
+    # refraction is Swiss Ephemeris's own default), so rsmi is the bare
+    # direction bit. Asserted against the named constant rather than a literal
+    # 0, so a future convention change fails here instead of passing silently.
+    assert recorded["rsmi"] == expected_direction_bit | ephemeris._RSMI_APPARENT_UPPER_LIMB
     assert recorded["flags"] == 987654
     assert recorded["atpress"] == 0.0
     assert recorded["attemp"] == 0.0
@@ -178,3 +185,40 @@ def test_module_backend_reports_circumpolar_as_rise_transit_undefined(monkeypatc
 
     with pytest.raises(RiseTransitUndefinedError):
         ephemeris.calculate_rise_transit_jd(2461055.0, 78.22, 15.65, rise=True)
+
+
+def test_bundled_swiss_ephemeris_files_are_in_use() -> None:
+    """Owner ruling 2026-10-01: the `.se1` files ship in `ephe/` and are loaded
+    at import. Every chart before this was computed on the Moshier fallback, and
+    nothing said so on the production backend. A real snapshot, not a fake —
+    if the path or a file goes missing, the library's own fallback notice
+    (FFI) or MOSHIER_FALLBACK_WARNING (pyswisseph) reappears here."""
+    assert ephemeris.EPHEMERIS_PATH is not None, "ephe/ not found — set JOTHIDAM_SWISSEPH_PATH"
+    snapshot = calculate_sidereal_planets(2461314.5)
+    assert not any("Moshier" in w or ".se1" in w for w in snapshot.source_warnings), snapshot.source_warnings
+
+
+@pytest.mark.parametrize(
+    ("retflag", "expected_warning"),
+    [
+        # SWIEPH bit (2) set, plus the echoed sidereal/speed bits: data files used.
+        (2 | 256 | 64 * 1024, ""),
+        # MOSEPH bit (4) instead — what this machine actually returns today
+        # (65860 = 0x10144) when `sepl_18.se1` is not on the ephemeris path.
+        (65860, ephemeris.MOSHIER_FALLBACK_WARNING),
+    ],
+    ids=["swiss-files", "moshier-fallback"],
+)
+def test_module_backend_records_moshier_fallback(monkeypatch, retflag: int, expected_warning: str) -> None:
+    """pyswisseph reports the fallback only through the return flag. It used to
+    be discarded, so the production image could compute on Moshier with no
+    record while the FFI branch reported the same fact through `serr`."""
+    fake_module = SimpleNamespace(calc_ut=lambda _jd, _pid, _flags: ((10.0, 0.0, 1.0, 0.9, 0.0, 0.0), retflag))
+    monkeypatch.setattr(ephemeris, "swe_module", fake_module, raising=False)
+    monkeypatch.setattr(ephemeris, "_HAS_MODULE_API", True, raising=False)
+    monkeypatch.setattr(ephemeris, "FLG_SWIEPH", 2, raising=False)
+    monkeypatch.setattr(ephemeris, "SIDEREAL_FLAGS", 2 | 256 | 64 * 1024, raising=False)
+
+    _longitude, _speed, warning = ephemeris._calc_ut(2461314.5, 0)
+
+    assert warning == expected_warning

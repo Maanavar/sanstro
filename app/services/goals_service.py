@@ -20,8 +20,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.core.subscription import is_premium
-from app.core.tier_limits import get_limits
+from app.core.subscription import limits_for_user
 from app.models import Chart, UserGoal
 from app.schemas.dasha import ResponseMeta
 from app.schemas.goals import (
@@ -71,8 +70,7 @@ def create_goal(
 ) -> GoalResponse:
     _assert_chart_owner(session, chart_id, owner_user_id)
 
-    tier = "premium" if is_premium(owner_user_id, session) else "registered"
-    goals_max = get_limits(tier).goals_max
+    goals_max = limits_for_user(owner_user_id, session).goals_max
     if not math.isinf(goals_max):
         active_count = session.execute(
             select(func.count(UserGoal.goal_id)).where(

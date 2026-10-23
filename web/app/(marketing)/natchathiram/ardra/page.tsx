@@ -1,51 +1,19 @@
 import type { Metadata } from "next";
+import { JsonLd } from "@/lib/json-ld";
+import { natchathiramJsonLd, natchathiramMetadata } from "@/lib/natchathiram-metadata";
 import { NatchathiramPageContent } from "@/components/natchathiram-page";
 import { ARDRA } from "@/lib/natchathiram-data";
 
-export const metadata: Metadata = {
-  title: ARDRA.meta.title,
-  description: ARDRA.meta.description,
-  keywords: ARDRA.meta.keywords,
-  alternates: { canonical: "https://vinaadi.com/natchathiram/ardra" },
-  openGraph: {
-    title: ARDRA.meta.title,
-    description: ARDRA.meta.description,
-    url: "https://vinaadi.com/natchathiram/ardra",
-    type: "article",
-    images: [{ url: "/brand/vinaadi-og-image.png", width: 1200, height: 630, alt: "Vinaadi — Tamil Astrology" }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: ARDRA.meta.title,
-    description: ARDRA.meta.description,
-    images: ["/brand/vinaadi-og-image.png"],
-  },
-};
-
-const FAQ_JSONLD = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: ARDRA.faq.map((item) => ({
-    "@type": "Question",
-    name: item.q,
-    acceptedAnswer: { "@type": "Answer", text: item.a },
-  })),
-};
-
-const ARTICLE_JSONLD = {
-  "@context": "https://schema.org",
-  "@type": "Article",
-  headline: ARDRA.meta.title,
-  description: ARDRA.meta.description,
-  url: "https://vinaadi.com/natchathiram/ardra",
-  publisher: { "@type": "Organization", name: "Vinaadi" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return natchathiramMetadata(ARDRA);
+}
 
 export default function ArdraPage() {
+  const { faqTa, article } = natchathiramJsonLd(ARDRA);
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSONLD) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ARTICLE_JSONLD) }} />
+      <JsonLd ta={faqTa} />
+      <JsonLd en={article.en} ta={article.ta} />
       <NatchathiramPageContent data={ARDRA} />
     </>
   );

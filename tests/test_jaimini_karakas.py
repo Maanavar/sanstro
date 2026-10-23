@@ -11,39 +11,38 @@ from app.calculations.jaimini_karakas import (
 
 pytestmark = pytest.mark.no_db
 
-# Same reference-chart longitudes as
-# test_golden_validation.py::test_t003_cross_verify_reference_chart_all_9_planets_within_point1_degree
-# (1993-03-15 08:15 IST, cross-verified to within 0.1 deg against a second
-# ephemeris source). Reused here so the Atmakaraka ranking is checked against
-# real, already-audited planetary positions rather than invented numbers.
+# Same synthetic reference-chart longitudes as
+# test_golden_validation.py::test_t003_reference_chart_all_9_planets_within_point1_degree
+# (1988-06-01 15:44 IST, not a real person's birth). Reused here so the
+# Atmakaraka ranking runs on a real sky rather than invented numbers.
 _T003_LONGITUDES = {
-    "SUN": 330.76342508,
-    "MOON": 240.01137891,
-    "MARS": 79.07542605,
-    "MERCURY": 319.35056099,
-    "JUPITER": 167.96021694,
-    "VENUS": 355.97203864,
-    "SATURN": 301.07930470,
-    "RAHU": 232.78702194,
-    "KETU": 52.78702194,
+    "SUN": 47.43402212,
+    "MOON": 240.01252726,
+    "MARS": 312.68026966,
+    "MERCURY": 63.07891747,
+    "JUPITER": 25.92107722,
+    "VENUS": 64.80528843,
+    "SATURN": 246.91810293,
+    "RAHU": 325.40055158,
+    "KETU": 145.40055158,
 }
 
 
 def test_atmakaraka_ranking_against_t003_reference_chart() -> None:
     # Effective degree-within-sign (WI-09: Rahu reversed to 30 - advancement)
-    # for each candidate: VENUS 25.97 > MERCURY 19.35 > MARS 19.08 >
-    # JUPITER 17.96 > RAHU (30 - 22.79 = 7.21) > SATURN 1.08 > SUN 0.76 >
-    # MOON 0.01. Atmakaraka is unchanged (Venus was already highest either
-    # way); Amatyakaraka moves from Rahu to Mercury under the reversed rule.
+    # for each candidate: JUPITER 25.92 > SUN 17.43 > MARS 12.68 >
+    # SATURN 6.92 > VENUS 4.81 > RAHU (30 - 25.40 = 4.60) > MERCURY 3.08 >
+    # MOON 0.01. The reversal matters here: counted forward, Rahu's 25.40
+    # would make it Amatyakaraka; reversed, it falls to Putrakaraka.
     karakas = compute_char_karakas(_T003_LONGITUDES)
     assert karakas == {
-        "ATMAKARAKA": "VENUS",
-        "AMATYAKARAKA": "MERCURY",
+        "ATMAKARAKA": "JUPITER",
+        "AMATYAKARAKA": "SUN",
         "BHRATRUKARAKA": "MARS",
-        "MATRUKARAKA": "JUPITER",
-        "PITRUKARAKA": "RAHU",
-        "PUTRAKARAKA": "SATURN",
-        "GNATIKARAKA": "SUN",
+        "MATRUKARAKA": "SATURN",
+        "PITRUKARAKA": "VENUS",
+        "PUTRAKARAKA": "RAHU",
+        "GNATIKARAKA": "MERCURY",
         "DAARAKARAKA": "MOON",
     }
 
@@ -55,7 +54,7 @@ def test_karakamsa_matches_atmakaraka_navamsa() -> None:
         planet: navamsa_rasi_from_degree(lon)
         for planet, lon in _T003_LONGITUDES.items()
     }
-    assert compute_karakamsa(atmakaraka, d9_rasi_map) == navamsa_rasi_from_degree(_T003_LONGITUDES["VENUS"])
+    assert compute_karakamsa(atmakaraka, d9_rasi_map) == navamsa_rasi_from_degree(_T003_LONGITUDES["JUPITER"])
 
 
 def test_ketu_excluded_even_at_highest_degree() -> None:

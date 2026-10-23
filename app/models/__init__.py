@@ -14,8 +14,10 @@ from app.models.family_vault import FamilyVault
 from app.models.feedback import Feedback
 from app.models.interpretation_output import InterpretationOutput
 from app.models.journal_entry import JournalEntry
+from app.models.life_focus_event import LifeFocusEvent
 from app.models.newsletter_subscriber import NewsletterSubscriber
 from app.models.notification import Notification
+from app.models.notification_delivery import NotificationDelivery
 from app.models.numerology_name_session import NumerologyNameSession
 from app.models.panchangam_cache import PanchangamCache
 from app.models.password_reset_token import PasswordResetToken
@@ -27,6 +29,7 @@ from app.models.qa_golden_case import QaGoldenCase
 from app.models.refresh_token import RefreshToken
 from app.models.relationship_alert import RelationshipAlert
 from app.models.retrospective_entry import RetrospectiveEntry
+from app.models.scheduler_heartbeat import SchedulerHeartbeat
 from app.models.subscription import Subscription
 from app.models.transit_snapshot import TransitSnapshot
 from app.models.user import User
@@ -37,6 +40,7 @@ from app.models.user_notification_preference import UserNotificationPreference
 from app.models.user_preference import UserPreference
 from app.models.user_streak import UserStreak
 from app.models.varga_position import VargaPosition
+from app.models.webhook_event import WebhookEvent
 
 __all__ = [
     "AskVinaadiUsage",
@@ -53,8 +57,10 @@ __all__ = [
     "Feedback",
     "InterpretationOutput",
     "JournalEntry",
+    "LifeFocusEvent",
     "NewsletterSubscriber",
     "Notification",
+    "NotificationDelivery",
     "NumerologyNameSession",
     "PanchangamCache",
     "PasswordResetToken",
@@ -66,6 +72,7 @@ __all__ = [
     "RefreshToken",
     "RelationshipAlert",
     "RetrospectiveEntry",
+    "SchedulerHeartbeat",
     "Subscription",
     "TransitSnapshot",
     "User",
@@ -76,4 +83,5 @@ __all__ = [
     "UserLifeEvent",
     "UserStreak",
     "VargaPosition",
+    "WebhookEvent",
 ]
