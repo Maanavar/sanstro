@@ -39,12 +39,14 @@ export function muhurthamNaalTa(year: number): MetaCopy {
   };
 }
 
-export const TAMIL_CALENDAR_TA: MetaCopy = {
-  title: "தமிழ் நாட்காட்டி 2026 — பௌர்ணமி, அமாவாசை, பிரதோஷம், ஏகாதசி நாட்கள்",
-  description:
-    "2026 ஆம் ஆண்டின் அனைத்து சிறப்பு நாட்களும்: பௌர்ணமி, அமாவாசை, பிரதோஷம், ஏகாதசி, சங்கடஹர சதுர்த்தி, கார்த்திகை, சஷ்டி, சிவராத்திரி, கரிநாள். ஒவ்வொன்றுக்கும் தேதி, கிழமை, தமிழ் தேதியுடன்.",
-  keywords: ["தமிழ் நாட்காட்டி 2026", "பௌர்ணமி 2026", "அமாவாசை 2026", "பிரதோஷம் 2026", "ஏகாதசி 2026", "கார்த்திகை 2026", "தமிழ் பண்டிகை நாட்கள்"],
-};
+export function tamilCalendarTa(year: number): MetaCopy {
+  return {
+    title: `தமிழ் நாட்காட்டி ${year} — பௌர்ணமி, அமாவாசை, பிரதோஷம், ஏகாதசி நாட்கள்`,
+    description:
+      `${year} ஆம் ஆண்டின் அனைத்து சிறப்பு நாட்களும்: பௌர்ணமி, அமாவாசை, பிரதோஷம், ஏகாதசி, சங்கடஹர சதுர்த்தி, கார்த்திகை, சஷ்டி, சிவராத்திரி, கரிநாள். ஒவ்வொன்றுக்கும் தேதி, கிழமை, தமிழ் தேதியுடன்.`,
+    keywords: [`தமிழ் நாட்காட்டி ${year}`, `பௌர்ணமி ${year}`, `அமாவாசை ${year}`, `பிரதோஷம் ${year}`, `ஏகாதசி ${year}`, `கார்த்திகை ${year}`, "தமிழ் பண்டிகை நாட்கள்"],
+  };
+}
 
 export const CALENDAR_CATEGORY_TA: Record<string, MetaCopy> = {
   "hindu-festivals-2026": {
@@ -70,10 +72,10 @@ export const CALENDAR_CATEGORY_TA: Record<string, MetaCopy> = {
 };
 
 /** An event page's Tamil copy, built from the Tamil name the backend already sends. */
-export function calendarEventTa(nameTa: string, count: number, summaryTa: string | null | undefined): MetaCopy {
+export function calendarEventTa(nameTa: string, year: number, count: number, summaryTa: string | null | undefined): MetaCopy {
   return {
-    title: `${nameTa} 2026 தேதிகள் — அனைத்து ${count} நாட்கள்`,
-    description: `${nameTa} 2026: ${count} நாட்களின் தேதி, கிழமை, தமிழ் தேதி. ${summaryTa ?? ""}`.trim().slice(0, 300),
+    title: `${nameTa} ${year} தேதிகள் — அனைத்து ${count} நாட்கள்`,
+    description: `${nameTa} ${year}: ${count} நாட்களின் தேதி, கிழமை, தமிழ் தேதி. ${summaryTa ?? ""}`.trim().slice(0, 300),
   };
 }
 

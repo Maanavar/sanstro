@@ -98,9 +98,11 @@ export async function fetchCalendarCategory(slug: CalendarCategorySlug): Promise
   }
 }
 
-export async function fetchCalendarCategories(): Promise<CalendarCategorySummary[]> {
+/** The category pages for `year`; empty for a year with no curated list. */
+export async function fetchCalendarCategories(year: number = CALENDAR_CATEGORY_YEAR): Promise<CalendarCategorySummary[]> {
+  if (year !== CALENDAR_CATEGORY_YEAR) return [];
   try {
-    const res = await fetch(`${backendUrl()}/api/v1/public/calendar-categories?year=${CALENDAR_CATEGORY_YEAR}`, {
+    const res = await fetch(`${backendUrl()}/api/v1/public/calendar-categories?year=${year}`, {
       next: { revalidate: 3600 },
     });
     if (!res.ok) return [];
