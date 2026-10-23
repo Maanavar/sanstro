@@ -289,15 +289,37 @@ def printed_tithi_day_on_or_after(
 _KRISHNA_ASHTAMI = 23
 
 
+def nisheetha(clock: _Clock, evening: date) -> float:
+    """True midnight of the night opening on `evening`: the midpoint of sunset
+    to the next sunrise."""
+    return (clock.sunset(evening) + clock.sunrise(evening + timedelta(days=1))) / 2
+
+
+def _evening_begins(clock: _Clock, d: date) -> float:
+    """Where "the evening part of the day" starts: the opening of aparahna, the
+    fourth fifth of daytime (`_Clock.at` samples its midpoint)."""
+    rise, set_ = clock.sunrise(d), clock.sunset(d)
+    return rise + 0.6 * (set_ - rise)
+
+
 def jayanthi_yoga_day(day: date, timezone_name: str, latitude: float, longitude: float) -> date | None:
     """The day of the Jayanthi yoga of the Krishna Ashtami nearest `day`, or
-    None when Ashtami and Rohini do not overlap.
+    None when Ashtami and Rohini do not overlap, or do not overlap late enough.
 
-    When they overlap, the yoga decides Krishna Jayanthi ahead of Ashtami at
+    Where they overlap, the yoga decides Krishna Jayanthi ahead of Ashtami at
     nisheetha (answers of 23 Oct, §2.3): the night whose nisheetha lies in the
     overlap, printed by its evening; if no nisheetha does, the day the overlap
-    begins. It reproduces all 11 round-two vectors and Drik Panchang's Chennai
-    smarta dates 2021-2031 (2027: 25 Aug, though Ashtami ends at 19:19).
+    begins.
+
+    **The overlap must reach the evening** to override (A1a of the follow-up,
+    23 Oct): it has to touch some day's aparahna-to-nisheetha stretch, "the
+    midnight or the evening part of the day". A morning-only overlap does not,
+    and the Ashtami-at-nisheetha rule stands -- 2019's ran 03:47 to 08:32 on
+    24 Aug, and Tamil Nadu kept 23 Aug. Returning None is that fallback.
+
+    Reproduces all 11 round-two vectors, Drik Panchang's Chennai smarta dates
+    (2021, 2026-2031) and the Tamil Nadu holidays of 2016 and 2019: 19 of 19
+    published dates, where the rule without the threshold matched 18.
     """
     clock = _Clock(timezone_name, latitude, longitude)
     sunrise = clock.sunrise(day)
@@ -310,9 +332,11 @@ def jayanthi_yoga_day(day: date, timezone_name: str, latitude: float, longitude:
         if start >= end:
             continue
         first = clock.civil_date(start) - timedelta(days=1)
-        for evening in (first + timedelta(days=i) for i in range(3)):
-            nisheetha = (clock.sunset(evening) + clock.sunrise(evening + timedelta(days=1))) / 2
-            if start <= nisheetha < end:
+        days = [first + timedelta(days=i) for i in range(3)]
+        if not any(start < nisheetha(clock, d) and _evening_begins(clock, d) < end for d in days):
+            return None
+        for evening in days:
+            if start <= nisheetha(clock, evening) < end:
                 return evening
         return clock.civil_date(start)
     return None

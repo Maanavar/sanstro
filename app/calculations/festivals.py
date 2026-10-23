@@ -280,8 +280,9 @@ SELECTION_RULES: dict[str, str] = {
         "OTHERWISE: dormant"
     ),
     "varalakshmi.pournami_is_friday": (
-        "FIRES WHEN: Shravana's Pournami day is a Friday EFFECT: that Friday (§9.1) "
-        "OTHERWISE: dormant; the last Friday before it"
+        "FIRES WHEN: Shravana's Pournami day is a Friday "
+        "EFFECT: the Friday a week before it, the strict reading (A5b of 23 Oct) "
+        "OTHERWISE: dormant; the Friday before the Pournami day"
     ),
 }
 
@@ -984,24 +985,30 @@ def _yearly_observances(
     ):
         results.append({"name": "Vijayadasami", "category": "hindu"})
 
-    # Varalakshmi Vratham (§9.1, CLASSICAL) — the last Friday before the
-    # Pournami of Shravana (Tamil "Aavani"), or the Pournami itself if that
-    # day is a Friday. The old window, "a Friday with Shukla 8..14 at sunrise",
+    # Varalakshmi Vratham (§9.1, CLASSICAL) — the last Friday **strictly
+    # before** the Pournami of Shravana (Tamil "Aavani"): the Tamil/Dravida
+    # reading, ruled the default in A5b of the 23 Oct follow-up. Where the
+    # Pournami day is itself a Friday the vratham is the Friday a week before
+    # it, so 2026 is 21 Aug (Sringeri's Jagadguru observed it that day, and
+    # South Indian calendars print it), 2022 is 5 Aug and 2029 is 17 Aug.
+    #
+    # Drik Panchang (Chennai) prints the Pournami Friday itself in those three
+    # years (12 Aug 2022, 28 Aug 2026, 24 Aug 2029), which is the reading the
+    # 22 Oct ruling had and the engine carried until the astrologer reversed it
+    # as a lineage choice. That date is to be shown as an alternative line
+    # (A5b), which is a display question and is not built.
+    #
+    # The window this replaced, "a Friday with Shukla 8..14 at sunrise",
     # admitted two Fridays in 2025 (1 and 8 Aug). The Pournami day is the
-    # printed one (sunrise rule, Q6). This moves 2026 from the curated 21 Aug
-    # to Friday 28 Aug, the Pournami itself. Drik Panchang (Chennai) agrees in
-    # all three Friday-Pournami years: 12 Aug 2022, 28 Aug 2026, 24 Aug 2029.
-    # The 23 Oct answer to drop this branch (Q8) rested on 5 Aug 2022, which no
-    # source supports; some Telugu/Tamil calendars print 21 Aug 2026, a
-    # minority reading.
+    # printed one (sunrise rule, Q6).
     days_to_pournami = instants.days_until_pournami_day
     if (
         in_lunar_month(_LUNAR_SHRAVANA)
         and weekday == "FRIDAY"
         and days_to_pournami is not None
-        and 0 <= days_to_pournami <= 6
+        and 1 <= days_to_pournami <= 7
     ):
-        if days_to_pournami == 0:
+        if days_to_pournami == 7:
             _fired("varalakshmi.pournami_is_friday")
         results.append({"name": "Varalakshmi Vratham", "category": "hindu"})
 

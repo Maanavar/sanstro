@@ -55,10 +55,11 @@ REFERENCE = {
     "Aadi Krithigai": ymd({2019: (7, 26), 2020: (8, 12), 2022: (7, 23), 2023: (8, 9), 2024: (7, 30),
                            2025: (7, 20), 2026: (8, 7), 2027: (7, 28), 2028: (8, 14), 2029: (8, 4),
                            2030: (7, 25), 2031: (8, 11), 2032: (7, 31), 2033: (7, 21)}),
-    # §9.1: 2025 is 8 Aug. The Friday-Pournami years 2022, 2026 and 2029 are
-    # Drik Panchang's Chennai dates (the curated 2026 row had 21 Aug).
-    "Varalakshmi Vratham": {2022: date(2022, 8, 12), 2025: date(2025, 8, 8), 2026: date(2026, 8, 28),
-                            2027: date(2027, 8, 13), 2029: date(2029, 8, 24)},
+    # §9.1 as A5b of 23 Oct rules it: the Friday strictly before the Pournami.
+    # The Friday-Pournami years (2022, 2026, 2029) move back a week; 2026's
+    # 21 Aug is the curated row and Sringeri's day.
+    "Varalakshmi Vratham": {2022: date(2022, 8, 5), 2025: date(2025, 8, 8), 2026: date(2026, 8, 21),
+                            2027: date(2027, 8, 13), 2029: date(2029, 8, 17)},
     "Navarathiri Begins": {2026: date(2026, 10, 11)},
     # §6; 2018 and 2045 are the two-aparahna Navamis, the later taken (Q7 of
     # 23 Oct; TN G.O. 937 gave 18 Oct 2018). 2022 is the no-aparahna year.

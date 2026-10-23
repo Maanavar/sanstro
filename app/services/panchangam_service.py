@@ -156,9 +156,10 @@ _SUNRISE_STARS_BEFORE_KARTHIGAI = frozenset({"BHARANI", "KARTHIGAI"})
 # in the tie-break, can sit there only if the sunrise tithi is Krishna
 # Shashthi..Dasami.
 _SUNRISE_TITHIS_NEAR_KRISHNA_ASHTAMI = frozenset({21, 22, 23, 24, 25})
-# Varalakshmi (§9.1): a Friday at most six days before the Pournami has a
-# bright-fortnight tithi of at least Saptami at sunrise.
-_SUNRISE_TITHIS_BEFORE_POURNAMI = frozenset(range(7, 16))
+# Varalakshmi (§9.1): a Friday at most seven days before the Pournami day has
+# a bright-fortnight tithi of at least Shashthi at sunrise (seven days is about
+# 86 degrees of elongation, and a fast Moon can put the sixth tithi there).
+_SUNRISE_TITHIS_BEFORE_POURNAMI = frozenset(range(6, 16))
 
 
 def _star_at_jd(jd: float) -> str:

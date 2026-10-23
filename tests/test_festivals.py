@@ -513,10 +513,11 @@ def test_varalakshmi_is_the_last_friday_before_the_pournami() -> None:
     assert _days_named("Varalakshmi Vratham", date(2025, 7, 25), date(2025, 8, 20)) == [date(2025, 8, 8)]
 
 
-def test_varalakshmi_is_the_pournami_itself_when_that_is_a_friday() -> None:
-    """§9.1's second branch, as a unit: 28 Aug 2026 was a Friday Pournami. In
-    production 2026 also carries the curated 21 Aug row, which the ruling
-    contradicts (reported to the astrologer)."""
+def test_varalakshmi_is_the_friday_strictly_before_the_pournami() -> None:
+    """§9.1 as A5b of the 23 Oct follow-up rules it: the last Friday *before*
+    the Pournami day, never the Pournami itself. So a Friday Pournami pushes
+    the vratham to the Friday a week earlier (7), and the Pournami day itself
+    (0) is not the vratham. The window is 1..7 days."""
     from app.calculations.festivals import ObservanceInstants, _recurring_tithi_festivals
 
     def varalakshmi(days_to_pournami: int) -> bool:
@@ -526,8 +527,9 @@ def test_varalakshmi_is_the_pournami_itself_when_that_is_a_friday() -> None:
         )
         return any(r["name"] == "Varalakshmi Vratham" for r in results)
 
-    assert varalakshmi(0) and varalakshmi(6)
-    assert not varalakshmi(7)
+    assert varalakshmi(1) and varalakshmi(6) and varalakshmi(7)
+    assert not varalakshmi(0)
+    assert not varalakshmi(8)
 
 
 # ── Astrologer rulings 2026-10-22 (docs/REVIEW_REQUESTS_2026-10-22.md) ──────
@@ -552,6 +554,20 @@ def test_krishna_jayanthi_is_the_jayanthi_yoga_day_when_ashtami_meets_rohini() -
     assert _days_named("Krishna Jayanthi", date(2027, 8, 20), date(2027, 8, 28)) == [date(2027, 8, 25)]
     assert _days_named("Krishna Jayanthi", date(2029, 8, 27), date(2029, 9, 4)) == [date(2029, 9, 1)]
     assert _days_named("Krishna Jayanthi", date(2030, 8, 17), date(2030, 8, 25)) == [date(2030, 8, 21)]
+
+
+def test_a_morning_only_rohini_overlap_does_not_decide_the_jayanthi_day() -> None:
+    """A1a of the 23 Oct follow-up: the overlap decides only where it reaches
+    the evening — the midnight, aparahna or pradosham. In 2019 Ashtami met
+    Rohini from 03:47 to 08:32 on 24 Aug and no later, so the yoga does not
+    override and Ashtami at nisheetha stands: 23 Aug, the Tamil Nadu holiday.
+    Without the threshold the engine gave 24 Aug."""
+    from app.calculations.observance_days import jayanthi_yoga_day
+
+    assert jayanthi_yoga_day(date(2019, 8, 23), CHENNAI[2], *CHENNAI[:2]) is None
+    assert _days_named("Krishna Jayanthi", date(2019, 8, 18), date(2019, 8, 28)) == [date(2019, 8, 23)]
+    # 2030's overlap is only 19:24-20:01, inside pradosham, and does decide.
+    assert jayanthi_yoga_day(date(2030, 8, 21), CHENNAI[2], *CHENNAI[:2]) == date(2030, 8, 21)
 
 
 def test_krishna_jayanthi_without_rohini_prints_the_evening_of_the_ashtami_night() -> None:
@@ -670,12 +686,16 @@ def test_an_undecided_full_moon_tie_break_falls_back_to_the_lunar_month() -> Non
     assert _days_named("Vaigasi Visakam", date(2022, 5, 14), date(2022, 6, 15)) == [date(2022, 6, 12)]
 
 
-def test_varalakshmi_on_a_friday_pournami_is_the_pournami() -> None:
-    """§9.1's second branch, kept after the 23 Oct answer (Q8) asked to drop
-    it: Drik Panchang (Chennai) gives 12 Aug 2022 and 24 Aug 2029, both
-    Friday Pournamis, not the Friday a week before."""
-    assert _days_named("Varalakshmi Vratham", date(2022, 7, 30), date(2022, 8, 14)) == [date(2022, 8, 12)]
-    assert _days_named("Varalakshmi Vratham", date(2029, 8, 10), date(2029, 8, 26)) == [date(2029, 8, 24)]
+def test_varalakshmi_on_a_friday_pournami_is_the_week_before() -> None:
+    """A5b of the 23 Oct follow-up reversed the 22 Oct ruling: the strict
+    Friday-before reading is the Tamil/Dravida default, so a Friday Pournami
+    moves the vratham back a week. 2026 -> 21 Aug (Sringeri observed it that
+    day), 2022 -> 5 Aug, 2029 -> 17 Aug. Drik Panchang (Chennai) prints the
+    Pournami Friday itself in all three; that is to be an alternative line
+    (not built), not the default."""
+    assert _days_named("Varalakshmi Vratham", date(2022, 7, 30), date(2022, 8, 14)) == [date(2022, 8, 5)]
+    assert _days_named("Varalakshmi Vratham", date(2026, 8, 14), date(2026, 8, 31)) == [date(2026, 8, 21)]
+    assert _days_named("Varalakshmi Vratham", date(2029, 8, 10), date(2029, 8, 26)) == [date(2029, 8, 17)]
 
 
 def test_a_single_occurrence_is_never_moved_by_a_tie_break() -> None:

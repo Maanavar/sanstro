@@ -151,6 +151,12 @@ export const DOSHAM_CONTEXT_LABELS: Record<string, Text> = {
     ta: "லக்னத்திலிருந்து செவ்வாய் தோஷ வீட்டில் இல்லை; சந்திரன் அல்லது சுக்கிரனிலிருந்து மட்டுமே தோஷம் கணக்கிடப்படுகிறது. லக்னத்திலிருந்து வரும் தோஷத்தை விட இதன் எடை குறைவு.",
     en: "Mars is not in a dosha house from your Lagna. The dosham is counted only from the Moon or Venus, which weighs less than a Lagna placement.",
   },
+  // The astrologer's own wording, 23 Oct (Q12; the Tamil is his B3 correction).
+  // Verbatim in both languages — do not re-translate or compress.
+  sevvai_mars_debility_modifies: {
+    ta: "செவ்வாய் நீசம் பெறுவது செவ்வாய் தோஷத்தின் தன்மையை மாற்றுகிறது. நீசச் செவ்வாய் தீங்கைக் குறைக்கும் என்று சில நூல்களும், 7-ஆம் அல்லது 8-ஆம் இடத்தில் அது தீங்கை அதிகரிக்கும் என்று வேறு சில நூல்களும் கூறுகின்றன. பலன் பாவகம், ஆதிபத்தியம், பார்வை ஆகியவற்றைப் பொறுத்தது; நீசம் மட்டுமே தோஷ நிவர்த்தியை உறுதிசெய்யாது.",
+    en: "Mars's debility modifies the reading of Sevvai dosham. Some texts hold that a debilitated Mars does less harm; others hold that in the 7th or 8th it does more. The result depends on house, lordship and aspect, and debility alone does not establish cancellation.",
+  },
   rk_axis_not_repeated_from_moon_venus: {
     ta: "சந்திரனிலிருந்தும் சுக்கிரனிலிருந்தும் எண்ணும்போது ராகு-கேது 1, 2, 7, 8-ஆம் வீடுகளில் இல்லை. அச்சு மீண்டும் வராதது லேசான நிலையைக் காட்டுகிறது.",
     en: "Counted from your Moon and from Venus, the nodes do not fall on houses 1, 2, 7 or 8. The axis is not repeated, which is the lighter reading.",
@@ -192,7 +198,9 @@ export const VERDICT_DOSHAMS = new Set(["SEVVAI_DOSHAM", "RAHU_KETU_DOSHAM"]);
  * two-chart (matching) reading; a single chart never reads "cancelled"
  * (rulings 2026-10-22 round two, §8). Guru joining Mars reduces.
  */
-export const MAJOR_CANCELLATION_MARKERS = new Set(["both_partners_have_sevvai", "mars_debilitated_in_dosha_house"]);
+// B1b (23 Oct follow-up): debility alone is a modifier and no longer cancels;
+// only its neechabhanga does.
+export const MAJOR_CANCELLATION_MARKERS = new Set(["both_partners_have_sevvai", "mars_neechabhanga"]);
 
 /**
  * Short noun phrases for every mitigation the Sevvai and Rahu–Ketu detectors
@@ -216,6 +224,7 @@ export const MITIGATION_PHRASE: Record<string, Text> = {
   both_partners_have_sevvai: { ta: "துணையின் ஜாதகத்திலும் ஒத்த செவ்வாய் நிலை", en: "a matching Sevvai in the partner's chart" },
   partner_sevvai_unequal_weight: { ta: "துணையின் ஜாதகத்தில் வேறு வலிமையிலான செவ்வாய் தோஷம்", en: "a Sevvai of different weight in the partner's chart" },
   mars_debilitated_in_dosha_house: { ta: "தோஷ வீட்டில் செவ்வாய் நீசம் பெற்றிருப்பது", en: "Mars debilitated in the dosha house" },
+  mars_neechabhanga: { ta: "அந்த நீசத்திற்கு நீசபங்கம் உள்ளது", en: "a neechabhanga lifting that debility" },
   // Rahu–Ketu
   guru_joins_or_aspects_node: { ta: "ராகு/கேது மீது குருவின் தொடர்பு", en: "Jupiter's influence on the nodes" },
   guru_aspects_seventh_or_its_lord: { ta: "7-ஆம் வீடு அல்லது அதன் அதிபதி மீது குருவின் பார்வை", en: "Jupiter's aspect on the 7th house or its lord" },

@@ -400,7 +400,8 @@ def _marker_explain(marker: str) -> str:
         "mars_dispositor_kendra_trikona": "Mars's sign lord is in a kendra or trikona counted from Mars",
         "both_partners_have_sevvai": "Comparable Sevvai in both charts",
         "partner_sevvai_unequal_weight": "The partner's chart carries Sevvai too, but of a different weight — this reduces, it does not cancel",
-        "mars_debilitated_in_dosha_house": "Mars is debilitated in Katakam in the dosha house — this cancels only when two charts are matched",
+        "mars_debilitated_in_dosha_house": "Mars is debilitated in Katakam in the dosha house — debility modifies the reading; it does not establish cancellation on its own",
+        "mars_neechabhanga": "Neechabhanga: the lord of Katakam or of Mars's exaltation sign is in a kendra from Lagna or Moon, which lifts the debility — this cancels only when two charts are matched",
         "node_afflicts_moon": "Rahu/Ketu is joined with the Moon",
         "rahu_ketu_axis_1_7": "The Rahu-Ketu axis falls on houses 1 and 7 from Lagna",
         "rahu_ketu_axis_2_8": "The Rahu-Ketu axis falls on houses 2 and 8 from Lagna",
@@ -417,6 +418,8 @@ def _marker_explain(marker: str) -> str:
         # DD-17 context notes: same text as DOSHAM_CONTEXT_LABELS in
         # packages/shared/src/doshamReckoning.ts (held equal by a test).
         "sevvai_not_from_lagna": "Mars is not in a dosha house from your Lagna. The dosham is counted only from the Moon or Venus, which weighs less than a Lagna placement.",
+        # The astrologer's wording, 23 Oct (Q12, Tamil corrected in B3) — kept verbatim.
+        "sevvai_mars_debility_modifies": "Mars's debility modifies the reading of Sevvai dosham. Some texts hold that a debilitated Mars does less harm; others hold that in the 7th or 8th it does more. The result depends on house, lordship and aspect, and debility alone does not establish cancellation.",
         "rk_axis_not_repeated_from_moon_venus": "Counted from your Moon and from Venus, the nodes do not fall on houses 1, 2, 7 or 8. The axis is not repeated, which is the lighter reading.",
         "rk_axis_repeated_in_navamsa": "In the Navamsa (D9) the nodes again fall on houses 1, 2, 7 or 8 from its Lagna — the pattern repeats there.",
         "rk_axis_not_repeated_in_navamsa": "In the Navamsa (D9) the nodes fall outside houses 1, 2, 7 and 8 — the pattern does not repeat there.",
@@ -458,7 +461,8 @@ def _marker_explain_ta(marker: str) -> str:
         "mars_dispositor_kendra_trikona": "செவ்வாயிலிருந்து எண்ணும்போது, செவ்வாயின் ராசி அதிபதி கேந்திரம் அல்லது திரிகோணத்தில் உள்ளது",
         "both_partners_have_sevvai": "இரு ஜாதகங்களிலும் ஒத்த செவ்வாய் நிலை உள்ளது",
         "partner_sevvai_unequal_weight": "துணையின் ஜாதகத்திலும் செவ்வாய் தோஷம் உண்டு, ஆனால் ஒப்பான வலிமையில் இல்லை; இது குறைப்பு மட்டுமே",
-        "mars_debilitated_in_dosha_house": "தோஷ வீட்டில் செவ்வாய் கடகத்தில் நீசம்; இரு ஜாதகங்களைப் பொருத்தும்போது மட்டுமே நிவர்த்தி",
+        "mars_debilitated_in_dosha_house": "தோஷ வீட்டில் செவ்வாய் கடகத்தில் நீசம்; நீசம் பலனை மாற்றுகிறது, தானாகவே நிவர்த்தியை உறுதிசெய்யாது",
+        "mars_neechabhanga": "நீசபங்கம்: கடக அதிபதி அல்லது செவ்வாயின் உச்ச ராசி அதிபதி லக்னம் அல்லது சந்திரனிலிருந்து கேந்திரத்தில் உள்ளது; இரு ஜாதகங்களைப் பொருத்தும்போது மட்டுமே நிவர்த்தி",
         "node_afflicts_moon": "ராகு/கேது சந்திரனுடன் சேர்ந்துள்ளது",
         "rahu_ketu_axis_1_7": "ராகு-கேது அச்சு லக்னத்திலிருந்து 1, 7ஆம் வீடுகளில் உள்ளது",
         "rahu_ketu_axis_2_8": "ராகு-கேது அச்சு லக்னத்திலிருந்து 2, 8ஆம் வீடுகளில் உள்ளது",
@@ -479,6 +483,9 @@ def _marker_explain_ta(marker: str) -> str:
         "strong_second_lord_or_benefic_on_second": "2-ஆம் வீட்டிற்கு ஆதரவு உள்ளது: அதன் அதிபதி வலுவாக உள்ளது அல்லது குரு அல்லாத சுப கிரக ஆதரவு கிடைக்கிறது — இதனால் தாக்கம் குறைகிறது.",
         "second_lord_dignified": "2-ஆம் அதிபதி ஆட்சி அல்லது உச்ச ராசியில், பாவ கிரகச் சேர்க்கையின்றி உள்ளது — 2-ஆம் வீட்டிற்குப் பாதுகாப்பு.",
         "sevvai_not_from_lagna": "லக்னத்திலிருந்து செவ்வாய் தோஷ வீட்டில் இல்லை; சந்திரன் அல்லது சுக்கிரனிலிருந்து மட்டுமே தோஷம் கணக்கிடப்படுகிறது. லக்னத்திலிருந்து வரும் தோஷத்தை விட இதன் எடை குறைவு.",
+        # The astrologer's own Tamil, 23 Oct B3 (he replaced பாவம் with பாவகம்
+        # and முடிவு with பலன்) — verbatim, do not re-translate.
+        "sevvai_mars_debility_modifies": "செவ்வாய் நீசம் பெறுவது செவ்வாய் தோஷத்தின் தன்மையை மாற்றுகிறது. நீசச் செவ்வாய் தீங்கைக் குறைக்கும் என்று சில நூல்களும், 7-ஆம் அல்லது 8-ஆம் இடத்தில் அது தீங்கை அதிகரிக்கும் என்று வேறு சில நூல்களும் கூறுகின்றன. பலன் பாவகம், ஆதிபத்தியம், பார்வை ஆகியவற்றைப் பொறுத்தது; நீசம் மட்டுமே தோஷ நிவர்த்தியை உறுதிசெய்யாது.",
         "rk_axis_not_repeated_from_moon_venus": "சந்திரனிலிருந்தும் சுக்கிரனிலிருந்தும் எண்ணும்போது ராகு-கேது 1, 2, 7, 8-ஆம் வீடுகளில் இல்லை. அச்சு மீண்டும் வராதது லேசான நிலையைக் காட்டுகிறது.",
         "rk_axis_repeated_in_navamsa": "நவாம்சத்திலும் (D9) ராகு-கேது அதன் லக்னத்திலிருந்து 1, 2, 7 அல்லது 8-ஆம் வீடுகளில் உள்ளன — அமைப்பு அங்கும் மீண்டும் வருகிறது.",
         "rk_axis_not_repeated_in_navamsa": "நவாம்சத்தில் (D9) ராகு-கேது 1, 2, 7, 8-ஆம் வீடுகளுக்கு வெளியே உள்ளன — அமைப்பு அங்கு மீண்டும் வரவில்லை.",

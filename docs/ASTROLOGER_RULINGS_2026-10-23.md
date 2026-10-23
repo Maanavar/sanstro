@@ -31,6 +31,11 @@ checked against published almanacs (Drik Panchang for Chennai, Tamil Nadu holida
 orders, dated temple reports). What was built, and where the sources overruled an
 answer, is in §5, which supersedes the "Status" column below.
 
+**Second update, same day: the astrologer answered the follow-up.** Those answers
+(A1–F1 of `ASTROLOGER_FOLLOWUP_2026-10-23.md`) are in §6, which supersedes §5
+wherever the two differ — notably Varalakshmi, where he reversed the 22 October
+ruling and overrode the Drik dates as a lineage choice.
+
 ## 1. Summary
 
 | Q | Answer (tag) | Our check | Status |
@@ -169,6 +174,51 @@ Gates: `yearly_observances_scan.py 2018 2045` 0 unreported problems;
 tests (`test_festivals.py`, `test_panchangam_events.py`, `test_calendar_categories.py`,
 `test_panchangam.py`) 229 passed in the container. Local runs are not authoritative;
 CI decides.
+
+## 6. The follow-up answers (A1–F1), and what they changed
+
+Answers to `docs/ASTROLOGER_FOLLOWUP_2026-10-23.md`, received the same day.
+Tagged by him CONFIRMED, LINEAGE or OPEN. These supersede §5 where they differ.
+
+### 6.1 Built
+
+| # | Answer | Built | Effect |
+|---|---|---|---|
+| A1a, A1b | The Rohini overlap decides **only if it reaches the evening** — the midnight, aparahna or pradosham. A morning-only overlap does not override. 2019 is therefore 23 Aug | `observance_days.jayanthi_yoga_day` returns None for a morning-only overlap, so Ashtami-at-nisheetha stands | 2019 → 23 Aug. **Nothing else moves in 2013–2045.** Published dates matched: 19/19, against 18/19 before |
+| A2a | A Krittika holding sunrise beats one between two sunrises | already built (§5) | — |
+| A3 | Krittika at dusk, then the full-moon test, then the later lunar month | already built (§5) | — |
+| A4 | The later of two afternoons, next to Dasami; keep 18 Oct 2018 as a regression test | already built; 2018 is pinned in the gate | — |
+| A5b | **Reverse the 22 Oct ruling.** The strict Friday-*before* rule is the Tamil/Dravida default: 2026 → 21 Aug (Sringeri's Jagadguru observed it), 2022 → 5 Aug, 2029 → 17 Aug | `festivals._recurring_tithi_festivals` window is now 1–7 days before the printed Pournami, never 0 | 3 dates in 26 years. The curated 2026 row returns to 21 Aug |
+| B1b | Debility is a **modifier**, with no numeric weight. Full cancellation only under neechabhanga: the lord of Katakam (Chandra) or of Makaram (Sani) in a kendra from Lagna or Moon | `_yoga_dosham` adds no `mitigation_score` for debility and cancels only on a new `mars_neechabhanga` marker | A single chart with debilitated Mars and no other mitigation now grades one higher (PARTIAL, not WEAK). Only neechabhanga cancels in a match |
+| B3 | The Tamil wording, with two corrections (`பாவம்` → `பாவகம்`, `முடிவு` → `பலன்`) | a context note `sevvai_mars_debility_modifies`, his text verbatim in both languages, on every chart where debility fires | new user-facing copy, astrologer-reviewed |
+
+**One forced reading in B1b.** "Chandra in a kendra from the Moon" is true of
+every chart, since the Moon is in house 1 from itself. Taken literally the
+bhanga would always fire and debility would always cancel — exactly what the
+same answer rules out. So the Moon is judged from the Lagna only, and that is
+pinned by `test_the_moon_is_not_its_own_neechabhanga`. Worth confirming with him.
+
+### 6.2 Held, with the reason
+
+| # | Answer | Why not built |
+|---|---|---|
+| A6a–A6c | The fast is on **Dwadasi** by default, with Drik's smarta day as a second line, the Vaishnava day as a third, and parana shown after Hari Vasara | This is the multi-line feature (§3, B5), not a single-date flip, and flipping the label alone would be worse than today. **Conflict to settle first:** Srirangam opened the Paramapada Vasal on 30 Dec 2025, a kshaya Vaikunta Ekadashi, which is the day it falls in, not the Dwadasi. Moving the label would put the app's flagship Vaikunta Ekadashi a day off the temple and both printed almanacs. The engine keeps the day it falls in until this is resolved |
+| A1c | Add a separate Sri Jayanthi line; the rule is OPEN and the line provisional | Cannot build a line whose rule is open |
+| A2b | Keep 27 Jul 2019; add an optional "temple custom" note for the evening of 26 Jul | Display addition, no rule change; recorded |
+| A5b (part) | Show Drik's Pournami-Friday date as an alternative line | Needs an owner decision on showing one festival on two days, plus Tamil copy |
+| B2 | Keep reduction-only; full parihara for Guru as a setting, off by default, with a tradition label | A doctrine option with no named text; the default is already reduction-only, so nothing changes today |
+| C2 | All three gana cells provisionally "not acceptable", stored disabled and flagged unsourced; the >14-star exception counts bride→groom and rescues only the Rakshasa pairings | Explicitly unsourced; storing a disabled table adds risk without benefit while F-POR-01 is unbuilt |
+| C6 | Do not count Mandhi (already the default); make it a setting; note Mandhi ≠ Gulika | Default already correct; the setting and the note are follow-ups |
+| D2 | Two labelled gandanta definitions, narrow (last/first two ghatis) and wide (junction padas); likely Muhurta Chintamani, verse unverified | New-beginnings muhurta is not built |
+| E1–E4 | Friendly aspects only (unconfirmed); no hadda table, no fallback year lord; return "year-lord rule requires verification" rather than naming a planet | The page already says the year lord is approximate; the explicit "requires verification" status is a follow-up |
+| C1, C3, C4, C5, D1, F1 | OPEN: no source named | Unchanged, cautions kept |
+
+### 6.3 Still owed by the astrologer
+
+The 2022 Varalakshmi panchangam page (A5a, "unverified" by his own tag),
+"PN-4" title page and pp. 242–244 (C4), a papa-samyam worked example (C5), the
+star-pada, gana and vasya tables (C1–C3), the muhurta star lists (D1), the
+Tajika Neelakanthi title page (E4), and one complete printed Karinaal list (F1).
 
 ---
 

@@ -348,11 +348,30 @@ def detect_sevvai_dosham(
             cancellation_factors.append("partner_sevvai_unequal_weight")
             mitigation_score += 1
     if own_references and mars_rasi == DEBILITATION_RASI["MARS"]:
+        # B1b (23 Oct follow-up): debility is a **modifier**, not a
+        # cancellation, and carries no numeric weight — so no mitigation_score
+        # here. It cancels only under neechabhanga: the lord of Katakam, the
+        # sign of the debility (Chandra), or of Makaram, Mars's exaltation
+        # (Sani), in a kendra from Lagna or from the Moon. Lineage, no text
+        # named. Before this, debility alone cancelled in a two-chart reading.
         cancellation_factors.append("mars_debilitated_in_dosha_house")
-        if two_chart_reading:
+        # A body is not evidence about its own placement: the Moon is in house 1
+        # from itself, so "Chandra in a kendra from the Moon" is true of every
+        # chart. Read literally it would make neechabhanga fire always, and
+        # debility would always cancel -- the very thing B1b rules out. So the
+        # Moon is tested from the Lagna only.
+        neechabhanga = any(
+            lord in planets
+            and any(
+                _is_kendra_from(reference, _planet_rasi(planets, lord))
+                for reference in ((lagna_rasi,) if lord == "MOON" else (lagna_rasi, moon_rasi))
+            )
+            for lord in ("MOON", "SATURN")
+        )
+        if neechabhanga:
+            # §8 still stands: only a two-chart reading prints "Cancelled".
+            cancellation_factors.append("mars_neechabhanga")
             major_cancellation = True
-        else:
-            mitigation_score += 1
 
     is_present = bool(conditions_met) and not exempt_lagna
     # §8: only a two-chart reading can cancel; one or more reduction factors
@@ -397,7 +416,14 @@ def detect_sevvai_dosham(
         # Moon or Venus is the lighter reading (DD-17).
         primary_reference="from_lagna" in conditions_met,
     )
-    context_notes = ("sevvai_not_from_lagna",) if is_present and "from_lagna" not in conditions_met else ()
+    context_notes_list: list[str] = []
+    if is_present and "from_lagna" not in conditions_met:
+        context_notes_list.append("sevvai_not_from_lagna")
+    # B3 (23 Oct follow-up): the astrologer's own wording for what debility
+    # does, approved in both languages. Attached without counting (DD-17).
+    if "mars_debilitated_in_dosha_house" in cancellation_factors:
+        context_notes_list.append("sevvai_mars_debility_modifies")
+    context_notes = tuple(context_notes_list)
     reference_houses = tuple(
         ReferenceHouse(reference=ref, reference_rasi=ref_rasi, houses=(house,), counts=house in TAMIL_SEVVAI_HOUSES)
         for ref, ref_rasi, house in (

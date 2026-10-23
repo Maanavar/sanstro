@@ -79,7 +79,8 @@ const MARKER_LABELS: Record<string, { ta: string; en: string }> = {
   benefic_strong_seventh_lord:      { ta: "வலுவான சுப 7-ம் அதிபதி பாதுகாப்பு தருகிறார்", en: "A strong benefic 7th lord provides protection" },
   both_partners_have_sevvai:        { ta: "இருவருக்கும் ஒப்பான செவ்வாய் நிலை — ஒத்திசைவு சீர்படுகிறது", en: "Both partners have comparable Sevvai — compatibility balances out" },
   partner_sevvai_unequal_weight:    { ta: "துணையின் ஜாதகத்திலும் செவ்வாய் தோஷம் உண்டு, ஆனால் ஒப்பான வலிமையில் இல்லை — குறைப்பு மட்டுமே", en: "The partner's chart carries Sevvai too, but of a different weight — this reduces, it does not cancel" },
-  mars_debilitated_in_dosha_house:  { ta: "தோஷ வீட்டில் செவ்வாய் கடகத்தில் நீசம் — இரு ஜாதகப் பொருத்தத்தில் மட்டுமே நிவர்த்தி", en: "Mars is debilitated in Katakam in the dosha house — this cancels only when two charts are matched" },
+  mars_debilitated_in_dosha_house:  { ta: "தோஷ வீட்டில் செவ்வாய் கடகத்தில் நீசம் — நீசம் பலனை மாற்றுகிறது, தானாகவே நிவர்த்தியை உறுதிசெய்யாது", en: "Mars is debilitated in Katakam in the dosha house — debility modifies the reading; it does not establish cancellation on its own" },
+  mars_neechabhanga:                { ta: "நீசபங்கம் — கடக அதிபதி அல்லது செவ்வாயின் உச்ச ராசி அதிபதி லக்னம்/சந்திரனிலிருந்து கேந்திரத்தில் — இரு ஜாதகப் பொருத்தத்தில் மட்டுமே நிவர்த்தி", en: "Neechabhanga — the lord of Katakam or of Mars's exaltation sign sits in a kendra from Lagna or Moon, lifting the debility; this cancels only when two charts are matched" },
   // Rahu-Ketu — one axis finding (DD-03), then each aggravation raises the grade
   rahu_ketu_axis_1_7:      { ta: "ராகு-கேது அச்சு லக்னத்திலிருந்து 1, 7-ம் வீடுகளில் உள்ளது", en: "The Rahu–Ketu axis falls on houses 1 and 7 from your Lagna" },
   rahu_ketu_axis_2_8:      { ta: "ராகு-கேது அச்சு லக்னத்திலிருந்து 2, 8-ம் வீடுகளில் உள்ளது", en: "The Rahu–Ketu axis falls on houses 2 and 8 from your Lagna" },
