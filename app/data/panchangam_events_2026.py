@@ -1,8 +1,12 @@
 """AUTO-GENERATED — do not edit by hand. Regenerate from the 2026 almanac sheet.
 
 Curated 2026 Tamil-calendar special-event dates (tamildailycalendar.com), with
-weekday + Tamil month/day enriched by our verified engine. Source of truth for
-the public event-listing API and the SEO /tamil-calendar pages.
+weekday + Tamil month/day enriched by our verified engine.
+
+**No longer served** (FCA-06, owner decision 4E, 2026-10-22). The public
+/tamil-calendar pages read the engine (`panchangam_events_service._engine_rows`).
+This table stays as the printed-almanac reference that
+`scripts/audit/seo_events_vs_engine.py` scores the engine against.
 """
 from __future__ import annotations
 

@@ -1,21 +1,29 @@
-"""Tests for the curated Tamil-calendar special-event listings + Karinaal flag.
+"""Tests for the Tamil-calendar special-event listings + Karinaal flag.
 
-Pure data + arithmetic (no DB, no ephemeris) — runs anywhere.
+The pages are read off the daily panchangam engine (FCA-06, owner decision 4E,
+2026-10-22), so these need the ephemeris but no database.
 """
 from __future__ import annotations
 
 from datetime import date
+from itertools import pairwise
 
 import pytest
 from fastapi import HTTPException
 
 from app.calculations.karinaal import KARINAAL_TAMIL_DAYS
 from app.data.panchangam_events_2026 import PANCHANGAM_EVENTS_2026
+from app.schemas.panchangam import PanchangamMonthlyQuery
 from app.services import panchangam_events_service as svc
+from app.services.panchangam_service import build_monthly_panchangam
 
 pytestmark = pytest.mark.no_db
 
-EXPECTED_COUNTS = {
+KARINAAL_COUNT = sum(len(days) for days in KARINAAL_TAMIL_DAYS.values())
+
+# The curated 2026 almanac table, kept only as the reference
+# scripts/audit/seo_events_vs_engine.py scores the engine against.
+REFERENCE_COUNTS = {
     "amavasai": 12, "pournami": 13, "pradosham": 25, "karthigai": 13, "ashtami": 25,
     "navami": 24, "sashti": 12, "sankatahara-chathurthi": 13, "thiruvonam": 13,
     "maadha-sivarathiri": 12, "ekadhasi": 24, "chathurthi": 12, "chandra-darisanam": 12,
@@ -26,6 +34,19 @@ EXPECTED_COUNTS = {
     "karthigai-deepam": 1, "vaikunta-ekadasi": 1, "aadi-perukku": 1,
 }
 
+# What the engine serves for 2026. Two counts sit below the almanac's because
+# the engine names no day for a tithi that holds no sunrise (kshaya): Ekadashi
+# once (Jul) and Shukla Chathurthi twice (Apr, Jul). That is the daily
+# panchangam's own gap, shown here rather than papered over on one page.
+ENGINE_COUNTS_2026 = {
+    "pournami": 13, "amavasai": 12, "pradosham": 24, "ekadhasi": 23,
+    "sankatahara-chathurthi": 13, "chathurthi": 10, "sashti": 12, "ashtami": 25,
+    "navami": 24, "karthigai": 13, "thiruvonam": 13, "maadha-sivarathiri": 12,
+    "chandra-darisanam": 12, "karinaal": KARINAAL_COUNT,
+}
+
+CHENNAI = {"lat": 13.0827, "lng": 80.2707, "timezone": "Asia/Kolkata"}
+
 
 def test_karinaal_is_derived_not_curated():
     """F-MUH-02. The curated table must not carry Karinaal rows: they were
@@ -33,37 +54,74 @@ def test_karinaal_is_derived_not_curated():
     so a reader could not tell which was authoritative. The service reads the
     derivation, and its count follows the rule."""
     assert "karinaal" not in PANCHANGAM_EVENTS_2026
-    expected = sum(len(days) for days in KARINAAL_TAMIL_DAYS.values())
-    assert len(svc.karinaal_dates(2026)) == expected
-    assert len(svc.karinaal_dates(2031)) == expected, "derived, so every year works"
+    assert len(svc.karinaal_dates(2026)) == KARINAAL_COUNT
+    assert len(svc.karinaal_dates(2031)) == KARINAAL_COUNT, "derived, so every year works"
 
 
-def test_data_matches_expected_counts_and_is_sorted():
-    assert set(PANCHANGAM_EVENTS_2026) == set(EXPECTED_COUNTS)
+def test_reference_table_is_intact_and_sorted():
+    assert set(PANCHANGAM_EVENTS_2026) == set(REFERENCE_COUNTS)
     for key, rows in PANCHANGAM_EVENTS_2026.items():
-        assert len(rows) == EXPECTED_COUNTS[key], key
+        assert len(rows) == REFERENCE_COUNTS[key], key
         iso = [r["date"] for r in rows]
         assert iso == sorted(iso), f"{key} not date-sorted"
 
 
 def test_list_events_has_all_14_with_metadata():
-    from app.services.panchangam_events_service import EVENT_ORDER
     out = svc.list_events(2026, reference=date(2026, 1, 1))
     assert out["year"] == 2026
-    assert len(out["events"]) == len(EVENT_ORDER)
-    keys = {e["key"] for e in out["events"]}
-    assert keys == set(EVENT_ORDER)
+    assert [e["key"] for e in out["events"]] == list(svc.EVENT_ORDER)
     for e in out["events"]:
         assert e["name"]["ta"] and e["name"]["en"]
         assert e["slug"] == f"{e['key']}-2026"
-        # Karinaal is derived, so its count comes from the rule rather than
-        # from the curated table EXPECTED_COUNTS mirrors.
-        expected = (
-            sum(len(days) for days in KARINAAL_TAMIL_DAYS.values())
-            if e["key"] == "karinaal"
-            else EXPECTED_COUNTS[e["key"]]
-        )
-        assert e["count"] == expected, e["key"]
+        assert e["count"] == ENGINE_COUNTS_2026[e["key"]], e["key"]
+
+
+@pytest.mark.parametrize("month", [1, 8, 11])
+def test_pages_name_the_days_the_monthly_calendar_names(month: int):
+    """FCA-06: one engine. Every page date in the month is a day the signed-in
+    monthly calendar marks the same way, and no marked day is missing — read
+    through `build_monthly_panchangam`, a separate path from the page's scan.
+    August and November 2026 are months where the curated almanac and the
+    sunrise rule (Q6) disagree on the Pournami or the Amavasai."""
+    grid = build_monthly_panchangam(PanchangamMonthlyQuery(year=2026, month=month, **CHENNAI)).data.entries
+    marked = {
+        "pournami": {e.date_local for e in grid if e.special_tithi_day_number == 15},
+        "amavasai": {e.date_local for e in grid if e.special_tithi_day_number == 30},
+        "pradosham": {e.date_local for e in grid if {f.name for f in e.festivals} & {"Pradhosam", "Sani Pradhosam"}},
+        "sashti": {e.date_local for e in grid if "Sashti" in {f.name for f in e.festivals}},
+    }
+    for key, days in marked.items():
+        served = {
+            date.fromisoformat(r["date"])
+            for r in svc.get_event(key, 2026)["dates"]
+            if date.fromisoformat(r["date"]).month == month
+        }
+        assert served == days, key
+
+
+def test_august_2026_pournami_is_the_sunrise_day():
+    """The case the curated page got wrong: Pournami holds the 28 Aug sunrise
+    (ruling Q6); the almanac table printed 27 Aug."""
+    dates = {r["date"] for r in svc.get_event("pournami", 2026)["dates"]}
+    assert "2026-08-28" in dates and "2026-08-27" not in dates
+
+
+def test_a_tithi_holding_two_sunrises_is_listed_once():
+    """Ashtami and Navami take Q6's 'first of two' (an extension; Q6 names
+    only Pournami and Amavasai). Before it, Navami 2026 listed 27 days."""
+    for key in ("ashtami", "navami"):
+        days = [date.fromisoformat(r["date"]) for r in svc.get_event(key, 2026)["dates"]]
+        consecutive = [b for a, b in pairwise(days) if (b - a).days == 1]
+        assert not consecutive, (key, consecutive)
+
+
+def test_2027_is_served():
+    """FCA-07: the pages answered "No calendar published" for 2027."""
+    out = svc.list_events(2027, reference=date(2027, 1, 1))
+    assert all(e["count"] > 0 for e in out["events"])
+    pournami = svc.get_event("pournami-2027", 2027, reference=date(2027, 1, 1))
+    assert pournami["slug"] == "pournami-2027"
+    assert pournami["keywords"][0] == "pournami 2027"
 
 
 def test_next_date_logic():
@@ -86,6 +144,7 @@ def test_get_event_accepts_key_and_slug_and_enriches():
     assert first["weekday"]["en"] == "Saturday"
     assert first["tamilDate"]["en"] and first["tamilDate"]["ta"]
     assert by_key["summary"]["en"] and by_key["significance"]["ta"]
+    assert by_key["keywords"][0] == "pournami 2026"
 
 
 def test_unknown_event_and_year_raise_404():
@@ -103,7 +162,7 @@ def test_unknown_event_and_year_raise_404():
 def test_karinaal_helpers():
     kar = svc.karinaal_dates(2026)
     # Derived from the rule, not a literal — see test_karinaal_is_derived_not_curated.
-    assert len(kar) == sum(len(days) for days in KARINAAL_TAMIL_DAYS.values())
+    assert len(kar) == KARINAAL_COUNT
     assert svc.is_karinaal(date(2026, 1, 15)) is True
     assert svc.is_karinaal(date(2026, 1, 20)) is False
     # a Pournami date should not be Karinaal

@@ -294,7 +294,9 @@ def _solar_month_observances(
     if len(spans) >= 3:
         stars.add(spans[1].name.upper())
     month_start = snapshot.date_local - timedelta(days=tamil_day_of_month - 1)
-    falls, fired, named_by = set(), set(), set()
+    falls: set[str] = set()
+    fired: set[str] = set()
+    named_by: set[tuple[str, str]] = set()
     for observance in SOLAR_MONTH_OBSERVANCES:
         if observance.tamil_month != tamil_month_index:
             continue
