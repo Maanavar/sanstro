@@ -34,13 +34,11 @@ REFERENCE_COUNTS = {
     "karthigai-deepam": 1, "vaikunta-ekadasi": 1, "aadi-perukku": 1,
 }
 
-# What the engine serves for 2026. Ekadashi sits one below the almanac's
-# because the engine names no day for an Ekadashi that holds no sunrise
-# (kshaya, Jul): whether it is observed on any day is doctrine, with the
-# astrologer. Shukla Chathurthi takes §5 (the day it falls in) and is back
-# at the almanac's 12.
+# What the engine serves for 2026. Shukla Chathurthi and Ekadashi take §5
+# (a tithi holding no sunrise names the day it falls in) and are back at the
+# almanac's 12 and 24; the kshaya Ekadashi is Drik Panchang's smarta 10 Jul.
 ENGINE_COUNTS_2026 = {
-    "pournami": 13, "amavasai": 12, "pradosham": 24, "ekadhasi": 23,
+    "pournami": 13, "amavasai": 12, "pradosham": 24, "ekadhasi": 24,
     "sankatahara-chathurthi": 13, "chathurthi": 12, "sashti": 12, "ashtami": 25,
     "navami": 24, "karthigai": 13, "thiruvonam": 13, "maadha-sivarathiri": 12,
     "chandra-darisanam": 12, "karinaal": KARINAAL_COUNT,

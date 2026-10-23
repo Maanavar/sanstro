@@ -20,10 +20,15 @@ inside the occurrence, so it can never override a kala satisfied elsewhere.
                 solar month
     OTHERWISE:  dormant -- the single named day stands
 
+Before either tie-break, a day that holds the occurrence at its kala or at
+sunrise beats one that only contains it (§0.3 ranks containment last; Aadi
+Krithigai 2025, 20 Jul, not the contained 16 Aug).
+
 The proximity tests (nearest Pournami, nearest Amavasai) were tie-breaks
 applied as filters, and the ruling withdrew them. One survives, as a gated
-tie-break only: Family A's "beside the month's own full moon", held until the
-astrologer answers OPEN-3 (the six dates §3 would move).
+tie-break only: "beside the month's own full moon", for the stars named by
+their union with the month's Pournami (Family A and Karthigai Deepam; answers
+of 23 Oct, Q4/Q5). When it cannot decide, §3 does.
 
 Pure ephemeris arithmetic plus the Tamil month boundaries; no database.
 """
@@ -76,7 +81,7 @@ class Candidate:
     # inside the solar month (§3's test).
     lunar_month_begins_in_solar_month: bool
     # The full moon nearest the day has the Sun in the solar month's rasi
-    # (the Family A proximity test, held pending OPEN-3).
+    # (the full-moon tie-break).
     beside_own_full_moon: bool
 
 
@@ -85,9 +90,7 @@ class SolarMonthSelection:
     month_start: date
     month_end: date
     candidates: tuple[Candidate, ...]
-    # One day, except where the held Family A test cannot decide a duplicate
-    # (Vaikasi 2022, 2041: both stars sit beside a Vaikasi full moon), which
-    # keeps its old behaviour of labelling both until OPEN-3 is answered.
+    # One day, or none when a duplicate stays undecided (unresolved).
     selected: tuple[date, ...]
     tie_break_fired: bool
     # The tie-break fired and did not reduce the candidates to one day.
@@ -213,9 +216,11 @@ def select_in_solar_month(
     """The day of the Tamil solar month containing `day_in_month` on which
     `value` (a star name, or a tithi number) is observed.
 
-    `tie_break` is consulted only when the month holds two named days:
-    "lunar_month" is §3; "full_moon_month" is the Family A proximity test,
-    now gated behind that same duplicate check (§9.3) and held until OPEN-3.
+    `tie_break` is consulted only when the month holds two named days, after
+    a contained day has given way to one holding its kala or sunrise:
+    "lunar_month" is §3; "full_moon_month" is the union with the month's
+    Pournami (Q4/Q5 of 23 Oct), gated behind that same duplicate check (§9.3),
+    with §3 deciding what it cannot (Vaikasi 2022, 2041 -> 12 Jun).
     """
     span = tamil_month_spans(day_in_month, 1, timezone_name, latitude, longitude)[0]
     clock = _Clock(timezone_name, latitude, longitude)
@@ -245,15 +250,17 @@ def select_in_solar_month(
         selected = (candidates[0].day,)
     elif len(candidates) > 1:
         fired = True
-        kept = [
-            c for c in candidates
-            if (c.lunar_month_begins_in_solar_month if tie_break == "lunar_month" else c.beside_own_full_moon)
-        ]
+        pool = [c for c in candidates if c.named_by != "contained"] or candidates
+        kept = pool
+        if len(pool) > 1 and tie_break == "full_moon_month":
+            kept = [c for c in pool if c.beside_own_full_moon]
+        if len(kept) != 1:
+            kept = [c for c in (kept or pool) if c.lunar_month_begins_in_solar_month]
         unresolved = len(kept) != 1
-        # An undecided §3 tie names no day (it has not happened in 2020-2045;
-        # the audit reports it). The held Family A test keeps what it kept.
-        if tie_break == "full_moon_month" or not unresolved:
-            selected = tuple(c.day for c in kept)
+        # An undecided tie names no day (it has not happened in 2020-2045;
+        # the audit reports it).
+        if not unresolved:
+            selected = (kept[0].day,)
     return SolarMonthSelection(
         month_start=span.start,
         month_end=span.end,
@@ -277,3 +284,35 @@ def printed_tithi_day_on_or_after(
         if named >= day:
             return named
     raise RuntimeError(f"no tithi {tithi} within a lunation of {day}")
+
+
+_KRISHNA_ASHTAMI = 23
+
+
+def jayanthi_yoga_day(day: date, timezone_name: str, latitude: float, longitude: float) -> date | None:
+    """The day of the Jayanthi yoga of the Krishna Ashtami nearest `day`, or
+    None when Ashtami and Rohini do not overlap.
+
+    When they overlap, the yoga decides Krishna Jayanthi ahead of Ashtami at
+    nisheetha (answers of 23 Oct, §2.3): the night whose nisheetha lies in the
+    overlap, printed by its evening; if no nisheetha does, the day the overlap
+    begins. It reproduces all 11 round-two vectors and Drik Panchang's Chennai
+    smarta dates 2021-2031 (2027: 25 Aug, though Ashtami ends at 19:19).
+    """
+    clock = _Clock(timezone_name, latitude, longitude)
+    sunrise = clock.sunrise(day)
+    ashtamis = tithi_occurrences(_KRISHNA_ASHTAMI, sunrise - 4.0, sunrise + 4.0)
+    if not ashtamis:
+        raise RuntimeError(f"no Krishna Ashtami within four days of {day}")
+    ashtami = min(ashtamis, key=lambda o: abs((o.start_jd + o.end_jd) / 2 - sunrise))
+    for rohini in star_occurrences("ROHINI", ashtami.start_jd - 1.5, ashtami.end_jd + 1.5):
+        start, end = max(rohini.start_jd, ashtami.start_jd), min(rohini.end_jd, ashtami.end_jd)
+        if start >= end:
+            continue
+        first = clock.civil_date(start) - timedelta(days=1)
+        for evening in (first + timedelta(days=i) for i in range(3)):
+            nisheetha = (clock.sunset(evening) + clock.sunrise(evening + timedelta(days=1))) / 2
+            if start <= nisheetha < end:
+                return evening
+        return clock.civil_date(start)
+    return None

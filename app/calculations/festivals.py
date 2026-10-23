@@ -231,8 +231,8 @@ SELECTION_RULES: dict[str, str] = {
         "OTHERWISE: dormant; the single day stands"
     ),
     "solar_month.full_moon_tie_break": (
-        "FIRES WHEN: a Family A star is named on two days of its solar month "
-        "EFFECT: the one beside the solar month's own full moon (held pending OPEN-3) "
+        "FIRES WHEN: a Family A star, or Karthigai Deepam's Krittika, is named on two days of its solar month "
+        "EFFECT: the one beside the solar month's own full moon; §3 if that does not decide (Q4/Q5 of 23 Oct) "
         "OTHERWISE: dormant; the single day stands"
     ),
     "kala.sunrise_fallback": (
@@ -250,10 +250,20 @@ SELECTION_RULES: dict[str, str] = {
         "EFFECT: the first (§6) "
         "OTHERWISE: dormant; the one aparahna day stands"
     ),
+    "aparahna.navami_two_aparahnas_later": (
+        "FIRES WHEN: Ashvina Shukla Navami holds two aparahnas "
+        "EFFECT: Ayudha Pooja on the later, the one adjoining Dasami (Q7 of 23 Oct; TN G.O. 2018: 18 Oct) "
+        "OTHERWISE: dormant"
+    ),
     "aparahna.none_sunrise_fallback": (
         "FIRES WHEN: the tithi holds no aparahna "
         "EFFECT: the tithi at sunrise, first of two (§6) "
         "OTHERWISE: dormant"
+    ),
+    "jayanthi.ashtami_rohini_yoga": (
+        "FIRES WHEN: Krishna Ashtami overlaps Rohini (the primary rule, not a tie-break: most years) "
+        "EFFECT: the night whose nisheetha is in the overlap, else the day it begins (§2.3 of 23 Oct) "
+        "OTHERWISE: Ashtami at nisheetha"
     ),
     "jayanthi.rohini_tie_break": (
         "FIRES WHEN: Krishna Ashtami holds two nisheethas, or none "
@@ -381,6 +391,11 @@ class ObservanceInstants:
     # the midpoint of sunset to sunrise); the label goes on the civil date of
     # that instant, which can be this day or the one before.
     nisheetha_nights: tuple[NisheethaNight, ...] = ()
+    # The Jayanthi yoga of the nearby Krishna Ashtami
+    # (`observance_days.jayanthi_yoga_day`): its day, or None when Ashtami and
+    # Rohini do not overlap. Meaningful only when `jayanthi_yoga_known`.
+    jayanthi_yoga_day: date | None = None
+    jayanthi_yoga_known: bool = False
     # A star that holds no sunrise (it begins and ends between this sunrise and
     # the next) is contained in this day (§5).
     kshaya_nakshatra_name: str | None = None
@@ -466,25 +481,31 @@ def _jayanthi_night_selected(before: NisheethaNight, tonight: NisheethaNight, af
     return won
 
 
-#: Which civil date prints the Jayanthi night — HELD (§2 / OPEN-1). §2 rules
-#: the date of the nisheetha instant ("nisheetha_date": 24->25 Aug 2027 prints
-#: 25 Aug). Against its own 2023-2033 acceptance vectors that matches 3 of 11;
-#: the evening that opens the night (the label before round two) matches 8,
-#: and the day Ashtami holds at sunrise 7; every vector is one of the last two
-#: and no one rule gives all eleven (scripts/audit/jayanthi_label_scan.py).
-#: The nisheetha label would also move 2026 off the 4 Sep government holiday.
-#: Held at the evening until the astrologer answers.
+#: Which civil date prints the Jayanthi night. The evening that opens it
+#: (answers of 23 Oct, Q1: the fast, the preparation and the holiday sit on
+#: that day). The nisheetha instant's date matched 3 of the 11 round-two
+#: vectors. The "sunrise day" vectors (2027, 2029, 2030) were never a label
+#: question: they are Jayanthi-yoga days (`jayanthi_yoga_day`).
 _JAYANTHI_LABEL: Literal["evening_date", "nisheetha_date"] = "evening_date"
 
 
 def _is_krishna_jayanthi(day: date, instants: ObservanceInstants) -> bool:
     """Krishna Jayanthi is printed on `day` (§2).
 
-    The night is chosen by `_jayanthi_night_selected` (the computation); the
-    printed date is `_JAYANTHI_LABEL` of that night (the label). Under the
-    nisheetha label either middle night can land on `day`, since nisheetha
-    falls after 00:00 at Chennai and before it further east.
+    When Krishna Ashtami overlaps Rohini, the Jayanthi yoga's day
+    (`observance_days.jayanthi_yoga_day`); Drik Panchang's Chennai smarta
+    dates agree in every year it publishes (2021-2031). Otherwise the night is
+    chosen by
+    `_jayanthi_night_selected` (the computation), and the printed date is
+    `_JAYANTHI_LABEL` of that night (the label). Under the nisheetha label
+    either middle night can land on `day`, since nisheetha falls after 00:00
+    at Chennai and before it further east.
     """
+    if instants.jayanthi_yoga_known and instants.jayanthi_yoga_day is not None:
+        if instants.jayanthi_yoga_day != day:
+            return False
+        _fired("jayanthi.ashtami_rohini_yoga")
+        return True
     nights = instants.nisheetha_nights
     if len(nights) != 4:
         return False
@@ -495,21 +516,31 @@ def _is_krishna_jayanthi(day: date, instants: ObservanceInstants) -> bool:
     )
 
 
-def _aparahna_names_day(tithi: int, sunrise_names_day: bool, instants: ObservanceInstants) -> bool:
+def _aparahna_names_day(
+    tithi: int, sunrise_names_day: bool, instants: ObservanceInstants, *, later_of_two: bool = False
+) -> bool:
     """`tithi` at aparahna names this day (§6, CONVENTION) — the kala of
     tharpanam, Ayudha Pooja and Vijayadasami.
 
     Two aparahnas: the first — the kala was satisfied twice, which is not a
-    failed check; taking the first keeps Ayudha Pooja and Vijayadasami on
-    consecutive days. No aparahna: the tithi at sunrise, `sunrise_names_day`
-    (Vijayadasami 2022, when Dasami held no afternoon). Unknown neighbours
-    omit the observance.
+    failed check. Ayudha Pooja's Navami takes the later (`later_of_two`), the
+    one adjoining Dasami: Mahanavami puja concludes as Dasami begins, and
+    Tamil Nadu kept 18 Oct 2018 (G.O. 937), not the first, 17 Oct (Q7 of
+    23 Oct; 2045 is the other such year in 2020-2045). No aparahna: the tithi
+    at sunrise, `sunrise_names_day` (Vijayadasami 2022, when Dasami held no
+    afternoon). Unknown neighbours omit the observance.
     """
     today = instants.aparahna_tithi_number
     before, after = instants.previous_aparahna_tithi_number, instants.next_aparahna_tithi_number
     if today is None or before is None or after is None:
         return False
     if today == tithi:
+        if later_of_two:
+            if after == tithi:
+                return False
+            if before == tithi:
+                _fired("aparahna.navami_two_aparahnas_later")
+            return True
         if before == tithi:
             return False
         if after == tithi:
@@ -615,20 +646,20 @@ class SolarMonthObservance:
     kind: Literal["star", "tithi"]
     value: str | int
     kala: Literal["sunrise", "sunset", "aparahna"]
-    # "lunar_month" is §3. "full_moon_month" is the Family A proximity test,
-    # gated behind the duplicate check (§9.3) and held until OPEN-3 is
-    # answered: under §3, six Family A dates in 2020-2045 move
-    # (scripts/audit/solar_month_tiebreak_scan.py), and the ruling asks for
-    # those to be reported before the proximity test is deleted.
+    # "lunar_month" is §3. "full_moon_month" is the star's union with the
+    # month's Pournami, gated behind the duplicate check (§9.3), with §3 as
+    # its fallback (answers of 23 Oct, Q4/Q5).
     tie_break: Literal["lunar_month", "full_moon_month"] = "lunar_month"
 
 
-#: Rulings 2026-10-22, round two, §3/§4. Family A (Thai Poosam .. Arudra) are
-#: the stars opposite the month's Sun, at sunrise, the generic kala.
-#: Karthigai Deepam is the Karthigai month's Karthigai vratam (§4) and Aadi
-#: Krithigai the Aadi month's (OPEN-2: the 2023-2033 vectors fit sunrise
-#: 10/11 and pradosham 4/11 -- pradosham is what §0.3 rules and is kept).
-#: Tharpanam Amavasais are at aparahna (§6).
+#: Rulings 2026-10-22, round two, §3/§4, and the answers of 23 Oct (record:
+#: docs/ASTROLOGER_RULINGS_2026-10-23.md). Family A (Thai Poosam .. Arudra)
+#: are the stars opposite the month's Sun, at sunrise, and keep the full-moon
+#: tie-break (Q4). Karthigai Deepam is the Karthigai month's Karthigai vratam
+#: (§4), at pradosham, and is the Krittika united with the Pournami (Q5): 11/11
+#: vectors, and Tiruvannamalai lit the Maha Deepam on 17 Nov 2013, not §3's
+#: 15 Dec. Aadi Krithigai is a daytime temple festival judged at sunrise (Q2):
+#: 11/11 vectors, where pradosham fit 4. Tharpanam Amavasais are at aparahna (§6).
 SOLAR_MONTH_OBSERVANCES: tuple[SolarMonthObservance, ...] = (
     SolarMonthObservance("Thai Poosam", _MONTH_THAI, "star", "POOSAM", "sunrise", "full_moon_month"),
     SolarMonthObservance("Maasi Magam", _MONTH_MAASI, "star", "MAGAM", "sunrise", "full_moon_month"),
@@ -636,8 +667,8 @@ SOLAR_MONTH_OBSERVANCES: tuple[SolarMonthObservance, ...] = (
     SolarMonthObservance("Vaigasi Visakam", _MONTH_VAIKASI, "star", "VISAKAM", "sunrise", "full_moon_month"),
     SolarMonthObservance("Arudra Darisanam", _MONTH_MARGAZHI, "star", "THIRUVATHIRAI", "sunrise", "full_moon_month"),
     SolarMonthObservance("Thiru Aadi Pooram", _MONTH_AADI, "star", "POORAM", "sunrise"),
-    SolarMonthObservance("Aadi Krithigai", _MONTH_AADI, "star", "KARTHIGAI", "sunset"),
-    SolarMonthObservance("Karthigai Deepam", _MONTH_KARTHIGAI, "star", "KARTHIGAI", "sunset"),
+    SolarMonthObservance("Aadi Krithigai", _MONTH_AADI, "star", "KARTHIGAI", "sunrise"),
+    SolarMonthObservance("Karthigai Deepam", _MONTH_KARTHIGAI, "star", "KARTHIGAI", "sunset", "full_moon_month"),
     SolarMonthObservance("Aadi Amavasai", _MONTH_AADI, "tithi", 30, "aparahna"),
     SolarMonthObservance("Thai Amavasai", _MONTH_THAI, "tithi", 30, "aparahna"),
 )
@@ -720,14 +751,22 @@ def _recurring_tithi_festivals(
     # state: when Ekadashi is unusually long and governs two sunrises in a row,
     # Smarta takes only the FIRST — so suppress today's label if yesterday's
     # sunrise tithi (same paksha) was already 11.
-    if tithi_in_paksha == 11:
+    #
+    # An Ekadashi holding no sunrise (it begins after one and ends before the
+    # next) names the day it falls in, a Dashami-sunrise day (§5). That is the
+    # smarta household's fast day in Drik Panchang (Yogini Ekadashi, 10 Jul
+    # 2026, Chennai) and the day both printed almanacs give; Drik lists the
+    # Vaishnava / Gauna fast on the Dwadasi after it. Before this, a kshaya
+    # Ekadashi named no day at all.
+    kshaya_ekadashi = tithi_in_paksha == 10 and _sunrise_names_tithi_day(tithi_number + 1, tithi_number, instants)
+    if tithi_in_paksha == 11 or kshaya_ekadashi:
         previous_in_paksha = None
         if previous_day_tithi_number is not None:
             previous_in_paksha = (
                 previous_day_tithi_number if previous_day_tithi_number <= 15 else previous_day_tithi_number - 15
             )
         already_observed_yesterday = (
-            previous_in_paksha == 11 and previous_day_tithi_paksha == tithi_paksha
+            tithi_in_paksha == 11 and previous_in_paksha == 11 and previous_day_tithi_paksha == tithi_paksha
         )
         if not already_observed_yesterday:
             if tithi_paksha == "SHUKLA" and tamil_month_index == _MONTH_MARGAZHI:
@@ -781,7 +820,8 @@ def _recurring_tithi_festivals(
     if tithi_in_paksha == 8 and tithi_paksha == "KRISHNA":
         results.append({"name": "Theipirai Ashtami", "category": "hindu"})
     # Krishna Jayanthi — Gokulashtami: Krishna Ashtami of the lunar month
-    # Shravana, at true midnight (ruling 2026-10-22 Q1; §2 of round two). It
+    # Shravana, on its Jayanthi-yoga day with Rohini, else at true midnight
+    # (ruling 2026-10-22 Q1; §2 of round two; §2.3 of 23 Oct). It
     # replaced Sri Jayanthi (the Krishna Ashtami of solar Aavani) and the
     # switch between the two. Tamil Nadu kept 11-12 Aug 2020 while the Sun was
     # still in Katakam, a date the solar reckoning cannot reach; and a lunar
@@ -933,7 +973,7 @@ def _yearly_observances(
     ):
         results.append({"name": "Navarathiri Begins", "category": "hindu"})
     if in_lunar_month(_LUNAR_ASHVINA) and _aparahna_names_day(
-        9, _sunrise_names_tithi_day(9, tithi_number, instants), instants
+        9, _sunrise_names_tithi_day(9, tithi_number, instants), instants, later_of_two=True
     ):
         results.append({"name": "Saraswathi Poojai", "category": "hindu"})
         results.append({"name": "Ayudha Pooja", "category": "hindu"})
@@ -947,7 +987,11 @@ def _yearly_observances(
     # day is a Friday. The old window, "a Friday with Shukla 8..14 at sunrise",
     # admitted two Fridays in 2025 (1 and 8 Aug). The Pournami day is the
     # printed one (sunrise rule, Q6). This moves 2026 from the curated 21 Aug
-    # to Friday 28 Aug, the Pournami itself -- reported, not hidden.
+    # to Friday 28 Aug, the Pournami itself. Drik Panchang (Chennai) agrees in
+    # all three Friday-Pournami years: 12 Aug 2022, 28 Aug 2026, 24 Aug 2029.
+    # The 23 Oct answer to drop this branch (Q8) rested on 5 Aug 2022, which no
+    # source supports; some Telugu/Tamil calendars print 21 Aug 2026, a
+    # minority reading.
     days_to_pournami = instants.days_until_pournami_day
     if (
         in_lunar_month(_LUNAR_SHRAVANA)
