@@ -1,5 +1,10 @@
 # Three questions from your follow-up answers, 23 October 2026
 
+> **Answered, same day.** R1 confirmed (and it closed our open item O-19), R2
+> withdrew the universal Dwadasi rule, R3 named 12 August 2022. What each
+> changed is recorded in `ASTROLOGER_RULINGS_2026-10-23.md` §7; the two
+> questions still open from them are listed at the end of this file.
+
 Thank you. A1a, A2a, A3, A4, A5b, B1b and B3 are built, and the rest is recorded
 as you left it (`docs/ASTROLOGER_RULINGS_2026-10-23.md` §6). A1a fixed the one
 date that disagreed: with the evening threshold, Krishna Jayanthi now matches
@@ -59,5 +64,27 @@ Pournami Friday in all three.
 
 ---
 
-*Prepared 23 October 2026, after the follow-up answers. Developer references:
-`docs/ASTROLOGER_RULINGS_2026-10-23.md` §6 and `docs/DOCTRINE_DECISIONS_V1.md` §8.2.*
+## Still open after your answers
+
+Two things your R1–R3 raised rather than closed.
+
+- **S1 (from R1). Debilitated Guru.** The "lord in a kendra from the Moon" test
+  is degenerate for Guru too, not only for Sevvai: Guru's *exaltation* sign is
+  Katakam, so its exaltation lord is Chandra, and Chandra is always in the 1st
+  from itself. On the yoga side, every debilitated Guru therefore reads as
+  cancelled. You asked us not to generalise the fix, so we applied it only to
+  Sevvai and left Guru as it was. **Should the same Lagna-only reading apply to
+  Guru's neechabhanga?**
+- **S2 (from R2). The fasting field.** We will build `festival_date` and
+  `fasting_date` as you ruled. For the fasting date, which does Vinaadi default
+  to for a Tamil household — smarta (the day the tithi falls in) or Vaishnava
+  (the Dwadasi)? And should the parana window follow Hari Vasara, as you said in
+  A6c, for the default school too?
+- **R3 remains** until the 2022 page arrives: your A5b asked for the strict
+  Friday-before rule, which gives 5 August 2022, and your R3 says 12 August was
+  observed. We are printing 12 August 2022 / 28 August 2026 / 24 August 2029,
+  and the other reading is one switch away.
+
+*Prepared 23 October 2026, after the follow-up answers; the open items above
+added after R1–R3. Developer references: `docs/ASTROLOGER_RULINGS_2026-10-23.md`
+§§6–7 and `docs/DOCTRINE_DECISIONS_V1.md` §8.2.*

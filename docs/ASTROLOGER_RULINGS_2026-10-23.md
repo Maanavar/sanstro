@@ -32,9 +32,12 @@ orders, dated temple reports). What was built, and where the sources overruled a
 answer, is in §5, which supersedes the "Status" column below.
 
 **Second update, same day: the astrologer answered the follow-up.** Those answers
-(A1–F1 of `ASTROLOGER_FOLLOWUP_2026-10-23.md`) are in §6, which supersedes §5
-wherever the two differ — notably Varalakshmi, where he reversed the 22 October
-ruling and overrode the Drik dates as a lineage choice.
+(A1–F1 of `ASTROLOGER_FOLLOWUP_2026-10-23.md`) are in §6.
+
+**Third update, same day: he answered R1–R3** (`ASTROLOGER_ROUND3_2026-10-23.md`).
+§7 holds those, and supersedes §6 on two points: A6a's Dwadasi default is
+**withdrawn**, and A5b's Varalakshmi reversal is contradicted by his own R3, so
+the engine is back on the Pournami-Friday reading.
 
 ## 1. Summary
 
@@ -219,6 +222,83 @@ The 2022 Varalakshmi panchangam page (A5a, "unverified" by his own tag),
 "PN-4" title page and pp. 242–244 (C4), a papa-samyam worked example (C5), the
 star-pada, gana and vasya tables (C1–C3), the muhurta star lists (D1), the
 Tajika Neelakanthi title page (E4), and one complete printed Karinaal list (F1).
+
+## 7. Round three: R1–R3
+
+### R1 — the neechabhanga reference: confirmed, and it closes O-19
+
+He confirms the Lagna-only reading for the degenerate case, and names sources
+for the broader rule: **Phaladeepika ch. 7** for cancellation by the
+debilitation-sign lord in a kendra from Lagna or Moon, and *New Techniques of
+Prediction* for "Lagna, Moon, or itself", whose author prefers Lagna. So the
+Moon reference is not prohibited in general — the fault is only its degenerate
+use when the sign lord *is* the Moon.
+
+His implementation, verbatim in effect: test the lord of the debilitation sign
+in a kendra **from the natal Lagna**; when that lord is the Moon, do not let
+its automatic 1st-from-itself relationship satisfy the condition. Keep other
+sourced neechabhanga conditions separate, and **do not generalise the fix** —
+a condition that genuinely requires a kendra from the Moon keeps it.
+
+**What this changed in the code.** The repo already had this rule: the
+canonical `app/calculations/neecha_bhanga.py` carries it as **NB-a** (lord of
+the debilitation sign) and **NB-b** (lord of the exaltation sign), and the
+degeneracy is the long-flagged open item **O-19**, whose recorded consequence
+reads "every debilitated Sevvai, and Guru, is cancelled". R1 is the ruling on
+O-19. So the hand-rolled rule written for B1b was replaced by a call to that
+module, gated to NB-a and NB-b — the two conditions B1b names — with O-19
+overridden to the non-literal reading **for this condition only**. Behaviour is
+identical on the pinned charts; the duplication is gone.
+
+O-19's global default is deliberately **left alone**, because his verdict is
+scoped to debilitated Mars and he asked not to generalise. Flipping it globally
+would also change debilitated **Guru** (whose exaltation lord is the Moon,
+NB-b) on the yoga path, which he has not ruled on. That is the one open
+consequence worth putting to him.
+
+### R2 — the Ekadashi: A6a withdrawn, and the engine was already right
+
+He corrects his own A6a: **"Do not implement 'every skipped Ekadashi must be
+fasted on Dwadashi' as a universal Tamil rule."** The resolution is two fields:
+
+| Field | Meaning | 2025 |
+|---|---|---|
+| `festival_date` | the named festival / temple observance | 30 Dec (Srirangam's Paramapada Vasal, and both printed almanacs) |
+| `fasting_date` | by the declared sampradaya | 30 Dec smarta, 31 Dec Vaishnava |
+
+He confirms our reading of the 2025 case: at Chennai the Ekadashi ran 30 Dec
+07:51 to 31 Dec 05:00 and so touched **neither** sunrise — a kshaya tithi, as
+the engine detects. "Preserve the almanac's festival date, calculate the
+fasting date independently, and display both when they differ."
+
+**So no date moves.** The engine already names the festival on the day the
+tithi falls in, which is also the smarta fasting day, so the default reader
+sees the right day. The Vaishnava line and the parana time remain the
+multi-line feature (§3, B5), now with a ruled shape to build to.
+`test_vaikunta_ekadashi_2025_is_the_day_srirangam_opened_the_vasal` pins it.
+
+### R3 — Varalakshmi: his answer contradicts A5b, and the engine is back on the almanac
+
+Asked what his 2022 panchangam prints, he answered **12 August 2022**, with
+5 August "also noted" in some regional calendars. But A5b's instruction to
+adopt the strict Friday-*before* rule rested on 5 Aug 2022 being the observed
+day — and he had already tagged that unverified in A5a. The two cannot both
+hold: the strict rule gives 5 Aug 2022.
+
+| Reading | 2022 | 2026 | 2029 | Support |
+|---|---|---|---|---|
+| **The Pournami itself** (default) | 12 Aug | 28 Aug | 24 Aug | Drik Panchang Chennai, all three years; **R3's own primary date**; most 2026 sources |
+| The Friday a week before | 5 Aug | 21 Aug | 17 Aug | A5b, citing Sringeri for 2026; several Tamil, Telugu and Kannada calendars print 21 Aug 2026 |
+
+Neither answer cites a printed page. The default is the reading with
+consistent, independently verifiable support, and the competing one is one line
+away: `festivals._VARALAKSHMI_FRIDAY_POURNAMI`, with a test on each branch.
+The printed 2022 page is still what settles it.
+
+### Open after round three
+
+O-19's global default for debilitated Guru (above); the Varalakshmi page;
+the fasting-date field; and everything in §6.2 and §6.3 still outstanding.
 
 ---
 

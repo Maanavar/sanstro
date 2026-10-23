@@ -281,7 +281,7 @@ SELECTION_RULES: dict[str, str] = {
     ),
     "varalakshmi.pournami_is_friday": (
         "FIRES WHEN: Shravana's Pournami day is a Friday "
-        "EFFECT: the Friday a week before it, the strict reading (A5b of 23 Oct) "
+        "EFFECT: that Friday, or the one a week before it (`_VARALAKSHMI_FRIDAY_POURNAMI`) "
         "OTHERWISE: dormant; the Friday before the Pournami day"
     ),
 }
@@ -483,6 +483,24 @@ def _jayanthi_night_selected(before: NisheethaNight, tonight: NisheethaNight, af
         _fired("jayanthi.rohini_tie_break")
     return won
 
+
+#: Which Friday is Varalakshmi when the printed Shravana Pournami is itself a
+#: Friday. A lineage choice, ruled both ways within one day:
+#:
+#: * "the_pournami" — that Friday. Drik Panchang (Chennai) prints it in all
+#:   three such years (12 Aug 2022, 28 Aug 2026, 24 Aug 2029), and the
+#:   astrologer's R3, answering what his 2022 panchangam gives, names
+#:   **12 Aug 2022** as the day observed.
+#: * "the_week_before" — the strict Friday-*before* reading he asked for in
+#:   A5b, citing Sringeri for 21 Aug 2026, which several Tamil, Telugu and
+#:   Kannada calendars also print.
+#:
+#: A5b and R3 cannot both hold: the strict rule gives 5 Aug 2022, and R3 says
+#: 12 Aug was observed (he had already tagged 5 Aug unverified in A5a). Neither
+#: answer cites a printed page. The default is therefore the reading with
+#: consistent, independently verifiable support, and switching is this one
+#: line. Queued back as R3 of docs/ASTROLOGER_ROUND3_2026-10-23.md.
+_VARALAKSHMI_FRIDAY_POURNAMI: Literal["the_pournami", "the_week_before"] = "the_pournami"
 
 #: Which civil date prints the Jayanthi night. The evening that opens it
 #: (answers of 23 Oct, Q1: the fast, the preparation and the holiday sit on
@@ -985,30 +1003,25 @@ def _yearly_observances(
     ):
         results.append({"name": "Vijayadasami", "category": "hindu"})
 
-    # Varalakshmi Vratham (§9.1, CLASSICAL) — the last Friday **strictly
-    # before** the Pournami of Shravana (Tamil "Aavani"): the Tamil/Dravida
-    # reading, ruled the default in A5b of the 23 Oct follow-up. Where the
-    # Pournami day is itself a Friday the vratham is the Friday a week before
-    # it, so 2026 is 21 Aug (Sringeri's Jagadguru observed it that day, and
-    # South Indian calendars print it), 2022 is 5 Aug and 2029 is 17 Aug.
-    #
-    # Drik Panchang (Chennai) prints the Pournami Friday itself in those three
-    # years (12 Aug 2022, 28 Aug 2026, 24 Aug 2029), which is the reading the
-    # 22 Oct ruling had and the engine carried until the astrologer reversed it
-    # as a lineage choice. That date is to be shown as an alternative line
-    # (A5b), which is a display question and is not built.
+    # Varalakshmi Vratham (§9.1, CLASSICAL) — the last Friday before the
+    # Pournami of Shravana (Tamil "Aavani"). A Friday Pournami is the contested
+    # case and `_VARALAKSHMI_FRIDAY_POURNAMI` carries the choice: the Pournami
+    # itself, or the Friday a week before it.
     #
     # The window this replaced, "a Friday with Shukla 8..14 at sunrise",
     # admitted two Fridays in 2025 (1 and 8 Aug). The Pournami day is the
     # printed one (sunrise rule, Q6).
     days_to_pournami = instants.days_until_pournami_day
+    first, last = (0, 6) if _VARALAKSHMI_FRIDAY_POURNAMI == "the_pournami" else (1, 7)
     if (
         in_lunar_month(_LUNAR_SHRAVANA)
         and weekday == "FRIDAY"
         and days_to_pournami is not None
-        and 1 <= days_to_pournami <= 7
+        and first <= days_to_pournami <= last
     ):
-        if days_to_pournami == 7:
+        # 0 can only arise in one reading and 7 only in the other, so either
+        # value means "the Shravana Pournami day is itself a Friday".
+        if days_to_pournami in (0, 7):
             _fired("varalakshmi.pournami_is_friday")
         results.append({"name": "Varalakshmi Vratham", "category": "hindu"})
 
