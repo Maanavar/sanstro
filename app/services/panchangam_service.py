@@ -221,6 +221,12 @@ def _observance_instants(snapshot) -> ObservanceInstants:
             values["previous_sunrise_tithi_number"] = _tithi_number_at_jd(
                 calculate_rise_transit_jd(sunrise_jd - 1.2, snapshot.latitude, snapshot.longitude, rise=True)
             )
+        # Shukla Chathurthi (§5): the first of two sunrises, or the day it falls
+        # in when it holds none. Both read the neighbours' sunrise tithis, and
+        # only a Tritiya or Chaturthi sunrise can be that day.
+        if snapshot.tithi_number in (3, 4):
+            values["previous_sunrise_tithi_number"] = _tithi_number_at_jd(rise_after(sunrise_jd - 1.2))
+            values["next_sunrise_tithi_number"] = _tithi_number_at_jd(rise_after(sunset_jd))
         # Aparahna, with both neighbours' (they decide "two aparahnas" and
         # "none") and both neighbours' sunrise tithis (the fallback day).
         # Navami or Dasami can hold the afternoon only if the sunrise tithi is

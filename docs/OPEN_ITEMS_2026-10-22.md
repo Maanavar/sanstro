@@ -411,13 +411,24 @@ The developer can do these. Several are blocked only on part 4.
 - [ ] **Per-purpose star verdict function** (FSA-02): one function for calendar badge, muhurta, PDF and
   push; purposes without a table say "no sourced ruling". Tradition profile needs a DB column and a
   change on all four API surfaces.
-- [~] **Public event pages for 2027.** The API serves 2020–2045 since 4E. The web pages still
-  hard-code `YEAR = 2026` (`tamil-calendar/page.tsx`, `[event]/page.tsx`: slugs, titles, static
-  params). Needs year-aware routes before 1 Jan 2027.
-- [ ] **Kshaya tithis named on no day** (found by 4E). When Shukla Chathurthi or Ekadashi holds no
-  sunrise, the engine names no day, on the calendar and now visibly on the event pages: 2026 has 10
-  Chathurthis and 23 Ekadashis against the almanac's 12 and 24. Chathurthi can take Q6's kshaya rule
-  (the day it falls in). Ekadashi kshaya is doctrine: ask the astrologer.
+- [x] **Public event pages for 2027. Done 23 Oct.** Event pages read their year from the slug
+  (`pournami-2027`). This year and next are prebuilt and in the sitemap; last year still renders;
+  any other year is a 404. The hub shows this year (India time) and turns over on 1 January within
+  the hour, with a row of links to next year's pages. One helper: `web/lib/tamil-calendar-years.ts`
+  (test fails with the IST rule replaced by UTC, checked). **Not year-aware:** the four festival /
+  holiday category pages, whose data is curated for 2026 only (FCA-07). On 1 Jan 2027 they drop
+  off the hub but stay reachable at their 2026 URLs. **Blind spot:** no render test reads the
+  year off a built page; the offline metadata branch is covered by `seo-metadata.test.ts`.
+- [~] **Kshaya tithis named on no day** (found by 4E). **Chathurthi done 23 Oct:** Shukla
+  Chathurthi now takes §5 (first of two sunrises; none, the day it falls in), on the calendar and
+  the event pages. 2026 is back to 12, matching the almanac on 11 (both missing days, 20 Apr and
+  17 Jul, now match; 14/15 Sep is the known Vinayagar split). The 2027 audit is unchanged at 10/12
+  (11 Jan and 9 May: the almanac prints the day before, a separate convention). Vinayagar
+  Chaturthi keeps its own rule. Gate: `test_a_kshaya_chathurthi_names_the_day_it_falls_in`, which
+  fails on the old engine (checked). 304 calendar/festival tests pass locally (not authoritative).
+  **Blind spot:** it reads the event pages. The signed-in calendar uses the same festival
+  function, but no test compares the two for Chathurthi. **Ekadashi still open:** 23 against 24 in 2026; whether a kshaya
+  Ekadashi is observed on any day is doctrine. Ask the astrologer.
 - [ ] **The other curated categories** (temple days, Agni Nakshatram … 24 of 53 Hindu rows) are 2026
   only and checked against nothing; they vanish on 1 Jan 2027 (FCA-07, unchanged by 4E).
 - [ ] **Mobile shows festival names in English in Tamil mode.** Move the Tamil map from

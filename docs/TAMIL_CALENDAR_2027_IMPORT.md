@@ -52,7 +52,7 @@ monthly lists for 2027, Chennai.
 | **Sankatahara Chaturthi** | **Krishna Chaturthi at moonrise** + tie-breaks | **12/12** | 5/12 (sunrise) |
 | **Masa Sivarathiri** | Krishna Chaturdashi at midnight, first of two | **13/13** | not computed |
 | Ekadasi | sunrise (Smarta, first of two) | 23/25 | same |
-| Shasti / Chathurthi | sunrise | 11/12 · 10/12 | same |
+| Shasti / Chathurthi | sunrise (Chathurthi: first of two; kshaya: the day it falls in, §5, 23 Oct) | 11/12 · 10/12 | same |
 | **Amavasai / Pournami day** | **tithi at sunrise, first of two** (ruling Q6; kshaya: the day it falls in) | **13/13 · 12/12** | 10/13 · 10/12 (most of the civil day) |
 | **Karinaal** | fixed Tamil days, **Thai 10/16** (ruling Q7) | **33/33** + Karthigai 7, Margazhi 11 (kept) | 31/33 |
 

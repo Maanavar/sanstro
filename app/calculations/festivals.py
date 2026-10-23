@@ -754,8 +754,13 @@ def _recurring_tithi_festivals(
             results.append({"name": "Angarki Sankatahara Chaturthi", "category": "hindu"})
         else:
             results.append({"name": "Sankatahara Chaturthi", "category": "hindu"})
-    if tithi_in_paksha == 4 and tithi_paksha == "SHUKLA":
+    # The monthly Chathurthi is Shukla Chaturthi at sunrise, the first of two;
+    # a Chaturthi holding no sunrise names the day it falls in (§5). Before
+    # that, a kshaya Chaturthi named no day: 2026 had 10 against the
+    # almanac's 12 (Apr, Jul).
+    if _sunrise_names_tithi_day(4, tithi_number, instants):
         results.append({"name": "Chathurthi", "category": "hindu"})
+    if tithi_in_paksha == 4 and tithi_paksha == "SHUKLA":
         # Bhadrapada Shukla Chaturthi (FCA-01). It was "Shukla Chaturthi in
         # solar Aavani", which named 20 Aug 2023 when Tamil Nadu observed
         # 18 Sep (G.O. 528).
