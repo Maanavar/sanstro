@@ -61,8 +61,8 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function TamilCalendarHub() {
   const year = calendarYearNow();
   const nextYear = promotedCalendarYears().find((y) => y > year) ?? null;
-  // Categories are curated per year (2026 only today, FCA-07); a year without
-  // them gets none rather than last year's.
+  // The categories the backend publishes for this year: all four in the
+  // curated year, Hindu and Christian in any other; never last year's.
   const [data, categories] = await Promise.all([fetchEvents(year), fetchCalendarCategories(year)]);
   const events = data?.events ?? [];
 

@@ -693,34 +693,39 @@ def public_muhurtham_naals(
 
 @router.get("/panchangam-events")
 @public_endpoint_rate_limit("public_panchangam_events")
-def public_panchangam_events(request: Request, year: int = 2026) -> dict:
-    """List all Tamil-calendar special events for a year with their next date.
+def public_panchangam_events(request: Request, year: int | None = None) -> dict:
+    """List all Tamil-calendar special events for a year (default: this year
+    in India) with their next date.
 
     No auth. Powers the /tamil-calendar SEO hub. Each event includes its
     bilingual name, count of dates, and the next upcoming date.
     """
+    from app.services.calendar_category_service import current_year
     from app.services.panchangam_events_service import list_events
 
-    return list_events(year)
+    return list_events(current_year() if year is None else year)
 
 
 @router.get("/panchangam-events/{event}")
 @public_endpoint_rate_limit("public_panchangam_events")
-def public_panchangam_event(request: Request, event: str, year: int = 2026) -> dict:
+def public_panchangam_event(request: Request, event: str, year: int | None = None) -> dict:
     """Full date list + SEO content for one special event (e.g. pournami-2026).
 
     No auth. Powers the /tamil-calendar/[event] SEO pages. Accepts either an
-    event key ('pournami') or a slug ('pournami-2026').
+    event key ('pournami') or a slug ('pournami-2026'); the year defaults to
+    this year in India.
     """
+    from app.services.calendar_category_service import current_year
     from app.services.panchangam_events_service import get_event
 
-    return get_event(event, year)
+    return get_event(event, current_year() if year is None else year)
 
 
 @router.get("/calendar-categories")
 @public_endpoint_rate_limit("public_calendar_categories")
-def public_calendar_categories(request: Request, year: int = 2026) -> dict:
-    """List festival/holiday category pages for the public Tamil calendar."""
+def public_calendar_categories(request: Request, year: int | None = None) -> dict:
+    """List festival/holiday category pages for a year (default: this year in
+    India) of the public Tamil calendar."""
     from app.services.calendar_category_service import list_calendar_categories
 
     return list_calendar_categories(year)
@@ -728,8 +733,9 @@ def public_calendar_categories(request: Request, year: int = 2026) -> dict:
 
 @router.get("/calendar-categories/{category}")
 @public_endpoint_rate_limit("public_calendar_categories")
-def public_calendar_category(request: Request, category: str, year: int = 2026) -> dict:
-    """Full date list for one festival/holiday category page."""
+def public_calendar_category(request: Request, category: str, year: int | None = None) -> dict:
+    """Full date list for one festival/holiday category page
+    (``hindu-festivals-2027``); the year is the slug's."""
     from app.services.calendar_category_service import get_calendar_category
 
     return get_calendar_category(category, year)

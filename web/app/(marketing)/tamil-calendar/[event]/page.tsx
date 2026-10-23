@@ -17,6 +17,14 @@ import {
   promotedCalendarYears,
 } from "@/lib/tamil-calendar-years";
 import { notFound } from "next/navigation";
+import { CategoryPage } from "../CategoryPage";
+import {
+  CURATED_CATEGORY_YEAR,
+  categoryKindsFor,
+  categorySlug,
+  localizedCategoryMetadata,
+  parseCategorySlug,
+} from "../calendar-category-api";
 
 interface EventsList {
   year: number;
@@ -49,11 +57,14 @@ async function fetchEvents(year: number): Promise<EventSummary[]> {
 }
 
 // This year and next are built ahead; last year renders on first visit
-// (dynamicParams), and any other year is a 404 from the page itself.
+// (dynamicParams), and any other year is a 404 from the page itself. The
+// curated year's category pages are their own static routes, so this one
+// serves every other year's (`hindu-festivals-2027`).
 export function generateStaticParams() {
-  return promotedCalendarYears().flatMap((year) =>
-    TAMIL_CALENDAR_EVENT_KEYS.map((key) => ({ event: eventSlug(key, year) })),
-  );
+  return promotedCalendarYears().flatMap((year) => [
+    ...TAMIL_CALENDAR_EVENT_KEYS.map((key) => ({ event: eventSlug(key, year) })),
+    ...(year === CURATED_CATEGORY_YEAR ? [] : categoryKindsFor(year).map((kind) => ({ event: categorySlug(kind, year) }))),
+  ]);
 }
 
 function fmtShort(iso: string): string {
@@ -68,6 +79,8 @@ type Props = { params: Promise<{ event: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { event } = await params;
+  const category = parseCategorySlug(event);
+  if (category) return localizedCategoryMetadata(category.kind, category.year);
   const parsed = parseEventSlug(event);
   const year = parsed?.year ?? calendarYearNow();
   const data = parsed ? await fetchEvent(event, year) : null;
@@ -105,6 +118,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function EventPage({ params }: Props) {
   const { event } = await params;
+  const category = parseCategorySlug(event);
+  if (category) return <CategoryPage kind={category.kind} year={category.year} />;
   const parsed = parseEventSlug(event);
   if (!parsed) notFound();
   const [data, allEvents] = await Promise.all([fetchEvent(event, parsed.year), fetchEvents(parsed.year)]);

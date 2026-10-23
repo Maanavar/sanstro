@@ -7,6 +7,8 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Literal
 
+from app.calculations.christian_calendar import christian_feasts
+from app.data.calendar_categories_2026 import YEAR as CURATED_CATEGORY_YEAR
 from app.data.calendar_categories_2026 import events_for_date as category_events_for_date
 
 FestivalCategory = Literal[
@@ -1024,8 +1026,14 @@ def get_festivals_for_date(
     amavasai_lunar_month_index: int | None = None,
     amavasai_lunar_month_is_adhika: bool = False,
     instants: ObservanceInstants | None = None,
+    computed_only: bool = False,
 ) -> list[dict]:
-    """Return list of {name, category} dicts for the given date + panchangam state."""
+    """Return list of {name, category} dicts for the given date + panchangam state.
+
+    `computed_only` leaves out the hand-entered rows (`_YEARLY_FESTIVALS`) and
+    the curated category rows: the engine's own answer, for a page that lists
+    what the engine computes (the Hindu festival category of a later year).
+    """
     results: list[dict] = []
     mmdd = d.strftime("%m-%d")
     weekday = weekday or d.strftime("%A").upper()
@@ -1035,16 +1043,25 @@ def get_festivals_for_date(
         if fixed_mmdd == mmdd:
             results.append({"name": name, "category": cat})
 
-    # Year-specific
-    for md, name, cat in _YEARLY_FESTIVALS.get(d.year, []):
-        if md == mmdd:
-            results.append({"name": name, "category": cat})
+    if not computed_only:
+        # Year-specific
+        for md, name, cat in _YEARLY_FESTIVALS.get(d.year, []):
+            if md == mmdd:
+                results.append({"name": name, "category": cat})
 
-    # Curated category-page events. These also feed the signed-in dashboard so
-    # public SEO lists and the product calendar show the same named days.
-    for event in category_events_for_date(d):
-        category = event.tags[0] if event.tags else "observance"
-        results.append({"name": event.name_en, "category": category, "tags": list(event.tags)})
+        # Curated category-page events. These also feed the signed-in dashboard so
+        # public SEO lists and the product calendar show the same named days.
+        for event in category_events_for_date(d):
+            category = event.tags[0] if event.tags else "observance"
+            results.append({"name": event.name_en, "category": category, "tags": list(event.tags)})
+    # Outside the curated year the Christian feasts are computed (Easter, Holy
+    # Week, the fixed feasts), as the public Christian category page is; a row
+    # the day already carries (Christmas above, a gazetted Good Friday) is kept once.
+    if d.year != CURATED_CATEGORY_YEAR:
+        present = {(row["name"], row["category"]) for row in results}
+        for feast in christian_feasts(d.year):
+            if feast.date == d and (feast.name_en, "christian") not in present:
+                results.append({"name": feast.name_en, "category": "christian", "tags": ["christian"]})
 
     # Nakshatra-based — each at its own instant (FCA-04), first of two days.
     # A sunset vratam whose star holds no sunset falls back to sunrise (§0.3).

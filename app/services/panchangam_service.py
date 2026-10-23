@@ -345,7 +345,10 @@ def _build_festivals(
     tithi_paksha: str | None = None,
     nakshatra_name: str | None = None,
     previous_day_snapshot=None,
+    computed_only: bool = False,
 ) -> list[PanchangamFestival]:
+    """The day's festivals; `computed_only` omits the hand-entered and curated
+    rows (`festivals.get_festivals_for_date`)."""
     try:
         tamil_month_index, tamil_day_of_month = tamil_solar_date(
             snapshot.date_local,
@@ -414,6 +417,7 @@ def _build_festivals(
             amavasai_lunar_month_index=amavasai_month.index if amavasai_month else None,
             amavasai_lunar_month_is_adhika=amavasai_month.is_adhika if amavasai_month else False,
             instants=instants,
+            computed_only=computed_only,
         )
     ]
 

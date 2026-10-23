@@ -1,27 +1,9 @@
-import { CalendarCategoryContent } from "../CalendarCategoryContent";
-import { JsonLd } from "@/lib/json-ld";
-import { categoryItemListLd } from "../calendar-jsonld";
-import {
-  fetchCalendarCategories,
-  fetchCalendarCategory,
-  localizedCategoryMetadata,
-} from "../calendar-category-api";
+import { CategoryPage } from "../CategoryPage";
+import { localizedCategoryMetadata } from "../calendar-category-api";
 
-const SLUG = "tamil-nadu-government-holidays-2026" as const;
+// The curated year's page; other years are served by `[event]`.
+export const generateMetadata = () => localizedCategoryMetadata("tamil-nadu-government-holidays", 2026);
 
-export const generateMetadata = () => localizedCategoryMetadata(SLUG);
-
-export default async function TamilNaduGovernmentHolidaysPage() {
-  const [data, categories] = await Promise.all([
-    fetchCalendarCategory(SLUG),
-    fetchCalendarCategories(),
-  ]);
-
-
-  return (
-    <>
-      {data && <JsonLd en={categoryItemListLd(data, "en")} ta={categoryItemListLd(data, "ta")} />}
-      <CalendarCategoryContent data={data} categories={categories} />
-    </>
-  );
+export default function TamilNaduGovernmentHolidaysPage() {
+  return <CategoryPage kind="tamil-nadu-government-holidays" year={2026} />;
 }

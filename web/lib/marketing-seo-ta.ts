@@ -48,28 +48,36 @@ export function tamilCalendarTa(year: number): MetaCopy {
   };
 }
 
-export const CALENDAR_CATEGORY_TA: Record<string, MetaCopy> = {
-  "hindu-festivals-2026": {
-    title: "இந்து பண்டிகைகள் 2026 — தமிழ் நாட்காட்டி தேதிகள்",
-    description: "2026 ஆம் ஆண்டின் இந்து பண்டிகை நாட்கள், தமிழ்ப் பெயர்கள், கிழமை, குறிப்புகள் மற்றும் பஞ்சாங்க இணைப்புகளுடன்.",
-    keywords: ["இந்து பண்டிகைகள் 2026", "தமிழ் பண்டிகை நாட்கள் 2026", "பொங்கல் 2026", "தீபாவளி 2026"],
-  },
-  "muslim-festivals-2026": {
-    title: "இஸ்லாமிய பண்டிகைகள் 2026 — ரம்ஜான், பக்ரீத், முஹர்ரம் நாட்கள்",
-    description: "2026 ஆம் ஆண்டின் ரம்ஜான், பக்ரீத், முஹர்ரம், ஹிஜ்ரி புத்தாண்டு, மீலாது நபி உள்ளிட்ட இஸ்லாமிய பண்டிகை நாட்கள்.",
-    keywords: ["இஸ்லாமிய பண்டிகைகள் 2026", "ரம்ஜான் 2026", "பக்ரீத் 2026", "மீலாது நபி 2026"],
-  },
-  "christian-festivals-2026": {
-    title: "கிறிஸ்தவ பண்டிகைகள் 2026 — ஈஸ்டர், புனித வெள்ளி, கிறிஸ்துமஸ்",
-    description: "2026 ஆம் ஆண்டின் தவக்காலம், புனித வாரம், ஈஸ்டர், கிறிஸ்துமஸ் உள்ளிட்ட கிறிஸ்தவ பண்டிகை நாட்கள்.",
-    keywords: ["கிறிஸ்தவ பண்டிகைகள் 2026", "புனித வெள்ளி 2026", "ஈஸ்டர் 2026", "கிறிஸ்துமஸ் 2026"],
-  },
-  "tamil-nadu-government-holidays-2026": {
-    title: "தமிழ்நாடு அரசு விடுமுறை நாட்கள் 2026 — பொது விடுமுறை பட்டியல்",
-    description: "2026 ஆம் ஆண்டின் தமிழ்நாடு அரசு பொது விடுமுறை நாட்கள், தேதி, கிழமை, தமிழ்ப் பெயர்கள் மற்றும் பஞ்சாங்க இணைப்புகளுடன்.",
-    keywords: ["தமிழ்நாடு அரசு விடுமுறை 2026", "தமிழ்நாடு பொது விடுமுறை 2026", "வங்கி விடுமுறை தமிழ்நாடு 2026"],
-  },
-};
+/** A festival / holiday category page's Tamil copy, by kind and year (the
+ *  2026 text, read when it was written, with the year as a parameter). */
+export function calendarCategoryTa(kind: string, year: number): MetaCopy {
+  switch (kind) {
+    case "hindu-festivals":
+      return {
+        title: `இந்து பண்டிகைகள் ${year} — தமிழ் நாட்காட்டி தேதிகள்`,
+        description: `${year} ஆம் ஆண்டின் இந்து பண்டிகை நாட்கள், தமிழ்ப் பெயர்கள், கிழமை, குறிப்புகள் மற்றும் பஞ்சாங்க இணைப்புகளுடன்.`,
+        keywords: [`இந்து பண்டிகைகள் ${year}`, `தமிழ் பண்டிகை நாட்கள் ${year}`, `பொங்கல் ${year}`, `தீபாவளி ${year}`],
+      };
+    case "muslim-festivals":
+      return {
+        title: `இஸ்லாமிய பண்டிகைகள் ${year} — ரம்ஜான், பக்ரீத், முஹர்ரம் நாட்கள்`,
+        description: `${year} ஆம் ஆண்டின் ரம்ஜான், பக்ரீத், முஹர்ரம், ஹிஜ்ரி புத்தாண்டு, மீலாது நபி உள்ளிட்ட இஸ்லாமிய பண்டிகை நாட்கள்.`,
+        keywords: [`இஸ்லாமிய பண்டிகைகள் ${year}`, `ரம்ஜான் ${year}`, `பக்ரீத் ${year}`, `மீலாது நபி ${year}`],
+      };
+    case "christian-festivals":
+      return {
+        title: `கிறிஸ்தவ பண்டிகைகள் ${year} — ஈஸ்டர், புனித வெள்ளி, கிறிஸ்துமஸ்`,
+        description: `${year} ஆம் ஆண்டின் தவக்காலம், புனித வாரம், ஈஸ்டர், கிறிஸ்துமஸ் உள்ளிட்ட கிறிஸ்தவ பண்டிகை நாட்கள்.`,
+        keywords: [`கிறிஸ்தவ பண்டிகைகள் ${year}`, `புனித வெள்ளி ${year}`, `ஈஸ்டர் ${year}`, `கிறிஸ்துமஸ் ${year}`],
+      };
+    default:
+      return {
+        title: `தமிழ்நாடு அரசு விடுமுறை நாட்கள் ${year} — பொது விடுமுறை பட்டியல்`,
+        description: `${year} ஆம் ஆண்டின் தமிழ்நாடு அரசு பொது விடுமுறை நாட்கள், தேதி, கிழமை, தமிழ்ப் பெயர்கள் மற்றும் பஞ்சாங்க இணைப்புகளுடன்.`,
+        keywords: [`தமிழ்நாடு அரசு விடுமுறை ${year}`, `தமிழ்நாடு பொது விடுமுறை ${year}`, `வங்கி விடுமுறை தமிழ்நாடு ${year}`],
+      };
+  }
+}
 
 /** An event page's Tamil copy, built from the Tamil name the backend already sends. */
 export function calendarEventTa(nameTa: string, year: number, count: number, summaryTa: string | null | undefined): MetaCopy {
