@@ -78,7 +78,7 @@ export async function CalendarCategoryContent({ data, categories }: CalendarCate
           <div className="cl-container">
             <p className="cl-eyebrow">
               <Link href="/tamil-calendar" style={{ color: "inherit" }}>
-                {pick("Tamil Calendar 2026", "தமிழ் நாட்காட்டி 2026", lang)}
+                {pick(`Tamil Calendar ${data.year}`, `தமிழ் நாட்காட்டி ${data.year}`, lang)}
               </Link>{" "}
               &middot; {tLang(data.categoryLabel, lang)}
             </p>

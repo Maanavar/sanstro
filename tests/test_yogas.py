@@ -145,10 +145,13 @@ def test_t091_dosha_samyam_against_a_lighter_placement_only_reduces():
     assert result.strength != result.formation_strength
 
 
-def test_mars_debilitated_in_the_dosha_house_cancels_only_with_a_second_chart():
-    """§8 condition 2, beside the hard constraint that a single-chart reading
-    never prints "cancelled": Mars in Katakam (debilitated), 7th from a
-    Makaram lagna, reads present, reduced alone and cancelled in a match."""
+def test_mars_debilitated_in_the_dosha_house_cancels_only_through_neechabhanga():
+    """§8 condition 2 as B1b (23 Oct follow-up) narrowed it: debility alone is
+    a modifier, and only its neechabhanga cancels — the lord of Katakam
+    (Chandra) or of Mars's exaltation Makaram (Sani) in a kendra from Lagna or
+    Moon. Mars in Katakam, 7th from a Makaram lagna. Here Sani sits 10th from
+    the Moon, so the bhanga holds and a match cancels; a single chart still
+    never prints "cancelled"."""
     planets = {
         "SUN": 1, "MOON": 12, "MARS": 4, "MERCURY": 2, "JUPITER": 6,
         "VENUS": 2, "SATURN": 9, "RAHU": 11, "KETU": 5,
@@ -157,8 +160,34 @@ def test_mars_debilitated_in_the_dosha_house_cancels_only_with_a_second_chart():
     assert single.is_present is True
     assert single.is_cancelled is False
     assert "mars_debilitated_in_dosha_house" in single.cancellation_factors
+    assert "mars_neechabhanga" in single.cancellation_factors
     matched = detect_sevvai_dosham(planets, lagna_rasi=10, partner_sevvai_references=[])
     assert matched.is_cancelled is True
+
+    # No bhanga: Chandra 6th and Sani 8th from the Lagna, and Sani 3rd from the
+    # Moon. Debility is then reported and nothing more, in a match as in a
+    # single chart.
+    no_bhanga = {**planets, "MOON": 3, "SATURN": 5}
+    for partner in (None, []):
+        result = detect_sevvai_dosham(no_bhanga, lagna_rasi=10, partner_sevvai_references=partner)
+        assert "mars_debilitated_in_dosha_house" in result.cancellation_factors
+        assert "mars_neechabhanga" not in result.cancellation_factors
+        assert result.is_cancelled is False
+
+
+def test_the_moon_is_not_its_own_neechabhanga():
+    """Chandra is in house 1 from itself, so "the lord of Katakam in a kendra
+    from the Moon" is true of every chart. Read that way debility would always
+    cancel, which is what B1b rules out, so the Moon is judged from the Lagna
+    only. Chandra 2nd and Sani 3rd from the Lagna: no bhanga."""
+    planets = {
+        "SUN": 1, "MOON": 11, "MARS": 4, "MERCURY": 2, "JUPITER": 6,
+        "VENUS": 2, "SATURN": 12, "RAHU": 11, "KETU": 5,
+    }
+    result = detect_sevvai_dosham(planets, lagna_rasi=10, partner_sevvai_references=[])
+    assert "mars_debilitated_in_dosha_house" in result.cancellation_factors
+    assert "mars_neechabhanga" not in result.cancellation_factors
+    assert result.is_cancelled is False
 
 
 def test_a_single_chart_never_reads_cancelled():

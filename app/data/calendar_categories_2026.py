@@ -147,8 +147,9 @@ CALENDAR_CATEGORY_EVENTS_2026: tuple[CalendarCategoryEvent, ...] = (
     CalendarCategoryEvent("hindu-festivals-2026", date(2026, 8, 26), "Onam", "ஓணம் பண்டிகை", ("hindu",)),
     CalendarCategoryEvent("hindu-festivals-2026", date(2026, 8, 27), "Avani Avittam", "ஆவணி அவிட்டம்", ("hindu",)),
     CalendarCategoryEvent("hindu-festivals-2026", date(2026, 8, 28), "Gayathri Japam", "ஸ்ரீகாயத்ரி ஜெபம்", ("hindu",)),
-    # The engine's day (ruling §9.1, the Pournami itself when it is a Friday),
-    # not the curated 21 Aug; open as OPEN_ITEMS 1A-G and 3D (4E, 2026-10-22).
+    # The engine's day, 28 Aug, not the curated 21 Aug: the Pournami itself
+    # when it is a Friday (`festivals._VARALAKSHMI_FRIDAY_POURNAMI`, which
+    # records both readings and why this one is the default).
     CalendarCategoryEvent("hindu-festivals-2026", date(2026, 8, 28), "Varalakshmi Vratham", "ஸ்ரீவரலட்சுமி விரதம்", ("hindu",)),
     CalendarCategoryEvent("hindu-festivals-2026", date(2026, 8, 31), "Maha Sankatahara Chathurthi", "ஸ்ரீமஹா சங்கடஹர சதுர்த்தி", ("hindu",)),
     CalendarCategoryEvent("hindu-festivals-2026", date(2026, 9, 4), "Krishna Jayanthi", "கோகுலாஷ்டமி", ("hindu", "tamilnadu_govt")),

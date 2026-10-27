@@ -281,7 +281,9 @@ OPEN_ITEMS: tuple[OpenItem, ...] = (
              "Owner ruling 2026-10-03: strong mitigation (deliberate divergence from the popular list)",
              "FLAGGED", "o18_aries_scorpio_sevvai", "_yoga_dosham.detect_sevvai_dosham"),
     OpenItem("O-19", "NB-a/NB-b 'kendra from the Moon' when the lord is the Moon itself (always true)",
-             "Literal reading kept: every debilitated Sevvai, and Guru, is cancelled",
+             "Astrologer ruling 2026-10-23 (R1): the self-reference does not count. Applied to the "
+             "Sevvai cancellation only, which he scoped it to; the global default keeps the literal "
+             "reading, so debilitated Guru on the yoga path is unchanged and still open",
              "FLAGGED", "o19_nb_moon_self_reference", "neecha_bhanga.evaluate_neecha_bhanga"),
     OpenItem("O-20", "Adhi raja-grade: do malefic aspects count as serious affliction?",
              "No — occupants in the 6th/7th/8th from Moon only",

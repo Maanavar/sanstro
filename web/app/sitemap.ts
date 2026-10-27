@@ -5,7 +5,8 @@ import { languageUrls } from "@/lib/localized-metadata";
 import { isDasaTimingHeld } from "@/lib/natchathiram-dasa-hold";
 import { SITE_URL } from "@/lib/page-metadata";
 import { isTaReady } from "@/lib/ta-routes";
-import { CALENDAR_CATEGORY_SLUGS } from "./(marketing)/tamil-calendar/calendar-category-api";
+import { categoryKindsFor, categorySlug } from "./(marketing)/tamil-calendar/calendar-category-api";
+import { TAMIL_CALENDAR_EVENT_KEYS, eventSlug, promotedCalendarYears } from "@/lib/tamil-calendar-years";
 
 // Every indexable public page belongs here; lib/seo-metadata.test.ts fails
 // when one is missing.
@@ -34,24 +35,23 @@ function panchangamDateEntries(): MetadataRoute.Sitemap {
   }));
 }
 
-const TAMIL_CALENDAR_EVENTS = [
-  "pournami", "amavasai", "pradosham", "ekadhasi", "sankatahara-chathurthi",
-  "chathurthi", "sashti", "ashtami", "navami", "karthigai", "thiruvonam",
-  "maadha-sivarathiri", "chandra-darisanam", "karinaal",
-];
-
 function tamilCalendarEntries(): MetadataRoute.Sitemap {
   return [
-    ...CALENDAR_CATEGORY_SLUGS.map((slug) => ({
-      url: `${BASE}/tamil-calendar/${slug}`,
-      changeFrequency: "weekly" as const,
-      priority: 0.88,
-    })),
-    ...TAMIL_CALENDAR_EVENTS.map((key) => ({
-    url: `${BASE}/tamil-calendar/${key}-2026`,
-    changeFrequency: "weekly" as const,
-    priority: 0.85,
-    })),
+    ...promotedCalendarYears().flatMap((year) =>
+      categoryKindsFor(year).map((kind) => ({
+        url: `${BASE}/tamil-calendar/${categorySlug(kind, year)}`,
+        changeFrequency: "weekly" as const,
+        priority: 0.88,
+      })),
+    ),
+    // This year and next; last year's pages still answer but are not promoted.
+    ...promotedCalendarYears().flatMap((year) =>
+      TAMIL_CALENDAR_EVENT_KEYS.map((key) => ({
+        url: `${BASE}/tamil-calendar/${eventSlug(key, year)}`,
+        changeFrequency: "weekly" as const,
+        priority: 0.85,
+      })),
+    ),
   ];
 }
 

@@ -29,6 +29,11 @@ round (see D).
 
 ## 1. For the astrologer
 
+**Ready to send (23 Oct): `ASTROLOGER_MESSAGE_2026-10-23.md`.** One message, Q1–Q22, covering 1A–1D
+with the sharper questions, plus two new ones: the kshaya Ekadashi (Q9, with 2026/2027 data; both
+printed almanacs give the day it falls in) and debilitated Mars as "worse" in some texts (Q12).
+Q2/Q3 and Q17/Q18 are split on purpose.
+
 ### 1A. Festival rules, round two: seven conflicts (send as is)
 
 All seven are written up, ready to forward, in `REVIEW_REQUESTS_2026-10-22.md` under
@@ -390,7 +395,11 @@ The developer can do these. Several are blocked only on part 4.
 
 **Run first**
 - [x] **Full backend suite on the current tree.** Passed in CI on PR #5 (22 Oct, run 39820758838)
-  for the three pushed commits. The 23 Oct work goes through CI with its own push.
+  for the three pushed commits.
+- [ ] **CI on the 23 Oct commits.** Pushed (`ea24661c`, `3b0e55e5`), but PR #5 is merged and CI runs
+  only on pull requests and on `main`, so nothing ran. Needs a new PR from
+  `harden/production-readiness` to `main`. Locally: 304 calendar/festival tests and the web
+  tests pass; mypy was not run (not in the test image; blocked on the host).
 - [ ] **Regenerate the `daily_guidance` and `life_areas` goldens** for the Mercury bindu fix (F-ASV-01)
   if not already done. Flagged on 13 Oct; not re-checked today.
 
@@ -411,13 +420,24 @@ The developer can do these. Several are blocked only on part 4.
 - [ ] **Per-purpose star verdict function** (FSA-02): one function for calendar badge, muhurta, PDF and
   push; purposes without a table say "no sourced ruling". Tradition profile needs a DB column and a
   change on all four API surfaces.
-- [~] **Public event pages for 2027.** The API serves 2020–2045 since 4E. The web pages still
-  hard-code `YEAR = 2026` (`tamil-calendar/page.tsx`, `[event]/page.tsx`: slugs, titles, static
-  params). Needs year-aware routes before 1 Jan 2027.
-- [ ] **Kshaya tithis named on no day** (found by 4E). When Shukla Chathurthi or Ekadashi holds no
-  sunrise, the engine names no day, on the calendar and now visibly on the event pages: 2026 has 10
-  Chathurthis and 23 Ekadashis against the almanac's 12 and 24. Chathurthi can take Q6's kshaya rule
-  (the day it falls in). Ekadashi kshaya is doctrine: ask the astrologer.
+- [x] **Public event pages for 2027. Done 23 Oct.** Event pages read their year from the slug
+  (`pournami-2027`). This year and next are prebuilt and in the sitemap; last year still renders;
+  any other year is a 404. The hub shows this year (India time) and turns over on 1 January within
+  the hour, with a row of links to next year's pages. One helper: `web/lib/tamil-calendar-years.ts`
+  (test fails with the IST rule replaced by UTC, checked). **Not year-aware:** the four festival /
+  holiday category pages, whose data is curated for 2026 only (FCA-07). On 1 Jan 2027 they drop
+  off the hub but stay reachable at their 2026 URLs. **Blind spot:** no render test reads the
+  year off a built page; the offline metadata branch is covered by `seo-metadata.test.ts`.
+- [~] **Kshaya tithis named on no day** (found by 4E). **Chathurthi done 23 Oct:** Shukla
+  Chathurthi now takes §5 (first of two sunrises; none, the day it falls in), on the calendar and
+  the event pages. 2026 is back to 12, matching the almanac on 11 (both missing days, 20 Apr and
+  17 Jul, now match; 14/15 Sep is the known Vinayagar split). The 2027 audit is unchanged at 10/12
+  (11 Jan and 9 May: the almanac prints the day before, a separate convention). Vinayagar
+  Chaturthi keeps its own rule. Gate: `test_a_kshaya_chathurthi_names_the_day_it_falls_in`, which
+  fails on the old engine (checked). 304 calendar/festival tests pass locally (not authoritative).
+  **Blind spot:** it reads the event pages. The signed-in calendar uses the same festival
+  function, but no test compares the two for Chathurthi. **Ekadashi still open:** 23 against 24 in 2026; whether a kshaya
+  Ekadashi is observed on any day is doctrine. Ask the astrologer.
 - [ ] **The other curated categories** (temple days, Agni Nakshatram … 24 of 53 Hindu rows) are 2026
   only and checked against nothing; they vanish on 1 Jan 2027 (FCA-07, unchanged by 4E).
 - [ ] **Mobile shows festival names in English in Tamil mode.** Move the Tamil map from
@@ -440,12 +460,20 @@ The developer can do these. Several are blocked only on part 4.
 - [ ] **Nakshatra page tidy-up:** the 27 unused `entry.meta.title` strings in `natchathiram-data.ts`.
 
 **Tamil prep (makes Part 2 a finite read; drafts only, nothing ships unread)**
-- [ ] **Condition-3 checklist:** every school / college / marriage / retirement hit, with its pada age
-  span and a crosses-the-stage flag.
-- [ ] **தசகம் → பத்தாண்டு (40):** decide how the timing detector's number-word rule treats பத்தாண்டு,
-  then draft the 40 replacements for the reviewer.
-- [ ] **The 26 mobile placeholders:** list their English (17 in `today.tsx`) so Tamil can be drafted
-  and read.
+- [x] **Condition-3 checklist. Done 23 Oct:** `CONDITION3_LIFE_STAGE_CHECKLIST_2026-10-23.md`. 237
+  hits on 27 pages, checked per pada against the engine's ages: 11 FLAG (unconditional, true for
+  some padas only), 103 CHECK (67 conditional, 36 whose-stage: the native's children), 123 OK and
+  not listed. Generator: `scripts/audit/condition3_life_stage_checklist.mts`. Stage ages are
+  working assumptions stated in the doc. **Blind spots:** in the doc (other stage words, bare
+  ஓய்வு, conditional detection is a word match).
+- [x] **தசகம் → பத்தாண்டு. Drafted 23 Oct:** `TAMIL_DASAKAM_DRAFTS_2026-10-23.md`, 44 sentences
+  (45 uses) on 18 pages, each with its English twin. Detector decision: பத்தாண்டு passes like the
+  English "decades"; பத்து ஆண்டுகள் is still flagged; both pinned in
+  `natchathiram-dasa-prose.test.ts`. Not applied to any page: waits for the reviewer.
+- [x] **Mobile placeholders. Drafted 23 Oct:** `MOBILE_TAMIL_PLACEHOLDERS_2026-10-23.md`, 30 (not
+  26; 18 in `today.tsx`). 16 reuse Tamil the app already shows, 14 are new. Also found: the brand
+  spelled வினாடி 13 times against விநாடி 122; three forms of "Ask Vinaadi"; the teaser chart's
+  Tamil label reads the English rasi name. Not applied: waits for the reviewer.
 
 **Growth and launch (from 26 Sep, not re-checked)**
 - [ ] GRW-09 per-result share images, GRW-11 daily 6 am push, GRW-12 carry birth details into sign-up,

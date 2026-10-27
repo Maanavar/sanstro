@@ -276,9 +276,15 @@ _ENGINE_RULES: dict[str, Callable[[_EngineDay], bool]] = {
 }
 
 
+#: The `_engine_rows` key under which every day's festival names are kept, for
+#: the Hindu festival category pages (`calendar_category_service`).
+FESTIVAL_NAMES_KEY = "_festival_names"
+
+
 @lru_cache(maxsize=8)
 def _engine_rows(year: int) -> dict[str, tuple[dict, ...]]:
-    """Every event's days in `year`, read off the daily panchangam at Chennai.
+    """Every event's days in `year`, read off the daily panchangam at Chennai,
+    and (under `FESTIVAL_NAMES_KEY`) each day's festival names.
 
     Cached per process: a cold year is ~400 snapshots (about 15 s).
     """
@@ -290,19 +296,26 @@ def _engine_rows(year: int) -> dict[str, tuple[dict, ...]]:
     # One day either side: the rules read the previous and the next sunrise.
     snapshots = calculate_daily_panchangam_range(date(year - 1, 12, 31), date(year + 1, 1, 1), lat, lon, tz)
     rows: dict[str, list[dict]] = {key: [] for key in _ENGINE_RULES}
+    festival_days: list[dict] = []
     ordered = [snapshots[day] for day in sorted(snapshots)]
     for i, snapshot in enumerate(ordered):
         day = snapshot.date_local
         previous = ordered[i - 1] if i > 0 else None
         following = ordered[i + 1] if i + 1 < len(ordered) else None
         if day.year == year:
+            # The engine's own answer: no hand-entered or curated rows, which
+            # name no event below and would put a Hindu festival on two days.
+            festivals = _build_festivals(snapshot, previous_day_snapshot=previous, computed_only=True)
             engine_day = _EngineDay(
                 tithi=snapshot.tithi_number,
                 special=snapshot.special_tithi_day_number,
-                names=frozenset(f.name for f in _build_festivals(snapshot, previous_day_snapshot=previous)),
+                names=frozenset(f.name for f in festivals),
                 previous_tithi=previous.tithi_number if previous else None,
                 next_tithi=following.tithi_number if following else None,
             )
+            hindu = sorted({f.name for f in festivals if f.category == "hindu"})
+            if hindu:
+                festival_days.append({"date": day.isoformat(), "names": tuple(hindu)})
             matched = [key for key, rule in _ENGINE_RULES.items() if rule(engine_day)]
             if matched:
                 month_index, tamil_day = tamil_solar_date(day, tz, lat, lon)
@@ -314,7 +327,7 @@ def _engine_rows(year: int) -> dict[str, tuple[dict, ...]]:
                 }
                 for key in matched:
                     rows[key].append(row)
-    return {key: tuple(found) for key, found in rows.items()}
+    return {**{key: tuple(found) for key, found in rows.items()}, FESTIVAL_NAMES_KEY: tuple(festival_days)}
 
 
 #: lru_cache does not merge concurrent misses: a static build asks for all 15
@@ -328,6 +341,14 @@ def _rows_for(key: str, year: int) -> Sequence[dict]:
         return karinaal_rows_for_year(year)
     with _ENGINE_ROWS_LOCK:
         return _engine_rows(year)[key]
+
+
+def hindu_festival_days(year: int) -> Sequence[dict]:
+    """Every day of `year` the festival engine names a Hindu festival on, with
+    the names: ``{"date": iso, "names": (...)}``. The engine's own answer, no
+    hand-entered or curated rows. Shares the cached year scan."""
+    with _ENGINE_ROWS_LOCK:
+        return _engine_rows(year)[FESTIVAL_NAMES_KEY]
 
 
 def available_years() -> list[int]:

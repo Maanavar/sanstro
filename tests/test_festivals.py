@@ -7,7 +7,8 @@ regression ("silent 2027 failure") this WI exists to prevent.
 
 Every mismatch found during the parity check is explained here, not silently
 absorbed. Of the 24 hardcoded 2026 Ekadashi dates, 20 are reproduced by the
-engine exactly; 4 are not, for three distinct, verified reasons:
+engine exactly; 4 were not, for three distinct, verified reasons (07-10 is now
+reproduced, see below):
 
 - **2026-05-27 (Padmini Ekadashi):** tithi 11 (Shukla Ekadashi) spans BOTH
   2026-05-26 and 2026-05-27's sunrises (a long tithi). Smarta reckoning takes
@@ -23,17 +24,12 @@ engine exactly; 4 are not, for three distinct, verified reasons:
   day in each case is one day away (11-21, 12-04 respectively) and IS found
   by the engine. These two hardcoded dates predate this session and appear
   to have simply been wrong.
-- **2026-07-10 (Yogini Ekadashi) — genuine, documented gap:** tithi 11
+- **2026-07-10 (Yogini Ekadashi) — kshaya, now reproduced:** tithi 11
   (Krishna Ekadashi) is entirely "kshaya" this cycle — elided between
-  2026-07-10's sunrise (tithi 10) and 2026-07-11's sunrise (tithi 12),
-  never governing any civil day's sunrise at all. This is a general
-  characteristic of the pure-udaya-tithi convention this whole module uses
-  (verified: 17 such skip events occur across all tithis in 2026, roughly
-  one every three weeks) — it affects Sashti/Ashtami/Chaturthi identically
-  and isn't new to this WI. Doctrine §8 doesn't specify a kshaya-tithi rule,
-  and fabricating one wasn't in scope; tracked as a follow-up open question
-  rather than silently guessed. See test_yogini_ekadashi_kshaya_tithi_gap_
-  is_a_known_limitation below.
+  2026-07-10's sunrise (tithi 10) and 2026-07-11's sunrise (tithi 12). It
+  was a documented gap; it now names the day it falls in (§5), which is
+  Drik Panchang's smarta fast day for Chennai and the printed almanacs' day
+  (answers of 23 Oct, Q9). See test_kshaya_ekadashi_names_the_day_it_falls_in.
 
 Also, two other WI-12 discrepancies with the pre-existing hardcode, verified
 independently rather than assumed:
@@ -81,7 +77,7 @@ _HARDCODED_2026_EKADASHI_DATES = [
 # The 4 exceptions, each explained in the module docstring above. Excluded
 # from the blanket "engine reproduces hardcode" parametrized test below and
 # covered individually instead.
-_EKADASHI_EXCEPTIONS = {"05-27", "07-10", "11-20", "12-05"}
+_EKADASHI_EXCEPTIONS = {"05-27", "11-20", "12-05"}
 _CLEAN_MATCH_EKADASHI_DATES = [
     mmdd for mmdd in _HARDCODED_2026_EKADASHI_DATES if mmdd not in _EKADASHI_EXCEPTIONS
 ]
@@ -108,7 +104,7 @@ def _days_named(festival: str, start: date, end: date) -> list[date]:
 
 @pytest.mark.parametrize("mmdd", _CLEAN_MATCH_EKADASHI_DATES)
 def test_hardcoded_2026_ekadashi_dates_reproduced_by_engine(mmdd: str) -> None:
-    """20 of the 24 hardcoded dates — the 4 exceptions are covered by their
+    """21 of the 24 hardcoded dates — the 3 exceptions are covered by their
     own tests below, each with a verified explanation, not asserted here."""
     month, day = (int(x) for x in mmdd.split("-"))
     d = date(2026, month, day)
@@ -139,15 +135,28 @@ def test_hardcoded_nov20_dec05_ekadashi_dates_were_actually_wrong() -> None:
     assert any("Ekadashi" in n for n in names_04)
 
 
-def test_yogini_ekadashi_kshaya_tithi_gap_is_a_known_limitation() -> None:
-    """2026-07-10 (hardcoded 'Yogini Ekadashi'): tithi 11 is elided between
-    both adjacent sunrises this cycle (tithi 10 at 07-10's sunrise, tithi 12
-    at 07-11's) — a general, pre-existing characteristic of every
-    udaya-tithi rule in this module (not new to Ekadashi), not modeled by
-    Doctrine §8. Documented gap, not silently hidden — see module docstring
-    and the astrologer-queue follow-up."""
-    assert not any("Ekadashi" in n for n in _festival_names_for(date(2026, 7, 10)))
+def test_kshaya_ekadashi_names_the_day_it_falls_in() -> None:
+    """An Ekadashi holding no sunrise names the day it falls in (§5), not the
+    Dwadasi after it. Drik Panchang (Chennai) gives Yogini Ekadashi on Fri
+    10 Jul 2026 (Ekadashi 08:16 to 05:22) and the Vaishnava / Gauna fast on
+    11 Jul; both printed almanacs give 10 Jul 2026 and 29 Jul 2027.
+
+    R2 of the 23 Oct follow-up settles this as the **festival date**, keeping it
+    apart from the fasting date a tradition prescribes, and withdraws A6a's
+    "every skipped Ekadashi is fasted on Dwadasi" as a universal Tamil rule."""
+    assert "Ekadashi (Krishna)" in _festival_names_for(date(2026, 7, 10), previous_day=date(2026, 7, 9))
     assert not any("Ekadashi" in n for n in _festival_names_for(date(2026, 7, 11), previous_day=date(2026, 7, 10)))
+    assert _days_named("Ekadashi (Krishna)", date(2027, 7, 26), date(2027, 8, 2)) == [date(2027, 7, 29)]
+
+
+def test_vaikunta_ekadashi_2025_is_the_day_srirangam_opened_the_vasal() -> None:
+    """The anchor case for R2: Vaikunta Ekadashi 2025 held no sunrise at Chennai
+    (Ekadashi 30 Dec 07:51 to 31 Dec 05:00, before the 06:30 sunrise). Srirangam
+    opened the Paramapada Vasal on the morning of 30 Dec, both printed almanacs
+    give 30 Dec, and the astrologer ruled the festival date is that day — the
+    Dwadasi belongs to the fasting field, which is not built. Before §5 reached
+    Ekadashi the engine named no day at all for this one."""
+    assert _days_named("Vaikunta Ekadashi", date(2025, 12, 26), date(2026, 1, 3)) == [date(2025, 12, 30)]
 
 
 def test_vaikunta_ekadashi_named_instance_in_margazhi() -> None:
@@ -518,21 +527,41 @@ def test_varalakshmi_is_the_last_friday_before_the_pournami() -> None:
     assert _days_named("Varalakshmi Vratham", date(2025, 7, 25), date(2025, 8, 20)) == [date(2025, 8, 8)]
 
 
-def test_varalakshmi_is_the_pournami_itself_when_that_is_a_friday() -> None:
-    """§9.1's second branch, as a unit: 28 Aug 2026 was a Friday Pournami. In
-    production 2026 also carries the curated 21 Aug row, which the ruling
-    contradicts (reported to the astrologer)."""
+def _varalakshmi_fires(days_to_pournami: int) -> bool:
     from app.calculations.festivals import ObservanceInstants, _recurring_tithi_festivals
 
-    def varalakshmi(days_to_pournami: int) -> bool:
-        results = _recurring_tithi_festivals(
-            15, "SHUKLA", "SADAYAM", "FRIDAY", None, 15, lunar_month_index=LUNAR_SHRAVANA,
-            instants=ObservanceInstants(days_until_pournami_day=days_to_pournami),
-        )
-        return any(r["name"] == "Varalakshmi Vratham" for r in results)
+    results = _recurring_tithi_festivals(
+        15, "SHUKLA", "SADAYAM", "FRIDAY", None, 15, lunar_month_index=LUNAR_SHRAVANA,
+        instants=ObservanceInstants(days_until_pournami_day=days_to_pournami),
+    )
+    return any(r["name"] == "Varalakshmi Vratham" for r in results)
 
-    assert varalakshmi(0) and varalakshmi(6)
-    assert not varalakshmi(7)
+
+def test_varalakshmi_window_is_the_friday_on_or_before_the_pournami() -> None:
+    """§9.1 in the default reading (`_VARALAKSHMI_FRIDAY_POURNAMI`): the last
+    Friday on or before the printed Pournami day, so a Friday Pournami is
+    itself the vratham (0) and the window closes at 6."""
+    from app.calculations import festivals
+
+    assert festivals._VARALAKSHMI_FRIDAY_POURNAMI == "the_pournami"
+    assert _varalakshmi_fires(0) and _varalakshmi_fires(6)
+    assert not _varalakshmi_fires(7)
+
+
+def test_varalakshmi_strict_reading_moves_the_window_a_day(monkeypatch) -> None:
+    """The competing reading (A5b of the 23 Oct follow-up, contradicted by his
+    own R3) kept working behind the switch: the Friday *strictly* before, so a
+    Friday Pournami pushes the vratham a week back and the Pournami day itself
+    is not it."""
+    from app.calculations import festivals
+
+    monkeypatch.setattr(festivals, "_VARALAKSHMI_FRIDAY_POURNAMI", "the_week_before")
+    assert _varalakshmi_fires(1) and _varalakshmi_fires(7)
+    assert not _varalakshmi_fires(0)
+    assert not _varalakshmi_fires(8)
+    # Asserted at the rule, not through the production assembler: the curated
+    # 2026 row follows the default, so switching the reading there would show
+    # both 21 and 28 Aug — which is why the curated row moves with this switch.
 
 
 # ── Astrologer rulings 2026-10-22 (docs/REVIEW_REQUESTS_2026-10-22.md) ──────
@@ -548,27 +577,48 @@ def test_krishna_jayanthi_is_gokulashtami_at_true_midnight() -> None:
     assert _days_named("Krishna Jayanthi", date(2020, 8, 1), date(2020, 9, 30)) == [date(2020, 8, 11)]
 
 
-def test_krishna_jayanthi_label_is_held_at_the_evening_that_opens_the_night() -> None:
-    """2027: Ashtami holds the nisheetha of 24->25 Aug (00:11 on the 25th).
-    §2 rules the printed date to be the 25th; that rule matched 3 of its own
-    11 acceptance vectors and the evening label 8, so the label is held at the
-    evening (`festivals._JAYANTHI_LABEL`) until the astrologer answers. Both
-    dates are carried; switching the label moves 2027 to the 25th."""
+def test_krishna_jayanthi_is_the_jayanthi_yoga_day_when_ashtami_meets_rohini() -> None:
+    """§2.3 of 23 Oct: when Krishna Ashtami overlaps Rohini, the overlap
+    decides. 2027: Ashtami holds the 24->25 Aug nisheetha alone, but meets
+    Rohini on 25 Aug 12:27-19:19, so 25 Aug. 2029 (1 Sep) and 2030 (21 Aug)
+    likewise. All three are Drik Panchang's Chennai smarta dates and the
+    round-two vectors; the Ashtami-only rule gave 24 Aug, 31 Aug and 20 Aug."""
+    assert _days_named("Krishna Jayanthi", date(2027, 8, 20), date(2027, 8, 28)) == [date(2027, 8, 25)]
+    assert _days_named("Krishna Jayanthi", date(2029, 8, 27), date(2029, 9, 4)) == [date(2029, 9, 1)]
+    assert _days_named("Krishna Jayanthi", date(2030, 8, 17), date(2030, 8, 25)) == [date(2030, 8, 21)]
+
+
+def test_a_morning_only_rohini_overlap_does_not_decide_the_jayanthi_day() -> None:
+    """A1a of the 23 Oct follow-up: the overlap decides only where it reaches
+    the evening — the midnight, aparahna or pradosham. In 2019 Ashtami met
+    Rohini from 03:47 to 08:32 on 24 Aug and no later, so the yoga does not
+    override and Ashtami at nisheetha stands: 23 Aug, the Tamil Nadu holiday.
+    Without the threshold the engine gave 24 Aug."""
+    from app.calculations.observance_days import jayanthi_yoga_day
+
+    assert jayanthi_yoga_day(date(2019, 8, 23), CHENNAI[2], *CHENNAI[:2]) is None
+    assert _days_named("Krishna Jayanthi", date(2019, 8, 18), date(2019, 8, 28)) == [date(2019, 8, 23)]
+    # 2030's overlap is only 19:24-20:01, inside pradosham, and does decide.
+    assert jayanthi_yoga_day(date(2030, 8, 21), CHENNAI[2], *CHENNAI[:2]) == date(2030, 8, 21)
+
+
+def test_krishna_jayanthi_without_rohini_prints_the_evening_of_the_ashtami_night() -> None:
+    """No overlap: Ashtami at nisheetha, printed by the evening that opens the
+    night (`festivals._JAYANTHI_LABEL`, Q1 of 23 Oct). 2031: Ashtami holds
+    the 9->10 Aug midnight; Rohini begins only on the 11th. Drik Panchang
+    (Chennai) prints 9 Aug, as does the round-two vector."""
     from app.calculations import festivals
 
     assert festivals._JAYANTHI_LABEL == "evening_date"
-    assert _days_named("Krishna Jayanthi", date(2027, 8, 1), date(2027, 9, 30)) == [date(2027, 8, 24)]
+    assert _days_named("Krishna Jayanthi", date(2031, 8, 5), date(2031, 8, 13)) == [date(2031, 8, 9)]
 
 
 def test_krishna_jayanthi_nisheetha_label_names_the_civil_date_of_the_instant(monkeypatch) -> None:
-    """§2's label, kept working behind the held switch: the 2027 night prints
-    as 25 Aug, and the 2028 one as 14 Aug (its vector is the 13th). In 2026
-    it would print 5 Sep, off the 4 Sep government holiday — not asserted
-    here because the curated 2026 row prints 4 Sep regardless."""
+    """§2's label, kept working behind the switch: with no Rohini overlap the
+    2028 night prints as 14 Aug (its vector is the 13th)."""
     from app.calculations import festivals
 
     monkeypatch.setattr(festivals, "_JAYANTHI_LABEL", "nisheetha_date")
-    assert _days_named("Krishna Jayanthi", date(2027, 8, 20), date(2027, 8, 28)) == [date(2027, 8, 25)]
     assert _days_named("Krishna Jayanthi", date(2028, 8, 9), date(2028, 8, 17)) == [date(2028, 8, 14)]
 
 
@@ -639,11 +689,43 @@ def test_aadi_amavasai_two_amavasai_year_takes_the_one_closing_aadi_s_lunar_mont
 
 
 def test_aadi_krithigai_is_one_day_in_a_two_krittika_month() -> None:
-    """§3: Aadi 2028 holds Krittika at the 17 Jul and 13 Aug sunsets; the
-    later is in the lunar month opening inside Aadi. OPEN-2: the vector is
-    14 Aug, the day Krittika holds at sunrise; the ruled kala (pradosham)
-    gives 13 Aug and is what the engine uses until that is answered."""
-    assert _days_named("Aadi Krithigai", date(2028, 7, 10), date(2028, 8, 20)) == [date(2028, 8, 13)]
+    """Aadi Krithigai is judged at sunrise (Q2 of 23 Oct). Aadi 2028 holds
+    Krittika at the 18 Jul and 14 Aug sunrises; §3 keeps the later, in the
+    lunar month opening inside Aadi -- the vector, 14 Aug."""
+    assert _days_named("Aadi Krithigai", date(2028, 7, 10), date(2028, 8, 20)) == [date(2028, 8, 14)]
+
+
+def test_a_contained_star_gives_way_to_one_holding_a_sunrise() -> None:
+    """Aadi 2025: Krittika holds the 20 Jul sunrise, and again runs inside
+    16 Aug without holding its sunrise. A day holding the star at sunrise
+    beats one that only contains it, before §3 is asked: 20 Jul, the vector
+    and AstroVed's date (§3 alone gave 16 Aug)."""
+    assert _days_named("Aadi Krithigai", date(2025, 7, 15), date(2025, 8, 18)) == [date(2025, 7, 20)]
+
+
+def test_karthigai_deepam_is_the_krittika_united_with_the_pournami() -> None:
+    """Q5 of 23 Oct: Karthigai 2032 holds Krittika at the 17 Nov and 14 Dec
+    sunsets. 17 Nov is beside Karthigai's full moon (Krittika with Pournami);
+    14 Dec has Krittika on Trayodasi. The same shape in 2013: Tiruvannamalai
+    lit the Maha Deepam on 17 Nov, where §3 gave 15 Dec."""
+    assert _days_named("Karthigai Deepam", date(2032, 11, 14), date(2032, 12, 17)) == [date(2032, 11, 17)]
+    assert _days_named("Karthigai Deepam", date(2013, 11, 14), date(2013, 12, 17)) == [date(2013, 11, 17)]
+
+
+def test_an_undecided_full_moon_tie_break_falls_back_to_the_lunar_month() -> None:
+    """Q4 of 23 Oct: Vaikasi 2022 holds Visakam on 16 May and 12 Jun, both
+    beside a Vaikasi full moon, and both were labelled. §3 decides: 12 Jun."""
+    assert _days_named("Vaigasi Visakam", date(2022, 5, 14), date(2022, 6, 15)) == [date(2022, 6, 12)]
+
+
+def test_varalakshmi_on_a_friday_pournami_is_the_pournami() -> None:
+    """The three Friday-Pournami years of 2020-2045, in the default reading.
+    Drik Panchang (Chennai) prints each of these, and the astrologer's R3 names
+    12 Aug 2022 as the day observed — which is what sent the engine back here
+    after A5b had asked for the Friday a week earlier."""
+    assert _days_named("Varalakshmi Vratham", date(2022, 7, 30), date(2022, 8, 14)) == [date(2022, 8, 12)]
+    assert _days_named("Varalakshmi Vratham", date(2026, 8, 14), date(2026, 8, 31)) == [date(2026, 8, 28)]
+    assert _days_named("Varalakshmi Vratham", date(2029, 8, 10), date(2029, 8, 26)) == [date(2029, 8, 24)]
 
 
 def test_a_single_occurrence_is_never_moved_by_a_tie_break() -> None:
@@ -665,21 +747,23 @@ def test_the_monthly_karthigai_vratam_falls_back_to_sunrise() -> None:
     assert _days_named("Karthigai Vratam", date(2025, 12, 1), date(2025, 12, 8)) == [date(2025, 12, 4)]
 
 
-def test_two_aparahnas_take_the_first() -> None:
-    """§6: Navami held the 18 and 19 Oct 2045 aparahnas (13:34 on the 18th to
-    16:08 on the 19th). The kala was met twice, which is not a failed check:
-    the first. Dasami holds only the 20 Oct aparahna, so Vijayadasami is the
-    20th — a gap §6's consecutive-days invariant forbids; reported."""
-    assert _days_named("Ayudha Pooja", date(2045, 10, 10), date(2045, 10, 25)) == [date(2045, 10, 18)]
+def test_a_navami_holding_two_aparahnas_takes_the_later() -> None:
+    """Q7 of 23 Oct: Ayudha Pooja's Navami, holding two aparahnas, takes the
+    later, the one adjoining Dasami. 2018: Navami held the 17 and 18 Oct
+    aparahnas and Tamil Nadu kept Ayudha Pooja on 18 Oct, Vijayadasami 19 Oct
+    (G.O. 937); "the first" gave 17 Oct. 2045: Navami 13:34 on the 18th to
+    16:08 on the 19th, Dasami holding only the 20th's -> 19 and 20 Oct."""
+    assert _days_named("Ayudha Pooja", date(2018, 10, 12), date(2018, 10, 22)) == [date(2018, 10, 18)]
+    assert _days_named("Vijayadasami", date(2018, 10, 12), date(2018, 10, 22)) == [date(2018, 10, 19)]
+    assert _days_named("Ayudha Pooja", date(2045, 10, 10), date(2045, 10, 25)) == [date(2045, 10, 19)]
     assert _days_named("Vijayadasami", date(2045, 10, 10), date(2045, 10, 25)) == [date(2045, 10, 20)]
 
 
 def test_ayudha_pooja_and_vijayadasami_are_consecutive_2020_2045() -> None:
     """§6 structural invariant, swept with the same day-naming the engine
-    uses (`observance_days.name_day` at aparahna). The production assembler is
-    swept by scripts/audit/yearly_observances_scan.py; the pins above go
-    through it here. 2045 is the one year §6's own tie-break breaks it
-    (see test_two_aparahnas_take_the_first); pinned so a change shows."""
+    uses (`observance_days.name_day` at aparahna, Navami taking the later of
+    two). The production assembler is swept by
+    scripts/audit/yearly_observances_scan.py; the pins above go through it."""
     from app.calculations.lunar_month import LUNAR_ASHVINA
     from app.calculations.observance_days import _Clock, name_day, tithi_occurrences
 
@@ -691,9 +775,10 @@ def test_ayudha_pooja_and_vijayadasami_are_consecutive_2020_2045() -> None:
             for occurrence in tithi_occurrences(tithi, lo, hi):
                 month = amanta_month_at(occurrence.start_jd)
                 if month.index == LUNAR_ASHVINA and not month.is_adhika:
-                    days[tithi] = name_day(occurrence, "aparahna", clock)[0]
-        gap = timedelta(days=2) if year == 2045 else timedelta(days=1)
-        assert days[10] - days[9] == gap, (year, days)
+                    day, how, _jd = name_day(occurrence, "aparahna", clock)
+                    later = tithi == 9 and how == "kala_two"
+                    days[tithi] = day + timedelta(days=1) if later else day
+        assert days[10] - days[9] == timedelta(days=1), (year, days)
 
 
 def test_selection_rules_report_when_they_fire() -> None:

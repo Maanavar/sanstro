@@ -46,19 +46,28 @@ REFERENCE = {
                           2028: (7, 21), 2029: (8, 9), 2030: (7, 30), 2031: (7, 19), 2032: (8, 5),
                           2033: (7, 25)}),
     "Thiru Aadi Pooram": {2026: date(2026, 8, 14), 2027: date(2027, 8, 5)},
-    # Round two §3 vectors. OPEN-2: they fit the star at sunrise 10/11 and at
-    # pradosham (the ruled kala, coded) 4/11.
-    "Aadi Krithigai": ymd({2023: (8, 9), 2024: (7, 30), 2025: (7, 20), 2026: (8, 7), 2027: (7, 28),
-                           2028: (8, 14), 2029: (8, 4), 2030: (7, 25), 2031: (8, 11), 2032: (7, 31),
-                           2033: (7, 21)}),
-    # §9.1: 2025 is 8 Aug. 2026: the ruled rule gives Friday 28 Aug (the
-    # Pournami itself); the curated row is 21 Aug -- reported conflict.
-    "Varalakshmi Vratham": {2025: date(2025, 8, 8), 2026: date(2026, 8, 21), 2027: date(2027, 8, 13)},
+    # Round two §3 vectors, at sunrise (Q2 of 23 Oct). 2020: hindupad (12 Aug,
+    # §3 over the first Krittika); 2022: Mylapore Times (Karaneeswarar, 23 Jul;
+    # pradosham gave 22 Jul); 2025 is the contained-second-Krittika year
+    # (AstroVed: 20 Jul). 2019: Mylapore Times (Kapali temple, 26 Jul), the
+    # evening Krittika began at 18:56 -- sunrise and pradosham both give
+    # 27 Jul; a temple's evening custom, reported.
+    "Aadi Krithigai": ymd({2019: (7, 26), 2020: (8, 12), 2022: (7, 23), 2023: (8, 9), 2024: (7, 30),
+                           2025: (7, 20), 2026: (8, 7), 2027: (7, 28), 2028: (8, 14), 2029: (8, 4),
+                           2030: (7, 25), 2031: (8, 11), 2032: (7, 31), 2033: (7, 21)}),
+    # §9.1: 2025 is 8 Aug. The Friday-Pournami years (2022, 2026, 2029) are
+    # Drik Panchang's Chennai dates, and 12 Aug 2022 is the astrologer's R3.
+    # `festivals._VARALAKSHMI_FRIDAY_POURNAMI` carries the competing reading.
+    "Varalakshmi Vratham": {2022: date(2022, 8, 12), 2025: date(2025, 8, 8), 2026: date(2026, 8, 28),
+                            2027: date(2027, 8, 13), 2029: date(2029, 8, 24)},
     "Navarathiri Begins": {2026: date(2026, 10, 11)},
-    # §6: 2045 is the two-aparahna year (first taken); 2022 the no-aparahna.
-    "Ayudha Pooja": {2026: date(2026, 10, 19), 2027: date(2027, 10, 8), 2045: date(2045, 10, 18)},
+    # §6; 2018 and 2045 are the two-aparahna Navamis, the later taken (Q7 of
+    # 23 Oct; TN G.O. 937 gave 18 Oct 2018). 2022 is the no-aparahna year.
+    "Ayudha Pooja": {2018: date(2018, 10, 18), 2026: date(2026, 10, 19), 2027: date(2027, 10, 8),
+                     2045: date(2045, 10, 19)},
     "Saraswathi Poojai": {2026: date(2026, 10, 19)},
-    "Vijayadasami": {2022: date(2022, 10, 5), 2026: date(2026, 10, 20), 2027: date(2027, 10, 9)},
+    "Vijayadasami": {2018: date(2018, 10, 19), 2022: date(2022, 10, 5), 2026: date(2026, 10, 20),
+                     2027: date(2027, 10, 9), 2045: date(2045, 10, 20)},
     "Arudra Darisanam": {2026: date(2026, 12, 24)},
     "Masa Sivarathiri": {},
     "Thai Poosam": {2025: date(2025, 2, 11), 2026: date(2026, 2, 1)},
@@ -66,17 +75,18 @@ REFERENCE = {
     # 2 Mar to 07:31 on 3 Mar), so the sunrise kala gives 3 Mar -- reported.
     "Maasi Magam": {2026: date(2026, 3, 2)},
     "Panguni Uthiram": {2026: date(2026, 4, 1)},
-    "Vaigasi Visakam": {2026: date(2026, 5, 30)},
-    # Round two §4 vectors. 2032: §3 picks 14 Dec over 17 Nov -- reported.
-    "Karthigai Deepam": ymd({2023: (11, 26), 2024: (12, 13), 2025: (12, 4), 2026: (11, 24), 2027: (12, 11),
-                             2028: (12, 1), 2029: (11, 20), 2030: (12, 8), 2031: (11, 28), 2032: (11, 17),
-                             2033: (12, 5)}),
-    # Round two §2 vectors. The printed label is HELD at the evening that
-    # opens the night (festivals._JAYANTHI_LABEL): it matches 8 of 11; §2's
-    # nisheetha date matches 3 (scripts/audit/jayanthi_label_scan.py).
-    "Krishna Jayanthi": ymd({2023: (9, 6), 2024: (8, 26), 2025: (8, 15), 2026: (9, 4), 2027: (8, 25),
-                             2028: (8, 13), 2029: (9, 1), 2030: (8, 21), 2031: (8, 9), 2032: (8, 27),
-                             2033: (8, 17)}),
+    # 2022, 2041: the full-moon test cannot decide; §3 does (Q4 of 23 Oct).
+    "Vaigasi Visakam": {2022: date(2022, 6, 12), 2026: date(2026, 5, 30), 2041: date(2041, 6, 12)},
+    # Round two §4 vectors; the full-moon tie-break gives 2032 17 Nov (Q5).
+    # 2013: Tiruvannamalai lit the Maha Deepam on 17 Nov (§3 gave 15 Dec).
+    "Karthigai Deepam": ymd({2013: (11, 17), 2023: (11, 26), 2024: (12, 13), 2025: (12, 4), 2026: (11, 24),
+                             2027: (12, 11), 2028: (12, 1), 2029: (11, 20), 2030: (12, 8), 2031: (11, 28),
+                             2032: (11, 17), 2033: (12, 5)}),
+    # Round two §2 vectors, all eleven reproduced by the Jayanthi yoga (§2.3 of
+    # 23 Oct). 2021, 2026-2031: Drik Panchang's Chennai smarta dates agree.
+    "Krishna Jayanthi": ymd({2021: (8, 30), 2023: (9, 6), 2024: (8, 26), 2025: (8, 15), 2026: (9, 4),
+                             2027: (8, 25), 2028: (8, 13), 2029: (9, 1), 2030: (8, 21), 2031: (8, 9),
+                             2032: (8, 27), 2033: (8, 17)}),
     "Mahalaya Amavasai": {2026: date(2026, 10, 10), 2027: date(2027, 9, 29)},
 }
 TRACK = set(REFERENCE) - {"Masa Sivarathiri"}
@@ -86,13 +96,9 @@ PER_TAMIL_YEAR = {"Arudra Darisanam"}
 # Rows that differ from a reference for a reason already reported to the
 # astrologer (docs/REVIEW_REQUESTS_2026-10-22.md, round-two report).
 REPORTED = {
-    ("Maasi Magam", 2026), ("Varalakshmi Vratham", 2026), ("Karthigai Deepam", 2032),
-    # The held Family A test cannot break these ties (OPEN-3 / F8).
-    ("Vaigasi Visakam", 2022), ("Vaigasi Visakam", 2041),
+    ("Maasi Magam", 2026), ("Aadi Krithigai", 2019),
     # 15 Aug by rule; 16 Aug is the hand-entered 2025 row in festivals._YEARLY_FESTIVALS.
     ("Krishna Jayanthi", 2025),
-    *(("Krishna Jayanthi", y) for y in (2027, 2029, 2030)),
-    *(("Aadi Krithigai", y) for y in (2024, 2025, 2028, 2029, 2030, 2031, 2032)),
 }
 
 y0, y1 = int(sys.argv[1]), int(sys.argv[2])
@@ -130,12 +136,9 @@ print("\n§6 — Ayudha Pooja then Vijayadasami on consecutive days:")
 for y in range(y0, y1 + 1):
     ayudha, vijaya = found[("Ayudha Pooja", y)], found[("Vijayadasami", y)]
     ok = len(ayudha) == len(vijaya) == 1 and vijaya[0] - ayudha[0] == timedelta(days=1)
-    # 2045: §6's own "two aparahnas -> the first" puts Ayudha Pooja on 18 Oct
-    # and Vijayadasami on 20 Oct (Dasami holds only the 20th's aparahna). Reported.
-    reported = y == 2045
-    bad += not ok and not reported
+    bad += not ok
     if not ok:
-        print(f"{'..' if reported else '!!'} {y}: Ayudha {ayudha} Vijayadasami {vijaya}")
+        print(f"!! {y}: Ayudha {ayudha} Vijayadasami {vijaya}")
 print("   checked", y1 - y0 + 1, "years")
 
 # §2 asks to assert this; it holds under none of the candidate labels in

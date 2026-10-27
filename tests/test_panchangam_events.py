@@ -34,13 +34,12 @@ REFERENCE_COUNTS = {
     "karthigai-deepam": 1, "vaikunta-ekadasi": 1, "aadi-perukku": 1,
 }
 
-# What the engine serves for 2026. Two counts sit below the almanac's because
-# the engine names no day for a tithi that holds no sunrise (kshaya): Ekadashi
-# once (Jul) and Shukla Chathurthi twice (Apr, Jul). That is the daily
-# panchangam's own gap, shown here rather than papered over on one page.
+# What the engine serves for 2026. Shukla Chathurthi and Ekadashi take §5
+# (a tithi holding no sunrise names the day it falls in) and are back at the
+# almanac's 12 and 24; the kshaya Ekadashi is Drik Panchang's smarta 10 Jul.
 ENGINE_COUNTS_2026 = {
-    "pournami": 13, "amavasai": 12, "pradosham": 24, "ekadhasi": 23,
-    "sankatahara-chathurthi": 13, "chathurthi": 10, "sashti": 12, "ashtami": 25,
+    "pournami": 13, "amavasai": 12, "pradosham": 24, "ekadhasi": 24,
+    "sankatahara-chathurthi": 13, "chathurthi": 12, "sashti": 12, "ashtami": 25,
     "navami": 24, "karthigai": 13, "thiruvonam": 13, "maadha-sivarathiri": 12,
     "chandra-darisanam": 12, "karinaal": KARINAAL_COUNT,
 }
@@ -113,6 +112,15 @@ def test_a_tithi_holding_two_sunrises_is_listed_once():
         days = [date.fromisoformat(r["date"]) for r in svc.get_event(key, 2026)["dates"]]
         consecutive = [b for a, b in pairwise(days) if (b - a).days == 1]
         assert not consecutive, (key, consecutive)
+
+
+def test_a_kshaya_chathurthi_names_the_day_it_falls_in():
+    """§5. Shukla Chaturthi held no sunrise in April and July 2026, and the
+    engine named no day; the almanac prints 20 Apr and 17 Jul. Every other
+    month keeps its sunrise day, first of two."""
+    dates = [r["date"] for r in svc.get_event("chathurthi", 2026)["dates"]]
+    assert "2026-04-20" in dates and "2026-07-17" in dates
+    assert len({d[:7] for d in dates}) == 12, "one Chathurthi in each month"
 
 
 def test_2027_is_served():

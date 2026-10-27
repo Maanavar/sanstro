@@ -2,12 +2,11 @@ import type { Metadata } from "next";
 import { JsonLd } from "@/lib/json-ld";
 import { calendarHubLd } from "./calendar-jsonld";
 import { withTamilTwin } from "@/lib/localized-metadata";
-import { TAMIL_CALENDAR_TA } from "@/lib/marketing-seo-ta";
+import { tamilCalendarTa } from "@/lib/marketing-seo-ta";
 import { TamilCalendarContent, type EventSummary } from "./TamilCalendarContent";
-import { fetchCalendarCategories, type CalendarCategorySummary } from "./calendar-category-api";
+import { fetchCalendarCategories } from "./calendar-category-api";
 import { backendUrl } from "@/lib/backend-url";
-
-const YEAR = 2026;
+import { calendarYearNow, promotedCalendarYears } from "@/lib/tamil-calendar-years";
 
 interface EventsList {
   year: number;
@@ -15,9 +14,9 @@ interface EventsList {
   events: EventSummary[];
 }
 
-async function fetchEvents(): Promise<EventsList | null> {
+async function fetchEvents(year: number): Promise<EventsList | null> {
   try {
-    const res = await fetch(`${backendUrl()}/api/v1/public/panchangam-events?year=${YEAR}`, {
+    const res = await fetch(`${backendUrl()}/api/v1/public/panchangam-events?year=${year}`, {
       next: { revalidate: 3600 },
     });
     if (!res.ok) return null;
@@ -27,45 +26,53 @@ async function fetchEvents(): Promise<EventsList | null> {
   }
 }
 
-const EN_METADATA: Metadata = {
-  title: "Tamil Calendar 2026 - Pournami, Amavasai, Pradosham, Ekadhasi Dates",
-  description:
-    "Full 2026 Tamil calendar of special days - Pournami (full moon), Amavasai (new moon), Pradosham, Ekadhasi, Sankatahara Chathurthi, Karthigai, Sashti, Sivarathiri and Karinaal - with every date, weekday and Tamil date.",
-  keywords: [
-    "tamil calendar 2026",
-    "pournami 2026",
-    "amavasai 2026",
-    "pradosham 2026",
-    "ekadhasi 2026",
-    "sankatahara chathurthi 2026",
-    "karthigai 2026",
-    "tamil festival dates 2026",
-  ],
-  alternates: { canonical: "https://vinaadi.com/tamil-calendar" },
-  openGraph: {
-    title: "Tamil Calendar 2026 - All Special Days & Dates",
-    description: "Pournami, Amavasai, Pradosham, Ekadhasi and every special Tamil-calendar day for 2026, with dates and Tamil months.",
-    url: "https://vinaadi.com/tamil-calendar",
-    type: "website",
-  },
-};
-
-export async function generateMetadata(): Promise<Metadata> {
-  return withTamilTwin(EN_METADATA, "/tamil-calendar", TAMIL_CALENDAR_TA);
+function enMetadata(year: number): Metadata {
+  return {
+    title: `Tamil Calendar ${year} - Pournami, Amavasai, Pradosham, Ekadhasi Dates`,
+    description:
+      `Full ${year} Tamil calendar of special days - Pournami (full moon), Amavasai (new moon), Pradosham, Ekadhasi, Sankatahara Chathurthi, Karthigai, Sashti, Sivarathiri and Karinaal - with every date, weekday and Tamil date.`,
+    keywords: [
+      `tamil calendar ${year}`,
+      `pournami ${year}`,
+      `amavasai ${year}`,
+      `pradosham ${year}`,
+      `ekadhasi ${year}`,
+      `sankatahara chathurthi ${year}`,
+      `karthigai ${year}`,
+      `tamil festival dates ${year}`,
+    ],
+    alternates: { canonical: "https://vinaadi.com/tamil-calendar" },
+    openGraph: {
+      title: `Tamil Calendar ${year} - All Special Days & Dates`,
+      description: `Pournami, Amavasai, Pradosham, Ekadhasi and every special Tamil-calendar day for ${year}, with dates and Tamil months.`,
+      url: "https://vinaadi.com/tamil-calendar",
+      type: "website",
+    },
+  };
 }
 
-export default async function TamilCalendarHub() {
-  const [data, categories] = await Promise.all([fetchEvents(), fetchCalendarCategories()]);
-  const events = data?.events ?? [];
+export async function generateMetadata(): Promise<Metadata> {
+  const year = calendarYearNow();
+  return withTamilTwin(enMetadata(year), "/tamil-calendar", tamilCalendarTa(year));
+}
 
+// The hub is always this year (in India). Its fetches revalidate hourly, so on
+// 1 January it turns over within the hour without a redeploy.
+export default async function TamilCalendarHub() {
+  const year = calendarYearNow();
+  const nextYear = promotedCalendarYears().find((y) => y > year) ?? null;
+  // The categories the backend publishes for this year: all four in the
+  // curated year, Hindu and Christian in any other; never last year's.
+  const [data, categories] = await Promise.all([fetchEvents(year), fetchCalendarCategories(year)]);
+  const events = data?.events ?? [];
 
   return (
     <>
       <JsonLd
-        en={calendarHubLd(categories, events, "en", "Tamil Calendar 2026 - Special Days")}
-        ta={calendarHubLd(categories, events, "ta", TAMIL_CALENDAR_TA.title)}
+        en={calendarHubLd(categories, events, "en", `Tamil Calendar ${year} - Special Days`, year)}
+        ta={calendarHubLd(categories, events, "ta", tamilCalendarTa(year).title, year)}
       />
-      <TamilCalendarContent events={events} categories={categories} />
+      <TamilCalendarContent events={events} categories={categories} year={year} nextYear={nextYear} />
     </>
   );
 }
