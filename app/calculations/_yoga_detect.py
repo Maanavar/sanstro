@@ -1672,17 +1672,20 @@ def detect_sunapha_anapha_durudhura(
     in_second = tuple(p for p, r in planets.items() if p not in _SUNAPHA_ANAPHA_EXCLUDED and r == second)
     in_twelfth = tuple(p for p, r in planets.items() if p not in _SUNAPHA_ANAPHA_EXCLUDED and r == twelfth)
     secondary = ("MOON",) if moon_secondary else ()
-    out: list[YogaResult] = []
-    if in_second:
-        out.append(YogaResult("SUNAPHA_YOGA", True, "PARTIAL", ["planets_in_2nd_from_moon"], [], False, "சுனபா யோகம்.", "Sunapha Yoga.",
-                              key_grahas=in_second, secondary_grahas=secondary))
-    if in_twelfth:
-        out.append(YogaResult("ANAPHA_YOGA", True, "PARTIAL", ["planets_in_12th_from_moon"], [], False, "அநபா யோகம்.", "Anapha Yoga.",
-                              key_grahas=in_twelfth, secondary_grahas=secondary))
+    # AAU-11 (ruled 2026-10-29): Phaladeepika 6.1 gives the three
+    # "respectively" — 2nd, 12th, both — so they are three cases of one rule
+    # and a chart has exactly one. Both sides occupied is Durudhura alone; it
+    # used to show Sunapha and Anapha beside it, three cards for one fact.
     if in_second and in_twelfth:
-        out.append(YogaResult("DURUDHURA_YOGA", True, "STRONG", ["planets_in_2nd_and_12th_from_moon"], [], False, "துருதுரா யோகம்.", "Durudhura Yoga.",
-                              key_grahas=in_second + in_twelfth, secondary_grahas=secondary))
-    return out
+        return [YogaResult("DURUDHURA_YOGA", True, "STRONG", ["planets_in_2nd_and_12th_from_moon"], [], False, "துருதுரா யோகம்.", "Durudhura Yoga.",
+                           key_grahas=in_second + in_twelfth, secondary_grahas=secondary)]
+    if in_second:
+        return [YogaResult("SUNAPHA_YOGA", True, "PARTIAL", ["planets_in_2nd_from_moon"], [], False, "சுனபா யோகம்.", "Sunapha Yoga.",
+                           key_grahas=in_second, secondary_grahas=secondary)]
+    if in_twelfth:
+        return [YogaResult("ANAPHA_YOGA", True, "PARTIAL", ["planets_in_12th_from_moon"], [], False, "அநபா யோகம்.", "Anapha Yoga.",
+                           key_grahas=in_twelfth, secondary_grahas=secondary)]
+    return []
 
 
 def detect_vasumati_yoga(

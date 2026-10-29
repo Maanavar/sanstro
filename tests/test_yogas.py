@@ -756,7 +756,10 @@ def test_adhi_daridra_lakshmi_vasumati_and_sunapha_family():
         {"MOON": 1, "JUPITER": 3, "VENUS": 6, "MERCURY": 10}, moon_rasi=1, lagna_rasi=1,
     ).is_present is True
     tri = detect_sunapha_anapha_durudhura({"MOON": 1, "MARS": 2, "JUPITER": 12, "SUN": 5}, moon_rasi=1)
-    assert any(x.name == "DURUDHURA_YOGA" for x in tri)
+    # AAU-11: both sides occupied is Durudhura alone, never three cards.
+    assert [x.name for x in tri] == ["DURUDHURA_YOGA"]
+    assert [x.name for x in detect_sunapha_anapha_durudhura({"MOON": 1, "MARS": 2}, moon_rasi=1)] == ["SUNAPHA_YOGA"]
+    assert [x.name for x in detect_sunapha_anapha_durudhura({"MOON": 1, "MARS": 12}, moon_rasi=1)] == ["ANAPHA_YOGA"]
 
 
 def test_sunapha_excludes_nodes_and_mandhi_wi15():
