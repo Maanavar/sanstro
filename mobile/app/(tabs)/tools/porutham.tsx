@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import * as Haptics from "expo-haptics";
 import {
   ScrollView, StyleSheet, Text, TouchableOpacity, View,
@@ -7,7 +7,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
-import { NAKSHATRA_LIST, rasiDisplayName, type EkaNakshatraNote, type ShashtashtakaNote } from "@vinaadi/shared";
+import { NAKSHATRA_LIST, poruthamTone, rasiDisplayName, type EkaNakshatraNote, type ShashtashtakaNote } from "@vinaadi/shared";
 import { nakshatraPadaGroups } from "@vinaadi/shared/nakshatraRasi";
 import { C } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
@@ -164,14 +164,18 @@ export default function PoruthamScreen() {
   }
 
   const result = data?.data;
+  // The server's band label, not the score: a Rajju/Vedha failure is CAUTION
+  // at any score, and must never get the celebratory hero or haptic (AAU-06).
+  const tone = result ? poruthamTone(result.label) : "high";
 
-  if (result && result.totalScore >= 8) {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-  }
+  // Once per result, not on every render (it used to sit in the render body).
+  useEffect(() => {
+    if (result && poruthamTone(result.label) === "high") {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+  }, [result]);
 
-  const scoreColor = result
-    ? result.totalScore >= 8 ? C.saffron : result.totalScore >= 5 ? C.amber : C.maroon
-    : C.saffron;
+  const scoreColor = tone === "high" ? C.saffron : tone === "mid" ? C.amber : C.maroon;
 
   return (
     <SafeAreaView style={styles.container}>
