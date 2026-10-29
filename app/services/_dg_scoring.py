@@ -24,6 +24,7 @@ from app.calculations.functional_nature import get_dasha_modifier, get_transit_m
 from app.calculations.gochara_scores import GOCHARA_HOUSE_SCORE
 from app.calculations.maturation import MATURATION_AGE
 from app.calculations.panchangam import (
+    ASHUBHA_YOGA_NUMBERS,
     PanchangamLimbSpan,
     limb_fraction,
     limb_weighted,
@@ -60,7 +61,10 @@ SIGN_LORDS: dict[int, str] = {
 AUSPICIOUS_DAILY_NAKSHATRAS: frozenset[int] = FIT_STARS
 CAUTION_DAILY_NAKSHATRAS: frozenset[int] = UNFIT_STARS
 
-CAUTION_YOGAS = {1, 6, 9, 10, 17, 27}
+# The panchangam's one table of nine (AAU-15), not a six-yoga copy: Vyaghata,
+# Vajra and Parigha were missing here and present in the strict muhurtham
+# check. A caution yoga is one weighted input to the day, never a veto.
+CAUTION_YOGAS: frozenset[int] = ASHUBHA_YOGA_NUMBERS
 # Rikta (4/9/14 in each paksha) and Ashtami. Named rather than inlined because
 # the weighted scorer and the flat legacy path must agree on the same sets.
 RIKTA_TITHIS: set[int] = {4, 9, 14, 19, 24, 29}

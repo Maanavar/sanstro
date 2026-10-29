@@ -273,7 +273,11 @@ GOWRI_NIGHT_TABLE = {weekday: _gowri_night_row(weekday) for weekday in range(7)}
 
 # Subha/ashubha nitya yoga names per Thirukanitha tradition.
 SUBHA_YOGAS = {"SIDDHA", "SHUBHA", "VARIYANA", "HARSHANA", "BRAHMA", "INDRA"}
-ASHUBHA_YOGAS = {
+# The one table of inauspicious nitya yogas (AAU-15, ruled 2026-10-29). The
+# strict muhurtham check and the daily caution both read it. The daily scorer
+# used a six-yoga subset with no recorded reason, so a Parigha, Vajra or
+# Vyaghata day was quiet in Today while the muhurtham search refused it.
+ASHUBHA_YOGAS: frozenset[str] = frozenset({
     "VISHKAMBHA",
     "VYAGHATA",
     "GANDA",
@@ -283,7 +287,8 @@ ASHUBHA_YOGAS = {
     "VYATIPATA",
     "PARIGHA",
     "VAIDHRITI",
-}
+})
+ASHUBHA_YOGA_NUMBERS: frozenset[int] = frozenset(YOGA_NAMES.index(name) + 1 for name in ASHUBHA_YOGAS)
 
 # Auspicious tithis for muhurtham (Shukla paksha 2,3,5,6,7,10,11,12,13; Krishna 2,3,6,7,10,11)
 SUBHA_TITHIS_SHUKLA = {2, 3, 5, 6, 7, 10, 11, 12, 13}
