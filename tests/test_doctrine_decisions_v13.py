@@ -555,8 +555,10 @@ def test_sevvai_residual_aggravations_are_conditions_and_raise_strength() -> Non
     # still never prints "cancelled" (§8), which is why the grade is unmoved.
     assert "mars_neechabhanga" in base.cancellation_factors
     assert base.is_cancelled is False
-    assert base.strength == "PARTIAL"
-    assert combust.strength == joined.strength == "STRONG"
+    # AAU-13: Mars is 2nd from the Lagna and in no dosha house from the Moon or
+    # Venus, so the tier is "mild", WEAK. Each aggravation lifts it one grade.
+    assert base.strength == "WEAK"
+    assert combust.strength == joined.strength == "PARTIAL"
 
 
 # O-2 / O-11 / O-17 / O-18 executable, dormant doctrine branches.

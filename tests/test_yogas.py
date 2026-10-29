@@ -118,7 +118,10 @@ def test_t091_sevvai_dosham_mesham_lagna_mars_in_the_2nd():
 
 # Rishabam lagna, Mars in Thulam: 4th from the Moon (Kadagam) and 2nd from
 # Venus (Kanni) — two references, not the Lagna.
-_SEVVAI_FROM_MOON_AND_VENUS = {
+# Mesham lagna: Mars in Thulam is 7th from the Lagna, 4th from the Moon and
+# 2nd from Venus. Since AAU-13 a declared Sevvai stands on the Lagna, so the
+# samyam cases need a Lagna placement (this read lagna 2, Moon/Venus only).
+_SEVVAI_FROM_LAGNA_MOON_AND_VENUS = {
     "SUN": 3, "MOON": 4, "MARS": 7, "MERCURY": 2, "JUPITER": 5,
     "VENUS": 6, "SATURN": 9, "RAHU": 11, "KETU": 5,
 }
@@ -127,9 +130,9 @@ _SEVVAI_FROM_MOON_AND_VENUS = {
 def test_t091_dosha_samyam_of_comparable_weight_cancels():
     """§8 condition 1: the partner carries Sevvai too, also from two or more
     references. Only a two-chart reading can say so."""
-    assert {"from_moon", "from_venus"} <= set(detect_sevvai_dosham(_SEVVAI_FROM_MOON_AND_VENUS, lagna_rasi=2).conditions_met)
+    assert {"from_moon", "from_venus"} <= set(detect_sevvai_dosham(_SEVVAI_FROM_LAGNA_MOON_AND_VENUS, lagna_rasi=1).conditions_met)
     result = detect_sevvai_dosham(
-        _SEVVAI_FROM_MOON_AND_VENUS, lagna_rasi=2, partner_sevvai_references=["from_moon", "from_venus"]
+        _SEVVAI_FROM_LAGNA_MOON_AND_VENUS, lagna_rasi=1, partner_sevvai_references=["from_moon", "from_venus"]
     )
     assert result.is_present is True
     assert result.is_cancelled is True
@@ -139,7 +142,7 @@ def test_t091_dosha_samyam_of_comparable_weight_cancels():
 def test_t091_dosha_samyam_against_a_lighter_placement_only_reduces():
     """§8: a severe placement against a trivial one does not cancel — the
     partner's Sevvai counted from Venus alone is not of comparable weight."""
-    result = detect_sevvai_dosham(_SEVVAI_FROM_MOON_AND_VENUS, lagna_rasi=2, partner_sevvai_references=["from_venus"])
+    result = detect_sevvai_dosham(_SEVVAI_FROM_LAGNA_MOON_AND_VENUS, lagna_rasi=1, partner_sevvai_references=["from_venus"])
     assert result.is_cancelled is False
     assert "partner_sevvai_unequal_weight" in result.cancellation_factors
     assert result.strength != result.formation_strength
@@ -496,7 +499,9 @@ def test_sevvai_scenario_mesha_lagna_8th_mars_female():
     assert result.is_present is True
     assert result.is_cancelled is False
     assert result.label == "ACTIVE_SEVVAI_DOSHAM"
-    assert (result.formation_strength, result.strength) == ("STRONG", "PARTIAL")
+    # AAU-13: Lagna + Venus (4th from Venus) is "confirmed", PARTIAL; the 8th
+    # house no longer lifts the grade on its own. Reduced one grade: WEAK.
+    assert (result.formation_strength, result.strength) == ("PARTIAL", "WEAK")
     assert "from_lagna" in result.conditions_met
     # Mars is in Viruchigam = own sign
     assert "mars_own_sign" in result.cancellation_factors
@@ -596,10 +601,11 @@ def test_sevvai_kadagam_lagna_yogakaraka():
     assert "jupiter_aspects_seventh_lord" in result.cancellation_factors
     assert result.is_present is True
     assert result.is_cancelled is False
-    # 8th from the Lagna: a STRONG formation, reduced one grade — and raised
-    # back by Rahu sharing Mars's rasi (the aggravation step runs after).
+    # AAU-13: Lagna + Moon (7th from the Moon) is "confirmed", PARTIAL; Rahu
+    # sharing Mars's rasi lifts the formation to STRONG. The grade is reduced
+    # one step and raised back by the aggravation (which still runs after).
     assert "mars_joined_saturn_or_rahu" in result.conditions_met
-    assert (result.formation_strength, result.strength) == ("STRONG", "STRONG")
+    assert (result.formation_strength, result.strength) == ("STRONG", "PARTIAL")
 
 
 def test_sevvai_benefic_association_mars():

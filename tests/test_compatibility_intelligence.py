@@ -103,9 +103,9 @@ def _sevvai_snap(lagna_rasi: int, planet_rasis: dict[str, int]) -> SimpleNamespa
 def test_compute_sevvai_agrees_with_main_engine_mars_clean_from_lagna_but_seventh_from_moon():
     # Regression for the pre-WI-13 disagreement case: Mars is clean from
     # Lagna (house 3, not a Sevvai house) but sits in the 7th house from
-    # Moon (a Sevvai house) — the compatibility report's old inline
-    # lagna-only check would have missed this; the main engine (which also
-    # checks the Moon and Venus references) correctly flags it.
+    # Moon (a Sevvai house). The report must read it exactly as the engine
+    # does. Since AAU-13 (2026-10-29) the engine notes a Moon-only placement
+    # and does not declare the dosham, so both now say "not present".
     lagna_rasi = 1
     planet_rasis = {
         "SUN": 5, "MOON": 9, "MARS": 3, "MERCURY": 6,
@@ -120,7 +120,9 @@ def test_compute_sevvai_agrees_with_main_engine_mars_clean_from_lagna_but_sevent
 
     assert detail.has_dosham == raw.is_present
     assert detail.is_cancelled == raw.is_cancelled
-    assert detail.has_dosham is True  # the actual regression: caught via Moon reference
+    assert detail.has_dosham is False
+    assert "from_moon" in raw.conditions_met
+    assert raw.context_notes == ("sevvai_not_declared_without_lagna",)
 
 
 # ---------------------------------------------------------------------------

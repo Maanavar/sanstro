@@ -418,6 +418,7 @@ def _marker_explain(marker: str) -> str:
         # DD-17 context notes: same text as DOSHAM_CONTEXT_LABELS in
         # packages/shared/src/doshamReckoning.ts (held equal by a test).
         "sevvai_not_from_lagna": "Mars is not in a dosha house from your Lagna. The dosham is counted only from the Moon or Venus, which weighs less than a Lagna placement.",
+        "sevvai_not_declared_without_lagna": "Mars is in a dosha house counted from your Moon or Venus, but not from your Lagna. The Lagna is the primary reference; the Moon and Venus only grade a Lagna dosham, so this placement is noted and Sevvai dosham is not declared.",
         # The astrologer's wording, 23 Oct (Q12, Tamil corrected in B3) — kept verbatim.
         "sevvai_mars_debility_modifies": "Mars's debility modifies the reading of Sevvai dosham. Some texts hold that a debilitated Mars does less harm; others hold that in the 7th or 8th it does more. The result depends on house, lordship and aspect, and debility alone does not establish cancellation.",
         "rk_axis_not_repeated_from_moon_venus": "Counted from your Moon and from Venus, the nodes do not fall on houses 1, 2, 7 or 8. The axis is not repeated, which is the lighter reading.",
@@ -483,6 +484,7 @@ def _marker_explain_ta(marker: str) -> str:
         "strong_second_lord_or_benefic_on_second": "2-ஆம் வீட்டிற்கு ஆதரவு உள்ளது: அதன் அதிபதி வலுவாக உள்ளது அல்லது குரு அல்லாத சுப கிரக ஆதரவு கிடைக்கிறது — இதனால் தாக்கம் குறைகிறது.",
         "second_lord_dignified": "2-ஆம் அதிபதி ஆட்சி அல்லது உச்ச ராசியில், பாவ கிரகச் சேர்க்கையின்றி உள்ளது — 2-ஆம் வீட்டிற்குப் பாதுகாப்பு.",
         "sevvai_not_from_lagna": "லக்னத்திலிருந்து செவ்வாய் தோஷ வீட்டில் இல்லை; சந்திரன் அல்லது சுக்கிரனிலிருந்து மட்டுமே தோஷம் கணக்கிடப்படுகிறது. லக்னத்திலிருந்து வரும் தோஷத்தை விட இதன் எடை குறைவு.",
+        "sevvai_not_declared_without_lagna": "சந்திரன் அல்லது சுக்கிரனிலிருந்து எண்ணும்போது செவ்வாய் தோஷ வீட்டில் உள்ளது, ஆனால் லக்னத்திலிருந்து இல்லை. லக்னமே முதன்மை; சந்திரனும் சுக்கிரனும் லக்ன தோஷத்தின் தீவிரத்தை மட்டுமே காட்டும். எனவே இந்த நிலை குறிக்கப்படுகிறது, செவ்வாய் தோஷம் அறிவிக்கப்படவில்லை.",
         # The astrologer's own Tamil, 23 Oct B3 (he replaced பாவம் with பாவகம்
         # and முடிவு with பலன்) — verbatim, do not re-translate.
         "sevvai_mars_debility_modifies": "செவ்வாய் நீசம் பெறுவது செவ்வாய் தோஷத்தின் தன்மையை மாற்றுகிறது. நீசச் செவ்வாய் தீங்கைக் குறைக்கும் என்று சில நூல்களும், 7-ஆம் அல்லது 8-ஆம் இடத்தில் அது தீங்கை அதிகரிக்கும் என்று வேறு சில நூல்களும் கூறுகின்றன. பலன் பாவகம், ஆதிபத்தியம், பார்வை ஆகியவற்றைப் பொறுத்தது; நீசம் மட்டுமே தோஷ நிவர்த்தியை உறுதிசெய்யாது.",

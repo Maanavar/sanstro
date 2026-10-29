@@ -210,11 +210,27 @@ def detect_sevvai_dosham(
         conditions_met.append("from_venus")
         house_hits["from_venus"] = venus_house
 
+    # AAU-13 (ruled 2026-10-29; the grading is Vinaadi product policy, not a
+    # verse — no classical text gives a combination rule). The Lagna is primary;
+    # the Moon and Venus corroborate. They grade the severity of a Lagna
+    # dosham and never declare one on their own:
+    #
+    #   Lagna only                  present, mild       (WEAK)
+    #   Lagna + Moon or Venus       confirmed           (PARTIAL)
+    #   Lagna + Moon + Venus        severe              (STRONG)
+    #   Moon and/or Venus, no Lagna placement noted, not declared
+    #
+    # OR-ing the three references is what made 91% of charts "have" Sevvai
+    # (1 - 0.5^3 = 87.5%, plus correlation). The six-house set stays: the 1st
+    # house is the first word of the base verse.
+    lagna_hit = "from_lagna" in conditions_met
+    corroborators = sum(ref in conditions_met for ref in ("from_moon", "from_venus"))
+
     aggravation_count = 0
-    if conditions_met and "MARS" in combust_planets:
+    if lagna_hit and "MARS" in combust_planets:
         conditions_met.append("mars_combust")
         aggravation_count += 1
-    if conditions_met and any(
+    if lagna_hit and any(
         planet in planets and _planet_rasi(planets, planet) == mars_rasi
         for planet in ("SATURN", "RAHU")
     ):
@@ -382,32 +398,27 @@ def detect_sevvai_dosham(
             cancellation_factors.append("mars_neechabhanga")
             major_cancellation = True
 
-    is_present = bool(conditions_met) and not exempt_lagna
+    is_present = lagna_hit and not exempt_lagna
     # §8: only a two-chart reading can cancel; one or more reduction factors
     # is "present, reduced", one grade lower. (Q8 had required two.)
     is_cancelled = is_present and two_chart_reading and major_cancellation
     reduced = softened_by_exception or mitigation_score >= 1
-    strong_house_hit = any(house_hits.get(key) in {7, 8} for key in house_hits)
-    reference_count = len([c for c in conditions_met if c.startswith("from_")])
-    # DD-17: the formation's own grade, before any mitigation softens it.
-    formation_strength = ""
-    if is_present:
-        formation_strength = "STRONG" if (strong_house_hit or reference_count >= 2 or aggravation_count) else "PARTIAL"
+    grades = ("WEAK", "PARTIAL", "STRONG")
+    # The AAU-13 tier is the base grade. As before, reductions take it one grade
+    # down, and each aggravation (combust Mars; Mars with Saturn or Rahu) then
+    # lifts it one grade up. DD-17: the formation grade is the tier with its
+    # aggravations, before any mitigation softens it.
+    formation_strength = grades[min(2, corroborators + aggravation_count)] if is_present else ""
     if not is_present or is_cancelled:
         strength = "WEAK"
-    elif strong_house_hit or len([c for c in conditions_met if c.startswith("from_")]) >= 2:
-        strength = "PARTIAL" if reduced else "STRONG"
     else:
-        strength = "WEAK" if reduced else "PARTIAL"
-    if is_present and not is_cancelled and aggravation_count:
-        strength = {"WEAK": "PARTIAL", "PARTIAL": "STRONG", "STRONG": "STRONG"}[strength]
+        rank = max(0, corroborators - (1 if reduced else 0))
+        strength = grades[min(2, rank + aggravation_count)]
 
     if not is_present:
         label = "NO_SEVVAI_DOSHAM"
     elif is_cancelled:
         label = "SEVVAI_DOSHAM_WITH_NIVARTHI"
-    elif "from_lagna" not in conditions_met and "from_moon" not in conditions_met and "from_venus" in conditions_met:
-        label = "SEVVAI_DOSHAM_CANDIDATE"
     elif strength == "STRONG":
         label = "STRONG_ACTIVE_SEVVAI_DOSHAM"
     else:
@@ -421,13 +432,14 @@ def detect_sevvai_dosham(
         # Nivarthi needs a major factor now (Q8), and a major factor is never
         # a narrow margin.
         narrow_margin=False,
-        # The Lagna is the primary reference; a dosham counted only from the
-        # Moon or Venus is the lighter reading (DD-17).
-        primary_reference="from_lagna" in conditions_met,
+        # The Lagna is the primary reference, and since AAU-13 every declared
+        # Sevvai stands on it.
+        primary_reference=lagna_hit,
     )
     context_notes_list: list[str] = []
-    if is_present and "from_lagna" not in conditions_met:
-        context_notes_list.append("sevvai_not_from_lagna")
+    if not lagna_hit and conditions_met:
+        # AAU-13: the placement is reported, the dosham is not declared.
+        context_notes_list.append("sevvai_not_declared_without_lagna")
     # B3 (23 Oct follow-up): the astrologer's own wording for what debility
     # does, approved in both languages. Attached without counting (DD-17).
     if "mars_debilitated_in_dosha_house" in cancellation_factors:
