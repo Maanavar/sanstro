@@ -25,6 +25,8 @@ on:
       - "pnpm-workspace.yaml"
       - ".npmrc"
       - ".github/workflows/mobile.yml"
+  # The only way the EAS production build runs (see the build job's `if`).
+  workflow_dispatch:
 
 concurrency:
   group: mobile-${{ github.ref }}
@@ -78,7 +80,12 @@ jobs:
     name: EAS production build
     runs-on: ubuntu-latest
     needs: check
-    if: github.ref == 'refs/heads/main'
+    # Manual only (Actions → Mobile CI → Run workflow, on main). As of
+    # 2026-10-27 there is no Apple Developer or Google Play account and no EAS
+    # signing credentials, so a build on every push to main could only fail
+    # red. Put `github.event_name == 'push'` back once store builds are wanted
+    # (go-live step 4K) and `eas credentials` is done for both platforms.
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4

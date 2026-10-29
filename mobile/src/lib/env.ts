@@ -1,9 +1,14 @@
 import Constants from "expo-constants";
 
-function require_env(key: string): string {
-  const v = Constants.expoConfig?.extra?.[key] as string | undefined;
-  if (!v) throw new Error(`Missing EAS env: ${key}`);
-  return v;
+// `path` is dot-separated because app.config.ts nests some keys (`extra.eas.projectId`);
+// a flat `extra["eas.projectId"]` lookup never finds them.
+function require_env(path: string): string {
+  let node: unknown = Constants.expoConfig?.extra;
+  for (const part of path.split(".")) {
+    node = node && typeof node === "object" ? (node as Record<string, unknown>)[part] : undefined;
+  }
+  if (typeof node !== "string" || !node) throw new Error(`Missing EAS env: ${path}`);
+  return node;
 }
 
 export const ENV = {
