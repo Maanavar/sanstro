@@ -69,7 +69,8 @@ def _score(payload: svc.MarriageAssessmentInput, *, gate=None, married=False) ->
 def test_plain_score_has_named_outputs() -> None:
     result = _score(_payload())
 
-    assert result.score == 63
+    # 57 since AAU-14 removed the age term (+6 at age 30).
+    assert result.score == 57
     assert result.dasha_support == "WEAK"
     assert result.transit_support == "WEAK"
     assert [factor.key for factor in result.factors] == [

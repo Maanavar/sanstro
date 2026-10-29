@@ -1076,7 +1076,7 @@ def generate_compatibility_intelligence_pdf(
     story.extend([Spacer(1, 0.3 * cm), Paragraph(_label("navamsa_level", lang), heading_style)])
     story.append(
         Paragraph(
-            f"{_label('harmony', lang)}: {_verdict('harmony', report.navamsa.harmony_label, lang)}. {report.person_a_name} {_graha("VENUS", lang)} D9: {_rasi(report.navamsa.person_a_venus_d9, lang)}; {report.person_b_name} {_graha("VENUS", lang)} D9: {_rasi(report.navamsa.person_b_venus_d9, lang)}.",
+            f"{_label('harmony', lang)}: {_verdict('harmony', report.navamsa.harmony_label, lang)}. {report.person_a_name} {_graha('VENUS', lang)} D9: {_rasi(report.navamsa.person_a_venus_d9, lang)}; {report.person_b_name} {_graha('VENUS', lang)} D9: {_rasi(report.navamsa.person_b_venus_d9, lang)}.",
             body_style,
         )
     )

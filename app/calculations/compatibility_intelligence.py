@@ -54,8 +54,8 @@ from app.calculations.chart_strength import (
     SIGN_LORD,
 )
 from app.calculations.dasha import calculate_vimshottari_timeline
-from app.calculations.doctrine_options import DEFAULT_DOCTRINE, DoctrineOptions
 from app.calculations.display_names import planet_en, planet_ta
+from app.calculations.doctrine_options import DEFAULT_DOCTRINE, DoctrineOptions
 from app.calculations.dosha_samyam import compare_marriage_doshams, papa_samyam
 
 logger = logging.getLogger(__name__)
