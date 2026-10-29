@@ -304,6 +304,15 @@ def calculate_sidereal_planets(jd_ut: float) -> EphemerisSnapshot:
             is_retrograde=rahu.speed_deg_per_day < 0,
             show_retrograde_badge=False,
         )
+        # The nodes are one axis (AAU-09): Ketu's sign is always the 7th from
+        # Rahu's, so from any reference they sit six houses apart and no chart
+        # can hold Rahu-10 and Ketu-10 together. Checked on every snapshot,
+        # not only on hand-written fixtures, so a future change that derives
+        # Ketu some other way fails here rather than in a reader's chart.
+        if bodies["KETU"].rasi != (rahu.rasi + 5) % 12 + 1:
+            raise RuntimeError(
+                f"Node axis broken: Rahu in rasi {rahu.rasi}, Ketu in rasi {bodies['KETU'].rasi}"
+            )
 
         return EphemerisSnapshot(
             jd_ut=jd_ut,

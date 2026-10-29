@@ -16,16 +16,17 @@ The named Saturn periods (Ezharai 12/1/2, Ardhashtama 4, Ashtama 8) are a
 separate axis — named alerts, not this grade. The 7th and 10th need care
 because of the gochara table, not because they belong to a named cycle.
 
+RAHU / KETU — ruled 2026-10-29 (AAU-09). The standard Tamil panchangam
+gochara table: Rahu favours 3/6/10/11, Ketu 3/6/11. The nodes are never
+interchangeable: they sit 180° apart, so Rahu in the 10th puts Ketu in the
+4th, and each is graded on its own set. No mixed band, as for Sani.
+
 SCOPE vs `gochara_scores.py`. That module scores **all nine** grahas from the
-classical favourable sets, including Rahu and Ketu at 3/6/11, because the
-daily/life-area/what-if numbers needed a value for every transiting body and
-were inverting the nodes (F-SCO-01). This module grades only Guru and Sani
-because it is the **displayed verdict** and the nodes have no astrologer-
-approved gochara table yet — a disclosed gap, not an oversight. The two are
-pinned against each other for Guru and Sani by
+classical favourable sets, because the daily/life-area/what-if numbers need a
+value for every transiting body. This module grades the four the surfaces
+display a verdict for. The two are pinned against each other by
 `tests/test_gochara_scores.py::test_the_two_modules_list_the_same_favourable_houses`,
 so the number and the word can never contradict on the planets both cover.
-Extending the *grade* to the nodes needs a ruling, not a code change.
 
 Mirrored for web and mobile in packages/shared/src/api/transits.ts
 (`gocharaGrade`); tests/test_gochara_grade.py pins the two to the same table.
@@ -48,14 +49,18 @@ NAMED_SANI_PERIOD_HOUSES: frozenset[int] = SADE_SATI_FROM_MOON | ARDHASHTAMA_SAN
 # Vinaadi's presentation band for Guru (D3): non-supportive, but not adverse.
 GURU_MIXED_FROM_MOON: frozenset[int] = frozenset({1, 3, 4, 10})
 
+RAHU_SUPPORTIVE_FROM_MOON: frozenset[int] = frozenset({3, 6, 10, 11})
+RAHU_NEEDS_CARE_FROM_MOON: frozenset[int] = frozenset({1, 2, 4, 5, 7, 8, 9, 12})
+KETU_SUPPORTIVE_FROM_MOON: frozenset[int] = frozenset({3, 6, 11})
+KETU_NEEDS_CARE_FROM_MOON: frozenset[int] = frozenset({1, 2, 4, 5, 7, 8, 9, 10, 12})
+
 GocharaGrade = Literal["SUPPORTIVE", "MIXED", "NEEDS_CARE"]
 
 
 def gochara_grade(planet: str, house_from_moon: int) -> GocharaGrade | None:
-    """Vinaadi's grade for Guru/Sani by house from the Janma Rasi.
+    """Vinaadi's grade for Guru/Sani/Rahu/Ketu by house from the Janma Rasi.
 
-    None for any other planet: Rahu/Ketu have no astrologer-approved gochara
-    table yet, and the faster grahas are not graded on this surface.
+    None for any other planet: the faster grahas are not graded on this surface.
     """
     key = {"GURU": "JUPITER", "SANI": "SATURN"}.get(planet, planet)
     if key == "JUPITER":
@@ -66,4 +71,8 @@ def gochara_grade(planet: str, house_from_moon: int) -> GocharaGrade | None:
         return "NEEDS_CARE"
     if key == "SATURN":
         return "SUPPORTIVE" if house_from_moon in SANI_SUPPORTIVE_FROM_MOON else "NEEDS_CARE"
+    if key == "RAHU":
+        return "SUPPORTIVE" if house_from_moon in RAHU_SUPPORTIVE_FROM_MOON else "NEEDS_CARE"
+    if key == "KETU":
+        return "SUPPORTIVE" if house_from_moon in KETU_SUPPORTIVE_FROM_MOON else "NEEDS_CARE"
     return None
