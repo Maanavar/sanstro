@@ -21,6 +21,21 @@ Status key: `[ ]` open · `[~]` partly done · `[x]` done. Prefix **AAU**.
 | P2 | Doctrine error, latent wrong data, or a contradiction a reader can find | 9 |
 | P3 | Small, cosmetic, or needs a ruling first | 4 |
 
+### Ruling gate (added after the external review, 29 Oct)
+
+This audit can show that two code paths disagree, or that output contradicts a definition. Where
+traditions differ, it cannot say which answer is right. That needs the astrologer. So every item is
+in one of two lanes, and nothing in the second lane ships as a production rule before its ruling is
+recorded in the doctrine document:
+
+| Lane | Items | Why no ruling is needed / what the ruling is |
+|---|---|---|
+| **Fix now** | 01, 02, 03, 05, 06, 08, 14, 17 | They follow from a definition (the birth instant, the sunrise-to-sunrise day, the tharparai unit), from a rule already ruled (display boundary, KI-01 veto), or from the standard nadi koota table. 05 copies the card's inputs into the report and changes no doctrine. 14 removes an unsourced weight. |
+| **Ruling first** | 04, 07, 09, 10, 11, 12, 13, 15, 16, 18, 19 (20 goes with 07) | The syllable canon (04); what "is today good?" means on each surface (07); node houses (09); bhava reckoning (10); the 6.1 reading (11); Putra/Sarpa grahas (12); the 1st house for Sevvai (13); the yoga policies (15); the year-name tradition and the Ayanam/Ruthu rules (16); spellings (18); the Sankranti window (19). |
+
+Where an item proposes the answer as well, read the proposal as a question to put to the astrologer,
+not as a finding.
+
 ---
 
 ## P1: wrong on a screen today
@@ -46,8 +61,9 @@ pada from the Moon, yoga from (Sun + Moon), karana from the half-tithi. The char
 longitudes. Keep sunrise and sunset from the day panchangam (see AAU-02 for which day).
 
 **Acceptance.** A sweep test of at least 200 charts: the signature's tithi, nakshatra, pada, yoga and
-karana equal values recomputed from the chart's own Sun and Moon. Run it once on the old code and
-confirm it fails.
+karana equal values recomputed from the chart's own Sun and Moon. Random charts rarely land near a
+transition, so add births placed one minute either side of a tithi, nakshatra, yoga and karana
+change. Run it once on the old code and confirm it fails.
 
 ### [ ] AAU-02. A birth before sunrise is printed on the next Tamil day
 
@@ -65,7 +81,8 @@ Tamil date, vaaram and the sunrise that anchors the naaligai. AAU-01 then suppli
 at the birth instant either way.
 
 **Acceptance.** The three cases above print Panguni 30 / Thursday, Thai 1, Aani 25. A birth at
-sunrise + 1 minute is unchanged.
+sunrise + 1 minute is unchanged; so is one at sunrise − 1 minute on the far side. Repeat at a
+second Tamil Nadu location and in the other half of the year, since sunrise moves by both.
 
 ### [ ] AAU-03. Raw English engine codes in Tamil documents (Jadhagam, PDF), plus a label typo
 
@@ -90,8 +107,9 @@ nakshatra or paksha code. Add both files to the display-boundary ratchets (web a
 **Problem.** `JadhagamTool.tsx:68` hand-types the four starting syllables per star
 (நட்சத்திர எழுத்துக்கள்). The app's own naming canon, `app/data/nakshatra_pada_akshara.py`, holds the
 same fact. They differ on **59 of 108 cells**. Most of those are vowel length (லு vs லூ), but
-**14 differ in the consonant**, and in every one the Jadhagam is the one that's wrong against the
-standard syllables:
+**14 differ in the consonant**. In every one, the canon matches the commonly printed syllable and the
+Jadhagam does not. The canon is itself unverified (below), so this is a proposal for the astrologer
+to confirm, not a ruling:
 
 | Star | Jadhagam | Canon / standard |
 |---|---|---|
@@ -172,9 +190,14 @@ caution, scored 32/100. Seven come from the list overlap (Magam 26 Apr, 17 Jul, 
 16 Jan, 8 Apr, 29 Jun, 10 Dec). Seven come from the sunrise-vs-dominant star (Poosam at sunrise,
 Ayilyam dominant: 5 Jan, 1 Mar, 29 Nov; Aswini/Bharani: 22 Feb, 12 Jun, 26 Oct, 20 Dec).
 
-**Fix.** One day-quality function that every surface calls, reading one star by one rule (the
-almanac's sunrise star, as the Chandrashtama D11 ruling does). **Astrologer:** are Magam and Moolam
-good or caution stars for ordinary new work?
+**Fix.** One day-quality module that every surface calls, with the star it reads and the list it
+uses named per purpose. Do not assume the D11 sunrise-star rule carries over: it was ruled for
+Chandrashtama. **Astrologer, a scope question first:** do the calendar's நல்ல நாள் badge, the
+PDF day score and the push answer one question ("is today generally good?"), or different ones
+(general day, a given activity, this person's transits)? Then: which star (sunrise or dominant)
+for each, and are Magam and Moolam good or caution stars for ordinary new work? If the questions
+really are different, the surfaces may differ, but each must say which question it answers. Two
+unlabelled verdicts on the same day may not contradict.
 
 **Acceptance.** A 2026 sweep shows 0 days where the badge and the PDF/push disagree.
 
@@ -227,9 +250,9 @@ which. If the reckoning changes, recompute the stored `bhava_house` column and u
 
 `_yoga_detect.detect_sunapha_anapha_durudhura` (`:1676-1684`) emits Sunapha and Anapha **and**
 Durudhura when both sides of the Moon are occupied, so the reader gets three yoga cards. The rule
-file (`yoga_rules.py:1240`) leaves this as "a presentation call". As an astrologer I don't think it
-is one: Phaladeepika 6.1 gives the three "respectively", for planets in the 2nd, the 12th, or both.
-Durudhura replaces the other two; it does not sit beside them. In the sample, Sunapha fired on 33% of
+file (`yoga_rules.py:1240`) leaves this as "a presentation call". It may not be one: Phaladeepika
+6.1 gives the three "respectively", for planets in the 2nd, the 12th, or both, which reads as
+Durudhura replacing the other two rather than sitting beside them. In the sample, Sunapha fired on 33% of
 charts and Anapha on 30%, including every Durudhura chart.
 
 **Fix.** Emit Durudhura alone when both sides are occupied.
@@ -282,21 +305,32 @@ common Tamil marriage age, is told she is outside the peak. It has no named sour
 
 **Fix (owner + astrologer).** Either drop age from the score (dasa and gochara already carry timing),
 or make it a sourced, gender-aware band. Never word it as "outside peak".
+**Decided 29 Oct (delegated by the owner):** drop age from the score. A sourced band can come back
+if the astrologer supplies one. Acceptance: the same chart's timing score does not change when only
+the age crosses 25 or 35.
 
 ### [ ] AAU-15. Two lists of bad yogas disagree
 
 `_dg_scoring.CAUTION_YOGAS` = {Vishkambha, Atiganda, Shoola, Ganda, Vyatipata, Vaidhriti} (6) drives
 the Today score. `panchangam.ASHUBHA_YOGAS` adds **Vyaghata, Vajra, Parigha** (9) and drives the
 strict muhurtham check. On a Parigha day, Today does not caution while the muhurtham check rejects
-the day. **Fix:** one set, imported by both.
+the day. A weighted daily score and a strict muhurtham veto may legitimately use different subsets,
+but today nothing records that as a choice, so it reads as drift. **Fix:** one yoga classification
+table, and each policy (daily caution, strict muhurtham) names its subset of it explicitly. Never
+make the strict check looser to match the daily one. **Astrologer:** should Vyaghata, Vajra and
+Parigha caution an ordinary day?
 
 ### [ ] AAU-16. No Tamil year name anywhere, including the printed Jadhagam
 
 Nothing in `app/`, `web/` or `mobile/` names the 60-year cycle (e.g. விசுவாவசு 2025–26, பராபவ
 2026–27). Ayanam and ruthu are also absent. A Tamil jathagam always carries "… வருடம், … மாதம்
-… தேதி", and families notice when the line is missing. **Fix:** a pure function from the Tamil year
-(Chithirai 1 boundary) to the samvatsara name, shown on the Jadhagam, the PDF and the calendar
-header. Tamil names need the native reviewer.
+… தேதி", and families notice when the line is missing. **Fix: three specs, one per field.**
+(a) Samvatsara: a pure function from the Tamil year (Chithirai 1 boundary) to the name, with a
+test that the 1 a.m. before Chithirai 1 still names the old year (AAU-02's day rule). (b) Ayanam:
+from the Sun's sidereal position, Uttarayanam from Thai (Makara sankranti) in Tamil reckoning. It
+does not follow from the year. (c) Ruthu: from the solar month, two months per ruthu, with the
+starting month confirmed. Show them on the Jadhagam, the PDF and the calendar header.
+**Astrologer:** the Ayanam and Ruthu conventions. **Native reviewer:** the Tamil names.
 
 ---
 
