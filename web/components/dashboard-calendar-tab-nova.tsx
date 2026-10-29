@@ -66,7 +66,7 @@ import {
 } from "./dashboard-calendar-shared";
 import type { CalendarView, DayTimelineBand } from "./dashboard-calendar-shared";
 import { MonthlyCalendarViewNova } from "./dashboard-calendar-monthly-nova";
-import { MonthlyCalendarLandscape, useCalendarSkyArt } from "./dashboard-calendar-monthly-panels";
+import { MonthlyCalendarLandscape, useCalendarSky } from "./dashboard-calendar-monthly-panels";
 import { NovaPlanMuhurtaPanel } from "./dashboard-plan-muhurta-nova";
 
 // "Best Dates & Muhurta" moved here from Goals (IA audit 2026-07-22, Phase 3):
@@ -1153,7 +1153,7 @@ export function DashboardCalendarTabNova({
   const [view, setView] = useState<CalendarViewExt>(
     focusView && (CALENDAR_VIEWS as string[]).includes(focusView) ? (focusView as CalendarViewExt) : "panchangam",
   );
-  const skyArt = useCalendarSkyArt();
+  const { art: skyArt, phase: skyPhase } = useCalendarSky();
   useEffect(() => {
     if (focusView && (CALENDAR_VIEWS as string[]).includes(focusView)) {
       setView(focusView as CalendarViewExt);
@@ -1517,7 +1517,7 @@ export function DashboardCalendarTabNova({
             { key: "muhurta", label: lang === "ta" ? "சிறந்த நாள் & முஹூர்த்தம்" : "Best Dates & Muhurta" },
           ]}
         />
-        {view === "monthly" && <MonthlyCalendarLandscape art={skyArt} priority />}
+        {view === "monthly" && <MonthlyCalendarLandscape art={skyArt} phase={skyPhase} scene="sky" priority />}
         </div>
       </div>
 
