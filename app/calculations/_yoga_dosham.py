@@ -1499,7 +1499,13 @@ def _join_en(items: list[str], word: str = "and") -> str:
     return items[0] if len(items) == 1 else f"{', '.join(items[:-1])} {word} {items[-1]}"
 
 
-_PUTRA_SARPA_AFFLICTORS = ("RAHU", "KETU", "SATURN")
+# AAU-12 (ruled 2026-10-29). சர்ப்ப means the serpent: Putra Sarpa needs a node.
+# Saturn on the 5th is புத்திர தடை (Santhana Thadai): delay, not curse, with a
+# different parihara (Sani worship, Thirunallar) from the naga route. Counting
+# Saturn here sent families to Rahu-Ketu temples for a Saturn placement, so the
+# two are separate detectors with separate remedy keys.
+_PUTRA_SARPA_AFFLICTORS = ("RAHU", "KETU")
+_SANTHANA_THADAI_AFFLICTORS = ("SATURN",)
 
 
 def _putra_sarpa_meaning(
@@ -1570,17 +1576,69 @@ def detect_putra_sarpa_dosham(
     *,
     doctrine: DoctrineOptions = DEFAULT_DOCTRINE,
 ) -> DoshamResult:
+    """சர்ப்ப தோஷம் on the 5th: Rahu or Ketu in it, beside its lord, or beside
+    Jupiter. Nodes only (AAU-12); Saturn is `detect_santhana_thadai`."""
+    return _detect_fifth_house_affliction(
+        planets,
+        lagna_rasi,
+        planet_scores,
+        name="PUTRA_SARPA_DOSHAM",
+        afflictors=_PUTRA_SARPA_AFFLICTORS,
+        doctrine=doctrine,
+        description_ta="புத்ர சர்ப்ப தோஷம் — 5-ஆம் வீடு, அதன் அதிபதி அல்லது குரு ராகு அல்லது கேதுவால் பாதிக்கப்படுவது.",
+        description_en="Putra Sarpa dosham — the 5th house, its lord or Jupiter afflicted by Rahu or Ketu.",
+    )
+
+
+def detect_santhana_thadai(
+    planets: dict[str, int],
+    lagna_rasi: int,
+    planet_scores: dict[str, int],
+    *,
+    doctrine: DoctrineOptions = DEFAULT_DOCTRINE,
+) -> DoshamResult:
+    """புத்திர தடை (Santhana Thadai): Saturn in the 5th or beside its lord.
+
+    Delay, not curse (AAU-12, ruled 2026-10-29). Split out of Putra Sarpa so a
+    Saturn placement is routed to Sani parihara, not to the naga temples. The
+    trigger surface is occupation and conjunction with the 5th lord only;
+    Saturn's aspect on the 5th is not counted.
+    """
+    return _detect_fifth_house_affliction(
+        planets,
+        lagna_rasi,
+        planet_scores,
+        name="SANTHANA_THADAI",
+        afflictors=_SANTHANA_THADAI_AFFLICTORS,
+        doctrine=doctrine,
+        description_ta="புத்திர தடை — 5-ஆம் வீட்டில் அல்லது அதன் அதிபதியுடன் சனி இருப்பதால் குழந்தைப்பேறில் தாமதம்.",
+        description_en="Santhana Thadai — delay around children, from Saturn in the 5th house or beside its lord.",
+    )
+
+
+def _detect_fifth_house_affliction(
+    planets: dict[str, int],
+    lagna_rasi: int,
+    planet_scores: dict[str, int],
+    *,
+    name: str,
+    afflictors: tuple[str, ...],
+    doctrine: DoctrineOptions,
+    description_ta: str,
+    description_en: str,
+) -> DoshamResult:
     fifth_lord = _house_lord(lagna_rasi, 5)
     fifth_rasi = planets.get(fifth_lord, lagna_rasi)
     fifth_house_rasi = ((lagna_rasi + 5 - 2) % 12) + 1
-    # Nodes/Saturn occupying the 5th house itself, not just conjunct its lord
+    # Afflictors occupying the 5th house itself, not just conjunct its lord
     # elsewhere (L-5) — the dosham's own description promises "5th house …
     # afflicted", which the lord-conjunction check alone doesn't cover.
-    in_house = [p for p in _PUTRA_SARPA_AFFLICTORS if planets.get(p) == fifth_house_rasi]
+    in_house = [p for p in afflictors if planets.get(p) == fifth_house_rasi]
     # O-32 (owner ruling 2026-10-06): for Thulam lagna, Sani in Kumbam is the
     # 5th lord in its own sign and the yogakaraka (4th + 5th). The placement is
-    # recorded but does not form the dosham on its own; an independent
+    # recorded but does not form the finding on its own; an independent
     # affliction still does. This one case only, not "own sign always cancels".
+    # Since AAU-12 Saturn belongs to Santhana Thadai, so that is where it lands.
     sani_neutralized = (
         doctrine.o32_putra_sarpa_thulam_sani == "neutralized"
         and lagna_rasi == 7 and "SATURN" in in_house
@@ -1588,18 +1646,20 @@ def detect_putra_sarpa_dosham(
     if sani_neutralized:
         in_house.remove("SATURN")
     # A planet does not join itself. For Thulam lagna Saturn *is* the 5th lord,
-    # and comparing Saturn's rasi with its own formed this dosham in every
+    # and comparing Saturn's rasi with its own formed this finding in every
     # Thulam-lagna chart. One already counted in the house is not counted twice.
     beside_lord = [
-        p for p in _PUTRA_SARPA_AFFLICTORS
+        p for p in afflictors
         if p != fifth_lord and p not in in_house and planets.get(p) == fifth_rasi
     ]
     # Guarded on presence: a chart missing both Jupiter and a node compared
     # None == None and formed the dosham. Where Jupiter is the 5th lord
     # (Simmam, Viruchigam lagna) a node beside it is already counted above.
+    # Nodes only: this is the serpent touching the karaka, so it belongs to
+    # Sarpa and never forms Santhana Thadai.
     beside_guru: list[str] = [
         p for p in ("RAHU", "KETU")
-        if "JUPITER" in planets and p in planets and p not in beside_lord
+        if p in afflictors and "JUPITER" in planets and p in planets and p not in beside_lord
         and planets[p] == planets["JUPITER"] and not (fifth_lord == "JUPITER" and p in in_house)
     ]
     present = bool(in_house or beside_lord or beside_guru)
@@ -1649,7 +1709,7 @@ def detect_putra_sarpa_dosham(
         narrow_margin=len(cancellation) == 1,
     )
     what_ta, what_en, why_ta, why_en, how_ta, how_en = _build_dosham_explanations(
-        "PUTRA_SARPA_DOSHAM",
+        name,
         label,
         conditions_met=conditions_met,
         cancellation_factors=cancellation,
@@ -1669,15 +1729,15 @@ def detect_putra_sarpa_dosham(
         why_ta = (
             "சனி உங்கள் 5-ஆம் வீடான கும்பத்தில் உள்ளது. ஆனால் துலாம் லக்னத்திற்கு சனி 5-ஆம் அதிபதி, "
             "ஆட்சி பெற்றுள்ளது, யோககாரகனும் கூட; தன் சொந்த வீட்டை அது காக்கிறது. "
-            "5-ஆம் வீடு, அதன் அதிபதி அல்லது குருவுக்கு வேறு பாதிப்பு இல்லாததால் புத்ர சர்ப்ப தோஷம் செயல்படவில்லை."
+            "5-ஆம் வீட்டுக்கு வேறு பாதிப்பு இல்லாததால் புத்திர தடை செயல்படவில்லை."
         )
         why_en = (
             "Saturn sits in your 5th house, Kumbam. For Thulam lagna Saturn is the 5th lord, in its own sign, "
             "and the yogakaraka, so it guards the house it owns. With no other affliction to the 5th house, "
-            "its lord or Jupiter, Putra Sarpa Dosham is not active."
+            "Santhana Thadai is not active."
         )
     return DoshamResult(
-        name="PUTRA_SARPA_DOSHAM",
+        name=name,
         is_present=present,
         is_cancelled=is_cancelled,
         strength=strength,
@@ -1689,8 +1749,8 @@ def detect_putra_sarpa_dosham(
         cancellation_factors=cancellation,
         missing_data=[],
         dasha_activated=False,
-        description_ta="புத்ர சர்ப்ப தோஷம் — 5-ஆம் வீடு, அதன் அதிபதி அல்லது குரு ராகு, கேது அல்லது சனியால் பாதிக்கப்படுவது.",
-        description_en="Putra Sarpa dosham — the 5th house, its lord or Jupiter afflicted by Rahu, Ketu or Saturn.",
+        description_ta=description_ta,
+        description_en=description_en,
         explanation_what_ta=what_ta,
         explanation_what_en=what_en,
         explanation_why_ta=why_ta,

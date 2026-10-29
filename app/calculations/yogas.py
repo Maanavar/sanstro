@@ -60,6 +60,7 @@ from app.calculations._yoga_dosham import (
     detect_pitru_dosham,
     detect_putra_sarpa_dosham,
     detect_rahu_ketu_dosham,
+    detect_santhana_thadai,
     detect_sevvai_dosham,
     get_badhaka_lord,
 )
@@ -424,6 +425,12 @@ def detect_yogas_and_doshams(
             planet_scores=planet_scores,
             doctrine=doctrine,
         ),
+        detect_santhana_thadai(
+            planets_rasi,
+            lagna_rasi,
+            planet_scores=planet_scores,
+            doctrine=doctrine,
+        ),
         detect_marana_karaka_sthana(
             planets,
             lagna_rasi,
@@ -535,6 +542,7 @@ __all__ = [
     "detect_pitru_dosham",
     "detect_putra_sarpa_dosham",
     "detect_rahu_ketu_dosham",
+    "detect_santhana_thadai",
     "detect_raja_yoga",
     "detect_raja_yogakaraka",
     "detect_retrograde_debilitated_raja_yoga",

@@ -560,7 +560,8 @@ def _build_dosham_explanations(
         "KALASARPA": "Kala Sarpa indicates all seven classical planets on one side of the Rahu-Ketu axis.",
         "BADHAKA_DOSHAM": "Badhaka dosham is an obstruction pattern from the badhaka lord (the lord of the 11th/9th/7th house, set by your lagna type) that can bring delays and last-minute blocks when it is active.",
         "KALATHRA_DOSHAM": "Kalathra dosham is a marriage-sensitivity indicator formed when the 7th house or its lord is afflicted.",
-        "PUTRA_SARPA_DOSHAM": "Putra Sarpa dosham concerns the 5th house (children, learning, creativity). It forms when Rahu, Ketu or Saturn sits in the 5th house or shares a sign with the 5th lord, or when a node joins Jupiter, the karaka for children.",
+        "PUTRA_SARPA_DOSHAM": "Putra Sarpa dosham concerns the 5th house (children, learning, creativity). It forms when Rahu or Ketu sits in the 5th house or shares a sign with the 5th lord, or when a node joins Jupiter, the karaka for children.",
+        "SANTHANA_THADAI": "Santhana Thadai is delay around children, not denial. It forms when Saturn sits in the 5th house or shares a sign with the 5th lord. It is Saturn's own finding, separate from Putra Sarpa, which needs Rahu or Ketu.",
         "MARANA_KARAKA_STHANA": "Each planet has one house, counted from the Lagna, where tradition holds it weakest: its Marana Karaka Sthana. A planet there gives its own results slowly or with extra effort, most of all in its dasha or bhukti. It is not a prediction about life span.",
     }
     what_ta_map = {
@@ -570,7 +571,8 @@ def _build_dosham_explanations(
         "KALASARPA": "காலசர்ப்ப யோகம் என்பது அனைத்து ஏழு கிரகங்களும் ராகு-கேது அச்சின் ஒரு பக்கத்தில் உள்ளதைக் குறிக்கும்.",
         "BADHAKA_DOSHAM": "பாதக தோஷம் என்பது உங்கள் லக்னப்படி அமையும் பாதக அதிபதி செயல்படும்போது தடைகளையும் கடைசி-நிமிட இடையூறுகளையும் தரக்கூடிய தடை-வடிவம்.",
         "KALATHRA_DOSHAM": "களத்திர தோஷம் என்பது 7-ம் வீடு அல்லது அதன் அதிபதி பாதிக்கப்படும்போது உருவாகும் திருமண உணர்திறன் குறிப்பான்.",
-        "PUTRA_SARPA_DOSHAM": "புத்ர சர்ப்ப தோஷம் குழந்தை, கல்வி, படைப்பாற்றலைக் குறிக்கும் 5-ஆம் வீடு பற்றியது. ராகு, கேது அல்லது சனி 5-ஆம் வீட்டில் இருக்கும்போது, அல்லது 5-ஆம் அதிபதியுடன் ஒரே ராசியில் இருக்கும்போது, அல்லது புத்திர காரகனான குருவுடன் ராகு/கேது சேரும்போது இது உருவாகிறது.",
+        "PUTRA_SARPA_DOSHAM": "புத்ர சர்ப்ப தோஷம் குழந்தை, கல்வி, படைப்பாற்றலைக் குறிக்கும் 5-ஆம் வீடு பற்றியது. ராகு அல்லது கேது 5-ஆம் வீட்டில் இருக்கும்போது, அல்லது 5-ஆம் அதிபதியுடன் ஒரே ராசியில் இருக்கும்போது, அல்லது புத்திர காரகனான குருவுடன் ராகு/கேது சேரும்போது இது உருவாகிறது.",
+        "SANTHANA_THADAI": "புத்திர தடை என்பது குழந்தைப்பேறில் தாமதம், மறுப்பு அல்ல. சனி 5-ஆம் வீட்டில் இருக்கும்போது, அல்லது 5-ஆம் அதிபதியுடன் ஒரே ராசியில் இருக்கும்போது இது உருவாகிறது. இது சனியின் தனி நிலை; ராகு அல்லது கேது தேவைப்படும் புத்ர சர்ப்ப தோஷத்திலிருந்து வேறானது.",
         "MARANA_KARAKA_STHANA": "ஒவ்வொரு கிரகத்திற்கும் லக்னத்திலிருந்து எண்ணும்போது, மரபுப்படி அது மிகவும் பலவீனமாகும் ஒரு வீடு உண்டு: அதுவே அதன் மரண காரக ஸ்தானம். அங்கு இருக்கும் கிரகம் தன் பலன்களை மெதுவாகவோ கூடுதல் முயற்சிக்குப் பிறகோ தரும், குறிப்பாக அதன் தசை அல்லது புக்தியில். இது ஆயுள் பற்றிய கணிப்பு அல்ல.",
     }
     what_en = what_en_map.get(dosham_name, "This is a traditional dosham indicator.")

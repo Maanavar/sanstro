@@ -58,6 +58,7 @@ YOGA_DISPLAY: dict[str, tuple[str, str]] = {
     "PITRU_DOSHAM": ("பித்ரு தோஷம்", "Pitru Dosham"),
     "KALATHRA_DOSHAM": ("களத்திர தோஷம்", "Kalathra Dosham"),
     "PUTRA_SARPA_DOSHAM": ("புத்ர சர்ப்ப தோஷம்", "Putra Sarpa Dosham"),
+    "SANTHANA_THADAI": ("புத்திர தடை", "Santhana Thadai"),
     "BADHAKA_DOSHAM": ("பாதக தோஷம்", "Badhaka Dosham"),
     "MARANA_KARAKA_STHANA": ("மரண காரக ஸ்தானம்", "Marana Karaka Sthana"),
 }

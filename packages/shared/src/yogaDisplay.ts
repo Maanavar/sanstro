@@ -91,6 +91,7 @@ export const YOGA_DISPLAY: Record<string, { ta: string; en: string }> = {
   PITRU_DOSHAM:     { ta: "பித்ரு தோஷம்",       en: "Pitru Dosham" },
   KALATHRA_DOSHAM:  { ta: "களத்திர தோஷம்",    en: "Kalathra Dosham" },
   PUTRA_SARPA_DOSHAM: { ta: "புத்ர சர்ப்ப தோஷம்", en: "Putra Sarpa Dosham" },
+  SANTHANA_THADAI:  { ta: "புத்திர தடை",      en: "Santhana Thadai" },
   BADHAKA_DOSHAM:   { ta: "பாதக தோஷம்",     en: "Badhaka Dosham" },
   MARANA_KARAKA_STHANA: { ta: "மரண காரக ஸ்தானம்", en: "Marana Karaka Sthana" },
 };

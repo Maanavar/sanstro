@@ -11,6 +11,7 @@ _DOSHAM_NAME_TA: dict[str, str] = {
     "PITRU_DOSHAM": "பித்ரு தோஷம்",
     "KALATHRA_DOSHAM": "களத்திர தோஷம்",
     "PUTRA_SARPA_DOSHAM": "புத்ர சர்ப்ப தோஷம்",
+    "SANTHANA_THADAI": "புத்திர தடை",
     "BADHAKA_DOSHAM": "பாதக தோஷம்",
 }
 

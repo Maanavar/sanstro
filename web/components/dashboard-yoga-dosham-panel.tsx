@@ -695,7 +695,7 @@ function ordinal(n: number): string {
  * of their markers (`_putra_sarpa_meaning`, `_mks_meaning` in the engine). On
  * those cards the Planet positions / Protective factors bullets repeated it.
  */
-const MEANING_COVERS_MARKERS = new Set(["PUTRA_SARPA_DOSHAM", "MARANA_KARAKA_STHANA"]);
+const MEANING_COVERS_MARKERS = new Set(["PUTRA_SARPA_DOSHAM", "SANTHANA_THADAI", "MARANA_KARAKA_STHANA"]);
 
 export function doshamMeaningCoversMarkers(d: ChartDoshamInsight): boolean {
   return d.isPresent && MEANING_COVERS_MARKERS.has(d.name.toUpperCase()) && !!(d.meaningEn?.trim() || d.meaningTa?.trim());
@@ -827,12 +827,17 @@ export const DOSHAM_WHAT: Record<string, { ta: string; en: string }> = {
     ta: "திருமண வாழ்க்கையை குறிக்கும் 7-ம் வீடு அல்லது அதன் அதிபதி பாதிக்கப்படும்போது (7-ம் அதிபதி 6/8/12-ல் இருப்பது, பாதக கிரக சேர்க்கை/பார்வை) உருவாகும் துணை-சார்ந்த உணர்திறன் சுட்டி. திருமணத்தில் தாமதம், சரிசெய்தல் சவால்கள், அல்லது துணையின் உடல்நலம்/மனநிலை குறித்த கவனம் தேவைப்படலாம் என்று மரபு சொல்கிறது. நிவர்த்தி காரணங்கள் இருந்தால் தாக்கம் பெரிதும் குறையும்.",
     en: "A partnership-sensitivity indicator formed when the 7th house (marriage) or its lord is afflicted — e.g. the 7th lord placed in the 6th, 8th, or 12th, or under malefic aspect/conjunction. Tradition reads it as a need for extra care around marriage timing, adjustment, or a partner's wellbeing. Cancellation factors (a strong, own-sign, or exalted 7th lord) substantially reduce the impact.",
   },
-  // Says what the engine checks (Rahu, Ketu, Saturn — not "malefics"), and
+  // Says what the engine checks (Rahu and Ketu — not "malefics"), and
   // separates the two sides: what disturbs the house and what guards it. The
   // old line named the 5th house as both cause and cure (owner, 2026-10-06).
+  // Saturn left this dosham for SANTHANA_THADAI (AAU-12, 2026-10-29).
   PUTRA_SARPA_DOSHAM: {
-    ta: "குழந்தை, கல்வி, படைப்பாற்றலைக் குறிக்கும் 5-ஆம் வீடு பற்றிய தோஷம். ராகு, கேது அல்லது சனி 5-ஆம் வீட்டில் இருக்கும்போது, அல்லது 5-ஆம் அதிபதி இருக்கும் ராசியிலேயே இருக்கும்போது, அல்லது புத்திர காரகனான குருவுடன் ராகு/கேது சேரும்போது இது உருவாகிறது. இரண்டு தனி விஷயங்கள் பார்க்கப்படுகின்றன: வீட்டைப் பாதிப்பது (அதில் அல்லது அதன் அதிபதியுடன் இருக்கும் பாவ கிரகம்), வீட்டைக் காப்பது (அதிபதியின் சொந்த பலம், அல்லது கேந்திரத்தில் குரு). ஒரே ஜாதகத்தில் இரண்டும் இருக்கலாம்.",
-    en: "A dosham about the 5th house — children, learning and creativity. It forms when Rahu, Ketu or Saturn sits in the 5th house or shares a sign with the 5th lord, or when a node joins Jupiter, the karaka for children. Two separate things are weighed: what disturbs the house (a malefic in it or beside its lord) and what guards it (the lord's own strength, or Jupiter in a kendra). A chart can have both.",
+    ta: "குழந்தை, கல்வி, படைப்பாற்றலைக் குறிக்கும் 5-ஆம் வீடு பற்றிய தோஷம். ராகு அல்லது கேது 5-ஆம் வீட்டில் இருக்கும்போது, அல்லது 5-ஆம் அதிபதி இருக்கும் ராசியிலேயே இருக்கும்போது, அல்லது புத்திர காரகனான குருவுடன் சேரும்போது இது உருவாகிறது. இரண்டு தனி விஷயங்கள் பார்க்கப்படுகின்றன: வீட்டைப் பாதிப்பது (அதில் அல்லது அதன் அதிபதியுடன் இருக்கும் ராகு/கேது), வீட்டைக் காப்பது (அதிபதியின் சொந்த பலம், அல்லது கேந்திரத்தில் குரு). ஒரே ஜாதகத்தில் இரண்டும் இருக்கலாம்.",
+    en: "A dosham about the 5th house — children, learning and creativity. It forms when Rahu or Ketu sits in the 5th house or shares a sign with the 5th lord, or joins Jupiter, the karaka for children. Two separate things are weighed: what disturbs the house (a node in it or beside its lord) and what guards it (the lord's own strength, or Jupiter in a kendra). A chart can have both.",
+  },
+  SANTHANA_THADAI: {
+    ta: "குழந்தைப்பேறில் தாமதம், மறுப்பு அல்ல. சனி 5-ஆம் வீட்டில் இருக்கும்போது, அல்லது 5-ஆம் அதிபதி இருக்கும் ராசியிலேயே இருக்கும்போது இது உருவாகிறது. இது சனியின் தனி நிலை; ராகு அல்லது கேது தேவைப்படும் புத்ர சர்ப்ப தோஷத்திலிருந்து வேறானது, அதன் பரிகாரமும் வேறு. வீட்டைக் காப்பது: அதிபதியின் சொந்த பலம், அல்லது கேந்திரத்தில் குரு.",
+    en: "Delay around children, not denial. It forms when Saturn sits in the 5th house or shares a sign with the 5th lord. It is Saturn's own finding, separate from Putra Sarpa (which needs Rahu or Ketu), with a different remedy. What guards the house: the lord's own strength, or Jupiter in a kendra.",
   },
   MARANA_KARAKA_STHANA: {
     ta: "ஒவ்வொரு கிரகத்திற்கும், லக்னத்திலிருந்து எண்ணும்போது, மரபுப்படி அது மிகவும் பலவீனமாகும் ஒரு வீடு உண்டு — அதுவே அதன் மரண காரக ஸ்தானம்: சூரியன் 12, சந்திரன் 8, செவ்வாய் 7, புதன் 7, குரு 3, சுக்கிரன் 6, சனி 1. அங்கு இருக்கும் கிரகம் தன் பலன்களைத் தர சிரமப்படும். 'மரணம்' என்பது மரபுச் சொல் மட்டுமே; இது ஆயுள் பற்றிய கணிப்பு அல்ல. அந்தக் கிரகம் ஆட்சி அல்லது உச்சம் பெற்றிருந்தால், அல்லது குருவின் பார்வை பெற்றிருந்தால், இது பெருமளவு ஈடுசெய்யப்படும்.",
@@ -1211,6 +1216,10 @@ export const DOSHAM_OUTCOMES: Record<string, { ta: string; en: string }> = {
     ta: "குழந்தைப்பேறில் தாமதம் அல்லது மருத்துவ கவனம் தேவைப்படலாம்; படைப்புத் திறன், கல்வி, முதலீடு சம்பந்தப்பட்ட திட்டங்களில் தடைகள் வரலாம். இது ஒரு பாரம்பரிய சுட்டி மட்டுமே, மருத்துவ கணிப்பு அல்ல — பலர் பொறுமையுடனும் சரியான மருத்துவ கவனிப்புடனும் இயல்பாக கருத்தரிக்கின்றனர்.",
     en: "Possible delay or medical attention around having children; creative, educational, or speculative ventures may meet blocks. This is a traditional reading, not a medical prediction — many people conceive naturally with time and the right care.",
   },
+  SANTHANA_THADAI: {
+    ta: "குழந்தைப்பேறு தாமதமாகலாம்; சனியின் பாடம் பொறுமை. இது ஒரு பாரம்பரிய சுட்டி மட்டுமே, மருத்துவ கணிப்பு அல்ல — பலர் காலத்துடனும் சரியான மருத்துவ கவனிப்புடனும் இயல்பாக கருத்தரிக்கின்றனர்.",
+    en: "Children may come later than hoped; Saturn's lesson is patience. This is a traditional reading, not a medical prediction — many people conceive naturally with time and the right care.",
+  },
   MARANA_KARAKA_STHANA: {
     // Effects only; the concrete steps live under "How to reduce impact".
     ta: "அந்தக் கிரகம் குறிக்கும் விஷயங்கள் ('உங்கள் ஜாதகத்தில்' பகுதியைப் பாருங்கள்) வராமல் போவதில்லை; மெதுவாகவும் சுற்றுவழியிலும் வரும். அதன் துறையில் உடல்நலமும் பெரிய முடிவுகளும் சற்றுக் கூடுதல் கவனம் கேட்கும்.",
@@ -1247,6 +1256,11 @@ export const DOSHAM_REMEDIES: Record<string, { ta: string; en: string }> = {
     // Medical guidance is said once, under "How to reduce impact".
     ta: "சந்தான கோபால மந்திரம், திருநாகேஸ்வரம்/மன்னார்குடி வழிபாடு, நாக பிரதிஷ்டை பரிகாரம், வியாழக்கிழமை குரு வழிபாடு.",
     en: "Santana Gopala mantra, worship at Thirunageswaram/Mannargudi, Naga pratishtha parihara, and Thursday Jupiter worship.",
+  },
+  // AAU-12: Saturn's parihara, never the naga route above.
+  SANTHANA_THADAI: {
+    ta: "சனிக்கிழமை சனீஸ்வரர் வழிபாடு, திருநள்ளாறு தரிசனம், எள் தீபம், சந்தான கோபால மந்திரம்.",
+    en: "Saturday worship of Saneeswaran, a visit to Thirunallar, an ellu (sesame) deepam, and the Santana Gopala mantra.",
   },
   // Fallback only; `getDoshamRemedies` names the planet's own day and temple.
   MARANA_KARAKA_STHANA: {
@@ -1319,6 +1333,10 @@ export const DOSHAM_HOW_TO: Record<string, { ta: string; en: string }> = {
     // planet from "In your chart", which names the dasha of what disturbs it.
     ta: "தாக்கத்தைக் குறைக்க: மருத்துவ ஆலோசனையை ஆன்மீக பரிகாரத்துடன் இணைக்கவும், 'உங்கள் ஜாதகத்தில்' பகுதியில் சொன்ன தசை அல்லது புக்தியில் 5-ஆம் வீட்டு விஷயங்களுக்குக் கூடுதல் காலம் கொடுக்கவும், படைப்புத் திட்டங்களில் பொறுமை வளர்க்கவும், அழுத்தத்தைக் குறைக்கவும்.",
     en: "To reduce impact: combine medical guidance with the spiritual remedy, give 5th-house matters extra time in the dasha or bhukti named under 'In your chart', build patience in creative ventures, and keep stress low.",
+  },
+  SANTHANA_THADAI: {
+    ta: "தாக்கத்தைக் குறைக்க: மருத்துவ ஆலோசனையை ஆன்மீக பரிகாரத்துடன் இணைக்கவும், சனி தசை அல்லது புக்தியில் 5-ஆம் வீட்டு விஷயங்களுக்குக் கூடுதல் காலம் கொடுக்கவும், அவசரத்தை விட ஒழுங்கான முயற்சியைத் தேர்ந்தெடுக்கவும்.",
+    en: "To reduce impact: combine medical guidance with the spiritual remedy, give 5th-house matters extra time in a Saturn dasha or bhukti, and choose steady effort over haste.",
   },
   MARANA_KARAKA_STHANA: {
     // Worship is the Remedies box's job; it was said here too.
@@ -1446,6 +1464,12 @@ const DOSHAM_POWER_CONTEXT: Record<string, {
     cancelled: { ta: "இதை மறுப்பாக அல்ல, தாமதமாகப் படியுங்கள்: வீடு காக்கப்படுவதால், காலமும் தொடர்ந்த முயற்சியும் பலன் தரும்.", en: "Read it as delay, not denial: with the house guarded, time and steady effort tend to bring results." },
     candidate: { ta: "புத்ர சர்ப்ப சாத்திய சுட்டி மட்டும்; முழு ஜாதக உறுதிப்பாடு தேவை.", en: "Putra Sarpa is a candidate signal only; confirm in full chart context." },
     absent:    { ta: "புத்ர சர்ப்ப தோஷம் இல்லை.", en: "Putra Sarpa Dosham is not present." },
+  },
+  SANTHANA_THADAI: {
+    active:    { ta: "காத்திருக்காமல், 5-ஆம் வீட்டு விஷயங்களில் முன்கூட்டியே தொடங்கி பொறுமையுடன் தொடர்ந்த கவனம் செலுத்துங்கள்.", en: "Start early and give 5th-house matters patient, steady attention; Saturn delays, it does not deny." },
+    cancelled: { ta: "இதை மறுப்பாக அல்ல, தாமதமாகப் படியுங்கள்: வீடு காக்கப்படுவதால், காலமும் தொடர்ந்த முயற்சியும் பலன் தரும்.", en: "Read it as delay, not denial: with the house guarded, time and steady effort tend to bring results." },
+    candidate: { ta: "புத்திர தடை சாத்திய சுட்டி மட்டும்; முழு ஜாதக உறுதிப்பாடு தேவை.", en: "Santhana Thadai is a candidate signal only; confirm in full chart context." },
+    absent:    { ta: "புத்திர தடை இல்லை.", en: "Santhana Thadai is not present." },
   },
 };
 
