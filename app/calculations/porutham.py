@@ -18,12 +18,12 @@ The 10 Poruthams (Tamil → calculation rule):
   1. Dinam      (தினம்)           — count boy's nak from girl's (1-based, 1-27); pass only for the classical good-count table (incl. the 9th/18th counts, Parama Mitra tara)
   2. Ganam      (கணம்)            — Deva/Manushya/Rakshasa; Deva+Deva or Deva+Manushya = pass
   3. Mahendra   (மகேந்திரம்)      — count boy's nak from girl's; pass if result ∈ {4,7,10,13,16,19,22,25}
-  4. Stree Dirgham (ஸ்திரீ தீர்கம்) — count boy's nak from girl's; 1–7 Adhama,
+  4. Stree Dirgham (ஸ்திரீ தீர்க்கம்) — count boy's nak from girl's; 1–7 Adhama,
      8–13 Madhyama (0.5), 14–27 Uttama
   5. Yoni       (யோனி)            — same or neutral animal pair = pass; hostile pair = fail
   6. Rasi       (ராசி)            — pass unless 6th or 8th position (Shashtashtaka) between rasis
   7. Rasiyathipathi (ராசியாதிபதி) — FAIL if either rasi lord regards the other as an enemy (one-way enmity fails)
-  8. Vasya      (வாஸ்யம்)         — at least one rasi must be vasya of the other
+  8. Vasya      (வசியம்)          — at least one rasi must be vasya of the other
   9. Rajju      (ரஜ்ஜு)          — same Rajju group = VETO (see RAJJU_SOURCE_TEXT_CATEGORY)
  10. Vedha      (வேதை)           — Vedha nakshatra pair = VETO
 
@@ -1127,8 +1127,9 @@ def compute_porutham(
 
     _names_ta = {
         "Dinam": "தினம்", "Ganam": "கணம்", "Mahendra": "மகேந்திரம்",
-        "Stree Dirgha": "ஸ்திரீ தீர்கம்", "Yoni": "யோனி", "Rasi": "ராசி",
-        "Graha Maitri": "ராசியாதிபதி", "Vasya": "வாஸ்யம்",
+        # Almanac spellings (AAU-18, 2026-10-29): வசியம், ஸ்திரீ தீர்க்கம்.
+        "Stree Dirgha": "ஸ்திரீ தீர்க்கம்", "Yoni": "யோனி", "Rasi": "ராசி",
+        "Graha Maitri": "ராசியாதிபதி", "Vasya": "வசியம்",
         "Rajju": "ரஜ்ஜு", "Vedha": "வேதை",
     }
 

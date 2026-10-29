@@ -610,11 +610,11 @@ _CONTEXT_NOTE: dict[str, dict[str, str]] = {
         "en": "Friendship context: Dina, Gana, Rasi, Graha Maitri, and Vedha factors are evaluated.",
     },
     "BUSINESS": {
-        "ta": "தொழில் பொருத்தம்: கணம், மஹேந்திரம், ராசி, கிரக மைத்திரி, வாஸ்யம் மூலம் கூட்டாண்மை திறன் மதிப்பிடப்படுகிறது.",
+        "ta": "தொழில் பொருத்தம்: கணம், மகேந்திரம், ராசி, கிரக மைத்திரி, வசியம் மூலம் கூட்டாண்மை திறன் மதிப்பிடப்படுகிறது.",
         "en": "Business context: Gana, Mahendra, Rasi, Graha Maitri, and Vasya factors evaluate partnership potential.",
     },
     "FAMILY": {
-        "ta": "குடும்ப பொருத்தம்: ராசி, கணம், வாஸ்யம், கிரக மைத்திரி, வேதை மூலம் ஒற்றுமை மதிப்பிடப்படுகிறது.",
+        "ta": "குடும்ப பொருத்தம்: ராசி, கணம், வசியம், கிரக மைத்திரி, வேதை மூலம் ஒற்றுமை மதிப்பிடப்படுகிறது.",
         "en": "Family context: Rasi, Gana, Vasya, Graha Maitri, and Vedha factors evaluate harmony.",
     },
     "GENERAL": {
