@@ -155,3 +155,21 @@ def test_career_score_is_within_bounds():
         inp = CareerAssessmentInput(**{**_BASE_INPUT, "employment_type": emp})
         result = assess_career_prediction(inp)
         assert result.confidence in ("HIGH", "MEDIUM", "LOW")
+
+
+# ---------------------------------------------------------------------------
+# No age-band term (the AAU-14 follow-up, 2026-10-29)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("ages", [(23, 24), (50, 51)])
+def test_reading_does_not_change_when_only_the_age_crosses_the_old_band(ages):
+    """The removed term gave ages 24-50 +5 from no named source. With the life
+    stage held fixed, the same chart must read the same either side of 24 and 50."""
+    young, old = (
+        assess_career_prediction(CareerAssessmentInput(**{**_BASE_INPUT, "age": age}))
+        for age in ages
+    )
+    assert young.confidence == old.confidence
+    assert young.main_prediction_en == old.main_prediction_en
+    assert young.supports == old.supports
+    assert young.challenges == old.challenges
