@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 import { DashboardAuxiliaryShell } from "@/components/dashboard-auxiliary-shell";
+import { QueryProvider } from "@/components/query-provider";
 
 // Inbox is an authenticated product surface even though its legacy URL is
 // outside /dashboard. Load the same Nova shell styles as dashboard routes.
@@ -21,10 +22,20 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+/**
+ * The provider app/dashboard/layout.tsx gives every /dashboard route. This
+ * route is outside that tree, and the shell's identity sub-bar reads the
+ * reader's chart through react-query (hooks/useHeroIdentity.ts) — without it
+ * the page threw "No QueryClient set". Same singleton client, so the cache is
+ * shared with the dashboard. lib/payload-boundary.test.ts pins this as the one
+ * public-group route allowed to carry it.
+ */
 export default function NotificationsLayout({ children }: { children: ReactNode }) {
   return (
-    <DashboardAuxiliaryShell pageTitle={{ en: "Inbox", ta: "அறிவிப்புப் பெட்டி" }}>
-      {children}
-    </DashboardAuxiliaryShell>
+    <QueryProvider>
+      <DashboardAuxiliaryShell pageTitle={{ en: "Inbox", ta: "அறிவிப்புப் பெட்டி" }}>
+        {children}
+      </DashboardAuxiliaryShell>
+    </QueryProvider>
   );
 }
