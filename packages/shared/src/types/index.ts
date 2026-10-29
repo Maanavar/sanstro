@@ -1838,6 +1838,26 @@ export interface ShashtashtakaNote {
   note: BiText;
 }
 
+/**
+ * ஏக நட்சத்திரம் (F-POR-03): both partners share a birth star. A disclosure
+ * rendered beside the Rajju row, never a verdict: Rajju itself is unchanged
+ * and still fails. `classification` is null and `rajjuExceptionApplied` false
+ * until a named source supplies the star+pada table. The pada fields are null
+ * when the request had no birth pada (the by-star tools).
+ *
+ * Optional on every payload, like `shashtashtaka`: absent means not present.
+ */
+export interface EkaNakshatraNote {
+  present: boolean;
+  boyPada: number | null;
+  girlPada: number | null;
+  samePada: boolean | null;
+  classification: string | null;
+  rajjuExceptionApplied: boolean;
+  label: BiText;
+  note: BiText;
+}
+
 export interface PorutthamData {
   familyVaultId: string; memberId: string;
   boyNakshatra: number; boyNakshatraName: string;
@@ -1845,6 +1865,7 @@ export interface PorutthamData {
   kutas: KutaResult[]; totalScore: number; maxScore: number; percentage: number; label: string;
   rajjuDosha: boolean; vedhaDosha: boolean; summary: BiText;
   shashtashtaka?: ShashtashtakaNote | null;
+  ekaNakshatra?: EkaNakshatraNote | null;
   compatibilityContext: string; contextNote: BiText | null;
 }
 
@@ -1855,6 +1876,7 @@ export interface DirectPoruthamData {
   kutas: KutaResult[]; totalScore: number; maxScore: number; percentage: number; label: string;
   rajjuDosha: boolean; vedhaDosha: boolean; summary: BiText;
   shashtashtaka?: ShashtashtakaNote | null;
+  ekaNakshatra?: EkaNakshatraNote | null;
   compatibilityContext: string; contextNote: BiText | null;
 }
 
@@ -1865,6 +1887,7 @@ export interface PublicPoruthamStarData {
   kutas: KutaResult[]; totalScore: number; maxScore: number; percentage: number; label: string;
   rajjuDosha: boolean; vedhaDosha: boolean; nadiDosha: NadiDoshaResult;
   shashtashtaka?: ShashtashtakaNote | null;
+  ekaNakshatra?: EkaNakshatraNote | null;
   summary: BiText; compatibilityContext: string;
 }
 
@@ -1944,6 +1967,7 @@ export interface CompatibilityIntelligenceData {
   poruthamKutas: KutaResult[]; rajjuDosha: boolean; vedhaDosha: boolean;
   nadiDosha: NadiDoshaResult;
   shashtashtaka?: ShashtashtakaNote | null;
+  ekaNakshatra?: EkaNakshatraNote | null;
   chartAStrength: ChartMarriageStrength; chartBStrength: ChartMarriageStrength;
   navamsa: NavamsaCompatibility; sevvaiA: SevvaiDoshamDetail; sevvaiB: SevvaiDoshamDetail;
   dashaHarmony: DashaHarmony; emotional: EmotionalCompatibility;

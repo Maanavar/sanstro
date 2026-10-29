@@ -818,6 +818,12 @@ def generate_porutham_pdf(
 
     if porutham.rajju_dosha:
         story.append(Paragraph(_label("warning_rajju", lang), body_style))
+    # F-POR-03, directly under the Rajju warning it qualifies: a same-star
+    # couple always fails Rajju, and the note says why that is not the whole
+    # story. A disclosure — no exception is applied.
+    if porutham.eka_nakshatra is not None and porutham.eka_nakshatra.present:
+        story.append(Paragraph(_bitext(porutham.eka_nakshatra.label, lang), body_style))
+        story.append(Paragraph(_bitext(porutham.eka_nakshatra.note, lang), small_style))
     if porutham.vedha_dosha:
         story.append(Paragraph(_label("warning_vedha", lang), body_style))
     # F-POR-02. A printed sheet is the copy taken to a jothidar, so it is the
@@ -1016,6 +1022,10 @@ def generate_compatibility_intelligence_pdf(
         # cancellation (A-9 v2) clears has_nadi_dosha but the reason it was
         # cleared is still worth surfacing.
         story.append(Paragraph(f"Nadi Dosha notes: {', '.join(report.nadi_dosha.cancellations)}", body_style))
+    # F-POR-03 — see the porutham sheet above.
+    if report.eka_nakshatra is not None and report.eka_nakshatra.present:
+        story.append(Paragraph(_bitext(report.eka_nakshatra.label, lang), body_style))
+        story.append(Paragraph(_bitext(report.eka_nakshatra.note, lang), caption_style))
     # F-POR-02 — see the porutham sheet above for why this is printed.
     if report.shashtashtaka is not None and report.shashtashtaka.present:
         story.append(Paragraph(_bitext(report.shashtashtaka.label, lang), body_style))

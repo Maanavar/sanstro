@@ -7,7 +7,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
-import { NAKSHATRA_LIST, rasiDisplayName, type ShashtashtakaNote } from "@vinaadi/shared";
+import { NAKSHATRA_LIST, rasiDisplayName, type EkaNakshatraNote, type ShashtashtakaNote } from "@vinaadi/shared";
 import { nakshatraPadaGroups } from "@vinaadi/shared/nakshatraRasi";
 import { C } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
@@ -101,10 +101,11 @@ function PadaGroupPicker({ nakshatra, value, onChange, lang }: {
  * so it takes the caution tint (never the alert colour the vetoes use) and
  * carries no score or pass/fail word. The wording is the server's — the
  * astrologer's text, pinned by tests/test_shashtashtaka.py — never a local copy.
- * Mobile twin of web/components/shashtashtaka-note.tsx.
+ * Mobile twin of web/components/shashtashtaka-note.tsx. The ஏக நட்சத்திரம்
+ * note (F-POR-03) has the same shape and renders through this card too.
  */
 function ShashtashtakaNoteCard({ note, isTamil }: {
-  note: ShashtashtakaNote | null | undefined;
+  note: ShashtashtakaNote | EkaNakshatraNote | null | undefined;
   isTamil: boolean;
 }) {
   if (!note?.present) return null;
@@ -258,7 +259,9 @@ export default function PoruthamScreen() {
                 </Text>
               </View>
 
-              {/* Beside the verdict, never part of it — same place as the web calculator. */}
+              {/* Beside the verdict, never part of it — same place as the web calculator.
+                  F-POR-03 first: it qualifies the Rajju result in the summary above. */}
+              <ShashtashtakaNoteCard note={result.ekaNakshatra} isTamil={isTamil} />
               <ShashtashtakaNoteCard note={result.shashtashtaka} isTamil={isTamil} />
 
               {result.kutas.map((k) => (

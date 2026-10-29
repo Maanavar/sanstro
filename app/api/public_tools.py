@@ -51,6 +51,7 @@ from app.schemas.panchangam import (
 )
 from app.schemas.relationships import (
     DirectPoruthamData,
+    EkaNakshatraData,
     KutaResult,
     NadiDoshaData,
     RelationshipBiText,
@@ -335,6 +336,7 @@ def public_porutham(payload: PublicPoruthamRequest, request: Request) -> PublicP
         girl_rasi=moon_b.rasi,
         boy_pada=moon_a.pada,
         girl_pada=moon_b.pada,
+        pada_known=True,  # both from a computed Moon position
         nadi_parihara_mode=get_flag("nadi_parihara_mode"),
     )
 
@@ -380,6 +382,7 @@ def public_porutham(payload: PublicPoruthamRequest, request: Request) -> PublicP
         rajju_dosha=result.rajju_dosha,
         vedha_dosha=result.vedha_dosha,
         nadi_dosha=nadi_data,
+        eka_nakshatra=EkaNakshatraData.from_note(result.eka_nakshatra),
         summary=RelationshipBiText(ta=result.summary_ta, en=result.summary_en),
         compatibility_context=payload.compatibility_context,
         context_note=None,
@@ -428,6 +431,8 @@ class PublicPoruthamStarData(BaseModel):
     nadi_dosha: NadiDoshaData = Field(alias="nadiDosha")
     # F-POR-02 disclosure; optional so an older payload still validates.
     shashtashtaka: ShashtashtakaData | None = None
+    # F-POR-03 disclosure; optional for the same reason.
+    eka_nakshatra: EkaNakshatraData | None = Field(default=None, alias="ekaNakshatra")
     summary: RelationshipBiText
     compatibility_context: str = Field(default="MARRIAGE", alias="compatibilityContext")
 
@@ -542,6 +547,9 @@ def _compute_star_porutham(
                 ta=result.shashtashtaka.note_ta, en=result.shashtashtaka.note_en
             ),
         ),
+        # pada_known is not passed: this route's padas are "which half" markers
+        # or a default, so the note reports the padas as unknown.
+        eka_nakshatra=EkaNakshatraData.from_note(result.eka_nakshatra),
         summary=RelationshipBiText(ta=result.summary_ta, en=result.summary_en),
         compatibility_context=compatibility_context,
     )

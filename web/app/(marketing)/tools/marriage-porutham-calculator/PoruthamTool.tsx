@@ -3,7 +3,7 @@
 import { LocalizedLink as Link } from "@/components/localized-link";
 import { useEffect, useState } from "react";
 import { useLang } from "@/components/lang-toggle";
-import { ShashtashtakaNoteCard } from "@/components/shashtashtaka-note";
+import { EkaNakshatraNoteCard, ShashtashtakaNoteCard } from "@/components/shashtashtaka-note";
 import { romanNakshathiramName } from "@/lib/tamil-astro";
 import { readErrorMessage } from "@/lib/api";
 import { verdictPhrase } from "@/lib/verdict-lexicon";
@@ -100,6 +100,14 @@ function getEffRasi(starIdx: number, split: "early" | "late" | null): number {
   return RASI[starIdx];
 }
 
+// A split star's half is required, never defaulted. The star alone does not fix
+// the Moon sign, and Rasi, Rasiyathipathi, Vasya and the 6/8 note all read it;
+// the backend's majority-half default flips the 6/8 answer for 144 of the 405
+// pairings involving a split star (mobile's PadaGroupPicker gives the count).
+export function halfAnswered(star: number | null, split: "early" | "late" | null): boolean {
+  return star !== null && (!SPLIT_NAK[star] || split !== null);
+}
+
 function splitToPada(split: "early" | "late" | null): number | undefined {
   if (split === "early") return 1;
   if (split === "late") return 4;
@@ -166,10 +174,13 @@ export function PoruthamTool() {
   const starEffRasi = (star: number) =>
     star === girlStar ? (girlEffRasi ?? RASI[star]) : (boyEffRasi ?? RASI[star]);
 
+  const girlReady = halfAnswered(girlStar, girlSplit);
+  const boyReady = halfAnswered(boyStar, boySplit);
+
   // Fetch all 27 boy-star comparisons in one call whenever the girl star (or her
   // pada choice) changes — powers both the inline score grid and the "Full Grid" tab.
   useEffect(() => {
-    if (girlStar === null) { setGridData(null); setGridError(""); return; }
+    if (girlStar === null || !girlReady) { setGridData(null); setGridError(""); return; }
     let cancelled = false;
     setGridLoading(true);
     setGridError("");
@@ -178,11 +189,13 @@ export function PoruthamTool() {
       .catch((err) => { if (!cancelled) setGridError(readErrorMessage(err)); })
       .finally(() => { if (!cancelled) setGridLoading(false); });
     return () => { cancelled = true; };
-  }, [girlStar, girlSplit]);
+  }, [girlStar, girlSplit, girlReady]);
 
   // Fetch the full 10-kuta breakdown for the selected pair.
   useEffect(() => {
-    if (girlStar === null || boyStar === null) { setDetailData(null); setDetailError(""); return; }
+    if (girlStar === null || boyStar === null || !girlReady || !boyReady) {
+      setDetailData(null); setDetailError(""); return;
+    }
     let cancelled = false;
     setDetailLoading(true);
     setDetailError("");
@@ -196,7 +209,43 @@ export function PoruthamTool() {
       .catch((err) => { if (!cancelled) setDetailError(readErrorMessage(err)); })
       .finally(() => { if (!cancelled) setDetailLoading(false); });
     return () => { cancelled = true; };
-  }, [girlStar, boyStar, girlSplit, boySplit]);
+  }, [girlStar, boyStar, girlSplit, boySplit, girlReady, boyReady]);
+
+  // Asked in both tabs: the grid needs the girl's half as much as one pair does.
+  const girlHalfPicker = girlStar !== null && SPLIT_NAK[girlStar] ? (
+    <div style={{ padding: "12px 14px", background: "var(--cl-bg-2)", border: "1px solid var(--cl-accent)", borderRadius: "10px", fontSize: "12px" }}>
+      <div style={{ fontWeight: 700, color: "var(--cl-accent)", marginBottom: "8px" }}>
+        {ta
+          ? `${NAKSHATRAS[girlStar].ta} இரண்டு ராசிகளில் பிரிகிறது — எந்த பாதம்?`
+          : `${starNameEn(girlStar)} spans two rasis — which pada group?`}
+      </div>
+      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+        {(["early", "late"] as const).map(k => {
+          const opt = SPLIT_NAK[girlStar][k];
+          return (
+            <button key={k} type="button"
+              onClick={() => setGirlSplit(prev => prev === k ? null : k)}
+              style={{
+                padding: "7px 16px", borderRadius: "8px", fontSize: "12px", fontWeight: 600,
+                cursor: "pointer", fontFamily: "inherit",
+                border: `1.5px solid ${girlSplit === k ? "var(--cl-accent)" : "var(--cl-border)"}`,
+                background: girlSplit === k ? "var(--cl-accent-soft)" : "var(--cl-surface)",
+                color: girlSplit === k ? "var(--cl-accent)" : "var(--cl-ink)",
+              }}>
+              {ta ? opt[0] : opt[1]}
+            </button>
+          );
+        })}
+      </div>
+      {girlSplit === null && (
+        <div role="status" style={{ marginTop: "6px", fontSize: "11px", color: "var(--cl-muted)" }}>
+          {ta
+            ? "பொருத்தத்தைக் காண ஒன்றைத் தேர்வு செய்யவும்."
+            : "Choose one to see the matches."}
+        </div>
+      )}
+    </div>
+  ) : null;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
@@ -246,43 +295,10 @@ export function PoruthamTool() {
           </div>
 
           {/* Pada sub-selector — shown for any nakshatra whose padas straddle two rasis */}
-          {girlStar !== null && SPLIT_NAK[girlStar] && (
-            <div style={{ padding: "12px 14px", background: "var(--cl-bg-2)", border: "1px solid var(--cl-accent)", borderRadius: "10px", fontSize: "12px" }}>
-              <div style={{ fontWeight: 700, color: "var(--cl-accent)", marginBottom: "8px" }}>
-                {ta
-                  ? `${NAKSHATRAS[girlStar].ta} இரண்டு ராசிகளில் பிரிகிறது — எந்த பாதம்?`
-                  : `${starNameEn(girlStar)} spans two rasis — which pada group?`}
-              </div>
-              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                {(["early", "late"] as const).map(k => {
-                  const opt = SPLIT_NAK[girlStar][k];
-                  return (
-                    <button key={k} type="button"
-                      onClick={() => setGirlSplit(prev => prev === k ? null : k)}
-                      style={{
-                        padding: "7px 16px", borderRadius: "8px", fontSize: "12px", fontWeight: 600,
-                        cursor: "pointer", fontFamily: "inherit",
-                        border: `1.5px solid ${girlSplit === k ? "var(--cl-accent)" : "var(--cl-border)"}`,
-                        background: girlSplit === k ? "var(--cl-accent-soft)" : "var(--cl-surface)",
-                        color: girlSplit === k ? "var(--cl-accent)" : "var(--cl-ink)",
-                      }}>
-                      {ta ? opt[0] : opt[1]}
-                    </button>
-                  );
-                })}
-              </div>
-              {girlSplit === null && (
-                <div style={{ marginTop: "6px", fontSize: "11px", color: "var(--cl-muted)" }}>
-                  {ta
-                    ? `பாதம் தேர்வு செய்யாவிட்டால் ${RASI_NAMES_TA[RASI[girlStar]]} எனக் கணக்கிடப்படும்.`
-                    : `If not selected, ${RASI_NAMES_EN[RASI[girlStar]]} is used by default for Rasi, Rasiyathipathi, and Vasya poruthams.`}
-                </div>
-              )}
-            </div>
-          )}
+          {girlHalfPicker}
 
-          {/* Boy star results */}
-          {girlStar !== null && (
+          {/* Boy star results — not until a split girl star's half is chosen */}
+          {girlStar !== null && girlReady && (
             <div>
               <p style={{ margin: "0 0 6px", fontSize: "0.78rem", fontWeight: 700, color: "var(--cl-sage)" }}>
                 ♂ {ta ? `${NAKSHATRAS[girlStar].ta} பெண்ணுக்கு — ஆண் நட்சத்திர பொருத்தம்` : `Compatibility for ${starNameEn(girlStar)} girl`}
@@ -381,17 +397,17 @@ export function PoruthamTool() {
                 })}
               </div>
               {boySplit === null && (
-                <div style={{ marginTop: "6px", fontSize: "11px", color: "var(--cl-muted)" }}>
+                <div role="status" style={{ marginTop: "6px", fontSize: "11px", color: "var(--cl-muted)" }}>
                   {ta
-                    ? `பாதம் தேர்வு செய்யாவிட்டால் ${RASI_NAMES_TA[RASI[boyStar]]} எனக் கணக்கிடப்படும்.`
-                    : `If not selected, ${RASI_NAMES_EN[RASI[boyStar]]} is used by default for Rasi, Rasiyathipathi, and Vasya poruthams.`}
+                    ? "பொருத்தத்தைக் காண ஒன்றைத் தேர்வு செய்யவும்."
+                    : "Choose one to see the result."}
                 </div>
               )}
             </div>
           )}
 
-          {/* Detail breakdown */}
-          {boyStar !== null && girlStar !== null && (
+          {/* Detail breakdown — not until a split boy star's half is chosen */}
+          {boyStar !== null && girlStar !== null && boyReady && (
             <div style={{ background: "var(--cl-surface)", border: "1px solid var(--cl-border)", borderRadius: "14px", padding: "18px" }}>
 
               {detailError && <p style={{ margin: 0, color: "var(--cl-caution)", fontSize: "0.8rem" }}>{detailError}</p>}
@@ -430,6 +446,8 @@ export function PoruthamTool() {
                     {ta ? detailData.summary.ta : detailData.summary.en}
                   </div>
 
+                  {/* F-POR-03: same-star note, qualifying the Rajju result above it. */}
+                  <EkaNakshatraNoteCard note={detailData.ekaNakshatra} lang={ta ? "ta" : "en"} />
                   {/* F-POR-02: a disclosure beside the verdict, never part of it. */}
                   <ShashtashtakaNoteCard note={detailData.shashtashtaka} lang={ta ? "ta" : "en"} />
 
@@ -533,7 +551,7 @@ export function PoruthamTool() {
           {girlStar === null ? (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(128px, 1fr))", gap: "6px" }}>
               {NAKSHATRAS.map((n, i) => (
-                <button key={i} onClick={() => setGirlStar(i)}
+                <button key={i} onClick={() => { setGirlStar(i); setGirlSplit(null); }}
                   style={{ ...BASE_STAR_BTN }}>
                   <div style={{ fontWeight: 600, color: "var(--cl-ink)" }}>{ta ? n.ta : starNameEn(i)}</div>
                 </button>
@@ -546,11 +564,13 @@ export function PoruthamTool() {
                   ♀ {ta ? NAKSHATRAS[girlStar].ta : starNameEn(girlStar)}
                 </div>
                 <button
-                  onClick={() => { setGirlStar(null); setBoyStar(null); }}
+                  onClick={() => { setGirlStar(null); setBoyStar(null); setGirlSplit(null); setBoySplit(null); }}
                   style={{ padding: "4px 12px", border: "1px solid var(--cl-border)", borderRadius: "999px", background: "var(--cl-bg)", cursor: "pointer", fontSize: "11px", color: "var(--cl-muted)", fontFamily: "inherit" }}>
                   {ta ? "மாற்று ↻" : "Change ↻"}
                 </button>
               </div>
+
+              {girlHalfPicker}
 
               {gridError && <p style={{ margin: "0 0 10px", color: "var(--cl-caution)", fontSize: "0.78rem" }}>{gridError}</p>}
               {gridLoading && !gridData && (
