@@ -18,7 +18,7 @@ import {
 } from "@/lib/chart-utils";
 import { useLang } from "@/components/lang-toggle";
 import { JadhagamShareButton } from "@/components/public-share-card";
-import { tNakshatra, tPlanetLord } from "@/lib/i18n";
+import { tKarana, tNakshatra, tPlanetLord, tTithi, tYoga } from "@/lib/i18n";
 import { nakshatraLordShort } from "@vinaadi/shared/nakshatraLord";
 
 // ── South Indian grid layout ──────────────────────────────────────────────────
@@ -140,33 +140,6 @@ function toDMS(deg: number): string {
 function formatDateDD(dateIso: string) {
   const [y, m, d] = dateIso.split("-");
   return `${d ?? ""}-${m ?? ""}-${y ?? ""}`;
-}
-
-function timeToMinutes(t: string): number {
-  // Handles "HH:MM", "HH:MM:SS", "HH:MM:SS AM/PM"
-  const upper = t.trim().toUpperCase();
-  const isPM = upper.endsWith("PM");
-  const isAM = upper.endsWith("AM");
-  const clean = upper.replace(/\s*(AM|PM)$/, "");
-  const parts = clean.split(":").map(Number);
-  let h = parts[0] ?? 0;
-  const min = parts[1] ?? 0;
-  if (isPM && h !== 12) h += 12;
-  if (isAM && h === 12) h = 0;
-  return h * 60 + min;
-}
-
-function computeNaaligai(birthTime: string, sunriseTime: string): string {
-  const bMin = timeToMinutes(birthTime);
-  const sMin = timeToMinutes(sunriseTime);
-  let diff = bMin - sMin;
-  if (diff < 0) diff += 1440; // before today's sunrise → count from prev sunrise
-  const totalSec = diff * 60;
-  const naaligai = Math.floor(totalSec / 1440);
-  const rem = totalSec % 1440;
-  const vinnadi = Math.floor(rem / 24);
-  const tattam = rem % 24;
-  return `${naaligai}.${String(vinnadi).padStart(2, "0")}.${String(tattam).padStart(2, "0")}`;
 }
 
 function latToDMS(lat: number): string {
@@ -397,10 +370,10 @@ function PrintableJadhagamSheet({
   const moonNakIdx = moon?.nakshatra ?? 0;
   const syllables = NAKSHATRA_SYLLABLES[moonNakIdx] ?? ["—", "—", "—", "—"];
 
-  // Udhayadhi Naaligai
-  const naaligai = sig.sunrise_time && bp.birthTimeLocal
-    ? computeNaaligai(bp.birthTimeLocal, sig.sunrise_time)
-    : "—";
+  // Udhayadhi naazhigai: the server counts it from the sunrise of the Tamil
+  // day the birth falls in (the previous day's, for a birth before sunrise),
+  // in full seconds, as naazhigai.vinaadi (AAU-02, AAU-17).
+  const naaligai = sig.birth_naazhigai || "—";
 
   const cellSt: React.CSSProperties = {
     border: "0.5px solid var(--print-bdr)",
@@ -475,7 +448,7 @@ function PrintableJadhagamSheet({
       <div style={{ textAlign: "center", borderBottom: "1.5px solid var(--print-ink)", paddingBottom: "8px", marginBottom: "10px" }}>
         <div style={{ fontSize: "14px", fontWeight: 700, letterSpacing: "0.05em" }}>Vinaadi AI</div>
         <div style={{ fontSize: "8px", marginTop: "2px", color: "var(--print-warm)" }}>
-          விண்ணாடி AI · thirukanitham-based jathagam · {chart.ayanamsa.type} {chart.ayanamsa.valueDegrees.toFixed(2)}°
+          விநாடி AI · thirukanitham-based jathagam · {chart.ayanamsa.type} {chart.ayanamsa.valueDegrees.toFixed(2)}°
         </div>
       </div>
 
@@ -517,9 +490,9 @@ function PrintableJadhagamSheet({
             </td>
           </tr>
           <tr>
-            <td style={hdrSt}>பஷ்ம-திதி</td>
+            <td style={hdrSt}>பக்ஷம்-திதி</td>
             <td style={cellSt}>
-              : {sig.tithi_paksha ? pakshaTa(sig.tithi_paksha) : "—"}{sig.tithi ? `/${sig.tithi}` : ""}
+              : {sig.tithi_paksha ? pakshaTa(sig.tithi_paksha) : "—"}{sig.tithi ? `/${tTithi(sig.tithi, "ta")}` : ""}
             </td>
             <td style={hdrSt}>சூரிய உதயம்</td>
             <td style={cellSt}>: {sig.sunrise_time || "—"}</td>
@@ -527,7 +500,7 @@ function PrintableJadhagamSheet({
           <tr>
             <td style={hdrSt}>யோகம்-காரணம்</td>
             <td style={cellSt}>
-              : {sig.yogam || "—"}{sig.karanam ? `/${sig.karanam}` : ""}
+              : {sig.yogam ? tYoga(sig.yogam, "ta") : "—"}{sig.karanam ? `/${tKarana(sig.karanam, "ta")}` : ""}
             </td>
             <td style={hdrSt}>சூரிய அஸ்தமனம்</td>
             <td style={cellSt}>: {sig.sunset_time || "—"}</td>

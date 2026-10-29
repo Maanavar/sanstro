@@ -156,8 +156,26 @@ def _birth_panchangam_signature_items(
     birth_timezone: str,
     birth_latitude: float,
     birth_longitude: float,
+    birth_datetime_utc: datetime | None = None,
 ) -> tuple[tuple[str, object], ...]:
-    """The birth day's panchangam signature, memoised on the four values it reads.
+    """The birth panchangam signature, memoised on the values it reads.
+
+    Two different instants feed it, and mixing them up was AAU-01/02:
+
+    * **The Tamil day** (vaaram, Tamil date, sunrise, sunset) runs sunrise to
+      sunrise. A birth before the civil date's sunrise belongs to the previous
+      day's page, so 03:00 on 14 Apr is Panguni 30, Thursday night, not
+      Chithirai 1.
+    * **The five limbs** (tithi, paksha, nakshatra, pada, yoga, karana) are read
+      at the birth instant, never at sunrise. They used to be copied from the
+      day's sunrise snapshot, so 28% of charts printed a star the Moon was not
+      in, beside a tithi that never coexisted with it.
+
+    `birth_naazhigai` is the time from that day's sunrise to the birth, as
+    naazhigai.vinaadi, from full seconds. No third unit is printed (AAU-17).
+
+    With no birth instant (a profile without a birth time) the limbs fall back
+    to the civil date's sunrise values, as before.
 
     Deliberately keyed on scalars rather than the profile object: this is a pure
     function of the birth moment and place, none of which can change for a chart,
@@ -177,55 +195,85 @@ def _birth_panchangam_signature_items(
     Returns items rather than a dict so the caller can build a fresh mapping and
     no caller can mutate what the next one receives.
     """
+    from datetime import timedelta
     from zoneinfo import ZoneInfo
 
+    from app.calculations.astro import utc_datetime_to_julian_day
+    from app.calculations.panchangam import limbs_at_jd
     from app.calculations.tamil_calendar import format_tamil_date
 
-    snapshot = calculate_daily_panchangam(
-        date_local=birth_date_local,
-        timezone_name=birth_timezone,
-        latitude=birth_latitude,
-        longitude=birth_longitude,
-        session=None,
-        use_cache=False,
-    )
+    def _day(d: date):
+        return calculate_daily_panchangam(
+            date_local=d,
+            timezone_name=birth_timezone,
+            latitude=birth_latitude,
+            longitude=birth_longitude,
+            session=None,
+            use_cache=False,
+        )
+
+    tamil_day = birth_date_local
+    snapshot = _day(tamil_day)
+    if birth_datetime_utc is not None and birth_datetime_utc < snapshot.sunrise:
+        tamil_day = birth_date_local - timedelta(days=1)
+        snapshot = _day(tamil_day)
 
     tz = ZoneInfo(birth_timezone)
     sunrise_local = snapshot.sunrise.astimezone(tz)
     sunset_local = snapshot.sunset.astimezone(tz)
     tamil_date_ta, tamil_date_en = format_tamil_date(
-        birth_date_local,
+        tamil_day,
         birth_timezone,
         birth_latitude,
         birth_longitude,
     )
 
+    if birth_datetime_utc is not None:
+        limbs = limbs_at_jd(utc_datetime_to_julian_day(birth_datetime_utc))
+        tithi, paksha = limbs.tithi_name, limbs.tithi_paksha
+        nakshatra_number, nakshatra, pada = limbs.nakshatra_number, limbs.nakshatra_name, limbs.nakshatra_pada
+        yogam, karanam = limbs.yoga_name, limbs.karana_name
+        seconds = int((birth_datetime_utc - snapshot.sunrise).total_seconds())
+        naazhigai: str | None = f"{seconds // 1440}.{(seconds % 1440) // 24:02d}"
+    else:
+        tithi, paksha = snapshot.tithi_name, snapshot.tithi_paksha
+        nakshatra_number, nakshatra, pada = snapshot.nakshatra_number, snapshot.nakshatra_name, snapshot.nakshatra_pada
+        yogam, karanam = snapshot.yoga_name, snapshot.karana_name
+        naazhigai = None
+
     from app.services._chart_planets import _nakshatra_gana, _nakshatra_nadi
     return tuple({
         "vaaram": snapshot.weekday,
         "vaaram_lord": snapshot.weekday_lord,
-        "tithi": snapshot.tithi_name,
-        "tithi_paksha": snapshot.tithi_paksha,
-        "nakshatra": snapshot.nakshatra_name,
-        "nakshatra_pada": snapshot.nakshatra_pada,
-        "yogam": snapshot.yoga_name,
-        "karanam": snapshot.karana_name,
-        "is_vishti_karanam": snapshot.karana_name == "VISHTI",
-        "gana": _nakshatra_gana(snapshot.nakshatra_number),
-        "nadi": _nakshatra_nadi(snapshot.nakshatra_number),
+        "tithi": tithi,
+        "tithi_paksha": paksha,
+        "nakshatra": nakshatra,
+        "nakshatra_pada": pada,
+        "yogam": yogam,
+        "karanam": karanam,
+        "is_vishti_karanam": karanam == "VISHTI",
+        "gana": _nakshatra_gana(nakshatra_number),
+        "nadi": _nakshatra_nadi(nakshatra_number),
         "sunrise_time": sunrise_local.strftime("%I:%M:%S %p"),
         "sunset_time": sunset_local.strftime("%I:%M:%S %p"),
         "tamil_date_ta": tamil_date_ta,
         "tamil_date_en": tamil_date_en,
+        "tamil_day_local": tamil_day.isoformat(),
+        "birth_naazhigai": naazhigai,
     }.items())
 
 
 def _birth_panchangam_signature(profile: Any) -> dict[str, object]:
+    try:
+        birth_instant: datetime | None = _birth_datetime_utc(profile)
+    except ValueError:  # no birth time: the limbs fall back to sunrise values
+        birth_instant = None
     return dict(_birth_panchangam_signature_items(
         _value(profile, "birth_date_local"),
         str(_value(profile, "birth_timezone")),
         float(_value(profile, "birth_latitude")),
         float(_value(profile, "birth_longitude")),
+        birth_instant,
     ))
 
 

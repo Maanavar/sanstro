@@ -190,6 +190,12 @@ _NAKSHATRA_NADI: dict[int, str] = {
     n: _NADI_CYCLE[(n - 1) % 6] for n in range(1, 28)
 }
 
+
+def nakshatra_nadi(nakshatra_number: int) -> str:
+    """The star's nadi ("AADHI" / "MADHYA" / "ANTHYA"). The one table: the chart
+    payload's nadi reads it too, so it cannot contradict the Nadi porutham."""
+    return _NAKSHATRA_NADI[nakshatra_number]
+
 # ---------------------------------------------------------------------------
 # Graha Maitri (planet friendship) table — Parashari Permanent Friendship
 # Asymmetric: each entry (A, B) is A's view of B; 1.0=friend 0.5=neutral 0.0=enemy

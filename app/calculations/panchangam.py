@@ -1176,6 +1176,47 @@ def _karana_name(index: int) -> str:
     return {57: "SHAKUNI", 58: "CHATUSHPADA", 59: "NAGA"}[index]
 
 
+@dataclass(frozen=True, slots=True)
+class LimbsAtInstant:
+    """The five panchangam limbs in force at one instant (not at sunrise)."""
+
+    tithi_number: int
+    tithi_name: str
+    tithi_paksha: str
+    nakshatra_number: int
+    nakshatra_name: str
+    nakshatra_pada: int
+    yoga_number: int
+    yoga_name: str
+    karana_name: str
+
+
+def limbs_at_jd(jd: float) -> LimbsAtInstant:
+    """Tithi, nakshatra, pada, yoga and karana at `jd`.
+
+    The daily snapshot reads these at sunrise, which is right for an almanac
+    page and wrong for a birth: a birth panchangam is the limbs at the birth
+    instant (AAU-01). Same longitudes and the same arithmetic as the snapshot,
+    so the two agree whenever `jd` is the sunrise.
+    """
+    sun, moon = _sun_moon_at_jd(jd)
+    diff = normalize_longitude(moon - sun)
+    tithi_number = int((diff + 1e-9) // 12) + 1
+    nakshatra_number = int((moon + 1e-9) // (40 / 3)) + 1
+    yoga_number = int((normalize_longitude(sun + moon) + 1e-9) // (40 / 3)) + 1
+    return LimbsAtInstant(
+        tithi_number=tithi_number,
+        tithi_name=_tithi_name(tithi_number),
+        tithi_paksha="SHUKLA" if tithi_number <= 15 else "KRISHNA",
+        nakshatra_number=nakshatra_number,
+        nakshatra_name=NAKSHATRA_NAMES[nakshatra_number - 1],
+        nakshatra_pada=int(((moon % (40 / 3)) + 1e-9) // (10 / 3)) + 1,
+        yoga_number=yoga_number,
+        yoga_name=_yoga_name(yoga_number),
+        karana_name=_karana_name(int((diff + 1e-9) // 6)),
+    )
+
+
 def _weekday_lord_and_name(day: date) -> tuple[str, str]:
     weekday_index = day.weekday()
     return WEEKDAY_NAMES[weekday_index], WEEKDAY_LORDS[weekday_index]
