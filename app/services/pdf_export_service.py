@@ -45,10 +45,13 @@ from app.calculations.astro import RASI_NAMES, format_clock_hhmm
 from app.calculations.display_names import (
     nakshatra_en,
     nakshatra_ta,
+    paksha_display,
     planet_en,
     planet_ta,
     rasi_en,
     rasi_ta,
+    tithi_en,
+    tithi_ta,
 )
 from app.calculations.panchangam import (
     best_gowri_slot,
@@ -99,6 +102,21 @@ def _normalize_lang(lang: str | None) -> str:
 def _label(key: str, lang: str) -> str:
     resolved = _normalize_lang(lang)
     return _LABELS[resolved].get(key) or _LABELS["en"][key]
+
+
+# Display names from numbers and keys, never a response's `*_name` field or a
+# bare graha key (CLAUDE.md "Display boundary"; AAU-03). Each falls back to the
+# key itself rather than printing nothing.
+def _rasi(rasi: int | None, lang: str) -> str:
+    return (rasi_ta if _normalize_lang(lang) == "ta" else rasi_en)(rasi) or str(rasi)
+
+
+def _star(nakshatra: int | None, lang: str) -> str:
+    return (nakshatra_ta if _normalize_lang(lang) == "ta" else nakshatra_en)(nakshatra) or str(nakshatra)
+
+
+def _graha(graha: str, lang: str) -> str:
+    return (planet_ta if _normalize_lang(lang) == "ta" else planet_en)(graha) or graha
 
 
 def _verdict(domain: str, label: str, lang: str) -> str:
@@ -332,16 +350,16 @@ def _section_couple_identity(
     def _person_lines(name: str, chart, dasha) -> list[str]:
         moon = next(p for p in chart.planets if p.graha == "MOON")
         lines = [
-            f"<b>{name}</b> &mdash; {_label('rasi', lang)}: {moon.rasi_name} &nbsp;&nbsp; "
-            f"{_label('nakshatra', lang)}: {moon.nakshatra_name} {_label('pada', lang)} {moon.pada} &nbsp;&nbsp; "
-            f"{_label('lagna', lang)}: {chart.lagna.rasi_name}"
+            f"<b>{name}</b> &mdash; {_label('rasi', lang)}: {_rasi(moon.rasi, lang)} &nbsp;&nbsp; "
+            f"{_label('nakshatra', lang)}: {_star(moon.nakshatra, lang)} {_label('pada', lang)} {moon.pada} &nbsp;&nbsp; "
+            f"{_label('lagna', lang)}: {_rasi(chart.lagna.rasi, lang)}"
         ]
         if dasha is not None:
             maha = dasha.current.mahadasha
             antar = dasha.current.antardasha
             lines.append(
-                f"{_label('mahadasha', lang)}: {maha.lord} ({_label('ends', lang)} {maha.end_date}) &nbsp;&nbsp; "
-                f"{_label('antardasha', lang)}: {antar.lord} ({_label('ends', lang)} {antar.end_date})"
+                f"{_label('mahadasha', lang)}: {_graha(maha.lord, lang)} ({_label('ends', lang)} {maha.end_date}) &nbsp;&nbsp; "
+                f"{_label('antardasha', lang)}: {_graha(antar.lord, lang)} ({_label('ends', lang)} {antar.end_date})"
             )
         return lines
 
@@ -365,10 +383,16 @@ def _section_daily(panchang, score: int, label: str, location_label: str, headin
     else:
         nalla = "-"
     rahu = _format_time_range(panchang.rahu_kalam.start, panchang.rahu_kalam.end)
+    # Display names, never the snapshot's codes (UTHIRADAM, EKADASI (KRISHNA))
+    # under Tamil labels (AAU-03).
+    ta = _normalize_lang(lang) == "ta"
+    nakshatra = (nakshatra_ta if ta else nakshatra_en)(panchang.nakshatra_number) or panchang.nakshatra_name
+    tithi = (tithi_ta if ta else tithi_en)(panchang.tithi_number)
+    paksha = paksha_display(panchang.tithi_paksha)[0 if ta else 1]
     lines = [
         f"{_label('location', lang)}: {location_label}",
-        f"{_label('date', lang)}: {panchang.date_local} &nbsp;&nbsp; {_label('nakshatra', lang)}: {panchang.nakshatra_name} ({_label('pada', lang)} {panchang.nakshatra_pada})",
-        f"{_label('tithi', lang)}: {panchang.tithi_name} ({panchang.tithi_paksha})",
+        f"{_label('date', lang)}: {panchang.date_local} &nbsp;&nbsp; {_label('nakshatra', lang)}: {nakshatra} ({_label('pada', lang)} {panchang.nakshatra_pada})",
+        f"{_label('tithi', lang)}: {tithi} ({paksha})",
         f"{_label('daily_score', lang)}: <b>{score}/100</b> - {label}",
         f"{_label('nalla_neram', lang)}: {nalla} &nbsp;&nbsp; {_label('rahu_kalam', lang)}: {rahu}",
     ]
@@ -963,15 +987,15 @@ def generate_compatibility_intelligence_pdf(
         Spacer(1, 0.25 * cm),
         Paragraph(_label("couple_identity", lang), heading_style),
         Paragraph(
-            f"<b>{name_a}</b> &mdash; {_label('rasi', lang)}: {report.person_a_identity.rasi_name} &nbsp;&nbsp; "
-            f"{_label('nakshatra', lang)}: {report.person_a_identity.nakshatra_name} {_label('pada', lang)} {report.person_a_identity.pada} &nbsp;&nbsp; "
-            f"{_label('lagna', lang)}: {report.person_a_identity.lagna_rasi_name}",
+            f"<b>{name_a}</b> &mdash; {_label('rasi', lang)}: {_rasi(report.person_a_identity.rasi, lang)} &nbsp;&nbsp; "
+            f"{_label('nakshatra', lang)}: {_star(report.person_a_identity.nakshatra, lang)} {_label('pada', lang)} {report.person_a_identity.pada} &nbsp;&nbsp; "
+            f"{_label('lagna', lang)}: {_rasi(report.person_a_identity.lagna_rasi, lang)}",
             body_style,
         ),
         Paragraph(
-            f"<b>{name_b}</b> &mdash; {_label('rasi', lang)}: {report.person_b_identity.rasi_name} &nbsp;&nbsp; "
-            f"{_label('nakshatra', lang)}: {report.person_b_identity.nakshatra_name} {_label('pada', lang)} {report.person_b_identity.pada} &nbsp;&nbsp; "
-            f"{_label('lagna', lang)}: {report.person_b_identity.lagna_rasi_name}",
+            f"<b>{name_b}</b> &mdash; {_label('rasi', lang)}: {_rasi(report.person_b_identity.rasi, lang)} &nbsp;&nbsp; "
+            f"{_label('nakshatra', lang)}: {_star(report.person_b_identity.nakshatra, lang)} {_label('pada', lang)} {report.person_b_identity.pada} &nbsp;&nbsp; "
+            f"{_label('lagna', lang)}: {_rasi(report.person_b_identity.lagna_rasi, lang)}",
             body_style,
         ),
     ])
@@ -1052,7 +1076,7 @@ def generate_compatibility_intelligence_pdf(
     story.extend([Spacer(1, 0.3 * cm), Paragraph(_label("navamsa_level", lang), heading_style)])
     story.append(
         Paragraph(
-            f"{_label('harmony', lang)}: {_verdict('harmony', report.navamsa.harmony_label, lang)}. {report.person_a_name} Venus D9: {report.navamsa.person_a_venus_d9}; {report.person_b_name} Venus D9: {report.navamsa.person_b_venus_d9}.",
+            f"{_label('harmony', lang)}: {_verdict('harmony', report.navamsa.harmony_label, lang)}. {report.person_a_name} {_graha("VENUS", lang)} D9: {_rasi(report.navamsa.person_a_venus_d9, lang)}; {report.person_b_name} {_graha("VENUS", lang)} D9: {_rasi(report.navamsa.person_b_venus_d9, lang)}.",
             body_style,
         )
     )
@@ -1077,8 +1101,8 @@ def generate_compatibility_intelligence_pdf(
     story.append(
         Paragraph(
             (
-                f"{report.person_a_name}: {report.dasha_harmony.person_a_maha_lord} / {report.dasha_harmony.person_a_antar_lord} until {report.dasha_harmony.person_a_maha_end}. "
-                f"{report.person_b_name}: {report.dasha_harmony.person_b_maha_lord} / {report.dasha_harmony.person_b_antar_lord} until {report.dasha_harmony.person_b_maha_end}."
+                f"{report.person_a_name}: {_graha(report.dasha_harmony.person_a_maha_lord, lang)} / {_graha(report.dasha_harmony.person_a_antar_lord, lang)} ({_label('ends', lang)} {report.dasha_harmony.person_a_maha_end}). "
+                f"{report.person_b_name}: {_graha(report.dasha_harmony.person_b_maha_lord, lang)} / {_graha(report.dasha_harmony.person_b_antar_lord, lang)} ({_label('ends', lang)} {report.dasha_harmony.person_b_maha_end})."
             ),
             body_style,
         )

@@ -21,11 +21,13 @@ pytestmark = pytest.mark.no_db
 
 
 def _make_planet(graha="SUN", rasi_name="Mesham", nakshatra_name="ASWINI", house=1,
-                 retro=False, combust=False):
+                 retro=False, combust=False, rasi=1, nakshatra=1):
     p = MagicMock()
     p.graha = graha
     p.rasi_name = rasi_name
     p.nakshatra_name = nakshatra_name
+    p.rasi = rasi
+    p.nakshatra = nakshatra
     p.house_from_lagna = house
     p.is_retrograde = retro
     p.is_combust = combust
@@ -34,6 +36,7 @@ def _make_planet(graha="SUN", rasi_name="Mesham", nakshatra_name="ASWINI", house
 
 def _make_lagna():
     l = MagicMock()
+    l.rasi = 1
     l.rasi_name = "Mesham"
     l.nakshatra_name = "ASWINI"
     l.pada = 1
@@ -56,7 +59,7 @@ def _make_chart_response():
     cr = MagicMock()
     cr.data.birth_profile = _make_profile()
     cr.data.lagna = _make_lagna()
-    cr.data.planets = [_make_planet("SUN"), _make_planet("MOON", "Rishabam", "ROHINI", 2)]
+    cr.data.planets = [_make_planet("SUN"), _make_planet("MOON", "Rishabam", "ROHINI", 2, rasi=2, nakshatra=4)]
     return cr
 
 
@@ -77,8 +80,9 @@ def _make_panchang():
     pc.nakshatra_name = "ASWINI"
     pc.nakshatra_number = 1
     pc.nakshatra_pada = 2
-    pc.tithi_name = "Pratipada"
-    pc.tithi_paksha = "Shukla"
+    pc.tithi_name = "PRATHAMA"
+    pc.tithi_number = 1
+    pc.tithi_paksha = "SHUKLA"
     nalla = MagicMock()
     nalla.start.strftime = lambda fmt: "06:30"
     nalla.end.strftime   = lambda fmt: "08:00"
@@ -149,9 +153,33 @@ def test_section_couple_identity_contains_rasi_nakshatra_and_dasha():
     combined = " ".join(str(e) for e in elements)
     assert "Arjun Kumar" in combined
     assert "Anitha" in combined
-    assert "Rishabam" in combined  # the MOON planet's rasi_name in _make_chart_response
-    assert "ROHINI" in combined  # the MOON planet's nakshatra_name
-    assert "JUPITER" in combined  # current mahadasha lord
+    # Display names from the numbers and keys, never the `*_name` codes (AAU-03).
+    assert "Rishabam" in combined  # MOON rasi 2
+    assert "Rohini" in combined and "ROHINI" not in combined  # MOON nakshatra 4
+    assert "Jupiter" in combined and "JUPITER" not in combined  # current mahadasha lord
+
+
+def _paragraph_text(elements) -> str:
+    return " ".join(getattr(e, "text", "") for e in elements)
+
+
+def test_tamil_couple_identity_and_day_block_print_no_engine_codes():
+    """AAU-03: a Tamil sheet printed UTHIRADAM, EKADASI (KRISHNA) and JUPITER."""
+    import re
+
+    from app.services.pdf_export_service import _section_daily
+
+    _, heading_s, body_s, _ = _styles()
+    chart = _make_chart_response().data
+    dasha = _make_dasha_response().data
+    identity = _section_couple_identity("A", chart, dasha, "B", chart, dasha, heading_s, body_s, lang="ta")
+    daily = _section_daily(_make_panchang(), 72, "நல்லது", "சென்னை", heading_s, body_s, lang="ta")
+    text = _paragraph_text(identity) + " " + _paragraph_text(daily)
+    for code in ("ROHINI", "ASWINI", "JUPITER", "SATURN", "PRATHAMA", "SHUKLA", "Rishabam"):
+        assert code not in text, code
+    assert "ரோகிணி" in text
+    assert "வளர்பிறை" in text
+    assert not re.search(r"\b[A-Z]{4,}\b", re.sub(r"<[^>]+>|&\w+;", " ", text))
 
 
 def test_section_couple_identity_returns_empty_without_chart_data():
