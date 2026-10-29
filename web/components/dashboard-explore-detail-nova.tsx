@@ -28,6 +28,12 @@ import type { Lang } from "@/lib/i18n";
  * doshams" destination for it to point to instead, so per user decision
  * it's a label, not a link; the screens' own prev/next arrows are the real
  * in-app browsing mechanism.
+ *
+ * Since then each library got its in-app list screen, so a detail screen now
+ * passes `onHub` and the hub crumb opens that list. The first crumb is named
+ * after the Understand tab and must land there: detail screens used to wire it
+ * to their one-level-up `onBack`, so a click on "Understand" showed the list
+ * and only a second click reached Understand (2026-10-29).
  */
 
 export const novaDetailCardStyle: React.CSSProperties = {
@@ -42,16 +48,22 @@ export const novaDetailCardStyle: React.CSSProperties = {
 
 type BreadcrumbNavButton = { label: string; onClick: () => void };
 
+const crumbLinkStyle: React.CSSProperties = { color: "var(--color-accent-strong)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: "inherit", padding: 0 };
+
 export function NovaDetailBreadcrumb({
   onBack,
   backLabel,
+  onHub,
   hubLabel,
   currentLabel,
   onPrev,
   onNext,
 }: {
+  /** Goes to the place `backLabel` names — the Understand tab itself. */
   onBack: () => void;
   backLabel: string;
+  /** Opens the library's list; omitted on the list screen, which is the hub. */
+  onHub?: () => void;
   hubLabel: string;
   currentLabel: string;
   onPrev?: BreadcrumbNavButton;
@@ -59,11 +71,15 @@ export function NovaDetailBreadcrumb({
 }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-sm)", color: "var(--color-faint)", flexWrap: "wrap" }}>
-      <button type="button" onClick={onBack} style={{ color: "var(--color-accent-strong)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0 }}>
+      <button type="button" onClick={onBack} style={crumbLinkStyle}>
         {backLabel}
       </button>
       <ChevronRight size={14} strokeWidth={1.5} aria-hidden="true" style={{ color: "var(--color-faint)" }} />
-      <span style={{ color: "var(--color-muted)", fontWeight: 600 }}>{hubLabel}</span>
+      {onHub ? (
+        <button type="button" onClick={onHub} style={crumbLinkStyle}>{hubLabel}</button>
+      ) : (
+        <span style={{ color: "var(--color-muted)", fontWeight: 600 }}>{hubLabel}</span>
+      )}
       <ChevronRight size={14} strokeWidth={1.5} aria-hidden="true" style={{ color: "var(--color-faint)" }} />
       <span style={{ color: "var(--color-text)" }}>{currentLabel}</span>
       {(onPrev || onNext) && (
