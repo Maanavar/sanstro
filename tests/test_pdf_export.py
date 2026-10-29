@@ -167,19 +167,42 @@ def test_tamil_couple_identity_and_day_block_print_no_engine_codes():
     """AAU-03: a Tamil sheet printed UTHIRADAM, EKADASI (KRISHNA) and JUPITER."""
     import re
 
+    from app.calculations.day_quality import STAR_CLASS, DayQuality
     from app.services.pdf_export_service import _section_daily
 
     _, heading_s, body_s, _ = _styles()
     chart = _make_chart_response().data
     dasha = _make_dasha_response().data
     identity = _section_couple_identity("A", chart, dasha, "B", chart, dasha, heading_s, body_s, lang="ta")
-    daily = _section_daily(_make_panchang(), 72, "நல்லது", "சென்னை", heading_s, body_s, lang="ta")
+    panchang = _make_panchang()
+    star = panchang.nakshatra_number
+    quality = DayQuality(star, STAR_CLASS[star], "GOOD", None, None)
+    daily = _section_daily(panchang, quality, "நல்லது", "சென்னை", heading_s, body_s, lang="ta")
     text = _paragraph_text(identity) + " " + _paragraph_text(daily)
     for code in ("ROHINI", "ASWINI", "JUPITER", "SATURN", "PRATHAMA", "SHUKLA", "Rishabam"):
         assert code not in text, code
     assert "ரோகிணி" in text
     assert "வளர்பிறை" in text
     assert not re.search(r"\b[A-Z]{4,}\b", re.sub(r"<[^>]+>|&\w+;", " ", text))
+
+
+def test_aau20_day_block_names_the_star_it_scored_and_both_on_a_split_day():
+    """AAU-20: the block printed the sunrise star beside a score set by another.
+    It prints the scored star, and on a split day both, with the change time."""
+    from datetime import datetime
+
+    from app.calculations.day_quality import STAR_CLASS, DayQuality, DaySplit
+    from app.services.pdf_export_service import _section_daily
+
+    _, heading_s, body_s, _ = _styles()
+    panchang = _make_panchang()
+    split = DaySplit(datetime(2026, 1, 5, 13, 25), 8, 9, "GOOD", "CAUTION")  # Poosam, then Ayilyam
+    quality = DayQuality(8, STAR_CLASS[8], "GOOD", split, None)
+    en = _paragraph_text(_section_daily(panchang, quality, "Good", "Chennai", heading_s, body_s, lang="en"))
+    ta = _paragraph_text(_section_daily(panchang, quality, "நல்லது", "சென்னை", heading_s, body_s, lang="ta"))
+    assert "Poosam until" in en and "then Ayilyam" in en
+    assert "72/100" in en
+    assert "வரை, பின்" in ta
 
 
 def test_section_couple_identity_returns_empty_without_chart_data():

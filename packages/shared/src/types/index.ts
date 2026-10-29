@@ -1347,7 +1347,15 @@ export interface PanchangamDailyResponseData {
     durmuhurtham?: KalamSlot[];
   };
   abhijit: { start: string; end: string; isRestrictedByWeekday: boolean };
-  subhaMuhurtham: { isSubha: boolean; reason: string; isSubhaStrict: boolean; strictReason: string };
+  subhaMuhurtham: {
+    isSubha: boolean;
+    reason: string;
+    isSubhaStrict: boolean;
+    strictReason: string;
+    /** AAU-07: the day's one verdict for ordinary new work. `isSubha` is
+     *  `verdict === "GOOD"`. Star keys go through tNakshatra. */
+    dayQuality?: PanchangamDayQuality | null;
+  };
   festivals: PanchangamFestival[];
   hora: Array<{ index: number; lord: string; start: string; end: string }>;
   moonPhaseLabel: string;
@@ -1386,6 +1394,29 @@ export type PanchangamTimingsData = Pick<
   PanchangamDailyResponseData,
   "dateLocal" | "location" | "sunrise" | "sunset" | "solarNoon" | "kalam" | "abhijit" | "subhaMuhurtham" | "festivals" | "hora"
 >;
+
+export type DayVerdict = "GOOD" | "NEUTRAL" | "CAUTION";
+
+/** A daytime star change that moves the day's verdict (AAU-07). */
+export interface PanchangamDaySplit {
+  changeAt: string;
+  beforeStar: string;
+  beforeStarNumber: number;
+  before: DayVerdict;
+  afterStar: string;
+  afterStarNumber: number;
+  after: DayVerdict;
+}
+
+/** `day_quality` on the server: the badge, the PDF and the push all read it. */
+export interface PanchangamDayQuality {
+  verdict: DayVerdict;
+  verdictStar: string;
+  verdictStarNumber: number;
+  starClass: string;
+  score: number;
+  split?: PanchangamDaySplit | null;
+}
 
 export interface PanchangamMonthDayEntry {
   dateLocal: string;

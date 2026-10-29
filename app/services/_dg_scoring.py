@@ -19,6 +19,7 @@ from app.calculations.chart_strength import (
     _NATURAL_FRIENDS,
     compute_natal_planet_score,
 )
+from app.calculations.day_quality import FIT_STARS, UNFIT_STARS
 from app.calculations.functional_nature import get_dasha_modifier, get_transit_modifier
 from app.calculations.gochara_scores import GOCHARA_HOUSE_SCORE
 from app.calculations.maturation import MATURATION_AGE
@@ -49,20 +50,15 @@ SIGN_LORDS: dict[int, str] = {
     12: "JUPITER",
 }
 
-# Nakshatras traditionally considered auspicious for daily activity in Tamil Jyothidam.
-# Sources: Ashwini(1), Rohini(4), Mirugaseeridam(5), Punarpoosam(7), Poosam(8),
-# Hastham(13), Chithirai(14), Swathi(15), Anusham(17), Thiruvonam(22), Revathi(27).
-AUSPICIOUS_DAILY_NAKSHATRAS: set[int] = {1, 4, 5, 7, 8, 13, 14, 15, 17, 22, 27}
-
-# The counterpart caution list. This lives here, beside the auspicious set,
-# because it previously existed as two hand-copies that had drifted apart:
-# `daily_push_cron` carried {2, 9, 10, 14, 19} and `pdf_export_service`
-# {2, 9, 10, 19}. The push copy listed **14 (Chithirai) in both** its auspicious
-# and its caution set — and because it tested auspicious first, the caution
-# branch for 14 was unreachable, so the two surfaces silently agreed on 14 by
-# accident while disagreeing in their source. 14 is auspicious; it is not a
-# caution star, and the set below says so once.
-CAUTION_DAILY_NAKSHATRAS: set[int] = {2, 9, 10, 19}
+# The day's good and caution stars for ordinary new work, from the seven-class
+# table in `app.calculations.day_quality` (AAU-07, ruled 2026-10-29): the 16
+# stars of the four gentle classes, and the 9 Ugra and Tikshna stars. Derived,
+# not typed: these were an 11-star and a 4-star hand list that disagreed with
+# the calendar badge's 17 (Magam and Moolam sat in both "good" and "caution").
+# Before that, the push and PDF each carried their own copy, and the push copy
+# had Chithirai in both of its lists.
+AUSPICIOUS_DAILY_NAKSHATRAS: frozenset[int] = FIT_STARS
+CAUTION_DAILY_NAKSHATRAS: frozenset[int] = UNFIT_STARS
 
 CAUTION_YOGAS = {1, 6, 9, 10, 17, 27}
 # Rikta (4/9/14 in each paksha) and Ashtami. Named rather than inlined because

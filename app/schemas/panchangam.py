@@ -177,11 +177,42 @@ class PanchangamFestival(BaseModel):
     tags: list[str] = Field(default_factory=list)
 
 
+class PanchangamDaySplit(BaseModel):
+    """A daytime star change that moves the day's verdict (AAU-07). Star keys
+    are engine keys: render them through tNakshatra, never as text."""
+
+    change_at: str = Field(alias="changeAt")
+    before_star: str = Field(alias="beforeStar")
+    before_star_number: int = Field(alias="beforeStarNumber")
+    before: Literal["GOOD", "NEUTRAL", "CAUTION"]
+    after_star: str = Field(alias="afterStar")
+    after_star_number: int = Field(alias="afterStarNumber")
+    after: Literal["GOOD", "NEUTRAL", "CAUTION"]
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class PanchangamDayQuality(BaseModel):
+    """The day's one answer to "is today good for beginning ordinary new
+    work?" (AAU-07), the same `day_quality` the PDF and the push read.
+    `isSubha` above is `verdict == "GOOD"`."""
+
+    verdict: Literal["GOOD", "NEUTRAL", "CAUTION"]
+    verdict_star: str = Field(alias="verdictStar")
+    verdict_star_number: int = Field(alias="verdictStarNumber")
+    star_class: str = Field(alias="starClass")
+    score: int
+    split: PanchangamDaySplit | None = None
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class PanchangamSubhaMuhurtham(BaseModel):
     is_subha: bool = Field(alias="isSubha")
     reason: str
     is_subha_strict: bool = Field(alias="isSubhaStrict")
     strict_reason: str = Field(alias="strictReason")
+    day_quality: PanchangamDayQuality | None = Field(default=None, alias="dayQuality")
 
     model_config = ConfigDict(populate_by_name=True)
 

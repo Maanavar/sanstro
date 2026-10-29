@@ -890,6 +890,15 @@ export function DayDetailDrawerNova({
   // Both branch on the exact boolean the row is reporting, never on a blend.
   const marks: Array<{ tone: "high" | "low" | "soft"; label: string; note: string }> = [];
   if (data) {
+    // AAU-07: on a day whose star changes in daytime into another column, the
+    // verdict holds only on one side of the change, and the day view must say
+    // when. Star names go through tNakshatra; the time through the clock label.
+    const split = data.subhaMuhurtham.dayQuality?.split ?? null;
+    const splitNote = split
+      ? (lang === "ta"
+          ? ` ${tNakshatra(split.beforeStar, lang)} ${formatClockLabel(split.changeAt, lang)} வரை, பின் ${tNakshatra(split.afterStar, lang)} — ${split.before === "GOOD" ? "நல்ல பகுதி மாற்றத்திற்கு முன்." : split.after === "GOOD" ? "நல்ல பகுதி மாற்றத்திற்குப் பின்." : "மாற்றம் நாளின் தன்மையை மாற்றுகிறது."}`
+          : ` ${tNakshatra(split.beforeStar, lang)} until ${formatClockLabel(split.changeAt, lang)}, then ${tNakshatra(split.afterStar, lang)} — ${split.before === "GOOD" ? "the good part is before the change." : split.after === "GOOD" ? "the good part is after the change." : "the change moves the day's character."}`)
+      : "";
     if (data.subhaMuhurtham.isSubha) {
       marks.push({
         tone: "high",
@@ -899,17 +908,17 @@ export function DayDetailDrawerNova({
         // reader it was a wedding date. The authoritative wedding list is
         // the almanac's muhurtham-naal, surfaced separately.
         label: lang === "ta" ? "நல்ல நாள்" : "Good day",
-        note: lang === "ta"
+        note: (lang === "ta"
           ? "வழக்கமான புதிய தொடக்கங்களுக்கு உகந்த நாள். திருமண முகூர்த்தம் அல்ல — அதற்கு முகூர்த்த நாள் பட்டியலைப் பார்க்கவும்."
-          : "A good day for routine new starts. Not a wedding muhurtham — see the muhurtham-naal list for those.",
+          : "A good day for routine new starts. Not a wedding muhurtham — see the muhurtham-naal list for those.") + splitNote,
       });
     } else {
       marks.push({
         tone: "soft",
         label: lang === "ta" ? "வழக்கமான நாள்" : "An ordinary day",
-        note: lang === "ta"
+        note: (lang === "ta"
           ? "வழக்கமான நாள் — கீழுள்ள நல்ல நேரங்களைப் பயன்படுத்துங்கள்."
-          : "An ordinary day — plan around the windows below.",
+          : "An ordinary day — plan around the windows below.") + splitNote,
       });
     }
     if (data.isKarinaal) {

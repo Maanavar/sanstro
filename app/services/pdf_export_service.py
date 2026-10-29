@@ -42,6 +42,7 @@ from reportlab.platypus import (
 from sqlalchemy.orm import Session
 
 from app.calculations.astro import RASI_NAMES, format_clock_hhmm
+from app.calculations.day_quality import DayQuality
 from app.calculations.display_names import (
     nakshatra_en,
     nakshatra_ta,
@@ -55,6 +56,7 @@ from app.calculations.display_names import (
 )
 from app.calculations.panchangam import (
     best_gowri_slot,
+    day_quality_for,
     gowri_good_label,
     gowri_good_purpose,
 )
@@ -67,10 +69,6 @@ from app.calculations.yoga_display import (
 )
 from app.constants.astrology import SIGN_LORD
 from app.models import BirthProfile, Chart
-from app.services._dg_scoring import (
-    AUSPICIOUS_DAILY_NAKSHATRAS,
-    CAUTION_DAILY_NAKSHATRAS,
-)
 from app.services.chart_service import load_persisted_chart_response
 from app.services.dasha_service import get_chart_dasha
 from app.services.location_service import resolve_effective_daily_location
@@ -367,7 +365,29 @@ def _section_couple_identity(
     return [Paragraph(_label("couple_identity", lang), heading_style)] + [Paragraph(line, body_style) for line in lines]
 
 
-def _section_daily(panchang, score: int, label: str, location_label: str, heading_style, body_style, lang: str = "en") -> list:
+def _day_star_text(panchang, quality: DayQuality, lang: str) -> str:
+    """The star the day block scored (AAU-20), in panchangam form.
+
+    It printed the sunrise star beside a score set by another one. Now it
+    prints the star `day_quality` judged, and on a split day both, with the
+    change time ("Bharani until 09:12, then Karthigai"). The pada belongs to
+    the sunrise star, so it is shown only when that is the star printed.
+    """
+    ta = _normalize_lang(lang) == "ta"
+    name = nakshatra_ta if ta else nakshatra_en
+    split = quality.split
+    if split is not None:
+        before, after, at = name(split.before_star), name(split.after_star), _format_clock_label(split.change_at)
+        return f"{before} {at} வரை, பின் {after}" if ta else f"{before} until {at}, then {after}"
+    text = name(quality.verdict_star) or panchang.nakshatra_name
+    if quality.verdict_star == panchang.nakshatra_number:
+        text += f" ({_label('pada', lang)} {panchang.nakshatra_pada})"
+    return text
+
+
+def _section_daily(
+    panchang, quality: DayQuality, label: str, location_label: str, heading_style, body_style, lang: str = "en",
+) -> list:
     slot = best_gowri_slot(panchang.nalla_neram)
     if slot:
         slot_name = getattr(slot, "name", None)
@@ -386,14 +406,14 @@ def _section_daily(panchang, score: int, label: str, location_label: str, headin
     # Display names, never the snapshot's codes (UTHIRADAM, EKADASI (KRISHNA))
     # under Tamil labels (AAU-03).
     ta = _normalize_lang(lang) == "ta"
-    nakshatra = (nakshatra_ta if ta else nakshatra_en)(panchang.nakshatra_number) or panchang.nakshatra_name
+    nakshatra = _day_star_text(panchang, quality, lang)
     tithi = (tithi_ta if ta else tithi_en)(panchang.tithi_number)
     paksha = paksha_display(panchang.tithi_paksha)[0 if ta else 1]
     lines = [
         f"{_label('location', lang)}: {location_label}",
-        f"{_label('date', lang)}: {panchang.date_local} &nbsp;&nbsp; {_label('nakshatra', lang)}: {nakshatra} ({_label('pada', lang)} {panchang.nakshatra_pada})",
+        f"{_label('date', lang)}: {panchang.date_local} &nbsp;&nbsp; {_label('nakshatra', lang)}: {nakshatra}",
         f"{_label('tithi', lang)}: {tithi} ({paksha})",
-        f"{_label('daily_score', lang)}: <b>{score}/100</b> - {label}",
+        f"{_label('daily_score', lang)}: <b>{quality.score}/100</b> - {label}",
         f"{_label('nalla_neram', lang)}: {nalla} &nbsp;&nbsp; {_label('rahu_kalam', lang)}: {rahu}",
     ]
     return [Paragraph(_label("todays_guidance", lang), heading_style)] + [Paragraph(line, body_style) for line in lines]
@@ -719,18 +739,12 @@ def generate_chart_pdf(
         daily_location.timezone,
     )
 
-    # Quick score derivation from the day's star (same lightweight heuristic as
-    # daily_push_cron, and now literally the same two sets — these were hand-
-    # copies that had drifted: the push copy also listed 14 as a caution star.
-    # Dominant rather than sunrise, so an exported PDF and the app agree about
-    # which star ran the day.
-    nak = panchang.dominant_nakshatra_number or panchang.nakshatra_number
-    if nak in AUSPICIOUS_DAILY_NAKSHATRAS:
-        score, label = 72, _label("good", lang)
-    elif nak in CAUTION_DAILY_NAKSHATRAS:
-        score, label = 32, _label("caution", lang)
-    else:
-        score, label = 50, _label("balanced", lang)
+    # The day's one verdict (AAU-07): the same `day_quality` the calendar badge
+    # and the push fallback read, so a printed sheet cannot call a day caution
+    # that the calendar badges good. It used to key two hand lists on the
+    # 24-hour dominant star while the badge read the sunrise star.
+    quality = day_quality_for(panchang)
+    label = _label({"GOOD": "good", "CAUTION": "caution", "NEUTRAL": "balanced"}[quality.verdict], lang)
 
     buf = io.BytesIO()
     doc = SimpleDocTemplate(
@@ -754,7 +768,7 @@ def generate_chart_pdf(
     story.append(Spacer(1, 0.3 * cm))
     story += _section_daily(
         panchang,
-        score,
+        quality,
         label,
         daily_location.place or daily_location.timezone,
         heading_style,

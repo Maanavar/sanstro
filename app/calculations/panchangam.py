@@ -18,6 +18,7 @@ from app.calculations.astro import (
     utc_datetime_to_julian_day,
     utc_datetime_to_local_datetime,
 )
+from app.calculations.day_quality import FIT_STARS, DayQuality, day_quality
 from app.calculations.ephemeris import (
     RiseTransitUndefinedError,
     calculate_lagna_degree,
@@ -288,35 +289,14 @@ ASHUBHA_YOGAS = {
 SUBHA_TITHIS_SHUKLA = {2, 3, 5, 6, 7, 10, 11, 12, 13}
 SUBHA_TITHIS_KRISHNA = {2, 3, 6, 7, 10, 11}
 
-# Auspicious nakshatras for muhurtham (Thirukanitha list — Tamil names matching NAKSHATRA_NAMES)
-SUBHA_NAKSHATRAS = {
-    "ASWINI",         # 1  — Ashwini
-    "ROHINI",         # 4  — Rohini
-    "MIRUGASEERIDAM", # 5  — Mrigashira
-    "PUNARPOOSAM",    # 7  — Punarvasu
-    "POOSAM",         # 8  — Pushya
-    "HASTHAM",        # 13 — Hasta
-    "CHITHIRAI",      # 14 — Chitra
-    "SWATHI",         # 15 — Swati
-    "ANUSHAM",        # 17 — Anuradha
-    "MOOLAM",         # 19 — Mula
-    "UTHIRADAM",      # 21 — Uttarashada
-    "UTHIRATTATHI",   # 26 — Uttarabhadrapada
-    "REVATHI",        # 27 — Revati
-    "MAGAM",          # 10 — Magha
-    "UTHIRAM",        # 12 — Uttaraphalguni
-    "THIRUVONAM",     # 22 — Shravana
-    "AVITTAM",        # 23 — Dhanishtha
-}
-# The same list keyed by canonical 1..27 number, for callers that hold a
-# nakshatra number rather than a display name. Derived rather than hand-listed
-# so the two can never disagree. Every name above resolves against
-# NAKSHATRA_NAMES — the `.upper().replace("H", "")` fuzz that two former
-# muhurta scorers used to compare these was guarding a mismatch that does not
-# exist, and is gone.
-SUBHA_NAKSHATRA_NUMBERS: frozenset[int] = frozenset(
-    NAKSHATRA_NAMES.index(name) + 1 for name in SUBHA_NAKSHATRAS
-)
+# The general good-star list for ordinary new work: the 16 stars of the four
+# gentle classes in `day_quality.STAR_CLASS` (AAU-07, ruled 2026-10-29). It
+# was a hand-typed 17 that mixed in marriage stars — Magam (Ugra) and Moolam
+# (Tikshna) — while the daily scorer's caution list named the same two, and it
+# lacked Sadhayam (Chara). Marriage has its own list (Kalaprakasika, and the
+# almanac's `muhurtham_naals`); this one is not it.
+SUBHA_NAKSHATRA_NUMBERS: frozenset[int] = FIT_STARS
+SUBHA_NAKSHATRAS: frozenset[str] = frozenset(NAKSHATRA_NAMES[n - 1] for n in FIT_STARS)
 # Soolam (சூலம்): the inauspicious travel direction for the day, by weekday
 # (0=Mon..6=Sun, matching RAHU_SLOT). Parigaram is the remedy food traditionally
 # eaten before travelling in the Soolam direction to nullify its effect.
@@ -596,7 +576,12 @@ DEFAULT_AYANAMSA_TYPE = "LAHIRI"
 # called Amavasai or Pournami — is the tithi at sunrise (first of two), not the
 # civil day the tithi fills most of. It moves by a day about five times a year,
 # and every cached snapshot carries the old answer.
-PANCHANGAM_CACHE_DATA_VERSION = 49
+# v50 (2026-10-29, AAU-07): `is_subha_muhurtham` — the நல்ல நாள் badge — now
+# reads the seven-class star table on the star holding most of the daytime
+# (`day_quality`), not the 17-star list on the sunrise star. Magam and Moolam
+# leave the badge, Sadhayam joins it, and transition days can flip. Every
+# cached snapshot carries the old badge.
+PANCHANGAM_CACHE_DATA_VERSION = 50
 
 # Fixed weekday clock-table Nalla Neram windows. NOTE (2026-07-17): the daily
 # panchangam no longer uses this table — its Nalla Neram is now derived from the
@@ -1539,6 +1524,51 @@ def _muhurtham_weekday_block_reason(weekday_index: int) -> str:
     return f"Inauspicious: {weekday_name} excluded for Subha Muhurtham in Tamil tradition"
 
 
+def _day_block_reason(tithi_number: int, weekday_index: int) -> str | None:
+    """Tuesday, Saturday, Amavasai, the Rikta tithis and Ashtami: the weekday
+    and tithi blocks on a good day for new work, or None."""
+    tithi_in_paksha = tithi_number if tithi_number <= 15 else tithi_number - 15
+    if weekday_index in MUHURTHAM_BLOCKED_WEEKDAYS:
+        return _muhurtham_weekday_block_reason(weekday_index)
+    if tithi_number == 30:
+        return "Inauspicious: Amavasai tithi"
+    if tithi_in_paksha in RIKTA_TITHIS_IN_PAKSHA:
+        return f"Inauspicious: {_tithi_name(tithi_number)} (Rikta tithi)"
+    if tithi_in_paksha in TAMIL_AVOIDED_TITHIS_IN_PAKSHA:
+        return f"Inauspicious: {_tithi_name(tithi_number)} (avoided for subha karyam)"
+    return None
+
+
+def day_quality_for(snapshot: PanchangamSnapshot) -> DayQuality:
+    """The day's one answer to "is today good for beginning ordinary new
+    work?" (AAU-07). The calendar badge, the PDF day block, the push fallback
+    and Today's day star all read this, so they cannot disagree.
+
+    The star is the one holding most of the daytime. The weekday/tithi block
+    still reads the sunrise tithi — moving that to the same window is a D4
+    follow-on, not part of this ruling.
+    """
+    return day_quality(
+        snapshot.nakshatra_spans,
+        snapshot.sunrise,
+        snapshot.sunset,
+        fallback_star=snapshot.nakshatra_number,
+        block_reason=_day_block_reason(snapshot.tithi_number, snapshot.date_local.weekday()),
+    )
+
+
+def _subha_from_day_quality(quality: DayQuality) -> tuple[bool, str]:
+    """The badge flag and its reason, from a `DayQuality`."""
+    star = NAKSHATRA_NAMES[quality.verdict_star - 1]
+    if quality.block_reason is not None:
+        return False, quality.block_reason
+    if quality.is_good:
+        return True, f"Auspicious: {star} nakshatra holds most of the daytime"
+    if quality.verdict == "CAUTION":
+        return False, f"Inauspicious: {star} ({quality.star_class.title()}) is not for beginning new work"
+    return False, f"Neutral: {star} not a good-day nakshatra"
+
+
 def _compute_subha_muhurtham_broad(
     tithi_number: int,
     nakshatra_name: str,
@@ -1562,17 +1592,14 @@ def _compute_subha_muhurtham_broad(
 
     What it does check: the day's nakshatra decides, with Tuesday, Saturday,
     Amavasai, the Rikta tithis (4th/9th/14th) and Ashtami excluded.
-    """
-    tithi_in_paksha = tithi_number if tithi_number <= 15 else tithi_number - 15
 
-    if weekday_index in MUHURTHAM_BLOCKED_WEEKDAYS:
-        return False, _muhurtham_weekday_block_reason(weekday_index)
-    if tithi_number == 30:
-        return False, "Inauspicious: Amavasai tithi"
-    if tithi_in_paksha in RIKTA_TITHIS_IN_PAKSHA:
-        return False, f"Inauspicious: {_tithi_name(tithi_number)} (Rikta tithi)"
-    if tithi_in_paksha in TAMIL_AVOIDED_TITHIS_IN_PAKSHA:
-        return False, f"Inauspicious: {_tithi_name(tithi_number)} (avoided for subha karyam)"
+    Since AAU-07 the snapshot's badge comes from `day_quality_for`, which reads
+    the star holding most of the daytime. This scalar form takes the star it is
+    given and is kept for callers that hold one star and no spans.
+    """
+    block = _day_block_reason(tithi_number, weekday_index)
+    if block is not None:
+        return False, block
 
     if nakshatra_name in SUBHA_NAKSHATRAS:
         return True, f"Auspicious: {nakshatra_name} nakshatra"
@@ -2396,9 +2423,6 @@ def compute_daily_panchangam(
     nalla_neram = _compute_nalla_neram(gowri_panchangam, bad_kalam_slots, solar_noon)
     gowri_nalla_neram = _compute_gowri_nalla_neram(gowri_panchangam, bad_kalam_slots, nalla_neram)
 
-    is_subha, subha_reason = _compute_subha_muhurtham_broad(
-        tithi_number, NAKSHATRA_NAMES[nakshatra_number - 1], weekday_index,
-    )
     is_subha_strict, subha_strict_reason = _compute_subha_muhurtham_strict(
         tithi_number, tithi_paksha, NAKSHATRA_NAMES[nakshatra_number - 1],
         yoga_name_str, weekday_index,
@@ -2478,6 +2502,14 @@ def compute_daily_panchangam(
     # instead of costing three more.
     tithi_spans = limb_spans_between("tithi", sunrise_jd, next_sunrise_jd, timezone_name)
     nakshatra_spans = limb_spans_between("nakshatra", sunrise_jd, next_sunrise_jd, timezone_name)
+    # The நல்ல நாள் badge (AAU-07): the star holding most of the daytime, on
+    # the seven-class table — the same answer `day_quality_for` gives every
+    # other surface from this snapshot.
+    is_subha, subha_reason = _subha_from_day_quality(day_quality(
+        nakshatra_spans, sunrise, sunset,
+        fallback_star=nakshatra_number,
+        block_reason=_day_block_reason(tithi_number, weekday_index),
+    ))
     yoga_spans = limb_spans_between("yoga", sunrise_jd, next_sunrise_jd, timezone_name)
     karana_spans = limb_spans_between("karana", sunrise_jd, next_sunrise_jd, timezone_name)
     moon_rasi_spans = limb_spans_between("moon_rasi", sunrise_jd, next_sunrise_jd, timezone_name)

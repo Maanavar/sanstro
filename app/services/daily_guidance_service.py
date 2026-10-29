@@ -29,6 +29,7 @@ from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.panchangam import (
     NAKSHATRA_NAMES,
     PanchangamSnapshot,
+    day_quality_for,
     dominant_from_spans,
     dominant_span_name,
     limb_fraction,
@@ -579,8 +580,11 @@ def build_daily_guidance_response(
     # the timing rules all read the star at *sunrise*. They disagreed on 23.3% of
     # days, and on 37 days a year they fell on opposite sides of the
     # auspicious-star list — two star names on one screen, neither labelled.
-    # One value now feeds all of them.
-    day_nakshatra = panchangam.dominant_nakshatra_number or panchangam.nakshatra_number
+    # One value now feeds all of them. Since AAU-07 (2026-10-29) that value is
+    # `day_quality`'s verdict star — the one holding most of the *daytime* —
+    # so Today names the same star the calendar badge, the PDF and the push
+    # judged. The weighted scores below still weigh every span (R-1).
+    day_nakshatra = day_quality_for(panchangam).verdict_star
     day_tithi = panchangam.dominant_tithi_number or panchangam.tithi_number
     day_yoga = panchangam.dominant_yoga_number or panchangam.yoga_number
     current_nakshatra = day_nakshatra
