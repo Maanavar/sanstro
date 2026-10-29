@@ -54,6 +54,7 @@ from app.calculations.chart_strength import (
     SIGN_LORD,
 )
 from app.calculations.dasha import calculate_vimshottari_timeline
+from app.calculations.doctrine_options import DEFAULT_DOCTRINE, DoctrineOptions
 from app.calculations.display_names import planet_en, planet_ta
 from app.calculations.dosha_samyam import compare_marriage_doshams, papa_samyam
 
@@ -275,32 +276,51 @@ class CompatibilityIntelligenceResult:
 
 # ---------------------------------------------------------------------------
 # Level 5: Sevvai Dosham — delegates to the main dosham engine's
-# detect_sevvai_dosham (Lagna + Moon + Venus references, nivarthi rules) so
-# this report and the Jadhagam card can never disagree on has_dosham/
-# is_cancelled for the same chart (WI-13).
+# detect_sevvai_dosham (Lagna + Moon + Venus references, nivarthi rules), with
+# the inputs the Jadhagam card passes, so the report and the card agree on
+# presence, strength, label and cancellations for the same chart (WI-13).
+#
+# WI-13 said they "can never disagree" while this file passed planets and lagna
+# only. The card also passes combustion (combust Mars aggravates), the D9 map
+# (a mitigation) and the live doctrine, so on 400 synthetic charts severity
+# differed on 57 and the reasons on 214 (AAU-05).
 # ---------------------------------------------------------------------------
 
-def _sevvai_references(snap: Any) -> list[str]:
+def sevvai_inputs_from_snapshot(snap: Any, doctrine: DoctrineOptions = DEFAULT_DOCTRINE) -> dict[str, Any]:
+    """Everything `detect_sevvai_dosham` reads, from a chart response, as the
+    card path (`_chart_build._build_yoga_dosham_insights`) assembles it.
+
+    Active dasha lords are not passed: Sevvai detection does not read them.
+    """
+    planets = snap.data.planets
+    return {
+        "planets": {p.graha: p.rasi for p in planets},
+        "lagna_rasi": snap.data.lagna.rasi,
+        "gender": getattr(snap.data.birth_profile, "gender_for_traditional_rules", None),
+        "combust_planets": frozenset(p.graha for p in planets if p.is_combust),
+        "d9_rasi_map": {p.graha: p.d9_rasi for p in planets if isinstance(p.d9_rasi, int)},
+        "d9_lagna_rasi": snap.data.lagna.d9_rasi,
+        "doctrine": doctrine,
+    }
+
+
+def _sevvai_references(snap: Any, doctrine: DoctrineOptions = DEFAULT_DOCTRINE) -> list[str]:
     """The `from_*` references a chart's own Sevvai dosham stands on, or none."""
-    result = detect_sevvai_dosham({p.graha: p.rasi for p in snap.data.planets}, snap.data.lagna.rasi)
+    result = detect_sevvai_dosham(**sevvai_inputs_from_snapshot(snap, doctrine))
     return [c for c in result.conditions_met if c.startswith("from_")] if result.is_present else []
 
 
-def _compute_sevvai(snap: Any, partner: Any | None = None) -> SevvaiDoshamDetail:
+def _compute_sevvai(
+    snap: Any, partner: Any | None = None, doctrine: DoctrineOptions = DEFAULT_DOCTRINE
+) -> SevvaiDoshamDetail:
     """`partner` makes this a two-chart reading, the only kind that can cancel
     (rulings 2026-10-22 round two, §8): dosha samyam of comparable weight, or
     Mars debilitated in Katakam in the dosha house. It replaced a mutual
     cancellation that fired whenever both charts carried any Sevvai at all."""
     mars = _get_planet(snap, "MARS")
-    lagna_rasi = snap.data.lagna.rasi
-    planets_rasi_map = {p.graha: p.rasi for p in snap.data.planets}
-    gender = getattr(snap.data.birth_profile, "gender_for_traditional_rules", None)
-
     result = detect_sevvai_dosham(
-        planets_rasi_map,
-        lagna_rasi,
-        gender=gender,
-        partner_sevvai_references=_sevvai_references(partner) if partner is not None else None,
+        **sevvai_inputs_from_snapshot(snap, doctrine),
+        partner_sevvai_references=_sevvai_references(partner, doctrine) if partner is not None else None,
     )
 
     if not result.is_present:
@@ -380,7 +400,9 @@ def sevvai_risk_lines(
     return risks_en, risks_ta
 
 
-def marriage_samyam_lines(snap_a: Any, snap_b: Any) -> tuple[list[str], list[str]]:
+def marriage_samyam_lines(
+    snap_a: Any, snap_b: Any, doctrine: DoctrineOptions = DEFAULT_DOCTRINE
+) -> tuple[list[str], list[str]]:
     """DD-03 samyam lines, (english, tamil). Report text only: no score moves.
 
     `rahu_ketu_samyam` is its own concept, kept apart from the Sevvai mutual
@@ -390,8 +412,7 @@ def marriage_samyam_lines(snap_a: Any, snap_b: Any) -> tuple[list[str], list[str
     def doshams(snap: Any) -> tuple[Any, Any]:
         planets = {p.graha: p.rasi for p in snap.data.planets}
         lagna = snap.data.lagna.rasi
-        gender = getattr(snap.data.birth_profile, "gender_for_traditional_rules", None)
-        return detect_rahu_ketu_dosham(planets, lagna), detect_sevvai_dosham(planets, lagna, gender=gender)
+        return detect_rahu_ketu_dosham(planets, lagna), detect_sevvai_dosham(**sevvai_inputs_from_snapshot(snap, doctrine))
 
     rk_a, sv_a = doshams(snap_a)
     rk_b, sv_b = doshams(snap_b)
@@ -983,6 +1004,7 @@ def compute_compatibility_intelligence(
     today_jd: float | None = None,
     person_a_name: str = "Person A",
     person_b_name: str = "Person B",
+    doctrine: DoctrineOptions = DEFAULT_DOCTRINE,
 ) -> CompatibilityIntelligenceResult:
     if today_jd is None:
         today_jd = _jd_for_today()
@@ -1000,8 +1022,8 @@ def compute_compatibility_intelligence(
     navamsa = _compute_navamsa(snap_a, snap_b)
 
     # Layer 5: Dosham
-    sevvai_a = _compute_sevvai(snap_a, partner=snap_b)
-    sevvai_b = _compute_sevvai(snap_b, partner=snap_a)
+    sevvai_a = _compute_sevvai(snap_a, partner=snap_b, doctrine=doctrine)
+    sevvai_b = _compute_sevvai(snap_b, partner=snap_a, doctrine=doctrine)
     dosham_pts = sevvai_a.score + sevvai_b.score  # 0-10 (5 each max)
 
     # Nadi dosha penalty
@@ -1131,7 +1153,7 @@ def compute_compatibility_intelligence(
     risks_en.extend(sevvai_risks_en)
     risks_ta.extend(sevvai_risks_ta)
 
-    samyam_en, samyam_ta = marriage_samyam_lines(snap_a, snap_b)
+    samyam_en, samyam_ta = marriage_samyam_lines(snap_a, snap_b, doctrine)
     strengths_en.extend(samyam_en)
     strengths_ta.extend(samyam_ta)
 

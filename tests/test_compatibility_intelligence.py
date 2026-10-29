@@ -89,11 +89,12 @@ def _sevvai_snap(lagna_rasi: int, planet_rasis: dict[str, int]) -> SimpleNamespa
         SimpleNamespace(
             graha=graha, rasi=rasi,
             house_from_lagna=house_from_reference(lagna_rasi, rasi),
+            is_combust=False, d9_rasi=None,
         )
         for graha, rasi in planet_rasis.items()
     ]
     return SimpleNamespace(data=SimpleNamespace(
-        lagna=SimpleNamespace(rasi=lagna_rasi),
+        lagna=SimpleNamespace(rasi=lagna_rasi, d9_rasi=None),
         planets=planets,
         birth_profile=SimpleNamespace(gender_for_traditional_rules=None),
     ))
@@ -322,11 +323,11 @@ def _stub_strong_layers(monkeypatch: pytest.MonkeyPatch) -> None:
     isolates the WI-21 label-cap logic from needing real chart snapshots."""
     monkeypatch.setattr(ci_module, "_compute_chart_marriage_strength", lambda snap: _STRONG_STRENGTH)
     monkeypatch.setattr(ci_module, "_compute_navamsa", lambda a, b: _STRONG_NAVAMSA)
-    monkeypatch.setattr(ci_module, "_compute_sevvai", lambda snap, partner=None: _STRONG_SEVVAI)
+    monkeypatch.setattr(ci_module, "_compute_sevvai", lambda snap, partner=None, doctrine=None: _STRONG_SEVVAI)
     monkeypatch.setattr(ci_module, "_compute_dasha_harmony", lambda a, b, jd: _STRONG_DASHA)
     monkeypatch.setattr(ci_module, "_compute_emotional_compatibility", lambda a, b: _STRONG_EMOTIONAL)
     # DD-03 samyam lines read real snapshots; text only, no score effect.
-    monkeypatch.setattr(ci_module, "marriage_samyam_lines", lambda a, b: ([], []))
+    monkeypatch.setattr(ci_module, "marriage_samyam_lines", lambda a, b, doctrine=None: ([], []))
     # F-CI-03's papa samyam reads real snapshots too, and these tests pass a
     # bare SimpleNamespace. Stubbed for the same reason, so a label-cap test
     # fails only on the label cap.
@@ -394,7 +395,7 @@ def _one_sided(monkeypatch: pytest.MonkeyPatch, sevvai_a: SevvaiDoshamDetail) ->
     """Person A carries `sevvai_a`; person B is clear."""
     seen: list[object] = []
 
-    def _compute(snap, partner=None):
+    def _compute(snap, partner=None, doctrine=None):
         seen.append(snap)
         return sevvai_a if len(seen) == 1 else _STRONG_SEVVAI
 

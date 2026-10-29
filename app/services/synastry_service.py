@@ -61,7 +61,7 @@ from app.schemas.relationships import (
     SynastryResponse,
 )
 from app.services.chart_service import load_persisted_chart_response
-from app.services.feature_flags import get_flag
+from app.services.feature_flags import current_doctrine_options, get_flag
 from app.services.location_service import local_noon_as_utc_for_profile
 
 _CALC_VERSION = "jothidam-formula-engine-v1.0-2026"
@@ -856,6 +856,8 @@ def build_compatibility_intelligence_from_snapshots(
         today_jd=today_jd,
         person_a_name=name_a,
         person_b_name=name_b,
+        # The same live doctrine the chart's own dosham card reads (AAU-05).
+        doctrine=current_doctrine_options(),
     )
 
     nadi = porutham_result.nadi_dosha
