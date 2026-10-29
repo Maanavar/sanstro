@@ -40,7 +40,7 @@ not as a finding.
 
 ## P1: wrong on a screen today
 
-### [ ] AAU-01. The printed Jadhagam's birth tithi, yoga and karana are the sunrise values, not the birth values
+### [x] AAU-01. The printed Jadhagam's birth tithi, yoga and karana are the sunrise values, not the birth values
 
 **Problem.** `_birth_panchangam_signature_items` (`app/services/_chart_build.py:154`) calls
 `calculate_daily_panchangam` for the birth **date** and copies its tithi, nakshatra, pada, yoga and
@@ -65,7 +65,7 @@ karana equal values recomputed from the chart's own Sun and Moon. Random charts 
 transition, so add births placed one minute either side of a tithi, nakshatra, yoga and karana
 change. Run it once on the old code and confirm it fails.
 
-### [ ] AAU-02. A birth before sunrise is printed on the next Tamil day
+### [x] AAU-02. A birth before sunrise is printed on the next Tamil day
 
 **Problem.** The Tamil day runs sunrise to sunrise. The signature uses the civil date for the Tamil
 date (`format_tamil_date(birth_date_local, …)`), the weekday and the sunrise. So does the naaligai
@@ -84,7 +84,7 @@ at the birth instant either way.
 sunrise + 1 minute is unchanged; so is one at sunrise − 1 minute on the far side. Repeat at a
 second Tamil Nadu location and in the other half of the year, since sunrise moves by both.
 
-### [ ] AAU-03. Raw English engine codes in Tamil documents (Jadhagam, PDF), plus a label typo
+### [x] AAU-03. Raw English engine codes in Tamil documents (Jadhagam, PDF), plus a label typo
 
 **Problem.** The CLAUDE.md display rule: tithi, yoga and karana go through `tTithi` / `tYoga` /
 `tKarana`; a bare engine string is the wrong field. Two printed surfaces break it.
@@ -131,7 +131,7 @@ the astrologer signs the canon.
 
 **Acceptance.** A drift test fails if the Jadhagam's syllables differ from the canon in any cell.
 
-### [ ] AAU-05. Sevvai dosham: the compatibility report and the Jadhagam card disagree
+### [x] AAU-05. Sevvai dosham: the compatibility report and the Jadhagam card disagree
 
 **Problem.** `compatibility_intelligence._compute_sevvai` and `_sevvai_references` call
 `detect_sevvai_dosham` with planets and lagna only. The Jadhagam card's path (`yogas.py:387`) also
@@ -154,7 +154,7 @@ combustion, D9 and doctrine.
 `label` and `cancellation_factors` between the card and the report. It fails on today's code
 (checked: 57).
 
-### [ ] AAU-06. Mobile porutham celebrates a match the server has vetoed
+### [x] AAU-06. Mobile porutham celebrates a match the server has vetoed
 
 **Problem.** `mobile/app/(tabs)/tools/porutham.tsx:168-174` colours the score hero saffron (its
 "best" colour) and fires a **success haptic** at `totalScore >= 8`. It never reads the label, Rajju
@@ -205,7 +205,7 @@ unlabelled verdicts on the same day may not contradict.
 
 ## P2: doctrine errors, latent wrong data, findable contradictions
 
-### [ ] AAU-08. The chart's nadi is wrong for 18 of 27 stars and contradicts porutham
+### [x] AAU-08. The chart's nadi is wrong for 18 of 27 stars and contradicts porutham
 
 `_chart_planets._nakshatra_nadi` (`:135`) uses contiguous blocks of three: stars 1–3 Aadhi, 4–6
 Madhya, 7–9 Anthya. The classical pattern runs A-M-An-An-M-A, as `porutham.py:183` has it. They
@@ -297,7 +297,7 @@ child, and it is the screen most likely to frighten them.
 3. Add a prevalence gate: a test that prints the share of a fixed synthetic population carrying each
    dosham, so a doctrine change that moves it is seen.
 
-### [ ] AAU-14. Marriage timing calls ages 25–35 the only supportive band, for everyone
+### [x] AAU-14. Marriage timing calls ages 25–35 the only supportive band, for everyone
 
 `marriage_service.py:697`: ages 25–35 add +6 ("Age phase is supportive"); any other age adds a
 challenge, "Age phase is outside peak range". The rule ignores gender, so a 23-year-old woman, a
@@ -336,7 +336,7 @@ starting month confirmed. Show them on the Jadhagam, the PDF and the calendar he
 
 ## P3: small, or needs a ruling first
 
-### [ ] AAU-17. The naaligai's third field is leftover seconds, not tharparai
+### [~] AAU-17. The naaligai's third field is leftover seconds, not tharparai
 
 `computeNaaligai` (`JadhagamTool.tsx:159`) prints naazhigai.vinaadi.**seconds (0–23)**. The Tamil
 third unit is the tharparai: 60 per vinaadi, 0.4 s each, so 0–59. Birth and sunrise seconds are also
@@ -396,4 +396,12 @@ These were tested and need no action:
 - Not covered: the muhurta engine (138 KB), festivals and Tamil dates (audited 21–23 Oct),
   numerology, and the long-form reading prose.
 - Mobile findings are from reading code; nothing was run on a device.
-- No fix in this document has been made yet, so no gate has been run with a fix removed.
+- Fix-now lane, 29 Oct: AAU-01, 02, 03, 05, 06, 08, 14 done and AAU-17 partly done. Each gate was
+  run once with its fix removed and failed: the signature and PDF gates on a mutant (17 of 17
+  failed), the Sevvai card-vs-report sweep on the old inputs (200 of 400 differ), and the mobile
+  porutham source gate on the old screen (2 of 3 failed). **Blind spots:** the mobile gate reads
+  source and does not render the screen; the naazhigai tests also fail on the mutant only because
+  it prints no naazhigai; AAU-17's third unit is dropped, not computed, until the tharparai is
+  ruled. While gating AAU-03, the same leak turned up in the compatibility PDF (raw rasi, star and
+  dasa-lord names) and in the legacy muhurta slot line. Both are fixed. Career and wealth have
+  age rules like AAU-14's, still unsourced and not changed here.
