@@ -1111,9 +1111,11 @@ def _chart_response_from_record(chart: Chart) -> ChartCalculateResponse:
 
     # Recomputed from the FINAL longitudes, never zipped against the stored rows.
     #
-    # `compute_equal_bhava` is pure arithmetic — (longitude - lagna) // 30 — over
-    # exactly the inputs that wrote `chart_planets.bhava_house` in the first
-    # place, so for the nine grahas this is bit-identical to reading the column.
+    # `compute_equal_bhava` is pure arithmetic — (longitude - lagna + 15) // 30,
+    # the Lagna as bhava madhya since AAU-10 — over exactly the inputs that
+    # wrote `chart_planets.bhava_house`, so for the nine grahas this matches the
+    # column on any chart persisted since then. Rows written before AAU-10 hold
+    # the old cusp reckoning; nothing reads them in place of this recompute.
     # For Maandhi it is not, and that is the point: Maandhi is rederived above
     # (see the note there), so any stored row beside it is describing a different
     # longitude.
