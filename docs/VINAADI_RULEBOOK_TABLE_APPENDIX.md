@@ -1121,7 +1121,7 @@ lagna-dependent but tabled statically (Dhana, Vipareetha) the listed set is a
 | **Emitted as** | `SUNAPHA_YOGA` |
 | **Detector** | `_yoga_detect.detect_sunapha_anapha_durudhura` |
 | **Markers** | `[TRADITION]` `[PRODUCT]` |
-| **Present when** | A graha other than Suriyan, Chandran, Rahu, Kethu and Mandhi occupies the 2nd rasi from Chandran. |
+| **Present when** | A graha other than Suriyan, Chandran, Rahu, Kethu and Mandhi occupies the 2nd rasi from Chandran, and none occupies the 12th (both is Durudhura, AAU-11). |
 | **Strength** | PARTIAL, flat. Ungated. |
 | **Cancellation** | — |
 | **Source** | Chandra yogas of BPHS — Sunapha, Anapha and Durudhura. |
@@ -1135,7 +1135,7 @@ lagna-dependent but tabled statically (Dhana, Vipareetha) the listed set is a
 | **Emitted as** | `ANAPHA_YOGA` |
 | **Detector** | `_yoga_detect.detect_sunapha_anapha_durudhura` |
 | **Markers** | `[TRADITION]` `[PRODUCT]` |
-| **Present when** | A graha other than Suriyan, Chandran, Rahu, Kethu and Mandhi occupies the 12th rasi from Chandran. |
+| **Present when** | A graha other than Suriyan, Chandran, Rahu, Kethu and Mandhi occupies the 12th rasi from Chandran, and none occupies the 2nd (both is Durudhura, AAU-11). |
 | **Strength** | PARTIAL, flat. Ungated. |
 | **Cancellation** | — |
 | **Source** | Chandra yogas of BPHS — Sunapha, Anapha and Durudhura. |
@@ -1154,7 +1154,7 @@ lagna-dependent but tabled statically (Dhana, Vipareetha) the listed set is a
 | **Cancellation** | — |
 | **Source** | Chandra yogas of BPHS — Sunapha, Anapha and Durudhura. |
 | **Activation grahas** | Per chart: The planets on both sides of Chandran (DD-15). |
-| **Note** | Emitted **in addition to** Sunapha and Anapha, not instead of them, so a chart with both sides occupied shows three cards for one configuration. Whether Durudhura should absorb the other two is a presentation call for the reviewer. |
+| **Note** | Emitted **instead of** Sunapha and Anapha (AAU-11, ruled 2026-10-29): Phaladeepika 6.1 gives the three "respectively" for the 2nd, the 12th and both, so a chart has exactly one of them. It used to be emitted beside them, three cards for one configuration. |
 
 #### `YOG-VS-01` Vasumati Yoga (வசுமதி யோகம்)
 

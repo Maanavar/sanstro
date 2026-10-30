@@ -123,7 +123,18 @@ def _dispatch(monkeypatch, *, focus_line):
     slot = MagicMock(start=datetime(2026, 10, 9, 4, 0, tzinfo=UTC), end=datetime(2026, 10, 9, 5, 0, tzinfo=UTC))
     slot.name = "LABHAM"
     rahu = MagicMock(start=datetime(2026, 10, 9, 7, 30, tzinfo=UTC), end=datetime(2026, 10, 9, 9, 0, tzinfo=UTC))
-    panchang = MagicMock(nakshatra_number=1, dominant_nakshatra_number=1, nalla_neram=[slot], rahu_kalam=rahu)
+    # `day_quality_for` (AAU-07) reads spans, sunrise, sunset, tithi and date,
+    # so those are real values.
+    panchang = MagicMock(
+        nakshatra_number=1,
+        nakshatra_spans=(),
+        sunrise=datetime(2026, 10, 9, 0, 30, tzinfo=UTC),
+        sunset=datetime(2026, 10, 9, 12, 30, tzinfo=UTC),
+        tithi_number=5,
+        date_local=date(2026, 10, 9),
+        nalla_neram=[slot],
+        rahu_kalam=rahu,
+    )
 
     guidance = MagicMock()
     guidance.data.score = 60
