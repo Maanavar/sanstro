@@ -153,9 +153,75 @@ def is_sankranti_birth(sun_rasi_day_start: int, sun_rasi_day_end: int) -> bool:
 
     Callers pass the Sun's sidereal rasi at the start and end of the birth day
     (local midnight to next local midnight). A differing rasi means a sankranti
-    (solar ingress) fell within the day — a Sankranti birth.
+    (solar ingress) fell within the day.
+
+    AAU-19: this is no longer the Sankranti *alert*. A sankranti is an instant,
+    not a date, and the whole civil day fired on ~1 chart in 30. Kept for the
+    no-birth-time case of the precision note below.
     """
     return sun_rasi_day_start != sun_rasi_day_end
+
+
+# ── AAU-19 (ruled 2026-10-29): two alerts, two code paths ───────────────────
+#
+# A. Birth-time precision (data quality, ships now). If the stated uncertainty
+#    around the birth time spans the Sun's ingress instant, the Sun's rasi
+#    itself is uncertain. Never a dosham; the copy asks the user to confirm the
+#    time. Window = the stated uncertainty, not a constant.
+# B. Traditional Sankranti assessment (doctrine, gated). Punya kala is
+#    directional and class-dependent: {class, nazhigai before, nazhigai after}
+#    per sankranti, from the panchangam of record. Until that table is filled
+#    in, Alert B does not fire — no interval is hard-coded to close the item.
+
+#: Sankranti class by the rasi the Sun enters (1 = Mesham).
+SANKRANTI_CLASS: dict[int, str] = {
+    10: "AYANA", 4: "AYANA",                                  # Makara, Kataka
+    1: "VISHUVA", 7: "VISHUVA",                               # Mesha, Thula
+    3: "SHADASHITIMUKHA", 6: "SHADASHITIMUKHA", 9: "SHADASHITIMUKHA", 12: "SHADASHITIMUKHA",
+    2: "VISHNUPADI", 5: "VISHNUPADI", 8: "VISHNUPADI", 11: "VISHNUPADI",
+}
+
+#: rasi entered -> (nazhigai before the ingress, nazhigai after). Empty until
+#: the panchangam of record supplies it; Alert B is gated on it.
+SANKRANTI_PUNYA_KALA_NAZHIGAI: dict[int, tuple[float, float]] = {}
+
+_NAZHIGAI_MINUTES = 24.0
+
+
+def minutes_to_nearest_sun_ingress(sun_longitude: float, sun_speed_deg_per_day: float) -> float:
+    """Signed minutes from the birth to the nearest sidereal sign change of the
+    Sun: negative if the ingress was before the birth, positive if after."""
+    degrees_in = normalize_longitude(sun_longitude) % 30.0
+    speed = max(abs(sun_speed_deg_per_day), 1e-6)
+    since = degrees_in / speed * 1440.0
+    until = (30.0 - degrees_in) / speed * 1440.0
+    return -since if since <= until else until
+
+
+def sun_sign_is_uncertain(
+    *,
+    minutes_to_ingress: float | None,
+    birth_time_uncertainty_minutes: float | None,
+    sun_rasi_day_start: int,
+    sun_rasi_day_end: int,
+) -> bool:
+    """Alert A. With no birth time the whole civil day is the uncertainty."""
+    if birth_time_uncertainty_minutes is None:
+        return sun_rasi_day_start != sun_rasi_day_end
+    if minutes_to_ingress is None:
+        return False
+    return abs(minutes_to_ingress) <= birth_time_uncertainty_minutes
+
+
+def is_traditional_sankranti_birth(rasi_entered: int, minutes_to_ingress: float) -> bool:
+    """Alert B: the birth falls inside that sankranti's punya kala. Always False
+    until `SANKRANTI_PUNYA_KALA_NAZHIGAI` is populated (gated by the ruling)."""
+    window = SANKRANTI_PUNYA_KALA_NAZHIGAI.get(rasi_entered)
+    if window is None:
+        return False
+    before, after = (n * _NAZHIGAI_MINUTES for n in window)
+    offset = -minutes_to_ingress  # birth minus ingress, in minutes
+    return -before <= offset <= after
 
 
 def detect_grahana_birth(
@@ -262,6 +328,8 @@ def detect_birth_conditions(
     sun_rasi_day_end: int,
     cazimi_planets: Sequence[str] = (),
     lagna_rasi: int | None = None,
+    sun_speed_deg_per_day: float | None = None,
+    birth_time_uncertainty_minutes: float | None = None,
 ) -> list[BirthConditionFlag]:
     """Roll up every birth-time junction condition into one Border-Alert list.
 
@@ -304,8 +372,54 @@ def detect_birth_conditions(
             )
         )
 
-    # --- Sankranti birth (restless friction) ---------------------------------
-    if is_sankranti_birth(sun_rasi_day_start, sun_rasi_day_end):
+    # --- AAU-19 Alert A: the Sun's rasi is uncertain (data quality) ----------
+    minutes_to_ingress = (
+        minutes_to_nearest_sun_ingress(sun_lon, sun_speed_deg_per_day)
+        if sun_lon is not None and sun_speed_deg_per_day is not None else None
+    )
+    if sun_sign_is_uncertain(
+        minutes_to_ingress=minutes_to_ingress,
+        birth_time_uncertainty_minutes=birth_time_uncertainty_minutes,
+        sun_rasi_day_start=sun_rasi_day_start,
+        sun_rasi_day_end=sun_rasi_day_end,
+    ):
+        flags.append(
+            BirthConditionFlag(
+                code="SUN_SIGN_UNCERTAIN",
+                is_present=True,
+                severity="INFO",
+                title_ta="பிறந்த நேரத்தை உறுதிசெய்யவும்",
+                title_en="Please confirm the birth time",
+                description_ta=(
+                    "பிறந்த நேரத்தின் அருகிலேயே சூரியன் ஒரு ராசியிலிருந்து அடுத்த ராசிக்கு மாறுகிறது. "
+                    "நேரம் சில நிமிடங்கள் மாறினாலும் சூரியனின் ராசி மாறலாம், அதனால் ஜாதகத்தின் பல "
+                    "பகுதிகளும் மாறலாம். இது தோஷம் அல்ல; சரியான நேரத்தை உறுதிசெய்தால் போதும்."
+                ),
+                description_en=(
+                    "The Sun changes sign close to the recorded birth time. A difference of a few "
+                    "minutes could change the Sun's sign, and with it much of the chart. This is "
+                    "not a dosham: confirming the exact birth time settles it."
+                ),
+                detail={
+                    "from_rasi": sun_rasi_day_start,
+                    "to_rasi": sun_rasi_day_end,
+                    "minutes_to_ingress": None if minutes_to_ingress is None else round(minutes_to_ingress),
+                    "birth_time_uncertainty_minutes": birth_time_uncertainty_minutes,
+                },
+            )
+        )
+
+    # --- AAU-19 Alert B: traditional Sankranti birth (gated) ------------------
+    # Fires only inside the sankranti's punya kala from the panchangam of
+    # record (`SANKRANTI_PUNYA_KALA_NAZHIGAI`, empty today). It used to fire
+    # for any birth on the civil day of an ingress.
+    rasi_entered = (
+        int(normalize_longitude(sun_lon + (30.0 if minutes_to_ingress > 0 else 0.0)) // 30) % 12 + 1
+        if sun_lon is not None and minutes_to_ingress is not None else None
+    )
+    if rasi_entered is not None and minutes_to_ingress is not None and is_traditional_sankranti_birth(
+        rasi_entered, minutes_to_ingress,
+    ):
         flags.append(
             BirthConditionFlag(
                 code="SANKRANTI_BIRTH",

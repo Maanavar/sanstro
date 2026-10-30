@@ -293,6 +293,7 @@ def _build_birth_conditions(
     planet_positions: list[PlanetPosition],
     birth_time_local: time | None,
     lagna_rasi: int | None = None,
+    birth_time_confidence_minutes: int | None = None,
 ) -> tuple[list[ChartBirthCondition], dict[str, float]]:
     """Assemble the Border-Alert list (and its natal strength penalties) from planets.
 
@@ -328,6 +329,12 @@ def _build_birth_conditions(
         sun_rasi_day_end=sun_end,
         cazimi_planets=cazimi_planets,
         lagna_rasi=lagna_rasi,
+        # AAU-19 Alert A: the stated uncertainty decides the window; with no
+        # birth time at all, the whole civil day is uncertain.
+        sun_speed_deg_per_day=sun.speed_deg_per_day,
+        birth_time_uncertainty_minutes=(
+            None if birth_time_local is None else float(birth_time_confidence_minutes or 0)
+        ),
     )
     conditions = [
         ChartBirthCondition(
@@ -891,7 +898,8 @@ def _chart_response_from_profile(profile: Any, calculation_version: str, chart_i
     varga_reliability = _varga_reliability(int(_value(profile, "birth_time_confidence_minutes", 0) or 0))
     nakshatra_analysis = _compute_nakshatra_analysis(planet_longitudes)
     birth_conditions, bc_penalties = _build_birth_conditions(
-        public_planet_positions, birth_time_local, lagna_rasi=lagna_rasi
+        public_planet_positions, birth_time_local, lagna_rasi=lagna_rasi,
+        birth_time_confidence_minutes=_value(profile, "birth_time_confidence_minutes"),
     )
     _apply_birth_condition_penalties(public_planet_positions, bc_penalties)
     birth_panchangam_signature = _birth_panchangam_signature(profile)
@@ -1163,7 +1171,8 @@ def _chart_response_from_record(chart: Chart) -> ChartCalculateResponse:
     varga_reliability = _varga_reliability(int(_value(birth_profile, "birth_time_confidence_minutes", 0) or 0))
     nakshatra_analysis = _compute_nakshatra_analysis(planet_longitudes)
     birth_conditions, bc_penalties = _build_birth_conditions(
-        public_planet_positions, _value(birth_profile, "birth_time_local"), lagna_rasi=lagna_rasi
+        public_planet_positions, _value(birth_profile, "birth_time_local"), lagna_rasi=lagna_rasi,
+        birth_time_confidence_minutes=_value(birth_profile, "birth_time_confidence_minutes"),
     )
     _apply_birth_condition_penalties(public_planet_positions, bc_penalties)
     birth_panchangam_signature = _birth_panchangam_signature(birth_profile)
