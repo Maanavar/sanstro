@@ -303,6 +303,18 @@ class PanchangamSpecialTithiDay(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class PanchangamTamilYear(BaseModel):
+    """The Tamil year name (60-year cycle from Chithirai 1), ayanam and ruthu
+    (AAU-16). Display text in both languages; `yearNumber` is 1..60."""
+
+    year_number: int = Field(alias="yearNumber")
+    year: BiText
+    ayanam: BiText
+    ruthu: BiText
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class PanchangamDailyResponseData(BaseModel):
     date_local: date = Field(alias="dateLocal")
     tamil_date: BiText | None = Field(alias="tamilDate", default=None)
@@ -311,6 +323,8 @@ class PanchangamDailyResponseData(BaseModel):
     # coverage). A computed date must not be shown as the
     # almanac's.
     tamil_date_source: Literal["published", "computed"] | None = Field(alias="tamilDateSource", default=None)
+    # AAU-16: "… வருடம், … அயனம், … ருது" for the day, from `tamil_year`.
+    tamil_year: PanchangamTamilYear | None = Field(alias="tamilYear", default=None)
     location: PanchangamLocation
     sunrise: str
     sunset: str

@@ -33,6 +33,7 @@ from app.calculations.tamil_calendar import (
     tamil_month_spans,
     tamil_solar_date,
 )
+from app.calculations.tamil_year import tamil_year_info
 from app.constants.astrology import NAKSHATRA_NAMES
 from app.data.muhurtham_naals import get_muhurtham_naals
 from app.models import BirthProfile, Chart
@@ -65,6 +66,7 @@ from app.schemas.panchangam import (
     PanchangamSoolam,
     PanchangamSpecialTithiDay,
     PanchangamSubhaMuhurtham,
+    PanchangamTamilYear,
     PanchangamTimingsData,
     PanchangamTimingsResponse,
     PanchangamTithi,
@@ -492,6 +494,21 @@ def _build_tamil_date(snapshot) -> BiText | None:
         return None
 
 
+def _build_tamil_year(snapshot) -> PanchangamTamilYear | None:
+    """AAU-16: the day's Tamil year name, ayanam and ruthu (`tamil_year`)."""
+    try:
+        info = tamil_year_info(snapshot.date_local, snapshot.timezone_name, snapshot.latitude, snapshot.longitude)
+    except Exception as exc:
+        logger.debug("Tamil year lookup failed for %s: %s", snapshot.date_local, exc)
+        return None
+    return PanchangamTamilYear(
+        year_number=info.year_number,
+        year=BiText(ta=info.year_ta, en=info.year_en),
+        ayanam=BiText(ta=info.ayanam_ta, en=info.ayanam_en),
+        ruthu=BiText(ta=info.ruthu_ta, en=info.ruthu_en),
+    )
+
+
 def _build_tamil_date_source(snapshot) -> str | None:
     """FCA-02 — whether `_build_tamil_date` is the almanac's date or the rule's."""
     try:
@@ -578,6 +595,7 @@ def calculate_panchangam(query: PanchangamDailyQuery, session: Session | None = 
             date_local=snapshot.date_local,
             tamil_date=_build_tamil_date(snapshot),
             tamil_date_source=_build_tamil_date_source(snapshot),
+            tamil_year=_build_tamil_year(snapshot),
             location=PanchangamLocation(lat=snapshot.latitude, lng=snapshot.longitude, timezone=snapshot.timezone_name),
             sunrise=format_clock_hhmm(snapshot.sunrise),
             sunset=format_clock_hhmm(snapshot.sunset),

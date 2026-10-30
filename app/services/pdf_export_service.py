@@ -288,6 +288,20 @@ def _section_birth_profile(chart_response, title_style, body_style, caption_styl
             f"{_label('pada', lang)} {lagna.pada}",
             body_style,
         ),
+    ]
+    # AAU-16: the year, ayanam and ruthu line, from the birth's Tamil day.
+    sig = chart_response.data.birth_panchangam_signature or {}
+    if sig.get("tamil_year_ta"):
+        ta = _normalize_lang(lang) == "ta"
+        year, ayanam, ruthu = (
+            (sig["tamil_year_ta"], sig.get("ayanam_ta"), sig.get("ruthu_ta")) if ta
+            else (sig["tamil_year_en"], sig.get("ayanam_en"), sig.get("ruthu_en"))
+        )
+        elements.append(Paragraph(
+            f"{year} வருடம், {ayanam}, {ruthu} ருது" if ta else f"{year} year, {ayanam}, {ruthu} season",
+            body_style,
+        ))
+    elements += [
         Paragraph(f"{_label('generated', lang)}: {generated_at.strftime('%Y-%m-%d')} {_format_clock_label(generated_at)} UTC", caption_style),
     ]
     return elements

@@ -190,3 +190,15 @@ def test_no_birth_time_keeps_the_sunrise_values_and_prints_no_naazhigai():
 def test_the_chart_nadi_is_porutham_nadi_for_all_27_stars():
     for n in range(1, 28):
         assert _nakshatra_nadi(n).upper() == nakshatra_nadi(n), n
+
+
+# --- AAU-16: the year line, from the Tamil day ------------------------------
+
+def test_the_signature_carries_year_ayanam_and_ruthu_from_the_tamil_day():
+    """03:00 on 14 Apr 1995 is Panguni 30 of the old year (AAU-02), so the
+    jathagam's year line must be the old year's; 06:30 is Chithirai 1."""
+    before, after = _sig(date(1995, 4, 14), time(3, 0)), _sig(date(1995, 4, 14), time(6, 30))
+    assert before["tamil_year_en"] == "Bhava" and after["tamil_year_en"] == "Yuva"
+    assert before["tamil_year_number"] == 8 and after["tamil_year_number"] == 9
+    assert (before["ruthu_en"], after["ruthu_en"]) == ("Pinpani", "Ilavenil")
+    assert before["ayanam_en"] == after["ayanam_en"] == "Uttarayanam"

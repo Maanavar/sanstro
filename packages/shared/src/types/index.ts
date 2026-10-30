@@ -1321,6 +1321,8 @@ export interface PanchangamDailyResponseData {
   tamilDate?: BiText | null;
   /** FCA-02: "published" = the almanac's own Tamil date; "computed" = the sunset-rule fallback, never to be shown as the almanac's. */
   tamilDateSource?: "published" | "computed" | null;
+  /** AAU-16: Tamil year name (60-year cycle from Chithirai 1), ayanam, ruthu. */
+  tamilYear?: { yearNumber: number; year: BiText; ayanam: BiText; ruthu: BiText } | null;
   location: { lat: number; lng: number; timezone: string };
   sunrise: string;
   sunset: string;

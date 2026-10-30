@@ -960,6 +960,14 @@ export function DayDetailDrawerNova({
       >
         {tamilDate || "\u00a0"}
       </span>
+      {/* AAU-16: the year, ayanam and ruthu a Tamil calendar sheet carries. */}
+      {data?.tamilYear && (
+        <span>
+          {lang === "ta"
+            ? `${data.tamilYear.year.ta} \u0bb5\u0bb0\u0bc1\u0b9f\u0bae\u0bcd \u00b7 ${data.tamilYear.ayanam.ta} \u00b7 ${data.tamilYear.ruthu.ta} \u0bb0\u0bc1\u0ba4\u0bc1`
+            : `${data.tamilYear.year.en} year \u00b7 ${data.tamilYear.ayanam.en} \u00b7 ${data.tamilYear.ruthu.en} season`}
+        </span>
+      )}
       {hijriLabel && <span>{hijriLabel}</span>}
       {isToday && <Chip tone="accent">{lang === "ta" ? "இன்று" : "Today"}</Chip>}
     </>

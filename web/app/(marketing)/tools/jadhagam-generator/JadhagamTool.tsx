@@ -511,6 +511,13 @@ function PrintableJadhagamSheet({
             <td style={hdrSt}>நட்சத்திர எழுத்துக்கள்</td>
             <td style={cellSt}>: {syllables.join(", ")}</td>
           </tr>
+          {/* AAU-16: the year, ayanam and ruthu line every Tamil jathagam carries. */}
+          <tr>
+            <td style={hdrSt}>வருடம்</td>
+            <td style={cellSt}>: {sig.tamil_year_ta ? `${sig.tamil_year_ta} வருடம்` : "—"}</td>
+            <td style={hdrSt}>அயனம் / ருது</td>
+            <td style={cellSt}>: {sig.ayanam_ta || "—"}{sig.ruthu_ta ? ` / ${sig.ruthu_ta}` : ""}</td>
+          </tr>
         </tbody>
       </table>
 

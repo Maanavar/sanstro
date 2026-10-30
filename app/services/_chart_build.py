@@ -241,7 +241,12 @@ def _birth_panchangam_signature_items(
         yogam, karanam = snapshot.yoga_name, snapshot.karana_name
         naazhigai = None
 
+    from app.calculations.tamil_year import tamil_year_info
     from app.services._chart_planets import _nakshatra_gana, _nakshatra_nadi
+
+    # AAU-16: "… வருடம், … அயனம், … ருது" on the printed jathagam, from the
+    # Tamil day (so a birth before sunrise on Chithirai 1 keeps the old year).
+    year = tamil_year_info(tamil_day, birth_timezone, birth_latitude, birth_longitude)
     return tuple({
         "vaaram": snapshot.weekday,
         "vaaram_lord": snapshot.weekday_lord,
@@ -260,6 +265,13 @@ def _birth_panchangam_signature_items(
         "tamil_date_en": tamil_date_en,
         "tamil_day_local": tamil_day.isoformat(),
         "birth_naazhigai": naazhigai,
+        "tamil_year_number": year.year_number,
+        "tamil_year_ta": year.year_ta,
+        "tamil_year_en": year.year_en,
+        "ayanam_ta": year.ayanam_ta,
+        "ayanam_en": year.ayanam_en,
+        "ruthu_ta": year.ruthu_ta,
+        "ruthu_en": year.ruthu_en,
     }.items())
 
 
