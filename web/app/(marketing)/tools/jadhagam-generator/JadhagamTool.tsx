@@ -20,6 +20,11 @@ import { useLang } from "@/components/lang-toggle";
 import { JadhagamShareButton } from "@/components/public-share-card";
 import { tKarana, tNakshatra, tPlanetLord, tTithi, tYoga } from "@/lib/i18n";
 import { nakshatraLordShort } from "@vinaadi/shared/nakshatraLord";
+import {
+  PADA_SYLLABLES_TA,
+  PADA_SYLLABLE_TOTAL_ROWS,
+  PADA_SYLLABLE_VERIFIED_ROWS,
+} from "@/lib/generated/nakshatra-pada-syllables";
 
 // ── South Indian grid layout ──────────────────────────────────────────────────
 const RASI_GRID = [
@@ -65,35 +70,9 @@ const NAKSHATRA_LORDS_TA: Record<number, string> = Object.fromEntries(
 );
 
 // ── Nakshatra starting syllables (4 padas each) ──────────────────────────────
-const NAKSHATRA_SYLLABLES: Record<number, [string, string, string, string]> = {
-  1:  ["அ",   "சி",   "சு",   "சே"],
-  2:  ["லீ",  "லு",   "லே",   "லோ"],
-  3:  ["அ",   "இ",    "உ",    "எ"],
-  4:  ["ஓ",   "வா",   "வி",   "வு"],
-  5:  ["வே",  "வோ",   "க",    "கி"],
-  6:  ["கு",  "க்ஷ",  "ண",    "ஞ"],
-  7:  ["கே",  "கோ",   "ஹா",   "ஹி"],
-  8:  ["ஹு",  "ஹே",   "ஹோ",   "ட"],
-  9:  ["டி",  "டு",   "டே",   "டோ"],
-  10: ["மா",  "மி",   "மு",   "மே"],
-  11: ["மோ",  "ட",    "டீ",   "டு"],
-  12: ["டே",  "டோ",   "ப",    "பி"],
-  13: ["பு",  "ஷ",    "ண",    "ட"],
-  14: ["பே",  "போ",   "ர",    "ரீ"],
-  15: ["ரு",  "ரே",   "ரோ",   "த"],
-  16: ["தி",  "தூ",   "தே",   "தோ"],
-  17: ["ந",   "நி",   "நு",   "நே"],
-  18: ["நோ",  "ய",    "யி",   "யு"],
-  19: ["யே",  "யோ",   "ப",    "பீ"],
-  20: ["பு",  "ட",    "ட",    "டீ"],
-  21: ["பே",  "போ",   "ஜ",    "ஜி"],
-  22: ["ஜு",  "ஜே",   "ஜோ",   "க்ஷீ"],
-  23: ["க",   "கீ",   "கு",   "கே"],
-  24: ["கோ",  "ச",    "சீ",   "சு"],
-  25: ["சே",  "சோ",   "த",    "தீ"],
-  26: ["து",  "ஜ",    "ஜீ",   "ஜு"],
-  27: ["தே",  "தோ",   "ச",    "சீ"],
-};
+// Generated from the naming canon (AAU-04). A hand-typed copy here differed from
+// it in 59 of 108 cells, 14 in the consonant (Aswini pada 1 printed Karthigai's
+// அ). The canon is unverified until the astrologer signs it, and the sheet says so.
 
 // ── Dignity (Nilai) tables ────────────────────────────────────────────────────
 //
@@ -368,7 +347,8 @@ function PrintableJadhagamSheet({
 
   // Nakshatra syllables for moon's nakshatra
   const moonNakIdx = moon?.nakshatra ?? 0;
-  const syllables = NAKSHATRA_SYLLABLES[moonNakIdx] ?? ["—", "—", "—", "—"];
+  const syllables = PADA_SYLLABLES_TA[moonNakIdx] ?? ["—", "—", "—", "—"];
+  const syllablesUnverified = PADA_SYLLABLE_VERIFIED_ROWS < PADA_SYLLABLE_TOTAL_ROWS;
 
   // Udhayadhi naazhigai: the server counts it from the sunrise of the Tamil
   // day the birth falls in (the previous day's, for a birth before sunrise),
@@ -509,7 +489,11 @@ function PrintableJadhagamSheet({
             <td style={hdrSt}>தமிழ் மாதம்/தேதி</td>
             <td style={cellSt}>: {sig.tamil_date_ta || "—"}</td>
             <td style={hdrSt}>நட்சத்திர எழுத்துக்கள்</td>
-            <td style={cellSt}>: {syllables.join(", ")}</td>
+            <td style={cellSt}>
+              : {syllables.join(", ")}
+              {/* The same "unverified" state the naming feature shows (AAU-04). */}
+              {syllablesUnverified && " (ஜோதிடர் சரிபார்ப்பு நிலுவையில்)"}
+            </td>
           </tr>
           {/* AAU-16: the year, ayanam and ruthu line every Tamil jathagam carries. */}
           <tr>
