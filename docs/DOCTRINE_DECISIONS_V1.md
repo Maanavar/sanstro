@@ -563,6 +563,36 @@ rides on the same sunrise.
 
 ---
 
+## 17. Audit Rulings of 29 October 2026 (countersign pending)
+
+Source documents: the consolidated rulings (AAU-04, 09, 12, 13, 16, 19),
+`ASTROLOGER_RULING_AAU-07_AAU-20_2026-10-29.md` and
+`ASTROLOGER_RULING_AAU-10_11_15_18_2026-10-29.md`. Items marked *delegated*
+were ruled by Claude under the owner's delegation and wait for a Tamil
+practitioner's countersignature. Layer tags: **[கணிதம்]** calculation,
+**[பலன்]** interpretation, **[PRODUCT]** Vinaadi grading policy.
+
+| Item | Ruling | Layer | Code |
+|---|---|---|---|
+| AAU-09 | Gochara from the Moon: Rahu favourable 3/6/10/11, Ketu 3/6/11; the nodes are graded separately and always opposite (runtime check). | [பலன்] | `gochara_scores`, `gochara_grade` |
+| AAU-13 | Sevvai houses stay 1, 2, 4, 7, 8, 12. Declared from the Lagna only; Moon and Venus grade it (mild / confirmed / severe); Moon- or Venus-only placements are noted, not declared. | [பலன்] houses, [PRODUCT] grading | `_yoga_dosham.detect_sevvai_dosham` |
+| AAU-12 | Putra Sarpa needs Rahu or Ketu. Saturn on the 5th is Santhana Thadai (புத்திர தடை), with Sani parihara. | [பலன்] | `detect_santhana_thadai` |
+| AAU-07 / 20 | One answer to "good for beginning ordinary new work?": seven-class star table (Magam, Moolam unfit; Sadhayam fit), the star holding most of the daytime, splits shown with their time. *Delegated.* | [பலன்] table, [PRODUCT] daytime collapse and scores | `day_quality` |
+| AAU-10 | Sama bhava: the Lagna is the madhya of the 1st house. *Delegated.* | [கணிதம்] | `equal_bhava` |
+| AAU-11 | Durudhura replaces Sunapha and Anapha when both sides of the Moon are occupied. *Delegated.* | [பலன்] | `_yoga_detect` |
+| AAU-15 | One table of nine inauspicious nitya yogas for the daily caution and the strict muhurtham check. *Delegated.* | [பலன்] | `panchangam.ASHUBHA_YOGAS` |
+| AAU-16 | 60-year cycle from Chithirai 1 (2026-27 Parabhava, #40); ayanam from the nirayana Makara/Kataka ingress; Tholkappiyam's six ruthus, Kaar first. | [கணிதம்] | `tamil_year` |
+| AAU-18 | Porutham spellings: வசியம், மகேந்திரம், ஸ்திரீ தீர்க்கம். *Delegated, native review.* | Display | `porutham` |
+| AAU-19 | Two alerts. A: birth-time precision against the Sun's ingress (ships; never a dosham). B: traditional punya kala, gated on the panchangam-of-record table. | [கணிதம்] A, [பலன்] B | `birth_conditions` |
+| AAU-04 | Tamil-first display, canonical syllable kept in the data; the Jadhagam renders the canon and says "unverified" until signed. *Delegated.* | [PRODUCT] | `nakshatra_pada_akshara` |
+| AAU-17 | No third time unit on the naazhigai: a tharparai (0.4 s) is finer than any recorded birth time. *Delegated.* | [PRODUCT] | `_chart_build` |
+
+**Still open.** A panchangam of record (unblocks the AAU-09 table citation,
+AAU-16 conventions and the AAU-19 punya kala table); a named phala authority
+for the six-house Sevvai set and nivarthi signs for a 1st-house Mars; the
+weighting of the node-beside-the-5th-lord and node-beside-Jupiter triggers
+(AAU-12, 39.6% of charts); verification of the 108 naming syllables.
+
 ## Launch Gate Checklist
 
 Before claiming traditional accuracy:

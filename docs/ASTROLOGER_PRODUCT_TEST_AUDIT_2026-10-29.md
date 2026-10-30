@@ -36,6 +36,34 @@ recorded in the doctrine document:
 Where an item proposes the answer as well, read the proposal as a question to put to the astrologer,
 not as a finding.
 
+### Status, 30 Oct: every item ruled and built
+
+The ruling-first lane was ruled on 29 Oct (consolidated rulings; `ASTROLOGER_RULING_AAU-07_AAU-20`;
+`ASTROLOGER_RULING_AAU-10_11_15_18`) and copied into `DOCTRINE_DECISIONS_V1.md` §17. Items marked
+*delegated* were ruled by Claude under the owner's delegation and wait for a practitioner's
+countersignature. Every gate below was run once with its fix removed and failed.
+
+| Item | Built | Measured / gate |
+|---|---|---|
+| 04 | Jadhagam renders the canon (generated TS), shows "unverified" | staleness + no-second-table gate. **Blind spot:** canon itself 0/108 verified |
+| 07, 20 | `day_quality`: seven-class table, daytime star, splits with time; badge, grid, PDF, push, Today | 2026 Chennai: 0 disagreements (was 14); caution days 126 vs 52 before |
+| 09 | Rahu 3/6/10/11, Ketu 3/6/11, one table for score and words; node-opposition runtime check | old tables: 6 fail. **Blind spot:** opposition sweep passes on old code too |
+| 10 | Lagna as bhava madhya | Meenam 5.9° case pinned |
+| 11 | Durudhura alone when both sides occupied | — |
+| 12 | Sarpa needs a node; Saturn → Santhana Thadai, Sani parihara | old 49.3% → Sarpa 39.6%, Thadai 15.8% (2,000 real charts); weights **not** changed |
+| 13 | Declared from Lagna; Moon/Venus grade (mild/confirmed/severe) | declared 91% → 49.0%; severe after mitigation 2.2% |
+| 15 | One table of nine yogas for daily and strict | old six-yoga copy: 4 of 5 fail |
+| 16 | Year name, ayanam, ruthu on Jadhagam, PDF, day view | 29 Oct 2026 fixture computed |
+| 17 | Third unit stays dropped (tharparai finer than any birth time) | — |
+| 18 | வசியம், மகேந்திரம், ஸ்திரீ தீர்க்கம் everywhere | old spellings: 5 of 5 fail |
+| 19 | Alert A (time precision) ships; Alert B gated on punya kala table | whole-day alert and its Sun penalty gone |
+| Follow-up | Career (24–50) and wealth (28–50) age bonuses dropped like AAU-14 | 4 of 4 fail on old code |
+
+**Still open, not code:** a panchangam of record; a named authority for the six-house Sevvai set and
+1st-house nivarthi signs; AAU-12 trigger weights; the 108 syllables; native review of the Tamil
+names and copy added here; the UI note that the nirayana ayanam turns ~23 days after the solstice;
+mobile still renders only the good-day flag, not the split time.
+
 ---
 
 ## P1: wrong on a screen today
@@ -102,7 +130,7 @@ second Tamil Nadu location and in the other half of the year, since sunrise move
 **Acceptance.** In Tamil mode the Jadhagam and PDF contain no `[A-Z]{4,}` tithi, yoga, karana,
 nakshatra or paksha code. Add both files to the display-boundary ratchets (web and backend).
 
-### [ ] AAU-04. The Jadhagam's name-syllable table is wrong on 14 pada initials
+### [x] AAU-04. The Jadhagam's name-syllable table is wrong on 14 pada initials
 
 **Problem.** `JadhagamTool.tsx:68` hand-types the four starting syllables per star
 (நட்சத்திர எழுத்துக்கள்). The app's own naming canon, `app/data/nakshatra_pada_akshara.py`, holds the
@@ -173,7 +201,7 @@ effect keyed on the result, and only when `label` is EXCELLENT or GOOD. Use the 
 **Acceptance.** A render test with 8/10 and Rajju failing shows the caution colour and no success
 haptic. It fails on the current screen.
 
-### [ ] AAU-07. On 14 days of 2026 the calendar badges "good day" while the PDF and push say "caution"
+### [x] AAU-07. On 14 days of 2026 the calendar badges "good day" while the PDF and push say "caution"
 
 **Problem.** Two "good star" lists and one "caution star" list answer "is today good?":
 
@@ -201,6 +229,10 @@ unlabelled verdicts on the same day may not contradict.
 
 **Acceptance.** A 2026 sweep shows 0 days where the badge and the PDF/push disagree.
 
+**Ruled 29 Oct, countersign pending:** `ASTROLOGER_RULING_AAU-07_AAU-20_2026-10-29.md`. One
+question, one `day_quality` module; seven-class star table (Magam and Moolam unfit for ordinary
+work, still marriage stars); daytime star with split days shown. Built 29 Oct (`day_quality`).
+
 ---
 
 ## P2: doctrine errors, latent wrong data, findable contradictions
@@ -217,7 +249,7 @@ future card, PDF) will contradict the porutham screen's nadi dosham.
 **Fix.** Import porutham's `_NAKSHATRA_NADI` (or make it public) and delete the copy.
 **Acceptance.** A test that both functions agree for all 27 stars.
 
-### [ ] AAU-09. Rahu/Ketu in the 10th: the score says adverse, the words say supportive
+### [x] AAU-09. Rahu/Ketu in the 10th: the score says adverse, the words say supportive
 
 `gochara_scores.GOCHARA_FAVOURABLE_FROM_MOON` gives the nodes {3, 6, 11}, so the 10th scores 38
 (adverse) on Today, Life Areas and What-if. `_dg_peyarchi.NODE_AXIS_SUPPORTIVE` = {3, 6, **10**, 11}
@@ -230,7 +262,7 @@ the nodes.
 (some texts add the 10th for Rahu)?
 **Acceptance.** Extend `test_the_two_modules_list_the_same_favourable_houses` to the nodes.
 
-### [ ] AAU-10. "Equal bhava" uses the lagna as the start of the 1st house, not its middle
+### [x] AAU-10. "Equal bhava" uses the lagna as the start of the 1st house, not its middle
 
 `equal_bhava.compute_equal_bhava` puts house 1 at lagna → lagna + 30°. That is the Western equal-house
 convention. In Indian bhava reckoning, and in what a Tamil reader expects from "சம பாவம்", the lagna
@@ -246,7 +278,7 @@ it stays in 11. The value is also persisted as `chart_planets.bhava_house`.
 which. If the reckoning changes, recompute the stored `bhava_house` column and update
 `tests/test_equal_bhava.py`.
 
-### [ ] AAU-11. Sunapha, Anapha and Durudhura are shown together for one configuration
+### [x] AAU-11. Sunapha, Anapha and Durudhura are shown together for one configuration
 
 `_yoga_detect.detect_sunapha_anapha_durudhura` (`:1676-1684`) emits Sunapha and Anapha **and**
 Durudhura when both sides of the Moon are occupied, so the reader gets three yoga cards. The rule
@@ -258,7 +290,7 @@ charts and Anapha on 30%, including every Durudhura chart.
 **Fix.** Emit Durudhura alone when both sides are occupied.
 **Astrologer:** confirm the reading of 6.1.
 
-### [ ] AAU-12. "Putra Sarpa dosham" counts Saturn, and fires on 47% of charts
+### [x] AAU-12. "Putra Sarpa dosham" counts Saturn, and fires on 47% of charts
 
 `_PUTRA_SARPA_AFFLICTORS = ("RAHU", "KETU", "SATURN")` (`_yoga_dosham.py:1502`). Sarpa means the
 serpent, the nodes. Saturn in the 5th (or with the 5th lord) is புத்திர தோஷம், not சர்ப்ப
@@ -270,7 +302,7 @@ charts: **56 (47%)**, a children-related dosham for nearly every second family.
 route, or rename. **Astrologer:** which grahas, and whether "node conjunct Jupiter anywhere" is
 enough on its own.
 
-### [ ] AAU-13. Every chart has a dosham: 0 of 200 dosham-free, mean 3.25
+### [x] AAU-13. Every chart has a dosham: 0 of 200 dosham-free, mean 3.25
 
 **Product finding, not a single bug.** On 200 synthetic charts (1960–2010, Chennai):
 
@@ -309,7 +341,7 @@ or make it a sourced, gender-aware band. Never word it as "outside peak".
 if the astrologer supplies one. Acceptance: the same chart's timing score does not change when only
 the age crosses 25 or 35.
 
-### [ ] AAU-15. Two lists of bad yogas disagree
+### [x] AAU-15. Two lists of bad yogas disagree
 
 `_dg_scoring.CAUTION_YOGAS` = {Vishkambha, Atiganda, Shoola, Ganda, Vyatipata, Vaidhriti} (6) drives
 the Today score. `panchangam.ASHUBHA_YOGAS` adds **Vyaghata, Vajra, Parigha** (9) and drives the
@@ -320,7 +352,7 @@ table, and each policy (daily caution, strict muhurtham) names its subset of it 
 make the strict check looser to match the daily one. **Astrologer:** should Vyaghata, Vajra and
 Parigha caution an ordinary day?
 
-### [ ] AAU-16. No Tamil year name anywhere, including the printed Jadhagam
+### [x] AAU-16. No Tamil year name anywhere, including the printed Jadhagam
 
 Nothing in `app/`, `web/` or `mobile/` names the 60-year cycle (e.g. விசுவாவசு 2025–26, பராபவ
 2026–27). Ayanam and ruthu are also absent. A Tamil jathagam always carries "… வருடம், … மாதம்
@@ -336,31 +368,32 @@ starting month confirmed. Show them on the Jadhagam, the PDF and the calendar he
 
 ## P3: small, or needs a ruling first
 
-### [~] AAU-17. The naaligai's third field is leftover seconds, not tharparai
+### [x] AAU-17. The naaligai's third field is leftover seconds, not tharparai
 
 `computeNaaligai` (`JadhagamTool.tsx:159`) prints naazhigai.vinaadi.**seconds (0–23)**. The Tamil
 third unit is the tharparai: 60 per vinaadi, 0.4 s each, so 0–59. Birth and sunrise seconds are also
 dropped, which can shift the vinaadi by up to 2.5. **Fix:** compute from full seconds; print
 tharparai or drop the field.
 
-### [ ] AAU-18. One porutham, three Tamil spellings
+### [x] AAU-18. One porutham, three Tamil spellings
 
 Result screens (`porutham.py:1125`, `synastry_service.py:613`) say **வாஸ்யம்**, மகேந்திரம்,
 ஸ்திரீ தீர்கம். Mobile's learn page (`learnContent.ts:213`) says **வசியம்**, மாஹேந்திரம்,
 ஸ்திரீ தீர்க்கம். Almanacs print வசியப் பொருத்தம். **Native reviewer:** pick one set.
 
-### [ ] AAU-19. "Sankranti birth" alerts on the whole civil day
+### [x] AAU-19. "Sankranti birth" alerts on the whole civil day
 
 `birth_conditions.is_sankranti_birth` fires an ALERT ("inner restlessness … many changes") for any
 birth on the civil day, midnight to midnight, of a solar ingress: about 1 chart in 30. The Tamil day
 starts at sunrise, and the classical concern is birth near the ingress (its punya kalam), not the
 whole day. **Astrologer:** the window, in nazhigai either side of the ingress.
 
-### [ ] AAU-20. The PDF's day block names one star and scores another
+### [x] AAU-20. The PDF's day block names one star and scores another
 
 `pdf_export_service.py:370` prints the sunrise nakshatra. Line 703 scores the dominant one. On a
 transition morning the sheet says "Poosam" beside a score that was set by Ayilyam. It goes away with
-AAU-07.
+AAU-07. **Ruled 29 Oct** (same ruling, part D): print the star scored, both with the change time on a
+split day.
 
 ---
 
@@ -403,5 +436,5 @@ These were tested and need no action:
   source and does not render the screen; the naazhigai tests also fail on the mutant only because
   it prints no naazhigai; AAU-17's third unit is dropped, not computed, until the tharparai is
   ruled. While gating AAU-03, the same leak turned up in the compatibility PDF (raw rasi, star and
-  dasa-lord names) and in the legacy muhurta slot line. Both are fixed. Career and wealth have
-  age rules like AAU-14's, still unsourced and not changed here.
+  dasa-lord names) and in the legacy muhurta slot line. Both are fixed. Career and wealth had
+  age rules like AAU-14's; both were dropped on 29 Oct (`9068c83d`).

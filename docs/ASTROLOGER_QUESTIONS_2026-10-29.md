@@ -4,10 +4,11 @@ We audited what the app tells a family, beyond festival dates: the printed
 jathagam, doshams, yogas, daily guidance and marriage matching. Where the app
 was plainly wrong against a definition (for example, a birth tithi read at
 sunrise instead of at the birth time), we fixed it, and Part A lists those so
-you can object. Where traditions differ, we have changed nothing. Part B asks
-you to rule.
+you can object. Where traditions differ, we made a provisional ruling on
+29 October so the screens stop contradicting each other; Part B lists each one
+for you to confirm or overturn, with the few questions still genuinely open.
 
-Each question has a number, so a reply can be as short as "B4: no, not the 10th".
+Each question has a number, so a reply can be as short as "B3: agree".
 
 **Two requests throughout, as before**
 
@@ -73,133 +74,141 @@ timing.
 
 ---
 
-## Part B. Rulings only you can give
+## Part B. Rulings made on 29 October: please confirm or overturn
 
-### B1. "Is today a good day?": one question or several?
+These were ruled and built on 29 October so the app stops contradicting
+itself. Each one is recorded as waiting for your signature in
+`DOCTRINE_DECISIONS_V1.md` §17, and any of them can be reversed. A reply can
+be as short as "B3: agree" or "B5: no, keep all three".
 
-Three places answer it, and on 14 days of 2026 they disagree:
+### B1. "Is today a good day?" is one question
 
-- the calendar's **நல்ல நாள்** badge, from a list of 17 good stars, read on the
-  **sunrise** star;
-- the PDF's day score and the morning notification, from a list of 11 good and
-  4 caution stars (Bharani, Ayilyam, Magam, Moolam), read on the star that
-  holds **most of the day**.
+The calendar's **நல்ல நாள்** badge, the PDF day score and the morning
+notification now give one answer: is today good for **beginning ordinary new
+work**? It comes from the seven nakshatra classes of Muhurta Chintamani.
+Dhruva, Chara, Kshipra and Mridu are fit; Mishra is mixed; Ugra and Tikshna
+are unfit. The star is the one that holds most of the **daytime**, sunrise to
+sunset. If the star changes in daytime into a different class, the day is
+shown as split, with the time.
 
-Magam and Moolam are on both the good list and the caution list.
+- **B1a.** **Magam** and **Moolam** are unfit for ordinary new work, and they
+  remain marriage stars. Agree?
+- **B1b.** **Sadhayam** (Chara) is fit for ordinary new work. Agree?
+- **B1c.** A day verdict reads the daytime, not the sunrise moment and not the
+  night. Agree?
 
-- **B1a.** Are these meant to answer one question (is today generally good?),
-  or different ones (a general day; a day for a given activity; a day for this
-  person's chart)?
-- **B1b.** For the general day, which star decides: the sunrise star, or the
-  star that holds most of the day?
-- **B1c.** For ordinary new work, are **Magam** and **Moolam** good stars or
-  caution stars?
+### B2. All nine bad yogas caution an ordinary day
 
-### B2. Bad yogas: six or nine?
+Vishkambha, Atiganda, Shoola, Ganda, **Vyaghata, Vajra**, Vyatipata,
+**Parigha** and Vaidhriti now caution the daily guidance, as they already
+block a muhurtham.
 
-The daily score cautions on six nitya yogas: Vishkambha, Atiganda, Shoola,
-Ganda, Vyatipata, Vaidhriti. The strict muhurtham check rejects nine: those six
-plus **Vyaghata, Vajra and Parigha**. So on a Parigha day the daily guidance
-says nothing, while the muhurtham search refuses the day.
+- **B2a.** Agree?
+- **B2b.** Some texts avoid only the first ghatikas of certain yogas (for
+  example Vishkambha). Should the muhurta search use that, and which yogas,
+  how many ghatikas each?
 
-- **B2.** Should Vyaghata, Vajra and Parigha caution an ordinary day, or only a
-  muhurtham? (We will keep the muhurtham check strict either way.)
+### B3. Rahu 3, 6, 10, 11; Ketu 3, 6, 11
 
-### B3. Rahu and Ketu in the 10th from the Moon
+Gochara from the Moon now follows the standard Tamil panchangam table: Rahu
+favourable in the 3rd, 6th, 10th and 11th; Ketu in the 3rd, 6th and 11th. The
+two are graded separately.
 
-The score treats the nodes as favourable only in the 3rd, 6th and 11th from
-the Moon, so the 10th scores as adverse. The daily sentence and the Peyarchi
-report call the 10th supportive. One of the two is wrong.
+- **B3.** Agree? Please name the almanac you treat as the table of record.
 
-- **B3a.** In gochara, are Rahu and Ketu favourable in the 10th from the Moon?
-- **B3b.** Should Rahu and Ketu use the same favourable houses?
+### B4. Sama bhava: the lagna is the middle of the 1st house
 
-### B4. Sama bhava: where does the 1st house start?
+- **B4.** Agree that the lagna degree is the bhava madhya (lagna − 15° to
+  lagna + 15° is the 1st house)?
 
-The app's "equal bhava" puts the lagna degree at the **start** of the 1st house
-(lagna to lagna + 30°). Many Tamil readers expect the lagna degree to be the
-**middle** (bhava madhya), so the 1st house runs lagna − 15° to lagna + 15°.
-The choice moves planets between houses. For example, with lagna at Meenam 5.9°,
-a Moon at Magaram 3.9° is in the 10th by one reckoning and the 11th by the
-other.
+### B5. Durudhura replaces Sunapha and Anapha
 
-- **B4.** Which reckoning should the app use for sama bhava?
+When both sides of the Moon are occupied, the app now shows Durudhura alone,
+reading Phaladeepika 6.1 as giving the three "respectively".
 
-### B5. Sunapha, Anapha and Durudhura
+- **B5.** Agree?
 
-When there are planets both in the 2nd and in the 12th from the Moon, the app
-shows three yoga cards: Sunapha, Anapha **and** Durudhura. We read Phaladeepika
-6.1 as giving the three "respectively", so Durudhura takes the place of the
-other two.
+### B6. Putra Sarpa needs Rahu or Ketu
 
-- **B5.** When both sides of the Moon are occupied, should the app show
-  Durudhura alone?
+Saturn on the 5th (or with the 5th lord) is now **புத்திர தடை** (Santhana
+Thadai), with Sani parihara (Saneeswaran worship, Thirunallar, ellu deepam).
+Putra Sarpa keeps Rahu and Ketu, with the naga parihara.
 
-### B6. Putra Sarpa dosham
+On 2,000 synthetic charts, Putra Sarpa still forms on **39.6%**. It forms on
+any of six conditions: a node in the 5th, a node beside the 5th lord, or a
+node beside Jupiter anywhere. Each fires on 6 to 9% of charts. We changed no
+weight.
 
-The app counts **Saturn** with Rahu and Ketu for Putra Sarpa dosham, and sends
-the family to naga remedies. On a sample of synthetic charts it fires for 47%.
-Sarpa is the serpent, so a Saturn placement may be Putra dosham, not Sarpa
-dosham.
+- **B6a.** Should a node **beside the 5th lord** (outside the 5th) form Putra
+  Sarpa on its own?
+- **B6b.** Should a node **beside Jupiter**, anywhere in the chart, form it on
+  its own?
+- **B6c.** Is the Sani parihara above right for Santhana Thadai?
 
-- **B6a.** Which grahas make Putra Sarpa dosham?
-- **B6b.** Is a node conjunct Jupiter anywhere in the chart enough on its own?
-- **B6c.** If Saturn in the 5th (or with the 5th lord) is a separate Putra
-  dosham, what remedy does it take?
+### B7. Sevvai: the 1st house stays; the Lagna decides
 
-### B7. Sevvai dosham and the 1st house
+Mars in 1, 2, 4, 7, 8 or 12 still counts, the 1st included. Sevvai is now
+declared only from the **Lagna**. The Moon and Venus grade it: Lagna only is
+mild, Lagna plus one is confirmed, all three is severe. A placement counted
+only from the Moon or Venus is noted, not declared. Sevvai now shows on 49% of
+charts (it was 91%); severe after cancellations, 2.2%.
 
-The app counts Mars in **1, 2, 4, 7, 8 or 12**, from Lagna, Moon and Venus. Many
-Tamil practitioners use five houses, without the 1st. On our synthetic sample,
-Sevvai shows on 91% of charts, and no chart was free of every dosham. The app's
-exemption table (by house and sign) has a row for every house **except the
-1st**, so a 1st-house Mars can never be exempted. That suggests the 1st was
-added later.
+- **B7a.** Which text or lineage should the app cite for the six-house set?
+- **B7b.** Which signs exempt a **1st-house** Mars (the other five houses have
+  their nivarthi signs)?
+- **B7c.** Is the grading (Lagna primary, Moon and Venus corroborating) how
+  you weigh the three?
 
-- **B7a.** Does the 1st house count for Sevvai dosham?
-- **B7b.** If it does, which signs exempt a 1st-house Mars?
+### B8. Sankranti birth
 
-### B8. Birth on a Sankranti day
+The old alert fired for any birth on the civil day of the Sun's change of
+sign. It now has two parts. The first, which is live, asks the family to
+confirm the birth time when the stated uncertainty spans the moment of the
+change, because the Sun's sign itself is then uncertain. It is not a dosham.
+The traditional alert is switched off until we have its window.
 
-The app gives an alert ("inner restlessness, many changes") for any birth on
-the **civil day** of the Sun's change of sign, midnight to midnight. That is
-about 1 chart in 30.
+- **B8.** For each of the twelve sankrantis, how many naazhigai before and
+  after the moment of change does the punya kala run? (Makara and Kataka,
+  Mesha and Thula, the four Shadashitimukha, the four Vishnupadi.)
 
-- **B8.** What window around the moment of the change counts, in naazhigai
-  before and after? Does the Tamil day matter here?
+### B9. Year name, Ayanam, Ruthu
 
-### B9. Tamil year name, Ayanam and Ruthu on the jathagam
+The jathagam, the PDF and the calendar now print them: the 60-year cycle from
+Chithirai 1 (2026–27 **பராபவ**), Uttarayanam from Thai and Dakshinayanam from
+Aadi, and the six ruthus of Tholkappiyam, கார் first (கார்: Avani, Purattasi).
 
-The printed jathagam does not carry the Tamil year name, the ayanam or the
-ruthu. We plan to add them.
+- **B9.** Agree? The Tamil spellings of the 60 year names also go to the Tamil
+  reviewer (C2).
 
-- **B9a.** Year name: we take the 60-year cycle from Chithirai 1 (2025–26
-  Vishvavasu, 2026–27 Parabhava). Is that right, and does a birth before
-  sunrise on Chithirai 1 still take the old year (see A2)?
-- **B9b.** Ayanam: Uttarayanam from Thai 1 (the Sun entering Makaram) and
-  Dakshinayanam from Aadi 1. Correct?
-- **B9c.** Ruthu: two solar months each. Which month starts Vasantha ruthu
-  (Chithirai, or Panguni)?
+### B10. Naming syllables
 
-### B10. Naming syllables (நட்சத்திர எழுத்துக்கள்)
+The jathagam sheet now prints the naming canon's syllables (Aswini சு, சே, சோ,
+லா), marked "awaiting the astrologer's check". Tamil script is printed first;
+the Sanskrit syllable is kept behind it, so two padas that share one Tamil
+letter are still told apart when names are filtered.
 
-The jathagam sheet and the baby-naming feature hold two different tables of
-the four starting syllables per star. They disagree on 59 of 108 cells. Most
-differences are vowel length (லு / லூ), but 14 are different consonants, for
-example Aswini 1 to 4 (one table says சு, சே, சோ, லா; the other அ, சி, சு, சே).
-None of the 108 rows has been checked by you yet, so we cannot release either.
+- **B10a.** Please send the table you use, all 27 stars × 4 padas, with its
+  source. We will check every row against it.
+- **B10b.** Is printing the Tamil form, with the Sanskrit kept behind it, the
+  right choice for Tamil families?
 
-- **B10.** Could you send us the table you use, all 27 stars × 4 padas, with
-  its source? We will print exactly that, in both places.
+### B11. Naazhigai
 
----
+- **B11.** We print naazhigai.vinaadi only. A third unit (tharparai, 0.4 s)
+  is finer than any recorded birth time. Agree to leave it off?
 
 ## Part C. For the Tamil reviewer
 
-### C1. One porutham, three spellings
+### C1. One porutham, one spelling
 
-The result screens say **வாஸ்யம்**, மகேந்திரம், ஸ்திரீ தீர்கம். The mobile
-learn page says **வசியம்**, மாஹேந்திரம், ஸ்திரீ தீர்க்கம். Almanacs print
-வசியப் பொருத்தம்.
+Three spellings were in use. The app now uses the almanac forms everywhere:
+**வசியம்**, **மகேந்திரம்**, **ஸ்திரீ தீர்க்கம்**.
 
-- **C1.** Which spelling should the app use for each?
+- **C1.** Confirm, or give the spelling you prefer.
+
+### C2. New Tamil text to read
+
+- **C2a.** The 60 Tamil year names (பிரபவ … அட்சய) as the app prints them.
+- **C2b.** புத்திர தடை as the name of the Saturn finding, and its card text.
+- **C2c.** The new day notes: "… வரை, பின் …" on a split day, and the
+  birth-time note "பிறந்த நேரத்தை உறுதிசெய்யவும்".
