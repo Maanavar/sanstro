@@ -22,6 +22,17 @@ describe("authenticated auxiliary-page shell", () => {
     expect(source).toContain("activeTab={null}");
   });
 
+  it("gives every utility page a way back to the workspace", () => {
+    const source = readFileSync("components/dashboard-hero.tsx", "utf8");
+
+    // Pinned to the button itself: the brand mark already calls
+    // onTabChange("personal") (the Today tab's id), so a bare toContain on the
+    // call would pass with the back control deleted.
+    expect(source).toMatch(
+      /className="cd-subbar__back"\s*onClick=\{\(\) => onTabChange\("personal"\)\}/,
+    );
+  });
+
   it("does not bring the retired Inbox mini-header back", () => {
     const source = readFileSync("app/(marketing)/notifications/page.tsx", "utf8");
 

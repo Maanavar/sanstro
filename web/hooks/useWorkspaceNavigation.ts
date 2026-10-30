@@ -116,6 +116,15 @@ export function useWorkspaceNavigation() {
   // last navigation to land decides.
   const mountPathnameRef = useRef(pathname);
   const armingWinnerRef = useRef<"url" | "state" | null>(null);
+  // The URL the outbound effect last asked the router for, until `pathname`
+  // catches up with it. `router.push` returns at once but `pathname` only moves
+  // when the navigation lands, an RSC round trip later. Comparing against the
+  // stale `pathname` alone made closing a tool before its own open had landed a
+  // no-op (the hub's URL "already matched"), and the late open then reopened
+  // the panel through the inbound effect: one crumb click, back on the tool.
+  // The App Router discards a pending navigation when a newer one starts, so
+  // writing the hub's URL over the in-flight one is safe.
+  const pendingHrefRef = useRef<string | null>(null);
   // Arm the intent only for a call that actually moves the addressed
   // destination. The flag is consumed by the outbound effect, and that effect
   // runs only when the destination state changes — so a no-op jump (goToTab to
@@ -292,10 +301,13 @@ export function useWorkspaceNavigation() {
     const query = new URLSearchParams(Array.from(searchParams.entries()));
     query.delete(TAB_QUERY_PARAM);
     const nextSearch = query.toString();
-    if (nextPath === pathname && nextSearch === searchParams.toString()) return;
     const href = nextSearch ? `${nextPath}?${nextSearch}` : nextPath;
+    const currentSearch = searchParams.toString();
+    const currentHref = pendingHrefRef.current ?? (currentSearch ? `${pathname}?${currentSearch}` : pathname);
+    if (href === currentHref) return;
     const intent = navIntentRef.current;
     navIntentRef.current = "replace";
+    pendingHrefRef.current = href;
     // scroll: false — the scroll reset above already owns this, and it can tell
     // a plain tab switch from a cross-tab jump that wants to land on a section.
     // The router's blanket jump-to-top cannot, and fights both the panel
@@ -316,6 +328,9 @@ export function useWorkspaceNavigation() {
     const armingWinner = armingWinnerRef.current;
     armingWinnerRef.current = null;
     if (armingWinner === "state") return;
+    // The URL moved, so whatever was in flight has landed or been discarded
+    // (a Back discards it too); from here `pathname` is the truth again.
+    pendingHrefRef.current = null;
     const fromUrl = parseDashboardPath(pathname, { qaEnabled: ENABLE_QA_TAB });
     // A path naming no tab means Today here, NOT "leave things alone" — Back to
     // a bare `/dashboard` must actually land on Today rather than stranding the

@@ -159,12 +159,18 @@ describe("DashboardExploreTabNova — Nakshatram list-first navigation", () => {
       expect(screen.getAllByText(NATCHATHIRAM_LIST[1].name_en).length).toBeGreaterThan(0);
     });
 
-    // Back from detail returns to the list, not the Explore hub.
-    fireEvent.click(screen.getByText("Understand"));
+    // The hub crumb returns to the list; "Understand" leaves for the tab itself,
+    // in one click (it used to land on the list, so it took two).
+    fireEvent.click(screen.getByRole("button", { name: "Natchathiram" }));
     expect(screen.getByText("All 27 stars")).toBeInTheDocument();
+    fireEvent.click(screen.getByText(NATCHATHIRAM_LIST[1].name_en));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Understand" })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "Understand" }));
+    await waitFor(() => expect(screen.getByText("The why behind your readings")).toBeInTheDocument());
+    expect(screen.queryByText("All 27 stars")).not.toBeInTheDocument();
   });
 
-  it("the 'Start from your chart' shortcut jumps straight to the detail screen, and back still returns to the list", async () => {
+  it("the 'Start from your chart' shortcut jumps straight to the detail screen, and one click on 'Understand' returns to the tab", async () => {
     renderWithQueryClient(<DashboardExploreTabNova {...baseProps()} />);
 
     fireEvent.click(screen.getByText("Read your full star profile"));
@@ -175,7 +181,8 @@ describe("DashboardExploreTabNova — Nakshatram list-first navigation", () => {
     });
 
     fireEvent.click(screen.getByText("Understand"));
-    expect(screen.getByText("All 27 stars")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("The why behind your readings")).toBeInTheDocument());
+    expect(screen.queryByText("All 27 stars")).not.toBeInTheDocument();
   });
 });
 
@@ -191,7 +198,7 @@ describe("DashboardExploreTabNova — Dosham list-first navigation", () => {
     };
   }
 
-  it("hub tile opens the list (not the detail) with real status badges, selecting a dosham opens its detail, and back returns to the list", () => {
+  it("hub tile opens the list (not the detail) with real status badges, selecting a dosham opens its detail, and the crumbs return to the list and the tab", async () => {
     renderWithQueryClient(<DashboardExploreTabNova {...propsWithDoshams()} />);
 
     fireEvent.click(screen.getByText("Dosham"));
@@ -209,8 +216,12 @@ describe("DashboardExploreTabNova — Dosham list-first navigation", () => {
     expect(screen.queryByText("All doshams")).not.toBeInTheDocument();
     expect(screen.getByText("Not present in your chart")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByText("Understand"));
+    fireEvent.click(screen.getByRole("button", { name: "Dosham" }));
     expect(screen.getByText("All doshams")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("Rahu-Ketu Dosham"));
+    fireEvent.click(screen.getByText("Understand"));
+    await waitFor(() => expect(screen.getByText("The why behind your readings")).toBeInTheDocument());
   });
 });
 
@@ -226,7 +237,7 @@ describe("DashboardExploreTabNova — Yogam list-first navigation", () => {
     };
   }
 
-  it("hub tile opens the list (not the detail) with real status badges, selecting a yoga opens its personalised detail, and back returns to the list", () => {
+  it("hub tile opens the list (not the detail) with real status badges, selecting a yoga opens its personalised detail, and the crumbs return to the list and the tab", async () => {
     renderWithQueryClient(<DashboardExploreTabNova {...propsWithYogas()} />);
 
     fireEvent.click(screen.getByText("Yogam"));
@@ -242,11 +253,15 @@ describe("DashboardExploreTabNova — Yogam list-first navigation", () => {
     expect(screen.queryByText("All yogas")).not.toBeInTheDocument();
     expect(screen.getByText("Not present in your chart")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByText("Understand"));
+    fireEvent.click(screen.getByRole("button", { name: "Yogam" }));
     expect(screen.getByText("All yogas")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("Parivartana Yoga"));
+    fireEvent.click(screen.getByText("Understand"));
+    await waitFor(() => expect(screen.getByText("The why behind your readings")).toBeInTheDocument());
   });
 
-  it("the 'Start from your chart' Yogam shortcut jumps straight to the strongest present yoga's detail", () => {
+  it("the 'Start from your chart' Yogam shortcut jumps straight to the strongest present yoga's detail", async () => {
     renderWithQueryClient(<DashboardExploreTabNova {...propsWithYogas()} />);
 
     fireEvent.click(screen.getByText("Present in your chart"));
@@ -255,7 +270,8 @@ describe("DashboardExploreTabNova — Yogam list-first navigation", () => {
     expect(screen.getAllByText("Gaja Kesari Yoga").length).toBeGreaterThan(0);
 
     fireEvent.click(screen.getByText("Understand"));
-    expect(screen.getByText("All yogas")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("The why behind your readings")).toBeInTheDocument());
+    expect(screen.queryByText("All yogas")).not.toBeInTheDocument();
   });
 });
 
@@ -265,7 +281,7 @@ describe("DashboardExploreTabNova — Yogam list-first navigation", () => {
  * The rename to "Understand" landed on the tab pill only; six sub-screen
  * breadcrumbs kept the word "Explore" as their own string literals, so a reader
  * drilled in from a tab called Understand and was offered a way back to a tab
- * that no longer existed. The five `getByText("Understand")` calls above are the
+ * that no longer existed. The `getByText("Understand")` calls above are the
  * regression guard for that — they are clicking those breadcrumbs.
  *
  * The vocabulary list was added in the same pass and rendered `term.key`: the

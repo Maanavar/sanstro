@@ -402,11 +402,13 @@ def test_dd15_formerly_dormant_yogas_now_carry_activators() -> None:
     chart = {CHANDRAN: 1, SANI: 2, GURU: 12, SURYAN: 5, SEVVAI: 5, BUDHAN: 5, SUKRAN: 5, RAHU: 1, KETU: 7}
     yogas, _, _ = detect_yogas_and_doshams(chart, MESHAM, 1)
     by_name = {y.name: y for y in yogas if y.is_present}
-    assert by_name["SUNAPHA_YOGA"].key_grahas == (SANI,)
-    assert by_name["ANAPHA_YOGA"].key_grahas == (GURU,)
-    assert by_name["SUNAPHA_YOGA"].secondary_grahas == (CHANDRAN,)  # O-16 default
+    # Sani in the 2nd and Guru in the 12th: since AAU-11 that is Durudhura
+    # alone, activated by both sides.
+    assert "SUNAPHA_YOGA" not in by_name and "ANAPHA_YOGA" not in by_name
+    assert by_name["DURUDHURA_YOGA"].key_grahas == (SANI, GURU)
+    assert by_name["DURUDHURA_YOGA"].secondary_grahas == (CHANDRAN,)  # O-16 default
     off, _, _ = detect_yogas_and_doshams(chart, MESHAM, 1, doctrine=DoctrineOptions(o16_moon_secondary_activator=False))
-    assert next(y for y in off if y.name == "SUNAPHA_YOGA").secondary_grahas == ()
+    assert next(y for y in off if y.name == "DURUDHURA_YOGA").secondary_grahas == ()
 
 
 # ── open items ───────────────────────────────────────────────────────────────
@@ -555,8 +557,10 @@ def test_sevvai_residual_aggravations_are_conditions_and_raise_strength() -> Non
     # still never prints "cancelled" (§8), which is why the grade is unmoved.
     assert "mars_neechabhanga" in base.cancellation_factors
     assert base.is_cancelled is False
-    assert base.strength == "PARTIAL"
-    assert combust.strength == joined.strength == "STRONG"
+    # AAU-13: Mars is 2nd from the Lagna and in no dosha house from the Moon or
+    # Venus, so the tier is "mild", WEAK. Each aggravation lifts it one grade.
+    assert base.strength == "WEAK"
+    assert combust.strength == joined.strength == "PARTIAL"
 
 
 # O-2 / O-11 / O-17 / O-18 executable, dormant doctrine branches.

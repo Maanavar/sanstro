@@ -156,8 +156,26 @@ def _birth_panchangam_signature_items(
     birth_timezone: str,
     birth_latitude: float,
     birth_longitude: float,
+    birth_datetime_utc: datetime | None = None,
 ) -> tuple[tuple[str, object], ...]:
-    """The birth day's panchangam signature, memoised on the four values it reads.
+    """The birth panchangam signature, memoised on the values it reads.
+
+    Two different instants feed it, and mixing them up was AAU-01/02:
+
+    * **The Tamil day** (vaaram, Tamil date, sunrise, sunset) runs sunrise to
+      sunrise. A birth before the civil date's sunrise belongs to the previous
+      day's page, so 03:00 on 14 Apr is Panguni 30, Thursday night, not
+      Chithirai 1.
+    * **The five limbs** (tithi, paksha, nakshatra, pada, yoga, karana) are read
+      at the birth instant, never at sunrise. They used to be copied from the
+      day's sunrise snapshot, so 28% of charts printed a star the Moon was not
+      in, beside a tithi that never coexisted with it.
+
+    `birth_naazhigai` is the time from that day's sunrise to the birth, as
+    naazhigai.vinaadi, from full seconds. No third unit is printed (AAU-17).
+
+    With no birth instant (a profile without a birth time) the limbs fall back
+    to the civil date's sunrise values, as before.
 
     Deliberately keyed on scalars rather than the profile object: this is a pure
     function of the birth moment and place, none of which can change for a chart,
@@ -177,55 +195,97 @@ def _birth_panchangam_signature_items(
     Returns items rather than a dict so the caller can build a fresh mapping and
     no caller can mutate what the next one receives.
     """
+    from datetime import timedelta
     from zoneinfo import ZoneInfo
 
+    from app.calculations.astro import utc_datetime_to_julian_day
+    from app.calculations.panchangam import limbs_at_jd
     from app.calculations.tamil_calendar import format_tamil_date
 
-    snapshot = calculate_daily_panchangam(
-        date_local=birth_date_local,
-        timezone_name=birth_timezone,
-        latitude=birth_latitude,
-        longitude=birth_longitude,
-        session=None,
-        use_cache=False,
-    )
+    def _day(d: date):
+        return calculate_daily_panchangam(
+            date_local=d,
+            timezone_name=birth_timezone,
+            latitude=birth_latitude,
+            longitude=birth_longitude,
+            session=None,
+            use_cache=False,
+        )
+
+    tamil_day = birth_date_local
+    snapshot = _day(tamil_day)
+    if birth_datetime_utc is not None and birth_datetime_utc < snapshot.sunrise:
+        tamil_day = birth_date_local - timedelta(days=1)
+        snapshot = _day(tamil_day)
 
     tz = ZoneInfo(birth_timezone)
     sunrise_local = snapshot.sunrise.astimezone(tz)
     sunset_local = snapshot.sunset.astimezone(tz)
     tamil_date_ta, tamil_date_en = format_tamil_date(
-        birth_date_local,
+        tamil_day,
         birth_timezone,
         birth_latitude,
         birth_longitude,
     )
 
+    if birth_datetime_utc is not None:
+        limbs = limbs_at_jd(utc_datetime_to_julian_day(birth_datetime_utc))
+        tithi, paksha = limbs.tithi_name, limbs.tithi_paksha
+        nakshatra_number, nakshatra, pada = limbs.nakshatra_number, limbs.nakshatra_name, limbs.nakshatra_pada
+        yogam, karanam = limbs.yoga_name, limbs.karana_name
+        seconds = int((birth_datetime_utc - snapshot.sunrise).total_seconds())
+        naazhigai: str | None = f"{seconds // 1440}.{(seconds % 1440) // 24:02d}"
+    else:
+        tithi, paksha = snapshot.tithi_name, snapshot.tithi_paksha
+        nakshatra_number, nakshatra, pada = snapshot.nakshatra_number, snapshot.nakshatra_name, snapshot.nakshatra_pada
+        yogam, karanam = snapshot.yoga_name, snapshot.karana_name
+        naazhigai = None
+
+    from app.calculations.tamil_year import tamil_year_info
     from app.services._chart_planets import _nakshatra_gana, _nakshatra_nadi
+
+    # AAU-16: "… வருடம், … அயனம், … ருது" on the printed jathagam, from the
+    # Tamil day (so a birth before sunrise on Chithirai 1 keeps the old year).
+    year = tamil_year_info(tamil_day, birth_timezone, birth_latitude, birth_longitude)
     return tuple({
         "vaaram": snapshot.weekday,
         "vaaram_lord": snapshot.weekday_lord,
-        "tithi": snapshot.tithi_name,
-        "tithi_paksha": snapshot.tithi_paksha,
-        "nakshatra": snapshot.nakshatra_name,
-        "nakshatra_pada": snapshot.nakshatra_pada,
-        "yogam": snapshot.yoga_name,
-        "karanam": snapshot.karana_name,
-        "is_vishti_karanam": snapshot.karana_name == "VISHTI",
-        "gana": _nakshatra_gana(snapshot.nakshatra_number),
-        "nadi": _nakshatra_nadi(snapshot.nakshatra_number),
+        "tithi": tithi,
+        "tithi_paksha": paksha,
+        "nakshatra": nakshatra,
+        "nakshatra_pada": pada,
+        "yogam": yogam,
+        "karanam": karanam,
+        "is_vishti_karanam": karanam == "VISHTI",
+        "gana": _nakshatra_gana(nakshatra_number),
+        "nadi": _nakshatra_nadi(nakshatra_number),
         "sunrise_time": sunrise_local.strftime("%I:%M:%S %p"),
         "sunset_time": sunset_local.strftime("%I:%M:%S %p"),
         "tamil_date_ta": tamil_date_ta,
         "tamil_date_en": tamil_date_en,
+        "tamil_day_local": tamil_day.isoformat(),
+        "birth_naazhigai": naazhigai,
+        "tamil_year_number": year.year_number,
+        "tamil_year_ta": year.year_ta,
+        "tamil_year_en": year.year_en,
+        "ayanam_ta": year.ayanam_ta,
+        "ayanam_en": year.ayanam_en,
+        "ruthu_ta": year.ruthu_ta,
+        "ruthu_en": year.ruthu_en,
     }.items())
 
 
 def _birth_panchangam_signature(profile: Any) -> dict[str, object]:
+    try:
+        birth_instant: datetime | None = _birth_datetime_utc(profile)
+    except ValueError:  # no birth time: the limbs fall back to sunrise values
+        birth_instant = None
     return dict(_birth_panchangam_signature_items(
         _value(profile, "birth_date_local"),
         str(_value(profile, "birth_timezone")),
         float(_value(profile, "birth_latitude")),
         float(_value(profile, "birth_longitude")),
+        birth_instant,
     ))
 
 
@@ -233,6 +293,7 @@ def _build_birth_conditions(
     planet_positions: list[PlanetPosition],
     birth_time_local: time | None,
     lagna_rasi: int | None = None,
+    birth_time_confidence_minutes: int | None = None,
 ) -> tuple[list[ChartBirthCondition], dict[str, float]]:
     """Assemble the Border-Alert list (and its natal strength penalties) from planets.
 
@@ -268,6 +329,12 @@ def _build_birth_conditions(
         sun_rasi_day_end=sun_end,
         cazimi_planets=cazimi_planets,
         lagna_rasi=lagna_rasi,
+        # AAU-19 Alert A: the stated uncertainty decides the window; with no
+        # birth time at all, the whole civil day is uncertain.
+        sun_speed_deg_per_day=sun.speed_deg_per_day,
+        birth_time_uncertainty_minutes=(
+            None if birth_time_local is None else float(birth_time_confidence_minutes or 0)
+        ),
     )
     conditions = [
         ChartBirthCondition(
@@ -831,7 +898,8 @@ def _chart_response_from_profile(profile: Any, calculation_version: str, chart_i
     varga_reliability = _varga_reliability(int(_value(profile, "birth_time_confidence_minutes", 0) or 0))
     nakshatra_analysis = _compute_nakshatra_analysis(planet_longitudes)
     birth_conditions, bc_penalties = _build_birth_conditions(
-        public_planet_positions, birth_time_local, lagna_rasi=lagna_rasi
+        public_planet_positions, birth_time_local, lagna_rasi=lagna_rasi,
+        birth_time_confidence_minutes=_value(profile, "birth_time_confidence_minutes"),
     )
     _apply_birth_condition_penalties(public_planet_positions, bc_penalties)
     birth_panchangam_signature = _birth_panchangam_signature(profile)
@@ -1063,9 +1131,11 @@ def _chart_response_from_record(chart: Chart) -> ChartCalculateResponse:
 
     # Recomputed from the FINAL longitudes, never zipped against the stored rows.
     #
-    # `compute_equal_bhava` is pure arithmetic — (longitude - lagna) // 30 — over
-    # exactly the inputs that wrote `chart_planets.bhava_house` in the first
-    # place, so for the nine grahas this is bit-identical to reading the column.
+    # `compute_equal_bhava` is pure arithmetic — (longitude - lagna + 15) // 30,
+    # the Lagna as bhava madhya since AAU-10 — over exactly the inputs that
+    # wrote `chart_planets.bhava_house`, so for the nine grahas this matches the
+    # column on any chart persisted since then. Rows written before AAU-10 hold
+    # the old cusp reckoning; nothing reads them in place of this recompute.
     # For Maandhi it is not, and that is the point: Maandhi is rederived above
     # (see the note there), so any stored row beside it is describing a different
     # longitude.
@@ -1101,7 +1171,8 @@ def _chart_response_from_record(chart: Chart) -> ChartCalculateResponse:
     varga_reliability = _varga_reliability(int(_value(birth_profile, "birth_time_confidence_minutes", 0) or 0))
     nakshatra_analysis = _compute_nakshatra_analysis(planet_longitudes)
     birth_conditions, bc_penalties = _build_birth_conditions(
-        public_planet_positions, _value(birth_profile, "birth_time_local"), lagna_rasi=lagna_rasi
+        public_planet_positions, _value(birth_profile, "birth_time_local"), lagna_rasi=lagna_rasi,
+        birth_time_confidence_minutes=_value(birth_profile, "birth_time_confidence_minutes"),
     )
     _apply_birth_condition_penalties(public_planet_positions, bc_penalties)
     birth_panchangam_signature = _birth_panchangam_signature(birth_profile)

@@ -53,6 +53,7 @@ describe("DashboardExploreNakshatramNova — Full nakshatra guide", () => {
         personalDailyGuidance={null}
         memberCharts={[]}
         onBack={noop}
+        onExit={noop}
         onOpenAskVinaadi={noop}
       />,
     );
@@ -82,11 +83,53 @@ describe("DashboardExploreNakshatramNova — Full nakshatra guide", () => {
         personalDailyGuidance={null}
         memberCharts={[]}
         onBack={noop}
+        onExit={noop}
         onOpenAskVinaadi={noop}
       />,
     );
 
     await waitFor(() => expect(screen.getByText("முழுமையான நட்சத்திர வழிகாட்டி")).toBeInTheDocument());
     expect(screen.getByText(/அஸ்வினி நட்சத்திரம் 27 நட்சத்திரங்களில்/)).toBeInTheDocument();
+  });
+});
+
+describe("DashboardExploreNakshatramNova — In your family", () => {
+  // The owner row used to render on every star, so all 27 read as the owner's.
+  const ownerRow = /^You( —|$)/;
+
+  it("does not place the owner on a star that is not theirs", async () => {
+    renderWithQueryClient(
+      <DashboardExploreNakshatramNova lang="en" initialNumber={2} ownNumber={1} ownPada={2} personalDailyGuidance={null} memberCharts={[]} onBack={noop} onExit={noop} onOpenAskVinaadi={noop} />,
+    );
+    await waitFor(() => expect(screen.getByText("In your family")).toBeInTheDocument());
+    expect(screen.queryByText(ownerRow)).toBeNull();
+    expect(screen.getByText(/No one in your family was born under/)).toBeInTheDocument();
+  });
+
+  it("places the owner on their own birth star", async () => {
+    renderWithQueryClient(
+      <DashboardExploreNakshatramNova lang="en" initialNumber={1} ownNumber={1} ownPada={2} personalDailyGuidance={null} memberCharts={[]} onBack={noop} onExit={noop} onOpenAskVinaadi={noop} />,
+    );
+    await waitFor(() => expect(screen.getByText("In your family")).toBeInTheDocument());
+    expect(screen.getByText(ownerRow)).toBeInTheDocument();
+    expect(screen.getByText(/No one else at home shares/)).toBeInTheDocument();
+  });
+});
+
+describe("DashboardExploreNakshatramNova — breadcrumb", () => {
+  it("'Understand' leaves for the tab on one click; the hub crumb opens the list", async () => {
+    const onBack = vi.fn();
+    const onExit = vi.fn();
+    renderWithQueryClient(
+      <DashboardExploreNakshatramNova lang="en" initialNumber={1} ownNumber={1} ownPada={2} personalDailyGuidance={null} memberCharts={[]} onBack={onBack} onExit={onExit} onOpenAskVinaadi={noop} />,
+    );
+    await waitFor(() => expect(screen.getByRole("button", { name: "Understand" })).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole("button", { name: "Understand" }));
+    expect(onExit).toHaveBeenCalledTimes(1);
+    expect(onBack).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Natchathiram" }));
+    expect(onBack).toHaveBeenCalledTimes(1);
   });
 });

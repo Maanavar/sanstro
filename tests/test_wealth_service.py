@@ -145,3 +145,21 @@ def test_wealth_confidence_is_valid_string():
         result = assess_wealth_prediction(inp)
         assert result.confidence in ("HIGH", "MEDIUM", "LOW")
         assert result.life_area == "wealth"
+
+
+# ---------------------------------------------------------------------------
+# No age-band term (the AAU-14 follow-up, 2026-10-29)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("ages", [(27, 28), (50, 51)])
+def test_reading_does_not_change_when_only_the_age_crosses_the_old_band(ages):
+    """The removed term gave ages 28-50 +5 from no named source. With the life
+    stage held fixed, the same chart must read the same either side of 28 and 50."""
+    young, old = (
+        assess_wealth_prediction(WealthAssessmentInput(**{**_BASE_INPUT, "age": age}))
+        for age in ages
+    )
+    assert young.confidence == old.confidence
+    assert young.main_prediction_en == old.main_prediction_en
+    assert young.supports == old.supports
+    assert young.challenges == old.challenges

@@ -46,6 +46,7 @@ describe("DashboardExploreDoshamNova — Full dosham guide", () => {
         initialIndex={0}
         memberCharts={[]}
         onBack={noop}
+        onExit={noop}
         onOpenAskVinaadi={noop}
         onNavigateToday={noop}
       />,
@@ -78,6 +79,7 @@ describe("DashboardExploreDoshamNova — Full dosham guide", () => {
         initialIndex={0}
         memberCharts={[]}
         onBack={noop}
+        onExit={noop}
         onOpenAskVinaadi={noop}
         onNavigateToday={noop}
       />,
@@ -96,6 +98,7 @@ describe("DashboardExploreDoshamNova — Full dosham guide", () => {
         initialIndex={0}
         memberCharts={[]}
         onBack={noop}
+        onExit={noop}
         onOpenAskVinaadi={noop}
         onNavigateToday={noop}
       />,

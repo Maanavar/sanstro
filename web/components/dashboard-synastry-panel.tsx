@@ -11,7 +11,7 @@ import { NavamsaChart, RasiChart } from "./dashboard-charts";
 import { CompatibilityIntelligencePanel } from "./compatibility-intelligence-panel";
 import { Card } from "./ui/card";
 import { Kicker } from "./ui/kicker";
-import { ShashtashtakaNoteCard } from "./shashtashtaka-note";
+import { EkaNakshatraNoteCard, ShashtashtakaNoteCard } from "./shashtashtaka-note";
 import { compareSynastry, compareCharts } from "@vinaadi/shared/api/relationships";
 import type { Lang } from "@/lib/i18n";
 import type { DirectSynastryData } from "@vinaadi/shared/api/relationships";
@@ -83,12 +83,12 @@ const PORUTHAM_META: Record<string, PoruthamMeta> = {
   // bride's long-term prosperity — longevity of the bond is Rajju's domain.
   // The earlier "longevity" wording on both rows was off (2026-07 audit).
   "Mahendra":     { labelEn: "Mahendra",                    labelTa: "மகேந்திரம்",                checksEn: "Progeny, lineage and protective support",            checksTa: "சந்ததி வளர்ச்சி மற்றும் பாதுகாப்பு ஆதரவு",               weight: "High" },
-  "Stree Dirgha": { labelEn: "Stree Dheergam",              labelTa: "ஸ்த்ரீ தீர்கம்",           checksEn: "The bride's long-term prosperity and wellbeing",     checksTa: "மணமகளின் நீண்டகால செழுமை மற்றும் நலன்",                  weight: "High" },
+  "Stree Dirgha": { labelEn: "Stree Dheergam",              labelTa: "ஸ்திரீ தீர்க்கம்",           checksEn: "The bride's long-term prosperity and wellbeing",     checksTa: "மணமகளின் நீண்டகால செழுமை மற்றும் நலன்",                  weight: "High" },
   "Yoni":         { labelEn: "Yoni",                        labelTa: "யோனி",                       checksEn: "Physical and emotional intimacy compatibility",      checksTa: "உடல்/உணர்வு நெருக்கம் பொருத்தம்",                        weight: "Medium" },
   "Rasi":         { labelEn: "Rasi",                        labelTa: "ராசி",                       checksEn: "General sign-level compatibility",                   checksTa: "பொதுவான ராசி அடிப்படையிலான பொருத்தம்",                   weight: "High" },
   "Graha Maitri": { labelEn: "Rasiyathipam (Graha Maitri)", labelTa: "ராசியதிபதி (கிரக மைத்திரி)", checksEn: "Rasi-lord friendship and mutual support",           checksTa: "ராசி அதிபதிகளின் நட்பு மற்றும் ஒத்துழைப்பு",              weight: "Medium" },
   "Vedha":        { labelEn: "Vedha",                       labelTa: "வேதை",               checksEn: "Traditional obstruction pair check",                 checksTa: "பாரம்பரிய தடுப்பு ஜோடி சோதனை",                           weight: "Critical" },
-  "Vasya":        { labelEn: "Vasya",                       labelTa: "வாஸ்யம்",                    checksEn: "Mutual attraction/influence dynamics",               checksTa: "பரஸ்பர ஈர்ப்பு/செல்வாக்கு இயக்கம்",                     weight: "Low" },
+  "Vasya":        { labelEn: "Vasya",                       labelTa: "வசியம்",                    checksEn: "Mutual attraction/influence dynamics",               checksTa: "பரஸ்பர ஈர்ப்பு/செல்வாக்கு இயக்கம்",                     weight: "Low" },
   "Rajju":        { labelEn: "Rajju",                       labelTa: "ரஜ்ஜு",                      checksEn: "Traditional marital longevity risk marker",          checksTa: "பாரம்பரிய திருமண நீட்சி ஆபத்து குறியீடு",                weight: "Critical" },
 };
 
@@ -627,6 +627,8 @@ export function SynastryPanel({
                     </div>
                   )}
 
+                  {/* F-POR-03: same-star note, qualifying the Rajju result above it. */}
+                  <EkaNakshatraNoteCard note={porutham.ekaNakshatra} lang={lang} />
                   {/* F-POR-02: a disclosure beside the verdict, never part of it. */}
                   <ShashtashtakaNoteCard note={porutham.shashtashtaka} lang={lang} />
 

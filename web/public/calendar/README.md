@@ -16,6 +16,13 @@ while art is missing.
 
 Generation prompts: `docs/IMAGERY_CHATGPT_PROMPTS_2026-10-14.md`.
 
+**Light theme:** a dark-ground photo is never shown on cream. The same scene is
+drawn instead as a bronze line engraving of the reader's hour
+(`web/components/temple-tank-engraving.tsx`, no file here). A delivered
+light-ground photo (`temple-tank-day.*`) would still be shown feathered on the
+light theme in its hours, so keep the engraving's composition in mind: sun or
+moon over the main peak, gopuram on the right, empty left third.
+
 ## Observance icons
 
 Observances are drawn with the SVG emblem set in

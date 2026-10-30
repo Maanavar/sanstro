@@ -1,13 +1,15 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
+import { useHeroIdentity } from "@/hooks/useHeroIdentity";
 import { useNotificationInbox } from "@/hooks/useNotificationInbox";
 import { useSession } from "@/hooks/useSession";
 import { dashboardPath, type Tab } from "@/lib/dashboard-tabs";
 import { todayIso } from "@/lib/format";
 import type { BiText } from "@/lib/types";
+import { handOffDashboardDay } from "@/lib/workspace-handoff";
 
 import { DashboardFooter } from "./dashboard-footer";
 import { DashboardHero } from "./dashboard-hero";
@@ -22,7 +24,8 @@ type DashboardAuxiliaryShellProps = {
  * Authenticated chrome for pages that belong to the dashboard but are not
  * workspace tabs (Inbox, Glossary, Reports). It intentionally reuses the real
  * DashboardHero and DashboardFooter so these routes cannot drift into a third
- * navigation system.
+ * navigation system — and fills the hero's identity sub-bar the way the
+ * workspace does, so the bar does not empty out when the reader steps here.
  */
 export function DashboardAuxiliaryShell({ pageTitle, children }: DashboardAuxiliaryShellProps) {
   const router = useRouter();
@@ -30,9 +33,23 @@ export function DashboardAuxiliaryShell({ pageTitle, children }: DashboardAuxili
   const [lang, setLang] = useLang();
   const inbox = useNotificationInbox({ lang });
   const title = lang === "ta" ? pageTitle.ta : pageTitle.en;
+  // Nothing on these pages is day-scoped, so the line shows today's sunrise
+  // and the picker hands its choice to Today rather than pretending to
+  // change this page.
+  const [selectedDate] = useState(todayIso);
+  const identity = useHeroIdentity({ userId: session.sessionUserId, date: selectedDate });
 
   function navigate(tab: Tab) {
     router.push(dashboardPath(tab));
+  }
+
+  function openDay(date: string) {
+    // Typing a year into the native field fires `change` per digit ("0002",
+    // "0020", "0202"); leaving on the first of those would strand the reader
+    // on a nonsense day. Wait for a four-digit year.
+    if (!date || date.slice(0, 4) < "1900") return;
+    handOffDashboardDay(date);
+    navigate("personal");
   }
 
   function openNotificationSettings() {
@@ -52,12 +69,16 @@ export function DashboardAuxiliaryShell({ pageTitle, children }: DashboardAuxili
         lang={lang}
         activeTab={null}
         utilityTitle={title}
-        birthDisplayName=""
+        birthDisplayName={identity.displayName}
         status={null}
-        chartSummary={null}
-        selectedVault={null}
-        selectedVaultId=""
-        selectedDate={todayIso()}
+        chartSummary={identity.chartSummary}
+        birthTimeConfidenceMinutes={identity.birthTimeConfidenceMinutes}
+        birthTimeLocal={identity.birthTimeLocal}
+        selectedVault={identity.selectedVault}
+        selectedVaultId={identity.selectedVault?.familyVaultId ?? ""}
+        selectedDate={selectedDate}
+        panchangamSunrise={identity.panchangamSunrise}
+        panchangamPlace={identity.panchangamPlace}
         userEmail={session.userEmail}
         showUserMenu={session.showUserMenu}
         alertCount={0}
@@ -69,7 +90,7 @@ export function DashboardAuxiliaryShell({ pageTitle, children }: DashboardAuxili
         onOpenNotificationSettings={openNotificationSettings}
         onInboxOpen={inbox.onOpen}
         onTabChange={navigate}
-        onDateChange={() => undefined}
+        onDateChange={openDay}
         onLangToggle={() => setLang(lang === "ta" ? "en" : "ta")}
         onUserMenuToggle={() => session.setShowUserMenu((open) => !open)}
         onUserMenuClose={() => session.setShowUserMenu(false)}

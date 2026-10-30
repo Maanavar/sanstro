@@ -38,6 +38,10 @@ const FAMILIES = {
   tithi: String.raw`[A-Za-z]*[Tt]ithiName|tithi\??\.(?:name|activeName)`,
   yoga: String.raw`yogaName|yoga\??\.(?:name|activeName)`,
   karana: String.raw`karanaName|karana\??\.(?:name|activeName)`,
+  // `birthPanchangamSignature` carries the limbs as bare codes under these keys
+  // (EKADASI, PARIGHA, BAVA). The Jadhagam sheet printed them raw inside an
+  // all-Tamil document (AAU-03).
+  signature: String.raw`tithi|yogam|karanam`,
 } as const;
 type Family = keyof typeof FAMILIES;
 
@@ -124,6 +128,11 @@ describe("astro name display boundary (N-1b: lord/graha, nakshatra, tithi, yoga,
     expect(nameRenders('title={period.lord ?? "—"}', "lord")).toEqual(['title={period.lord ?? "—"}']);
     expect(nameRenders("<b>{panchangam.tithi.name}</b>", "tithi")).toEqual(["{panchangam.tithi.name}"]);
     expect(nameRenders("<b>{limb.yoga?.activeName}</b>", "yoga")).toEqual(["{limb.yoga?.activeName}"]);
+    expect(nameRenders('{sig.yogam || "—"}{sig.karanam ? `/${sig.karanam}` : ""}', "signature")).toEqual([
+      '{sig.yogam || "—"}',
+      "${sig.karanam}",
+    ]);
+    expect(nameRenders('{sig.tithi ? `/${sig.tithi}` : ""}', "signature")).toEqual(["${sig.tithi}"]);
 
     // Keys, lookups and localised reads are not renders.
     expect(nameRenders("{tPlanetLord(period.lord, lang)}", "lord")).toEqual([]);
@@ -133,5 +142,6 @@ describe("astro name display boundary (N-1b: lord/graha, nakshatra, tithi, yoga,
     expect(nameRenders("<div data-testid={`status-marks-${pl.graha}`}>", "lord")).toEqual([]);
     expect(nameRenders("<PlanetBadge graha={pl.graha} />", "lord")).toEqual([]);
     expect(nameRenders("{tNakshatra(row.nakshatraName, \"ta\")}", "nakshatra")).toEqual([]);
+    expect(nameRenders('{sig.yogam ? tYoga(sig.yogam, "ta") : "—"}', "signature")).toEqual([]);
   });
 });

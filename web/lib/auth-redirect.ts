@@ -14,10 +14,20 @@
 /** The query param carrying the post-sign-in destination. */
 export const NEXT_PARAM = "next";
 
-/** The prefixes a `?next=` may name. Everything the middleware guards, and
- *  nothing else: `/login?next=/` is pointless and `?next=/api/...` would hand
- *  an attacker a way to bounce someone into a machine path. */
-const ALLOWED_PREFIXES = ["/dashboard", "/admin"] as const;
+/** The signed-in surfaces. The middleware guards exactly these, a `?next=` may
+ *  name only these (`/login?next=/` is pointless and `?next=/api/...` would
+ *  hand an attacker a way to bounce someone into a machine path), and the beta
+ *  banner stays off them. `/notifications` is here because the inbox still
+ *  lives at its legacy URL inside the `(marketing)` group; it was missing from
+ *  both checks, so it went unguarded and showed the public beta ribbon. */
+const SIGNED_IN_PREFIXES = ["/dashboard", "/admin", "/notifications"] as const;
+
+/** True for a path under one of the signed-in prefixes. `/dashboardish` does
+ *  not pass on the strength of a shared prefix. */
+export function isSignedInPath(path: string | null | undefined): boolean {
+  if (typeof path !== "string") return false;
+  return SIGNED_IN_PREFIXES.some((p) => path === p || path.startsWith(`${p}/`));
+}
 
 /** Where sign-in lands when the URL asks for nothing. */
 export const DEFAULT_SIGNED_IN_PATH = "/dashboard";
@@ -33,7 +43,7 @@ export const DEFAULT_SIGNED_IN_PATH = "/dashboard";
  *   though it starts with a slash.
  * - `/\evil.example` and any backslash: some parsers fold `\` to `/`, so a
  *   leading `/\` is protocol-relative again.
- * - a path outside `ALLOWED_PREFIXES`, so the param cannot be used to point
+ * - a path outside `SIGNED_IN_PREFIXES`, so the param cannot be used to point
  *   sign-in at an arbitrary page of ours either.
  *
  * Control characters are stripped first, because a `%0A` or a tab inside the
@@ -47,8 +57,7 @@ export function safeNextPath(value: string | null | undefined): string | null {
   if (cleaned.startsWith("//")) return null;
   if (cleaned.includes("\\")) return null;
   const path = cleaned.split(/[?#]/)[0] ?? "";
-  const allowed = ALLOWED_PREFIXES.some((p) => path === p || path.startsWith(`${p}/`));
-  return allowed ? cleaned : null;
+  return isSignedInPath(path) ? cleaned : null;
 }
 
 /** Appends a destination to a sign-in URL, skipping the default (a

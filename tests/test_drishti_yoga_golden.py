@@ -310,7 +310,8 @@ GOLDEN_YOGAS: dict[str, tuple[tuple[str, bool, str], ...]] = {
         ("ADHI_BASE", True, "WEAK"),
         ("ADHI_RAJA_GRADE", False, "WEAK"),
         ("AMALA_YOGA", False, "WEAK"),
-        ("ANAPHA_YOGA", True, "PARTIAL"),
+        # AAU-11: both sides of the Moon occupied is Durudhura alone; the
+        # Sunapha and Anapha rows this chart carried are gone.
         ("BHADRA_YOGA", False, "WEAK"),
         ("BUDHA_ADITYA_YOGA", True, "STRONG"),
         ("CHANDALA_KETU_YOGA", False, "WEAK"),
@@ -334,7 +335,6 @@ GOLDEN_YOGAS: dict[str, tuple[tuple[str, bool, str], ...]] = {
         ("RUCHAKA_YOGA", False, "WEAK"),
         ("SAKATA_YOGA", False, "WEAK"),
         ("SASA_YOGA", False, "WEAK"),
-        ("SUNAPHA_YOGA", True, "PARTIAL"),
         ("VASUMATI_YOGA", False, "WEAK"),
         ("VIPAREETHA_RAJA_YOGA", True, "STRONG"),
         ("YOGAKARAKA_RAJA_YOGA", True, "PARTIAL"),

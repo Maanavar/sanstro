@@ -333,6 +333,7 @@ export function DashboardExploreTabNova({
         personalDailyGuidance={personalDailyGuidance}
         memberCharts={memberCharts}
         onBack={() => setSubview({ kind: "nakshatram", screen: "list" })}
+        onExit={() => setSubview(null)}
         onOpenAskVinaadi={onOpenAskVinaadi}
       />
       </ViewSwap>
@@ -360,6 +361,7 @@ export function DashboardExploreTabNova({
         initialIndex={subview.index}
         memberCharts={memberCharts}
         onBack={() => setSubview({ kind: "dosham", screen: "list" })}
+        onExit={() => setSubview(null)}
         onOpenAskVinaadi={onOpenAskVinaadi}
         onNavigateToday={() => onNavigate("personal")}
       />
@@ -388,6 +390,7 @@ export function DashboardExploreTabNova({
         initialIndex={subview.index}
         memberCharts={memberCharts}
         onBack={() => setSubview({ kind: "yogam", screen: "list" })}
+        onExit={() => setSubview(null)}
         onOpenAskVinaadi={onOpenAskVinaadi}
         onNavigateToday={() => onNavigate("personal")}
       />
@@ -415,6 +418,7 @@ export function DashboardExploreTabNova({
         kind={subview.kind}
         initialSlug={subview.slug}
         onBack={() => setSubview({ kind: subview.kind, screen: "list" })}
+        onExit={() => setSubview(null)}
         onOpenAskVinaadi={onOpenAskVinaadi}
       />
       </ViewSwap>

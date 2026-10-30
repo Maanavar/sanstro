@@ -165,12 +165,13 @@ class DoctrineOptions:
     #: its own mitigation, so the house-support tests read the other benefics.
     #: False restores v2.0's double count.
     o29_rk_guru_counted_once: bool = True
-    #: O-32 — Putra Sarpa, Thulam lagna, Sani in Kumbam (its own 5th). Sani is
-    #: the 5th lord, in its own sign, and yogakaraka (4th + 5th) for Thulam.
-    #: Owner ruling 2026-10-06: "neutralized" — the placement is recorded but
-    #: does not form the dosham; any independent affliction (a node in the 5th
-    #: or beside Guru) still does. Deliberately this one case, not "own sign
-    #: always cancels". "ordinary" counts it as any Sani in the 5th.
+    #: O-32 — Thulam lagna, Sani in Kumbam (its own 5th). Sani is the 5th
+    #: lord, in its own sign, and yogakaraka (4th + 5th) for Thulam. Owner
+    #: ruling 2026-10-06: "neutralized" — the placement is recorded but does
+    #: not form the finding. Deliberately this one case, not "own sign always
+    #: cancels". "ordinary" counts it as any Sani in the 5th. The key keeps its
+    #: old name; since AAU-12 (2026-10-29) Saturn forms Santhana Thadai, not
+    #: Putra Sarpa, so that is the detector this governs.
     o32_putra_sarpa_thulam_sani: str = "neutralized"
     #: DD-12 legacy: Moon benefic only beyond 72° of elongation. Off by default.
     moon_72_degree_convention: bool = False
@@ -315,10 +316,11 @@ OPEN_ITEMS: tuple[OpenItem, ...] = (
     OpenItem("O-29", "Rahu–Ketu: may one Guru aspect count both as Guru-on-node and as benefic-on-house?",
              "Ruling 2026-10-06 (DD-17): no — counted once",
              "FLAGGED", "o29_rk_guru_counted_once", "_yoga_dosham.detect_rahu_ketu_dosham"),
-    OpenItem("O-32", "Putra Sarpa: does Sani in its own 5th (Kumbam, Thulam lagna) form the dosham?",
+    OpenItem("O-32", "Santhana Thadai (was Putra Sarpa): does Sani in its own 5th (Kumbam, Thulam lagna) form it?",
              "Owner ruling 2026-10-06: neutralized — recorded, not formed, unless another affliction "
-             "touches the 5th, its lord or Guru; this case only, not a blanket own-sign rule",
-             "FLAGGED", "o32_putra_sarpa_thulam_sani", "_yoga_dosham.detect_putra_sarpa_dosham"),
+             "touches the 5th; this case only, not a blanket own-sign rule. Saturn moved to "
+             "Santhana Thadai by AAU-12 (2026-10-29)",
+             "FLAGGED", "o32_putra_sarpa_thulam_sani", "_yoga_dosham.detect_santhana_thadai"),
 )
 
 OPEN_ITEM_BY_ID: dict[str, OpenItem] = {item.item_id: item for item in OPEN_ITEMS}

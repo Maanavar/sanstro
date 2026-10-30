@@ -152,6 +152,10 @@ def active_dosham_planet(doshams: Sequence[_DoshamLike], lagna_rasi: int) -> str
             return "MARS"
         if dosham.name in {"RAHU_KETU_DOSHAM", "KALASARPA", "PUTRA_SARPA_DOSHAM"}:
             return "RAHU"
+        # AAU-12: Saturn's progeny delay goes to Sani parihara, never the naga
+        # route its old Putra Sarpa label sent it to.
+        if dosham.name == "SANTHANA_THADAI":
+            return "SATURN"
         if dosham.name == "PITRU_DOSHAM":
             return "SUN"
         if dosham.name == "BADHAKA_DOSHAM":

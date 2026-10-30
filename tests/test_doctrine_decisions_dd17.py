@@ -127,35 +127,35 @@ def test_o27_a_dignified_seventh_lord_protects_outside_a_kendra() -> None:
 
 
 def test_sevvai_strong_formation_with_two_minor_factors_is_reduced_not_cancelled() -> None:
-    # Mars 2nd from the Lagna and 7th from the Moon (formation STRONG). Exactly
-    # two minor factors: the exalted 7th lord, and Guru in Thulam aspecting it.
-    # This was the "barely offset" nivarthi; since the 2026-10-22 ruling (Q8)
-    # two minors never cancel. Present, reduced: STRONG -> PARTIAL, MODERATE.
+    # Mars 2nd from the Lagna and 7th from the Moon. Exactly two minor factors:
+    # the exalted 7th lord, and Guru in Thulam aspecting it. This was the
+    # "barely offset" nivarthi; since the 2026-10-22 ruling (Q8) two minors
+    # never cancel. AAU-13: Lagna + Moon is "confirmed" (PARTIAL), and present,
+    # reduced takes it one grade down: PARTIAL -> WEAK, MILD. (Was STRONG ->
+    # PARTIAL when any two references made a STRONG formation.)
     chart = {"MARS": 12, "MOON": 6, "VENUS": 2, "JUPITER": 7, "SUN": 1, "SATURN": 9, "RAHU": 5, "KETU": 11, "MERCURY": 3}
     result = detect_sevvai_dosham(chart, KUMBAM)
     assert result.is_cancelled is False
-    assert result.formation_strength == "STRONG"
-    assert result.strength == "PARTIAL"
-    assert result.residual == "MODERATE"
+    assert result.formation_strength == "PARTIAL"
+    assert result.strength == "WEAK"
+    assert result.residual == "MILD"
     assert result.context_notes == ()
     assert {r.reference: r.houses for r in result.reference_houses} == {"LAGNA": (2,), "MOON": (7,), "VENUS": (11,)}
 
 
-def test_sevvai_counted_only_from_moon_and_venus_is_the_lighter_reading() -> None:
+def test_sevvai_counted_only_from_moon_and_venus_is_noted_not_declared() -> None:
     # Mars in Mesham is the 3rd from Kumbam (no Lagna dosham), 7th from the Moon
-    # in Thulam and 4th from Venus in Magaram. Mitigated three ways: own sign,
-    # Mesham is the 4th house's nivarthi rasi, and Suriyan (7th lord) in Simmam.
-    # All three are minor today, so it is present, reduced (ruling Q8). Own
-    # sign and the exempt rasi are MAJOR on the astrologer's 2026-10-22 list,
-    # which would cancel it; that waits for the owner (O-33).
+    # in Thulam and 4th from Venus in Magaram. AAU-13 (2026-10-29): the Moon and
+    # Venus grade a Lagna dosham and never declare one, so the placements are
+    # reported and the dosham is not present. Was "present, reduced".
     chart = {"MARS": 1, "MOON": 7, "VENUS": 10, "JUPITER": 2, "SUN": 5, "SATURN": 3, "RAHU": 4, "KETU": 10, "MERCURY": 6}
     result = detect_sevvai_dosham(chart, KUMBAM)
     assert set(result.conditions_met) == {"from_moon", "from_venus"}
-    assert result.is_cancelled is False
-    assert result.formation_strength == "STRONG"
-    assert result.strength == "PARTIAL"
-    assert result.residual == "MODERATE"
-    assert result.context_notes == ("sevvai_not_from_lagna",)
+    assert result.is_present is False and result.is_cancelled is False
+    assert result.label == "NO_SEVVAI_DOSHAM"
+    assert result.formation_strength == ""
+    assert result.cancellation_factors == []
+    assert result.context_notes == ("sevvai_not_declared_without_lagna",)
     lagna_row = next(r for r in result.reference_houses if r.reference == "LAGNA")
     assert lagna_row.houses == (3,) and lagna_row.counts is False
 
@@ -165,12 +165,12 @@ def test_why_text_is_a_verdict_not_an_engine_label() -> None:
     result = detect_sevvai_dosham(chart, KUMBAM)
     assert "Final label" not in result.explanation_why_en
     assert "SEVVAI_DOSHAM" not in result.explanation_why_en.replace(" ", "_")
-    assert len(result.cancellation_factors) == 3
-    # Present, reduced (ruling Q8): the verdict names the intensity, and the
-    # three factors are listed as mitigations, not as a nivarthi.
-    assert result.explanation_why_en.startswith("Present. Intensity: moderate.")
-    assert "Mitigation factors:" in result.explanation_why_en
+    # AAU-13: counted from the Moon and Venus only, so it is noted, not
+    # declared. The verdict says so, and the context says why, in both languages.
+    assert result.explanation_why_en.startswith("This dosham does not form in this chart.")
+    assert "not declared" in result.explanation_why_en
     assert "Context:" in result.explanation_why_en and "சூழல்:" in result.explanation_why_ta
+    assert "அறிவிக்கப்படவில்லை" in result.explanation_why_ta
 
 
 # ── Residual arithmetic and the other doshams ───────────────────────────────

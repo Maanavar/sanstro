@@ -64,7 +64,8 @@ type FamilyBundle = {
 
 const MEMBER_CHART_CONCURRENCY = 2;
 
-const familyKeys = {
+/** Exported for useHeroIdentity — see the note on `personalKeys`. */
+export const familyKeys = {
   vaults: (ownerUserId: string) => ["family", "vaults", ownerUserId] as const,
   bundle: (vaultId: string, date: string) => ["family", "bundle", vaultId, date] as const,
   memberCharts: (vaultId: string, date: string, members: FamilyAggregateMember[]) => [
@@ -81,7 +82,7 @@ function isAbortError(error: unknown): boolean {
   return error instanceof Error && error.name === "AbortError";
 }
 
-async function fetchVaults(ownerUserId: string): Promise<FamilyVaultListData> {
+export async function fetchVaults(ownerUserId: string): Promise<FamilyVaultListData> {
   const response = await apiFetchJson<ApiEnvelope<FamilyVaultListData>>(
     `/api/v1/family-vaults${toQuery({ ownerUserId, limit: 20, offset: 0 })}`,
   );

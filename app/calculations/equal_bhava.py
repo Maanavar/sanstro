@@ -19,17 +19,23 @@ def compute_equal_bhava(
     planet_longitudes: dict[str, float],
 ) -> dict[str, int]:
     """
-    Equal houses from the Lagna degree. NOT Sripati chalit — each house is a
-    fixed 30 degrees from the Lagna cusp, with no bhava madhya/sandhi
-    trisection. Primary interpretation in this product remains whole-sign
+    Sama bhava: equal 30-degree houses with the Lagna degree as the **middle**
+    (bhava madhya) of the 1st, so house n runs lagna + 30(n-1) - 15 to + 15.
+    NOT Sripati chalit — the houses are equal, not trisected between unequal
+    madhyas. Primary interpretation in this product remains whole-sign
     (rasi-as-bhava) per Doctrine §6; this is a secondary lens for
     bhava-strength questions only.
+
+    AAU-10 (ruled 2026-10-29): this used to start the 1st house at the Lagna
+    degree, the Western equal-house convention. In Indian bhava reckoning the
+    Lagna is the madhya, so every graha whose degree sat below the Lagna degree
+    was pushed back a house.
     Returns {planet: house_1_to_12}.
     """
     lagna = lagna_longitude % 360.0
     result: dict[str, int] = {}
     for planet, raw_lon in planet_longitudes.items():
         lon = raw_lon % 360.0
-        rel = (lon - lagna) % 360.0
+        rel = (lon - lagna + 15.0) % 360.0
         result[planet] = int(rel // 30.0) + 1
     return result

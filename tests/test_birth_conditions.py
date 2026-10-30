@@ -175,7 +175,10 @@ def test_detect_birth_conditions_rolls_up_present_only() -> None:
     )
     codes = {f.code for f in flags}
     assert "CAZIMI" in codes
-    assert "SANKRANTI_BIRTH" in codes
+    # AAU-19: an ingress on the birth day with no birth time is the precision
+    # note, not the traditional alert (gated on the punya kala table).
+    assert "SUN_SIGN_UNCERTAIN" in codes
+    assert "SANKRANTI_BIRTH" not in codes
     assert "GRAHANA_BIRTH" in codes
     # TITHI_SHOONYA was retired (EC-1) and must never reappear. DAGDA_RASI is
     # verified (EC-2) and tithi 1 is a dagda tithi (burnt Tula/Makara).
@@ -294,7 +297,9 @@ def test_penalties_derive_from_real_detection_single_source() -> None:
         sun_rasi_day_end=2,
         cazimi_planets=["MERCURY"],
     )
-    assert bc.birth_condition_strength_penalties(flags) == {"SUN": 15.0, "MOON": 10.0}
+    # AAU-19: the ingress day is now the precision note, which costs nothing;
+    # the Sankranti +5 on the Sun returns only with the gated Alert B.
+    assert bc.birth_condition_strength_penalties(flags) == {"SUN": 10.0, "MOON": 10.0}
 
 
 def test_apply_penalties_lowers_luminaries_and_floors_at_10() -> None:
@@ -313,3 +318,73 @@ def test_apply_penalties_noop_on_empty_map() -> None:
     planets = [SimpleNamespace(graha="SUN", strength_score=60)]
     _apply_birth_condition_penalties(planets, {})
     assert planets[0].strength_score == 60
+
+
+# --------------------------------------------------------------------------- #
+# AAU-19 (ruled 2026-10-29): two alerts, two code paths
+# --------------------------------------------------------------------------- #
+_SPEED = 1.0  # deg/day: 1 degree of solar motion = 1440 minutes
+
+
+def test_minutes_to_the_nearest_ingress_are_signed() -> None:
+    assert bc.minutes_to_nearest_sun_ingress(29.99, _SPEED) == pytest.approx(14.4, abs=0.01)  # ahead
+    assert bc.minutes_to_nearest_sun_ingress(30.01, _SPEED) == pytest.approx(-14.4, abs=0.01)  # behind
+
+
+def test_alert_a_follows_the_stated_uncertainty_not_a_constant() -> None:
+    """Ruling example: ingress 09:25, birth 09:30, uncertainty 10 min -> overlap."""
+    near = -5.0  # the ingress was 5 minutes before the birth
+    kw = {"sun_rasi_day_start": 1, "sun_rasi_day_end": 1}
+    assert bc.sun_sign_is_uncertain(minutes_to_ingress=near, birth_time_uncertainty_minutes=10, **kw)
+    assert not bc.sun_sign_is_uncertain(minutes_to_ingress=near, birth_time_uncertainty_minutes=2, **kw)
+    # No birth time at all: the whole civil day is uncertain.
+    assert bc.sun_sign_is_uncertain(
+        minutes_to_ingress=None, birth_time_uncertainty_minutes=None, sun_rasi_day_start=1, sun_rasi_day_end=2,
+    )
+
+
+def test_alert_a_is_never_a_dosham_and_never_costs_strength() -> None:
+    flags = bc.detect_birth_conditions(
+        planet_longitudes={"SUN": 29.999, "MOON": 200.0, "RAHU": 100.0},
+        tithi_number=15,
+        sun_rasi_day_start=1,
+        sun_rasi_day_end=2,
+        sun_speed_deg_per_day=_SPEED,
+        birth_time_uncertainty_minutes=30,
+    )
+    note = next(f for f in flags if f.code == "SUN_SIGN_UNCERTAIN")
+    assert note.severity == "INFO"
+    assert "dosham" in note.description_en and "not a dosham" in note.description_en
+    assert bc.birth_condition_strength_penalties(flags) == {}
+
+
+def test_alert_b_is_gated_until_the_punya_kala_table_exists() -> None:
+    """The old rule fired for any birth on the civil day of an ingress. With
+    the table empty, no birth is a traditional Sankranti birth."""
+    assert bc.SANKRANTI_PUNYA_KALA_NAZHIGAI == {}
+    for minutes in (-1.0, 0.0, 1.0, 600.0):
+        assert not bc.is_traditional_sankranti_birth(10, minutes)
+    flags = bc.detect_birth_conditions(
+        planet_longitudes={"SUN": 270.0, "MOON": 100.0, "RAHU": 50.0},
+        tithi_number=15,
+        sun_rasi_day_start=9,
+        sun_rasi_day_end=10,
+        sun_speed_deg_per_day=_SPEED,
+        birth_time_uncertainty_minutes=0,
+    )
+    assert "SANKRANTI_BIRTH" not in {f.code for f in flags}
+
+
+def test_alert_b_window_is_directional_once_populated(monkeypatch: pytest.MonkeyPatch) -> None:
+    """{before, after} per sankranti, in nazhigai (24 min). The values here are
+    a test fixture, not doctrine."""
+    monkeypatch.setitem(bc.SANKRANTI_PUNYA_KALA_NAZHIGAI, 10, (0.0, 2.0))  # after only
+    assert bc.is_traditional_sankranti_birth(10, -30.0)      # born 30 min after the ingress
+    assert not bc.is_traditional_sankranti_birth(10, 30.0)   # born 30 min before it
+    assert not bc.is_traditional_sankranti_birth(10, -60.0)  # past 2 nazhigai
+
+
+def test_every_sign_has_a_sankranti_class() -> None:
+    assert sorted(bc.SANKRANTI_CLASS) == list(range(1, 13))
+    assert {bc.SANKRANTI_CLASS[r] for r in (10, 4)} == {"AYANA"}
+    assert {bc.SANKRANTI_CLASS[r] for r in (1, 7)} == {"VISHUVA"}

@@ -10,7 +10,11 @@ from __future__ import annotations
 
 import pytest
 
-from app.calculations._yoga_dosham import detect_marana_karaka_sthana, detect_putra_sarpa_dosham
+from app.calculations._yoga_dosham import (
+    detect_marana_karaka_sthana,
+    detect_putra_sarpa_dosham,
+    detect_santhana_thadai,
+)
 from app.calculations._yoga_helpers import _marker_explain, _marker_explain_ta
 
 pytestmark = pytest.mark.no_db
@@ -52,7 +56,7 @@ def test_putra_sarpa_unguarded_says_so_and_names_the_dasha() -> None:
 
 def test_o32_sani_in_own_fifth_for_thulam_is_neutralized() -> None:
     # Thulam lagna, Sani in Kumbam (the 5th); no node in the 5th or beside Guru.
-    result = detect_putra_sarpa_dosham({"SATURN": 11, "RAHU": 1, "KETU": 7, "JUPITER": 3}, 7, {"SATURN": 80})
+    result = detect_santhana_thadai({"SATURN": 11, "RAHU": 1, "KETU": 7, "JUPITER": 3}, 7, {"SATURN": 80})
     assert result.is_present is False and result.is_cancelled is False
     assert result.conditions_met == ["fifth_house_has_saturn"]
     assert result.cancellation_factors == ["saturn_yogakaraka_own_fifth"]
@@ -70,7 +74,7 @@ def test_o32_an_independent_affliction_still_forms_it() -> None:
 def test_o32_ordinary_restores_the_plain_reading() -> None:
     from app.calculations.doctrine_options import DoctrineOptions
 
-    result = detect_putra_sarpa_dosham(
+    result = detect_santhana_thadai(
         {"SATURN": 11, "RAHU": 1, "KETU": 7, "JUPITER": 3}, 7, {"SATURN": 80},
         doctrine=DoctrineOptions(o32_putra_sarpa_thulam_sani="ordinary"),
     )
@@ -80,7 +84,7 @@ def test_o32_ordinary_restores_the_plain_reading() -> None:
 def test_o32_is_thulam_only_not_a_blanket_own_sign_rule() -> None:
     # Makaram lagna: the 5th is Rishabam (Venus's). Sani there is not its own
     # 5th, so nothing neutralizes it.
-    result = detect_putra_sarpa_dosham({"SATURN": 2, "RAHU": 1, "KETU": 7, "JUPITER": 3, "VENUS": 6}, 10, {"VENUS": 50})
+    result = detect_santhana_thadai({"SATURN": 2, "RAHU": 1, "KETU": 7, "JUPITER": 3, "VENUS": 6}, 10, {"VENUS": 50})
     assert result.is_present is True and result.conditions_met == ["fifth_house_has_saturn"]
 
 
@@ -108,7 +112,7 @@ def test_unformed_doshams_carry_no_protective_factors() -> None:
 def test_putra_sarpa_saturn_does_not_join_itself_for_thulam_lagna() -> None:
     # Thulam lagna: Saturn is the 5th lord. Saturn in Magaram, no node near
     # the 5th, its lord or Guru. This formed the dosham in every Thulam chart.
-    result = detect_putra_sarpa_dosham({"SATURN": 10, "RAHU": 1, "KETU": 7, "JUPITER": 3}, 7, {"SATURN": 50})
+    result = detect_santhana_thadai({"SATURN": 10, "RAHU": 1, "KETU": 7, "JUPITER": 3}, 7, {"SATURN": 50})
     assert result.is_present is False
     assert result.meaning_en == ""
 
@@ -117,6 +121,70 @@ def test_putra_sarpa_missing_jupiter_neither_forms_nor_protects() -> None:
     # A chart without Jupiter or the nodes compared None == None and formed.
     result = detect_putra_sarpa_dosham({"SUN": 9}, 1, {"SUN": 50})
     assert result.is_present is False and result.cancellation_factors == []
+
+
+# ── AAU-12 (ruled 2026-10-29): Sarpa needs a node; Saturn is Santhana Thadai ─
+
+def test_aau12_saturn_alone_forms_santhana_thadai_not_sarpa() -> None:
+    # Mesham lagna, Saturn in Simmam (the 5th), nodes elsewhere and apart from Guru.
+    chart = {"SUN": 9, "SATURN": 5, "RAHU": 2, "KETU": 8, "JUPITER": 4}
+    sarpa = detect_putra_sarpa_dosham(chart, 1, {"SUN": 50})
+    thadai = detect_santhana_thadai(chart, 1, {"SUN": 50})
+    assert sarpa.is_present is False
+    assert thadai.is_present is True and thadai.name == "SANTHANA_THADAI"
+    assert thadai.conditions_met == ["fifth_house_has_saturn"]
+    assert "Saturn" not in sarpa.description_en
+    assert "Rahu" not in thadai.description_en
+
+
+def test_aau12_a_node_beside_guru_never_forms_santhana_thadai() -> None:
+    chart = {"SUN": 9, "SATURN": 3, "RAHU": 6, "KETU": 12, "JUPITER": 6}
+    assert detect_putra_sarpa_dosham(chart, 1, {"SUN": 50}).conditions_met == ["jupiter_joined_by_rahu"]
+    assert detect_santhana_thadai(chart, 1, {"SUN": 50}).is_present is False
+
+
+def test_aau12_every_present_sarpa_names_a_node_and_every_thadai_names_saturn() -> None:
+    """Swept over random charts, through the production assembler."""
+    import random
+
+    from app.calculations.yogas import detect_yogas_and_doshams
+
+    rng = random.Random(12)
+    grahas = ("SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN")
+    seen = {"PUTRA_SARPA_DOSHAM": 0, "SANTHANA_THADAI": 0}
+    for _ in range(400):
+        chart = {g: rng.randint(1, 12) for g in grahas}
+        rahu = rng.randint(1, 12)
+        chart["RAHU"], chart["KETU"] = rahu, (rahu + 5) % 12 + 1
+        _, doshams, _ = detect_yogas_and_doshams(
+            chart, rng.randint(1, 12), chart["MOON"], active_lords=["SUN"], current_maha_lord="SUN",
+        )
+        for d in doshams:
+            if d.name in seen and d.is_present:
+                seen[d.name] += 1
+                # Every marker ends in the afflicting graha (fifth_house_has_X,
+                # fifth_lord_<lord>_joined_by_X, jupiter_joined_by_X); the lord
+                # in the middle may be Saturn on a valid Sarpa chart.
+                afflictors = {marker.rsplit("_", 1)[1] for marker in d.conditions_met}
+                if d.name == "PUTRA_SARPA_DOSHAM":
+                    assert afflictors and afflictors <= {"rahu", "ketu"}, d.conditions_met
+                else:
+                    assert afflictors == {"saturn"}, d.conditions_met
+    assert all(seen.values()), seen  # the sweep reached both findings
+
+
+def test_aau12_each_finding_routes_to_its_own_remedy_planet() -> None:
+    """The remedial harm the ruling leads with: Saturn's finding must not be
+    sent to the naga route."""
+    from types import SimpleNamespace
+
+    from app.calculations.remedies import active_dosham_planet
+
+    def one(name: str) -> str | None:
+        return active_dosham_planet([SimpleNamespace(name=name, is_present=True)], 1)
+
+    assert one("PUTRA_SARPA_DOSHAM") == "RAHU"
+    assert one("SANTHANA_THADAI") == "SATURN"
 
 
 def _mks_chart(**overrides: int) -> dict[str, int]:

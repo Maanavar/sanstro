@@ -7,6 +7,7 @@ import { useLang } from "@/components/lang-toggle";
 import { PlaceCombobox, type CityEntry } from "@/components/place-combobox";
 import { almanacMuhurthamLabel } from "@/lib/almanac-muhurtham";
 import { romanNakshathiramName } from "@/lib/tamil-astro";
+import { tNakshatra, tTithi } from "@/lib/i18n";
 import type { AlmanacMuhurtham } from "@/lib/types";
 import { LocalizedLink as Link } from "@/components/localized-link";
 
@@ -700,8 +701,8 @@ export function MuhurtaTool() {
                       </p>
                       <p style={{ fontSize: "0.82rem", color: "var(--cl-ink-2)", marginBottom: "6px" }}>
                         {lang === "en"
-                          ? `${slot.tithi} tithi · ${slotStarName(slot.nakshatra)} moon star`
-                          : `${slot.tithi} திதி · ${slot.nakshatra} நட்சத்திரம்`}
+                          ? `${tTithi(slot.tithi, "en")} tithi · ${slotStarName(slot.nakshatra)} moon star`
+                          : `${tTithi(slot.tithi, "ta")} திதி · ${tNakshatra(slot.nakshatra, "ta")} நட்சத்திரம்`}
                       </p>
                       <p style={{ fontSize: "0.82rem", color: "var(--cl-ink)", marginBottom: slot.cautions.length ? "6px" : 0 }}>
                         {lang === "en" ? slot.reason : slot.reasonTa}

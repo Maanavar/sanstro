@@ -198,3 +198,16 @@ def tithi_ta(tithi_number: int) -> str:
 
 def tithi_en(tithi_number: int) -> str:
     return tithi_display(tithi_number)[1]
+
+
+# Paksha. The snapshot's `tithi_paksha` is the code SHUKLA / KRISHNA; a printed
+# Tamil line wants the almanac words, as the web's `pakshaTa` does.
+_PAKSHA: dict[str, tuple[str, str]] = {
+    "SHUKLA": ("வளர்பிறை", "Shukla paksha"),
+    "KRISHNA": ("தேய்பிறை", "Krishna paksha"),
+}
+
+
+def paksha_display(paksha: str) -> tuple[str, str]:
+    """(ta, en) for a SHUKLA / KRISHNA code; an unknown code comes back as is."""
+    return _PAKSHA.get(paksha, (paksha, paksha))

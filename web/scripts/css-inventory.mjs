@@ -496,6 +496,26 @@ function ownLayoutCss(entry) {
   return [...out].sort();
 }
 
+/**
+ * The payload counterpart of ownLayoutCss: does a layout of this marketing
+ * route's own, inside app/(marketing)/, render `<QueryProvider>`? /notifications
+ * does — it is a signed-in surface still at its legacy URL, and its dashboard
+ * chrome reads the reader's chart through react-query. Like the CSS case, such
+ * a route is a load context of its own: react-query cannot throw there, and its
+ * chunk is not one the other public routes download. Comments are stripped
+ * first, so a layout that only *mentions* the provider does not count.
+ */
+function ownLayoutRendersQueryProvider(entry) {
+  for (let d = dirname(entry); d.startsWith(MARKETING_ROOT + sep); d = dirname(d)) {
+    for (const ext of ["tsx", "ts", "jsx", "js"]) {
+      const layout = join(d, `layout.${ext}`);
+      if (!CODE_FILES.includes(layout)) continue;
+      if (/<QueryProvider>/.test(readCode(layout))) return true;
+    }
+  }
+  return false;
+}
+
 if (args.includes("--emit-boundary")) {
   // Per load-context: the classes that context's own module tree references, and
   // where every class is defined. The guard test joins the two.
@@ -559,7 +579,24 @@ if (args.includes("--emit-reach")) {
   // folds in the root layout, which is an ancestor of everything.
   const own = Object.fromEntries(Object.entries(REACH_OWN).map(([k, v]) => [k, [...v].map(rel).sort()]));
   const withRoot = Object.fromEntries(Object.entries(REACH).map(([k, v]) => [k, [...v].map(rel).sort()]));
-  process.stdout.write(JSON.stringify({ unresolved: UNRESOLVED, own, withRoot, unreached: UNREACHED.map(rel).sort() }));
+  // Marketing split by whether the route's own layout supplies react-query's
+  // provider (see ownLayoutRendersQueryProvider). The react-query guard asks
+  // its question of `marketingWithoutQueryProvider`; the routes that carry the
+  // provider are listed so the guard can pin them.
+  const queryProviderRoutes = entries.marketing.filter(ownLayoutRendersQueryProvider);
+  const marketingWithoutQueryProvider = [
+    ...reachable(entries.marketing.filter((e) => !queryProviderRoutes.includes(e))),
+  ].map(rel).sort();
+  process.stdout.write(
+    JSON.stringify({
+      unresolved: UNRESOLVED,
+      own,
+      withRoot,
+      unreached: UNREACHED.map(rel).sort(),
+      queryProviderRoutes: queryProviderRoutes.map(rel).sort(),
+      marketingWithoutQueryProvider,
+    }),
+  );
   process.exit(0);
 }
 

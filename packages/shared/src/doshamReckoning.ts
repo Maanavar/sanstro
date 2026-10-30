@@ -151,6 +151,12 @@ export const DOSHAM_CONTEXT_LABELS: Record<string, Text> = {
     ta: "லக்னத்திலிருந்து செவ்வாய் தோஷ வீட்டில் இல்லை; சந்திரன் அல்லது சுக்கிரனிலிருந்து மட்டுமே தோஷம் கணக்கிடப்படுகிறது. லக்னத்திலிருந்து வரும் தோஷத்தை விட இதன் எடை குறைவு.",
     en: "Mars is not in a dosha house from your Lagna. The dosham is counted only from the Moon or Venus, which weighs less than a Lagna placement.",
   },
+  // AAU-13 (2026-10-29): the Moon and Venus grade a Lagna dosham; alone they
+  // are noted, not declared. Same sentence as the backend (`_yoga_helpers`).
+  sevvai_not_declared_without_lagna: {
+    ta: "சந்திரன் அல்லது சுக்கிரனிலிருந்து எண்ணும்போது செவ்வாய் தோஷ வீட்டில் உள்ளது, ஆனால் லக்னத்திலிருந்து இல்லை. லக்னமே முதன்மை; சந்திரனும் சுக்கிரனும் லக்ன தோஷத்தின் தீவிரத்தை மட்டுமே காட்டும். எனவே இந்த நிலை குறிக்கப்படுகிறது, செவ்வாய் தோஷம் அறிவிக்கப்படவில்லை.",
+    en: "Mars is in a dosha house counted from your Moon or Venus, but not from your Lagna. The Lagna is the primary reference; the Moon and Venus only grade a Lagna dosham, so this placement is noted and Sevvai dosham is not declared.",
+  },
   // The astrologer's own wording, 23 Oct (Q12; the Tamil is his B3 correction).
   // Verbatim in both languages — do not re-translate or compress.
   sevvai_mars_debility_modifies: {

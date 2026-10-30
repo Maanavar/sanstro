@@ -226,7 +226,8 @@ weight. Where it disagrees, the reviewer's §10–§11 ruling stands:
 - [ ] **Other Tamil from 21 Oct (§8.6 groups):** Varuda Palan page copy; Chandrashtama strings; the
   dasa timing table labels and footnote; the 81 base-page edits; Rohini edits; the mobile "which half
   of the star" prompt; the Tamil-script Sanskrit names in brackets (க்ருத்திகா, ம்ருகசிரா, ஆஷ்லேஷா …);
-  the Shatabhisha paragraph. The reviewer's own notes on specific words (வருடப்பலன், தோராயம்,
+  the Shatabhisha paragraph; **new 27 Oct:** the eka-nakshatra label and note (`_EKA_*` in
+  `app/calculations/porutham.py`) and the web porutham tool's "choose one" prompt. The reviewer's own notes on specific words (வருடப்பலன், தோராயம்,
   மறைக்கப்பட்டுள்ளது …) are in `OWNER_RULINGS_FSA_2026-10-21.md` §8.6.
   **2nd opinion on the bracketed names:** drop the Sanskritised Tamil spellings (க்ருத்திகா …); lead
   with the almanac name (கார்த்திகை, மிருகசீரிடம், ஆயில்யம்). Its fallback, a Roman-script bracket
@@ -400,12 +401,25 @@ The developer can do these. Several are blocked only on part 4.
   only on pull requests and on `main`, so nothing ran. Needs a new PR from
   `harden/production-readiness` to `main`. Locally: 304 calendar/festival tests and the web
   tests pass; mypy was not run (not in the test image; blocked on the host).
-- [ ] **Regenerate the `daily_guidance` and `life_areas` goldens** for the Mercury bindu fix (F-ASV-01)
-  if not already done. Flagged on 13 Oct; not re-checked today.
+- [x] **`daily_guidance` and `life_areas` goldens for the Mercury bindu fix (F-ASV-01). Checked 27 Oct:
+  nothing to regenerate.** `life_areas` was regenerated in `5f76db3d` (13 Oct). Both pass on today's
+  tree (121 golden tests). Measured by putting the pre-fix Mercury-from-Lagna row back: `life_areas`
+  then differs on 7 of 16 cases, `daily_guidance` on **0 of 16**. **Blind spot:** the
+  `daily_guidance` golden's 16 profile/date cases never reach a rasi whose Mercury bindu the fix
+  moved, so it cannot see this fix or a regression of it. Adding a case that does is a separate job.
 
 **Marriage and porutham**
-- [ ] **Eka-nakshatra as a separate assessment** (F-POR-03), shown beside Rajju, with **no exception
-  applied** until the table arrives (1C). Rajju itself must not be changed.
+- [x] **Eka-nakshatra as a separate assessment** (F-POR-03). **Built 27 Oct.** `eka_nakshatra_assessment`
+  in `porutham.py`; `ekaNakshatra` on every payload that carries `shashtashtaka` (public by-star and
+  by-chart, dashboard porutham, direct compare, compatibility intelligence, share snapshot), in the
+  PDF under the Rajju warning, and on all five web surfaces and mobile. `classification` is null and
+  `rajjuExceptionApplied` false; Rajju is unchanged and still fails. Padas are stated only when they
+  come from a computed Moon (`pada_known=True`). The by-star tools send a "which half" marker, so
+  there the padas read "not known". In non-marriage contexts the note is dropped with Rajju. Also
+  fixed: the share view model had no `shashtashtaka` field, so pydantic silently dropped it and no
+  shared link ever showed the 6/8 note. Gates in `tests/test_eka_nakshatra.py`; the share and
+  by-star-pada gates fail with their fixes removed (checked). **Blind spot:** the English and Tamil
+  copy is a draft (Part 2); the Rajju-invariant tests were not run against a mutated Rajju.
 - [~] **Gana in three grades** (F-POR-01): the six resolved cells can be built; three wait for 1C.
 - [ ] **Guru as husband significator in female-chart mode** (F-KAR-01), with male / female / neutral
   modes made explicit. Never swap Venus for Jupiter in a timing formula.
@@ -413,8 +427,12 @@ The developer can do these. Several are blocked only on part 4.
   land number unchanged.
 - [ ] **Sevvai reduction factors never computed:** strong Sukra, Chandra–Guru in kendra, Guru's aspect
   on the 7th *house*. Leaving them out only makes a chart read harsher, never lighter.
-- [ ] **Web porutham tool** does not *require* the "which half of the star" answer for the nine split
-  stars, so it may assume the wrong rasi. Mobile requires it but has no render test.
+- [x] **Web porutham tool requires the "which half of the star" answer. Done 27 Oct.** Grid and
+  pair are not fetched until a split star's half is chosen; the "If not selected, X is used by
+  default" line is gone; the Full Grid tab asks the girl's half too (it never asked). Render test
+  `PoruthamTool.test.tsx` fails on the ungated tool (checked). **Still open:** the grid's split
+  *boy* candidates are scored on their majority-half rasi (server default) until one is picked, and
+  mobile's gating still has no render test.
 
 **Calendar and panchangam**
 - [ ] **Per-purpose star verdict function** (FSA-02): one function for calendar badge, muhurta, PDF and
@@ -440,8 +458,11 @@ The developer can do these. Several are blocked only on part 4.
   Ekadashi is observed on any day is doctrine. Ask the astrologer.
 - [ ] **The other curated categories** (temple days, Agni Nakshatram … 24 of 53 Hindu rows) are 2026
   only and checked against nothing; they vanish on 1 Jan 2027 (FCA-07, unchanged by 4E).
-- [ ] **Mobile shows festival names in English in Tamil mode.** Move the Tamil map from
-  `web/lib/festival-names.ts` to `packages/shared` and use it on mobile.
+- [x] **Mobile festival names in Tamil mode.** Already done in `eed6e5ff` (22 Oct): the map lives in
+  `packages/shared`, and all three mobile festival lists call `tFestival`. Found 27 Oct while checking:
+  the Today hero printed `p.nakshatra.name · p.tithi.name` raw (English in Tamil mode). Fixed, and the
+  mobile display-boundary ratchet gains a rule for a panchangam element's `.name` as a JSX child
+  (fails on the old screen, checked).
 - [ ] **Show the computed-date flag** (after 4F).
 - [ ] **Krishna Jayanthi: show the midnight window as its own line** beside the printed civil date
   (2nd opinion on 1A-A). The printed date and the hour of worship are two answers. Today one rule

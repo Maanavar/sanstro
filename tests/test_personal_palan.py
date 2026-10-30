@@ -214,7 +214,7 @@ def test_guru_and_rahu_house_sets_agree_with_the_engine():
     assert set(pp._GURU_SUPPORT) == set(guru_favourable)
     assert set(pp._GURU_TESTING) <= {h for h in range(1, 13) if h not in guru_favourable}
     assert not set(pp._GURU_TESTING) & set(pp._GURU_SUPPORT)
-    assert set(pp._RAHU_SUPPORT) == set(NODE_AXIS_SUPPORTIVE)
+    assert set(pp._RAHU_SUPPORT) == set(NODE_AXIS_SUPPORTIVE) == set(GOCHARA_FAVOURABLE_FROM_MOON["RAHU"])
     assert set(pp._RAHU_TESTING) == set(NODE_AXIS_RESTRUCTURING)
 
 

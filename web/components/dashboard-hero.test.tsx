@@ -174,6 +174,55 @@ describe("DashboardHero brand mark", () => {
   });
 });
 
+/**
+ * Utility pages (Inbox, Glossary, Reports) carry the same identity line as
+ * the workspace tabs, plus a way back. They used to show only a bold title.
+ */
+describe("DashboardHero on a utility page", () => {
+  const summary = { moonRasi: 9, janmaNakshatra: 19, lagnaRasi: 1 } as never;
+
+  it("offers a way back to Today", () => {
+    const onTabChange = vi.fn();
+    renderHero(null, onTabChange, { utilityTitle: "Inbox" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Back to Today" }));
+    expect(onTabChange).toHaveBeenCalledWith("personal");
+  });
+
+  it("shows the reader's identity line, family and date like any tab", () => {
+    const onDateChange = vi.fn();
+    renderHero(null, noop, {
+      utilityTitle: "Inbox",
+      birthDisplayName: "Synthetic Reader",
+      chartSummary: summary,
+      birthTimeLocal: "06:30",
+      panchangamSunrise: "06:11",
+      panchangamPlace: "Synthetic Town",
+      selectedVault: { familyVaultId: "v-1", name: "Synthetic Family" } as never,
+      onDateChange,
+    });
+
+    expect(screen.getByText("Synthetic Reader")).toBeInTheDocument();
+    expect(screen.getByText(/Lagnam/)).toBeInTheDocument();
+    expect(screen.getByText(/sunrise/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Synthetic Family/ })).toBeInTheDocument();
+    // The old title chip is gone; the page's own heading names the page.
+    expect(screen.queryByText("Inbox")).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Select date", { selector: "input" }), {
+      target: { value: "2026-11-02" },
+    });
+    expect(onDateChange).toHaveBeenCalledWith("2026-11-02");
+  });
+
+  it("reads Tamil on the Tamil surface", () => {
+    renderHero(null, noop, { lang: "ta", utilityTitle: "அறிவிப்புப் பெட்டி" });
+    expect(screen.getByRole("button", { name: "இன்றைய பக்கத்துக்குத் திரும்பு" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Back to Today" })).not.toBeInTheDocument();
+    expect(screen.getByLabelText("தேதி தேர்வு", { selector: "input" })).toBeInTheDocument();
+  });
+});
+
 describe("DashboardHero navigation guidance", () => {
   it("gives each More destination a plain-language description", () => {
     renderHero("personal", noop);
@@ -368,6 +417,59 @@ describe("DashboardHero top-bar menu dismissal (DXA-41)", () => {
     fireEvent.click(document.querySelector(".cd-overlay--page") as HTMLElement);
 
     expect(screen.queryByText("No notifications yet.")).not.toBeInTheDocument();
+  });
+
+  // Each menu's click-away layer sits under the sticky top bar, so a click on
+  // another top-bar trigger never reached it: the bell opened beside an open
+  // More menu, and the avatar beside both. Blind spot: the account menu's open
+  // flag is the caller's state, so what is checked for it is that the hero
+  // asks for it to close, not that it visibly does.
+  it("keeps one top-bar menu open at a time", () => {
+    const onUserMenuClose = vi.fn();
+    const { rerender } = renderHero("personal", noop);
+    const more = screen.getByRole("button", { name: /more/i });
+    const bell = document.querySelector<HTMLButtonElement>('[aria-controls="cd-notif-panel"]')!;
+
+    fireEvent.click(more);
+    expect(more).toHaveAttribute("aria-expanded", "true");
+
+    fireEvent.click(bell);
+    expect(bell).toHaveAttribute("aria-expanded", "true");
+    expect(more).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("menu")).toBeNull();
+
+    fireEvent.click(more);
+    expect(bell).toHaveAttribute("aria-expanded", "false");
+
+    // Account menu open (caller-owned): opening More must ask it to close.
+    rerender(
+      <div className="cd-shell">
+        <DashboardHero
+          lang="en" activeTab="personal" birthDisplayName="Test User" status={null}
+          chartSummary={null} selectedVault={null} selectedVaultId="" selectedDate="2026-07-19"
+          userEmail="test@example.com" showUserMenu alertCount={0} alertItems={[]}
+          inboxItems={[]} inboxUnreadCount={0} onMarkAllRead={noop} onMarkOneRead={noop}
+          onTabChange={noop as never} onDateChange={noop} onLangToggle={noop}
+          onUserMenuToggle={noop} onUserMenuClose={onUserMenuClose}
+          onGoToSettings={noop} onSignOut={noop}
+        />
+      </div>,
+    );
+    fireEvent.click(more); // closes More
+    fireEvent.click(more); // reopens it, with the account menu open
+    expect(onUserMenuClose).toHaveBeenCalled();
+  });
+
+  it("closes More and the bell when the account menu opens", () => {
+    const onUserMenuToggle = vi.fn();
+    renderHero("personal", noop, { onUserMenuToggle });
+    const more = screen.getByRole("button", { name: /more/i });
+
+    fireEvent.click(more);
+    fireEvent.click(screen.getByRole("button", { name: /account/i }));
+
+    expect(onUserMenuToggle).toHaveBeenCalledTimes(1);
+    expect(more).toHaveAttribute("aria-expanded", "false");
   });
 
   // The theme control lives in the topbar so switching does not cost a trip to

@@ -1,6 +1,6 @@
 "use client";
 
-import type { ShashtashtakaNote } from "@vinaadi/shared";
+import type { EkaNakshatraNote, ShashtashtakaNote } from "@vinaadi/shared";
 import type { Lang } from "@/lib/i18n";
 
 /**
@@ -25,13 +25,17 @@ import type { Lang } from "@/lib/i18n";
  * The case it exists for: `present && directionalPass` — the couple is being
  * passed on Rasi while standing in a 6/8 relation. Measured over all 144 rasi
  * pairings, 24 are Shashtashtaka and 18 of those still pass.
+ *
+ * The ஏக நட்சத்திரம் note (F-POR-03) is the same kind of thing (a disclosure
+ * with a bilingual label and body, no score), so it renders through this card
+ * too, as `EkaNakshatraNoteCard`, placed beside the Rajju row.
  */
 export function ShashtashtakaNoteCard({
   note,
   lang,
   compact = false,
 }: {
-  note: ShashtashtakaNote | null | undefined;
+  note: ShashtashtakaNote | EkaNakshatraNote | null | undefined;
   lang: Lang;
   /** Inline one-liner for a dense list, rather than the boxed note. */
   compact?: boolean;
@@ -92,3 +96,6 @@ export function ShashtashtakaNoteCard({
     </div>
   );
 }
+
+/** F-POR-03. Same card; the name says which note a call site renders. */
+export const EkaNakshatraNoteCard = ShashtashtakaNoteCard;

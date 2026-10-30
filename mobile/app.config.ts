@@ -4,7 +4,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: "Vinaadi",
   slug: "vinaadi",
-  owner: "zasdigital",
+  owner: "zas-digital",
   version: "1.0.0",
   orientation: "portrait",
   icon: "./assets/icon.png",
@@ -62,7 +62,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   extra: {
     eas: {
       projectId:
-        process.env.EAS_PROJECT_ID ?? "dd9f9f60-baa4-4967-9937-14461766cb85",
+        process.env.EAS_PROJECT_ID ?? "e9bb2a36-6cae-4dc4-98b0-f64e2df0fe77",
     },
     apiBaseUrl:           process.env.API_BASE_URL           ?? "http://localhost:8000",
     sentryDsn:            process.env.SENTRY_DSN             ?? "",

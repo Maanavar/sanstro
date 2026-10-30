@@ -66,7 +66,7 @@ import {
 } from "./dashboard-calendar-shared";
 import type { CalendarView, DayTimelineBand } from "./dashboard-calendar-shared";
 import { MonthlyCalendarViewNova } from "./dashboard-calendar-monthly-nova";
-import { MonthlyCalendarLandscape, useCalendarSkyArt } from "./dashboard-calendar-monthly-panels";
+import { MonthlyCalendarLandscape, useCalendarSky } from "./dashboard-calendar-monthly-panels";
 import { NovaPlanMuhurtaPanel } from "./dashboard-plan-muhurta-nova";
 
 // "Best Dates & Muhurta" moved here from Goals (IA audit 2026-07-22, Phase 3):
@@ -890,6 +890,15 @@ export function DayDetailDrawerNova({
   // Both branch on the exact boolean the row is reporting, never on a blend.
   const marks: Array<{ tone: "high" | "low" | "soft"; label: string; note: string }> = [];
   if (data) {
+    // AAU-07: on a day whose star changes in daytime into another column, the
+    // verdict holds only on one side of the change, and the day view must say
+    // when. Star names go through tNakshatra; the time through the clock label.
+    const split = data.subhaMuhurtham.dayQuality?.split ?? null;
+    const splitNote = split
+      ? (lang === "ta"
+          ? ` ${tNakshatra(split.beforeStar, lang)} ${formatClockLabel(split.changeAt, lang)} வரை, பின் ${tNakshatra(split.afterStar, lang)} — ${split.before === "GOOD" ? "நல்ல பகுதி மாற்றத்திற்கு முன்." : split.after === "GOOD" ? "நல்ல பகுதி மாற்றத்திற்குப் பின்." : "மாற்றம் நாளின் தன்மையை மாற்றுகிறது."}`
+          : ` ${tNakshatra(split.beforeStar, lang)} until ${formatClockLabel(split.changeAt, lang)}, then ${tNakshatra(split.afterStar, lang)} — ${split.before === "GOOD" ? "the good part is before the change." : split.after === "GOOD" ? "the good part is after the change." : "the change moves the day's character."}`)
+      : "";
     if (data.subhaMuhurtham.isSubha) {
       marks.push({
         tone: "high",
@@ -899,17 +908,17 @@ export function DayDetailDrawerNova({
         // reader it was a wedding date. The authoritative wedding list is
         // the almanac's muhurtham-naal, surfaced separately.
         label: lang === "ta" ? "நல்ல நாள்" : "Good day",
-        note: lang === "ta"
+        note: (lang === "ta"
           ? "வழக்கமான புதிய தொடக்கங்களுக்கு உகந்த நாள். திருமண முகூர்த்தம் அல்ல — அதற்கு முகூர்த்த நாள் பட்டியலைப் பார்க்கவும்."
-          : "A good day for routine new starts. Not a wedding muhurtham — see the muhurtham-naal list for those.",
+          : "A good day for routine new starts. Not a wedding muhurtham — see the muhurtham-naal list for those.") + splitNote,
       });
     } else {
       marks.push({
         tone: "soft",
         label: lang === "ta" ? "வழக்கமான நாள்" : "An ordinary day",
-        note: lang === "ta"
+        note: (lang === "ta"
           ? "வழக்கமான நாள் — கீழுள்ள நல்ல நேரங்களைப் பயன்படுத்துங்கள்."
-          : "An ordinary day — plan around the windows below.",
+          : "An ordinary day — plan around the windows below.") + splitNote,
       });
     }
     if (data.isKarinaal) {
@@ -951,6 +960,14 @@ export function DayDetailDrawerNova({
       >
         {tamilDate || "\u00a0"}
       </span>
+      {/* AAU-16: the year, ayanam and ruthu a Tamil calendar sheet carries. */}
+      {data?.tamilYear && (
+        <span>
+          {lang === "ta"
+            ? `${data.tamilYear.year.ta} \u0bb5\u0bb0\u0bc1\u0b9f\u0bae\u0bcd \u00b7 ${data.tamilYear.ayanam.ta} \u00b7 ${data.tamilYear.ruthu.ta} \u0bb0\u0bc1\u0ba4\u0bc1`
+            : `${data.tamilYear.year.en} year \u00b7 ${data.tamilYear.ayanam.en} \u00b7 ${data.tamilYear.ruthu.en} season`}
+        </span>
+      )}
       {hijriLabel && <span>{hijriLabel}</span>}
       {isToday && <Chip tone="accent">{lang === "ta" ? "இன்று" : "Today"}</Chip>}
     </>
@@ -1153,7 +1170,7 @@ export function DashboardCalendarTabNova({
   const [view, setView] = useState<CalendarViewExt>(
     focusView && (CALENDAR_VIEWS as string[]).includes(focusView) ? (focusView as CalendarViewExt) : "panchangam",
   );
-  const skyArt = useCalendarSkyArt();
+  const { art: skyArt, phase: skyPhase } = useCalendarSky();
   useEffect(() => {
     if (focusView && (CALENDAR_VIEWS as string[]).includes(focusView)) {
       setView(focusView as CalendarViewExt);
@@ -1517,7 +1534,7 @@ export function DashboardCalendarTabNova({
             { key: "muhurta", label: lang === "ta" ? "சிறந்த நாள் & முஹூர்த்தம்" : "Best Dates & Muhurta" },
           ]}
         />
-        {view === "monthly" && <MonthlyCalendarLandscape art={skyArt} priority />}
+        {view === "monthly" && <MonthlyCalendarLandscape art={skyArt} phase={skyPhase} scene="sky" priority />}
         </div>
       </div>
 
