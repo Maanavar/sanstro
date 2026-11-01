@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Any
+from typing import Annotated, Any, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
@@ -39,7 +39,7 @@ from app.models.payment import Order, PaymentMismatch
 from app.models.prediction_log import PredictionLog
 from app.reasoning.calibration import GradedPrediction, build_calibration_report
 from app.services import admin_mfa_service, admin_roles_service
-from app.services.audit_service import log_admin_action
+from app.services.audit_service import AuditEntry, audited
 from app.services.feature_flags import (
     DoctrineFlagNotPersistable,
     FlagValueError,
@@ -82,6 +82,7 @@ def _client_ip(request: Request) -> str:
     summary="Re-authenticate with the second factor to authorise destructive operations",
 )
 def elevate_admin(
+    audit: Annotated[AuditEntry, audited("admin_elevation")],
     payload: ElevationRequest,
     request: Request,
     session: Session = Depends(get_db),
@@ -107,26 +108,18 @@ def elevate_admin(
     _throttler.enforce(AuthThrottleAction.ADMIN_ELEVATION, ip=client_ip, account_identifier=str(admin_user.user_id))
     method = admin_mfa_service.verify_second_factor(session, admin_user, payload.code)
     if method is None:
-        # Logged as an admin action, not just an auth warning: a failed elevation
+        # Audited as a refusal, not just an auth warning: a failed elevation
         # is somebody holding a valid admin session without the second factor,
         # which is the exact shape of a session compromise.
-        log_admin_action(
-            action="admin_elevation_denied",
-            actor_user_id=admin_user.user_id,
-            ip_address=client_ip,
-        )
+        audit.action = "admin_elevation_denied"
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="That code did not match. Use the newest code from your authenticator app.",
         )
 
     token, expires_at = create_admin_elevation_token(admin_user)
-    log_admin_action(
-        action="admin_elevation_granted",
-        actor_user_id=admin_user.user_id,
-        ip_address=client_ip,
-        payload_summary=f"method={method} expires_at={expires_at.isoformat()}",
-    )
+    audit.action = "admin_elevation_granted"
+    audit.details = {"method": method, "expires_at": expires_at.isoformat()}
     return ElevationGrant(
         token=token,
         expires_at=expires_at.isoformat(),
@@ -178,48 +171,46 @@ def admin_me(
 
 @router.post("/mfa/enroll", response_model=MfaEnrolment, summary="Start two-step sign-in set-up")
 def mfa_enroll(
-    request: Request,
+    audit: Annotated[AuditEntry, audited("mfa_enrolment_started", target_type="user", before_mfa=True)],
     session: Session = Depends(get_db),
     admin_user: User = Depends(get_admin_user_without_mfa),
 ) -> MfaEnrolment:
+    audit.target_id = str(admin_user.user_id)
     try:
         secret, uri = admin_mfa_service.start_enrolment(session, admin_user)
     except admin_mfa_service.MfaError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
-    log_admin_action("mfa_enrolment_started", target_type="user", target_id=str(admin_user.user_id),
-                     ip_address=_client_ip(request), actor_user_id=admin_user.user_id)
     return MfaEnrolment(secret=secret, otpauth_uri=uri)
 
 
 @router.post("/mfa/confirm", response_model=RecoveryCodes, summary="Finish set-up with a first code")
 def mfa_confirm(
+    audit: Annotated[AuditEntry, audited("mfa_enrolled", target_type="user", before_mfa=True)],
     payload: MfaCodeRequest,
     request: Request,
     session: Session = Depends(get_db),
     admin_user: User = Depends(get_admin_user_without_mfa),
 ) -> RecoveryCodes:
+    audit.target_id = str(admin_user.user_id)
     _throttler.enforce(AuthThrottleAction.ADMIN_MFA, ip=_client_ip(request), account_identifier=str(admin_user.user_id))
     try:
         codes = admin_mfa_service.confirm_enrolment(session, admin_user, payload.code)
     except admin_mfa_service.MfaError as exc:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)) from exc
-    log_admin_action("mfa_enrolled", target_type="user", target_id=str(admin_user.user_id),
-                     ip_address=_client_ip(request), actor_user_id=admin_user.user_id)
     return RecoveryCodes(recovery_codes=codes)
 
 
 @router.post("/mfa/recovery-codes", response_model=RecoveryCodes, summary="Replace all recovery codes")
 def mfa_regenerate_recovery_codes(
-    request: Request,
+    audit: Annotated[AuditEntry, audited("mfa_recovery_codes_regenerated", target_type="user")],
     session: Session = Depends(get_db),
     admin_user: User = Depends(get_elevated_admin_user),
 ) -> RecoveryCodes:
+    audit.target_id = str(admin_user.user_id)
     try:
         codes = admin_mfa_service.regenerate_recovery_codes(session, admin_user)
     except admin_mfa_service.MfaError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
-    log_admin_action("mfa_recovery_codes_regenerated", target_type="user", target_id=str(admin_user.user_id),
-                     ip_address=_client_ip(request), actor_user_id=admin_user.user_id)
     return RecoveryCodes(recovery_codes=codes)
 
 
@@ -236,13 +227,6 @@ class AdminRoleEntry(BaseModel):
 class RoleChangeRequest(BaseModel):
     role: str
     reason: str
-
-
-def _require_reason(reason: str | None) -> str:
-    cleaned = (reason or "").strip()
-    if len(cleaned) < 3:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="A reason is required.")
-    return cleaned
 
 
 @router.get(
@@ -274,13 +258,14 @@ def list_admin_roles(
     dependencies=[Depends(require_permission("roles.grant"))],
 )
 def set_admin_role(
+    audit: Annotated[AuditEntry, audited("grant_role", target_type="user", reason_required=True)],
     user_id: UUID,
     body: RoleChangeRequest,
-    request: Request,
     session: Session = Depends(get_db),
     admin_user: User = Depends(get_elevated_admin_user),
 ) -> AdminRoleEntry:
-    reason = _require_reason(body.reason)
+    audit.target_id = str(user_id)
+    audit.require_reason(body.reason)
     target = session.get(User, user_id)
     if target is None:
         raise HTTPException(status_code=404, detail="User not found.")
@@ -288,14 +273,7 @@ def set_admin_role(
         previous = admin_roles_service.grant_role(session, target=target, role=body.role)
     except admin_roles_service.RoleChangeError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
-    log_admin_action(
-        "grant_role",
-        target_type="user",
-        target_id=str(user_id),
-        payload_summary=f"old={previous!r} new={body.role!r} reason={reason!r}",
-        ip_address=_client_ip(request),
-        actor_user_id=admin_user.user_id,
-    )
+    audit.details = {"old_role": previous, "new_role": body.role}
     return AdminRoleEntry(
         user_id=str(target.user_id), email=target.email, role=body.role,
         mfa_enrolled=admin_mfa_service.is_enrolled(session, target),
@@ -308,13 +286,14 @@ def set_admin_role(
     dependencies=[Depends(require_permission("roles.grant"))],
 )
 def revoke_admin_role(
+    audit: Annotated[AuditEntry, audited("revoke_role", target_type="user", reason_required=True)],
     user_id: UUID,
-    request: Request,
     reason: str = "",
     session: Session = Depends(get_db),
     admin_user: User = Depends(get_elevated_admin_user),
 ) -> dict[str, Any]:
-    cleaned = _require_reason(reason)
+    audit.target_id = str(user_id)
+    audit.require_reason(reason)
     target = session.get(User, user_id)
     if target is None:
         raise HTTPException(status_code=404, detail="User not found.")
@@ -325,14 +304,7 @@ def revoke_admin_role(
     # Removing a role ends their admin sessions now, not when the token expires.
     if previous is not None:
         target.token_version = int(target.token_version or 0) + 1
-    log_admin_action(
-        "revoke_role",
-        target_type="user",
-        target_id=str(user_id),
-        payload_summary=f"old={previous!r} reason={cleaned!r}",
-        ip_address=_client_ip(request),
-        actor_user_id=admin_user.user_id,
-    )
+    audit.details = {"old_role": previous}
     return {"user_id": str(user_id), "previous_role": previous}
 
 
@@ -342,13 +314,14 @@ def revoke_admin_role(
     dependencies=[Depends(require_permission("roles.grant"))],
 )
 def reset_admin_mfa(
+    audit: Annotated[AuditEntry, audited("reset_admin_mfa", target_type="user", reason_required=True)],
     user_id: UUID,
-    request: Request,
     reason: str = "",
     session: Session = Depends(get_db),
     admin_user: User = Depends(get_elevated_admin_user),
 ) -> dict[str, Any]:
-    cleaned = _require_reason(reason)
+    audit.target_id = str(user_id)
+    audit.require_reason(reason)
     if user_id == admin_user.user_id:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -359,14 +332,7 @@ def reset_admin_mfa(
         raise HTTPException(status_code=404, detail="User not found.")
     removed = admin_mfa_service.reset_for(session, target)
     target.token_version = int(target.token_version or 0) + 1
-    log_admin_action(
-        "reset_admin_mfa",
-        target_type="user",
-        target_id=str(user_id),
-        payload_summary=f"removed={removed} reason={cleaned!r}",
-        ip_address=_client_ip(request),
-        actor_user_id=admin_user.user_id,
-    )
+    audit.details = {"removed": removed}
     return {"user_id": str(user_id), "reset": removed}
 
 
@@ -440,10 +406,19 @@ class JobRunResult(BaseModel):
 class AuditLogEntry(BaseModel):
     id: str
     action: str
+    actor_user_id: str | None
+    actor_email: str | None
+    actor_role: str | None
     target_type: str | None
     target_id: str | None
+    reason: str | None
+    #: success | refused | error
+    outcome: str
+    details: dict[str, Any] | None
+    #: Free text on rows written before `details` existed.
     payload_summary: str | None
     ip_address: str | None
+    user_agent: str | None
     created_at: str
 
 
@@ -532,10 +507,14 @@ def _count(model: object, session: Session) -> int:
     summary="Delete all data for a user (GDPR erasure)",
 )
 def delete_user_data(
+    audit: Annotated[AuditEntry, audited("delete_user_data", target_type="user", reason_required=True)],
     owner_user_id: UUID,
+    reason: str = "",
     session: Session = Depends(get_db),
-    admin_user: User = Depends(get_elevated_admin_user),
+    _: User = Depends(get_elevated_admin_user),
 ) -> DataDeletionResult:
+    audit.target_id = str(owner_user_id)
+    audit.require_reason(reason)
     _assert_admin_delete_enabled()
 
     user = session.get(User, owner_user_id)
@@ -601,13 +580,16 @@ def delete_user_data(
         session.delete(profile)
 
     session.commit()
-    log_admin_action(
-        "delete_user_data",
-        target_type="user",
-        target_id=str(owner_user_id),
-        payload_summary=f"profiles={len(profiles)},charts={charts_deleted}",
-        actor_user_id=admin_user.user_id,
-    )
+    # Per-table counts (spec L4): what an erasure review checks first.
+    audit.details = {
+        "deleted": {
+            "birth_profiles": len(profiles),
+            "charts": charts_deleted,
+            "family_vaults": len(vaults),
+            "family_members": len(members),
+            "family_daily_scores": fds_deleted,
+        }
+    }
     return DataDeletionResult(
         owner_user_id=str(owner_user_id),
         deleted_at=datetime.now(UTC).isoformat(),
@@ -633,13 +615,16 @@ def get_admin_stats(session: Session = Depends(get_db), _: User = Depends(get_ad
 
 @router.get("/users", response_model=UserListResponse, summary="List all users (paginated)", dependencies=[Depends(require_permission("users.search"))])
 def list_users(
+    audit: Annotated[AuditEntry, audited("list_users", target_type="user")],
     page: int = 1,
     page_size: int = 50,
     search: str | None = None,
     suspended_only: bool = False,
     session: Session = Depends(get_db),
-    admin_user: User = Depends(get_admin_user),
+    _: User = Depends(get_admin_user),
 ) -> UserListResponse:
+    """A read of people's email addresses, so it is audited (spec L4). The search
+    text is not stored: it is itself usually an email address."""
     page = max(1, page)
     page_size = max(1, min(page_size, 100))
 
@@ -691,15 +676,23 @@ def list_users(
             )
         )
 
+    audit.details = {
+        "searched": bool(search),
+        "suspended_only": suspended_only,
+        "page": page,
+        "returned": len(items),
+    }
     return UserListResponse(total=total, items=items, page=page, page_size=page_size)
 
 
 @router.get("/users/{user_id}", response_model=UserDetail, summary="Get full detail for one user", dependencies=[Depends(require_permission("users.read_masked"))])
 def get_user_detail(
+    audit: Annotated[AuditEntry, audited("view_user", target_type="user")],
     user_id: UUID,
     session: Session = Depends(get_db),
     _: User = Depends(get_admin_user),
 ) -> UserDetail:
+    audit.target_id = str(user_id)
     user = session.get(User, user_id)
     if user is None:
         raise HTTPException(status_code=404, detail="User not found.")
@@ -753,11 +746,18 @@ def get_user_detail(
 
 @router.patch("/users/{user_id}/suspend", summary="Suspend or unsuspend a user account", dependencies=[Depends(require_permission("users.suspend"))])
 def suspend_user(
+    audit: Annotated[AuditEntry, audited("suspend_user", target_type="user", reason_required=True)],
     user_id: UUID,
     body: SuspendRequest,
     session: Session = Depends(get_db),
     admin_user: User = Depends(get_elevated_admin_user),
 ) -> dict[str, Any]:
+    """Both directions need a reason (ARC-21): a reinstatement undoes a decision,
+    and the review asks why just as often as for the suspension."""
+    audit.target_id = str(user_id)
+    if not body.suspend:
+        audit.action = "reinstate_user"
+    reason = audit.require_reason(body.reason)
     user = session.get(User, user_id)
     if user is None:
         raise HTTPException(status_code=404, detail="User not found.")
@@ -769,18 +769,11 @@ def suspend_user(
         if admin_role_of(user) == "owner":
             raise HTTPException(status_code=409, detail="Remove the owner role before suspending this account.")
     user.is_suspended = body.suspend
-    user.suspension_reason = body.reason if body.suspend else None
+    user.suspension_reason = reason if body.suspend else None
     if body.suspend:
         # Suspension ends every live session now, not when its token expires.
         user.token_version = int(user.token_version or 0) + 1
     session.commit()
-    log_admin_action(
-        "suspend_user" if body.suspend else "reinstate_user",
-        target_type="user",
-        target_id=str(user_id),
-        payload_summary=body.reason,
-        actor_user_id=admin_user.user_id,
-    )
     return {
         "user_id": str(user_id),
         "is_suspended": user.is_suspended,
@@ -795,11 +788,14 @@ def list_jobs(_: User = Depends(get_admin_user)) -> list[JobInfo]:
 
 @router.post("/jobs/{job_id}/trigger", response_model=JobRunResult, summary="Manually trigger a background job", dependencies=[Depends(require_permission("jobs.trigger"))])
 def trigger_job(
+    audit: Annotated[AuditEntry, audited("trigger_job", target_type="job")],
     job_id: str,
     request: Request,
+    reason: str = "",
     admin_user: User = Depends(get_admin_user),
     x_admin_key: str | None = Header(default=None),
 ) -> JobRunResult:
+    audit.target_id = job_id
     job = get_job(job_id)
     if job is None:
         raise HTTPException(status_code=404, detail=f"Job '{job_id}' not registered.")
@@ -809,9 +805,14 @@ def trigger_job(
     # dependency because which job this is only exists as a path parameter — but
     # it calls the real dependency function, so the X-Admin-Key browser refusal,
     # the token binding and the audit trail all still apply. Reimplementing the
-    # check would be how the two drift apart.
+    # check would be how the two drift apart. A destructive job needs a reason
+    # too (spec L4), for the same path-parameter reason checked here, not
+    # declared on the route.
     if job.get("destructive"):
         get_elevated_admin_user(request, admin_user, x_admin_key)
+        audit.require_reason(reason)
+    else:
+        audit.note_reason(reason)
 
     started = datetime.now(UTC)
     summary: str | None = None
@@ -822,13 +823,7 @@ def trigger_job(
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=500, detail=f"Job failed: {exc}") from exc
 
-    log_admin_action(
-        "trigger_job",
-        target_type="job",
-        target_id=job_id,
-        payload_summary=summary,
-        actor_user_id=admin_user.user_id,
-    )
+    audit.details = {"destructive": bool(job.get("destructive")), "result": summary}
     return JobRunResult(
         job_id=job_id,
         started_at=started.isoformat(),
@@ -841,17 +836,43 @@ def trigger_job(
 def get_audit_log(
     page: int = 1,
     page_size: int = 100,
+    action: str | None = None,
+    actor: str | None = None,
+    target_type: str | None = None,
+    target_id: str | None = None,
+    outcome: Literal["success", "refused", "error"] | None = None,
+    since: datetime | None = None,
+    until: datetime | None = None,
     session: Session = Depends(get_db),
     _: User = Depends(get_admin_user),
 ) -> AuditLogResponse:
+    """Newest first. `actor` matches an admin's user id exactly, or part of their
+    email; the other filters are exact; `since`/`until` bound `created_at`."""
     from app.models.admin_audit_log import AdminAuditLog
 
     page = max(1, page)
     page_size = max(1, min(page_size, 200))
-    total = int(session.execute(select(func.count()).select_from(AdminAuditLog)).scalar_one())
+    query = select(AdminAuditLog)
+    if action:
+        query = query.where(AdminAuditLog.action == action)
+    if actor:
+        try:
+            query = query.where(AdminAuditLog.actor_user_id == UUID(actor))
+        except ValueError:
+            query = query.where(AdminAuditLog.actor_email.ilike(f"%{actor}%"))
+    if target_type:
+        query = query.where(AdminAuditLog.target_type == target_type)
+    if target_id:
+        query = query.where(AdminAuditLog.target_id == target_id)
+    if outcome:
+        query = query.where(AdminAuditLog.outcome == outcome)
+    if since:
+        query = query.where(AdminAuditLog.created_at >= since)
+    if until:
+        query = query.where(AdminAuditLog.created_at < until)
+    total = int(session.execute(select(func.count()).select_from(query.subquery())).scalar_one())
     rows = session.execute(
-        select(AdminAuditLog)
-        .order_by(AdminAuditLog.created_at.desc())
+        query.order_by(AdminAuditLog.created_at.desc())
         .offset((page - 1) * page_size)
         .limit(page_size)
     ).scalars().all()
@@ -861,10 +882,17 @@ def get_audit_log(
             AuditLogEntry(
                 id=str(row.id),
                 action=row.action,
+                actor_user_id=str(row.actor_user_id) if row.actor_user_id else None,
+                actor_email=row.actor_email,
+                actor_role=row.actor_role,
                 target_type=row.target_type,
                 target_id=row.target_id,
+                reason=row.reason,
+                outcome=row.outcome,
+                details=row.details,
                 payload_summary=row.payload_summary,
                 ip_address=row.ip_address,
+                user_agent=row.user_agent,
                 created_at=row.created_at.isoformat(),
             )
             for row in rows
@@ -879,8 +907,8 @@ def get_audit_log(
     summary="Disabled until consent-aware broadcast ships (admin spec L8, D-17)",
 )
 def broadcast_notification(
-    request: Request,
-    admin_user: User = Depends(get_elevated_admin_user),
+    audit: Annotated[AuditEntry, audited("broadcast_notification_refused", target_type="segment")],
+    _: User = Depends(get_elevated_admin_user),
 ) -> None:
     """Gone until L+30.
 
@@ -891,13 +919,7 @@ def broadcast_notification(
     segment, preview, test-to-self, schedule, typed-count confirm — is rebuilt
     on the outbox at L+30. The attempt is still audited.
     """
-    log_admin_action(
-        "broadcast_notification_refused",
-        target_type="segment",
-        payload_summary="broadcast disabled until consent-aware outbox version (L+30)",
-        ip_address=_client_ip(request),
-        actor_user_id=admin_user.user_id,
-    )
+    audit.details = {"why": "broadcast disabled until the consent-aware outbox version (L+30)"}
     raise HTTPException(
         status_code=status.HTTP_410_GONE,
         detail=(
@@ -921,9 +943,9 @@ _DOCTRINE_MULTI_WORKER_DETAIL = (
 
 @router.patch("/flags/{flag_name}", response_model=FlagEntry, summary="Set a feature flag value", dependencies=[Depends(require_permission("flags.write"))])
 def set_flag_value(
+    audit: Annotated[AuditEntry, audited("set_flag", target_type="flag", reason_required=True)],
     flag_name: str,
     body: FlagUpdate,
-    request: Request,
     admin_user: User = Depends(get_elevated_admin_user),
 ) -> FlagEntry:
     """Non-doctrine flags are stored for every worker, with history (ADM-09).
@@ -932,6 +954,8 @@ def set_flag_value(
     trial on a single-worker deployment. They are never persisted — a stored
     doctrine override would be a ruling made outside §16–§18.
     """
+    audit.target_id = flag_name
+    reason = audit.require_reason(body.reason)
     if flag_name.startswith("doctrine_"):
         if not doctrine_runtime_override_allowed():
             raise HTTPException(status_code=409, detail=_DOCTRINE_MULTI_WORKER_DETAIL)
@@ -941,59 +965,45 @@ def set_flag_value(
             raise HTTPException(status_code=404, detail=str(exc)) from exc
         except FlagValueError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
-        summary = f"value={body.value!r} scope=process reason={body.reason.strip()!r}"
+        audit.details = {"new_value": body.value, "scope": "process"}
     else:
         try:
-            change = persist_flag(flag_name, body.value, reason=body.reason, actor_user_id=admin_user.user_id)
+            change = persist_flag(flag_name, body.value, reason=reason, actor_user_id=admin_user.user_id)
         except UnknownFlagError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
         except (FlagValueError, DoctrineFlagNotPersistable) as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
         # A process override would shadow the stored value on this worker only.
         reset_flag(flag_name)
-        summary = (
-            f"old={change['old_value']!r} new={change['new_value']!r} "
-            f"change={change['change_id']} reason={body.reason.strip()!r}"
-        )
-    log_admin_action(
-        "set_flag",
-        target_type="flag",
-        target_id=flag_name,
-        payload_summary=summary,
-        ip_address=_client_ip(request),
-        actor_user_id=admin_user.user_id,
-    )
+        audit.details = {
+            "old_value": change["old_value"],
+            "new_value": change["new_value"],
+            "change_id": change["change_id"],
+            "scope": "persisted",
+        }
     return FlagEntry(**all_flags()[flag_name])
 
 
 @router.delete("/flags/{flag_name}/reset", summary="Reset a feature flag to its default value", dependencies=[Depends(require_permission("flags.write"))])
 def reset_flag_value(
+    audit: Annotated[AuditEntry, audited("reset_flag", target_type="flag", reason_required=True)],
     flag_name: str,
-    request: Request,
     reason: str = "",
     admin_user: User = Depends(get_elevated_admin_user),
 ) -> dict[str, Any]:
+    audit.target_id = flag_name
+    cleaned = audit.require_reason(reason)
     if flag_name not in all_flags():
         raise HTTPException(status_code=404, detail=f"Unknown flag: {flag_name}")
     reset_flag(flag_name)
     change = None
     if not flag_name.startswith("doctrine_"):
         try:
-            change = clear_persisted_flag(flag_name, reason=reason, actor_user_id=admin_user.user_id)
+            change = clear_persisted_flag(flag_name, reason=cleaned, actor_user_id=admin_user.user_id)
         except FlagValueError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
-    log_admin_action(
-        "reset_flag",
-        target_type="flag",
-        target_id=flag_name,
-        payload_summary=(
-            f"old={change['old_value']!r} change={change['change_id']} reason={reason.strip()!r}"
-            if change
-            else f"reason={reason.strip()!r}"
-        ),
-        ip_address=_client_ip(request),
-        actor_user_id=admin_user.user_id,
-    )
+    if change:
+        audit.details = {"old_value": change["old_value"], "change_id": change["change_id"]}
     return {"flag_name": flag_name, "reset": True, "current_value": all_flags()[flag_name]["value"]}
 
 
@@ -1013,25 +1023,21 @@ def list_flag_history(
     summary="Undo one recorded setting change",
 )
 def rollback_flag_change(
+    audit: Annotated[AuditEntry, audited("rollback_flag", target_type="flag", reason_required=True)],
     change_id: UUID,
     body: FlagRollback,
-    request: Request,
     admin_user: User = Depends(get_elevated_admin_user),
 ) -> FlagEntry:
+    reason = audit.require_reason(body.reason)
+    audit.details = {"rolled_back": str(change_id)}
     try:
-        change = rollback_change(change_id, reason=body.reason, actor_user_id=admin_user.user_id)
+        change = rollback_change(change_id, reason=reason, actor_user_id=admin_user.user_id)
     except UnknownFlagError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except (FlagValueError, DoctrineFlagNotPersistable) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    log_admin_action(
-        "rollback_flag",
-        target_type="flag",
-        target_id=change["name"],
-        payload_summary=f"rolled_back={change_id} new_change={change['change_id']} reason={body.reason.strip()!r}",
-        ip_address=_client_ip(request),
-        actor_user_id=admin_user.user_id,
-    )
+    audit.target_id = change["name"]
+    audit.details["new_change"] = change["change_id"]
     return FlagEntry(**all_flags()[change["name"]])
 
 

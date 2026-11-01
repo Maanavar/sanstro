@@ -733,6 +733,9 @@ const STRINGS = {
   qa_regressions:      { ta: "சேமிக்கப்பட்ட regression தோல்விகள்", en: "Stored regression failures" },
   qa_clear_all:        { ta: "அனைத்தும் அழி",        en: "Clear all" },
   qa_no_regressions:   { ta: "சேமிக்கப்பட்ட தோல்விகள் இல்லை.", en: "No stored failures." },
+  qa_clear_reason:     { ta: "காரணம் (கட்டாயம், பதிவு செய்யப்படும்)", en: "Reason (required, audited)" },
+  qa_clear_code:       { ta: "அங்கீகரிப்பு செயலி குறியீடு", en: "Authenticator code" },
+  qa_clear_needs:      { ta: "அழிக்க, காரணமும் குறியீடும் உள்ளிடவும்.", en: "Enter a reason and your authenticator code to clear." },
 
   // ── FEATURE-10: Nakshatra personality card
   nakshatra_card_label:    { ta: "நட்சத்திர சுபாவம்", en: "Birth Star Profile" },

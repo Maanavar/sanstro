@@ -71,6 +71,7 @@
     "./api/adminAnalytics": "./src/api/adminAnalytics.ts",
     "./api/adminAccess": "./src/api/adminAccess.ts",
     "./api/adminSettings": "./src/api/adminSettings.ts",
+    "./api/adminAudit": "./src/api/adminAudit.ts",
     "./api/payments": "./src/api/payments.ts",
     "./data/legal": "./src/data/legal.ts"
   },

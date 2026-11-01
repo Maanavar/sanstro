@@ -123,7 +123,7 @@ correctly, and every rupee is traceable.
 - `payments`: `id`, `order_id` or `subscription_id`, `provider_payment_id` (unique), `method` (upi | card | netbanking | wallet | other), `amount_paise`, `fee_paise`, `tax_on_fee_paise`, `status`, timestamps.
 - `subscriptions` (extend): `provider` (`razorpay` | `revenuecat`), `provider_subscription_id` (unique), `sku`, `status` (`created` | `authenticated` | `active` | `pending` | `halted` | `cancelled` | `completed` | `expired`), `current_period_start`, `current_period_end`, `cancel_at_period_end`.
 - `entitlements`: `id`, `user_id`, `key` (e.g. `premium`, `porutham_report`), `source` (`trial` | `subscription` | `purchase` | `grant`), `source_id`, `starts_at`, `ends_at` (nullable), `revoked_at`, `revoked_reason`, `granted_by` (admin user for grants). Effective access = union of unrevoked rows active now.
-- `payment_events`: `provider`, `event_id` (unique — Razorpay `X-Razorpay-Event-Id`), `event_type`, `raw_body`, `signature_valid`, `received_at`, `processed_at`, `outcome`, `error`.
+- `payment_events` (built as the existing `webhook_events` inbox): `provider`, `event_id` (unique — Razorpay `X-Razorpay-Event-Id`), `event_type`, `minimal_payload` (ids, states and amounts only — never `raw_body`, which carries payer email, phone and VPA; ARC-15, plan §8), `signature_valid`, `received_at`, `processed_at`, `outcome`, `error`.
 - `refunds`: `provider_refund_id` (unique), `payment_id`, `amount_paise`, `status`, timestamps.
 
 **Flows.**

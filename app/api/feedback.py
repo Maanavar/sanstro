@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 from datetime import UTC, datetime
-from typing import Literal
+from typing import Annotated, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -21,7 +21,7 @@ from app.core.permissions import require_permission
 from app.db.session import get_db
 from app.models.feedback import Feedback
 from app.models.user import User
-from app.services.audit_service import log_admin_action
+from app.services.audit_service import AuditEntry, audited
 
 logger = logging.getLogger("jothidam.feedback")
 
@@ -145,14 +145,18 @@ def list_feedback(
     dependencies=[Depends(require_permission("feedback.review"))],
 )
 def set_reward_qualified(
+    audit: Annotated[AuditEntry, audited("set_feedback_reward", target_type="feedback")],
     feedback_id: UUID,
     payload: RewardToggle,
-    admin_user: User = Depends(get_admin_user),
+    _: User = Depends(get_admin_user),
     db: Session = Depends(get_db),
 ) -> FeedbackItem:
     """Discretionary, admin-only toggle for the 'helpful reviewers may earn
     extended free access' perk. No automated promise is made to users — this is
-    purely an internal flag for hand-picking qualifying reviewers."""
+    purely an internal flag for hand-picking qualifying reviewers.
+
+    Audited (spec L4); it used to leave no trace."""
+    audit.target_id = str(feedback_id)
     row = db.get(Feedback, feedback_id)
     if row is None or row.deleted_at is not None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Feedback not found.")
@@ -160,12 +164,5 @@ def set_reward_qualified(
     row.reward_qualified = payload.reward_qualified
     db.commit()
     db.refresh(row)
-    # Spec L4: every admin mutation is audited. This one used to leave no trace.
-    log_admin_action(
-        "set_feedback_reward",
-        target_type="feedback",
-        target_id=str(feedback_id),
-        payload_summary=f"old={previous} new={payload.reward_qualified}",
-        actor_user_id=admin_user.user_id,
-    )
+    audit.details = {"old": previous, "new": payload.reward_qualified}
     return _to_item(row)

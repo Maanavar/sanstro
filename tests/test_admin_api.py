@@ -70,6 +70,7 @@ def test_admin_delete_is_disabled_by_default(raw_client, monkeypatch):
     response = raw_client.delete(
         f"/api/v1/admin/users/{admin_user_id}/data",
         headers=_admin_headers(admin_user_id, "test-admin-key"),
+        params={"reason": "synthetic erasure request"},
     )
 
     assert response.status_code == 403
@@ -85,6 +86,7 @@ def test_admin_delete_requires_explicit_enable_flag(raw_client, monkeypatch):
     response = raw_client.delete(
         f"/api/v1/admin/users/{admin_user_id}/data",
         headers=_admin_headers(admin_user_id, "test-admin-key"),
+        params={"reason": "synthetic erasure request"},
     )
 
     assert response.status_code == 200
@@ -211,7 +213,9 @@ def test_suspend_user_records_audit_log(raw_client):
     first_entry = audit_response.json()["items"][0]
     assert first_entry["action"] == "suspend_user"
     assert first_entry["target_id"] == target_user_id
-    assert first_entry["payload_summary"] == "spam"
+    assert first_entry["reason"] == "spam"
+    # The X-Admin-Key path names no person: its role says so instead of "owner".
+    assert first_entry["actor_role"] == "service_key"
 
 
 def test_analytics_endpoints_return_expected_shapes(raw_client):
@@ -460,29 +464,41 @@ def test_doctrine_flag_values_are_validated_when_set(raw_client, monkeypatch):
     monkeypatch.delenv("WEB_CONCURRENCY", raising=False)
     admin_user_id = _create_user("admin@example.com")
     headers = _admin_headers(admin_user_id, "test-admin-key")
+    # Every call carries a reason (spec L4 made it required), so each 422 below
+    # is the value check, not the missing reason; the detail check proves it.
+    reason = "doctrine validation test"
     try:
         bad = raw_client.patch(
-            "/api/v1/admin/flags/doctrine_o6_sevvai_cancer_leo", headers=headers, json={"value": "full"},
+            "/api/v1/admin/flags/doctrine_o6_sevvai_cancer_leo", headers=headers, json={"value": "full", "reason": reason},
         )
         assert bad.status_code == 422
+        assert bad.json()["detail"] != "A reason is required."
         wrong_type = raw_client.patch(
-            "/api/v1/admin/flags/doctrine_o3_cross_samyam", headers=headers, json={"value": "yes"},
+            "/api/v1/admin/flags/doctrine_o3_cross_samyam", headers=headers, json={"value": "yes", "reason": reason},
         )
         assert wrong_type.status_code == 422
+        assert wrong_type.json()["detail"] != "A reason is required."
         # O-2 refuses explicit signs until the lineage and rasis are set first.
         early = raw_client.patch(
-            "/api/v1/admin/flags/doctrine_o2_node_dignity_mode", headers=headers, json={"value": "explicit_signs"},
+            "/api/v1/admin/flags/doctrine_o2_node_dignity_mode",
+            headers=headers,
+            json={"value": "explicit_signs", "reason": reason},
         )
         assert early.status_code == 422
+        assert early.json()["detail"] != "A reason is required."
         rasis = raw_client.patch(
-            "/api/v1/admin/flags/doctrine_o2_rahu_favourable_rasis", headers=headers, json={"value": [3, 6]},
+            "/api/v1/admin/flags/doctrine_o2_rahu_favourable_rasis", headers=headers, json={"value": [3, 6], "reason": reason},
         )
         assert rasis.status_code == 200
         assert rasis.json()["value"] == [3, 6]
-        unknown = raw_client.patch("/api/v1/admin/flags/doctrine_nope", headers=headers, json={"value": True})
+        unknown = raw_client.patch(
+            "/api/v1/admin/flags/doctrine_nope", headers=headers, json={"value": True, "reason": reason}
+        )
         assert unknown.status_code == 404
     finally:
-        raw_client.delete("/api/v1/admin/flags/doctrine_o2_rahu_favourable_rasis/reset", headers=headers)
+        raw_client.delete(
+            "/api/v1/admin/flags/doctrine_o2_rahu_favourable_rasis/reset", headers=headers, params={"reason": reason}
+        )
 
 
 def test_doctrine_flags_refuse_runtime_override_with_several_workers(raw_client, monkeypatch):
@@ -490,7 +506,7 @@ def test_doctrine_flags_refuse_runtime_override_with_several_workers(raw_client,
     admin_user_id = _create_user("admin@example.com")
     headers = _admin_headers(admin_user_id, "test-admin-key")
     response = raw_client.patch(
-        "/api/v1/admin/flags/doctrine_o3_cross_samyam", headers=headers, json={"value": True},
+        "/api/v1/admin/flags/doctrine_o3_cross_samyam", headers=headers, json={"value": True, "reason": "multi-worker test"},
     )
     assert response.status_code == 409
     assert "§16" in response.json()["detail"]

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import Annotated
 
 from fastapi import APIRouter, Depends
 
@@ -9,7 +10,7 @@ from app.core.auth import get_admin_user, get_elevated_admin_user
 from app.core.permissions import require_permission
 from app.models.user import User
 from app.schemas.qa import QAFailureRecord, QARegressionReport, QAValidationResponse
-from app.services.audit_service import log_admin_action
+from app.services.audit_service import AuditEntry, audited
 from app.services.qa_service import run_golden_validation
 
 router = APIRouter(prefix="/qa", tags=["qa"])
@@ -82,18 +83,18 @@ def list_regressions(_: User = Depends(get_admin_user)) -> QARegressionReport:
     summary="Clear all stored regression failures",
     dependencies=[Depends(require_permission("qa.write"))],
 )
-def clear_all_regressions(admin_user: User = Depends(get_elevated_admin_user)) -> dict[str, int]:
+def clear_all_regressions(
+    audit: Annotated[AuditEntry, audited("clear_qa_regressions", target_type="qa", reason_required=True)],
+    reason: str = "",
+    _: User = Depends(get_elevated_admin_user),
+) -> dict[str, int]:
     """Wipe the regression store. Use after a clean green run.
 
-    Elevated and audited (spec L4): clearing it erases the evidence of which
-    golden cases were failing, which is exactly what a later review asks for.
+    Elevated, audited and reasoned (spec L4): clearing it erases the evidence of
+    which golden cases were failing, which is exactly what a later review asks for.
     """
+    audit.require_reason(reason)
     count = len(_regression_store)
     _regression_store.clear()
-    log_admin_action(
-        "clear_qa_regressions",
-        target_type="qa",
-        payload_summary=f"cleared={count}",
-        actor_user_id=admin_user.user_id,
-    )
+    audit.details = {"cleared": count}
     return {"cleared": count}
