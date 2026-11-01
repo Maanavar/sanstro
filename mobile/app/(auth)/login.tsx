@@ -45,7 +45,8 @@ export default function LoginScreen() {
       setSession(
         { userId: res.user.userId, email: res.user.email, displayName: res.user.displayName },
         res.user.tier ?? "registered",
-        res.user.openBeta
+        res.user.openBeta,
+        res.user.accessState
       );
       router.replace("/(tabs)/today");
     } catch (err) {

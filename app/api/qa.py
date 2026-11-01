@@ -5,9 +5,11 @@ from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends
 
-from app.core.auth import get_admin_user
+from app.core.auth import get_admin_user, get_elevated_admin_user
+from app.core.permissions import require_permission
 from app.models.user import User
 from app.schemas.qa import QAFailureRecord, QARegressionReport, QAValidationResponse
+from app.services.audit_service import log_admin_action
 from app.services.qa_service import run_golden_validation
 
 router = APIRouter(prefix="/qa", tags=["qa"])
@@ -21,6 +23,7 @@ _regression_store: dict[str, QAFailureRecord] = {}
     "/validate",
     response_model=QAValidationResponse,
     summary="Run internal golden test suite",
+    dependencies=[Depends(require_permission("qa.read"))],
 )
 def validate_golden_cases(_: User = Depends(get_admin_user)) -> QAValidationResponse:
     """Run all 139 golden QA cases across 11 modules and return pass/fail breakdown.
@@ -62,6 +65,7 @@ def _run_and_store_validation() -> QAValidationResponse:
     "/regressions",
     response_model=QARegressionReport,
     summary="List all stored regression failures",
+    dependencies=[Depends(require_permission("qa.read"))],
 )
 def list_regressions(_: User = Depends(get_admin_user)) -> QARegressionReport:
     """Return all failures recorded since the last server restart.
@@ -76,9 +80,20 @@ def list_regressions(_: User = Depends(get_admin_user)) -> QARegressionReport:
 @router.delete(
     "/regressions",
     summary="Clear all stored regression failures",
+    dependencies=[Depends(require_permission("qa.write"))],
 )
-def clear_all_regressions(_: User = Depends(get_admin_user)) -> dict[str, int]:
-    """Wipe the in-memory regression store. Use after a clean green run."""
+def clear_all_regressions(admin_user: User = Depends(get_elevated_admin_user)) -> dict[str, int]:
+    """Wipe the regression store. Use after a clean green run.
+
+    Elevated and audited (spec L4): clearing it erases the evidence of which
+    golden cases were failing, which is exactly what a later review asks for.
+    """
     count = len(_regression_store)
     _regression_store.clear()
+    log_admin_action(
+        "clear_qa_regressions",
+        target_type="qa",
+        payload_summary=f"cleared={count}",
+        actor_user_id=admin_user.user_id,
+    )
     return {"cleared": count}

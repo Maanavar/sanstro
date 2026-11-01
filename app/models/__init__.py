@@ -1,6 +1,7 @@
 """Database model package for Vinaadi AI."""
 
 from app.models.admin_audit_log import AdminAuditLog
+from app.models.admin_mfa import AdminMfaCredential, AdminRecoveryCode
 from app.models.ask_vinaadi_usage import AskVinaadiUsage
 from app.models.birth_profile import BirthProfile
 from app.models.chart import Chart
@@ -8,6 +9,7 @@ from app.models.chart_planet import ChartPlanet
 from app.models.daily_score import DailyScore
 from app.models.dasha_period import DashaPeriod
 from app.models.device_token import DeviceToken
+from app.models.entitlement import Entitlement
 from app.models.family_daily_score import FamilyDailyScore
 from app.models.family_member import FamilyMember
 from app.models.family_vault import FamilyVault
@@ -21,6 +23,7 @@ from app.models.notification_delivery import NotificationDelivery
 from app.models.numerology_name_session import NumerologyNameSession
 from app.models.panchangam_cache import PanchangamCache
 from app.models.password_reset_token import PasswordResetToken
+from app.models.payment import CreditLedgerEntry, Order, Payment, PaymentMismatch, Product, Refund
 from app.models.peyarchi_alert import PeyarchiAlert
 from app.models.place import Place
 from app.models.porutham_share import PoruthamShare
@@ -29,6 +32,7 @@ from app.models.qa_golden_case import QaGoldenCase
 from app.models.refresh_token import RefreshToken
 from app.models.relationship_alert import RelationshipAlert
 from app.models.retrospective_entry import RetrospectiveEntry
+from app.models.runtime_setting import RuntimeSetting, RuntimeSettingChange
 from app.models.scheduler_heartbeat import SchedulerHeartbeat
 from app.models.subscription import Subscription
 from app.models.transit_snapshot import TransitSnapshot
@@ -44,13 +48,17 @@ from app.models.webhook_event import WebhookEvent
 
 __all__ = [
     "AskVinaadiUsage",
+    "CreditLedgerEntry",
     "AdminAuditLog",
+    "AdminMfaCredential",
+    "AdminRecoveryCode",
     "BirthProfile",
     "Chart",
     "ChartPlanet",
     "DailyScore",
     "DashaPeriod",
     "DeviceToken",
+    "Entitlement",
     "FamilyDailyScore",
     "FamilyMember",
     "FamilyVault",
@@ -60,18 +68,25 @@ __all__ = [
     "LifeFocusEvent",
     "NewsletterSubscriber",
     "Notification",
+    "Order",
     "NotificationDelivery",
     "NumerologyNameSession",
     "PanchangamCache",
     "PasswordResetToken",
+    "Payment",
+    "PaymentMismatch",
     "PeyarchiAlert",
     "Place",
     "PoruthamShare",
     "PredictionLog",
+    "Product",
     "QaGoldenCase",
+    "Refund",
     "RefreshToken",
     "RelationshipAlert",
     "RetrospectiveEntry",
+    "RuntimeSetting",
+    "RuntimeSettingChange",
     "SchedulerHeartbeat",
     "Subscription",
     "TransitSnapshot",

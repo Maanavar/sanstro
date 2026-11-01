@@ -23,6 +23,7 @@ import pytest
 from fastapi import HTTPException
 
 from app.core.clock import accounting_date
+from app.core.config import get_settings
 from app.core.tier_limits import ask_vinaadi_limit_for_tier
 from app.db.session import SessionLocal
 from app.models.ask_vinaadi_usage import AskVinaadiUsage
@@ -39,9 +40,15 @@ REGISTERED_DAILY_LIMIT = ask_vinaadi_limit_for_tier("registered")[0]
 
 
 @pytest.fixture()
-def user_id(client):
+def user_id(client, monkeypatch):
     """A registered (non-premium) user with no usage today. `client` resets the
-    schema; the returned id is not attached to any session."""
+    schema; the returned id is not attached to any session.
+
+    The open beta is switched off so the user really is held to the registered
+    limit. Under the beta they get OPEN_BETA_LIMITS (7/day), which equalled the
+    registered limit until the 2026-11-01 ladder made registered 2/day.
+    """
+    monkeypatch.setattr(get_settings(), "open_beta", False)
     with SessionLocal() as session, session.begin():
         user = User(user_id=uuid4(), email=f"quota-{uuid4().hex}@example.invalid")
         session.add(user)

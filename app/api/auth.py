@@ -24,8 +24,8 @@ from app.core.auth import (
 )
 from app.core.auth_throttle import AuthThrottleAction, get_auth_throttler
 from app.core.config import Settings, get_settings
+from app.core.kill_switch import raise_if_paused, switch_is_on
 from app.core.privacy_policy import CURRENT_POLICY_VERSION, consent_required_for
-from app.core.subscription import is_premium
 from app.db.session import get_db
 from app.middleware import resolve_client_ip
 from app.models.password_reset_token import PasswordResetToken
@@ -44,11 +44,21 @@ from app.schemas.auth import (
     RegisterResponse,
     ResetPasswordRequest,
     UpdateUserSettingsRequest,
+    VerifyEmailRequest,
+    VerifyEmailResponse,
+    access_response_fields,
 )
+from app.services import account_lifecycle
 from app.services.acquisition_service import apply_first_touch
 from app.services.email_service import (
     enqueue_existing_account_registration_email,
     enqueue_password_reset_email,
+    enqueue_verification_email,
+)
+from app.services.email_verification_service import (
+    InvalidVerificationToken,
+    issue_verification_token,
+    user_for_token,
 )
 
 router = APIRouter()
@@ -158,16 +168,6 @@ def _as_utc(value: datetime) -> datetime:
     return value.astimezone(UTC)
 
 
-def _tier_for(user_id: UUID, session: Session) -> str:
-    """The tier name clients gate on, derived live from the subscription table.
-
-    Never a stored flag on the user — premium is a fact about an active
-    subscription row, and duplicating it onto the user is how the two drift
-    apart (GROWTH_FEATURES.md decision #8).
-    """
-    return "premium" if is_premium(user_id, session) else "registered"
-
-
 def _build_auth_user_response(
     user: User, fallback_email: str | None = None, *, session: Session | None = None
 ) -> AuthUserResponse:
@@ -176,8 +176,9 @@ def _build_auth_user_response(
         email=user.email or fallback_email or "",
         userMode=getattr(user, "user_mode", "BALANCED") or "BALANCED",
         goalTrack=getattr(user, "goal_track", None),
-        tier=_tier_for(user.user_id, session) if session is not None else "registered",
+        **(access_response_fields(user.user_id, session) if session is not None else {}),
         consentRequired=consent_required_for(user),
+        emailVerified=user.email_verified_at is not None,
     )
 
 
@@ -266,6 +267,9 @@ def register(
 ) -> RegisterResponse:
     client_ip = _get_client_ip(request)
 
+    # Before the throttle and the lookup: a paused signup must not reveal
+    # whether the email already has an account.
+    raise_if_paused("enable_signups")
     _throttler.enforce(AuthThrottleAction.REGISTER, ip=client_ip, account_identifier=payload.email.lower())
     existing = session.query(User).filter(User.email == payload.email).first()
     if existing is not None:
@@ -291,6 +295,9 @@ def register(
     apply_first_touch(user, request)
     session.add(user)
     session.flush()
+    account_lifecycle.on_account_created(
+        session, user, background_tasks=background_tasks, email_verified_by_provider=False
+    )
     return RegisterResponse(detail=_REGISTER_NEUTRAL_DETAIL)
 
 
@@ -348,8 +355,9 @@ def me(
         userMode=getattr(user, "user_mode", "BALANCED") or "BALANCED",
         goalTrack=getattr(user, "goal_track", None),
         lang=lang,
-        tier=_tier_for(user.user_id, session),
+        **access_response_fields(user.user_id, session),
         consentRequired=consent_required_for(user),
+        emailVerified=user.email_verified_at is not None,
     )
 
 
@@ -372,8 +380,9 @@ def patch_me(
         email=email,
         userMode=user.user_mode or "BALANCED",
         goalTrack=user.goal_track,
-        tier=_tier_for(user.user_id, session),
+        **access_response_fields(user.user_id, session),
         consentRequired=consent_required_for(user),
+        emailVerified=user.email_verified_at is not None,
     )
 
 
@@ -414,8 +423,9 @@ def record_consent(
         email=email,
         userMode=user.user_mode or "BALANCED",
         goalTrack=user.goal_track,
-        tier=_tier_for(user.user_id, session),
+        **access_response_fields(user.user_id, session),
         consentRequired=consent_required_for(user),
+        emailVerified=user.email_verified_at is not None,
     )
 
 
@@ -517,6 +527,44 @@ def reset_password(
     return ForgotPasswordResponse(detail="Password updated. Please sign in again.")
 
 
+_VERIFY_NEUTRAL_DETAIL = "If your address still needs confirming, we have sent a new link."
+
+
+@router.post("/verify-email", response_model=VerifyEmailResponse)
+def verify_email(payload: VerifyEmailRequest, session: Session = Depends(get_db)) -> VerifyEmailResponse:
+    """Confirm an address from the emailed link. Unauthenticated on purpose:
+    the link may be opened on a phone that has never signed in."""
+    try:
+        user = user_for_token(session, payload.token)
+    except InvalidVerificationToken as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    newly = account_lifecycle.verify_email(session, user)
+    return VerifyEmailResponse(
+        verified=True,
+        detail="Email confirmed." if newly else "Email was already confirmed.",
+    )
+
+
+@router.post(
+    "/verify-email/resend",
+    response_model=VerifyEmailResponse,
+    dependencies=[Depends(require_csrf_header)],
+)
+def resend_verification_email(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    user: User = Depends(get_current_user),
+) -> VerifyEmailResponse:
+    _throttler.enforce(
+        AuthThrottleAction.VERIFY_EMAIL,
+        ip=_get_client_ip(request),
+        account_identifier=str(user.user_id),
+    )
+    if user.email_verified_at is None and user.email:
+        enqueue_verification_email(background_tasks, user.email, issue_verification_token(user))
+    return VerifyEmailResponse(verified=user.email_verified_at is not None, detail=_VERIFY_NEUTRAL_DETAIL)
+
+
 # ── Google SSO (#55) ──────────────────────────────────────────────────────
 # Scaffolded ahead of real credentials: every route below degrades to a clear
 # error until JOTHIDAM_GOOGLE_CLIENT_ID / JOTHIDAM_GOOGLE_CLIENT_SECRET are set
@@ -608,14 +656,38 @@ def oauth_google_callback(
         # existing-account handling.
         user = session.query(User).filter(User.email == email).first()
         if user is not None:
+            if user.email_verified_at is None:
+                # ARC-17: nobody proved this address before Google did, so the
+                # password, sessions and consent may belong to a squatter who
+                # registered it first. Google's owner keeps the account; what the
+                # unproven registrant set is dropped. "Forgot password" restores
+                # password sign-in, and its link goes to the proven address.
+                user.hashed_password = None
+                _advance_token_version(user)
+                _revoke_refresh_tokens(session, user, datetime.now(UTC))
+                user.consent_given_at = None
+                user.consent_policy_version = None
             user.google_sub = google_sub
         else:
+            # Signups paused: an existing account still signs in with Google,
+            # a new one is not created.
+            if not switch_is_on("enable_signups"):
+                return login_error_redirect
             user = User(user_id=uuid4(), email=email, google_sub=google_sub)
             # New accounts only: linking Google to an existing account must
             # not rewrite where that account originally came from.
             apply_first_touch(user, request)
             session.add(user)
+            session.flush()
+            account_lifecycle.on_account_created(
+                session, user, background_tasks=None, email_verified_by_provider=True
+            )
         session.flush()
+
+    # Google has verified this address (checked above), so a linked password
+    # account that never clicked its link is proven now. Idempotent.
+    if user.email and user.email.strip().lower() == email:
+        account_lifecycle.verify_email(session, user)
 
     if user.is_suspended:
         return login_error_redirect

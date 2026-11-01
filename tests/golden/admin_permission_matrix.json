@@ -1,0 +1,257 @@
+{
+  "DELETE /api/v1/admin/flags/{flag_name}/reset": {
+    "allowed": [
+      "owner"
+    ],
+    "permission": "flags.write"
+  },
+  "DELETE /api/v1/admin/users/{owner_user_id}/data": {
+    "allowed": [
+      "owner"
+    ],
+    "permission": "privacy.erase"
+  },
+  "DELETE /api/v1/admin/users/{user_id}/mfa": {
+    "allowed": [
+      "owner"
+    ],
+    "permission": "roles.grant"
+  },
+  "DELETE /api/v1/admin/users/{user_id}/role": {
+    "allowed": [
+      "owner"
+    ],
+    "permission": "roles.grant"
+  },
+  "DELETE /api/v1/qa/regressions": {
+    "allowed": [
+      "owner"
+    ],
+    "permission": "qa.write"
+  },
+  "GET /api/v1/admin/analytics/acquisition": {
+    "allowed": [
+      "astrologer",
+      "ops",
+      "owner",
+      "privacy",
+      "support",
+      "viewer"
+    ],
+    "permission": "overview.read"
+  },
+  "GET /api/v1/admin/analytics/daily": {
+    "allowed": [
+      "astrologer",
+      "ops",
+      "owner",
+      "privacy",
+      "support",
+      "viewer"
+    ],
+    "permission": "overview.read"
+  },
+  "GET /api/v1/admin/analytics/features": {
+    "allowed": [
+      "astrologer",
+      "ops",
+      "owner",
+      "privacy",
+      "support",
+      "viewer"
+    ],
+    "permission": "overview.read"
+  },
+  "GET /api/v1/admin/analytics/life-focus": {
+    "allowed": [
+      "astrologer",
+      "ops",
+      "owner",
+      "privacy",
+      "support",
+      "viewer"
+    ],
+    "permission": "overview.read"
+  },
+  "GET /api/v1/admin/analytics/retention": {
+    "allowed": [
+      "astrologer",
+      "ops",
+      "owner",
+      "privacy",
+      "support",
+      "viewer"
+    ],
+    "permission": "overview.read"
+  },
+  "GET /api/v1/admin/audit-log": {
+    "allowed": [
+      "owner",
+      "privacy"
+    ],
+    "permission": "audit.read"
+  },
+  "GET /api/v1/admin/calibration": {
+    "allowed": [
+      "astrologer",
+      "ops",
+      "owner",
+      "privacy",
+      "support",
+      "viewer"
+    ],
+    "permission": "overview.read"
+  },
+  "GET /api/v1/admin/flags": {
+    "allowed": [
+      "ops",
+      "owner",
+      "support"
+    ],
+    "permission": "flags.read"
+  },
+  "GET /api/v1/admin/flags/history": {
+    "allowed": [
+      "ops",
+      "owner",
+      "support"
+    ],
+    "permission": "flags.read"
+  },
+  "GET /api/v1/admin/health/detail": {
+    "allowed": [
+      "astrologer",
+      "ops",
+      "owner",
+      "privacy",
+      "support",
+      "viewer"
+    ],
+    "permission": "overview.read"
+  },
+  "GET /api/v1/admin/jobs": {
+    "allowed": [
+      "astrologer",
+      "ops",
+      "owner",
+      "privacy",
+      "support",
+      "viewer"
+    ],
+    "permission": "overview.read"
+  },
+  "GET /api/v1/admin/payments/mismatches": {
+    "allowed": [
+      "ops",
+      "owner",
+      "support"
+    ],
+    "permission": "payments.read"
+  },
+  "GET /api/v1/admin/payments/orders": {
+    "allowed": [
+      "ops",
+      "owner",
+      "support"
+    ],
+    "permission": "payments.read"
+  },
+  "GET /api/v1/admin/roles": {
+    "allowed": [
+      "owner"
+    ],
+    "permission": "roles.grant"
+  },
+  "GET /api/v1/admin/stats": {
+    "allowed": [
+      "astrologer",
+      "ops",
+      "owner",
+      "privacy",
+      "support",
+      "viewer"
+    ],
+    "permission": "overview.read"
+  },
+  "GET /api/v1/admin/users": {
+    "allowed": [
+      "owner",
+      "privacy",
+      "support"
+    ],
+    "permission": "users.search"
+  },
+  "GET /api/v1/admin/users/{user_id}": {
+    "allowed": [
+      "owner",
+      "privacy",
+      "support"
+    ],
+    "permission": "users.read_masked"
+  },
+  "GET /api/v1/feedback": {
+    "allowed": [
+      "owner",
+      "support"
+    ],
+    "permission": "feedback.review"
+  },
+  "GET /api/v1/qa/regressions": {
+    "allowed": [
+      "astrologer",
+      "owner"
+    ],
+    "permission": "qa.read"
+  },
+  "GET /api/v1/qa/validate": {
+    "allowed": [
+      "astrologer",
+      "owner"
+    ],
+    "permission": "qa.read"
+  },
+  "PATCH /api/v1/admin/flags/{flag_name}": {
+    "allowed": [
+      "owner"
+    ],
+    "permission": "flags.write"
+  },
+  "PATCH /api/v1/admin/users/{user_id}/suspend": {
+    "allowed": [
+      "owner"
+    ],
+    "permission": "users.suspend"
+  },
+  "PATCH /api/v1/feedback/{feedback_id}/reward": {
+    "allowed": [
+      "owner",
+      "support"
+    ],
+    "permission": "feedback.review"
+  },
+  "POST /api/v1/admin/flags/changes/{change_id}/rollback": {
+    "allowed": [
+      "owner"
+    ],
+    "permission": "flags.write"
+  },
+  "POST /api/v1/admin/jobs/{job_id}/trigger": {
+    "allowed": [
+      "ops",
+      "owner"
+    ],
+    "permission": "jobs.trigger"
+  },
+  "POST /api/v1/admin/notify/broadcast": {
+    "allowed": [
+      "owner"
+    ],
+    "permission": "messaging.broadcast"
+  },
+  "PUT /api/v1/admin/users/{user_id}/role": {
+    "allowed": [
+      "owner"
+    ],
+    "permission": "roles.grant"
+  }
+}

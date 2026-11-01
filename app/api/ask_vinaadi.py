@@ -20,6 +20,7 @@ from app.core.age_gate import (
     is_young_child,
 )
 from app.core.auth import get_current_user
+from app.core.kill_switch import require_switch
 from app.db.session import get_db
 from app.models import BirthProfile, Chart
 from app.models.user import User
@@ -227,7 +228,13 @@ def _senior_marriage_redirect_response(question: str) -> AskVinaadiResponse:
     )
 
 
-@router.post("/charts/{chart_id}/ask", response_model=AskVinaadiResponse, tags=["ask-vinaadi"])
+@router.post(
+    "/charts/{chart_id}/ask",
+    response_model=AskVinaadiResponse,
+    tags=["ask-vinaadi"],
+    # Kill switch first: a paused Ask must never reach the model provider.
+    dependencies=[Depends(require_switch("enable_ask_vinaadi"))],
+)
 def ask_vinaadi(
     chart_id: UUID,
     payload: AskVinaadiQuery,

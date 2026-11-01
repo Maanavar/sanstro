@@ -17,7 +17,7 @@ import { firstTouchChannel, readFirstTouch } from "@/lib/acquisition";
 import { estimatePasswordStrength } from "@/lib/password-strength";
 import { lt, LEFT_PANEL_FEATURES, type LoginKey } from "@/lib/login-i18n";
 import { LangToggle, useLang } from "@/components/lang-toggle";
-import { getAuthProviders } from "@vinaadi/shared/api/auth";
+import { confirmEmailVerification, getAuthProviders } from "@vinaadi/shared/api/auth";
 import "@/lib/api"; // side effect: initializes the shared API client used by getAuthProviders
 import { GuestChartModal } from "@/components/dashboard-guest-chart-modal";
 import { LoginWelcomeNova } from "@/components/login-welcome-nova";
@@ -92,7 +92,7 @@ export default function LoginPage() {
 
   const [error, setError] = useState<ErrorState>(null);
   const [loading, setLoading] = useState(false);
-  const [done, setDone] = useState<"signup" | "forgot" | "reset" | null>(null);
+  const [done, setDone] = useState<"signup" | "forgot" | "reset" | "verified" | null>(null);
   const [googleEnabled, setGoogleEnabled] = useState(false);
   const [showGuestChart, setShowGuestChart] = useState(false);
   // The dashboard URL the visitor was actually trying to reach before the
@@ -114,6 +114,25 @@ export default function LoginPage() {
     if (token) {
       setResetToken(token);
       setMode("reset");
+      return;
+    }
+    // The emailed verification link (app/services/email_service.py). Confirmed
+    // at once: there is nothing to type, and the link may be opened on a device
+    // that has never signed in. The token leaves the address bar either way, so
+    // a reload or a shared screenshot does not carry it.
+    const verifyToken = params.get("verifyToken");
+    if (verifyToken) {
+      params.delete("verifyToken");
+      const rest = params.toString();
+      window.history.replaceState({}, "", `${window.location.pathname}${rest ? `?${rest}` : ""}`);
+      setLoading(true);
+      confirmEmailVerification(verifyToken)
+        .then(() => setDone("verified"))
+        .catch((err: unknown) => {
+          const detail = err instanceof Error ? err.message : "";
+          setError(detail ? { text: detail } : { key: "error_verify_link_invalid" });
+        })
+        .finally(() => setLoading(false));
       return;
     }
     if (params.get("mode") === "signup") {
@@ -451,6 +470,17 @@ export default function LoginPage() {
                 <button type="button" className="ca-text-btn" onClick={() => switchMode("login")}>
                   {lt("back_to_sign_in", lang)}
                 </button>
+              </div>
+            )}
+
+            {done === "verified" && (
+              <div className="ca-success" role="status">
+                <div className="ca-success-icon" aria-hidden="true"><CheckIcon /></div>
+                <p className="ca-success-title">{lt("success_verified_title", lang)}</p>
+                <p className="ca-success-body">{lt("success_verified_body", lang)}</p>
+                <Link href={DEFAULT_SIGNED_IN_PATH} className="ca-text-btn">
+                  {lt("success_verified_continue", lang)}
+                </Link>
               </div>
             )}
 

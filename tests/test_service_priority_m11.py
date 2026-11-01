@@ -123,6 +123,8 @@ class _DispatchSession:
 def _stub_dispatch_db(monkeypatch: pytest.MonkeyPatch) -> _DispatchSession:
     monkeypatch.setattr(nds, "_notification_language", lambda *_args, **_kwargs: "en")
     monkeypatch.setattr(nds, "get_flag", lambda *_args, **_kwargs: True)
+    # Quiet hours (admin spec L8) read the user's timezone; this fake session has no query API.
+    monkeypatch.setattr(nds, "_resolve_user_timezone", lambda *_args, **_kwargs: "Asia/Kolkata")
     return _DispatchSession()
 
 

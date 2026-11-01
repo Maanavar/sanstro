@@ -3,11 +3,10 @@ import { LocalizedLink as Link } from "@/components/localized-link";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { PricingPlans } from "@/components/pricing-plans";
-import { GooglePlayBadge } from "@/components/store-badges";
 import { JsonLd, faqPageFromPairs } from "@/lib/json-ld";
 import { withTamilTwin } from "@/lib/localized-metadata";
 import { getServerLang } from "@/lib/server-lang";
-import { OPEN_BETA, PPU_REPORT_PRODUCTS, SUBSCRIPTION_PLANS, TIER_LIMITS } from "@vinaadi/shared/constants";
+import { ACCOUNT_TRIAL_DAYS, OPEN_BETA, PPU_REPORT_PRODUCTS, SUBSCRIPTION_PLANS, TIER_LIMITS } from "@vinaadi/shared/constants";
 
 const EN_METADATA: Metadata = {
   title: "Pricing",
@@ -83,15 +82,19 @@ function featureRows(L: (en: string, ta: string) => string) {
     },
     {
       label: "Ask Vinaadi",
-      guest: L(`${g.askVinaadiDailyLimit} questions per day`, `நாளொன்றுக்கு ${g.askVinaadiDailyLimit} கேள்விகள்`),
+      // Guests have no saved chart to ask about (TIER_LIMITS.guest is 0).
+      guest: L("Sign in to ask", "கேட்க உள்நுழையுங்கள்"),
       registered: L(`${r.askVinaadiDailyLimit} questions per day`, `நாளொன்றுக்கு ${r.askVinaadiDailyLimit} கேள்விகள்`),
-      premium: L(`${p.askVinaadiMonthlyLimit} questions per month`, `மாதத்திற்கு ${p.askVinaadiMonthlyLimit} கேள்விகள்`),
+      premium: L(`${p.askVinaadiDailyLimit} questions per day`, `நாளொன்றுக்கு ${p.askVinaadiDailyLimit} கேள்விகள்`),
     },
     {
       label: L("Advanced reports", "மேம்பட்ட அறிக்கைகள்"),
       guest: L("Sample preview", "மாதிரிக் காட்சி"),
       registered: L("Pay per report", "அறிக்கைக்கு ஏற்பக் கட்டணம்"),
-      premium: L(`${p.detailedReportsMonthlyIncluded} detailed reports / month`, `மாதம் ${p.detailedReportsMonthlyIncluded} விரிவான அறிக்கைகள்`),
+      premium: L(
+        `${p.detailedReportsMonthlyIncluded} jadhagam report + ${p.poruthamReportsMonthlyIncluded} porutham report / month`,
+        `மாதம் ${p.detailedReportsMonthlyIncluded} ஜாதக அறிக்கை + ${p.poruthamReportsMonthlyIncluded} பொருத்த அறிக்கை`,
+      ),
     },
     {
       label: L("Simplified Annual Chart (Varuda Palan) + Vargas", "வருடப்பலன் (எளிமைப்படுத்தப்பட்ட ஆண்டு ஜாதகம்) + வர்கங்கள்"),
@@ -109,8 +112,8 @@ function featureRows(L: (en: string, ta: string) => string) {
 }
 
 // During the open beta nobody is billed, so the billing FAQ answers the question
-// a beta visitor actually has; the Play Store cancellation answer returns with
-// payments.
+// a beta visitor actually has; the cancellation answer returns with payments
+// (refund policy D-18: cancel any time, no partial refunds).
 function faqs(L: (en: string, ta: string) => string) {
   const billingFaq = OPEN_BETA
     ? {
@@ -123,8 +126,8 @@ function faqs(L: (en: string, ta: string) => string) {
     : {
         q: L("Can I cancel?", "ரத்து செய்யலாமா?"),
         a: L(
-          "Yes. Premium is managed in the Play Store and follows the platform's cancellation rules — cancel any time and keep access until the period ends.",
-          "ஆம். பிரீமியம் Play Store மூலம் நிர்வகிக்கப்படுகிறது; அதன் ரத்து விதிகளைப் பின்பற்றும் — எப்போது வேண்டுமானாலும் ரத்து செய்யலாம், காலம் முடியும் வரை அணுகல் தொடரும்.",
+          "Yes. Cancel any time from your account. The subscription stops renewing and you keep Premium until the end of the period you paid for. Part-periods are not refunded.",
+          "ஆம். உங்கள் கணக்கிலிருந்து எப்போது வேண்டுமானாலும் ரத்து செய்யலாம். சந்தா மீண்டும் புதுப்பிக்கப்படாது; நீங்கள் செலுத்திய காலம் முடியும் வரை பிரீமியம் தொடரும். பாதிக் காலத்துக்குப் பணம் திருப்பித் தரப்படாது.",
         ),
       };
   return [
@@ -161,7 +164,7 @@ export default async function PricingPage() {
   // The FAQ printed below is the FAQ marked up, in each language.
   const faqEn = faqs((en) => en);
   const faqTa = faqs((_en, ta) => ta);
-  const trialDays = SUBSCRIPTION_PLANS.monthly.trialDays;
+  const trialDays = ACCOUNT_TRIAL_DAYS;
 
   return (
     <div className="clarity-shell">
@@ -245,8 +248,8 @@ export default async function PricingPage() {
                 <h2 style={{ margin: "0 0 12px", fontSize: "1.2rem", color: "var(--cl-ink)" }}>{L("Billing and currencies", "கட்டணமும் நாணயங்களும்")}</h2>
                 <p style={{ margin: "0 0 10px", color: "var(--cl-muted)", lineHeight: 1.65 }}>
                   {L(
-                    `Premium is ₹${SUBSCRIPTION_PLANS.monthly.priceINR}/month or ₹${SUBSCRIPTION_PLANS.annual.priceINR}/year, and every subscription starts with a ${trialDays}-day free trial. Cancel any time — there is no lock-in.`,
-                    `பிரீமியம் மாதத்திற்கு ₹${SUBSCRIPTION_PLANS.monthly.priceINR} அல்லது ஆண்டுக்கு ₹${SUBSCRIPTION_PLANS.annual.priceINR}; ஒவ்வொரு சந்தாவும் ${trialDays} நாள் இலவச சோதனையுடன் தொடங்கும். எப்போது வேண்டுமானாலும் ரத்து செய்யலாம் — கட்டுப்பாடு எதுவும் இல்லை.`,
+                    `Premium is ₹${SUBSCRIPTION_PLANS.monthly.priceINR}/month or ₹${SUBSCRIPTION_PLANS.annual.priceINR}/year, paid here by UPI or card and renewed automatically. Cancel any time and keep access until the paid period ends. A new account gets ${trialDays} days of Premium free once its email is confirmed — no payment details needed.`,
+                    `பிரீமியம் மாதத்திற்கு ₹${SUBSCRIPTION_PLANS.monthly.priceINR} அல்லது ஆண்டுக்கு ₹${SUBSCRIPTION_PLANS.annual.priceINR}; இங்கேயே UPI அல்லது கார்டு மூலம் செலுத்தலாம், தானாகப் புதுப்பிக்கப்படும். எப்போது வேண்டுமானாலும் ரத்து செய்யலாம்; செலுத்திய காலம் முடியும் வரை அணுகல் தொடரும். புதிய கணக்குக்கு, மின்னஞ்சலை உறுதிசெய்ததும் ${trialDays} நாள் பிரீமியம் இலவசம் — கட்டண விவரங்கள் தேவையில்லை.`,
                   )}
                 </p>
                 <p style={{ margin: 0, color: "var(--cl-muted)", lineHeight: 1.65 }}>
@@ -309,29 +312,36 @@ export default async function PricingPage() {
               </div>
             </div>
 
-            {/* ── Get Premium: download the app ── (after the beta; there is
-                nothing to buy while it runs, and no store listing may exist yet) */}
+            {/* ── Get Premium ── (after the beta; there is nothing to buy while
+                it runs). Paid on the web through Razorpay (D-04); app-store
+                billing is decided at Gate M (D-20). */}
             {!OPEN_BETA && (
             <div style={{ background: "linear-gradient(135deg, var(--cl-ink) 0%, var(--cl-ink-2) 60%, var(--cl-ink-2) 100%)", borderRadius: "20px", padding: "40px 32px", marginTop: "8px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "32px", alignItems: "center", color: "var(--cl-bg)" }}>
               <div>
                 <p style={{ margin: "0 0 8px", fontSize: "0.7rem", fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--cl-accent-soft)" }}>{L("Ready for Premium?", "பிரீமியத்துக்குத் தயாரா?")}</p>
-                <h2 style={{ margin: "0 0 12px", fontSize: "clamp(1.4rem, 2.8vw, 2rem)", lineHeight: 1.2 }}>{L("Subscribe in the Vinaadi app.", "Vinaadi ஆப்பில் சந்தா செலுத்துங்கள்.")}</h2>
+                <h2 style={{ margin: "0 0 12px", fontSize: "clamp(1.4rem, 2.8vw, 2rem)", lineHeight: 1.2 }}>{L("Subscribe here, by UPI or card.", "இங்கேயே UPI அல்லது கார்டு மூலம் சந்தா செலுத்துங்கள்.")}</h2>
                 <p style={{ margin: "0 0 6px", opacity: 0.8, lineHeight: 1.65, fontSize: "0.9375rem" }}>
                   {lang === "ta" ? (
-                    <>பிரீமியம் Google Play மூலம் நிர்வகிக்கப்படுகிறது. ஆப்பைப் பதிவிறக்கி உங்கள் <strong>{trialDays} நாள் இலவச சோதனையைத்</strong> தொடங்குங்கள் — எப்போது வேண்டுமானாலும் ரத்து செய்யலாம்.</>
+                    <>புதிய கணக்கா? மின்னஞ்சலை உறுதிசெய்ததும் <strong>{trialDays} நாள் பிரீமியம் இலவசம்</strong> — கட்டண விவரங்கள் தேவையில்லை, முடிந்ததும் எந்தக் கட்டணமும் வசூலிக்கப்படாது.</>
                   ) : (
-                    <>Premium is managed through Google Play. Download the app to start your <strong>{trialDays}-day free trial</strong> — cancel any time.</>
+                    <>New here? Confirm your email and get <strong>{trialDays} days of Premium free</strong> — no payment details, and nothing is charged when it ends.</>
                   )}
                 </p>
                 <p style={{ margin: 0, opacity: 0.6, fontSize: "0.8125rem", lineHeight: 1.55 }}>
                   {L(
-                    "Already subscribed on mobile? Log in here — your premium access syncs automatically.",
-                    "ஏற்கெனவே மொபைலில் சந்தா செலுத்தியுள்ளீர்களா? இங்கே உள்நுழையுங்கள் — உங்கள் பிரீமியம் அணுகல் தானாக ஒத்திசையும்.",
+                    "Premium belongs to your account, so it follows you to every device you sign in on.",
+                    "பிரீமியம் உங்கள் கணக்கைச் சேர்ந்தது; நீங்கள் உள்நுழையும் எல்லாச் சாதனங்களிலும் தொடரும்.",
                   )}
                 </p>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                <GooglePlayBadge />
+                {/* Signed-out visitors are sent to /login and back by the middleware. */}
+                <Link
+                  href="/dashboard/upgrade"
+                  style={{ ...pillLink, background: "var(--cl-bg)", color: "var(--cl-ink)" }}
+                >
+                  {L("Subscribe now", "இப்போதே சந்தா செலுத்துங்கள்")}
+                </Link>
                 <Link
                   href="/login"
                   style={{ ...pillLink, border: "1px solid color-mix(in srgb, var(--cl-bg) 28%, transparent)", color: "var(--cl-bg)", fontWeight: 600, fontSize: "0.875rem" }}

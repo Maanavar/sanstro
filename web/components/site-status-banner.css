@@ -1,0 +1,37 @@
+/* Maintenance notice (components/site-status-banner.tsx). Appears on both the
+   light public site and the themed dashboard, so its ground and ink are fixed
+   together rather than inherited: themed scopes remap both --cl-ink and
+   --cl-caution-soft (marketing.css), so inheriting either could put dark ink
+   on a dark ground. Values are the light Clarity --cl-caution-soft / --cl-ink;
+   #1A1612 on #F2D8CC is about 14:1. */
+.site-status-banner {
+  --site-banner-ground: #f2d8cc;
+  --site-banner-ink: #1a1612;
+  position: relative;
+  z-index: 61;
+  padding: 8px 16px;
+  background: var(--site-banner-ground);
+  color: var(--site-banner-ink);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+}
+
+/* Inline text buttons inside the bar (verify-email-nudge.tsx). They inherit the
+   bar's fixed ink, so they stay legible on every theme. */
+.site-status-banner__action {
+  margin: 0 0 0 4px;
+  padding: 2px 4px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.site-status-banner__action:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}

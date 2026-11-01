@@ -688,9 +688,9 @@ button:focus-visible,
   }
 }
 
-/* ── Elevation prompt (P1-4 step 2) ───────────────────────────────────────────
-   Shown when a destructive operation needs the operator to re-enter their
-   password. ModalShell owns the dialog behaviour (focus trap, Escape, restore);
+/* ── Elevation prompt (P1-4 step 2, spec L3) ──────────────────────────────────
+   Shown when a destructive operation needs the operator's second-factor
+   code. ModalShell owns the dialog behaviour (focus trap, Escape, restore);
    these rules are only its look. Tokens only — the colour-literal ratchet fails
    CI on a new hex here, and it is right to. */
 .admin-elevate {
@@ -758,4 +758,25 @@ button:focus-visible,
   border-radius: var(--admin-radius);
   padding: 20px;
   box-shadow: 0 18px 48px color-mix(in srgb, var(--admin-ink) 22%, transparent);
+}
+
+/* ── Two-step sign-in set-up and recovery codes (spec L3) ──────────────────── */
+.admin-mfa-secret {
+  display: inline-block;
+  padding: 6px 10px;
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius);
+  background: var(--admin-surface);
+  font-size: 0.95rem;
+  letter-spacing: 0.08em;
+  word-break: break-all;
+}
+
+.admin-recovery-codes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 6px 16px;
+  margin: 8px 0 16px;
+  padding-left: 22px;
+  font-size: 0.95rem;
 }

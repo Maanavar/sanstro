@@ -218,7 +218,6 @@ class Settings(BaseSettings):
 
     # Ask Vinaadi — Claude API key. If unset, endpoint returns 503.
     anthropic_api_key: str | None = Field(default=None)
-    ask_vinaadi_daily_limit: int = Field(default=10)
 
     # Open beta (owner ruling 2026-09-26): every signed-in account gets premium's
     # limits until payments launch. JOTHIDAM_OPEN_BETA=false restores the
@@ -232,6 +231,15 @@ class Settings(BaseSettings):
     # RevenueCat webhook — shared secret set in RevenueCat dashboard → Platform Settings → Webhooks.
     # If unset, POST /webhooks/revenuecat returns 503.
     revenuecat_webhook_secret: str | None = Field(default=None)
+
+    # Razorpay (admin spec L1, D-04). Key id + secret from Dashboard → Account &
+    # Settings → API keys; the webhook secret is the one typed when the webhook
+    # is created (Dashboard → Webhooks). Test-mode keys start rzp_test_. With the
+    # key unset, checkout returns 503; with the webhook secret unset, the webhook
+    # returns 503 — never "accept unsigned".
+    razorpay_key_id: str | None = Field(default=None)
+    razorpay_key_secret: str | None = Field(default=None)
+    razorpay_webhook_secret: str | None = Field(default=None)
 
     # Google SSO — from a Google Cloud Console OAuth 2.0 Client ID (Web application).
     # Leave unset to disable: GET /auth/oauth/providers reports it unavailable and the

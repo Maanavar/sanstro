@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { Toaster } from "sonner";
 
 import { QueryProvider } from "@/components/query-provider";
+import { VerifyEmailNudge } from "@/components/verify-email-nudge";
 // Loaded here (not just in the (workspace) group) so the standalone routes under
 // /dashboard/* (reports, goals, chart-generate, daily-score, porutham, wrapped)
 // also get .cd-shell's Nova color system.
@@ -76,6 +77,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <QueryProvider>
       <div className={`cd-font-host ${sourceSerif4.variable}`}>
+        <VerifyEmailNudge />
         {children}
         <Toaster position="bottom-center" />
       </div>

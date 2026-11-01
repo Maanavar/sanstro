@@ -96,7 +96,6 @@ def test_ask_returns_503_when_no_api_key(client):
     _, chart_id = _create_test_chart(client)
     with patch("app.services.ask_vinaadi_service.get_settings") as mock_settings:
         mock_settings.return_value.anthropic_api_key = None
-        mock_settings.return_value.ask_vinaadi_daily_limit = 10
         resp = client.post(
             f"/api/v1/charts/{chart_id}/ask",
             json={"question": "Is this a good week for career?"},
@@ -122,7 +121,6 @@ def test_ask_returns_200_with_mocked_claude(client):
     with patch("app.services.ask_vinaadi_service.get_settings") as mock_settings, \
          patch.dict("sys.modules", {"anthropic": mock_anthropic_module}):
         mock_settings.return_value.anthropic_api_key = "sk-test-key"
-        mock_settings.return_value.ask_vinaadi_daily_limit = 10
 
         resp = client.post(
             f"/api/v1/charts/{chart_id}/ask",
@@ -158,7 +156,6 @@ def test_ask_response_has_correct_fields(client):
     with patch("app.services.ask_vinaadi_service.get_settings") as mock_settings, \
          patch.dict("sys.modules", {"anthropic": mock_anthropic_module}):
         mock_settings.return_value.anthropic_api_key = "sk-test-key"
-        mock_settings.return_value.ask_vinaadi_daily_limit = 10
 
         resp = client.post(
             f"/api/v1/charts/{chart_id}/ask",
@@ -243,7 +240,6 @@ def test_ask_vinaadi_runs_safety_pass_on_llm_output(client, caplog):
          patch.dict("sys.modules", {"anthropic": mock_anthropic_module}), \
          caplog.at_level("ERROR", logger="app.services.safety_filter"):
         mock_settings.return_value.anthropic_api_key = "sk-test-key"
-        mock_settings.return_value.ask_vinaadi_daily_limit = 10
 
         resp = client.post(
             f"/api/v1/charts/{chart_id}/ask",
@@ -276,7 +272,6 @@ def test_ask_vinaadi_logs_calibration_for_mapped_high_confidence(client):
     with patch("app.services.ask_vinaadi_service.get_settings") as mock_settings, \
          patch.dict("sys.modules", {"anthropic": mock_anthropic_module}):
         mock_settings.return_value.anthropic_api_key = "sk-test-key"
-        mock_settings.return_value.ask_vinaadi_daily_limit = 10
 
         resp = client.post(
             f"/api/v1/charts/{chart_id}/ask",
@@ -321,7 +316,6 @@ def test_ask_vinaadi_skips_calibration_log_for_low_confidence(client):
     with patch("app.services.ask_vinaadi_service.get_settings") as mock_settings, \
          patch.dict("sys.modules", {"anthropic": mock_anthropic_module}):
         mock_settings.return_value.anthropic_api_key = "sk-test-key"
-        mock_settings.return_value.ask_vinaadi_daily_limit = 10
 
         resp = client.post(
             f"/api/v1/charts/{chart_id}/ask",
@@ -360,7 +354,6 @@ def test_ask_vinaadi_skips_calibration_log_for_unmapped_question(client):
     with patch("app.services.ask_vinaadi_service.get_settings") as mock_settings, \
          patch.dict("sys.modules", {"anthropic": mock_anthropic_module}):
         mock_settings.return_value.anthropic_api_key = "sk-test-key"
-        mock_settings.return_value.ask_vinaadi_daily_limit = 10
 
         resp = client.post(
             f"/api/v1/charts/{chart_id}/ask",
@@ -400,7 +393,6 @@ def _ask_with_raw_provider_text(client, chart_id: str, raw: str):
     with patch("app.services.ask_vinaadi_service.get_settings") as mock_settings, \
          patch.dict("sys.modules", {"anthropic": mock_anthropic_module}):
         mock_settings.return_value.anthropic_api_key = "sk-test-key"
-        mock_settings.return_value.ask_vinaadi_daily_limit = 10
         return client.post(
             f"/api/v1/charts/{chart_id}/ask",
             json={"question": "Is this a good week for career?", "lang": "en"},

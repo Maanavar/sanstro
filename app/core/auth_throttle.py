@@ -58,6 +58,8 @@ class AuthThrottleAction(str, Enum):
     FORGOT_PASSWORD = "forgot_password"  # noqa: S105 — an endpoint name, not a credential
     OAUTH = "oauth"
     ADMIN_ELEVATION = "admin_elevation"
+    VERIFY_EMAIL = "verify_email"
+    ADMIN_MFA = "admin_mfa"
 
 
 @dataclass(frozen=True)
@@ -122,6 +124,16 @@ class AuthThrottler:
         # that stands between them and the destructive endpoints.
         AuthThrottleAction.ADMIN_ELEVATION: _Budget(
             3, 60, "Too many elevation attempts. Please try again later."
+        ),
+        # Each resend is an email to a real inbox; three a minute is already
+        # more than a person waiting for one needs.
+        AuthThrottleAction.VERIFY_EMAIL: _Budget(
+            3, 60, "Too many verification emails requested. Please try again later."
+        ),
+        # Six-digit codes: the budget is what keeps guessing out of reach. Five
+        # a minute is a typo or two, never a search of a million codes.
+        AuthThrottleAction.ADMIN_MFA: _Budget(
+            5, 60, "Too many code attempts. Please wait a minute and try again."
         ),
     }
 

@@ -17,9 +17,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_admin_user, get_current_user
+from app.core.permissions import require_permission
 from app.db.session import get_db
 from app.models.feedback import Feedback
 from app.models.user import User
+from app.services.audit_service import log_admin_action
 
 logger = logging.getLogger("jothidam.feedback")
 
@@ -112,7 +114,12 @@ def submit_feedback(
     return FeedbackResponse(received=True, submitted_at=datetime.now(UTC).isoformat())
 
 
-@router.get("", response_model=FeedbackListResponse, summary="List feedback (admin only)")
+@router.get(
+    "",
+    response_model=FeedbackListResponse,
+    summary="List feedback (admin only)",
+    dependencies=[Depends(require_permission("feedback.review"))],
+)
 def list_feedback(
     _: User = Depends(get_admin_user),
     db: Session = Depends(get_db),
@@ -135,11 +142,12 @@ def list_feedback(
     "/{feedback_id}/reward",
     response_model=FeedbackItem,
     summary="Flag a reviewer as reward-qualified (admin only, discretionary)",
+    dependencies=[Depends(require_permission("feedback.review"))],
 )
 def set_reward_qualified(
     feedback_id: UUID,
     payload: RewardToggle,
-    _: User = Depends(get_admin_user),
+    admin_user: User = Depends(get_admin_user),
     db: Session = Depends(get_db),
 ) -> FeedbackItem:
     """Discretionary, admin-only toggle for the 'helpful reviewers may earn
@@ -148,7 +156,16 @@ def set_reward_qualified(
     row = db.get(Feedback, feedback_id)
     if row is None or row.deleted_at is not None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Feedback not found.")
+    previous = bool(row.reward_qualified)
     row.reward_qualified = payload.reward_qualified
     db.commit()
     db.refresh(row)
+    # Spec L4: every admin mutation is audited. This one used to leave no trace.
+    log_admin_action(
+        "set_feedback_reward",
+        target_type="feedback",
+        target_id=str(feedback_id),
+        payload_summary=f"old={previous} new={payload.reward_qualified}",
+        actor_user_id=admin_user.user_id,
+    )
     return _to_item(row)

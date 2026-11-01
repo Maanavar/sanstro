@@ -67,6 +67,45 @@ def enqueue_password_reset_email(background_tasks: BackgroundTasks, to_address: 
     background_tasks.add_task(send_password_reset_email, to_address, token)
 
 
+def _verify_email_link(token: str) -> str:
+    settings = get_settings()
+    return f"{settings.frontend_url.rstrip('/')}/login?verifyToken={token}"
+
+
+def send_verification_email(to_address: str, token: str) -> bool:
+    """Tamil first, English below, in one message: the account's language is not
+    known yet at registration. Tamil copy: PENDING NATIVE-TAMIL REVIEW."""
+    link = _verify_email_link(token)
+    ta = (
+        "உங்கள் Vinaadi கணக்கின் மின்னஞ்சல் முகவரியை உறுதிசெய்ய இந்த இணைப்பைத் திறக்கவும். "
+        "இந்த இணைப்பு 48 மணி நேரத்தில் காலாவதியாகும். இந்தக் கணக்கை நீங்கள் உருவாக்கவில்லை "
+        "என்றால், இந்த மின்னஞ்சலைப் புறக்கணிக்கலாம்."
+    )
+    en = (
+        "Open this link to confirm the email address for your Vinaadi account. "
+        "It expires in 48 hours. If you did not create this account, you can ignore this message."
+    )
+    message = EmailMessage(
+        to_address=to_address,
+        subject="Vinaadi: மின்னஞ்சலை உறுதிசெய்யுங்கள் / Confirm your email",
+        body_text=f"{ta}\n\n{en}\n\n{link}",
+        body_html=(
+            "<html><body style='font-family:sans-serif;max-width:600px;margin:auto;padding:24px'>"
+            "<h2 lang='ta'>மின்னஞ்சலை உறுதிசெய்யுங்கள்</h2>"
+            f"<p lang='ta'>{ta}</p>"
+            "<h2>Confirm your email</h2>"
+            f"<p>{en}</p>"
+            f"<p><a href='{link}'>உறுதிசெய் / Confirm</a></p>"
+            "</body></html>"
+        ),
+    )
+    return send_email(message)
+
+
+def enqueue_verification_email(background_tasks: BackgroundTasks, to_address: str, token: str) -> None:
+    background_tasks.add_task(send_verification_email, to_address, token)
+
+
 def send_existing_account_registration_email(to_address: str) -> bool:
     settings = get_settings()
     login_link = f"{settings.frontend_url.rstrip('/')}/login"

@@ -18,6 +18,7 @@ from app.services.job_registry import register_job
 from app.services.journal_purge import run_journal_purge_cron
 from app.services.notification_dispatch_service import run_notification_outbox
 from app.services.panchangam_prewarm import run_panchangam_prewarm_cron
+from app.services.payment_service import run_payment_reconciliation
 from app.services.peyarchi_alert_service import daily_peyarchi_refresh
 from app.services.synastry_service import daily_relationship_alert_refresh
 
@@ -95,6 +96,17 @@ SCHEDULED_JOBS: tuple[ScheduledJob, ...] = (
         run_journal_purge_cron,
         {"hour": 3, "minute": 0},
         destructive=True,
+    ),
+    # Spec L1: compare the last three days of Razorpay with local rows. Applies
+    # only what a lost webhook would have applied (same idempotent call), and
+    # lists the rest for a person. 22:00 UTC is 03:30 IST.
+    ScheduledJob(
+        "payment_reconciliation",
+        "Payment Reconciliation",
+        "Compare Razorpay payments, refunds and subscriptions with local rows "
+        "(daily, 22:00 UTC = 03:30 IST; skipped unless Razorpay is configured)",
+        run_payment_reconciliation,
+        {"hour": 22, "minute": 0},
     ),
 )
 

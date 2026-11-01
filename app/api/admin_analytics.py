@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from app.core.age_gate import compute_age, get_blocked_life_modes
 from app.core.auth import get_admin_user
 from app.core.clock import accounting_date
+from app.core.permissions import require_permission
 from app.core.life_mode import DEFAULT_LIFE_MODE, FOCUS_TABLE
 from app.db.session import get_db
 from app.models import BirthProfile, Chart, FamilyVault
@@ -19,7 +20,12 @@ from app.models.life_focus_event import LifeFocusEvent
 from app.models.user import User
 from app.models.user_preference import UserPreference
 
-router = APIRouter(prefix="/admin/analytics", tags=["admin"])
+# Every route here is a read of aggregate business metrics (spec §6 overview.read).
+router = APIRouter(
+    prefix="/admin/analytics",
+    tags=["admin"],
+    dependencies=[Depends(require_permission("overview.read"))],
+)
 
 
 class DailyCount(BaseModel):

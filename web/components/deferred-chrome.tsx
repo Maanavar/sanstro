@@ -40,10 +40,18 @@ const BetaSystem = dynamic(() => import("@/components/beta-system").then((m) => 
   ssr: false,
 });
 
+// The maintenance notice. Deferred like the two above: it renders nothing
+// until /site-status answers, which is after hydration anyway.
+const SiteStatusBanner = dynamic(
+  () => import("@/components/site-status-banner").then((m) => m.SiteStatusBanner),
+  { ssr: false },
+);
+
 export function DeferredChrome() {
   return (
     <>
       <PostHogProvider />
+      <SiteStatusBanner />
       <BetaSystem />
     </>
   );

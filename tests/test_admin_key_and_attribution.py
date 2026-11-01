@@ -96,7 +96,7 @@ def test_a_privileged_action_records_who_performed_it(client):
     assert flags.status_code == 200, flags.text
     flag_name = flags.json()[0]["name"]
 
-    reset = client.delete(f"/api/v1/admin/flags/{flag_name}/reset")
+    reset = client.delete(f"/api/v1/admin/flags/{flag_name}/reset", params={"reason": "attribution test"})
     assert reset.status_code == 200, reset.text
 
     with SessionLocal() as session:

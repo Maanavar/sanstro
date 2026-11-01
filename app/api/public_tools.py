@@ -26,6 +26,7 @@ from app.calculations.numerology import ScriptMismatchError, analyze_object, bui
 from app.calculations.numerology_naming import NamingMode, UnverifiedCanonError
 from app.calculations.porutham import compute_porutham
 from app.constants.versions import CHART_CALCULATION_VERSION
+from app.core.kill_switch import require_switch
 from app.core.public_endpoint_limiter import public_endpoint_rate_limit
 from app.db.session import get_db
 from app.schemas.birth_profiles import validate_birth_date_bounds
@@ -180,7 +181,7 @@ class _EphemeralProfile:
 # ── Endpoints ──────────────────────────────────────────────────────────────────
 
 
-@router.post("/chart-preview", response_model=PublicChartPreviewResponse)
+@router.post("/chart-preview", response_model=PublicChartPreviewResponse, dependencies=[Depends(require_switch("enable_guest_charts"))])
 @public_endpoint_rate_limit("public_chart")
 def public_chart_preview(payload: PublicChartRequest, request: Request) -> PublicChartPreviewResponse:
     """Calculate a transient chart plus summary and dasha without persistence."""
@@ -202,7 +203,7 @@ def public_chart_preview(payload: PublicChartRequest, request: Request) -> Publi
     )
 
 
-@router.post("/chart", response_model=PublicChartResponse)
+@router.post("/chart", response_model=PublicChartResponse, dependencies=[Depends(require_switch("enable_guest_charts"))])
 @public_endpoint_rate_limit("public_chart")
 def public_chart(payload: PublicChartRequest, request: Request) -> PublicChartResponse:
     """Calculate a Thirukanitham birth chart from raw birth details.
@@ -218,7 +219,7 @@ def public_chart(payload: PublicChartRequest, request: Request) -> PublicChartRe
     return PublicChartResponse(data=result.data)
 
 
-@router.post("/compare", response_model=PublicCompareResponse)
+@router.post("/compare", response_model=PublicCompareResponse, dependencies=[Depends(require_switch("enable_guest_charts"))])
 @public_endpoint_rate_limit("public_porutham")
 def public_compare(payload: PublicPoruthamRequest, request: Request) -> PublicCompareResponse:
     """Calculate two transient charts plus porutham without saving profiles."""
@@ -255,7 +256,7 @@ def public_compare(payload: PublicPoruthamRequest, request: Request) -> PublicCo
     )
 
 
-@router.post("/compare/pdf")
+@router.post("/compare/pdf", dependencies=[Depends(require_switch("enable_guest_charts"))])
 @public_endpoint_rate_limit("public_compare_pdf")
 def public_compare_pdf(payload: PublicPoruthamRequest, request: Request, lang: str = "en") -> Response:
     """Generate a transient porutham PDF without creating saved profiles."""
@@ -299,7 +300,7 @@ def public_compare_pdf(payload: PublicPoruthamRequest, request: Request, lang: s
     )
 
 
-@router.post("/porutham", response_model=PublicPoruthamResponse)
+@router.post("/porutham", response_model=PublicPoruthamResponse, dependencies=[Depends(require_switch("enable_guest_charts"))])
 @public_endpoint_rate_limit("public_porutham")
 def public_porutham(payload: PublicPoruthamRequest, request: Request) -> PublicPoruthamResponse:
     """Calculate 10-kuta porutham from two raw birth profiles.

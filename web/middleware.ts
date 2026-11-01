@@ -4,6 +4,7 @@ import {
   analyticsOrigin,
   buildSecurityHeaders,
   createNonce,
+  isCheckoutPath,
   isEmbeddablePath,
 } from "@/lib/security-headers";
 import { NEXT_PARAM, isSignedInPath } from "@/lib/auth-redirect";
@@ -27,6 +28,7 @@ export async function middleware(request: NextRequest) {
       request.headers.get("x-forwarded-proto") === "https" ||
       request.nextUrl.protocol === "https:",
     embeddable: isEmbeddablePath(pathname),
+    checkout: isCheckoutPath(pathname),
     analyticsOrigin: analyticsOrigin(process.env),
   });
 

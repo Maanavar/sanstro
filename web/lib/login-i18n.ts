@@ -63,6 +63,12 @@ const LOGIN_STRINGS = {
     ta: "மீட்டமைப்பு இணைப்பு விரைவில் வந்துசேரும்.",
   },
   success_reset_title: { en: "Password updated", ta: "கடவுச்சொல் புதுப்பிக்கப்பட்டது" },
+  success_verified_title: { en: "Email confirmed", ta: "மின்னஞ்சல் உறுதிசெய்யப்பட்டது" },
+  success_verified_body: {
+    en: "Thank you. Your email address is confirmed.",
+    ta: "நன்றி. உங்கள் மின்னஞ்சல் முகவரி உறுதிசெய்யப்பட்டது.",
+  },
+  success_verified_continue: { en: "Continue to Vinaadi", ta: "வினாடிக்குத் தொடருங்கள்" },
   success_reset_body: {
     en: "Your password has been changed. Please sign in with your new password.",
     ta: "உங்கள் கடவுச்சொல் மாற்றப்பட்டது. புதிய கடவுச்சொல்லைக் கொண்டு உள்நுழையுங்கள்.",
@@ -122,6 +128,10 @@ const LOGIN_STRINGS = {
   error_password_short: { en: "Password must be at least 8 characters.", ta: "கடவுச்சொல் குறைந்தது 8 எழுத்துகள் இருக்க வேண்டும்." },
   error_password_mismatch: { en: "Passwords do not match.", ta: "கடவுச்சொற்கள் பொருந்தவில்லை." },
   error_reset_link_invalid: { en: "This reset link is invalid or has expired.", ta: "இந்த மீட்டமைப்பு இணைப்பு செல்லாதது அல்லது காலாவதியானது." },
+  error_verify_link_invalid: {
+    en: "This confirmation link is invalid or has expired. Sign in to get a new one.",
+    ta: "இந்த உறுதிப்படுத்தல் இணைப்பு செல்லாதது அல்லது காலாவதியானது. புதிய இணைப்பைப் பெற உள்நுழையுங்கள்.",
+  },
   error_email_required: { en: "Enter a valid email address.", ta: "சரியான மின்னஞ்சல் முகவரியை உள்ளிடவும்." },
   error_create_failed: { en: "Unable to create account.", ta: "கணக்கை உருவாக்க முடியவில்லை." },
   error_credentials: { en: "Incorrect email or password.", ta: "மின்னஞ்சல் அல்லது கடவுச்சொல் தவறு." },

@@ -23,7 +23,10 @@ dependencies = [
   "psycopg2-binary>=2.9,<3.0",
   "apscheduler>=3.10,<4.0",
   "reportlab>=4.0",
-  "anthropic>=0.40,<1.0"
+  "anthropic>=0.40,<1.0",
+  # Razorpay's REST API (app/services/razorpay_client.py). Also the Google SSO
+  # token exchange, which imported it while it was listed only under dev.
+  "httpx>=0.27,<1.0"
 ]
 
 [project.optional-dependencies]

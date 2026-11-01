@@ -8,7 +8,8 @@ None of them answers the question that matters once a session is stolen, an
 extension is malicious, or a laptop is left open: **is the person issuing this
 request still the person who owns the account?** A session is long-lived by
 design, so on its own it cannot say. Elevation asks the account holder to prove
-it again, with their password, and issues a token good for minutes.
+it again, with their second factor (a TOTP code or a recovery code; admin spec
+L3 — it was the password until then), and issues a token good for minutes.
 
 Two halves, and the structural half is the one that lasts. The behavioural tests
 prove elevation works on the five routes that have it today. The structural test
@@ -20,9 +21,9 @@ tests/test_chart_access_guard.py, the same shape of bug one layer down).
 from __future__ import annotations
 
 import inspect
+from datetime import UTC, datetime
 from uuid import uuid4
 
-import bcrypt
 import pytest
 from fastapi.params import Depends as DependsParam
 
@@ -32,15 +33,22 @@ from app.core.auth import (
     create_access_token,
     create_admin_elevation_token,
     get_admin_user,
+    get_admin_user_without_mfa,
     get_current_user,
     get_elevated_admin_user,
 )
+from app.core import totp
 from app.db.session import SessionLocal
 from app.main import app
+from app.models.admin_mfa import AdminMfaCredential
 from app.models.user import User
 
-# A synthetic credential for a synthetic account. Never a real one.
-ADMIN_PASSWORD = "synthetic-elevation-password-9f2c"  # noqa: S105 — test fixture value
+# A synthetic TOTP secret for a synthetic account. Never a real one.
+ADMIN_TOTP_SECRET = "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP"  # noqa: S105 — test fixture value
+
+
+def _current_code() -> str:
+    return totp.code_at_step(ADMIN_TOTP_SECRET, totp.current_step())
 
 
 # ── The structural half ──────────────────────────────────────────────────────
@@ -62,12 +70,29 @@ _ELEVATION_REQUIRED: dict[tuple[str, str], str] = {
         "Changes production behaviour for everyone, instantly.",
     ("DELETE", "/api/v1/admin/flags/{flag_name}/reset"):
         "Same as setting a flag: moves production behaviour for everyone.",
+    ("POST", "/api/v1/admin/mfa/recovery-codes"):
+        "Replaces the codes that can stand in for the second factor.",
+    ("PUT", "/api/v1/admin/users/{user_id}/role"):
+        "Grants admin authority to an account.",
+    ("DELETE", "/api/v1/admin/users/{user_id}/role"):
+        "Removes admin authority; ends that admin's sessions.",
+    ("DELETE", "/api/v1/admin/users/{user_id}/mfa"):
+        "Removes another admin's second factor.",
+    ("DELETE", "/api/v1/qa/regressions"):
+        "Erases the record of which golden cases were failing (spec L4).",
+    ("POST", "/api/v1/admin/flags/changes/{change_id}/rollback"):
+        "Restores an earlier setting value: the same blast radius as setting it.",
 }
 
 _ELEVATION_NOT_REQUIRED: dict[tuple[str, str], str] = {
     ("POST", "/api/v1/admin/elevate"):
         "This IS the elevation endpoint. Requiring elevation to elevate is a "
-        "deadlock — it is guarded by get_admin_user plus the password itself.",
+        "deadlock — it is guarded by get_admin_user plus the second factor itself.",
+    ("POST", "/api/v1/admin/mfa/enroll"):
+        "Starts TOTP set-up. Must work before any second factor exists, and is "
+        "refused once one is confirmed (admin_mfa_service.start_enrolment).",
+    ("POST", "/api/v1/admin/mfa/confirm"):
+        "Finishes TOTP set-up by proving the new code; nothing to elevate with yet.",
     ("POST", "/api/v1/admin/jobs/{job_id}/trigger"):
         "No longer true of every job: `journal_purge` (P2-1) permanently deletes "
         "journal entries. Because which job runs is a path parameter, the gate "
@@ -80,8 +105,6 @@ _ELEVATION_NOT_REQUIRED: dict[tuple[str, str], str] = {
     ("PATCH", "/api/v1/feedback/{feedback_id}/reward"):
         "Toggles an internal 'this reviewer may qualify for extended access' "
         "flag. Reversible, affects no user data, promises nothing to the user.",
-    ("DELETE", "/api/v1/qa/regressions"):
-        "Clears an in-memory QA regression store. No user data, no persistence.",
 }
 
 _MUTATING = {"POST", "PATCH", "PUT", "DELETE"}
@@ -106,7 +129,7 @@ def _admin_guarded_mutating_routes() -> dict[tuple[str, str], str]:
                 continue
             if default.dependency is get_elevated_admin_user:
                 guard = "elevated"
-            elif default.dependency is get_admin_user and guard is None:
+            elif default.dependency in (get_admin_user, get_admin_user_without_mfa) and guard is None:
                 guard = "admin"
         if guard is None:
             continue
@@ -169,7 +192,7 @@ def test_routes_declared_destructive_actually_use_the_elevated_guard():
 
 @pytest.fixture()
 def admin_user_row(raw_client):
-    """A real admin row with a known password, plus a detached-safe stub of it.
+    """A real admin row with a confirmed TOTP second factor, plus a detached-safe stub.
 
     Depends on `raw_client` even though it never uses it. That fixture is what
     calls `_reset_db()`, and this one INSERTs, so the edge is real and declaring
@@ -188,14 +211,17 @@ def admin_user_row(raw_client):
     """
     user_id = uuid4()
     email = f"admin-{uuid4().hex}@example.invalid"
-    hashed = bcrypt.hashpw(ADMIN_PASSWORD.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
     with SessionLocal() as session, session.begin():
-        session.add(User(user_id=user_id, email=email, is_admin=True, hashed_password=hashed))
+        session.add(User(user_id=user_id, email=email, is_admin=True, admin_role="owner"))
+        session.flush()
+        session.add(
+            AdminMfaCredential(user_id=user_id, totp_secret=ADMIN_TOTP_SECRET, confirmed_at=datetime.now(UTC))
+        )
     return User(
         user_id=user_id,
         email=email,
         is_admin=True,
-        hashed_password=hashed,
+        admin_role="owner",
         token_version=0,
     )
 
@@ -207,8 +233,8 @@ def admin_client(raw_client, admin_user_row):
     app.dependency_overrides.pop(get_current_user, None)
 
 
-def _elevate(client, password: str = ADMIN_PASSWORD):
-    return client.post("/api/v1/admin/elevate", json={"password": password})
+def _elevate(client, code: str | None = None):
+    return client.post("/api/v1/admin/elevate", json={"code": code or _current_code()})
 
 
 # A destructive route that is cheap to call and whose *authorisation* answer is
@@ -229,7 +255,7 @@ def test_a_destructive_route_refuses_an_admin_who_has_not_elevated(admin_client)
     assert "elevation" in response.json()["detail"].lower()
 
 
-def test_elevation_with_the_right_password_opens_the_destructive_route(admin_client):
+def test_elevation_with_the_right_code_opens_the_destructive_route(admin_client):
     granted = _elevate(admin_client)
     assert granted.status_code == 200, granted.text
     token = granted.json()["token"]
@@ -238,8 +264,10 @@ def test_elevation_with_the_right_password_opens_the_destructive_route(admin_cli
     assert response.status_code != 403, response.text
 
 
-def test_elevation_is_refused_when_the_password_is_wrong(admin_client):
-    response = _elevate(admin_client, "not-the-password")
+def test_elevation_is_refused_when_the_code_is_wrong(admin_client):
+    # A code from far outside the drift window: right secret, wrong time.
+    stale = totp.code_at_step(ADMIN_TOTP_SECRET, totp.current_step() - 100)
+    response = _elevate(admin_client, stale)
     assert response.status_code == 403
     assert "token" not in response.json()
 
@@ -282,9 +310,9 @@ def test_bumping_token_version_revokes_a_live_elevation(admin_client, admin_user
 
 
 def test_a_server_to_server_key_caller_does_not_need_elevation(raw_client, monkeypatch):
-    """Machines have no password, so requiring one would close these routes to
-    automation entirely — `/admin/elevate` refuses an account with no
-    `hashed_password`, which every key caller is.
+    """Machines have no second factor, so requiring one would close these routes
+    to automation entirely — `/admin/elevate` needs a TOTP code, which no key
+    caller has.
 
     Scoping, not a hole: elevation defends against a *browser session* used by
     someone who is not the account holder. A process holding a deployment secret
@@ -346,16 +374,20 @@ def test_the_key_still_cannot_reach_a_destructive_route_from_a_browser(
     assert response.status_code == 403
 
 
-def test_an_admin_with_no_password_is_refused_rather_than_waved_through(admin_client, admin_user_row):
-    """An OAuth admin has no password to re-enter, so there is no second proof
-    available. Refusing is the fail-safe direction: the alternative is that the
-    accounts hardest to re-verify are exactly the ones that skip verification.
-    """
+def test_an_admin_with_no_password_can_elevate_with_the_second_factor(admin_client, admin_user_row):
+    """Before spec L3 a Google-sign-in admin had no password and so could never
+    elevate. The second factor works for every admin, password or not."""
     admin_user_row.hashed_password = None
 
     response = _elevate(admin_client)
-    assert response.status_code == 403
-    assert "no password" in response.json()["detail"].lower()
+    assert response.status_code == 200, response.text
+
+
+def test_a_code_cannot_be_used_twice(admin_client):
+    """Replay: a code read over a shoulder must not elevate a second session."""
+    code = _current_code()
+    assert _elevate(admin_client, code).status_code == 200
+    assert _elevate(admin_client, code).status_code == 403
 
 
 # ── Destructive background jobs (P2-1) ───────────────────────────────────────

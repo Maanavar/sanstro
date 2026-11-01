@@ -17,7 +17,8 @@ class User(TimestampMixin, Base):
     hashed_password: Mapped[str | None] = mapped_column(String(255), nullable=True)
     # Google's stable per-user subject id, once linked via SSO. Nullable — most
     # accounts are still password-only. See app/api/auth.py oauth/google routes.
-    google_sub: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # Unique: one Google identity can never sign in to two accounts.
+    google_sub: Mapped[str | None] = mapped_column(String(255), nullable=True, unique=True, index=True)
     user_mode: Mapped[str] = mapped_column(String(20), nullable=False, server_default="BALANCED")
     goal_track: Mapped[str | None] = mapped_column(String(20), nullable=True)
     is_suspended: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
@@ -25,6 +26,16 @@ class User(TimestampMixin, Base):
     # Server-side admin role. Authoritative source of admin access so the browser
     # never needs to hold a long-lived admin secret (see app/core/auth.get_admin_user).
     is_admin: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
+    # Admin role (admin spec L3, D-14): owner | support | ops | privacy | viewer
+    # | astrologer; NULL = not an admin. Supersedes `is_admin`, which the
+    # migration backfilled to 'owner' and `app.core.permissions.admin_role_of`
+    # still reads as owner so nothing loses access mid-rollout. Granted only
+    # through the audited, elevated owner route or the one-time env seed.
+    admin_role: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    # When the address was proven to reach this person: a verification link
+    # (password accounts) or Google's verified flag (SSO). NULL = unproven.
+    # Gates the trial (decision 4) and admin seeding (spec L3).
+    email_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     token_version: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     # DPDP Act 2023 §6 consent. Both columns or neither: the timestamp says a
     # consent action happened, the version says what text it was given for, and
