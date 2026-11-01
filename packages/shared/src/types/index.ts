@@ -467,6 +467,31 @@ export interface ChartDoshamInsight {
   /** What this placement tends to bring in this chart (e.g. Ketu in the 2nd). */
   meaningTa?: string;
   meaningEn?: string;
+  /**
+   * Owner ruling 2026-10-30 (DOCTRINE_DECISIONS_V1 §18, Q15): the four outputs, never
+   * collapsed. Absent on older payloads, which read as a full parihara.
+   */
+  assessment?: DoshamAssessment | null;
+  /** CHILDREN findings only. There is no value for denial, by design. */
+  progenyOutlook?: ProgenyOutlook;
+}
+
+export type ProgenyOutlook = "" | "delay" | "difficulty" | "needs_attention";
+
+/** V1 §18 Q15: formation, strength, protection, parihara. */
+export interface DoshamAssessment {
+  /** Does the classical combination exist? */
+  formation: boolean;
+  /** Grade before protection; "" when not formed. */
+  strength: "STRONG" | "PARTIAL" | "WEAK" | "";
+  /** What reduces it (marker keys). */
+  protection: string[];
+  /** Protection's answer: cancelled, as distinct from merely reduced. */
+  cancelled: boolean;
+  /** "objective_only" always arrives with a context note saying why. */
+  parihara: "full" | "objective_only" | "none";
+  /** False while a step the ruling requires is undefined (D7, dasha). */
+  complete: boolean;
 }
 
 export type DoshamResidual = "NONE" | "MILD" | "MODERATE" | "STRONG";

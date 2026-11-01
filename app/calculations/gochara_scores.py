@@ -40,8 +40,10 @@ from types import MappingProxyType
 #: Note what is *not* uniform here, because the old hand-typed tables flattened
 #: exactly this: Mercury and Venus are favourable in the 8th, which no other
 #: graha is; Venus is favourable in nine of the twelve; Mars, Saturn and Ketu
-#: share 3/6/11. Rahu adds the 10th (AAU-09, ruled 2026-10-29: the standard
-#: Tamil panchangam table). The nodes are never interchangeable.
+#: share 3/6/11. Rahu adds the 10th (AAU-09, ruled 2026-10-29). Owner ruling
+#: 2026-10-30 (V1 §18, Q2): this is a gochara interpretation, not almanac data, so
+#: it is not cited to the panchangam; the astrologer names the gochara text.
+#: The nodes are never interchangeable.
 GOCHARA_FAVOURABLE_FROM_MOON: Mapping[str, frozenset[int]] = MappingProxyType({
     "SUN":     frozenset({3, 6, 10, 11}),
     "MOON":    frozenset({1, 3, 6, 7, 10, 11}),

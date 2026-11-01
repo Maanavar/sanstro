@@ -250,8 +250,9 @@ def test_t092_sevvai_dosham_from_lagna_moon_venus():
     assert "from_venus" in venus_result.conditions_met
 
 
-def test_sevvai_tamil_mode_treats_first_house_as_dosham():
-    # Tamil Thirukanitham tradition: house 1 is included in Sevvai Dosham check
+def test_sevvai_first_house_counts_only_under_the_six_house_alternative():
+    # Owner ruling 2026-10-30 (Q5): the Tamil five (2, 4, 7, 8, 12) is the
+    # default; the 1st house counts only under "union_six" / "manglik_five".
     planets = {
         "SUN": 3,
         "MOON": 5,
@@ -263,12 +264,15 @@ def test_sevvai_tamil_mode_treats_first_house_as_dosham():
         "RAHU": 11,
         "KETU": 5,
     }
-    result = detect_sevvai_dosham(planets, lagna_rasi=1)
-    assert result.is_present is True
+    assert detect_sevvai_dosham(planets, lagna_rasi=1).is_present is False
+    from app.calculations.doctrine_options import DoctrineOptions
+
+    six = DoctrineOptions(sevvai_house_set="union_six")
+    assert detect_sevvai_dosham(planets, lagna_rasi=1, doctrine=six).is_present is True
 
 
 def test_sevvai_tamil_mode_no_dosham_when_mars_in_neutral_house():
-    # Mars in house 3 — not in {1,2,4,7,8,12} — no dosham
+    # Mars in house 3 — in no Sevvai house set — no dosham
     planets = {
         "SUN": 5,
         "MOON": 6,
@@ -285,10 +289,10 @@ def test_sevvai_tamil_mode_no_dosham_when_mars_in_neutral_house():
     assert result.label == "NO_SEVVAI_DOSHAM"
 
 
-def test_sevvai_standard_mode_treats_first_house_as_candidate():
-    # OQ-4/A-5 (2026-07-16): house 1 is part of the single Tamil-standard set,
-    # not a separate "extended" mode — the dead extended_manglik mode was
-    # removed since no authentic source ever differentiated it.
+def test_sevvai_first_house_counts_under_the_manglik_five():
+    # A-5 (2026-07-16) removed a dead "extended" mode that changed nothing.
+    # Since 2026-10-30 (Q5) the alternatives really differ: the 1st house is
+    # in "manglik_five" and "union_six", and out of the Tamil-five default.
     planets = {
         "SUN": 3,
         "MOON": 4,
@@ -300,7 +304,10 @@ def test_sevvai_standard_mode_treats_first_house_as_candidate():
         "RAHU": 11,
         "KETU": 5,
     }
-    result = detect_sevvai_dosham(planets, lagna_rasi=1)
+    from app.calculations.doctrine_options import DoctrineOptions
+
+    assert detect_sevvai_dosham(planets, lagna_rasi=1).is_present is False
+    result = detect_sevvai_dosham(planets, lagna_rasi=1, doctrine=DoctrineOptions(sevvai_house_set="manglik_five"))
     assert result.is_present is True
     assert result.label in {"ACTIVE_SEVVAI_DOSHAM", "STRONG_ACTIVE_SEVVAI_DOSHAM", "SEVVAI_DOSHAM_WITH_NIVARTHI"}
 

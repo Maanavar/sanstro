@@ -212,3 +212,116 @@ Three spellings were in use. The app now uses the almanac forms everywhere:
 - **C2b.** புத்திர தடை as the name of the Saturn finding, and its card text.
 - **C2c.** The new day notes: "… வரை, பின் …" on a split day, and the
   birth-time note "பிறந்த நேரத்தை உறுதிசெய்யவும்".
+
+## Part D. The astrologer packet, 30 October (one sitting)
+
+The owner's final answer sheet of 30 October (`DOCTRINE_DECISIONS_V1.md` §18)
+settled the open list as far as it can be settled without you. B3's table is
+kept but cited to a gochara text, never the almanac. B6 now has a grading.
+B7's default is the Tamil five, 2, 4, 7, 8, 12, with the 1st house out. What
+is left needs your answer, ideally in one sitting. Where a question says
+"charts", we will send ten real-shaped synthetic charts for your verdict on
+each, because rules taken from your verdicts on charts hold up better than
+abstract answers, and the charts become our test suite.
+
+We now treat the **Vasan Suththa Thirukkanidha Panchangam** (current annual
+edition) as the authority for conventions only: year name, ayanam boundary,
+ruthu order, punya kalam, gochara tables. Swiss Ephemeris and Lahiri still
+compute every position. Please tell us if you use another almanac, and send
+photos of its title page, copyright page and each table we cite.
+
+**D1. Sevvai: the five houses.** Which printed text does your lineage teach
+the enumeration 2, 4, 7, 8, 12 from? Title, author, publisher, page.
+
+**D2. BPHS.** Which translation and edition of BPHS do you work from?
+(Chapter and verse numbers differ between translations.)
+
+**D3. Exemption signs.** Please sign or correct each row:
+
+| Mars in house | Exempt in |
+|---|---|
+| 2 | Mithunam, Kanni |
+| 4 | Mesham, Viruchigam |
+| 7 | Kadagam, Magaram |
+| 8 | Dhanusu, Meenam |
+| 12 | Rishabam, Thulam |
+
+**D4. Sankranti.** We built this table from Dharmasindhu, in ghati:
+
+| Sankranti | Signs | Window |
+|---|---|---|
+| Ayana | Makaram | 40 after |
+| Ayana | Kadagam | 30 before |
+| Vishuva | Mesham, Thulam | 15 before and after |
+| Vishnupadi | Rishabam, Simmam, Viruchigam, Kumbam | 16 before |
+| Shadashitimukha | Mithunam, Kanni, Dhanusu, Meenam | 16 after |
+
+Does your almanac print the same figures, and what about day and night
+sankrantis? And is the birth concern a birth **inside punya kalam** (an
+auspicious window, perhaps no concern at all) or **sankramana jananam**, birth
+at the moment of the change, with its own santhi? If the second, how close to
+the moment counts? The alert stays off until you answer.
+
+**D5. Ruchaka and Sevvai on one Mars.** Mars in the 4th or 7th from the Lagna
+in Mesham, Viruchigam or Magaram forms Ruchaka yoga and, under the five houses,
+Sevvai dosham. Today both show at full strength (your ruling O-18). Please
+mark each of the 84 charts in `docs/astrologer_fixtures/ruchaka_sevvai_2026-10-30.json`:
+**Ruchaka**, **Sevvai**, or **both**.
+
+**D6. D7 for children.** No text we hold defines "a weak D7 for progeny", so
+the app does not use the Saptamsa yet, and readings about children say they
+are not final. Which of these make a D7 weak: the D7 lagna lord, the D7 5th
+lord, Jupiter's placement in D7, vargottama, or something else? With what
+weight? (Charts.)
+
+**D7. A strong 5th lord.** Today the app calls the 5th lord strong from a
+strength score; that is our stand-in, not a rule. What makes the 5th lord
+strong for children: own sign, exaltation, friendly sign, freedom from
+debilitation and malefic affliction? And when they conflict (own sign but
+afflicted), which wins? (Charts.)
+
+**D8. A protecting Jupiter.** Today the app counts Jupiter in a kendra as
+protection. That is positional, and it misses a Jupiter that protects by
+aspecting the 5th or its lord. It also counts a debilitated Jupiter in a
+kendra, and we will flag those charts. Which of these, in what combination:
+Jupiter's **strength** (own sign, exaltation, friendly sign), its
+**relevance** (aspects or joins the 5th house or the 5th lord), and its
+**freedom from affliction** (no node, not debilitated, no severe malefic)?
+(Charts.)
+
+**D9. Guru with Ketu.** Your ruling of 28 August kept Guru Chandala as Guru
+with Rahu, with Ketu as a separate variant. Today Guru with Rahu raises Putra
+Sarpa one grade, while Guru with Ketu is only noted. Should Guru with Ketu
+carry the same weight? (Both defaults measured; charts.)
+
+**D10. What counts as "beside".** For every rule that puts a node beside a
+graha (the 5th lord, Jupiter, the 7th lord), is it the same sign, the same sign
+within an orb (how many degrees?), or the same sign plus a further affliction
+to the house?
+
+Two more, shorter:
+
+- **D11. Putra Sarpa's grading.** Only Rahu or Ketu in the 5th declares it.
+  Node alone: mild; with one of the two conditions (a node beside the 5th lord;
+  Rahu beside a Jupiter linked to the 5th): confirmed; with both: severe.
+  Without a node in the 5th the conditions are only noted, with no parihara.
+  It now forms on 16% of charts (it was 39.6%). Agree?
+- **D12. Santhana Thadai parihara.** Two parts: for the cause (Sani:
+  Thirunallar, ellu deepam, Saturday) and for what the family hopes for
+  (Santhana Gopala). When nothing in the chart protects the 5th, both are
+  offered; when it is protected, only the second, with a line saying why.
+  Is that right, and should a Saturn dasha change it?
+
+## Part E. For the Tamil reviewer, added 30 October
+
+- **E1.** The Sevvai pages' new wording (Tamil five, Lagna declares, Moon and
+  Venus grade), on the dosham, porutham, pariharam and kalathra pages.
+- **E2.** The Ruchaka note: "இங்கு செவ்வாய் ஆட்சி அல்லது உச்சம் பெற்றுக்
+  கேந்திரத்தில் உள்ளது; …"
+- **E3.** The Putra Sarpa watch-note and the new Putra Sarpa description.
+- **E4.** The parihara slot labels "காரணக் கிரகத்துக்கு:" and "வேண்டும்
+  பலனுக்கு:", and the Guru Chandala parihara line.
+- **E5.** Three new notes: Guru with Ketu noted, not counted
+  ("இங்கு கேது குருவுடன் உள்ளது; …"); the lighter Santhana Thadai parihara
+  ("இங்கு உங்கள் 5-ஆம் வீடு காக்கப்படுகிறது …"); and "this reading is not
+  final" for children ("இந்த வாசிப்பு இறுதியானது அல்ல. …").

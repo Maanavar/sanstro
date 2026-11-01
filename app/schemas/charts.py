@@ -174,6 +174,26 @@ class DoshamReferenceHouse(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class DoshamAssessment(BaseModel):
+    """V1 §18 Q15: formation, strength, protection, parihara — four questions,
+    four answers. A cancelled dosham and a mild one differ here: `cancelled`
+    is protection's answer, `strength` is the grade before protection."""
+
+    #: Does the classical combination exist?
+    formation: bool
+    #: How severe, before protection: WEAK | PARTIAL | STRONG, "" when not formed.
+    strength: str = ""
+    #: What reduces it (marker keys), and whether that cancels it.
+    protection: list[str] = Field(default_factory=list)
+    cancelled: bool = False
+    #: Is a remedy warranted? "objective_only" always comes with a note saying why.
+    parihara: Literal["full", "objective_only", "none"] = "full"
+    #: False while a step the ruling requires is undefined (D7, dasha).
+    complete: bool = True
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class ChartDoshamInsight(BaseModel):
     name: str
     is_present: bool = Field(alias="isPresent")
@@ -206,6 +226,12 @@ class ChartDoshamInsight(BaseModel):
     #: What this placement tends to bring in this chart (e.g. Ketu in the 2nd).
     meaning_ta: str = Field(default="", alias="meaningTa")
     meaning_en: str = Field(default="", alias="meaningEn")
+    #: Owner ruling 2026-10-30 (DOCTRINE_DECISIONS_V1 §18, Q15): the four outputs, never
+    #: collapsed into one yes/no. None on an older cached payload.
+    assessment: DoshamAssessment | None = None
+    #: CHILDREN findings: delay | difficulty | needs_attention; "" elsewhere.
+    #: There is no value for denial, by design.
+    progeny_outlook: Literal["", "delay", "difficulty", "needs_attention"] = Field(default="", alias="progenyOutlook")
 
     model_config = ConfigDict(populate_by_name=True)
 

@@ -49,6 +49,7 @@ from app.schemas.charts import (
     ChartDoshamInsight,
     ChartNakshatraCaution,
     ChartYogaInsight,
+    DoshamAssessment,
     DoshamReferenceHouse,
     LagnaPosition,
     PlanetPosition,
@@ -678,6 +679,15 @@ def _build_yoga_dosham_insights(
             ],
             meaningTa=item.meaning_ta,
             meaningEn=item.meaning_en,
+            assessment=DoshamAssessment(
+                formation=item.is_present,
+                strength=item.formation_strength,
+                protection=list(item.cancellation_factors) if item.is_present else [],
+                cancelled=item.is_cancelled,
+                parihara=item.parihara if item.is_present else "none",
+                complete=item.assessment_complete,
+            ),
+            progenyOutlook=item.progeny_outlook,
         )
         for item in doshams
     ]

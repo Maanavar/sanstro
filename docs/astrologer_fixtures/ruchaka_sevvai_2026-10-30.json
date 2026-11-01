@@ -1,0 +1,2317 @@
+{
+  "question": "When Mars sits in the 4th or 7th from the Lagna in Mesham, Viruchigam or Magaram, is this Ruchaka, Sevvai, or both? Please mark each chart.",
+  "ruling": "DOCTRINE_DECISIONS_V1.md §18, Q7. Until ruled, O-18 governs: both shown at full weight.",
+  "population": "2,000 synthetic charts, seeded (1030), 1960-2010, random lagna; sign placements only",
+  "count": 84,
+  "charts": [
+    {
+      "id": "RS-001",
+      "lagna": "Thulam",
+      "mars": "Magaram",
+      "mars_house_from_lagna": 4,
+      "placements": {
+        "JUPITER": "Viruchigam",
+        "KETU": "Simmam",
+        "MARS": "Magaram",
+        "MERCURY": "Kumbam",
+        "MOON": "Mithunam",
+        "RAHU": "Kumbam",
+        "SATURN": "Kadagam",
+        "SUN": "Kumbam",
+        "VENUS": "Meenam"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_exaltation",
+          "benefic_strong_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-002",
+      "lagna": "Thulam",
+      "mars": "Mesham",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Viruchigam",
+        "KETU": "Dhanusu",
+        "MARS": "Mesham",
+        "MERCURY": "Mesham",
+        "MOON": "Dhanusu",
+        "RAHU": "Mithunam",
+        "SATURN": "Thulam",
+        "SUN": "Meenam",
+        "VENUS": "Mesham"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "benefic_association_mars",
+          "benefic_strong_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-003",
+      "lagna": "Thulam",
+      "mars": "Mesham",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Rishabam",
+        "KETU": "Meenam",
+        "MARS": "Mesham",
+        "MERCURY": "Mesham",
+        "MOON": "Dhanusu",
+        "RAHU": "Kanni",
+        "SATURN": "Kadagam",
+        "SUN": "Rishabam",
+        "VENUS": "Mesham"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "benefic_association_mars",
+          "benefic_strong_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-004",
+      "lagna": "Simmam",
+      "mars": "Viruchigam",
+      "mars_house_from_lagna": 4,
+      "placements": {
+        "JUPITER": "Kadagam",
+        "KETU": "Meenam",
+        "MARS": "Viruchigam",
+        "MERCURY": "Viruchigam",
+        "MOON": "Meenam",
+        "RAHU": "Kanni",
+        "SATURN": "Simmam",
+        "SUN": "Thulam",
+        "VENUS": "Thulam"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "tamil_sevvai_exception_cancer_leo",
+          "house_sign_nivarthi",
+          "jupiter_aspect_on_mars",
+          "benefic_association_mars",
+          "benefic_strong_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-005",
+      "lagna": "Magaram",
+      "mars": "Mesham",
+      "mars_house_from_lagna": 4,
+      "placements": {
+        "JUPITER": "Thulam",
+        "KETU": "Kanni",
+        "MARS": "Mesham",
+        "MERCURY": "Kanni",
+        "MOON": "Kadagam",
+        "RAHU": "Meenam",
+        "SATURN": "Kadagam",
+        "SUN": "Kanni",
+        "VENUS": "Thulam"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "house_sign_nivarthi",
+          "jupiter_aspect_on_mars"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-006",
+      "lagna": "Kadagam",
+      "mars": "Magaram",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Kadagam",
+        "KETU": "Kumbam",
+        "MARS": "Magaram",
+        "MERCURY": "Magaram",
+        "MOON": "Magaram",
+        "RAHU": "Simmam",
+        "SATURN": "Simmam",
+        "SUN": "Magaram",
+        "VENUS": "Viruchigam"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_exaltation",
+          "tamil_sevvai_exception_cancer_leo",
+          "house_sign_nivarthi",
+          "jupiter_aspect_on_mars",
+          "benefic_association_mars"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-007",
+      "lagna": "Thulam",
+      "mars": "Mesham",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Dhanusu",
+        "KETU": "Kumbam",
+        "MARS": "Mesham",
+        "MERCURY": "Mithunam",
+        "MOON": "Meenam",
+        "RAHU": "Simmam",
+        "SATURN": "Dhanusu",
+        "SUN": "Mithunam",
+        "VENUS": "Mithunam"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "jupiter_aspect_on_mars",
+          "benefic_strong_seventh_lord",
+          "jupiter_aspects_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-008",
+      "lagna": "Kadagam",
+      "mars": "Magaram",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Mesham",
+        "KETU": "Magaram",
+        "MARS": "Magaram",
+        "MERCURY": "Viruchigam",
+        "MOON": "Dhanusu",
+        "RAHU": "Kadagam",
+        "SATURN": "Mesham",
+        "SUN": "Viruchigam",
+        "VENUS": "Thulam"
+      },
+      "engine_today": {
+        "sevvai_strength": "PARTIAL",
+        "sevvai_mitigations": [
+          "mars_exaltation",
+          "tamil_sevvai_exception_cancer_leo",
+          "house_sign_nivarthi",
+          "benefic_strong_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-009",
+      "lagna": "Magaram",
+      "mars": "Mesham",
+      "mars_house_from_lagna": 4,
+      "placements": {
+        "JUPITER": "Mesham",
+        "KETU": "Rishabam",
+        "MARS": "Mesham",
+        "MERCURY": "Kadagam",
+        "MOON": "Kumbam",
+        "RAHU": "Viruchigam",
+        "SATURN": "Kadagam",
+        "SUN": "Kadagam",
+        "VENUS": "Simmam"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "house_sign_nivarthi",
+          "jupiter_conjunct_mars"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-010",
+      "lagna": "Magaram",
+      "mars": "Mesham",
+      "mars_house_from_lagna": 4,
+      "placements": {
+        "JUPITER": "Rishabam",
+        "KETU": "Simmam",
+        "MARS": "Mesham",
+        "MERCURY": "Magaram",
+        "MOON": "Viruchigam",
+        "RAHU": "Kumbam",
+        "SATURN": "Dhanusu",
+        "SUN": "Kumbam",
+        "VENUS": "Kumbam"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "house_sign_nivarthi",
+          "jupiter_aspects_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-011",
+      "lagna": "Thulam",
+      "mars": "Mesham",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Mithunam",
+        "KETU": "Viruchigam",
+        "MARS": "Mesham",
+        "MERCURY": "Mesham",
+        "MOON": "Mesham",
+        "RAHU": "Rishabam",
+        "SATURN": "Meenam",
+        "SUN": "Rishabam",
+        "VENUS": "Meenam"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "benefic_association_mars",
+          "benefic_strong_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-012",
+      "lagna": "Thulam",
+      "mars": "Mesham",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Simmam",
+        "KETU": "Kanni",
+        "MARS": "Mesham",
+        "MERCURY": "Meenam",
+        "MOON": "Magaram",
+        "RAHU": "Meenam",
+        "SATURN": "Meenam",
+        "SUN": "Mesham",
+        "VENUS": "Meenam"
+      },
+      "engine_today": {
+        "sevvai_strength": "PARTIAL",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "house_sign_nivarthi",
+          "jupiter_aspect_on_mars",
+          "benefic_strong_seventh_lord",
+          "jupiter_aspects_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-013",
+      "lagna": "Simmam",
+      "mars": "Viruchigam",
+      "mars_house_from_lagna": 4,
+      "placements": {
+        "JUPITER": "Dhanusu",
+        "KETU": "Mithunam",
+        "MARS": "Viruchigam",
+        "MERCURY": "Magaram",
+        "MOON": "Simmam",
+        "RAHU": "Dhanusu",
+        "SATURN": "Rishabam",
+        "SUN": "Magaram",
+        "VENUS": "Dhanusu"
+      },
+      "engine_today": {
+        "sevvai_strength": "PARTIAL",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "tamil_sevvai_exception_cancer_leo",
+          "house_sign_nivarthi",
+          "benefic_strong_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-014",
+      "lagna": "Rishabam",
+      "mars": "Viruchigam",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Dhanusu",
+        "KETU": "Viruchigam",
+        "MARS": "Viruchigam",
+        "MERCURY": "Simmam",
+        "MOON": "Kumbam",
+        "RAHU": "Rishabam",
+        "SATURN": "Thulam",
+        "SUN": "Kadagam",
+        "VENUS": "Simmam"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "house_sign_nivarthi"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-015",
+      "lagna": "Thulam",
+      "mars": "Magaram",
+      "mars_house_from_lagna": 4,
+      "placements": {
+        "JUPITER": "Kadagam",
+        "KETU": "Viruchigam",
+        "MARS": "Magaram",
+        "MERCURY": "Mesham",
+        "MOON": "Simmam",
+        "RAHU": "Rishabam",
+        "SATURN": "Mithunam",
+        "SUN": "Meenam",
+        "VENUS": "Kumbam"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_exaltation",
+          "jupiter_aspect_on_mars",
+          "benefic_strong_seventh_lord",
+          "jupiter_aspects_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-016",
+      "lagna": "Rishabam",
+      "mars": "Viruchigam",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Meenam",
+        "KETU": "Kanni",
+        "MARS": "Viruchigam",
+        "MERCURY": "Magaram",
+        "MOON": "Viruchigam",
+        "RAHU": "Meenam",
+        "SATURN": "Dhanusu",
+        "SUN": "Magaram",
+        "VENUS": "Kumbam"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "jupiter_aspect_on_mars",
+          "benefic_association_mars",
+          "benefic_strong_seventh_lord",
+          "jupiter_aspects_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-017",
+      "lagna": "Thulam",
+      "mars": "Mesham",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Magaram",
+        "KETU": "Thulam",
+        "MARS": "Mesham",
+        "MERCURY": "Meenam",
+        "MOON": "Kadagam",
+        "RAHU": "Mesham",
+        "SATURN": "Viruchigam",
+        "SUN": "Meenam",
+        "VENUS": "Meenam"
+      },
+      "engine_today": {
+        "sevvai_strength": "PARTIAL",
+        "sevvai_mitigations": [
+          "mars_own_sign"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-018",
+      "lagna": "Magaram",
+      "mars": "Mesham",
+      "mars_house_from_lagna": 4,
+      "placements": {
+        "JUPITER": "Thulam",
+        "KETU": "Kanni",
+        "MARS": "Mesham",
+        "MERCURY": "Viruchigam",
+        "MOON": "Meenam",
+        "RAHU": "Meenam",
+        "SATURN": "Kadagam",
+        "SUN": "Viruchigam",
+        "VENUS": "Magaram"
+      },
+      "engine_today": {
+        "sevvai_strength": "PARTIAL",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "house_sign_nivarthi",
+          "jupiter_aspect_on_mars"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-019",
+      "lagna": "Thulam",
+      "mars": "Mesham",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Magaram",
+        "KETU": "Mithunam",
+        "MARS": "Mesham",
+        "MERCURY": "Thulam",
+        "MOON": "Thulam",
+        "RAHU": "Dhanusu",
+        "SATURN": "Mithunam",
+        "SUN": "Viruchigam",
+        "VENUS": "Dhanusu"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "benefic_strong_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-020",
+      "lagna": "Magaram",
+      "mars": "Mesham",
+      "mars_house_from_lagna": 4,
+      "placements": {
+        "JUPITER": "Rishabam",
+        "KETU": "Simmam",
+        "MARS": "Mesham",
+        "MERCURY": "Magaram",
+        "MOON": "Meenam",
+        "RAHU": "Kumbam",
+        "SATURN": "Dhanusu",
+        "SUN": "Magaram",
+        "VENUS": "Magaram"
+      },
+      "engine_today": {
+        "sevvai_strength": "PARTIAL",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "house_sign_nivarthi"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-021",
+      "lagna": "Rishabam",
+      "mars": "Viruchigam",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Rishabam",
+        "KETU": "Mesham",
+        "MARS": "Viruchigam",
+        "MERCURY": "Dhanusu",
+        "MOON": "Mesham",
+        "RAHU": "Thulam",
+        "SATURN": "Kadagam",
+        "SUN": "Viruchigam",
+        "VENUS": "Dhanusu"
+      },
+      "engine_today": {
+        "sevvai_strength": "PARTIAL",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "jupiter_aspect_on_mars",
+          "benefic_strong_seventh_lord",
+          "jupiter_aspects_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-022",
+      "lagna": "Kadagam",
+      "mars": "Magaram",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Viruchigam",
+        "KETU": "Kadagam",
+        "MARS": "Magaram",
+        "MERCURY": "Rishabam",
+        "MOON": "Dhanusu",
+        "RAHU": "Magaram",
+        "SATURN": "Rishabam",
+        "SUN": "Rishabam",
+        "VENUS": "Rishabam"
+      },
+      "engine_today": {
+        "sevvai_strength": "PARTIAL",
+        "sevvai_mitigations": [
+          "mars_exaltation",
+          "tamil_sevvai_exception_cancer_leo",
+          "house_sign_nivarthi",
+          "jupiter_aspects_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-023",
+      "lagna": "Thulam",
+      "mars": "Magaram",
+      "mars_house_from_lagna": 4,
+      "placements": {
+        "JUPITER": "Magaram",
+        "KETU": "Mithunam",
+        "MARS": "Magaram",
+        "MERCURY": "Meenam",
+        "MOON": "Kanni",
+        "RAHU": "Dhanusu",
+        "SATURN": "Rishabam",
+        "SUN": "Mesham",
+        "VENUS": "Mesham"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_exaltation",
+          "jupiter_conjunct_mars",
+          "benefic_strong_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-024",
+      "lagna": "Kadagam",
+      "mars": "Magaram",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Mesham",
+        "KETU": "Magaram",
+        "MARS": "Magaram",
+        "MERCURY": "Thulam",
+        "MOON": "Kadagam",
+        "RAHU": "Kadagam",
+        "SATURN": "Mesham",
+        "SUN": "Viruchigam",
+        "VENUS": "Kanni"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_exaltation",
+          "tamil_sevvai_exception_cancer_leo",
+          "house_sign_nivarthi",
+          "benefic_strong_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-025",
+      "lagna": "Simmam",
+      "mars": "Viruchigam",
+      "mars_house_from_lagna": 4,
+      "placements": {
+        "JUPITER": "Mithunam",
+        "KETU": "Dhanusu",
+        "MARS": "Viruchigam",
+        "MERCURY": "Kadagam",
+        "MOON": "Viruchigam",
+        "RAHU": "Mithunam",
+        "SATURN": "Rishabam",
+        "SUN": "Kadagam",
+        "VENUS": "Mithunam"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "tamil_sevvai_exception_cancer_leo",
+          "house_sign_nivarthi",
+          "benefic_association_mars",
+          "benefic_strong_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-026",
+      "lagna": "Kadagam",
+      "mars": "Magaram",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Simmam",
+        "KETU": "Mithunam",
+        "MARS": "Magaram",
+        "MERCURY": "Meenam",
+        "MOON": "Kanni",
+        "RAHU": "Dhanusu",
+        "SATURN": "Magaram",
+        "SUN": "Meenam",
+        "VENUS": "Kumbam"
+      },
+      "engine_today": {
+        "sevvai_strength": "PARTIAL",
+        "sevvai_mitigations": [
+          "mars_exaltation",
+          "tamil_sevvai_exception_cancer_leo",
+          "house_sign_nivarthi"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-027",
+      "lagna": "Thulam",
+      "mars": "Magaram",
+      "mars_house_from_lagna": 4,
+      "placements": {
+        "JUPITER": "Viruchigam",
+        "KETU": "Kadagam",
+        "MARS": "Magaram",
+        "MERCURY": "Kadagam",
+        "MOON": "Dhanusu",
+        "RAHU": "Magaram",
+        "SATURN": "Rishabam",
+        "SUN": "Mithunam",
+        "VENUS": "Mithunam"
+      },
+      "engine_today": {
+        "sevvai_strength": "STRONG",
+        "sevvai_mitigations": [
+          "mars_exaltation"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-028",
+      "lagna": "Simmam",
+      "mars": "Viruchigam",
+      "mars_house_from_lagna": 4,
+      "placements": {
+        "JUPITER": "Thulam",
+        "KETU": "Dhanusu",
+        "MARS": "Viruchigam",
+        "MERCURY": "Kanni",
+        "MOON": "Thulam",
+        "RAHU": "Mithunam",
+        "SATURN": "Thulam",
+        "SUN": "Thulam",
+        "VENUS": "Kanni"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "tamil_sevvai_exception_cancer_leo",
+          "house_sign_nivarthi",
+          "benefic_strong_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-029",
+      "lagna": "Kadagam",
+      "mars": "Magaram",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Viruchigam",
+        "KETU": "Simmam",
+        "MARS": "Magaram",
+        "MERCURY": "Kumbam",
+        "MOON": "Mithunam",
+        "RAHU": "Kumbam",
+        "SATURN": "Kadagam",
+        "SUN": "Kumbam",
+        "VENUS": "Meenam"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_exaltation",
+          "tamil_sevvai_exception_cancer_leo",
+          "house_sign_nivarthi",
+          "benefic_strong_seventh_lord",
+          "jupiter_aspects_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-030",
+      "lagna": "Kadagam",
+      "mars": "Magaram",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Viruchigam",
+        "KETU": "Kadagam",
+        "MARS": "Magaram",
+        "MERCURY": "Kanni",
+        "MOON": "Magaram",
+        "RAHU": "Magaram",
+        "SATURN": "Rishabam",
+        "SUN": "Kanni",
+        "VENUS": "Kanni"
+      },
+      "engine_today": {
+        "sevvai_strength": "PARTIAL",
+        "sevvai_mitigations": [
+          "mars_exaltation",
+          "tamil_sevvai_exception_cancer_leo",
+          "house_sign_nivarthi",
+          "benefic_association_mars",
+          "jupiter_aspects_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-031",
+      "lagna": "Thulam",
+      "mars": "Mesham",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Kumbam",
+        "KETU": "Kadagam",
+        "MARS": "Mesham",
+        "MERCURY": "Rishabam",
+        "MOON": "Kadagam",
+        "RAHU": "Magaram",
+        "SATURN": "Simmam",
+        "SUN": "Mithunam",
+        "VENUS": "Mesham"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "benefic_association_mars",
+          "benefic_strong_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-032",
+      "lagna": "Kadagam",
+      "mars": "Magaram",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Meenam",
+        "KETU": "Dhanusu",
+        "MARS": "Magaram",
+        "MERCURY": "Dhanusu",
+        "MOON": "Dhanusu",
+        "RAHU": "Mithunam",
+        "SATURN": "Magaram",
+        "SUN": "Dhanusu",
+        "VENUS": "Kumbam"
+      },
+      "engine_today": {
+        "sevvai_strength": "STRONG",
+        "sevvai_mitigations": [
+          "mars_exaltation",
+          "tamil_sevvai_exception_cancer_leo",
+          "house_sign_nivarthi"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-033",
+      "lagna": "Thulam",
+      "mars": "Mesham",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Mesham",
+        "KETU": "Dhanusu",
+        "MARS": "Mesham",
+        "MERCURY": "Mesham",
+        "MOON": "Magaram",
+        "RAHU": "Mithunam",
+        "SATURN": "Kumbam",
+        "SUN": "Mesham",
+        "VENUS": "Mithunam"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "house_sign_nivarthi",
+          "jupiter_conjunct_mars",
+          "benefic_association_mars",
+          "benefic_strong_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-034",
+      "lagna": "Thulam",
+      "mars": "Mesham",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Kumbam",
+        "KETU": "Kumbam",
+        "MARS": "Mesham",
+        "MERCURY": "Meenam",
+        "MOON": "Mesham",
+        "RAHU": "Simmam",
+        "SATURN": "Mesham",
+        "SUN": "Mesham",
+        "VENUS": "Kumbam"
+      },
+      "engine_today": {
+        "sevvai_strength": "PARTIAL",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "benefic_association_mars"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-035",
+      "lagna": "Magaram",
+      "mars": "Mesham",
+      "mars_house_from_lagna": 4,
+      "placements": {
+        "JUPITER": "Mesham",
+        "KETU": "Rishabam",
+        "MARS": "Mesham",
+        "MERCURY": "Kadagam",
+        "MOON": "Mesham",
+        "RAHU": "Viruchigam",
+        "SATURN": "Kadagam",
+        "SUN": "Kadagam",
+        "VENUS": "Simmam"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "house_sign_nivarthi",
+          "jupiter_conjunct_mars",
+          "benefic_association_mars"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-036",
+      "lagna": "Simmam",
+      "mars": "Viruchigam",
+      "mars_house_from_lagna": 4,
+      "placements": {
+        "JUPITER": "Rishabam",
+        "KETU": "Mesham",
+        "MARS": "Viruchigam",
+        "MERCURY": "Viruchigam",
+        "MOON": "Kadagam",
+        "RAHU": "Thulam",
+        "SATURN": "Kadagam",
+        "SUN": "Thulam",
+        "VENUS": "Dhanusu"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "tamil_sevvai_exception_cancer_leo",
+          "house_sign_nivarthi",
+          "jupiter_aspect_on_mars",
+          "benefic_association_mars"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-037",
+      "lagna": "Thulam",
+      "mars": "Magaram",
+      "mars_house_from_lagna": 4,
+      "placements": {
+        "JUPITER": "Magaram",
+        "KETU": "Mithunam",
+        "MARS": "Magaram",
+        "MERCURY": "Kumbam",
+        "MOON": "Viruchigam",
+        "RAHU": "Dhanusu",
+        "SATURN": "Rishabam",
+        "SUN": "Meenam",
+        "VENUS": "Meenam"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_exaltation",
+          "jupiter_conjunct_mars",
+          "benefic_strong_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-038",
+      "lagna": "Rishabam",
+      "mars": "Viruchigam",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Kadagam",
+        "KETU": "Thulam",
+        "MARS": "Viruchigam",
+        "MERCURY": "Simmam",
+        "MOON": "Simmam",
+        "RAHU": "Mesham",
+        "SATURN": "Meenam",
+        "SUN": "Simmam",
+        "VENUS": "Simmam"
+      },
+      "engine_today": {
+        "sevvai_strength": "PARTIAL",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "house_sign_nivarthi",
+          "jupiter_aspect_on_mars",
+          "benefic_strong_seventh_lord",
+          "jupiter_aspects_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-039",
+      "lagna": "Kadagam",
+      "mars": "Magaram",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Kanni",
+        "KETU": "Kanni",
+        "MARS": "Magaram",
+        "MERCURY": "Meenam",
+        "MOON": "Viruchigam",
+        "RAHU": "Meenam",
+        "SATURN": "Mithunam",
+        "SUN": "Meenam",
+        "VENUS": "Meenam"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_exaltation",
+          "tamil_sevvai_exception_cancer_leo",
+          "house_sign_nivarthi",
+          "jupiter_aspect_on_mars"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-040",
+      "lagna": "Rishabam",
+      "mars": "Viruchigam",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Dhanusu",
+        "KETU": "Kadagam",
+        "MARS": "Viruchigam",
+        "MERCURY": "Viruchigam",
+        "MOON": "Kumbam",
+        "RAHU": "Magaram",
+        "SATURN": "Simmam",
+        "SUN": "Viruchigam",
+        "VENUS": "Magaram"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "benefic_association_mars",
+          "benefic_strong_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-041",
+      "lagna": "Simmam",
+      "mars": "Viruchigam",
+      "mars_house_from_lagna": 4,
+      "placements": {
+        "JUPITER": "Dhanusu",
+        "KETU": "Viruchigam",
+        "MARS": "Viruchigam",
+        "MERCURY": "Simmam",
+        "MOON": "Kumbam",
+        "RAHU": "Rishabam",
+        "SATURN": "Thulam",
+        "SUN": "Kadagam",
+        "VENUS": "Simmam"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "tamil_sevvai_exception_cancer_leo",
+          "house_sign_nivarthi",
+          "benefic_strong_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-042",
+      "lagna": "Thulam",
+      "mars": "Mesham",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Dhanusu",
+        "KETU": "Kumbam",
+        "MARS": "Mesham",
+        "MERCURY": "Kadagam",
+        "MOON": "Mesham",
+        "RAHU": "Simmam",
+        "SATURN": "Dhanusu",
+        "SUN": "Mithunam",
+        "VENUS": "Mithunam"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "jupiter_aspect_on_mars",
+          "benefic_association_mars",
+          "benefic_strong_seventh_lord",
+          "jupiter_aspects_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-043",
+      "lagna": "Thulam",
+      "mars": "Magaram",
+      "mars_house_from_lagna": 4,
+      "placements": {
+        "JUPITER": "Kanni",
+        "KETU": "Kanni",
+        "MARS": "Magaram",
+        "MERCURY": "Meenam",
+        "MOON": "Kanni",
+        "RAHU": "Meenam",
+        "SATURN": "Mithunam",
+        "SUN": "Mesham",
+        "VENUS": "Mesham"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_exaltation",
+          "jupiter_aspect_on_mars",
+          "benefic_strong_seventh_lord",
+          "jupiter_aspects_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-044",
+      "lagna": "Magaram",
+      "mars": "Mesham",
+      "mars_house_from_lagna": 4,
+      "placements": {
+        "JUPITER": "Simmam",
+        "KETU": "Thulam",
+        "MARS": "Mesham",
+        "MERCURY": "Kumbam",
+        "MOON": "Rishabam",
+        "RAHU": "Mesham",
+        "SATURN": "Mithunam",
+        "SUN": "Kumbam",
+        "VENUS": "Meenam"
+      },
+      "engine_today": {
+        "sevvai_strength": "STRONG",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "house_sign_nivarthi",
+          "jupiter_aspect_on_mars",
+          "benefic_strong_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-045",
+      "lagna": "Thulam",
+      "mars": "Mesham",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Magaram",
+        "KETU": "Mithunam",
+        "MARS": "Mesham",
+        "MERCURY": "Kumbam",
+        "MOON": "Mesham",
+        "RAHU": "Dhanusu",
+        "SATURN": "Mithunam",
+        "SUN": "Magaram",
+        "VENUS": "Magaram"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "house_sign_nivarthi",
+          "benefic_association_mars",
+          "benefic_strong_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-046",
+      "lagna": "Thulam",
+      "mars": "Magaram",
+      "mars_house_from_lagna": 4,
+      "placements": {
+        "JUPITER": "Kadagam",
+        "KETU": "Viruchigam",
+        "MARS": "Magaram",
+        "MERCURY": "Mesham",
+        "MOON": "Meenam",
+        "RAHU": "Rishabam",
+        "SATURN": "Mithunam",
+        "SUN": "Mesham",
+        "VENUS": "Meenam"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_exaltation",
+          "jupiter_aspect_on_mars",
+          "benefic_strong_seventh_lord",
+          "jupiter_aspects_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-047",
+      "lagna": "Magaram",
+      "mars": "Mesham",
+      "mars_house_from_lagna": 4,
+      "placements": {
+        "JUPITER": "Dhanusu",
+        "KETU": "Meenam",
+        "MARS": "Mesham",
+        "MERCURY": "Rishabam",
+        "MOON": "Kanni",
+        "RAHU": "Kanni",
+        "SATURN": "Meenam",
+        "SUN": "Mesham",
+        "VENUS": "Rishabam"
+      },
+      "engine_today": {
+        "sevvai_strength": "PARTIAL",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "house_sign_nivarthi",
+          "jupiter_aspect_on_mars"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-048",
+      "lagna": "Kadagam",
+      "mars": "Magaram",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Viruchigam",
+        "KETU": "Kadagam",
+        "MARS": "Magaram",
+        "MERCURY": "Meenam",
+        "MOON": "Kadagam",
+        "RAHU": "Magaram",
+        "SATURN": "Rishabam",
+        "SUN": "Mesham",
+        "VENUS": "Meenam"
+      },
+      "engine_today": {
+        "sevvai_strength": "PARTIAL",
+        "sevvai_mitigations": [
+          "mars_exaltation",
+          "tamil_sevvai_exception_cancer_leo",
+          "house_sign_nivarthi",
+          "jupiter_aspects_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-049",
+      "lagna": "Thulam",
+      "mars": "Magaram",
+      "mars_house_from_lagna": 4,
+      "placements": {
+        "JUPITER": "Mithunam",
+        "KETU": "Kadagam",
+        "MARS": "Magaram",
+        "MERCURY": "Mesham",
+        "MOON": "Thulam",
+        "RAHU": "Magaram",
+        "SATURN": "Magaram",
+        "SUN": "Meenam",
+        "VENUS": "Kumbam"
+      },
+      "engine_today": {
+        "sevvai_strength": "STRONG",
+        "sevvai_mitigations": [
+          "mars_exaltation"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-050",
+      "lagna": "Kadagam",
+      "mars": "Magaram",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Kanni",
+        "KETU": "Thulam",
+        "MARS": "Magaram",
+        "MERCURY": "Meenam",
+        "MOON": "Mesham",
+        "RAHU": "Mesham",
+        "SATURN": "Mithunam",
+        "SUN": "Kumbam",
+        "VENUS": "Kumbam"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_exaltation",
+          "tamil_sevvai_exception_cancer_leo",
+          "house_sign_nivarthi",
+          "jupiter_aspect_on_mars"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-051",
+      "lagna": "Simmam",
+      "mars": "Viruchigam",
+      "mars_house_from_lagna": 4,
+      "placements": {
+        "JUPITER": "Kanni",
+        "KETU": "Kanni",
+        "MARS": "Viruchigam",
+        "MERCURY": "Kumbam",
+        "MOON": "Mesham",
+        "RAHU": "Meenam",
+        "SATURN": "Mesham",
+        "SUN": "Meenam",
+        "VENUS": "Mesham"
+      },
+      "engine_today": {
+        "sevvai_strength": "PARTIAL",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "tamil_sevvai_exception_cancer_leo",
+          "house_sign_nivarthi",
+          "benefic_strong_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-052",
+      "lagna": "Magaram",
+      "mars": "Mesham",
+      "mars_house_from_lagna": 4,
+      "placements": {
+        "JUPITER": "Kanni",
+        "KETU": "Magaram",
+        "MARS": "Mesham",
+        "MERCURY": "Mesham",
+        "MOON": "Kumbam",
+        "RAHU": "Kadagam",
+        "SATURN": "Kanni",
+        "SUN": "Mesham",
+        "VENUS": "Mesham"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "house_sign_nivarthi",
+          "benefic_association_mars"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-053",
+      "lagna": "Kadagam",
+      "mars": "Magaram",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Thulam",
+        "KETU": "Rishabam",
+        "MARS": "Magaram",
+        "MERCURY": "Magaram",
+        "MOON": "Mithunam",
+        "RAHU": "Viruchigam",
+        "SATURN": "Kumbam",
+        "SUN": "Magaram",
+        "VENUS": "Magaram"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_exaltation",
+          "tamil_sevvai_exception_cancer_leo",
+          "house_sign_nivarthi",
+          "benefic_association_mars",
+          "benefic_strong_seventh_lord",
+          "jupiter_aspects_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-054",
+      "lagna": "Kadagam",
+      "mars": "Magaram",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Kadagam",
+        "KETU": "Viruchigam",
+        "MARS": "Magaram",
+        "MERCURY": "Mesham",
+        "MOON": "Simmam",
+        "RAHU": "Rishabam",
+        "SATURN": "Mithunam",
+        "SUN": "Meenam",
+        "VENUS": "Kumbam"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_exaltation",
+          "tamil_sevvai_exception_cancer_leo",
+          "house_sign_nivarthi",
+          "jupiter_aspect_on_mars"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-055",
+      "lagna": "Rishabam",
+      "mars": "Viruchigam",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Rishabam",
+        "KETU": "Dhanusu",
+        "MARS": "Viruchigam",
+        "MERCURY": "Magaram",
+        "MOON": "Rishabam",
+        "RAHU": "Mithunam",
+        "SATURN": "Rishabam",
+        "SUN": "Kumbam",
+        "VENUS": "Meenam"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "jupiter_aspect_on_mars",
+          "benefic_strong_seventh_lord",
+          "jupiter_aspects_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-056",
+      "lagna": "Rishabam",
+      "mars": "Viruchigam",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Kanni",
+        "KETU": "Kanni",
+        "MARS": "Viruchigam",
+        "MERCURY": "Magaram",
+        "MOON": "Meenam",
+        "RAHU": "Meenam",
+        "SATURN": "Meenam",
+        "SUN": "Kumbam",
+        "VENUS": "Meenam"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "benefic_strong_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-057",
+      "lagna": "Thulam",
+      "mars": "Magaram",
+      "mars_house_from_lagna": 4,
+      "placements": {
+        "JUPITER": "Kadagam",
+        "KETU": "Viruchigam",
+        "MARS": "Magaram",
+        "MERCURY": "Mesham",
+        "MOON": "Thulam",
+        "RAHU": "Rishabam",
+        "SATURN": "Mithunam",
+        "SUN": "Mesham",
+        "VENUS": "Mesham"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_exaltation",
+          "jupiter_aspect_on_mars",
+          "benefic_strong_seventh_lord",
+          "jupiter_aspects_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-058",
+      "lagna": "Magaram",
+      "mars": "Mesham",
+      "mars_house_from_lagna": 4,
+      "placements": {
+        "JUPITER": "Kanni",
+        "KETU": "Magaram",
+        "MARS": "Mesham",
+        "MERCURY": "Mesham",
+        "MOON": "Mesham",
+        "RAHU": "Kadagam",
+        "SATURN": "Kanni",
+        "SUN": "Mesham",
+        "VENUS": "Mesham"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "house_sign_nivarthi",
+          "benefic_association_mars"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-059",
+      "lagna": "Rishabam",
+      "mars": "Viruchigam",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Rishabam",
+        "KETU": "Mesham",
+        "MARS": "Viruchigam",
+        "MERCURY": "Dhanusu",
+        "MOON": "Rishabam",
+        "RAHU": "Thulam",
+        "SATURN": "Kadagam",
+        "SUN": "Viruchigam",
+        "VENUS": "Magaram"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "jupiter_aspect_on_mars",
+          "benefic_strong_seventh_lord",
+          "jupiter_aspects_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-060",
+      "lagna": "Thulam",
+      "mars": "Mesham",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Rishabam",
+        "KETU": "Simmam",
+        "MARS": "Mesham",
+        "MERCURY": "Magaram",
+        "MOON": "Meenam",
+        "RAHU": "Kumbam",
+        "SATURN": "Dhanusu",
+        "SUN": "Magaram",
+        "VENUS": "Magaram"
+      },
+      "engine_today": {
+        "sevvai_strength": "PARTIAL",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "house_sign_nivarthi",
+          "benefic_strong_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-061",
+      "lagna": "Thulam",
+      "mars": "Mesham",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Rishabam",
+        "KETU": "Simmam",
+        "MARS": "Mesham",
+        "MERCURY": "Magaram",
+        "MOON": "Magaram",
+        "RAHU": "Kumbam",
+        "SATURN": "Dhanusu",
+        "SUN": "Dhanusu",
+        "VENUS": "Dhanusu"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "house_sign_nivarthi",
+          "benefic_strong_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-062",
+      "lagna": "Magaram",
+      "mars": "Mesham",
+      "mars_house_from_lagna": 4,
+      "placements": {
+        "JUPITER": "Mesham",
+        "KETU": "Magaram",
+        "MARS": "Mesham",
+        "MERCURY": "Kumbam",
+        "MOON": "Viruchigam",
+        "RAHU": "Kadagam",
+        "SATURN": "Mesham",
+        "SUN": "Meenam",
+        "VENUS": "Kumbam"
+      },
+      "engine_today": {
+        "sevvai_strength": "PARTIAL",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "house_sign_nivarthi",
+          "jupiter_conjunct_mars"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-063",
+      "lagna": "Simmam",
+      "mars": "Viruchigam",
+      "mars_house_from_lagna": 4,
+      "placements": {
+        "JUPITER": "Mithunam",
+        "KETU": "Kadagam",
+        "MARS": "Viruchigam",
+        "MERCURY": "Magaram",
+        "MOON": "Dhanusu",
+        "RAHU": "Magaram",
+        "SATURN": "Dhanusu",
+        "SUN": "Dhanusu",
+        "VENUS": "Magaram"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "tamil_sevvai_exception_cancer_leo",
+          "house_sign_nivarthi",
+          "benefic_strong_seventh_lord",
+          "jupiter_aspects_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-064",
+      "lagna": "Simmam",
+      "mars": "Viruchigam",
+      "mars_house_from_lagna": 4,
+      "placements": {
+        "JUPITER": "Mithunam",
+        "KETU": "Kadagam",
+        "MARS": "Viruchigam",
+        "MERCURY": "Dhanusu",
+        "MOON": "Simmam",
+        "RAHU": "Magaram",
+        "SATURN": "Dhanusu",
+        "SUN": "Magaram",
+        "VENUS": "Magaram"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "tamil_sevvai_exception_cancer_leo",
+          "house_sign_nivarthi",
+          "benefic_strong_seventh_lord",
+          "jupiter_aspects_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-065",
+      "lagna": "Thulam",
+      "mars": "Mesham",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Rishabam",
+        "KETU": "Simmam",
+        "MARS": "Mesham",
+        "MERCURY": "Magaram",
+        "MOON": "Meenam",
+        "RAHU": "Kumbam",
+        "SATURN": "Dhanusu",
+        "SUN": "Magaram",
+        "VENUS": "Magaram"
+      },
+      "engine_today": {
+        "sevvai_strength": "PARTIAL",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "house_sign_nivarthi",
+          "benefic_strong_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-066",
+      "lagna": "Thulam",
+      "mars": "Mesham",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Mesham",
+        "KETU": "Magaram",
+        "MARS": "Mesham",
+        "MERCURY": "Kumbam",
+        "MOON": "Viruchigam",
+        "RAHU": "Kadagam",
+        "SATURN": "Mesham",
+        "SUN": "Meenam",
+        "VENUS": "Kumbam"
+      },
+      "engine_today": {
+        "sevvai_strength": "PARTIAL",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "jupiter_conjunct_mars"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-067",
+      "lagna": "Thulam",
+      "mars": "Mesham",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Magaram",
+        "KETU": "Mithunam",
+        "MARS": "Mesham",
+        "MERCURY": "Kanni",
+        "MOON": "Kanni",
+        "RAHU": "Dhanusu",
+        "SATURN": "Mithunam",
+        "SUN": "Kanni",
+        "VENUS": "Thulam"
+      },
+      "engine_today": {
+        "sevvai_strength": "PARTIAL",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "benefic_strong_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-068",
+      "lagna": "Magaram",
+      "mars": "Mesham",
+      "mars_house_from_lagna": 4,
+      "placements": {
+        "JUPITER": "Thulam",
+        "KETU": "Mesham",
+        "MARS": "Mesham",
+        "MERCURY": "Rishabam",
+        "MOON": "Thulam",
+        "RAHU": "Thulam",
+        "SATURN": "Kumbam",
+        "SUN": "Rishabam",
+        "VENUS": "Mithunam"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "house_sign_nivarthi",
+          "jupiter_aspect_on_mars"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-069",
+      "lagna": "Rishabam",
+      "mars": "Viruchigam",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Dhanusu",
+        "KETU": "Mithunam",
+        "MARS": "Viruchigam",
+        "MERCURY": "Dhanusu",
+        "MOON": "Kumbam",
+        "RAHU": "Dhanusu",
+        "SATURN": "Rishabam",
+        "SUN": "Dhanusu",
+        "VENUS": "Dhanusu"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "benefic_strong_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-070",
+      "lagna": "Rishabam",
+      "mars": "Viruchigam",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Magaram",
+        "KETU": "Magaram",
+        "MARS": "Viruchigam",
+        "MERCURY": "Viruchigam",
+        "MOON": "Simmam",
+        "RAHU": "Kadagam",
+        "SATURN": "Magaram",
+        "SUN": "Viruchigam",
+        "VENUS": "Thulam"
+      },
+      "engine_today": {
+        "sevvai_strength": "PARTIAL",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "house_sign_nivarthi",
+          "benefic_association_mars",
+          "benefic_strong_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-071",
+      "lagna": "Kadagam",
+      "mars": "Magaram",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Mithunam",
+        "KETU": "Dhanusu",
+        "MARS": "Magaram",
+        "MERCURY": "Kanni",
+        "MOON": "Kumbam",
+        "RAHU": "Mithunam",
+        "SATURN": "Rishabam",
+        "SUN": "Thulam",
+        "VENUS": "Kanni"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_exaltation",
+          "tamil_sevvai_exception_cancer_leo",
+          "house_sign_nivarthi"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-072",
+      "lagna": "Rishabam",
+      "mars": "Viruchigam",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Kanni",
+        "KETU": "Kanni",
+        "MARS": "Viruchigam",
+        "MERCURY": "Mithunam",
+        "MOON": "Simmam",
+        "RAHU": "Meenam",
+        "SATURN": "Mesham",
+        "SUN": "Kadagam",
+        "VENUS": "Rishabam"
+      },
+      "engine_today": {
+        "sevvai_strength": "PARTIAL",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "house_sign_nivarthi",
+          "benefic_strong_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-073",
+      "lagna": "Simmam",
+      "mars": "Viruchigam",
+      "mars_house_from_lagna": 4,
+      "placements": {
+        "JUPITER": "Magaram",
+        "KETU": "Kumbam",
+        "MARS": "Viruchigam",
+        "MERCURY": "Thulam",
+        "MOON": "Rishabam",
+        "RAHU": "Simmam",
+        "SATURN": "Meenam",
+        "SUN": "Thulam",
+        "VENUS": "Viruchigam"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "tamil_sevvai_exception_cancer_leo",
+          "house_sign_nivarthi",
+          "benefic_association_mars"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-074",
+      "lagna": "Thulam",
+      "mars": "Magaram",
+      "mars_house_from_lagna": 4,
+      "placements": {
+        "JUPITER": "Meenam",
+        "KETU": "Dhanusu",
+        "MARS": "Magaram",
+        "MERCURY": "Dhanusu",
+        "MOON": "Dhanusu",
+        "RAHU": "Mithunam",
+        "SATURN": "Magaram",
+        "SUN": "Dhanusu",
+        "VENUS": "Kumbam"
+      },
+      "engine_today": {
+        "sevvai_strength": "STRONG",
+        "sevvai_mitigations": [
+          "mars_exaltation"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-075",
+      "lagna": "Kadagam",
+      "mars": "Magaram",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Rishabam",
+        "KETU": "Mesham",
+        "MARS": "Magaram",
+        "MERCURY": "Kumbam",
+        "MOON": "Thulam",
+        "RAHU": "Thulam",
+        "SATURN": "Kadagam",
+        "SUN": "Kumbam",
+        "VENUS": "Mesham"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_exaltation",
+          "tamil_sevvai_exception_cancer_leo",
+          "house_sign_nivarthi",
+          "jupiter_aspect_on_mars",
+          "benefic_strong_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-076",
+      "lagna": "Thulam",
+      "mars": "Magaram",
+      "mars_house_from_lagna": 4,
+      "placements": {
+        "JUPITER": "Viruchigam",
+        "KETU": "Kadagam",
+        "MARS": "Magaram",
+        "MERCURY": "Kanni",
+        "MOON": "Dhanusu",
+        "RAHU": "Magaram",
+        "SATURN": "Rishabam",
+        "SUN": "Kanni",
+        "VENUS": "Kanni"
+      },
+      "engine_today": {
+        "sevvai_strength": "PARTIAL",
+        "sevvai_mitigations": [
+          "mars_exaltation"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-077",
+      "lagna": "Kadagam",
+      "mars": "Magaram",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Kanni",
+        "KETU": "Kanni",
+        "MARS": "Magaram",
+        "MERCURY": "Meenam",
+        "MOON": "Kumbam",
+        "RAHU": "Meenam",
+        "SATURN": "Mithunam",
+        "SUN": "Meenam",
+        "VENUS": "Meenam"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_exaltation",
+          "tamil_sevvai_exception_cancer_leo",
+          "house_sign_nivarthi",
+          "jupiter_aspect_on_mars"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-078",
+      "lagna": "Thulam",
+      "mars": "Mesham",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Viruchigam",
+        "KETU": "Simmam",
+        "MARS": "Mesham",
+        "MERCURY": "Mithunam",
+        "MOON": "Kanni",
+        "RAHU": "Kumbam",
+        "SATURN": "Kadagam",
+        "SUN": "Mithunam",
+        "VENUS": "Kadagam"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "benefic_strong_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-079",
+      "lagna": "Kadagam",
+      "mars": "Magaram",
+      "mars_house_from_lagna": 7,
+      "placements": {
+        "JUPITER": "Kadagam",
+        "KETU": "Kumbam",
+        "MARS": "Magaram",
+        "MERCURY": "Dhanusu",
+        "MOON": "Thulam",
+        "RAHU": "Simmam",
+        "SATURN": "Simmam",
+        "SUN": "Magaram",
+        "VENUS": "Viruchigam"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_exaltation",
+          "tamil_sevvai_exception_cancer_leo",
+          "house_sign_nivarthi",
+          "jupiter_aspect_on_mars"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-080",
+      "lagna": "Thulam",
+      "mars": "Magaram",
+      "mars_house_from_lagna": 4,
+      "placements": {
+        "JUPITER": "Simmam",
+        "KETU": "Mithunam",
+        "MARS": "Magaram",
+        "MERCURY": "Meenam",
+        "MOON": "Kadagam",
+        "RAHU": "Dhanusu",
+        "SATURN": "Magaram",
+        "SUN": "Meenam",
+        "VENUS": "Kumbam"
+      },
+      "engine_today": {
+        "sevvai_strength": "STRONG",
+        "sevvai_mitigations": [
+          "mars_exaltation",
+          "house_sign_nivarthi"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-081",
+      "lagna": "Magaram",
+      "mars": "Mesham",
+      "mars_house_from_lagna": 4,
+      "placements": {
+        "JUPITER": "Thulam",
+        "KETU": "Simmam",
+        "MARS": "Mesham",
+        "MERCURY": "Kumbam",
+        "MOON": "Mesham",
+        "RAHU": "Kumbam",
+        "SATURN": "Mesham",
+        "SUN": "Kumbam",
+        "VENUS": "Meenam"
+      },
+      "engine_today": {
+        "sevvai_strength": "PARTIAL",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "house_sign_nivarthi",
+          "jupiter_aspect_on_mars",
+          "benefic_association_mars",
+          "jupiter_aspects_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-082",
+      "lagna": "Simmam",
+      "mars": "Viruchigam",
+      "mars_house_from_lagna": 4,
+      "placements": {
+        "JUPITER": "Kanni",
+        "KETU": "Kanni",
+        "MARS": "Viruchigam",
+        "MERCURY": "Mesham",
+        "MOON": "Kadagam",
+        "RAHU": "Meenam",
+        "SATURN": "Mesham",
+        "SUN": "Mesham",
+        "VENUS": "Meenam"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "tamil_sevvai_exception_cancer_leo",
+          "house_sign_nivarthi",
+          "benefic_strong_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-083",
+      "lagna": "Thulam",
+      "mars": "Magaram",
+      "mars_house_from_lagna": 4,
+      "placements": {
+        "JUPITER": "Rishabam",
+        "KETU": "Viruchigam",
+        "MARS": "Magaram",
+        "MERCURY": "Dhanusu",
+        "MOON": "Kanni",
+        "RAHU": "Rishabam",
+        "SATURN": "Kumbam",
+        "SUN": "Dhanusu",
+        "VENUS": "Magaram"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_exaltation",
+          "jupiter_aspect_on_mars",
+          "benefic_association_mars",
+          "benefic_strong_seventh_lord",
+          "jupiter_aspects_seventh_lord"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    },
+    {
+      "id": "RS-084",
+      "lagna": "Magaram",
+      "mars": "Mesham",
+      "mars_house_from_lagna": 4,
+      "placements": {
+        "JUPITER": "Kanni",
+        "KETU": "Kanni",
+        "MARS": "Mesham",
+        "MERCURY": "Kadagam",
+        "MOON": "Simmam",
+        "RAHU": "Meenam",
+        "SATURN": "Kadagam",
+        "SUN": "Kadagam",
+        "VENUS": "Simmam"
+      },
+      "engine_today": {
+        "sevvai_strength": "WEAK",
+        "sevvai_mitigations": [
+          "mars_own_sign",
+          "house_sign_nivarthi"
+        ],
+        "ruchaka": true
+      },
+      "astrologer_verdict": ""
+    }
+  ]
+}

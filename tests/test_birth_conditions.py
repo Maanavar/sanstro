@@ -358,12 +358,8 @@ def test_alert_a_is_never_a_dosham_and_never_costs_strength() -> None:
     assert bc.birth_condition_strength_penalties(flags) == {}
 
 
-def test_alert_b_is_gated_until_the_punya_kala_table_exists() -> None:
-    """The old rule fired for any birth on the civil day of an ingress. With
-    the table empty, no birth is a traditional Sankranti birth."""
-    assert bc.SANKRANTI_PUNYA_KALA_NAZHIGAI == {}
-    for minutes in (-1.0, 0.0, 1.0, 600.0):
-        assert not bc.is_traditional_sankranti_birth(10, minutes)
+def _ingress_birth_flags() -> set[str]:
+    """Born at the Makara ingress itself: inside every reading of its window."""
     flags = bc.detect_birth_conditions(
         planet_longitudes={"SUN": 270.0, "MOON": 100.0, "RAHU": 50.0},
         tithi_number=15,
@@ -372,7 +368,35 @@ def test_alert_b_is_gated_until_the_punya_kala_table_exists() -> None:
         sun_speed_deg_per_day=_SPEED,
         birth_time_uncertainty_minutes=0,
     )
-    assert "SANKRANTI_BIRTH" not in {f.code for f in flags}
+    return {f.code for f in flags}
+
+
+def test_alert_b_stays_off_although_the_table_is_built() -> None:
+    """Ruling Q4 (2026-10-30): the table is built, the alert is not shown. The
+    old rule fired for any birth on the civil day of an ingress."""
+    assert bc.SANKRANTI_ALERT_B_ENABLED is False
+    assert bc.is_traditional_sankranti_birth(10, -1.0), "the window itself is live"
+    assert "SANKRANTI_BIRTH" not in _ingress_birth_flags()
+
+
+def test_the_switch_is_the_only_thing_holding_alert_b(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The gate's own mutant: with the switch on, the same birth alerts. If
+    this ever fails, the test above passes for some other reason."""
+    monkeypatch.setattr(bc, "SANKRANTI_ALERT_B_ENABLED", True)
+    assert "SANKRANTI_BIRTH" in _ingress_birth_flags()
+
+
+def test_the_punya_kala_table_is_the_dharmasindhu_scheme() -> None:
+    """Four classes, directional windows in nazhigai (= ghati). Provisional:
+    the reference almanac's page must confirm or correct each row."""
+    table = bc.SANKRANTI_PUNYA_KALA_NAZHIGAI
+    assert table[10] == (0.0, 40.0) and table[4] == (30.0, 0.0)
+    for rasi, cls in bc.SANKRANTI_CLASS.items():
+        expected = {"VISHUVA": (15.0, 15.0), "VISHNUPADI": (16.0, 0.0), "SHADASHITIMUKHA": (0.0, 16.0)}.get(cls)
+        if expected:
+            assert table[rasi] == expected, (rasi, cls)
+    assert sorted(table) == list(range(1, 13))
+    assert bc.SANKRANTI_PUNYA_KALA_SOURCE["provenance"] == "cited_provisional"
 
 
 def test_alert_b_window_is_directional_once_populated(monkeypatch: pytest.MonkeyPatch) -> None:

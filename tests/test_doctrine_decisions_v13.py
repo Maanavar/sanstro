@@ -371,9 +371,10 @@ def test_dd05_same_consumer_reading_for_both_genders() -> None:
 def test_dd06_cancer_leo_exception_mitigates_but_never_erases() -> None:
     """DD-06: the exception is the only mitigation here, so the dosham stays
     present and uncancelled — one grade lighter, never erased."""
-    # Sevvai in Kadagam, the lagna itself (debilitated). Guru in Rishabam
-    # aspects 6, 8 and 10 — neither Sevvai nor Sani (the 7th lord, in Mithunam).
-    chart = {**_SV, SEVVAI: 4, GURU: 2}
+    # Sevvai in Simmam, the 2nd (the 1st left the default set on 2026-10-30,
+    # Q5). Guru in Rishabam aspects 6, 8 and 10 — neither Sevvai nor Sani
+    # (the 7th lord, in Mithunam).
+    chart = {**_SV, SEVVAI: 5, GURU: 2}
     result = detect_sevvai_dosham(chart, KADAGAM)
     assert "tamil_sevvai_exception_cancer_leo" in result.cancellation_factors
     assert result.is_present is True

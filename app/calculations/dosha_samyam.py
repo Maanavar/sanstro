@@ -75,9 +75,9 @@ def compare_marriage_doshams(
 #
 # The reckoning: count the malefics occupying the marriage-sensitive houses
 # **from each of three references in turn** — Lagna, Moon and Venus — in both
-# charts, and compare the totals. This is the same three-reference frame the
-# Sevvai rule uses (`_yoga_helpers.TAMIL_SEVVAI_HOUSES`), which is why it is
-# written against the same house set rather than a second one.
+# charts, and compare the totals. It was written against the Sevvai house set;
+# the 2026-10-30 ruling (DOCTRINE_DECISIONS_V1 §18, Q5) moved Sevvai to the Tamil five and
+# ruled on Sevvai only, so papa samyam keeps its six until it is ruled.
 
 #: The malefics counted. Mandhi/Gulika is deliberately NOT here even though
 #: `_yoga_helpers.NATURAL_MALEFICS` includes it: papa samyam as practised
@@ -86,7 +86,7 @@ def compare_marriage_doshams(
 PAPA_GRAHAS: frozenset[str] = frozenset({"SUN", "MARS", "SATURN", "RAHU", "KETU"})
 
 #: Houses from each reference in which a malefic carries papa weight —
-#: 1, 2, 4, 7, 8, 12, the Sevvai set.
+#: 1, 2, 4, 7, 8, 12. Not tied to `_yoga_helpers.SEVVAI_HOUSE_SETS`.
 PAPA_HOUSES: frozenset[int] = frozenset({1, 2, 4, 7, 8, 12})
 
 #: References counted from, in the order they are reported.

@@ -73,10 +73,12 @@ def test_only_the_five_papa_grahas_count() -> None:
     assert papa_count(benefics_in_papa_houses, 1).total == 0
 
 
-def test_the_papa_houses_are_the_sevvai_set() -> None:
-    from app.calculations._yoga_helpers import TAMIL_SEVVAI_HOUSES
+def test_the_papa_houses_keep_the_six_after_the_sevvai_ruling() -> None:
+    """The 2026-10-30 ruling (Q5) moved Sevvai to the Tamil five and ruled on
+    Sevvai only, so papa samyam keeps 1, 2, 4, 7, 8, 12 until it is ruled."""
+    from app.calculations._yoga_helpers import SEVVAI_HOUSE_SETS
 
-    assert PAPA_HOUSES == frozenset(TAMIL_SEVVAI_HOUSES)
+    assert PAPA_HOUSES == SEVVAI_HOUSE_SETS["union_six"]
 
 
 def test_a_missing_reference_graha_is_skipped_not_counted_as_zero() -> None:

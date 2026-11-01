@@ -17,6 +17,12 @@ on the Gregorian year by a modulus.
 Callers pass the **Tamil day** — the previous civil date for a birth before
 sunrise (AAU-02) — so the 1 a.m. before Chithirai 1 still names the old year.
 
+Three sources, deliberately (owner ruling 2026-10-30, V1 §18 Q3): the year and
+its name from the reference almanac (Vasan Suththa Thirukkanidha Panchangam);
+the ayanam from this engine's sidereal calculation; the ruthus in
+Tholkappiyam's order, which a Sanskrit seasonal order printed in an almanac
+does not override.
+
 The 60 names are the forms Tamil almanacs print; native review pending.
 """
 from __future__ import annotations

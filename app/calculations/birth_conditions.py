@@ -170,8 +170,8 @@ def is_sankranti_birth(sun_rasi_day_start: int, sun_rasi_day_end: int) -> bool:
 #    time. Window = the stated uncertainty, not a constant.
 # B. Traditional Sankranti assessment (doctrine, gated). Punya kala is
 #    directional and class-dependent: {class, nazhigai before, nazhigai after}
-#    per sankranti, from the panchangam of record. Until that table is filled
-#    in, Alert B does not fire — no interval is hard-coded to close the item.
+#    per sankranti. The table is built (Q4, 2026-10-30) but Alert B stays off
+#    behind its own switch until the almanac and the astrologer confirm it.
 
 #: Sankranti class by the rasi the Sun enters (1 = Mesham).
 SANKRANTI_CLASS: dict[int, str] = {
@@ -181,9 +181,37 @@ SANKRANTI_CLASS: dict[int, str] = {
     2: "VISHNUPADI", 5: "VISHNUPADI", 8: "VISHNUPADI", 11: "VISHNUPADI",
 }
 
-#: rasi entered -> (nazhigai before the ingress, nazhigai after). Empty until
-#: the panchangam of record supplies it; Alert B is gated on it.
-SANKRANTI_PUNYA_KALA_NAZHIGAI: dict[int, tuple[float, float]] = {}
+#: rasi entered -> (nazhigai before the ingress, nazhigai after); one ghati is
+#: one nazhigai. Owner ruling 2026-10-30 (DOCTRINE_DECISIONS_V1 §18, Q4): the Dharmasindhu
+#: scheme, built now and flagged `cited_provisional` because Tamil almanacs may
+#: print their own figures. It does NOT switch Alert B on; see
+#: `SANKRANTI_ALERT_B_ENABLED`.
+SANKRANTI_PUNYA_KALA_NAZHIGAI: dict[int, tuple[float, float]] = {
+    10: (0.0, 40.0),                                          # Makara: 40 after
+    4: (30.0, 0.0),                                           # Kataka: 30 before
+    1: (15.0, 15.0), 7: (15.0, 15.0),                         # Vishuva: 15 each side
+    2: (16.0, 0.0), 5: (16.0, 0.0), 8: (16.0, 0.0), 11: (16.0, 0.0),   # Vishnupadi: 16 before
+    3: (0.0, 16.0), 6: (0.0, 16.0), 9: (0.0, 16.0), 12: (0.0, 16.0),   # Shadashitimukha: 16 after
+}
+
+#: Where the table comes from. Edition and page are owed: the ruling named the
+#: text but not a printed edition, and the reference almanac's (Vasan Suththa
+#: Thirukkanidha Panchangam) punya kalam page must confirm or correct it.
+SANKRANTI_PUNYA_KALA_SOURCE: dict[str, str] = {
+    "text": "Dharmasindhu",
+    "provenance": "cited_provisional",
+    "translator_or_publisher": "",
+    "edition": "",
+    "page": "",
+    "awaiting": "the reference almanac's punya kalam page; the astrologer's figures",
+}
+
+#: Alert B stays off, independently of the table (ruling Q4). Two things must
+#: be settled first: the almanac confirms the figures, and the astrologer says
+#: which question the alert answers — a birth inside punya kalam (an
+#: auspicious ritual window, not a problem) or sankramana jananam (birth at the
+#: moment of ingress, which has its own santhi). Only Alert A ships.
+SANKRANTI_ALERT_B_ENABLED = False
 
 _NAZHIGAI_MINUTES = 24.0
 
@@ -214,8 +242,8 @@ def sun_sign_is_uncertain(
 
 
 def is_traditional_sankranti_birth(rasi_entered: int, minutes_to_ingress: float) -> bool:
-    """Alert B: the birth falls inside that sankranti's punya kala. Always False
-    until `SANKRANTI_PUNYA_KALA_NAZHIGAI` is populated (gated by the ruling)."""
+    """The birth falls inside that sankranti's punya kala. A pure window test:
+    whether Alert B is shown is `SANKRANTI_ALERT_B_ENABLED`'s decision."""
     window = SANKRANTI_PUNYA_KALA_NAZHIGAI.get(rasi_entered)
     if window is None:
         return False
@@ -410,14 +438,14 @@ def detect_birth_conditions(
         )
 
     # --- AAU-19 Alert B: traditional Sankranti birth (gated) ------------------
-    # Fires only inside the sankranti's punya kala from the panchangam of
-    # record (`SANKRANTI_PUNYA_KALA_NAZHIGAI`, empty today). It used to fire
-    # for any birth on the civil day of an ingress.
+    # Off (`SANKRANTI_ALERT_B_ENABLED`, ruling Q4). When on, it fires only
+    # inside the sankranti's punya kala (`SANKRANTI_PUNYA_KALA_NAZHIGAI`). It
+    # used to fire for any birth on the civil day of an ingress.
     rasi_entered = (
         int(normalize_longitude(sun_lon + (30.0 if minutes_to_ingress > 0 else 0.0)) // 30) % 12 + 1
         if sun_lon is not None and minutes_to_ingress is not None else None
     )
-    if rasi_entered is not None and minutes_to_ingress is not None and is_traditional_sankranti_birth(
+    if SANKRANTI_ALERT_B_ENABLED and rasi_entered is not None and minutes_to_ingress is not None and is_traditional_sankranti_birth(
         rasi_entered, minutes_to_ingress,
     ):
         flags.append(

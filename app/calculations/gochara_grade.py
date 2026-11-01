@@ -16,8 +16,9 @@ The named Saturn periods (Ezharai 12/1/2, Ardhashtama 4, Ashtama 8) are a
 separate axis — named alerts, not this grade. The 7th and 10th need care
 because of the gochara table, not because they belong to a named cycle.
 
-RAHU / KETU — ruled 2026-10-29 (AAU-09). The standard Tamil panchangam
-gochara table: Rahu favours 3/6/10/11, Ketu 3/6/11. The nodes are never
+RAHU / KETU — ruled 2026-10-29 (AAU-09): Rahu favours 3/6/10/11, Ketu
+3/6/11. Kept by the owner ruling of 2026-10-30 (V1 §18, Q2), which also moved the
+citation: a gochara text (to be named by the astrologer), never the almanac. The nodes are never
 interchangeable: they sit 180° apart, so Rahu in the 10th puts Ketu in the
 4th, and each is graded on its own set. No mixed band, as for Sani.
 

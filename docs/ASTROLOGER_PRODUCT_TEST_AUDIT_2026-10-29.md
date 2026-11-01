@@ -59,7 +59,12 @@ countersignature. Every gate below was run once with its fix removed and failed.
 | 19 | Alert A (time precision) ships; Alert B gated on punya kala table | whole-day alert and its Sun penalty gone |
 | Follow-up | Career (24–50) and wealth (28–50) age bonuses dropped like AAU-14 | 4 of 4 fail on old code |
 
-**Still open, not code:** a panchangam of record; a named authority for the six-house Sevvai set and
+**30 Oct:** the owner ruled on the list below (`DOCTRINE_DECISIONS_V1.md` §18): Vasan named as the
+convention almanac; Sevvai moved to the Tamil five; Putra Sarpa graded from a node in the 5th; parihara
+never automatic, and no output may deny children. What each ruling still owes is in §18's "Owed"
+column and in Parts D–E of `ASTROLOGER_QUESTIONS_2026-10-29.md`.
+
+**Still open, not code (as of 29 Oct):** a panchangam of record; a named authority for the six-house Sevvai set and
 1st-house nivarthi signs; AAU-12 trigger weights; the 108 syllables; native review of the Tamil
 names and copy added here; the UI note that the nirayana ayanam turns ~23 days after the solstice;
 mobile still renders only the good-day flag, not the split time.

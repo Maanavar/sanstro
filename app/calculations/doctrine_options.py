@@ -173,6 +173,11 @@ class DoctrineOptions:
     #: old name; since AAU-12 (2026-10-29) Saturn forms Santhana Thadai, not
     #: Putra Sarpa, so that is the detector this governs.
     o32_putra_sarpa_thulam_sani: str = "neutralized"
+    #: Sevvai house set. Owner ruling 2026-10-30 (DOCTRINE_DECISIONS_V1 §18, Q5):
+    #: "tamil_five" (2, 4, 7, 8, 12). "manglik_five" (1, 4, 7, 8, 12) and
+    #: "union_six" (both, the engine's set until this ruling) are documented
+    #: alternatives. Lineage text for the default still owed by the astrologer.
+    sevvai_house_set: str = "tamil_five"
     #: DD-12 legacy: Moon benefic only beyond 72° of elongation. Off by default.
     moon_72_degree_convention: bool = False
     #: DD-02 — show the Phaladeepika Lakshmi variant in the consumer UI. Off.
@@ -195,6 +200,7 @@ _STRING_CHOICES: dict[str, frozenset[str]] = {
     "o27_sevvai_seventh_lord_strength": frozenset({"dignity_or_kendra_trikona", "kendra_functional_benefic"}),
     "o28_rk_second_house_support": frozenset({"dignity", "strong_or_benefic", "off"}),
     "o32_putra_sarpa_thulam_sani": frozenset({"neutralized", "ordinary"}),
+    "sevvai_house_set": frozenset({"tamil_five", "manglik_five", "union_six"}),
 }
 
 

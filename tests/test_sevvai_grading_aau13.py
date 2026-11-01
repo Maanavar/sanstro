@@ -1,8 +1,8 @@
 """AAU-13 (ruled 2026-10-29): Sevvai is declared from the Lagna and graded by
 the Moon and Venus.
 
-The 1st house stays in the set (it is the first word of the base verse). What
-made 91% of charts "have" Sevvai was OR-ing three reference points; the grading
+The house set is the Tamil five since 2026-10-30 (Q5). What made 91% of
+charts "have" Sevvai was OR-ing three reference points; the grading
 table is Vinaadi product policy, since no verse gives a combination rule:
 
     Lagna only               mild       WEAK
@@ -21,7 +21,8 @@ from collections import Counter
 import pytest
 
 from app.calculations._yoga_dosham import detect_sevvai_dosham
-from app.calculations._yoga_helpers import TAMIL_SEVVAI_HOUSES
+from app.calculations._yoga_helpers import SEVVAI_HOUSE_SETS, TAMIL_SEVVAI_HOUSES
+from app.calculations.doctrine_options import DEFAULT_DOCTRINE, DoctrineOptions
 from app.calculations.ephemeris import calculate_sidereal_planets
 
 pytestmark = pytest.mark.no_db
@@ -41,9 +42,23 @@ def _population(n: int = 600, seed: int = 1013) -> list[tuple[dict[str, int], in
 _POP = _population()
 
 
-def test_the_first_house_stays_in_the_set() -> None:
-    """लग्ने व्यये च पाताले जामित्रे चाष्टमे कुजे — the 1st is the verse's first word."""
-    assert TAMIL_SEVVAI_HOUSES == {1, 2, 4, 7, 8, 12}
+def test_the_default_set_is_the_tamil_five() -> None:
+    """Owner ruling 2026-10-30 (Q5). लग्ने व्यये च पाताले… gives 1, 4, 7, 8, 12;
+    the Tamil enumeration gives 2, 4, 7, 8, 12. The six-house set was the two
+    added together; both other readings stay selectable, never the default."""
+    assert TAMIL_SEVVAI_HOUSES == {2, 4, 7, 8, 12}
+    assert DEFAULT_DOCTRINE.sevvai_house_set == "tamil_five"
+    assert SEVVAI_HOUSE_SETS["union_six"] == {1, 2, 4, 7, 8, 12}
+    assert SEVVAI_HOUSE_SETS["manglik_five"] == {1, 4, 7, 8, 12}
+
+
+def test_a_first_house_mars_is_sevvai_only_under_the_alternatives() -> None:
+    # Mesham lagna, Mars in Mesham; Moon and Venus placed so they do not count.
+    planets = {"MARS": 1, "MOON": 3, "VENUS": 3, "JUPITER": 6}
+    assert not detect_sevvai_dosham(planets, 1).is_present
+    for house_set in ("manglik_five", "union_six"):
+        doctrine = DoctrineOptions(sevvai_house_set=house_set)
+        assert detect_sevvai_dosham(planets, 1, doctrine=doctrine).is_present, house_set
 
 
 def test_no_sevvai_is_declared_without_a_lagna_placement() -> None:
@@ -82,8 +97,8 @@ def test_the_formation_grade_follows_the_reference_count() -> None:
 
 def test_prevalence_print_and_ceiling() -> None:
     """A smoke test against practitioner experience, never a tuning target.
-    The Lagna alone hits six houses of twelve, so declared Sevvai should sit
-    near half the population; the old three-way OR gave ~91%. Run with -s to
+    The Lagna alone hits five houses of twelve, so declared Sevvai should sit
+    near 42% of the population; the old three-way OR gave ~91%. Run with -s to
     see the shares."""
     states = Counter()
     for planets, lagna in _POP:
@@ -95,3 +110,21 @@ def test_prevalence_print_and_ceiling() -> None:
     n = len(_POP)
     print({k: f"{100 * v / n:.1f}%" for k, v in sorted(states.items())})
     assert states["present"] / n < 0.65
+
+
+def test_ruchaka_on_the_same_mars_keeps_both_verdicts_and_says_why() -> None:
+    """Owner ruling 2026-10-30 (V1 §18 B): O-18 stands, so Ruchaka never cancels
+    Sevvai. Where both form, the card carries a reconciliation note; nowhere
+    else. Swept over the population so both directions are exercised."""
+    from app.calculations._yoga_detect import detect_pancha_mahapurusha
+
+    both = 0
+    for planets, lagna in _POP:
+        result = detect_sevvai_dosham(planets, lagna)
+        ruchaka = any(y.is_present and y.name == "RUCHAKA_YOGA" for y in detect_pancha_mahapurusha(planets, lagna))
+        noted = "sevvai_mars_strength_both_ways" in result.context_notes
+        assert noted == (result.is_present and ruchaka), (planets, lagna)
+        if noted:
+            both += 1
+            assert not result.is_cancelled
+    assert both, "the population never placed Ruchaka and Sevvai on one Mars"

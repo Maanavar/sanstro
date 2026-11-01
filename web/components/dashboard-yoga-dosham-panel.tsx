@@ -1146,6 +1146,17 @@ export const YOGA_REMEDIES: Record<string, { ta: string; en: string }> = {
   KALASARPA: {
     ta: "திருநாகேஸ்வரம் அல்லது காளஹஸ்தியில் கால சர்ப்ப தோஷ பரிகாரம், நாக வழிபாடு, ஆடி மற்றும் கார்த்திகை மாதங்களில் சர்ப்ப சாந்தி, ஆண்டு தோறும் ஒரு முறை ஆன்மீக பூஜை.",
     en: "Kala Sarpa Dosha parihara at Thirunageswaram or Kalahasti, Naga worship, Sarpa Shanti in Aadi and Karthigai months, annual spiritual puja.",
+  },
+  // Owner ruling 2026-10-30 (DOCTRINE_DECISIONS_V1 §18, Q8): Guru Chandala is its own
+  // finding with Guru's parihara — never the naga route Putra Sarpa used to
+  // send it to. Same for the Ketu variant's card.
+  CHANDALA_YOGA: {
+    ta: "வியாழக்கிழமை குரு வழிபாடு, தட்சிணாமூர்த்தி வழிபாடு, ஆலங்குடி (குரு ஸ்தலம்) தரிசனம்.",
+    en: "Thursday Jupiter worship, Dakshinamurthy worship, and a visit to Alangudi, Jupiter's navagraha temple.",
+  },
+  CHANDALA_KETU_YOGA: {
+    ta: "வியாழக்கிழமை குரு வழிபாடு, தட்சிணாமூர்த்தி வழிபாடு, ஆலங்குடி (குரு ஸ்தலம்) தரிசனம்.",
+    en: "Thursday Jupiter worship, Dakshinamurthy worship, and a visit to Alangudi, Jupiter's navagraha temple.",
   },
 };
 
@@ -1227,6 +1238,14 @@ export const DOSHAM_OUTCOMES: Record<string, { ta: string; en: string }> = {
   },
 };
 
+/**
+ * Owner ruling 2026-10-30 (DOCTRINE_DECISIONS_V1 §18, Q10): every dosham has two parihara
+ * slots. This map is the **cause** slot (the graha that forms it);
+ * `DOSHAM_OBJECTIVE_PARIHARA` below is the **objective** slot (what the family
+ * hopes for). An objective slot is filled only where one is ruled; none is
+ * invented. The server's `assessment.parihara` picks: "full" shows both,
+ * "objective_only" the objective slot alone, "none" neither.
+ */
 export const DOSHAM_REMEDIES: Record<string, { ta: string; en: string }> = {
   SEVVAI_DOSHAM: {
     ta: "செவ்வாய்க்கிழமை திருவிடைமருதூர் அல்லது வைத்தீஸ்வரன் கோயில் வழிபாடு, முருகன் வழிபாடு, கரும்மாரியம்மன் வேண்டல், திருவெள்ளிக்கேணி வழிபாடு. ஒரே போன்ற செவ்வாய் நிலை உள்ள துணையை தேர்ந்தெடுப்பது பொருத்தத்தை சீர்படுத்தும்.",
@@ -1254,18 +1273,34 @@ export const DOSHAM_REMEDIES: Record<string, { ta: string; en: string }> = {
   },
   PUTRA_SARPA_DOSHAM: {
     // Medical guidance is said once, under "How to reduce impact".
-    ta: "சந்தான கோபால மந்திரம், திருநாகேஸ்வரம்/மன்னார்குடி வழிபாடு, நாக பிரதிஷ்டை பரிகாரம், வியாழக்கிழமை குரு வழிபாடு.",
-    en: "Santana Gopala mantra, worship at Thirunageswaram/Mannargudi, Naga pratishtha parihara, and Thursday Jupiter worship.",
+    ta: "திருநாகேஸ்வரம் வழிபாடு, நாக பிரதிஷ்டை பரிகாரம்.",
+    en: "Worship at Thirunageswaram and Naga pratishtha parihara.",
   },
   // AAU-12: Saturn's parihara, never the naga route above.
   SANTHANA_THADAI: {
-    ta: "சனிக்கிழமை சனீஸ்வரர் வழிபாடு, திருநள்ளாறு தரிசனம், எள் தீபம், சந்தான கோபால மந்திரம்.",
-    en: "Saturday worship of Saneeswaran, a visit to Thirunallar, an ellu (sesame) deepam, and the Santana Gopala mantra.",
+    ta: "சனிக்கிழமை சனீஸ்வரர் வழிபாடு, திருநள்ளாறு தரிசனம், எள் தீபம்.",
+    en: "Saturday worship of Saneeswaran, a visit to Thirunallar, and an ellu (sesame) deepam.",
   },
   // Fallback only; `getDoshamRemedies` names the planet's own day and temple.
   MARANA_KARAKA_STHANA: {
     ta: "மரண காரக ஸ்தானத்தில் உள்ள கிரகத்திற்குரிய கிழமையில் அதன் வழிபாடு, அதன் நவக்கிரக ஸ்தலத்தில் தரிசனம், அதன் தசை அல்லது புக்தி தொடங்கும் முன் நவக்கிரக வழிபாடு.",
     en: "Worship of the planet in its Marana Karaka Sthana on its own weekday, a visit to its navagraha temple, and a navagraha puja before its dasha or bhukti begins.",
+  },
+};
+
+/**
+ * The objective slot (V1 §18, Q10): for the matter the family is worried about,
+ * not the graha. Children findings only, as ruled; the text was already in
+ * the single remedy line and is split out, not new.
+ */
+export const DOSHAM_OBJECTIVE_PARIHARA: Record<string, { ta: string; en: string }> = {
+  PUTRA_SARPA_DOSHAM: {
+    ta: "சந்தான கோபால மந்திரம், மன்னார்குடி வழிபாடு, வியாழக்கிழமை குரு வழிபாடு.",
+    en: "The Santana Gopala mantra, worship at Mannargudi, and Thursday Jupiter worship.",
+  },
+  SANTHANA_THADAI: {
+    ta: "சந்தான கோபால மந்திரம்.",
+    en: "The Santana Gopala mantra.",
   },
 };
 
@@ -1287,6 +1322,10 @@ const NAVAGRAHA_STHALAM: Record<string, { day: { ta: string; en: string }; templ
  * the static table.
  */
 export function getDoshamRemedies(dosham: ChartDoshamInsight, lang: Lang): string | null {
+  // V1 §18 Q15: the server answers "is a remedy warranted?". Older payloads have
+  // no assessment and read as "full".
+  const level = dosham.assessment?.parihara ?? "full";
+  if (level === "none") return null;
   const key = dosham.name.toUpperCase();
   if (key === "MARANA_KARAKA_STHANA") {
     const lines = mksPlanets(dosham.conditionsMet).flatMap((p) => {
@@ -1299,8 +1338,19 @@ export function getDoshamRemedies(dosham: ChartDoshamInsight, lang: Lang): strin
     });
     if (lines.length > 0) return lines.join(" ");
   }
+  const objective = DOSHAM_OBJECTIVE_PARIHARA[key];
+  // Q13: protection lightens the remedy to the objective slot; the card's
+  // context note says why. Never a silent blank.
+  if (level === "objective_only") {
+    return objective ? (lang === "ta" ? objective.ta : objective.en) : null;
+  }
   const entry = DOSHAM_REMEDIES[key];
-  return entry ? (lang === "ta" ? entry.ta : entry.en) : null;
+  if (!entry) return null;
+  const cause = lang === "ta" ? entry.ta : entry.en;
+  if (!objective) return cause;
+  return lang === "ta"
+    ? `காரணக் கிரகத்துக்கு: ${cause} வேண்டும் பலனுக்கு: ${objective.ta}`
+    : `For the cause: ${cause} For what you hope for: ${objective.en}`;
 }
 
 export const DOSHAM_HOW_TO: Record<string, { ta: string; en: string }> = {

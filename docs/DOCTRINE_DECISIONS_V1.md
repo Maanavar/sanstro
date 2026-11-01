@@ -575,8 +575,8 @@ practitioner's countersignature. Layer tags: **[கணிதம்]** calculatio
 | Item | Ruling | Layer | Code |
 |---|---|---|---|
 | AAU-09 | Gochara from the Moon: Rahu favourable 3/6/10/11, Ketu 3/6/11; the nodes are graded separately and always opposite (runtime check). | [பலன்] | `gochara_scores`, `gochara_grade` |
-| AAU-13 | Sevvai houses stay 1, 2, 4, 7, 8, 12. Declared from the Lagna only; Moon and Venus grade it (mild / confirmed / severe); Moon- or Venus-only placements are noted, not declared. | [பலன்] houses, [PRODUCT] grading | `_yoga_dosham.detect_sevvai_dosham` |
-| AAU-12 | Putra Sarpa needs Rahu or Ketu. Saturn on the 5th is Santhana Thadai (புத்திர தடை), with Sani parihara. | [பலன்] | `detect_santhana_thadai` |
+| AAU-13 | Sevvai houses stay 1, 2, 4, 7, 8, 12 (**superseded by §18 Q5: the Tamil five**). Declared from the Lagna only; Moon and Venus grade it (mild / confirmed / severe); Moon- or Venus-only placements are noted, not declared. | [பலன்] houses, [PRODUCT] grading | `_yoga_dosham.detect_sevvai_dosham` |
+| AAU-12 | Putra Sarpa needs Rahu or Ketu (**graded by §18 Q9–Q14**). Saturn on the 5th is Santhana Thadai (புத்திர தடை), with Sani parihara. | [பலன்] | `detect_santhana_thadai` |
 | AAU-07 / 20 | One answer to "good for beginning ordinary new work?": seven-class star table (Magam, Moolam unfit; Sadhayam fit), the star holding most of the daytime, splits shown with their time. *Delegated.* | [பலன்] table, [PRODUCT] daytime collapse and scores | `day_quality` |
 | AAU-10 | Sama bhava: the Lagna is the madhya of the 1st house. *Delegated.* | [கணிதம்] | `equal_bhava` |
 | AAU-11 | Durudhura replaces Sunapha and Anapha when both sides of the Moon are occupied. *Delegated.* | [பலன்] | `_yoga_detect` |
@@ -592,6 +592,65 @@ AAU-16 conventions and the AAU-19 punya kala table); a named phala authority
 for the six-house Sevvai set and nivarthi signs for a 1st-house Mars; the
 weighting of the node-beside-the-5th-lord and node-beside-Jupiter triggers
 (AAU-12, 39.6% of charts); verification of the 108 naming syllables.
+
+## 18. Owner Rulings of 30 October 2026 (final answer sheet)
+
+Source: the owner's **Final Doctrine Answer Sheet** of 30 October, which
+supersedes the two earlier memos of that day. Item numbers below are the
+sheet's. Signed off by the owner; the astrologer confirms where a row says so.
+
+**Provenance tiers** (Q18): `classical_cited` → `lineage_cited` →
+`practice_convention` → `engine_inference`. An `engine_inference` rule may emit
+a watch-note only: it may never declare a dosham, raise or lower a grade, or
+trigger a parihara. Both AI reviews behind these rulings (Claude's and
+ChatGPT's) are tagged `engine_inference`: they *shaped* definitions; a
+practitioner *ratifies* them. Every rule drawn from print stores publisher,
+edition, Tamil year and page; a blog or product site is a lead, never a
+citation; a BPHS reference names translator, publisher and year.
+
+| Item | Ruling | Tier | Code | Owed |
+|---|---|---|---|---|
+| Q1 | **Vasan Suththa Thirukkanidha Panchangam** (Vasan Publications), current annual edition, is the **convention authority**, not the ephemeris: year name, ayanam boundary, ruthu order, punya kalam, gochara tables. Swiss Ephemeris + Lahiri stay for every position. Karpagam (S.M. Sadasivam) or Manimekalai Prasuram decade volumes, 1966–2020, are the retrospective validation corpus. | `practice_convention` until photographed | — | Photos: title page, copyright page, each table |
+| Q2 | Rahu 3/6/10/11, Ketu 3/6/11 from the Moon kept. Gochara is phala, not almanac data, so it is never cited to the panchangam. | `practice_convention` | `gochara_scores`, `gochara_grade` (attribution only) | The gochara text |
+| Q3 | Three sources: year name from the almanac; ayanam from the engine's sidereal calculation; ruthus in Tholkappiyam's order (கார் first), which a Sanskrit seasonal order does not override. | ruthu order `lineage_cited` | `tamil_year` (docstring) | Astrologer confirms |
+| Q4 | Punya kalam table built (Dharmasindhu): Makara 40 ghati after; Kataka 30 before; Mesha, Thula 15 each side; Vishnupadi 16 before; Shadashitimukha 16 after. **Alert off** behind its own switch; only "please confirm the birth time" ships. | `classical_cited`, provisional | `SANKRANTI_PUNYA_KALA_NAZHIGAI`, `SANKRANTI_ALERT_B_ENABLED = False` | The almanac's page; Dharmasindhu edition and page; punya kalam or sankramana jananam? Day/night sankranti exceptions |
+| Q5 | Sevvai default is the **Tamil five: 2, 4, 7, 8, 12**. Two enumerations added together do not make a larger legitimate set; that principle governs the whole engine. | `lineage_cited` once the text is named | `DoctrineOptions.sevvai_house_set` = `tamil_five` (default), `manglik_five`, `union_six` | The lineage text |
+| Q6 | Nivarthi table confirmed, already identical in code. No floating "Simmam and Kumbam" general exemption. | `practice_convention` → `lineage_cited` on sign-off | `HOUSE_SIGN_NIVARTHI` | Per-row sign-off |
+| Q7 | **O-18 stands; the Ruchaka cancellation rule is withdrawn.** It was an `engine_inference` and cannot overturn a lineage ruling. Ruchaka and Sevvai both show; a reconciliation line explains. | O-18 `lineage_cited`; withdrawn rule `engine_inference` (the first recorded loss) | context note `sevvai_mars_strength_both_ways` | Verdicts on the 84-chart fixture |
+| Q8 | Lagna declares; Moon and Venus grade. A cancelled dosham is not a mild dosham. | `lineage_cited` | `detect_sevvai_dosham`; `assessment.cancelled` vs `assessment.strength` | — |
+| Q9 | A node beside the 5th lord never declares Putra Sarpa alone: an escalating leg. | — | `detect_putra_sarpa_dosham` | — |
+| Q10 | A node beside Jupiter never declares it. Guru Chandala is its own finding with Guru / Dakshinamurthy parihara (14.7%); a Putra Sarpa leg only when Jupiter is linked to the 5th (6.8%). | — | `YOG-CH-01/02`; web `YOGA_REMEDIES.CHANDALA_*` | — |
+| Q11 | Only a node **in the 5th** declares. Alone: mild; + one leg: confirmed; + two: severe; legs alone: watch-note, no parihara. **No D7 leg** (conflict C). | — | `detect_putra_sarpa_dosham` | — |
+| Q12 | Two protections, a strong 5th lord and a protecting Jupiter. Both reduce a grade, neither cancels. **Neither definition is approved**: sign dignity is not strength, and the kendra test is a positional stand-in for strength / relevance to the 5th / affliction. Both stay active at shipped behaviour (no live grade rises), tagged `pending_definition`. | `engine_inference`, both | `lord_strong` (score ≥ 65), `protecting_jupiter_house` (kendra) | Astrologer defines both |
+| Q13 | Santhana Thadai: formation first, then protection, then D7 and dasha when defined. **Protection downgrades the parihara, never withholds it silently**: a guarded 5th gets the objective parihara alone with a line saying why. Until D7 and dasha exist the reading is marked not final. | sequence `lineage_cited`; protection `engine_inference` | `parihara` = `objective_only`; notes `santhana_thadai_lighter_parihara`, `children_assessment_incomplete`; `assessment_complete = False` | — |
+| Q14 | No Rahu rule extends to Ketu by default; every node rule states `applies_to`. **Guru + Rahu is a leg; Guru + Ketu is a watch-note** until D6b is ruled. Orb for "beside" is undefined across all node rules. | — | `beside_guru` (Rahu only); note `putra_sarpa_guru_ketu_noted` | D6b; the orb; the `applies_to` audit (item 7) |
+| Q15 | **Four outputs on every dosham, never collapsed**: formation, strength, protection, parihara (with `cause` and `objective` slots inside parihara). | — | `DoshamResult.parihara`, `assessment_complete`; API `ChartDoshamInsight.assessment` | — |
+| Q16 | Prevalence: **severe ≤ 5%, confirmed + severe ≤ 25%** (build fails), mild uncapped and shown as a note; plus the **base-rate gate**, `declared_rate` stored beside the chart-set base rate (five houses from the Lagna = 41.7%) and materially below it. | gate | Item 7, not yet built | — |
+| Q17 | **No output path may state that a person cannot have children.** Delay, difficulty, needs attention; never denial. A build gate on the semantic field, phrase list as backstop. | invariant | `progeny_outlook` (no denial value); `tests/test_owner_rulings_2026_10_30.py` | — |
+| Q18 | Citation hygiene and the tiers above. | — | Item 7 | Which BPHS translation the astrologer uses |
+
+**Correction recorded (Q5).** The first 30 Oct memo attributed Sevvai's 91% to
+the six-house union. Measured: the cause was counting from Lagna, Moon and Venus
+together (fixed by AAU-13, 29 Oct); the sixth house is worth about 9 points
+(52.8% → 43.5% declared). Kept here so nobody later fixes the wrong cause.
+
+**Superseded within the day.** An earlier build counted Guru + Ketu as a leg,
+narrowed "protecting Jupiter" to exclude a node-joined Jupiter, withheld a
+guarded Santhana Thadai's parihara, and carried a two-slot `parihara_offered`
+flag. The final sheet replaced all four (Q14, Q12, Q13, Q15).
+
+**Measured (2,000 synthetic charts, `scripts/audit/dosham_prevalence_scan.py`, live detectors).**
+Sevvai tamil_five: 43.5% declared; shown mild 29.9, confirmed 11.4, severe 2.2;
+13.6% confirmed + severe. Putra Sarpa: 16.1% declared (was 38.6%); shown mild
+14.9, confirmed 1.1, severe 0.1; plus 16.1% watch-note only; Guru + Ketu noted
+on 1.3%. Guru Chandala 14.7%. Santhana Thadai 14.0%. Rahu-Ketu marriage (33.8%)
+and Kalathra (23.4%) are ungraded and queued for the same grammar.
+
+**Frozen until the astrologer rules:** the protecting-Jupiter definition,
+5th-lord strength, D7 weakness, the Guru + Ketu weight, the node orb.
+
+**Still open.** The "Owed" column; papa samyam keeps 1, 2, 4, 7, 8, 12 (Q5 ruled
+on Sevvai only); native review of the new Tamil (questions doc Part E).
 
 ## Launch Gate Checklist
 

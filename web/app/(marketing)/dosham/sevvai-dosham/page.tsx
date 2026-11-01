@@ -7,7 +7,7 @@ import { SevvaiDoshamContent } from "./PageContent";
 const EN_METADATA: Metadata = {
   title: "Sevvai Dosham (Mangal Dosha) — Meaning, Calculation & Pariharam",
   description:
-    "Sevvai dosham (Mangal dosha / Manglik) forms when Mars sits in the 1st, 2nd, 4th, 7th, 8th or 12th house. Learn how it is calculated, what it means for marriage, when it is cancelled, and the traditional pariharam with slokam.",
+    "Sevvai dosham (Mangal dosha / Manglik) forms when Mars sits in the 2nd, 4th, 7th, 8th or 12th house from the Lagna. Learn how it is calculated, what it means for marriage, when it is cancelled, and the traditional pariharam with slokam.",
   keywords: [
     "sevvai dosham",
     "mangal dosha",
