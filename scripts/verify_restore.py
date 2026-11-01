@@ -55,6 +55,7 @@ broken. Keys are read straight from the environment here, including the
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import logging
 import os
@@ -207,6 +208,15 @@ def _check_text(raw: bytes) -> str:
     return f"{len(text)} characters of valid UTF-8"
 
 
+def _check_totp_secret(raw: bytes) -> str:
+    # Describes the seed, never prints it: with the seed, anyone can mint codes.
+    seed = raw.decode("ascii").strip().upper()
+    decoded = base64.b32decode(seed + "=" * (-len(seed) % 8))
+    if len(decoded) < 10:
+        raise ValueError(f"a {len(decoded)}-byte TOTP seed is too short")
+    return f"a base32 TOTP seed of {len(decoded)} bytes"
+
+
 ShapeCheck = Callable[[bytes], str]
 
 # (table, primary key, [(column, shape check)]). Kept in step with
@@ -244,6 +254,7 @@ CHECKS: tuple[tuple[str, str, tuple[tuple[str, ShapeCheck], ...]], ...] = (
     ),
     ("family_members", "family_member_id", (("date_of_birth_local", _check_date),)),
     ("journal_entries", "journal_id", (("note_text", _check_text),)),
+    ("admin_mfa_credentials", "user_id", (("totp_secret", _check_totp_secret),)),
 )
 
 
