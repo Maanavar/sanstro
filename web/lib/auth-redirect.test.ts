@@ -1,6 +1,26 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_SIGNED_IN_PATH, safeNextPath, withNextPath } from "./auth-redirect";
+import { DEFAULT_SIGNED_IN_PATH, isSignedInPath, safeNextPath, withNextPath } from "./auth-redirect";
+
+describe("isSignedInPath", () => {
+  it("covers the inbox at its legacy URL outside /dashboard", () => {
+    // The inbox lives in the (marketing) group. When this list knew only
+    // /dashboard and /admin, /notifications went unguarded and the public beta
+    // banner rendered over it.
+    expect(isSignedInPath("/notifications")).toBe(true);
+    expect(isSignedInPath("/dashboard")).toBe(true);
+    expect(isSignedInPath("/dashboard/glossary")).toBe(true);
+    expect(isSignedInPath("/admin")).toBe(true);
+  });
+
+  it("leaves public pages and look-alike prefixes alone", () => {
+    expect(isSignedInPath("/")).toBe(false);
+    expect(isSignedInPath("/beta")).toBe(false);
+    expect(isSignedInPath("/tools/marriage-porutham-calculator")).toBe(false);
+    expect(isSignedInPath("/notificationsx")).toBe(false);
+    expect(isSignedInPath(null)).toBe(false);
+  });
+});
 
 describe("safeNextPath", () => {
   it("keeps a real dashboard destination, query and hash included", () => {
@@ -9,6 +29,9 @@ describe("safeNextPath", () => {
     expect(safeNextPath("/dashboard")).toBe("/dashboard");
     expect(safeNextPath("/dashboard/calendar?d=2026-10-01")).toBe("/dashboard/calendar?d=2026-10-01");
     expect(safeNextPath("/admin")).toBe("/admin");
+    // The middleware now guards the inbox, so sign-in must be able to return
+    // there instead of dropping the visitor on Today.
+    expect(safeNextPath("/notifications")).toBe("/notifications");
   });
 
   it("refuses every open-redirect shape", () => {

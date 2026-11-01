@@ -69,6 +69,9 @@
     "./api/reports": "./src/api/reports.ts",
     "./api/places": "./src/api/places.ts",
     "./api/adminAnalytics": "./src/api/adminAnalytics.ts",
+    "./api/adminAccess": "./src/api/adminAccess.ts",
+    "./api/adminSettings": "./src/api/adminSettings.ts",
+    "./api/payments": "./src/api/payments.ts",
     "./data/legal": "./src/data/legal.ts"
   },
   "scripts": {

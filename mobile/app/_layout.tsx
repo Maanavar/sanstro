@@ -134,7 +134,8 @@ function RootNavigation() {
           // `undefined` in a slot typed `string | null`.
           { userId: me.userId, email: me.email, displayName: me.displayName ?? null },
               effectiveTier,
-              me.openBeta
+              me.openBeta,
+              me.accessState
             );
             setUser(me.userId);
             return;
@@ -149,7 +150,8 @@ function RootNavigation() {
           // `undefined` in a slot typed `string | null`.
           { userId: me.userId, email: me.email, displayName: me.displayName ?? null },
           me.tier,
-          me.openBeta
+          me.openBeta,
+          me.accessState
         );
         setUser(me.userId);
       } catch (err: unknown) {

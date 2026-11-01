@@ -467,6 +467,31 @@ export interface ChartDoshamInsight {
   /** What this placement tends to bring in this chart (e.g. Ketu in the 2nd). */
   meaningTa?: string;
   meaningEn?: string;
+  /**
+   * Owner ruling 2026-10-30 (DOCTRINE_DECISIONS_V1 §18, Q15): the four outputs, never
+   * collapsed. Absent on older payloads, which read as a full parihara.
+   */
+  assessment?: DoshamAssessment | null;
+  /** CHILDREN findings only. There is no value for denial, by design. */
+  progenyOutlook?: ProgenyOutlook;
+}
+
+export type ProgenyOutlook = "" | "delay" | "difficulty" | "needs_attention";
+
+/** V1 §18 Q15: formation, strength, protection, parihara. */
+export interface DoshamAssessment {
+  /** Does the classical combination exist? */
+  formation: boolean;
+  /** Grade before protection; "" when not formed. */
+  strength: "STRONG" | "PARTIAL" | "WEAK" | "";
+  /** What reduces it (marker keys). */
+  protection: string[];
+  /** Protection's answer: cancelled, as distinct from merely reduced. */
+  cancelled: boolean;
+  /** "objective_only" always arrives with a context note saying why. */
+  parihara: "full" | "objective_only" | "none";
+  /** False while a step the ruling requires is undefined (D7, dasha). */
+  complete: boolean;
 }
 
 export type DoshamResidual = "NONE" | "MILD" | "MODERATE" | "STRONG";
@@ -1321,6 +1346,8 @@ export interface PanchangamDailyResponseData {
   tamilDate?: BiText | null;
   /** FCA-02: "published" = the almanac's own Tamil date; "computed" = the sunset-rule fallback, never to be shown as the almanac's. */
   tamilDateSource?: "published" | "computed" | null;
+  /** AAU-16: Tamil year name (60-year cycle from Chithirai 1), ayanam, ruthu. */
+  tamilYear?: { yearNumber: number; year: BiText; ayanam: BiText; ruthu: BiText } | null;
   location: { lat: number; lng: number; timezone: string };
   sunrise: string;
   sunset: string;
@@ -1347,7 +1374,15 @@ export interface PanchangamDailyResponseData {
     durmuhurtham?: KalamSlot[];
   };
   abhijit: { start: string; end: string; isRestrictedByWeekday: boolean };
-  subhaMuhurtham: { isSubha: boolean; reason: string; isSubhaStrict: boolean; strictReason: string };
+  subhaMuhurtham: {
+    isSubha: boolean;
+    reason: string;
+    isSubhaStrict: boolean;
+    strictReason: string;
+    /** AAU-07: the day's one verdict for ordinary new work. `isSubha` is
+     *  `verdict === "GOOD"`. Star keys go through tNakshatra. */
+    dayQuality?: PanchangamDayQuality | null;
+  };
   festivals: PanchangamFestival[];
   hora: Array<{ index: number; lord: string; start: string; end: string }>;
   moonPhaseLabel: string;
@@ -1386,6 +1421,29 @@ export type PanchangamTimingsData = Pick<
   PanchangamDailyResponseData,
   "dateLocal" | "location" | "sunrise" | "sunset" | "solarNoon" | "kalam" | "abhijit" | "subhaMuhurtham" | "festivals" | "hora"
 >;
+
+export type DayVerdict = "GOOD" | "NEUTRAL" | "CAUTION";
+
+/** A daytime star change that moves the day's verdict (AAU-07). */
+export interface PanchangamDaySplit {
+  changeAt: string;
+  beforeStar: string;
+  beforeStarNumber: number;
+  before: DayVerdict;
+  afterStar: string;
+  afterStarNumber: number;
+  after: DayVerdict;
+}
+
+/** `day_quality` on the server: the badge, the PDF and the push all read it. */
+export interface PanchangamDayQuality {
+  verdict: DayVerdict;
+  verdictStar: string;
+  verdictStarNumber: number;
+  starClass: string;
+  score: number;
+  split?: PanchangamDaySplit | null;
+}
 
 export interface PanchangamMonthDayEntry {
   dateLocal: string;
@@ -1838,6 +1896,26 @@ export interface ShashtashtakaNote {
   note: BiText;
 }
 
+/**
+ * ஏக நட்சத்திரம் (F-POR-03): both partners share a birth star. A disclosure
+ * rendered beside the Rajju row, never a verdict: Rajju itself is unchanged
+ * and still fails. `classification` is null and `rajjuExceptionApplied` false
+ * until a named source supplies the star+pada table. The pada fields are null
+ * when the request had no birth pada (the by-star tools).
+ *
+ * Optional on every payload, like `shashtashtaka`: absent means not present.
+ */
+export interface EkaNakshatraNote {
+  present: boolean;
+  boyPada: number | null;
+  girlPada: number | null;
+  samePada: boolean | null;
+  classification: string | null;
+  rajjuExceptionApplied: boolean;
+  label: BiText;
+  note: BiText;
+}
+
 export interface PorutthamData {
   familyVaultId: string; memberId: string;
   boyNakshatra: number; boyNakshatraName: string;
@@ -1845,6 +1923,7 @@ export interface PorutthamData {
   kutas: KutaResult[]; totalScore: number; maxScore: number; percentage: number; label: string;
   rajjuDosha: boolean; vedhaDosha: boolean; summary: BiText;
   shashtashtaka?: ShashtashtakaNote | null;
+  ekaNakshatra?: EkaNakshatraNote | null;
   compatibilityContext: string; contextNote: BiText | null;
 }
 
@@ -1855,6 +1934,7 @@ export interface DirectPoruthamData {
   kutas: KutaResult[]; totalScore: number; maxScore: number; percentage: number; label: string;
   rajjuDosha: boolean; vedhaDosha: boolean; summary: BiText;
   shashtashtaka?: ShashtashtakaNote | null;
+  ekaNakshatra?: EkaNakshatraNote | null;
   compatibilityContext: string; contextNote: BiText | null;
 }
 
@@ -1865,6 +1945,7 @@ export interface PublicPoruthamStarData {
   kutas: KutaResult[]; totalScore: number; maxScore: number; percentage: number; label: string;
   rajjuDosha: boolean; vedhaDosha: boolean; nadiDosha: NadiDoshaResult;
   shashtashtaka?: ShashtashtakaNote | null;
+  ekaNakshatra?: EkaNakshatraNote | null;
   summary: BiText; compatibilityContext: string;
 }
 
@@ -1944,6 +2025,7 @@ export interface CompatibilityIntelligenceData {
   poruthamKutas: KutaResult[]; rajjuDosha: boolean; vedhaDosha: boolean;
   nadiDosha: NadiDoshaResult;
   shashtashtaka?: ShashtashtakaNote | null;
+  ekaNakshatra?: EkaNakshatraNote | null;
   chartAStrength: ChartMarriageStrength; chartBStrength: ChartMarriageStrength;
   navamsa: NavamsaCompatibility; sevvaiA: SevvaiDoshamDetail; sevvaiB: SevvaiDoshamDetail;
   dashaHarmony: DashaHarmony; emotional: EmotionalCompatibility;

@@ -11,6 +11,8 @@ import pytest
 
 from app.calculations.gochara_grade import (
     GURU_SUPPORTIVE_FROM_MOON,
+    KETU_SUPPORTIVE_FROM_MOON,
+    RAHU_SUPPORTIVE_FROM_MOON,
     SANI_SUPPORTIVE_FROM_MOON,
     gochara_grade,
 )
@@ -103,7 +105,7 @@ def test_the_eleventh_is_the_best_house_for_every_graha() -> None:
 
 # ── The two modules that both encode gochara must agree ────────────────────
 
-@pytest.mark.parametrize("planet", ["JUPITER", "SATURN"])
+@pytest.mark.parametrize("planet", ["JUPITER", "SATURN", "RAHU", "KETU"])
 def test_the_score_and_the_displayed_grade_cannot_contradict(planet: str) -> None:
     """The reader-visible failure: a score that rose while the Transits card
     for the same planet said "needs care". `gochara_grade` drives that card,
@@ -123,6 +125,48 @@ def test_the_two_modules_list_the_same_favourable_houses() -> None:
     `gochara_scores` for the number. Asserted directly rather than trusted."""
     assert GOCHARA_FAVOURABLE_FROM_MOON["JUPITER"] == GURU_SUPPORTIVE_FROM_MOON
     assert GOCHARA_FAVOURABLE_FROM_MOON["SATURN"] == SANI_SUPPORTIVE_FROM_MOON
+    assert GOCHARA_FAVOURABLE_FROM_MOON["RAHU"] == RAHU_SUPPORTIVE_FROM_MOON
+    assert GOCHARA_FAVOURABLE_FROM_MOON["KETU"] == KETU_SUPPORTIVE_FROM_MOON
+
+
+# ── AAU-09: the node words follow the node numbers ─────────────────────────
+
+def test_aau09_rahu_tenth_is_favourable_and_ketu_tenth_is_not() -> None:
+    """The audit's cell: Rahu in the 10th scored 38 while the palan sentence
+    and the peyarchi report called it supportive. Ruled favourable for Rahu,
+    not for Ketu."""
+    assert gochara_house_score("RAHU", 10) > NEUTRAL
+    assert gochara_house_score("KETU", 10) < NEUTRAL
+
+
+@pytest.mark.parametrize("node", ["RAHU", "KETU"])
+def test_aau09_palan_sentence_and_peyarchi_axis_follow_the_score(node: str) -> None:
+    """Every surface that words a node transit reads the scoring table, so for
+    every house the sentence and the number point the same way. Before, the
+    palan gave Ketu Rahu's set and both nodes the 10th."""
+    from app.services import personal_palan as pp
+    from app.services._dg_peyarchi import NODE_AXIS_SUPPORTIVE
+
+    for house in range(1, 13):
+        worded_good = house in pp._GOCHARA_GOOD[node]
+        assert worded_good == (gochara_house_score(node, house) > NEUTRAL), (node, house)
+    assert NODE_AXIS_SUPPORTIVE == GOCHARA_FAVOURABLE_FROM_MOON["RAHU"]
+
+
+def test_aau09_the_nodes_stay_opposite_on_real_snapshots() -> None:
+    """Runtime invariant, swept across real ephemeris snapshots rather than a
+    hand-written chart: from the Moon, Ketu is always the 7th house from Rahu,
+    so Rahu-10 and Ketu-10 can never occur together."""
+    from app.calculations.astro import house_from_reference
+    from app.calculations.ephemeris import calculate_sidereal_planets
+
+    jd_start = 2_436_934.5  # 1960-01-01
+    for step in range(400):
+        snap = calculate_sidereal_planets(jd_start + step * 45.7)
+        moon = snap.bodies["MOON"].rasi
+        rahu_house = house_from_reference(moon, snap.bodies["RAHU"].rasi)
+        ketu_house = house_from_reference(moon, snap.bodies["KETU"].rasi)
+        assert ketu_house == (rahu_house - 1 + 6) % 12 + 1, step
 
 
 def test_an_ungraded_planet_moves_nothing() -> None:

@@ -47,7 +47,27 @@ export type SecurityHeaderOptions = {
   embeddable: boolean;
   /** PostHog ingest origin, or null when analytics is not configured. */
   analyticsOrigin: string | null;
+  /**
+   * The Razorpay checkout page (`isCheckoutPath`). Razorpay Checkout runs in an
+   * iframe from api.razorpay.com and opens popups for UPI and 3-D Secure, so
+   * this one route allows those origins. Every other route keeps the tight
+   * policy; optional so a caller that predates payments stays unchanged.
+   */
+  checkout?: boolean;
 };
+
+/** Origins Razorpay Checkout needs (https://razorpay.com/docs/payments/payment-gateway/web-integration/standard/). */
+const RAZORPAY = {
+  script: "https://checkout.razorpay.com",
+  frames: ["https://api.razorpay.com", "https://checkout.razorpay.com"],
+  connect: ["https://api.razorpay.com", "https://lumberjack.razorpay.com"],
+  images: "https://*.razorpay.com",
+} as const;
+
+/** The one route that opens Razorpay Checkout. */
+export function isCheckoutPath(pathname: string): boolean {
+  return pathname === "/dashboard/upgrade" || pathname.startsWith("/dashboard/upgrade/");
+}
 
 /** `/widget/*` pages are the one surface meant to be framed by anyone. */
 export function isEmbeddablePath(pathname: string): boolean {
@@ -74,6 +94,7 @@ export function analyticsOrigin(env: Record<string, string | undefined>): string
 
 export function buildContentSecurityPolicy(options: SecurityHeaderOptions): string {
   const { nonce, isProduction, embeddable, analyticsOrigin } = options;
+  const checkout = options.checkout === true;
 
   // 'strict-dynamic' lets the nonced bootstrap load Next's chunks without
   // naming every one of them, and makes the host-source fallbacks below
@@ -86,11 +107,15 @@ export function buildContentSecurityPolicy(options: SecurityHeaderOptions): stri
     // webpack's dev runtime and React Fast Refresh evaluate code at runtime.
     // Never in production, where it would undo the point of the nonce.
     ...(isProduction ? [] : ["'unsafe-eval'"]),
+    // Host fallback for browsers without 'strict-dynamic'; elsewhere the
+    // loader's nonce already trusts the script it inserts.
+    ...(checkout ? [RAZORPAY.script] : []),
   ];
 
   const connectSrc = [
     "'self'",
     ...(analyticsOrigin ? [analyticsOrigin] : []),
+    ...(checkout ? RAZORPAY.connect : []),
     // HMR websocket. Dev only.
     ...(isProduction ? [] : ["ws:", "wss:"]),
   ];
@@ -101,7 +126,7 @@ export function buildContentSecurityPolicy(options: SecurityHeaderOptions): stri
     // See the module docstring: framer-motion and next/font both need this.
     ["style-src", ["'self'", "'unsafe-inline'"]],
     // blob: covers the client-generated PDF/PNG downloads in the dashboard.
-    ["img-src", ["'self'", "data:", "blob:"]],
+    ["img-src", ["'self'", "data:", "blob:", ...(checkout ? [RAZORPAY.images] : [])]],
     // The font files live in the repo (app/fonts, via next/font/local) and are
     // served from this origin; nothing is fetched from fonts.gstatic.com.
     ["font-src", ["'self'"]],
@@ -116,6 +141,10 @@ export function buildContentSecurityPolicy(options: SecurityHeaderOptions): stri
     ["object-src", ["'none'"]],
     ["frame-ancestors", [embeddable ? "*" : "'none'"]],
   ];
+
+  if (checkout) {
+    directives.push(["frame-src", [...RAZORPAY.frames]]);
+  }
 
   if (isProduction) {
     directives.push(["upgrade-insecure-requests"]);
@@ -133,11 +162,16 @@ export function buildSecurityHeaders(options: SecurityHeaderOptions): Record<str
     // geolocation is (self) because the panchangam planner asks for the
     // visitor's position. Everything else the app never uses is denied, so a
     // future dependency cannot quietly start using it.
-    "Permissions-Policy": "camera=(), microphone=(), payment=(), usb=(), geolocation=(self)",
+    "Permissions-Policy": options.checkout
+      ? // Razorpay's frame may use the Payment Request API (UPI apps, cards on file).
+        `camera=(), microphone=(), payment=(self "${RAZORPAY.frames[0]}"), usb=(), geolocation=(self)`
+      : "camera=(), microphone=(), payment=(), usb=(), geolocation=(self)",
     // Google SSO here is a redirect flow, not a popup, so isolating the browsing
     // context costs nothing. COOP is ignored inside an iframe, so the widget is
     // unaffected either way.
-    "Cross-Origin-Opener-Policy": "same-origin",
+    // Checkout keeps a handle on Razorpay's UPI / 3-D Secure popup, which plain
+    // same-origin would sever.
+    "Cross-Origin-Opener-Policy": options.checkout ? "same-origin-allow-popups" : "same-origin",
   };
 
   // X-Frame-Options cannot express "any origin", so setting it at all would

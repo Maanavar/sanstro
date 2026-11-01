@@ -118,7 +118,10 @@ def test_t091_sevvai_dosham_mesham_lagna_mars_in_the_2nd():
 
 # Rishabam lagna, Mars in Thulam: 4th from the Moon (Kadagam) and 2nd from
 # Venus (Kanni) — two references, not the Lagna.
-_SEVVAI_FROM_MOON_AND_VENUS = {
+# Mesham lagna: Mars in Thulam is 7th from the Lagna, 4th from the Moon and
+# 2nd from Venus. Since AAU-13 a declared Sevvai stands on the Lagna, so the
+# samyam cases need a Lagna placement (this read lagna 2, Moon/Venus only).
+_SEVVAI_FROM_LAGNA_MOON_AND_VENUS = {
     "SUN": 3, "MOON": 4, "MARS": 7, "MERCURY": 2, "JUPITER": 5,
     "VENUS": 6, "SATURN": 9, "RAHU": 11, "KETU": 5,
 }
@@ -127,9 +130,9 @@ _SEVVAI_FROM_MOON_AND_VENUS = {
 def test_t091_dosha_samyam_of_comparable_weight_cancels():
     """§8 condition 1: the partner carries Sevvai too, also from two or more
     references. Only a two-chart reading can say so."""
-    assert {"from_moon", "from_venus"} <= set(detect_sevvai_dosham(_SEVVAI_FROM_MOON_AND_VENUS, lagna_rasi=2).conditions_met)
+    assert {"from_moon", "from_venus"} <= set(detect_sevvai_dosham(_SEVVAI_FROM_LAGNA_MOON_AND_VENUS, lagna_rasi=1).conditions_met)
     result = detect_sevvai_dosham(
-        _SEVVAI_FROM_MOON_AND_VENUS, lagna_rasi=2, partner_sevvai_references=["from_moon", "from_venus"]
+        _SEVVAI_FROM_LAGNA_MOON_AND_VENUS, lagna_rasi=1, partner_sevvai_references=["from_moon", "from_venus"]
     )
     assert result.is_present is True
     assert result.is_cancelled is True
@@ -139,7 +142,7 @@ def test_t091_dosha_samyam_of_comparable_weight_cancels():
 def test_t091_dosha_samyam_against_a_lighter_placement_only_reduces():
     """§8: a severe placement against a trivial one does not cancel — the
     partner's Sevvai counted from Venus alone is not of comparable weight."""
-    result = detect_sevvai_dosham(_SEVVAI_FROM_MOON_AND_VENUS, lagna_rasi=2, partner_sevvai_references=["from_venus"])
+    result = detect_sevvai_dosham(_SEVVAI_FROM_LAGNA_MOON_AND_VENUS, lagna_rasi=1, partner_sevvai_references=["from_venus"])
     assert result.is_cancelled is False
     assert "partner_sevvai_unequal_weight" in result.cancellation_factors
     assert result.strength != result.formation_strength
@@ -247,8 +250,9 @@ def test_t092_sevvai_dosham_from_lagna_moon_venus():
     assert "from_venus" in venus_result.conditions_met
 
 
-def test_sevvai_tamil_mode_treats_first_house_as_dosham():
-    # Tamil Thirukanitham tradition: house 1 is included in Sevvai Dosham check
+def test_sevvai_first_house_counts_only_under_the_six_house_alternative():
+    # Owner ruling 2026-10-30 (Q5): the Tamil five (2, 4, 7, 8, 12) is the
+    # default; the 1st house counts only under "union_six" / "manglik_five".
     planets = {
         "SUN": 3,
         "MOON": 5,
@@ -260,12 +264,15 @@ def test_sevvai_tamil_mode_treats_first_house_as_dosham():
         "RAHU": 11,
         "KETU": 5,
     }
-    result = detect_sevvai_dosham(planets, lagna_rasi=1)
-    assert result.is_present is True
+    assert detect_sevvai_dosham(planets, lagna_rasi=1).is_present is False
+    from app.calculations.doctrine_options import DoctrineOptions
+
+    six = DoctrineOptions(sevvai_house_set="union_six")
+    assert detect_sevvai_dosham(planets, lagna_rasi=1, doctrine=six).is_present is True
 
 
 def test_sevvai_tamil_mode_no_dosham_when_mars_in_neutral_house():
-    # Mars in house 3 — not in {1,2,4,7,8,12} — no dosham
+    # Mars in house 3 — in no Sevvai house set — no dosham
     planets = {
         "SUN": 5,
         "MOON": 6,
@@ -282,10 +289,10 @@ def test_sevvai_tamil_mode_no_dosham_when_mars_in_neutral_house():
     assert result.label == "NO_SEVVAI_DOSHAM"
 
 
-def test_sevvai_standard_mode_treats_first_house_as_candidate():
-    # OQ-4/A-5 (2026-07-16): house 1 is part of the single Tamil-standard set,
-    # not a separate "extended" mode — the dead extended_manglik mode was
-    # removed since no authentic source ever differentiated it.
+def test_sevvai_first_house_counts_under_the_manglik_five():
+    # A-5 (2026-07-16) removed a dead "extended" mode that changed nothing.
+    # Since 2026-10-30 (Q5) the alternatives really differ: the 1st house is
+    # in "manglik_five" and "union_six", and out of the Tamil-five default.
     planets = {
         "SUN": 3,
         "MOON": 4,
@@ -297,7 +304,10 @@ def test_sevvai_standard_mode_treats_first_house_as_candidate():
         "RAHU": 11,
         "KETU": 5,
     }
-    result = detect_sevvai_dosham(planets, lagna_rasi=1)
+    from app.calculations.doctrine_options import DoctrineOptions
+
+    assert detect_sevvai_dosham(planets, lagna_rasi=1).is_present is False
+    result = detect_sevvai_dosham(planets, lagna_rasi=1, doctrine=DoctrineOptions(sevvai_house_set="manglik_five"))
     assert result.is_present is True
     assert result.label in {"ACTIVE_SEVVAI_DOSHAM", "STRONG_ACTIVE_SEVVAI_DOSHAM", "SEVVAI_DOSHAM_WITH_NIVARTHI"}
 
@@ -496,7 +506,9 @@ def test_sevvai_scenario_mesha_lagna_8th_mars_female():
     assert result.is_present is True
     assert result.is_cancelled is False
     assert result.label == "ACTIVE_SEVVAI_DOSHAM"
-    assert (result.formation_strength, result.strength) == ("STRONG", "PARTIAL")
+    # AAU-13: Lagna + Venus (4th from Venus) is "confirmed", PARTIAL; the 8th
+    # house no longer lifts the grade on its own. Reduced one grade: WEAK.
+    assert (result.formation_strength, result.strength) == ("PARTIAL", "WEAK")
     assert "from_lagna" in result.conditions_met
     # Mars is in Viruchigam = own sign
     assert "mars_own_sign" in result.cancellation_factors
@@ -596,10 +608,11 @@ def test_sevvai_kadagam_lagna_yogakaraka():
     assert "jupiter_aspects_seventh_lord" in result.cancellation_factors
     assert result.is_present is True
     assert result.is_cancelled is False
-    # 8th from the Lagna: a STRONG formation, reduced one grade — and raised
-    # back by Rahu sharing Mars's rasi (the aggravation step runs after).
+    # AAU-13: Lagna + Moon (7th from the Moon) is "confirmed", PARTIAL; Rahu
+    # sharing Mars's rasi lifts the formation to STRONG. The grade is reduced
+    # one step and raised back by the aggravation (which still runs after).
     assert "mars_joined_saturn_or_rahu" in result.conditions_met
-    assert (result.formation_strength, result.strength) == ("STRONG", "STRONG")
+    assert (result.formation_strength, result.strength) == ("STRONG", "PARTIAL")
 
 
 def test_sevvai_benefic_association_mars():
@@ -750,7 +763,10 @@ def test_adhi_daridra_lakshmi_vasumati_and_sunapha_family():
         {"MOON": 1, "JUPITER": 3, "VENUS": 6, "MERCURY": 10}, moon_rasi=1, lagna_rasi=1,
     ).is_present is True
     tri = detect_sunapha_anapha_durudhura({"MOON": 1, "MARS": 2, "JUPITER": 12, "SUN": 5}, moon_rasi=1)
-    assert any(x.name == "DURUDHURA_YOGA" for x in tri)
+    # AAU-11: both sides occupied is Durudhura alone, never three cards.
+    assert [x.name for x in tri] == ["DURUDHURA_YOGA"]
+    assert [x.name for x in detect_sunapha_anapha_durudhura({"MOON": 1, "MARS": 2}, moon_rasi=1)] == ["SUNAPHA_YOGA"]
+    assert [x.name for x in detect_sunapha_anapha_durudhura({"MOON": 1, "MARS": 12}, moon_rasi=1)] == ["ANAPHA_YOGA"]
 
 
 def test_sunapha_excludes_nodes_and_mandhi_wi15():

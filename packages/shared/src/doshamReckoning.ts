@@ -151,11 +151,42 @@ export const DOSHAM_CONTEXT_LABELS: Record<string, Text> = {
     ta: "லக்னத்திலிருந்து செவ்வாய் தோஷ வீட்டில் இல்லை; சந்திரன் அல்லது சுக்கிரனிலிருந்து மட்டுமே தோஷம் கணக்கிடப்படுகிறது. லக்னத்திலிருந்து வரும் தோஷத்தை விட இதன் எடை குறைவு.",
     en: "Mars is not in a dosha house from your Lagna. The dosham is counted only from the Moon or Venus, which weighs less than a Lagna placement.",
   },
+  // AAU-13 (2026-10-29): the Moon and Venus grade a Lagna dosham; alone they
+  // are noted, not declared. Same sentence as the backend (`_yoga_helpers`).
+  sevvai_not_declared_without_lagna: {
+    ta: "சந்திரன் அல்லது சுக்கிரனிலிருந்து எண்ணும்போது செவ்வாய் தோஷ வீட்டில் உள்ளது, ஆனால் லக்னத்திலிருந்து இல்லை. லக்னமே முதன்மை; சந்திரனும் சுக்கிரனும் லக்ன தோஷத்தின் தீவிரத்தை மட்டுமே காட்டும். எனவே இந்த நிலை குறிக்கப்படுகிறது, செவ்வாய் தோஷம் அறிவிக்கப்படவில்லை.",
+    en: "Mars is in a dosha house counted from your Moon or Venus, but not from your Lagna. The Lagna is the primary reference; the Moon and Venus only grade a Lagna dosham, so this placement is noted and Sevvai dosham is not declared.",
+  },
   // The astrologer's own wording, 23 Oct (Q12; the Tamil is his B3 correction).
   // Verbatim in both languages — do not re-translate or compress.
   sevvai_mars_debility_modifies: {
     ta: "செவ்வாய் நீசம் பெறுவது செவ்வாய் தோஷத்தின் தன்மையை மாற்றுகிறது. நீசச் செவ்வாய் தீங்கைக் குறைக்கும் என்று சில நூல்களும், 7-ஆம் அல்லது 8-ஆம் இடத்தில் அது தீங்கை அதிகரிக்கும் என்று வேறு சில நூல்களும் கூறுகின்றன. பலன் பாவகம், ஆதிபத்தியம், பார்வை ஆகியவற்றைப் பொறுத்தது; நீசம் மட்டுமே தோஷ நிவர்த்தியை உறுதிசெய்யாது.",
     en: "Mars's debility modifies the reading of Sevvai dosham. Some texts hold that a debilitated Mars does less harm; others hold that in the 7th or 8th it does more. The result depends on house, lordship and aspect, and debility alone does not establish cancellation.",
+  },
+  // Owner ruling 2026-10-30 (DOCTRINE_DECISIONS_V1 §18, B): Ruchaka and Sevvai on one Mars,
+  // both at full weight. Same sentence as the backend (`_yoga_helpers`).
+  sevvai_mars_strength_both_ways: {
+    ta: "இங்கு செவ்வாய் ஆட்சி அல்லது உச்சம் பெற்றுக் கேந்திரத்தில் உள்ளது; அதனால் ருசக யோகமும் உருவாகிறது. இந்த வலிமை இரு வழிகளிலும் வெளிப்படும்: ஒருபுறம் துணிவும் தலைமைப் பண்பும், மறுபுறம் திருமண வாழ்வில் செவ்வாய் தோஷமாக. வலிமையான செவ்வாய் தோஷத்தை நீக்குவதில்லை; அதைத் தன் முழு வலிமையுடன் தருகிறது.",
+    en: "Mars here is in its own or exaltation sign in a kendra, which also forms Ruchaka yoga. That strength works in both directions: as drive and leadership, and in marriage as Sevvai dosham. A strong Mars does not cancel the dosham; it delivers it with its full force.",
+  },
+  // Owner ruling 2026-10-30 (DOCTRINE_DECISIONS_V1 §18, Q9): legs without a node in the
+  // 5th are a watch-note, never a dosham. Same sentence as the backend.
+  putra_sarpa_watch_only: {
+    ta: "இங்கு ராகு அல்லது கேது 5-ஆம் அதிபதியையோ குருவையோ தொடுகிறது, ஆனால் 5-ஆம் வீட்டிலேயே இல்லை. 5-ஆம் வீட்டில் ராகு அல்லது கேது இருந்தால் மட்டுமே புத்ர சர்ப்ப தோஷம் அறிவிக்கப்படும்; எனவே இது கவனிக்க வேண்டிய குறிப்பு மட்டுமே, தோஷம் அல்ல, இதற்குப் பரிகாரம் பரிந்துரைக்கப்படவில்லை.",
+    en: "Rahu or Ketu touches the 5th lord or Jupiter here, but no node sits in the 5th house itself. Only a node in the 5th declares Putra Sarpa, so this is a note to watch, not a dosham, and no parihara is suggested for it.",
+  },
+  // V1 §18 final sheet (Q13, Q14). Same sentences as the backend.
+  putra_sarpa_guru_ketu_noted: {
+    ta: "இங்கு கேது குருவுடன் உள்ளது; குரு உங்கள் 5-ஆம் வீட்டுடன் தொடர்புடையது. குரு-கேது சேர்க்கை குரு-ராகு சேர்க்கைக்கு இணையான எடை கொண்டதா என்பது இன்னும் முடிவு செய்யப்படவில்லை; எனவே இது குறிக்கப்படுகிறது, தீவிரத்தைக் கூட்டுவதில்லை.",
+    en: "Ketu sits with Jupiter, and Jupiter is linked to your 5th house. Whether Guru with Ketu weighs the same as Guru with Rahu has not been ruled yet, so it is noted here and does not raise the grade.",
+  },
+  santhana_thadai_lighter_parihara: {
+    ta: "இங்கு உங்கள் 5-ஆம் வீடு காக்கப்படுகிறது (பாதுகாப்புக் காரணங்களைப் பாருங்கள்); எனவே பரிந்துரைக்கப்படும் பரிகாரம் இலகுவானது: சனிக்கு அல்ல, குழந்தைப்பேறு என்ற விஷயத்துக்கே.",
+    en: "Your 5th house is guarded here (see the protective factors), so the parihara suggested is the lighter one: for the matter of children itself, not for Saturn.",
+  },
+  children_assessment_incomplete: {
+    ta: "இந்த வாசிப்பு இறுதியானது அல்ல. குழந்தைப்பேறுக்கு மரபில் பார்க்கப்படும் இரண்டு சோதனைகள், சப்தாம்சம் (D7) மற்றும் நடப்பு தசை, இந்தச் செயலியில் இன்னும் வரையறுக்கப்படவில்லை; எனவே இதைத் தற்காலிகமாகக் கருதுங்கள்.",
+    en: "This reading is not final. Two checks the tradition uses for children, the Saptamsa (D7) and the running dasha, are not yet defined in this app, so treat it as provisional.",
   },
   rk_axis_not_repeated_from_moon_venus: {
     ta: "சந்திரனிலிருந்தும் சுக்கிரனிலிருந்தும் எண்ணும்போது ராகு-கேது 1, 2, 7, 8-ஆம் வீடுகளில் இல்லை. அச்சு மீண்டும் வராதது லேசான நிலையைக் காட்டுகிறது.",

@@ -39,14 +39,15 @@ mentioned at all (R10: the only polarity table is `app/data/kuligai_polarity.py`
 from __future__ import annotations
 
 import zlib
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date
 from typing import Literal
 
+from app.calculations.gochara_scores import GOCHARA_FAVOURABLE_FROM_MOON
 from app.calculations.numerology import NUMBER_TO_GRAHA
 from app.calculations.tara_bala import TARA_NAMES, chandra_bala, tara_number
 from app.constants.astrology import SIGN_LORD
-from app.services._dg_peyarchi import NODE_AXIS_SUPPORTIVE
 from app.services.narrative_engine import format_clock_label
 
 # v2 (2026-09-23): period layer — dasha/bhukti, Sani cycles, Guru and Rahu.
@@ -559,20 +560,11 @@ _BHAVA_AREA: dict[int, str] = {
 }
 
 # Classical gochara: houses from the Moon in which each graha's transit gives
-# good results (Phaladeepika ch. 26). Nodes use the peyarchi axis set. Used only
-# to say whether today's transit of the bhukti lord backs its areas — a
-# yes/no sentence, not a score.
-_GOCHARA_GOOD: dict[str, frozenset[int]] = {
-    "SUN": frozenset({3, 6, 10, 11}),
-    "MOON": frozenset({1, 3, 6, 7, 10, 11}),
-    "MARS": frozenset({3, 6, 11}),
-    "MERCURY": frozenset({2, 4, 6, 8, 10, 11}),
-    "JUPITER": frozenset({2, 5, 7, 9, 11}),
-    "VENUS": frozenset({1, 2, 3, 4, 5, 8, 9, 11, 12}),
-    "SATURN": frozenset({3, 6, 11}),
-    "RAHU": NODE_AXIS_SUPPORTIVE,
-    "KETU": NODE_AXIS_SUPPORTIVE,
-}
+# good results. Used only to say whether today's transit of the bhukti lord
+# backs its areas — a yes/no sentence, not a score. It is the score's own
+# table, not a copy: a copy gave Ketu Rahu's set, so Ketu in the 10th read
+# "supportive" here while it scored adverse (AAU-09).
+_GOCHARA_GOOD: Mapping[str, frozenset[int]] = GOCHARA_FAVOURABLE_FROM_MOON
 
 
 @dataclass(frozen=True)

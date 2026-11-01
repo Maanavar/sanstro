@@ -30,6 +30,8 @@ const WEB = join(import.meta.dirname, "..");
 const reach: {
   unresolved: string[];
   own: Record<"marketing" | "dashboard" | "root", string[]>;
+  queryProviderRoutes: string[];
+  marketingWithoutQueryProvider: string[];
 } = JSON.parse(
   execFileSync(process.execPath, [join(WEB, "scripts/css-inventory.mjs"), "--emit-reach"], {
     encoding: "utf-8",
@@ -58,6 +60,13 @@ const codeFiles = (ctx: "marketing" | "dashboard" | "root") =>
 const usersOf = (ctx: "marketing" | "dashboard" | "root", pattern: RegExp) =>
   codeFiles(ctx).filter((f) => pattern.test(read(f)));
 
+/** Marketing minus the routes whose own layout renders <QueryProvider> — the
+ *  only set where a react-query call would throw. */
+const marketingWithoutProviderFiles = () =>
+  reach.marketingWithoutQueryProvider.filter(
+    (f) => f !== ROOT_LAYOUT && /\.(tsx?|jsx?)$/.test(f) && !/\.test\.[tj]sx?$/.test(f),
+  );
+
 const REACT_QUERY = /\b(useQuery|useMutation|useInfiniteQuery|useQueryClient|useSuspenseQuery)\b|@tanstack\/react-query/;
 const SONNER = /from\s+["']sonner["']|\btoast\s*\(|\btoast\.(success|error|info|warning|promise|custom|dismiss)\b/;
 
@@ -76,7 +85,12 @@ describe("root layout payload boundary", () => {
     ["sonner", SONNER],
   ] as const) {
     it(`no marketing route reaches ${name} — its provider lives in the dashboard layout`, () => {
-      const users = usersOf("marketing", pattern);
+      // react-query is asked of the routes without a provider of their own;
+      // sonner has no such exemption (the inbox layout mounts no Toaster).
+      const users =
+        name === "react-query"
+          ? marketingWithoutProviderFiles().filter((f) => pattern.test(read(f)))
+          : usersOf("marketing", pattern);
       expect(
         users,
         `${name} moved out of the root layout, so these would fail at runtime on a public page. ` +
@@ -92,6 +106,24 @@ describe("root layout payload boundary", () => {
       ).toEqual([]);
     });
   }
+
+  // The exemption above is a list, and it is pinned: a second public-group
+  // route mounting the provider ships react-query to that route's visitors,
+  // which is a decision to make on purpose, not one to pick up by copying.
+  // /notifications is the signed-in inbox at its legacy URL; its identity
+  // sub-bar reads the chart through react-query (hooks/useHeroIdentity.ts).
+  it("only the signed-in inbox carries its own react-query provider in the public group", () => {
+    expect(reach.queryProviderRoutes).toEqual([
+      "app/(marketing)/notifications/layout.tsx",
+      "app/(marketing)/notifications/page.tsx",
+    ]);
+  });
+
+  it("the exempt route really is reached by react-query (else the exemption is dead weight)", () => {
+    const all = usersOf("marketing", REACT_QUERY);
+    const unexempt = marketingWithoutProviderFiles().filter((f) => REACT_QUERY.test(read(f)));
+    expect(all.length).toBeGreaterThan(unexempt.length);
+  });
 
   it("the dashboard does reach both — otherwise the providers are in the wrong place", () => {
     expect(usersOf("dashboard", REACT_QUERY).length).toBeGreaterThan(0);

@@ -6,7 +6,13 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.schemas.birth_profiles import validate_birth_date_bounds
 from app.schemas.dasha import ResponseMeta
-from app.schemas.relationships import KutaResult, NadiDoshaData, RelationshipBiText
+from app.schemas.relationships import (
+    EkaNakshatraData,
+    KutaResult,
+    NadiDoshaData,
+    RelationshipBiText,
+    ShashtashtakaData,
+)
 
 # ---------------------------------------------------------------------------
 # Create — authenticated
@@ -83,6 +89,12 @@ class PoruthamShareViewData(BaseModel):
     rajju_dosha: bool = Field(alias="rajjuDosha")
     vedha_dosha: bool = Field(alias="vedhaDosha")
     nadi_dosha: NadiDoshaData = Field(alias="nadiDosha")
+    # Declared, not just passed: until 2026-10-27 the service handed
+    # `shashtashtaka=` to this model, which had no such field, and pydantic
+    # dropped it without a word, so no shared link ever showed the 6/8 note.
+    # Optional because snapshots frozen before each note have no key for it.
+    shashtashtaka: ShashtashtakaData | None = None
+    eka_nakshatra: EkaNakshatraData | None = Field(default=None, alias="ekaNakshatra")
     summary: RelationshipBiText
     compatibility_context: str = Field(alias="compatibilityContext")
     context_note: RelationshipBiText | None = Field(default=None, alias="contextNote")

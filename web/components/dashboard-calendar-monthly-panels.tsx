@@ -10,6 +10,7 @@ import type { PanchangamMonthDayEntry } from "@/lib/types";
 import type { AgendaDay } from "./dashboard-calendar-monthly-nova";
 import { MiniMoonGlyph } from "./celestial-glyph-nova";
 import { PendingPlaceholder } from "./pending-placeholder-nova";
+import { TempleTankEngraving } from "./temple-tank-engraving";
 import { Button, Card } from "./ui";
 
 type DayActions = {
@@ -34,25 +35,34 @@ function useSkyPhase(): SkyPhase | null {
   return phase;
 }
 
-/** The calendar scene for the reader's current time of day. */
-export function useCalendarSkyArt(): SkyArt {
-  return skyArtFor(useSkyPhase() ?? "night");
+/** The calendar scene for the reader's current time of day; `phase` is null until mount. */
+export function useCalendarSky(): { phase: SkyPhase | null; art: SkyArt } {
+  const phase = useSkyPhase();
+  return { phase, art: skyArtFor(phase ?? "night") };
 }
 
 /**
  * Decorative scene; the date's actual moon phase is separate. The container
- * must carry `data-sky-ground={art.ground}` — CSS keys the treatment (feathered
- * atmosphere vs framed window) off the art's ground, not the theme (IMG-01).
+ * must carry `data-sky-ground={art.ground}` — CSS keys the treatment off the
+ * art's ground, not the theme (IMG-01). Both media are rendered and CSS shows
+ * one: the photograph where its ground matches the page, the engraving of the
+ * same hour on the light theme when it does not (a night photo cannot sit on
+ * cream). Theme is never read in JS for decoration.
  */
-export function MonthlyCalendarLandscape({ art, priority = false }: { art: SkyArt; priority?: boolean }) {
-  return <div className="nova-cal-landscape" aria-hidden="true"><Image src={art.src} alt="" fill sizes="(max-width: 960px) 100vw, 1100px" priority={priority} /></div>;
+export function MonthlyCalendarLandscape({ art, phase, scene = "plate", priority = false }: { art: SkyArt; phase: SkyPhase | null; scene?: "plate" | "sky"; priority?: boolean }) {
+  return (
+    <>
+      <div className="nova-cal-landscape" aria-hidden="true"><Image src={art.src} alt="" fill sizes="(max-width: 960px) 100vw, 1100px" priority={priority} /></div>
+      <TempleTankEngraving phase={phase} crop="band" scene={scene} />
+    </>
+  );
 }
 
 export function MonthlyCalendarClosing({ children }: { children: ReactNode }) {
-  const art = useCalendarSkyArt();
+  const { art, phase } = useCalendarSky();
   return (
     <div className="nova-cal-closing" data-sky-ground={art.ground}>
-      <MonthlyCalendarLandscape art={art} />
+      <MonthlyCalendarLandscape art={art} phase={phase} />
       {children}
     </div>
   );

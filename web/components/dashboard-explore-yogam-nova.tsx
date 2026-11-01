@@ -214,7 +214,10 @@ interface DashboardExploreYogamNovaProps {
   yogas: ChartYogaInsight[];
   initialIndex: number;
   memberCharts: MemberChart[];
+  /** Back to the yogam list (the hub crumb). */
   onBack: () => void;
+  /** Leave for the Understand tab (the first crumb). */
+  onExit: () => void;
   onOpenAskVinaadi: () => void;
   onNavigateToday: () => void;
 }
@@ -225,6 +228,7 @@ export function DashboardExploreYogamNova({
   initialIndex,
   memberCharts,
   onBack,
+  onExit,
   onOpenAskVinaadi,
   onNavigateToday,
 }: DashboardExploreYogamNovaProps) {
@@ -234,7 +238,7 @@ export function DashboardExploreYogamNova({
   if (yogas.length === 0) {
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
-        <button type="button" onClick={onBack} style={{ alignSelf: "flex-start", fontSize: "var(--text-sm)", color: "var(--color-accent-strong)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+        <button type="button" onClick={onExit} style={{ alignSelf: "flex-start", fontSize: "var(--text-sm)", color: "var(--color-accent-strong)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
           <><ArrowLeft size={14} strokeWidth={1.5} aria-hidden="true" style={{ verticalAlign: "-2px", marginRight: "var(--space-1)" }} />{t("tab_explore_back", lang)}</>
         </button>
         <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>
@@ -280,8 +284,9 @@ export function DashboardExploreYogamNova({
 
       {/* ===== Breadcrumb + yoga nav ===== */}
       <NovaDetailBreadcrumb
-        onBack={onBack}
+        onBack={onExit}
         backLabel={t("tab_explore", lang)}
+        onHub={onBack}
         hubLabel={lang === "ta" ? "யோகம்" : "Yogam"}
         currentLabel={displayName(yoga.name, lang)}
         onPrev={{

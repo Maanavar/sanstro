@@ -190,6 +190,7 @@ describe.each(["en", "ta"] as const)("rendered surfaces (%s)", (lang) => {
         initialIndex={0}
         memberCharts={[]}
         onBack={noop}
+        onExit={noop}
         onOpenAskVinaadi={noop}
         onNavigateToday={noop}
       />,

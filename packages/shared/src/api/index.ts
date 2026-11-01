@@ -41,3 +41,6 @@ export * from "./oneMinuteReading";
 export * from "./fiveMinuteReading";
 export * from "./places";
 export * from "./adminAnalytics";
+export * from "./adminAccess";
+export * from "./adminSettings";
+export * from "./payments";

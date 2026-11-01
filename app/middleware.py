@@ -264,6 +264,12 @@ _MAINTENANCE_EXEMPT_PREFIXES = (
     "/redoc",
     "/openapi.json",
     "/api/v1/admin",
+    # How a client learns that maintenance is on.
+    "/api/v1/site-status",
+    # Providers retry a 503, but money already taken should grant access
+    # without waiting for maintenance to end.
+    "/api/v1/webhooks",
+    "/api/v1/payments/razorpay/webhook",
 )
 
 

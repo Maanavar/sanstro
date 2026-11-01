@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { LocalizedLink as Link } from "@/components/localized-link";
 import { useLang } from "@/components/lang-context";
-import { OPEN_BETA, SUBSCRIPTION_PLANS } from "@vinaadi/shared/constants";
+import { ACCOUNT_TRIAL_DAYS, OPEN_BETA, SUBSCRIPTION_PLANS } from "@vinaadi/shared/constants";
 
 /** ₹ with Indian digit grouping; "Free" for zero (MKT-14). */
 function formatINR(amount: number, free = "Free"): string {
@@ -185,12 +185,14 @@ export function PricingPlans() {
             ) : (
               <>
                 <Link href="/login" className="cl-btn cl-btn--solid" style={{ width: "100%" }}>
-                  {L(`Start ${monthly.trialDays}-day free trial`, `${monthly.trialDays} நாள் இலவச சோதனையைத் தொடங்குங்கள்`)}
+                  {L(`Start ${ACCOUNT_TRIAL_DAYS}-day free trial`, `${ACCOUNT_TRIAL_DAYS} நாள் இலவச சோதனையைத் தொடங்குங்கள்`)}
                 </Link>
                 <p style={{ margin: "8px 0 0", color: "var(--cl-muted)", fontSize: "0.8rem", textAlign: "center" }}>
+                  {/* D-07: the trial starts on email verification, asks for no
+                      payment details and charges nothing when it ends. */}
                   {L(
-                    `${monthly.trialDays} days free, then ${formatINR(premiumPlan.priceINR)}${billing === "monthly" ? " / month" : " / year"}. Cancel anytime.`,
-                    `${monthly.trialDays} நாள் இலவசம், பிறகு ${formatINR(premiumPlan.priceINR)}${billing === "monthly" ? " / மாதம்" : " / ஆண்டு"}. எப்போது வேண்டுமானாலும் ரத்து செய்யலாம்.`,
+                    `${ACCOUNT_TRIAL_DAYS} days free once you confirm your email. No payment details; nothing is charged when it ends.`,
+                    `மின்னஞ்சலை உறுதிசெய்ததும் ${ACCOUNT_TRIAL_DAYS} நாள் இலவசம். கட்டண விவரங்கள் தேவையில்லை; முடிந்ததும் எந்தக் கட்டணமும் வசூலிக்கப்படாது.`,
                   )}
                 </p>
               </>

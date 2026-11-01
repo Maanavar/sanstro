@@ -54,6 +54,7 @@ from app.calculations.astro import (
 )
 from app.calculations.panchangam import (
     best_gowri_slot,
+    day_quality_for,
     gowri_good_label,
     gowri_good_purpose,
 )
@@ -64,10 +65,6 @@ from app.models.chart_planet import ChartPlanet
 from app.models.notification import Notification
 from app.models.user import User
 from app.models.user_notification_preference import UserNotificationPreference
-from app.services._dg_scoring import (
-    AUSPICIOUS_DAILY_NAKSHATRAS,
-    CAUTION_DAILY_NAKSHATRAS,
-)
 from app.services.daily_guidance_service import get_daily_guidance
 from app.services.dasha_transition_service import get_dasha_transition_alerts
 from app.services.life_focus_service import focus_push_line
@@ -255,11 +252,13 @@ def _dispatch_for_user(
     if pref.morning_alert_enabled and _alert_due and not _already_sent_today(session, user.user_id, "MORNING_NALLA_NERAM", run_date, tz_name):
         try:
             panchang = calculate_daily_panchangam(run_date, lat, lon, tz_name)
-            # The star this push speaks about. Dominant rather than sunrise: the
-            # sunrise star holds under half the day on 46.6% of days, and a
-            # morning notification naming a star that ended fifteen minutes
-            # after sunrise is the defect this whole change is about.
-            fallback_star = panchang.dominant_nakshatra_number or panchang.nakshatra_number
+            # The star this push speaks about, and the general verdict if the
+            # personal one fails: the day's `day_quality` (AAU-07), the same
+            # answer the calendar badge and the PDF give. Not the sunrise star
+            # (it holds under half the day on 46.6% of days) and not the
+            # 24-hour dominant one (that counts the night).
+            day = day_quality_for(panchang)
+            fallback_star = day.verdict_star
             nalla_slot = best_gowri_slot(panchang.nalla_neram)
             nalla_start = _clock_hm(nalla_slot.start) if nalla_slot else "-"
             nalla_end = _clock_hm(nalla_slot.end) if nalla_slot else "-"
@@ -281,19 +280,10 @@ def _dispatch_for_user(
                 dasha_ctx_en = guidance.data.reasons.dasha_support.en
                 activity_board = guidance.data.activity_board
             except Exception:
-                # Fall back to panchangam-only signal if full guidance fails.
-                # Star sets imported, not restated: this branch used to carry
-                # 14 (Chithirai) in BOTH its auspicious and its caution literal,
-                # and because auspicious was tested first the caution arm for 14
-                # was unreachable — the two lists agreed on 14 by accident while
-                # disagreeing in their source. Keyed on the day's dominant star
-                # rather than the sunrise one, to match the guidance score this
-                # is standing in for.
-                score = 50
-                if fallback_star in AUSPICIOUS_DAILY_NAKSHATRAS:
-                    score = 72
-                elif fallback_star in CAUTION_DAILY_NAKSHATRAS:
-                    score = 32
+                # Fall back to the panchangam-only verdict if full guidance
+                # fails: `day_quality`'s own score, so this push cannot say
+                # caution on a day the calendar badges good (AAU-07).
+                score = day.score
                 label = _score_label(score)
                 is_chandrashtama = False
                 action_ta = action_en = ""

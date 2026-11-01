@@ -137,6 +137,15 @@ class _DoshamLike(Protocol):
     def name(self) -> str: ...
 
 
+def _parihara_level(dosham: object) -> str:
+    """The parihara answer from either shape: a calc `DoshamResult` carries it
+    flat, an API `ChartDoshamInsight` under `assessment` (None on old payloads)."""
+    assessment = getattr(dosham, "assessment", None)
+    if assessment is not None:
+        return getattr(assessment, "parihara", "full")
+    return getattr(dosham, "parihara", "full")
+
+
 def active_dosham_planet(doshams: Sequence[_DoshamLike], lagna_rasi: int) -> str | None:
     """First present dosham → the graha whose remedy eases it.
 
@@ -148,10 +157,19 @@ def active_dosham_planet(doshams: Sequence[_DoshamLike], lagna_rasi: int) -> str
     for dosham in doshams:
         if not dosham.is_present:
             continue
+        # V1 §18 Q13/Q15: the graha's (cause) parihara only when the assessment
+        # warrants it in full. "objective_only" is the matter's remedy, not the
+        # graha's, so it routes no planet here. Older payloads read as "full".
+        if _parihara_level(dosham) != "full":
+            continue
         if dosham.name in {"SEVVAI_DOSHAM", "KALATHRA_DOSHAM"}:
             return "MARS"
         if dosham.name in {"RAHU_KETU_DOSHAM", "KALASARPA", "PUTRA_SARPA_DOSHAM"}:
             return "RAHU"
+        # AAU-12: Saturn's progeny delay goes to Sani parihara, never the naga
+        # route its old Putra Sarpa label sent it to.
+        if dosham.name == "SANTHANA_THADAI":
+            return "SATURN"
         if dosham.name == "PITRU_DOSHAM":
             return "SUN"
         if dosham.name == "BADHAKA_DOSHAM":

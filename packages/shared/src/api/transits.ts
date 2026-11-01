@@ -46,10 +46,18 @@ export const SADE_SATI_FROM_MOON: readonly number[] = [12, 1, 2];
 export const ARDHASHTAMA_SANI_FROM_MOON: readonly number[] = [4];
 export const ASHTAMA_SANI_FROM_MOON: readonly number[] = [8];
 
+// Rahu / Ketu (AAU-09, ruled 2026-10-29): the standard Tamil panchangam table.
+// Rahu favours 3/6/10/11, Ketu 3/6/11; every other house needs care. The nodes
+// sit 180° apart and are graded separately, never as one "node" set.
+export const RAHU_SUPPORTIVE_FROM_MOON: readonly number[] = [3, 6, 10, 11];
+export const RAHU_NEEDS_CARE_FROM_MOON: readonly number[] = [1, 2, 4, 5, 7, 8, 9, 12];
+export const KETU_SUPPORTIVE_FROM_MOON: readonly number[] = [3, 6, 11];
+export const KETU_NEEDS_CARE_FROM_MOON: readonly number[] = [1, 2, 4, 5, 7, 8, 9, 10, 12];
+
 export type GocharaGrade = "SUPPORTIVE" | "MIXED" | "NEEDS_CARE";
 
-/** Vinaadi's grade for Guru/Sani by house from the Janma Rasi. Null for any
- *  other planet: Rahu/Ketu have no astrologer-approved gochara table yet. */
+/** Vinaadi's grade for Guru/Sani/Rahu/Ketu by house from the Janma Rasi. Null
+ *  for any other planet: the faster grahas are not graded on this surface. */
 export function gocharaGrade(planet: string, houseFromMoon: number): GocharaGrade | null {
   const key = planet === "GURU" ? "JUPITER" : planet === "SANI" ? "SATURN" : planet;
   if (key === "JUPITER") {
@@ -59,6 +67,12 @@ export function gocharaGrade(planet: string, houseFromMoon: number): GocharaGrad
   }
   if (key === "SATURN") {
     return SANI_SUPPORTIVE_FROM_MOON.includes(houseFromMoon) ? "SUPPORTIVE" : "NEEDS_CARE";
+  }
+  if (key === "RAHU") {
+    return RAHU_SUPPORTIVE_FROM_MOON.includes(houseFromMoon) ? "SUPPORTIVE" : "NEEDS_CARE";
+  }
+  if (key === "KETU") {
+    return KETU_SUPPORTIVE_FROM_MOON.includes(houseFromMoon) ? "SUPPORTIVE" : "NEEDS_CARE";
   }
   return null;
 }

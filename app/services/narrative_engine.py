@@ -17,6 +17,7 @@ from app.calculations.astro import house_from_reference
 from app.calculations.chart_strength import compute_natal_planet_score
 from app.calculations.display_names import YOGA_NAME_EN, YOGA_NAME_TA
 from app.calculations.gochara_grade import NAMED_SANI_PERIOD_HOUSES, gochara_grade
+from app.calculations.panchangam import ASHUBHA_YOGA_NUMBERS
 
 if TYPE_CHECKING:
     from app.schemas.charts import PlanetPosition
@@ -389,7 +390,9 @@ def dasha_support_reason(maha_lord: str, antar_lord: str, dasha_score: int) -> B
 
 _TITHI_CAUTION = {4, 9, 14, 19, 24, 29}
 _TITHI_MILD = {8, 23, 30}
-_YOGA_CAUTION = {1, 6, 9, 10, 17, 27}
+# The panchangam's one table of nine (AAU-15). The six-yoga copy here let the
+# day's sentence stay quiet on Vyaghata, Vajra and Parigha.
+_YOGA_CAUTION = ASHUBHA_YOGA_NUMBERS
 
 
 def panchangam_reason(

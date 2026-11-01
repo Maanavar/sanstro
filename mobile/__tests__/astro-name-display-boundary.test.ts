@@ -70,6 +70,20 @@ export function keyRenders(source: string): string[] {
   return [...source.matchAll(KEY_CHILD), ...source.matchAll(KEY_BRANCH)].map((m) => m[0]);
 }
 
+/**
+ * `{p.nakshatra.name}` — a panchangam element's English name as the whole JSX
+ * child. Neither rule above sees it (`.name`, not `.nakshatraName`), and the
+ * Today hero shipped it to Tamil readers.
+ */
+const ELEMENT_NAME_CHILD = new RegExp(
+  String.raw`(?<![=\w$])\{\s*${CHAIN}(?:nakshatra|tithi|yoga|karana)\??\.name\b\s*\}`,
+  "g",
+);
+
+export function elementNameRenders(source: string): string[] {
+  return [...source.matchAll(ELEMENT_NAME_CHILD)].map((m) => m[0]);
+}
+
 function listFiles(dir: string): string[] {
   let entries: string[];
   try {
@@ -87,7 +101,7 @@ function listFiles(dir: string): string[] {
 export function scanSources(files: Array<[string, string]>): Map<string, string[]> {
   const hits = new Map<string, string[]>();
   for (const [file, source] of files) {
-    const found = [...nameFieldReads(source), ...keyRenders(source)];
+    const found = [...nameFieldReads(source), ...keyRenders(source), ...elementNameRenders(source)];
     if (found.length > 0) hits.set(file, [...new Set(found)]);
   }
   return hits;
@@ -132,5 +146,14 @@ describe("mobile astro name display boundary (FCA-05)", () => {
     expect(nameFieldReads('nakshatraNumberFromName((person1 as any).nakshatraName ?? "")')).toEqual([]);
     expect(nameFieldReads("isTamil ? rasiPalanData.rasiName.ta : rasiPalanData.rasiName.en")).toEqual([]);
     expect(nameFieldReads("<Text style={[styles.rasiName, x]}>")).toEqual([]);
+  });
+
+  it("detects a panchangam element's raw name as a JSX child, and not its localised read", () => {
+    // Verbatim from the Today hero.
+    expect(elementNameRenders("{p.nakshatra.name} · {p.tithi.name}")).toEqual(["{p.nakshatra.name}", "{p.tithi.name}"]);
+    expect(elementNameRenders("{p?.yoga?.name}")).toEqual(["{p?.yoga?.name}"]);
+    expect(elementNameRenders("{tNakshatra(p.nakshatra.name, lang)} · {tTithi(p.tithi.name, lang)}")).toEqual([]);
+    expect(elementNameRenders("value: tKarana(p.karana.name, lang)")).toEqual([]);
+    expect(elementNameRenders("<View key={p.tithi.name}>")).toEqual([]);
   });
 });

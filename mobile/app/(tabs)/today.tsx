@@ -628,7 +628,7 @@ export default function TodayTab() {
                     </Text>
                     {p && (
                       <Text style={styles.heroSub}>
-                        {p.nakshatra.name} · {p.tithi.name}
+                        {tNakshatra(p.nakshatra.name, lang)} · {tTithi(p.tithi.name, lang)}
                       </Text>
                     )}
                   </View>

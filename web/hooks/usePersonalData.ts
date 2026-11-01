@@ -106,7 +106,10 @@ const EMPTY_PREDICTIONS: PredictionBundle = {
   health: null,
 };
 
-const personalKeys = {
+/** Exported so the utility pages' top bar (useHeroIdentity) reads the same
+ *  cache entries the workspace fills — arriving from the dashboard costs no
+ *  request. */
+export const personalKeys = {
   latestBirthProfile: ["birth-profiles", "me", "latest"] as const,
   chartCalculate: (birthProfileId: string) => ["chart", "calculate", birthProfileId] as const,
   chartBundle: (chartId: string, date: string) => ["chart", "bundle", chartId, date] as const,
@@ -133,7 +136,7 @@ function isAbortError(error: unknown): boolean {
  *  The server now resolves the version itself (`app/constants/versions.py`); the
  *  request field is still accepted and ignored, so the two surfaces can be
  *  deployed in either order. */
-async function calculateChart(birthProfileId: string, signal?: AbortSignal): Promise<ApiEnvelope<ChartCalculateResponseData>> {
+export async function calculateChart(birthProfileId: string, signal?: AbortSignal): Promise<ApiEnvelope<ChartCalculateResponseData>> {
   return apiFetchJson<ApiEnvelope<ChartCalculateResponseData>>("/api/v1/charts/calculate", {
     method: "POST",
     body: JSON.stringify({ birthProfileId }),
@@ -188,7 +191,7 @@ export function mapDashboardBundle(data: ChartDashboardBundleData): ChartBundle 
 
 /** One request for the whole per-chart day bundle (DASH-04) — replaces the 13
  *  parallel requests this function used to fan out. */
-async function fetchChartBundle(chartId: string, date: string): Promise<ChartBundle> {
+export async function fetchChartBundle(chartId: string, date: string): Promise<ChartBundle> {
   const response = await getChartDashboardBundle(chartId, date);
   return mapDashboardBundle(response.data);
 }

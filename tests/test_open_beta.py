@@ -77,8 +77,10 @@ def test_beta_differs_from_premium_only_in_ask_vinaadi() -> None:
 
 
 @pytest.mark.no_db
-def test_beta_ask_cap_costs_no_more_than_the_free_tier_did() -> None:
-    assert OPEN_BETA_LIMITS.ask_vinaadi_daily_limit == TIER_LIMITS["registered"].ask_vinaadi_daily_limit
+def test_beta_ask_cap_is_pinned_at_what_beta_users_already_have() -> None:
+    """7/day, the beta's figure before the 2026-11-01 ladder. The ladder
+    (registered 2, premium 5) applies from launch; the beta must not see it."""
+    assert OPEN_BETA_LIMITS.ask_vinaadi_daily_limit == 7
     assert OPEN_BETA_LIMITS.ask_vinaadi_monthly_limit is None
     assert OPEN_BETA_LIMITS.ask_vinaadi_topup_enabled is False
 

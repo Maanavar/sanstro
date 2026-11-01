@@ -22,10 +22,20 @@ PlanetInput = int | Mapping[str, int | float | str]
 KENDRA_HOUSES = {1, 4, 7, 10}
 TRIKONA_HOUSES = {1, 5, 9}
 DUSTHANA_HOUSES = {6, 8, 12}
-# 2026-07 audit A-5: confirmed against mainstream Kuja/Chevvai Dosham
-# references (Mars in 1,2,4,7,8,12 from Lagna/Moon/Venus) as the standard
-# Tamil house set, including the 1st house — see docs/SEVVAIRAGU.MD §4.1.
-TAMIL_SEVVAI_HOUSES = {1, 2, 4, 7, 8, 12}
+# Owner ruling 2026-10-30 (DOCTRINE_DECISIONS_V1 §18, Q5): the Tamil enumeration is the
+# default — 2, 4, 7, 8, 12, no 1st house. The six-house set it replaced was two
+# enumerations added together: this one and the widely circulated
+# லக்னே வ்யயே ச பாதாலே ஜாமித்ரே சாஷ்டமே குஜே (1, 4, 7, 8, 12). Both stay
+# selectable through `DoctrineOptions.sevvai_house_set` as documented
+# alternatives, never as the verdict. The nivarthi table below never had a 1st
+# row because it belongs to this five-house scheme.
+TAMIL_SEVVAI_HOUSES: frozenset[int] = frozenset({2, 4, 7, 8, 12})
+MANGLIK_SEVVAI_HOUSES: frozenset[int] = frozenset({1, 4, 7, 8, 12})
+SEVVAI_HOUSE_SETS: dict[str, frozenset[int]] = {
+    "tamil_five": TAMIL_SEVVAI_HOUSES,
+    "manglik_five": MANGLIK_SEVVAI_HOUSES,
+    "union_six": TAMIL_SEVVAI_HOUSES | MANGLIK_SEVVAI_HOUSES,
+}
 RAHU_KETU_MARRIAGE_HOUSES = {1, 2, 7, 8}
 SEVEN_PLANETS = ("SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN")
 NATURAL_BENEFICS = {"JUPITER", "VENUS", "MERCURY", "MOON"}
@@ -33,6 +43,7 @@ NATURAL_BENEFICS = {"JUPITER", "VENUS", "MERCURY", "MOON"}
 # as Rahu/Ketu — see docs/THIRUKANITHAM_DEPTH_EXPANSION_PLAN.md Phase 1.2.
 NATURAL_MALEFICS = {"SATURN", "MARS", "RAHU", "KETU", "SUN", "MANDHI"}
 
+# Provisional: each row awaits the astrologer's sign-off (DOCTRINE_DECISIONS_V1 §18, Q6a).
 HOUSE_SIGN_NIVARTHI: dict[int, frozenset[int]] = {
     2:  frozenset({3, 6}),
     4:  frozenset({1, 8}),
@@ -143,6 +154,27 @@ class DoshamResult:
     #: is for everyone. Empty when the detector has nothing chart-specific.
     meaning_ta: str = ""
     meaning_en: str = ""
+    #: Owner ruling 2026-10-30 (V1 §18, Q15): the fourth of the four outputs —
+    #: formation (`is_present`), strength (`formation_strength`), protection
+    #: (`cancellation_factors`, `is_cancelled`), parihara (this). One of
+    #: `PARIHARA_LEVELS`; never derived from the other three by a consumer.
+    parihara: str = "full"
+    #: False while a step the ruling requires is not yet defined (Q13: D7 and
+    #: dasha for the children findings). Surfaces must not present it as final.
+    assessment_complete: bool = True
+    #: CHILDREN findings only: one of `PROGENY_OUTLOOKS`, "" elsewhere. The set
+    #: has no member for denial, so no detector can express one (V1 §18, Q17).
+    progeny_outlook: str = ""
+
+
+#: Owner ruling 2026-10-30 (V1 §18, Q17), an engine invariant: delay, difficulty,
+#: needs attention — never denial. Add a value only by ruling.
+PROGENY_OUTLOOKS: frozenset[str] = frozenset({"delay", "difficulty", "needs_attention"})
+
+#: V1 §18 Q15/Q13. "full": cause and objective parihara. "objective_only": the
+#: formation stands but protection lightens the remedy, and the output says so
+#: (never a silent withholding). "none": nothing formed (a watch-note).
+PARIHARA_LEVELS: frozenset[str] = frozenset({"full", "objective_only", "none"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -418,8 +450,17 @@ def _marker_explain(marker: str) -> str:
         # DD-17 context notes: same text as DOSHAM_CONTEXT_LABELS in
         # packages/shared/src/doshamReckoning.ts (held equal by a test).
         "sevvai_not_from_lagna": "Mars is not in a dosha house from your Lagna. The dosham is counted only from the Moon or Venus, which weighs less than a Lagna placement.",
+        "sevvai_not_declared_without_lagna": "Mars is in a dosha house counted from your Moon or Venus, but not from your Lagna. The Lagna is the primary reference; the Moon and Venus only grade a Lagna dosham, so this placement is noted and Sevvai dosham is not declared.",
         # The astrologer's wording, 23 Oct (Q12, Tamil corrected in B3) — kept verbatim.
         "sevvai_mars_debility_modifies": "Mars's debility modifies the reading of Sevvai dosham. Some texts hold that a debilitated Mars does less harm; others hold that in the 7th or 8th it does more. The result depends on house, lordship and aspect, and debility alone does not establish cancellation.",
+        # Owner ruling 2026-10-30 (V1 §18, B): Ruchaka and Sevvai on one Mars.
+        "sevvai_mars_strength_both_ways": "Mars here is in its own or exaltation sign in a kendra, which also forms Ruchaka yoga. That strength works in both directions: as drive and leadership, and in marriage as Sevvai dosham. A strong Mars does not cancel the dosham; it delivers it with its full force.",
+        # Owner ruling 2026-10-30 (V1 §18, Q9): legs without a node in the 5th.
+        "putra_sarpa_watch_only": "Rahu or Ketu touches the 5th lord or Jupiter here, but no node sits in the 5th house itself. Only a node in the 5th declares Putra Sarpa, so this is a note to watch, not a dosham, and no parihara is suggested for it.",
+        # V1 §18 final sheet (Q13, Q14).
+        "putra_sarpa_guru_ketu_noted": "Ketu sits with Jupiter, and Jupiter is linked to your 5th house. Whether Guru with Ketu weighs the same as Guru with Rahu has not been ruled yet, so it is noted here and does not raise the grade.",
+        "santhana_thadai_lighter_parihara": "Your 5th house is guarded here (see the protective factors), so the parihara suggested is the lighter one: for the matter of children itself, not for Saturn.",
+        "children_assessment_incomplete": "This reading is not final. Two checks the tradition uses for children, the Saptamsa (D7) and the running dasha, are not yet defined in this app, so treat it as provisional.",
         "rk_axis_not_repeated_from_moon_venus": "Counted from your Moon and from Venus, the nodes do not fall on houses 1, 2, 7 or 8. The axis is not repeated, which is the lighter reading.",
         "rk_axis_repeated_in_navamsa": "In the Navamsa (D9) the nodes again fall on houses 1, 2, 7 or 8 from its Lagna — the pattern repeats there.",
         "rk_axis_not_repeated_in_navamsa": "In the Navamsa (D9) the nodes fall outside houses 1, 2, 7 and 8 — the pattern does not repeat there.",
@@ -483,9 +524,16 @@ def _marker_explain_ta(marker: str) -> str:
         "strong_second_lord_or_benefic_on_second": "2-ஆம் வீட்டிற்கு ஆதரவு உள்ளது: அதன் அதிபதி வலுவாக உள்ளது அல்லது குரு அல்லாத சுப கிரக ஆதரவு கிடைக்கிறது — இதனால் தாக்கம் குறைகிறது.",
         "second_lord_dignified": "2-ஆம் அதிபதி ஆட்சி அல்லது உச்ச ராசியில், பாவ கிரகச் சேர்க்கையின்றி உள்ளது — 2-ஆம் வீட்டிற்குப் பாதுகாப்பு.",
         "sevvai_not_from_lagna": "லக்னத்திலிருந்து செவ்வாய் தோஷ வீட்டில் இல்லை; சந்திரன் அல்லது சுக்கிரனிலிருந்து மட்டுமே தோஷம் கணக்கிடப்படுகிறது. லக்னத்திலிருந்து வரும் தோஷத்தை விட இதன் எடை குறைவு.",
+        "sevvai_not_declared_without_lagna": "சந்திரன் அல்லது சுக்கிரனிலிருந்து எண்ணும்போது செவ்வாய் தோஷ வீட்டில் உள்ளது, ஆனால் லக்னத்திலிருந்து இல்லை. லக்னமே முதன்மை; சந்திரனும் சுக்கிரனும் லக்ன தோஷத்தின் தீவிரத்தை மட்டுமே காட்டும். எனவே இந்த நிலை குறிக்கப்படுகிறது, செவ்வாய் தோஷம் அறிவிக்கப்படவில்லை.",
         # The astrologer's own Tamil, 23 Oct B3 (he replaced பாவம் with பாவகம்
         # and முடிவு with பலன்) — verbatim, do not re-translate.
         "sevvai_mars_debility_modifies": "செவ்வாய் நீசம் பெறுவது செவ்வாய் தோஷத்தின் தன்மையை மாற்றுகிறது. நீசச் செவ்வாய் தீங்கைக் குறைக்கும் என்று சில நூல்களும், 7-ஆம் அல்லது 8-ஆம் இடத்தில் அது தீங்கை அதிகரிக்கும் என்று வேறு சில நூல்களும் கூறுகின்றன. பலன் பாவகம், ஆதிபத்தியம், பார்வை ஆகியவற்றைப் பொறுத்தது; நீசம் மட்டுமே தோஷ நிவர்த்தியை உறுதிசெய்யாது.",
+        # Native review pending (questions doc C2).
+        "sevvai_mars_strength_both_ways": "இங்கு செவ்வாய் ஆட்சி அல்லது உச்சம் பெற்றுக் கேந்திரத்தில் உள்ளது; அதனால் ருசக யோகமும் உருவாகிறது. இந்த வலிமை இரு வழிகளிலும் வெளிப்படும்: ஒருபுறம் துணிவும் தலைமைப் பண்பும், மறுபுறம் திருமண வாழ்வில் செவ்வாய் தோஷமாக. வலிமையான செவ்வாய் தோஷத்தை நீக்குவதில்லை; அதைத் தன் முழு வலிமையுடன் தருகிறது.",
+        "putra_sarpa_watch_only": "இங்கு ராகு அல்லது கேது 5-ஆம் அதிபதியையோ குருவையோ தொடுகிறது, ஆனால் 5-ஆம் வீட்டிலேயே இல்லை. 5-ஆம் வீட்டில் ராகு அல்லது கேது இருந்தால் மட்டுமே புத்ர சர்ப்ப தோஷம் அறிவிக்கப்படும்; எனவே இது கவனிக்க வேண்டிய குறிப்பு மட்டுமே, தோஷம் அல்ல, இதற்குப் பரிகாரம் பரிந்துரைக்கப்படவில்லை.",
+        "putra_sarpa_guru_ketu_noted": "இங்கு கேது குருவுடன் உள்ளது; குரு உங்கள் 5-ஆம் வீட்டுடன் தொடர்புடையது. குரு-கேது சேர்க்கை குரு-ராகு சேர்க்கைக்கு இணையான எடை கொண்டதா என்பது இன்னும் முடிவு செய்யப்படவில்லை; எனவே இது குறிக்கப்படுகிறது, தீவிரத்தைக் கூட்டுவதில்லை.",
+        "santhana_thadai_lighter_parihara": "இங்கு உங்கள் 5-ஆம் வீடு காக்கப்படுகிறது (பாதுகாப்புக் காரணங்களைப் பாருங்கள்); எனவே பரிந்துரைக்கப்படும் பரிகாரம் இலகுவானது: சனிக்கு அல்ல, குழந்தைப்பேறு என்ற விஷயத்துக்கே.",
+        "children_assessment_incomplete": "இந்த வாசிப்பு இறுதியானது அல்ல. குழந்தைப்பேறுக்கு மரபில் பார்க்கப்படும் இரண்டு சோதனைகள், சப்தாம்சம் (D7) மற்றும் நடப்பு தசை, இந்தச் செயலியில் இன்னும் வரையறுக்கப்படவில்லை; எனவே இதைத் தற்காலிகமாகக் கருதுங்கள்.",
         "rk_axis_not_repeated_from_moon_venus": "சந்திரனிலிருந்தும் சுக்கிரனிலிருந்தும் எண்ணும்போது ராகு-கேது 1, 2, 7, 8-ஆம் வீடுகளில் இல்லை. அச்சு மீண்டும் வராதது லேசான நிலையைக் காட்டுகிறது.",
         "rk_axis_repeated_in_navamsa": "நவாம்சத்திலும் (D9) ராகு-கேது அதன் லக்னத்திலிருந்து 1, 2, 7 அல்லது 8-ஆம் வீடுகளில் உள்ளன — அமைப்பு அங்கும் மீண்டும் வருகிறது.",
         "rk_axis_not_repeated_in_navamsa": "நவாம்சத்தில் (D9) ராகு-கேது 1, 2, 7, 8-ஆம் வீடுகளுக்கு வெளியே உள்ளன — அமைப்பு அங்கு மீண்டும் வரவில்லை.",
@@ -560,7 +608,8 @@ def _build_dosham_explanations(
         "KALASARPA": "Kala Sarpa indicates all seven classical planets on one side of the Rahu-Ketu axis.",
         "BADHAKA_DOSHAM": "Badhaka dosham is an obstruction pattern from the badhaka lord (the lord of the 11th/9th/7th house, set by your lagna type) that can bring delays and last-minute blocks when it is active.",
         "KALATHRA_DOSHAM": "Kalathra dosham is a marriage-sensitivity indicator formed when the 7th house or its lord is afflicted.",
-        "PUTRA_SARPA_DOSHAM": "Putra Sarpa dosham concerns the 5th house (children, learning, creativity). It forms when Rahu, Ketu or Saturn sits in the 5th house or shares a sign with the 5th lord, or when a node joins Jupiter, the karaka for children.",
+        "PUTRA_SARPA_DOSHAM": "Putra Sarpa dosham concerns the 5th house (children, learning, creativity). It forms only when Rahu or Ketu sits in the 5th house. A node beside the 5th lord, or with Jupiter when Jupiter is linked to the 5th, makes it heavier; without a node in the 5th those are noted, not declared.",
+        "SANTHANA_THADAI": "Santhana Thadai is delay around children, not denial. It forms when Saturn sits in the 5th house or shares a sign with the 5th lord. It is Saturn's own finding, separate from Putra Sarpa, which needs Rahu or Ketu.",
         "MARANA_KARAKA_STHANA": "Each planet has one house, counted from the Lagna, where tradition holds it weakest: its Marana Karaka Sthana. A planet there gives its own results slowly or with extra effort, most of all in its dasha or bhukti. It is not a prediction about life span.",
     }
     what_ta_map = {
@@ -570,7 +619,8 @@ def _build_dosham_explanations(
         "KALASARPA": "காலசர்ப்ப யோகம் என்பது அனைத்து ஏழு கிரகங்களும் ராகு-கேது அச்சின் ஒரு பக்கத்தில் உள்ளதைக் குறிக்கும்.",
         "BADHAKA_DOSHAM": "பாதக தோஷம் என்பது உங்கள் லக்னப்படி அமையும் பாதக அதிபதி செயல்படும்போது தடைகளையும் கடைசி-நிமிட இடையூறுகளையும் தரக்கூடிய தடை-வடிவம்.",
         "KALATHRA_DOSHAM": "களத்திர தோஷம் என்பது 7-ம் வீடு அல்லது அதன் அதிபதி பாதிக்கப்படும்போது உருவாகும் திருமண உணர்திறன் குறிப்பான்.",
-        "PUTRA_SARPA_DOSHAM": "புத்ர சர்ப்ப தோஷம் குழந்தை, கல்வி, படைப்பாற்றலைக் குறிக்கும் 5-ஆம் வீடு பற்றியது. ராகு, கேது அல்லது சனி 5-ஆம் வீட்டில் இருக்கும்போது, அல்லது 5-ஆம் அதிபதியுடன் ஒரே ராசியில் இருக்கும்போது, அல்லது புத்திர காரகனான குருவுடன் ராகு/கேது சேரும்போது இது உருவாகிறது.",
+        "PUTRA_SARPA_DOSHAM": "புத்ர சர்ப்ப தோஷம் குழந்தை, கல்வி, படைப்பாற்றலைக் குறிக்கும் 5-ஆம் வீடு பற்றியது. ராகு அல்லது கேது 5-ஆம் வீட்டில் இருக்கும்போது மட்டுமே இது உருவாகிறது. 5-ஆம் அதிபதியுடன் ராகு அல்லது கேது இருப்பதும், 5-ஆம் வீட்டுடன் தொடர்புடைய குருவுடன் அவை சேர்வதும் தீவிரத்தைக் கூட்டும்; 5-ஆம் வீட்டில் ராகு அல்லது கேது இல்லாதபோது அவை குறிக்கப்படுகின்றன, தோஷமாக அறிவிக்கப்படுவதில்லை.",
+        "SANTHANA_THADAI": "புத்திர தடை என்பது குழந்தைப்பேறில் தாமதம், மறுப்பு அல்ல. சனி 5-ஆம் வீட்டில் இருக்கும்போது, அல்லது 5-ஆம் அதிபதியுடன் ஒரே ராசியில் இருக்கும்போது இது உருவாகிறது. இது சனியின் தனி நிலை; ராகு அல்லது கேது தேவைப்படும் புத்ர சர்ப்ப தோஷத்திலிருந்து வேறானது.",
         "MARANA_KARAKA_STHANA": "ஒவ்வொரு கிரகத்திற்கும் லக்னத்திலிருந்து எண்ணும்போது, மரபுப்படி அது மிகவும் பலவீனமாகும் ஒரு வீடு உண்டு: அதுவே அதன் மரண காரக ஸ்தானம். அங்கு இருக்கும் கிரகம் தன் பலன்களை மெதுவாகவோ கூடுதல் முயற்சிக்குப் பிறகோ தரும், குறிப்பாக அதன் தசை அல்லது புக்தியில். இது ஆயுள் பற்றிய கணிப்பு அல்ல.",
     }
     what_en = what_en_map.get(dosham_name, "This is a traditional dosham indicator.")

@@ -38,6 +38,7 @@ _CSRF_HEADER_VALUE = "1"
 TOKEN_TYPE_ACCESS = "access"  # noqa: S105 — a JWT `typ` discriminator, not a credential
 TOKEN_TYPE_PASSWORD_RESET = "pwreset"  # noqa: S105 — a JWT `typ` discriminator, not a credential
 TOKEN_TYPE_ADMIN_ELEVATION = "admin_elev"  # noqa: S105 — a JWT `typ` discriminator, not a credential
+TOKEN_TYPE_EMAIL_VERIFY = "email_verify"  # noqa: S105 — a JWT `typ` discriminator, not a credential
 
 # Header carrying the elevation token. Deliberately NOT Authorization: the
 # elevation token never replaces the session, it accompanies it, and both are
@@ -215,17 +216,46 @@ def get_optional_user(
     return user
 
 
-def is_admin_user(user: User) -> bool:
-    """True when the session itself grants admin — DB role or bootstrap email.
+#: Every admin role (admin spec L3). Permissions live in app/core/permissions.py;
+#: the names live here because this module decides who is an admin at all.
+ADMIN_ROLES: tuple[str, ...] = ("owner", "support", "ops", "privacy", "viewer", "astrologer")
 
-    This keeps admin authority server-side so the browser never has to store a
-    long-lived admin secret.
+#: An admin session older than this must sign in again (spec L3), whatever the
+#: session token's own lifetime. A day-long consumer session is fine for reading
+#: a jadhagam; it is too long to hold erase and refund buttons.
+ADMIN_SESSION_MAX_AGE = timedelta(hours=8)
+
+#: `detail` for an admin who has not finished TOTP enrolment. The console reads
+#: it to show the enrolment screen instead of a dead end.
+ADMIN_MFA_REQUIRED_DETAIL = "mfa_required"
+ADMIN_SESSION_EXPIRED_DETAIL = "Admin session expired. Please sign in again."
+
+
+def admin_role_of(user: User) -> str | None:
+    """The user's admin role, or None.
+
+    `is_admin` is the pre-roles column. The migration backfilled every such row
+    to 'owner', and the role service keeps the two in step, so reading it as
+    owner here only covers a row written by older code mid-rollout.
     """
+    role = getattr(user, "admin_role", None)
+    if role in ADMIN_ROLES:
+        return role
     if getattr(user, "is_admin", False):
-        return True
-    if user.email is not None:
-        return user.email.strip().lower() in get_settings().admin_email_set
-    return False
+        return "owner"
+    return None
+
+
+def is_admin_user(user: User) -> bool:
+    """True when the account holds an admin role.
+
+    JOTHIDAM_ADMIN_EMAILS no longer grants anything here. It used to make any
+    account registered with a listed address an admin on every request — so
+    whoever registered that address first, verified or not, held the console.
+    It now seeds the first owner once at startup, for an existing verified
+    account only (`app/services/admin_roles_service.seed_owner_from_env`).
+    """
+    return admin_role_of(user) is not None
 
 
 def _looks_browser_originated(request: Request) -> bool:
@@ -249,24 +279,53 @@ def _admin_key_matches(x_admin_key: str | None) -> bool:
     )
 
 
-def get_admin_user(
+def _request_session_token(request: Request) -> str | None:
+    header = request.headers.get("authorization") or ""
+    if header.lower().startswith("bearer "):
+        return header[7:].strip() or None
+    return request.cookies.get("vinaadi_token")
+
+
+def _enforce_admin_session_age(request: Request) -> None:
+    """401 when the session token was issued more than ADMIN_SESSION_MAX_AGE ago."""
+    token = _request_session_token(request)
+    if token is None:
+        return  # dependency overrides in tests; get_current_user already required one
+    try:
+        issued = decode_token(token).get("iat")
+    except HTTPException:
+        return  # get_current_user already validated this token; nothing new to say
+    if issued is None:
+        return
+    issued_at = datetime.fromtimestamp(int(issued), tz=UTC)
+    if datetime.now(UTC) - issued_at > ADMIN_SESSION_MAX_AGE:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=ADMIN_SESSION_EXPIRED_DETAIL,
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+
+def _has_confirmed_mfa(db: Session, user: User) -> bool:
+    from app.models.admin_mfa import AdminMfaCredential
+
+    credential = db.get(AdminMfaCredential, user.user_id)
+    return credential is not None and credential.confirmed_at is not None
+
+
+def _resolve_admin(
     request: Request,
-    current_user: Annotated[User, Depends(get_current_user)],
-    x_admin_key: Annotated[str | None, Header()] = None,
+    current_user: User,
+    x_admin_key: str | None,
+    db: Session,
+    *,
+    require_mfa: bool,
 ) -> User:
-    """Authorize admin endpoints.
-
-    Primary path: the authenticated session is itself admin (``is_admin`` column
-    or a bootstrap ``JOTHIDAM_ADMIN_EMAILS`` entry) — no browser-held secret.
-
-    Fallback: the legacy ``X-Admin-Key`` header, retained for genuine
-    server-to-server callers only. It is a single long-lived shared secret that
-    names nobody, so an action taken with it cannot be attributed to a person —
-    which is exactly why it must not be reachable from a browser, where an XSS,
-    an extension or a shared machine can read it out of storage and where every
-    use of it is anonymous by construction.
-    """
+    request.state.admin_via_key = False
     if is_admin_user(current_user):
+        _enforce_admin_session_age(request)
+        if require_mfa and not _has_confirmed_mfa(db, current_user):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=ADMIN_MFA_REQUIRED_DETAIL)
         return current_user
 
     if _admin_key_matches(x_admin_key):
@@ -280,12 +339,54 @@ def get_admin_user(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Admin access required.",
             )
+        request.state.admin_via_key = True
         return current_user
 
     raise HTTPException(
         status_code=status.HTTP_403_FORBIDDEN,
         detail="Admin access required.",
     )
+
+
+def get_admin_user(
+    request: Request,
+    current_user: Annotated[User, Depends(get_current_user)],
+    x_admin_key: Annotated[str | None, Header()] = None,
+    db: Session = Depends(get_db),
+) -> User:
+    """Authorize admin endpoints.
+
+    Primary path: the account holds an admin role (`admin_role`), its session is
+    under ADMIN_SESSION_MAX_AGE old, and it has a confirmed TOTP second factor
+    (spec L3, D-15) — otherwise 403 `mfa_required`. No browser-held secret.
+
+    Fallback: the legacy ``X-Admin-Key`` header, retained for genuine
+    server-to-server callers only. It is a single long-lived shared secret that
+    names nobody, so an action taken with it cannot be attributed to a person —
+    which is exactly why it must not be reachable from a browser, where an XSS,
+    an extension or a shared machine can read it out of storage and where every
+    use of it is anonymous by construction. A machine has no phone, so this
+    path carries no TOTP requirement.
+
+    Which permission a route needs is a separate dependency
+    (`app.core.permissions.require_permission`).
+    """
+    return _resolve_admin(request, current_user, x_admin_key, db, require_mfa=True)
+
+
+def get_admin_user_without_mfa(
+    request: Request,
+    current_user: Annotated[User, Depends(get_current_user)],
+    x_admin_key: Annotated[str | None, Header()] = None,
+    db: Session = Depends(get_db),
+) -> User:
+    """`get_admin_user` minus the TOTP requirement — for enrolling TOTP only.
+
+    Without this an admin could never reach the route that satisfies the
+    requirement. Used by `/admin/me` and `/admin/mfa/*` and nothing else;
+    tests/test_admin_permissions.py pins that list.
+    """
+    return _resolve_admin(request, current_user, x_admin_key, db, require_mfa=False)
 
 
 def create_admin_elevation_token(user: User) -> tuple[str, datetime]:

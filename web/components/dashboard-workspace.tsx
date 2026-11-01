@@ -17,6 +17,7 @@ import type { Lang } from "@/lib/i18n";
 import { dt, ONBOARDING_DETAIL_LEVEL } from "@/lib/dashboard-i18n";
 import { appliedFocus } from "@/lib/life-focus";
 import type { LifeMode, LifeModeStatus } from "@/lib/types";
+import { WORKSPACE_STORAGE_KEY, takeDashboardDayHandoff } from "@/lib/workspace-handoff";
 
 import { useSession } from "@/hooks/useSession";
 import type { UserMode } from "@/hooks/useSession";
@@ -44,7 +45,7 @@ import {
 } from "./dashboard-workspace-chart-view";
 import { useProfileForms, type BirthFormState, type MemberFormState } from "./dashboard-workspace-profile-forms";
 
-const STORAGE_KEY = "jothidam-ai-dashboard-state";
+const STORAGE_KEY = WORKSPACE_STORAGE_KEY;
 /** Holds the `lifeModeSetAt` whose 60-day focus strip the reader dismissed. */
 const FOCUS_NUDGE_DISMISSED_KEY = "vinaadi-focus-nudge-dismissed";
 
@@ -552,6 +553,11 @@ export function DashboardWorkspace() {
     } catch {
       // ignore parse errors
     }
+    // A date just picked in a utility page's sub-bar (Inbox, Glossary,
+    // Reports). It outranks the restored one, and unlike that one it is kept
+    // when it is in the past: the reader chose it a moment ago.
+    const handedOffDay = takeDashboardDayHandoff();
+    if (handedOffDay) setSelectedDate(handedOffDay);
     enableUrlSync();
     // Load DB lang preference — overrides localStorage (works across devices).
     // GET /settings/ui answers flat ({ lang, dashboard_mode }) — there is no

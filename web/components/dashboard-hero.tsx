@@ -6,6 +6,7 @@ import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import {
+  ArrowLeft,
   ArrowRight,
   Bell,
   Settings,
@@ -310,6 +311,16 @@ export function DashboardHero(props: DashboardHeroProps) {
     if (returnFocus) accountTriggerRef.current?.focus();
   }, [onUserMenuClose]);
 
+  // One top-bar menu at a time. Each menu's click-away layer is portaled to
+  // the page *beneath* the sticky top bar (PageDismissOverlay), so a click on
+  // another top-bar trigger never reaches it: opening the bell left More open,
+  // and the avatar left both. Opening any menu now closes the other two.
+  const closeOtherMenus = (opening: "more" | "inbox" | "account") => {
+    if (opening !== "more") setShowMoreMenu(false);
+    if (opening !== "inbox") setShowInbox(false);
+    if (opening !== "account" && showUserMenu) onUserMenuClose();
+  };
+
   // The inbox can be opened while its trigger retains focus. Keep Escape
   // available at the document boundary in that state; pointer dismissal is
   // deliberately owned by the retained page layer below.
@@ -369,6 +380,7 @@ export function DashboardHero(props: DashboardHeroProps) {
     if (!showMoreMenu) {
       if (event.key === "ArrowDown") {
         event.preventDefault();
+        closeOtherMenus("more");
         setShowMoreMenu(true);
       }
       return;
@@ -545,7 +557,11 @@ export function DashboardHero(props: DashboardHeroProps) {
                 className={`cd-tab cd-tab--more${isMoreActive ? " cd-tab--active" : ""}`}
                 aria-haspopup="menu"
                 aria-expanded={showMoreMenu}
-                onClick={() => setShowMoreMenu((v) => !v)}
+                onClick={() => {
+                  const opening = !showMoreMenu;
+                  if (opening) closeOtherMenus("more");
+                  setShowMoreMenu(opening);
+                }}
               >
                 {t("tab_more", lang)}
                 {/* lucide, not a "▾" text glyph: the glyph sat on the text
@@ -636,6 +652,7 @@ export function DashboardHero(props: DashboardHeroProps) {
                 onClick={() => {
                   const opening = !showInbox;
                   setShowAlerts(false);
+                  if (opening) closeOtherMenus("inbox");
                   setShowInbox(opening);
                   if (opening) onInboxOpen?.();
                 }}
@@ -805,7 +822,10 @@ export function DashboardHero(props: DashboardHeroProps) {
                 type="button"
                 ref={accountTriggerRef}
                 className="cd-avatar"
-                onClick={onUserMenuToggle}
+                onClick={() => {
+                  if (!showUserMenu) closeOtherMenus("account");
+                  onUserMenuToggle();
+                }}
                 aria-label={t("label_account", lang)}
                 title={userEmail ?? "Account"}
               >
@@ -835,11 +855,29 @@ export function DashboardHero(props: DashboardHeroProps) {
         <div className="cd-subbar">
           <div className="cd-subbar__inner">
             <div className="cd-subbar__identity">
+              {/* Utility pages (Inbox, Glossary, Reports) have no active tab, so
+                  without this the only way back was the browser or a top-nav
+                  pill that did not say "back". It names its destination rather
+                  than calling history.back(): these pages are often entered
+                  straight from an email or a bookmark, where "back" leaves the
+                  site. */}
               {utilityTitle && (
-                <span className="cd-subbar__name" title={utilityTitle}>
-                  {utilityTitle}
-                </span>
+                <button
+                  type="button"
+                  className="cd-subbar__back"
+                  onClick={() => onTabChange("personal")}
+                  // The Today tab pill shares the visible word; the name has to
+                  // tell the two apart in a control list (and keeps the visible
+                  // word in it, WCAG 2.5.3).
+                  aria-label={lang === "ta" ? "இன்றைய பக்கத்துக்குத் திரும்பு" : "Back to Today"}
+                >
+                  <ArrowLeft size={14} strokeWidth={1.9} aria-hidden="true" />
+                  {t("tab_today", lang)}
+                </button>
               )}
+              {/* No page-title chip beside the name: two uppercase labels in a
+                  row read as one long name, and each utility page carries its
+                  own heading. */}
               {birthDisplayName && (
                 <span className="cd-subbar__name" title={birthDisplayName}>
                   {birthDisplayName}
@@ -928,32 +966,30 @@ export function DashboardHero(props: DashboardHeroProps) {
                 )}
               </span>
 
-              {!utilityTitle && (
-                <>
-                  <label htmlFor="dashboard-date" className="cd-visually-hidden">
-                    {lang === "ta" ? "தேதி தேர்வு" : "Select date"}
-                  </label>
-                  <div className="cd-date-field">
-                    <input
-                      id="dashboard-date"
-                      className="cd-date-input"
-                      type="date"
-                      value={selectedDate}
-                      onChange={(e) => onDateChange(e.target.value)}
-                      onClick={(e) => {
-                        // The input is an invisible overlay, so a click anywhere on
-                        // the pill should open the picker directly.
-                        try { e.currentTarget.showPicker?.(); } catch { /* non-gesture call — ignore */ }
-                      }}
-                      aria-label={lang === "ta" ? "தேதி தேர்வு" : "Select date"}
-                    />
-                    <span className="cd-date-display" aria-hidden="true">
-                      {novaDateLabel}
-                      <span className="cd-date-display__caret">▾</span>
-                    </span>
-                  </div>
-                </>
-              )}
+              {/* On utility pages too: the auxiliary shell hands the picked
+                  day to Today (lib/workspace-handoff.ts). */}
+              <label htmlFor="dashboard-date" className="cd-visually-hidden">
+                {lang === "ta" ? "தேதி தேர்வு" : "Select date"}
+              </label>
+              <div className="cd-date-field">
+                <input
+                  id="dashboard-date"
+                  className="cd-date-input"
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => onDateChange(e.target.value)}
+                  onClick={(e) => {
+                    // The input is an invisible overlay, so a click anywhere on
+                    // the pill should open the picker directly.
+                    try { e.currentTarget.showPicker?.(); } catch { /* non-gesture call — ignore */ }
+                  }}
+                  aria-label={lang === "ta" ? "தேதி தேர்வு" : "Select date"}
+                />
+                <span className="cd-date-display" aria-hidden="true">
+                  {novaDateLabel}
+                  <span className="cd-date-display__caret">▾</span>
+                </span>
+              </div>
             </div>
           </div>
           {/* DXA-07 — the day below is still the previous selection's while

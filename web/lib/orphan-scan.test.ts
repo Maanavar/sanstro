@@ -24,6 +24,7 @@ import { describe, expect, it } from "vitest";
 // Verified 2026-08-08 by the sweep below, and each carries an ORPHANED banner.
 const DECLARED_ORPHANS = [
   "advanced-lens-note",
+  "store-badges", // 2026-11-01: pricing page sells on the web now
 ].sort();
 
 // Where importers can live. `mobile/` is included because a component moving
@@ -111,7 +112,7 @@ describe("orphan scan", () => {
   it("each declared orphan actually carries its banner", () => {
     const missing = DECLARED_ORPHANS.filter((name) => {
       const file = path.join(root, "components", `${name}.tsx`);
-      return !readFileSync(file, "utf8").includes("ORPHANED 2026-08-08");
+      return !/ORPHANED \d{4}-\d{2}-\d{2}/.test(readFileSync(file, "utf8"));
     });
     expect(missing, "declared orphan without an ORPHANED banner").toEqual([]);
   });

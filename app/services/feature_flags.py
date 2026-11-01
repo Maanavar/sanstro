@@ -1,8 +1,28 @@
-"""Runtime-editable feature flags stored in process memory."""
+"""Runtime-editable feature flags, kill switches and operational settings.
+
+Three layers, highest first:
+
+1. **Process overrides** (`set_flag`): this process only, lost on restart.
+   Kept for tests and for single-process doctrine trials, which must never be
+   persisted (a stored doctrine override would be a ruling made outside
+   §16–§18; see `doctrine_runtime_override_allowed`).
+2. **Persisted overrides** (`persist_flag`): rows in `runtime_settings`, with
+   every change in `runtime_setting_changes`. Every worker reads them through a
+   cache refreshed at most every `_PERSISTED_TTL_SECONDS`, so a kill switch
+   reaches the whole fleet within seconds and survives restarts (ADM-09).
+3. **Code defaults** (`_defaults`).
+
+If the database cannot be read, the last good snapshot stays in force. A
+flag store outage must not silently flip every kill switch back to its default.
+"""
 from __future__ import annotations
 
+import logging
 import os
+import threading
+import time
 from typing import Any
+from uuid import UUID
 
 from app.calculations.doctrine_options import DoctrineOptions, validated
 from app.core.config import get_settings
@@ -12,9 +32,23 @@ def _defaults() -> dict[str, Any]:
     settings = get_settings()
     return {
         "enable_admin_data_delete": bool(settings.enable_admin_data_delete),
-        "ask_vinaadi_daily_limit": int(settings.ask_vinaadi_daily_limit),
         "enable_push_notifications": True,
         "maintenance_mode": False,
+        # ── Kill switches (spec L10). True = live. Turning one off is the
+        # incident lever: no deploy, every worker within seconds. ──────────
+        # Ask Vinaadi: off → the ask route answers with the maintenance
+        # message and never calls the model provider.
+        "enable_ask_vinaadi": True,
+        # Payments: off → no new checkout is created. Webhooks keep being
+        # accepted, because money already taken must still grant access.
+        "enable_payments_checkout": True,
+        # Guest (unsigned) chart and porutham tools on /public.
+        "enable_guest_charts": True,
+        # New accounts (password and Google). Existing users still sign in.
+        "enable_signups": True,
+        # Site-wide notice shown on web and app. Empty = no banner.
+        "maintenance_banner_en": "",
+        "maintenance_banner_ta": "",
         "max_birth_profiles_per_user": 10,
         # D1 reasoning gate (docs/REASONING_LAYER_UPGRADE_PLAN.md Phase 1).
         # Rollout: internal → beta → all; watch for over-suppression
@@ -285,6 +319,7 @@ def _defaults() -> dict[str, Any]:
         "doctrine_o28_rk_second_house_support": "dignity",     # | "strong_or_benefic" | "off" (DD-17)
         "doctrine_o29_rk_guru_counted_once": True,             # ruled 2026-10-06, DD-17
         "doctrine_o32_putra_sarpa_thulam_sani": "neutralized", # | "ordinary" (owner ruling 2026-10-06)
+        "doctrine_sevvai_house_set": "tamil_five",             # | "manglik_five" | "union_six" (ruled 2026-10-30)
         "doctrine_moon_72_degree_convention": False,           # DD-12 legacy convention
         "doctrine_show_lakshmi_phaladeepika": False,           # DD-02 variant, consumer UI
     }
@@ -307,14 +342,69 @@ def current_doctrine_options() -> DoctrineOptions:
     return validated(DoctrineOptions(**fields))
 
 
+_logger = logging.getLogger(__name__)
+
+#: Layer 1 — this process only. Tests clear it directly.
 _overrides: dict[str, Any] = {}
+
+#: Layer 2 — snapshot of `runtime_settings`, refreshed lazily.
+_PERSISTED_TTL_SECONDS = 5.0
+_persisted: dict[str, Any] = {}
+_persisted_loaded_at: float | None = None
+_persisted_lock = threading.Lock()
+
+
+def _is_doctrine(name: str) -> bool:
+    return name.startswith(_DOCTRINE_FLAG_PREFIX)
+
+
+def _load_persisted() -> dict[str, Any]:
+    # Imported here: app.db.session reads settings at import, and this module
+    # is imported by the calculation layer long before a database is needed.
+    from app.db.session import SessionLocal
+    from app.models.runtime_setting import RuntimeSetting
+
+    with SessionLocal() as session:
+        rows = session.query(RuntimeSetting.name, RuntimeSetting.value).all()
+    return {name: value for name, value in rows}
+
+
+def _persisted_snapshot() -> dict[str, Any]:
+    global _persisted, _persisted_loaded_at
+    now = time.monotonic()
+    loaded_at = _persisted_loaded_at
+    if loaded_at is not None and now - loaded_at < _PERSISTED_TTL_SECONDS:
+        return _persisted
+    with _persisted_lock:
+        if _persisted_loaded_at is not None and now - _persisted_loaded_at < _PERSISTED_TTL_SECONDS:
+            return _persisted
+        try:
+            _persisted = _load_persisted()
+        except Exception as exc:  # noqa: BLE001 — any read failure keeps the last snapshot
+            _logger.warning("runtime_settings_unreadable keeping_last_snapshot error=%s", type(exc).__name__)
+        # Stamp even on failure: a database that is down must not be retried on
+        # every flag read in every request.
+        _persisted_loaded_at = now
+        return _persisted
+
+
+def invalidate_cache() -> None:
+    """Forget the persisted snapshot; the next read reloads it. For tests that
+    reset the schema, and for this process right after it writes."""
+    global _persisted, _persisted_loaded_at
+    with _persisted_lock:
+        _persisted = {}
+        _persisted_loaded_at = None
 
 
 def get_flag(name: str) -> Any:
-    defaults = _defaults()
     if name in _overrides:
         return _overrides[name]
-    return defaults.get(name)
+    if not _is_doctrine(name):
+        persisted = _persisted_snapshot()
+        if name in persisted:
+            return _from_json(name, persisted[name])
+    return _defaults().get(name)
 
 
 class UnknownFlagError(ValueError):
@@ -323,6 +413,40 @@ class UnknownFlagError(ValueError):
 
 class FlagValueError(ValueError):
     pass
+
+
+class DoctrineFlagNotPersistable(ValueError):
+    """Doctrine changes are code defaults with a recorded ruling, never rows."""
+
+
+def _from_json(name: str, value: Any) -> Any:
+    """JSON has no tuple; restore list-valued defaults to their tuple type."""
+    default = _defaults().get(name)
+    if isinstance(default, tuple) and isinstance(value, list):
+        return tuple(value)
+    return value
+
+
+def _coerce_value(name: str, default: Any, value: Any) -> Any:
+    """Type-check any flag against its default's type.
+
+    Before this, only doctrine flags were checked: `maintenance_mode` would
+    accept the string "false", which is truthy, and switch the site off.
+    """
+    if isinstance(default, bool):
+        if not isinstance(value, bool):
+            raise FlagValueError(f"{name} expects true/false, got {value!r}")
+    elif isinstance(default, int):
+        if isinstance(value, bool) or not isinstance(value, int):
+            raise FlagValueError(f"{name} expects an integer, got {value!r}")
+    elif isinstance(default, str):
+        if not isinstance(value, str):
+            raise FlagValueError(f"{name} expects a string, got {value!r}")
+    elif isinstance(default, tuple):
+        if not isinstance(value, (list, tuple)):
+            raise FlagValueError(f"{name} expects a list, got {value!r}")
+        value = tuple(value)
+    return value
 
 
 def _coerce_doctrine_value(name: str, default: Any, value: Any) -> Any:
@@ -357,9 +481,13 @@ def doctrine_runtime_override_allowed() -> bool:
 
 
 def set_flag(name: str, value: Any) -> None:
+    """Process-local override (layer 1). Tests and doctrine trials only; the
+    admin console persists non-doctrine changes through `persist_flag`."""
     defaults = _defaults()
     if name not in defaults:
         raise UnknownFlagError(f"Unknown flag: {name}")
+    if not _is_doctrine(name):
+        value = _coerce_value(name, defaults[name], value)
     if name.startswith(_DOCTRINE_FLAG_PREFIX):
         # Validate before storing: a bad doctrine value would otherwise be
         # accepted here and then fail every chart build that reads it.
@@ -380,14 +508,148 @@ def reset_flag(name: str) -> None:
     _overrides.pop(name, None)
 
 
+def _to_json(value: Any) -> Any:
+    return list(value) if isinstance(value, tuple) else value
+
+
+def _validated_for_persist(name: str, value: Any) -> Any:
+    defaults = _defaults()
+    if name not in defaults:
+        raise UnknownFlagError(f"Unknown flag: {name}")
+    if _is_doctrine(name):
+        raise DoctrineFlagNotPersistable(
+            f"{name} is a doctrine flag. Record the ruling (§16–§18) and change the code default."
+        )
+    return _coerce_value(name, defaults[name], value)
+
+
+def _require_reason(reason: str) -> str:
+    cleaned = (reason or "").strip()
+    if len(cleaned) < 3:
+        raise FlagValueError("A reason is required for every setting change.")
+    return cleaned
+
+
+def persist_flag(name: str, value: Any, *, reason: str, actor_user_id: UUID | None) -> dict[str, Any]:
+    """Store an override for every worker (layer 2) and record the change.
+
+    Commits in its own session, like `log_admin_action`: the change is a unit
+    of its own and must be durable before this process starts serving it.
+    Returns the change row as a dict for the caller's audit entry.
+    """
+    from app.db.session import SessionLocal
+    from app.models.runtime_setting import RuntimeSetting, RuntimeSettingChange
+
+    value = _validated_for_persist(name, value)
+    reason = _require_reason(reason)
+    stored = _to_json(value)
+    with SessionLocal() as session, session.begin():
+        row = session.get(RuntimeSetting, name, with_for_update=True)
+        old = row.value if row is not None else None
+        if row is None:
+            session.add(RuntimeSetting(name=name, value=stored, reason=reason, updated_by_user_id=actor_user_id))
+        else:
+            row.value = stored
+            row.reason = reason
+            row.updated_by_user_id = actor_user_id
+        change = RuntimeSettingChange(
+            name=name, old_value=old, new_value=stored, reason=reason, actor_user_id=actor_user_id
+        )
+        session.add(change)
+        session.flush()
+        change_id = change.id
+    invalidate_cache()
+    return {"change_id": str(change_id), "name": name, "old_value": old, "new_value": stored}
+
+
+def clear_persisted_flag(name: str, *, reason: str, actor_user_id: UUID | None) -> dict[str, Any] | None:
+    """Remove a persisted override (back to the code default). None if there was none."""
+    from app.db.session import SessionLocal
+    from app.models.runtime_setting import RuntimeSetting, RuntimeSettingChange
+
+    if name not in _defaults():
+        raise UnknownFlagError(f"Unknown flag: {name}")
+    reason = _require_reason(reason)
+    with SessionLocal() as session, session.begin():
+        row = session.get(RuntimeSetting, name, with_for_update=True)
+        if row is None:
+            return None
+        old = row.value
+        session.delete(row)
+        change = RuntimeSettingChange(
+            name=name, old_value=old, new_value=None, reason=reason, actor_user_id=actor_user_id
+        )
+        session.add(change)
+        session.flush()
+        change_id = change.id
+    invalidate_cache()
+    return {"change_id": str(change_id), "name": name, "old_value": old, "new_value": None}
+
+
+def rollback_change(change_id: UUID, *, reason: str, actor_user_id: UUID | None) -> dict[str, Any]:
+    """Undo one recorded change by restoring its `old_value` (or the default).
+
+    Rollback is itself a new change row, so history stays append-only and a
+    rollback can be rolled back.
+    """
+    from app.db.session import SessionLocal
+    from app.models.runtime_setting import RuntimeSettingChange
+
+    with SessionLocal() as session:
+        change = session.get(RuntimeSettingChange, change_id)
+        if change is None:
+            raise UnknownFlagError(f"Unknown change: {change_id}")
+        name, old = change.name, change.old_value
+    reason = f"rollback of {change_id}: {_require_reason(reason)}"
+    if old is None:
+        result = clear_persisted_flag(name, reason=reason, actor_user_id=actor_user_id)
+        return result or {"change_id": None, "name": name, "old_value": None, "new_value": None}
+    return persist_flag(name, old, reason=reason, actor_user_id=actor_user_id)
+
+
+def flag_history(name: str | None = None, limit: int = 100) -> list[dict[str, Any]]:
+    from app.db.session import SessionLocal
+    from app.models.runtime_setting import RuntimeSettingChange
+
+    with SessionLocal() as session:
+        query = session.query(RuntimeSettingChange)
+        if name is not None:
+            query = query.filter(RuntimeSettingChange.name == name)
+        rows = query.order_by(RuntimeSettingChange.created_at.desc()).limit(max(1, min(limit, 500))).all()
+        return [
+            {
+                "id": str(row.id),
+                "name": row.name,
+                "old_value": row.old_value,
+                "new_value": row.new_value,
+                "reason": row.reason,
+                "actor_user_id": str(row.actor_user_id) if row.actor_user_id else None,
+                "created_at": row.created_at.isoformat(),
+            }
+            for row in rows
+        ]
+
+
+def _source(name: str, persisted: dict[str, Any]) -> str:
+    if name in _overrides:
+        return "process"
+    if not _is_doctrine(name) and name in persisted:
+        return "persisted"
+    return "default"
+
+
 def all_flags() -> dict[str, dict[str, Any]]:
     defaults = _defaults()
-    return {
-        name: {
+    persisted = _persisted_snapshot()
+    result = {}
+    for name, default in defaults.items():
+        source = _source(name, persisted)
+        result[name] = {
             "name": name,
             "value": get_flag(name),
             "default": default,
-            "overridden": name in _overrides,
+            "overridden": source != "default",
+            "source": source,
+            "doctrine": _is_doctrine(name),
         }
-        for name, default in defaults.items()
-    }
+    return result

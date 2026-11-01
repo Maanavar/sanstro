@@ -99,6 +99,11 @@ def create_porutham_share(
             porutham.shashtashtaka.model_dump(by_alias=True)
             if porutham.shashtashtaka else None
         ),
+        # F-POR-03, frozen for the same reason.
+        "ekaNakshatra": (
+            porutham.eka_nakshatra.model_dump(by_alias=True)
+            if porutham.eka_nakshatra else None
+        ),
         "summary": porutham.summary.model_dump(),
         "compatibilityContext": porutham.compatibility_context,
         "contextNote": porutham.context_note.model_dump() if porutham.context_note else None,
@@ -168,6 +173,7 @@ def get_porutham_share_by_token(session: Session, token: str) -> PoruthamShareVi
             nadi_dosha=snapshot["nadiDosha"],
             # .get(): snapshots frozen before F-POR-02 have no such key.
             shashtashtaka=snapshot.get("shashtashtaka"),
+            eka_nakshatra=snapshot.get("ekaNakshatra"),
             summary=snapshot["summary"],
             compatibility_context=snapshot["compatibilityContext"],
             context_note=snapshot["contextNote"],

@@ -181,8 +181,15 @@ def test_dispatch_for_user_uses_current_location_for_daily_panchangam(monkeypatc
         rahu = MagicMock()
         rahu.start = datetime(2026, 5, 26, 13, 30, tzinfo=UTC)
         rahu.end = datetime(2026, 5, 26, 15, 0, tzinfo=UTC)
+        # `day_quality_for` (AAU-07) reads the star spans, sunrise, sunset,
+        # tithi and date, so those are real values, not mocks.
         return MagicMock(
             nakshatra_number=1,
+            nakshatra_spans=(),
+            sunrise=datetime(2026, 5, 26, 10, 0, tzinfo=UTC),
+            sunset=datetime(2026, 5, 27, 0, 30, tzinfo=UTC),
+            tithi_number=5,
+            date_local=date(2026, 5, 26),
             nalla_neram=[slot],
             rahu_kalam=rahu,
         )

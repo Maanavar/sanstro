@@ -199,7 +199,10 @@ interface DashboardExploreNakshatramNovaProps {
   ownPada: number | null;
   personalDailyGuidance: DailyGuidanceData | null;
   memberCharts: MemberChart[];
+  /** Back to the 27-star list (the hub crumb). */
   onBack: () => void;
+  /** Leave for the Understand tab (the first crumb). */
+  onExit: () => void;
   onOpenAskVinaadi: () => void;
 }
 
@@ -211,6 +214,7 @@ export function DashboardExploreNakshatramNova({
   personalDailyGuidance,
   memberCharts,
   onBack,
+  onExit,
   onOpenAskVinaadi,
 }: DashboardExploreNakshatramNovaProps) {
   const [viewedNumber, setViewedNumber] = useState(initialNumber);
@@ -224,7 +228,7 @@ export function DashboardExploreNakshatramNova({
   if (isLoading || !card) {
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
-        <button type="button" onClick={onBack} style={{ alignSelf: "flex-start", fontSize: "var(--text-sm)", color: "var(--color-accent-strong)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+        <button type="button" onClick={onExit} style={{ alignSelf: "flex-start", fontSize: "var(--text-sm)", color: "var(--color-accent-strong)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
           <><ArrowLeft size={14} strokeWidth={1.5} aria-hidden="true" style={{ verticalAlign: "-2px", marginRight: "var(--space-1)" }} />{t("tab_explore_back", lang)}</>
         </button>
         <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>{lang === "ta" ? "ஏற்றுகிறது…" : "Loading…"}</p>
@@ -254,8 +258,9 @@ export function DashboardExploreNakshatramNova({
 
       {/* ===== Breadcrumb + star nav ===== */}
       <NovaDetailBreadcrumb
-        onBack={onBack}
+        onBack={onExit}
         backLabel={t("tab_explore", lang)}
+        onHub={onBack}
         hubLabel={lang === "ta" ? "நட்சத்திரம்" : "Natchathiram"}
         currentLabel={lang === "ta" ? card.nameTa : astroText(card.nameEn)}
         onPrev={{
@@ -386,15 +391,19 @@ export function DashboardExploreNakshatramNova({
 
           <Card>
             <Kicker color="var(--color-accent-secondary)">{lang === "ta" ? "உங்கள் குடும்பத்தில்" : "In your family"}</Kicker>
-            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-sm)" }}>
-              <span style={{ width: "26px", height: "26px", borderRadius: "var(--radius-pill)", background: "var(--color-accent)", color: "var(--color-on-accent)", display: "grid", placeItems: "center", fontSize: "var(--text-xs)", fontWeight: 700, flexShrink: 0 }}>
-                {lang === "ta" ? "நீ" : "Y"}
-              </span>
-              <span>
-                {lang === "ta" ? "நீங்கள்" : "You"}
-                {isOwnStar && <b style={{ color: "var(--color-accent-strong)" }}> — {card.nameTa ? (lang === "ta" ? card.nameTa : astroText(card.nameEn)) : ""} {ownPada ?? ""}</b>}
-              </span>
-            </div>
+            {/* Only the people actually born under the star on screen. This row
+                used to render on every star, so all 27 read as yours. */}
+            {isOwnStar && (
+              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-sm)" }}>
+                <span style={{ width: "26px", height: "26px", borderRadius: "var(--radius-pill)", background: "var(--color-accent)", color: "var(--color-on-accent)", display: "grid", placeItems: "center", fontSize: "var(--text-xs)", fontWeight: 700, flexShrink: 0 }}>
+                  {lang === "ta" ? "நீ" : "Y"}
+                </span>
+                <span>
+                  {lang === "ta" ? "நீங்கள்" : "You"}
+                  <b style={{ color: "var(--color-accent-strong)" }}> — {lang === "ta" ? card.nameTa : astroText(card.nameEn)} {ownPada ?? ""}</b>
+                </span>
+              </div>
+            )}
             {membersOnStar.map((mc) => (
               <div key={mc.memberId} style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-sm)" }}>
                 <span style={{ width: "26px", height: "26px", borderRadius: "var(--radius-pill)", background: "var(--color-accent-secondary)", color: "var(--color-on-accent)", display: "grid", placeItems: "center", fontSize: "var(--text-xs)", fontWeight: 700, flexShrink: 0 }}>
@@ -405,7 +414,9 @@ export function DashboardExploreNakshatramNova({
             ))}
             {membersOnStar.length === 0 && (
               <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--color-faint)", lineHeight: 1.5 }}>
-                {lang === "ta" ? `வீட்டில் யாரும் ${card.nameTa} நட்சத்திரத்தை பகிரவில்லை.` : `No one else at home shares ${astroText(card.nameEn)}.`}
+                {isOwnStar
+                  ? (lang === "ta" ? `வீட்டில் வேறு யாரும் ${card.nameTa} நட்சத்திரத்தை பகிரவில்லை.` : `No one else at home shares ${astroText(card.nameEn)}.`)
+                  : (lang === "ta" ? `உங்கள் குடும்பத்தில் யாரும் ${card.nameTa} நட்சத்திரத்தில் பிறக்கவில்லை.` : `No one in your family was born under ${astroText(card.nameEn)}.`)}
               </p>
             )}
             {upcomingDashaNotes.map((note) => (

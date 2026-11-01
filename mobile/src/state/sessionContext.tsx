@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState } from "react";
-import { effectiveTier } from "@vinaadi/shared";
+import { effectiveTier, type AccessState } from "@vinaadi/shared";
 
 export type Tier = "guest" | "registered" | "premium";
 
@@ -14,6 +14,8 @@ export interface SessionState {
   tier: Tier;
   /** True while the open beta runs (`MeResponse.openBeta`). */
   openBeta: boolean;
+  /** free / trial / premium (`MeResponse.accessState`); a trial unlocks Premium's features. */
+  accessState: AccessState;
   user: SessionUser | null;
   isReady: boolean;
 }
@@ -26,7 +28,7 @@ interface SessionContextValue extends SessionState {
    * locks; use `tier` only to describe the user's subscription.
    */
   gateTier: Tier;
-  setSession: (user: SessionUser, tier: Tier, openBeta?: boolean) => void;
+  setSession: (user: SessionUser, tier: Tier, openBeta?: boolean, accessState?: AccessState) => void;
   clearSession: () => void;
   setReady: () => void;
 }
@@ -34,6 +36,7 @@ interface SessionContextValue extends SessionState {
 const SessionContext = createContext<SessionContextValue>({
   tier: "guest",
   openBeta: false,
+  accessState: "free",
   gateTier: "guest",
   user: null,
   isReady: false,
@@ -46,23 +49,24 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<SessionState>({
     tier: "guest",
     openBeta: false,
+    accessState: "free",
     user: null,
     isReady: false,
   });
 
-  function setSession(user: SessionUser, tier: Tier, openBeta = false) {
-    setState({ user, tier, openBeta, isReady: true });
+  function setSession(user: SessionUser, tier: Tier, openBeta = false, accessState: AccessState = "free") {
+    setState({ user, tier, openBeta, accessState, isReady: true });
   }
 
   function clearSession() {
-    setState({ tier: "guest", openBeta: false, user: null, isReady: true });
+    setState({ tier: "guest", openBeta: false, accessState: "free", user: null, isReady: true });
   }
 
   function setReady() {
     setState((prev) => ({ ...prev, isReady: true }));
   }
 
-  const gateTier = effectiveTier(state.tier, state.openBeta);
+  const gateTier = effectiveTier(state.tier, state.openBeta, state.accessState);
 
   return (
     <SessionContext.Provider value={{ ...state, gateTier, setSession, clearSession, setReady }}>

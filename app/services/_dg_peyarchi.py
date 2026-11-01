@@ -12,6 +12,7 @@ from app.calculations.activity_timing_rules import ActivityType
 from app.calculations.astro import house_from_reference, local_datetime_to_utc, utc_datetime_to_julian_day
 from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.ephemeris import calculate_sidereal_planets
+from app.calculations.gochara_scores import GOCHARA_FAVOURABLE_FROM_MOON
 from app.constants.versions import API_RESPONSE_VERSION
 from app.models import BirthProfile, Chart
 from app.schemas.daily_guidance import (
@@ -123,7 +124,10 @@ def _normalize_activity_timing_activity(activity: str) -> ActivityType:
 # Rahu's house from the Moon, read as an axis. Shared with the personal palan
 # (app/services/personal_palan.py) so the peyarchi report and Today's palan
 # cannot call the same placement supportive in one place and testing in the other.
-NODE_AXIS_SUPPORTIVE: frozenset[int] = frozenset({3, 6, 10, 11})
+# It is Rahu's own gochara set, taken from the one table that also sets the
+# score (AAU-09), so the axis sentence and the number cannot disagree. Ketu's
+# house is read off the same axis but graded on Ketu's set, never this one.
+NODE_AXIS_SUPPORTIVE: frozenset[int] = GOCHARA_FAVOURABLE_FROM_MOON["RAHU"]
 NODE_AXIS_RESTRUCTURING: frozenset[int] = frozenset({1, 5, 7, 8, 12})
 
 

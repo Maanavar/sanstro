@@ -28,8 +28,8 @@ export const LEARN_PORUTHAM = {
 
   sevvai_h2:   s("Sevvai dosham (Manglik status)", "செவ்வாய் தோஷம் (மங்கலிக் நிலை)"),
   sevvai_body: s(
-    "Sevvai dosham (also called Kuja dosha or Manglik) occurs when Mars is placed in the 1st, 2nd, 4th, 7th, 8th, or 12th house from lagna, Moon, or Venus. Traditional practice matches Sevvai dosham holders together to neutralise the dosha.",
-    "செவ்வாய் தோஷம் (குஜ தோஷம் அல்லது மங்கலிக் என்றும் அழைக்கப்படுகிறது) செவ்வாய் லக்னம், சந்திரன் அல்லது சுக்கிரனிலிருந்து 1வது, 2வது, 4வது, 7வது, 8வது அல்லது 12வது பாவத்தில் அமரும்போது நிகழ்கிறது. பாரம்பரிய நடைமுறை தோஷத்தை நடுநிலையாக்க செவ்வாய் தோஷம் உள்ளவர்களை ஒன்றாக பொருத்துகிறது."
+    "Sevvai dosham (also called Kuja dosha or Manglik) occurs when Mars is placed in the 2nd, 4th, 7th, 8th or 12th house from the lagna; its position from the Moon and Venus shows how strong it is. Traditional practice matches Sevvai dosham holders together to neutralise the dosha.",
+    "செவ்வாய் தோஷம் (குஜ தோஷம் அல்லது மங்கலிக் என்றும் அழைக்கப்படுகிறது) செவ்வாய் லக்னத்திலிருந்து 2வது, 4வது, 7வது, 8வது அல்லது 12வது பாவத்தில் அமரும்போது நிகழ்கிறது; சந்திரன், சுக்கிரனிலிருந்து அதன் நிலை தீவிரத்தைக் காட்டுகிறது. பாரம்பரிய நடைமுறை தோஷத்தை நடுநிலையாக்க செவ்வாய் தோஷம் உள்ளவர்களை ஒன்றாக பொருத்துகிறது."
   ),
 
   count_h2:   s("How many poruthams are needed?", "எத்தனை பொருத்தங்கள் தேவை?"),

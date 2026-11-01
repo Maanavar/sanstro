@@ -34,6 +34,7 @@ from app.api.notification_preferences import router as notification_preferences_
 from app.api.notifications import router as notifications_router
 from app.api.numerology import router as numerology_router
 from app.api.panchangam import router as panchangam_router
+from app.api.payments import router as payments_router
 from app.api.places import router as places_router
 from app.api.porutham_shares import router as porutham_shares_router
 from app.api.prasna import router as prasna_router
@@ -47,6 +48,7 @@ from app.api.reports import router as reports_router
 from app.api.retrospective import router as retrospective_router
 from app.api.settings import router as settings_router
 from app.api.share_card import router as share_card_router
+from app.api.site_status import router as site_status_router
 from app.api.stats import router as stats_router
 from app.api.streak import router as streak_router
 from app.api.transits import router as transits_router
@@ -128,6 +130,24 @@ def _assert_rate_limiter_matches_worker_count() -> None:
     raise RuntimeError(message)
 
 
+def _seed_first_owner(log: logging.Logger) -> None:
+    """JOTHIDAM_ADMIN_EMAILS -> the first owner, once (admin spec L3).
+
+    A failure is logged, never raised: an unreachable database at boot must not
+    stop the API from starting, and the seed simply runs again next boot.
+    """
+    if not get_settings().admin_email_set:
+        return
+    from app.db.session import SessionLocal
+    from app.services.admin_roles_service import seed_owner_from_env
+
+    try:
+        with SessionLocal() as session, session.begin():
+            seed_owner_from_env(session)
+    except Exception as exc:  # noqa: BLE001
+        log.warning("admin_seed_failed error=%s", type(exc).__name__)
+
+
 def _build_lifespan():
     @asynccontextmanager
     async def lifespan(_app: FastAPI):
@@ -138,6 +158,8 @@ def _build_lifespan():
         register_all_jobs()
 
         log = logging.getLogger(__name__)
+
+        _seed_first_owner(log)
 
         # The dedicated `app.worker` process owns scheduling by default; the API
         # only serves requests. A single-process dev box may opt in explicitly
@@ -309,7 +331,11 @@ def create_app() -> FastAPI:
     app.include_router(newsletter_router, prefix=settings.api_v1_prefix)
     app.include_router(public_tools_router, prefix=settings.api_v1_prefix)
     app.include_router(reports_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
+    # CSRF applies to the cookie-authenticated checkout routes; Razorpay's webhook
+    # carries no cookie, so require_csrf_header lets it through by construction.
+    app.include_router(payments_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
     app.include_router(stats_router, prefix=settings.api_v1_prefix)
+    app.include_router(site_status_router, prefix=settings.api_v1_prefix)
     return app
 
 

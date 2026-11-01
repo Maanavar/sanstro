@@ -24,11 +24,13 @@ from app.core.auth import (
     get_current_user,
     get_elevated_admin_user,
 )
+from app.core.permissions import get_admin_role
 from app.core.rate_limit import reset_rate_limit_backend
 from app.db.base import Base
 from app.db.session import SessionLocal, engine
 from app.main import app
 from app.models.user import User
+from app.services import feature_flags
 
 TEST_USER_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
 TEST_USER_EMAIL = "test@jothidam.test"
@@ -143,6 +145,9 @@ def _reset_db() -> None:
         conn.execute(text("GRANT ALL ON SCHEMA public TO PUBLIC"))
         conn.commit()
     Base.metadata.create_all(bind=engine)
+    # Persisted flags lived in the schema just dropped; a cached snapshot of
+    # them would leak one test's kill switch into the next.
+    feature_flags.invalidate_cache()
 
 
 def _make_test_user(session) -> User:
@@ -181,6 +186,10 @@ def client() -> TestClient:
     # structural test fails on any destructive route that forgets elevation — so a
     # route losing its gate still breaks a test, just not this one.
     app.dependency_overrides[get_elevated_admin_user] = lambda: stub_user
+    # And for "holds a role that permits this route" (admin spec L3). Same
+    # reasoning: tests/test_admin_permissions.py drives the real role check and
+    # pins the route x role matrix, so endpoint tests can stay about endpoints.
+    app.dependency_overrides[get_admin_role] = lambda: "owner"
     reset_rate_limit_backend()
 
     with TestClient(app) as test_client:

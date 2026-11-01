@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, time, timedelta
 from typing import Literal
 from uuid import UUID, uuid4
 
@@ -41,6 +41,33 @@ logger = logging.getLogger(__name__)
 _FCM_BODY_MAX_CHARS = 240
 _DELIVERY_MAX_ATTEMPTS = 5
 _CLAIM_TTL = timedelta(minutes=5)
+
+# Quiet hours (admin spec L8): a non-urgent push due between 21:00 and 08:00
+# local time waits until 08:00. Local to the user, not fixed IST — the spec
+# says IST, but a Chennai-time window would wake a diaspora reader at 3 am.
+# Unknown timezone falls back to IST, the audience default. Email and the
+# in-app inbox are not delayed; only the buzz in the pocket is.
+_QUIET_START = time(21, 0)
+_QUIET_END = time(8, 0)
+_QUIET_FALLBACK_TZ = "Asia/Kolkata"
+#: At or above this priority a push ignores quiet hours. Nothing sends this
+#: high today (daily cron tops out at 80), so every current push respects them.
+_URGENT_PRIORITY = 90
+
+
+def quiet_hours_release(due_at: datetime, timezone_name: str | None) -> datetime:
+    """`due_at`, or the next 08:00 local time if `due_at` falls in quiet hours."""
+    try:
+        zone = resolve_timezone(timezone_name or _QUIET_FALLBACK_TZ)
+    except Exception:  # noqa: BLE001 — a bad stored zone must not block the send
+        zone = resolve_timezone(_QUIET_FALLBACK_TZ)
+    local = due_at.astimezone(zone)
+    clock_time = local.time()
+    if _QUIET_END <= clock_time < _QUIET_START:
+        return due_at
+    release_day = local.date() if clock_time < _QUIET_END else local.date() + timedelta(days=1)
+    release = datetime.combine(release_day, _QUIET_END, tzinfo=zone)
+    return release.astimezone(UTC)
 
 
 def _truncate_body(body: str) -> str:
@@ -213,6 +240,26 @@ def dispatch_notification(
     if preference.notification_channel in ("email", "both"):
         channels.append("email")
 
+    # Decided before the intent's status: a push that quiet hours would only
+    # let expire is dropped here, so an intent whose only channel was that
+    # push is recorded as in-app only rather than queued with nothing to send.
+    deliveries: list[tuple[str, datetime]] = []
+    for channel in channels:
+        next_attempt_at = due_at
+        if channel == "push" and priority < _URGENT_PRIORITY:
+            timezone_name = _resolve_user_timezone(session, user_id)
+            next_attempt_at = quiet_hours_release(
+                due_at, None if timezone_name == "UTC" else timezone_name
+            )
+            if next_attempt_at >= expiry:
+                logger.info(
+                    "push_skipped_quiet_hours user_id=%s release=%s expiry=%s",
+                    user_id, next_attempt_at.isoformat(), expiry.isoformat(),
+                )
+                continue
+        deliveries.append((channel, next_attempt_at))
+    channels = [channel for channel, _ in deliveries]
+
     intent_key = logical_key or f"adhoc:{user_id}:{notification_type}:{uuid4()}"
     notification_id = uuid4()
     initial_status = "queued" if channels or due_at > now else "sent"
@@ -248,13 +295,13 @@ def dispatch_notification(
         session.add(Notification(**values))
         session.flush()
 
-    for channel in channels:
+    for channel, next_attempt_at in deliveries:
         session.add(
             NotificationDelivery(
                 notification_id=notification_id,
                 channel=channel,
                 status="pending",
-                next_attempt_at=due_at,
+                next_attempt_at=next_attempt_at,
             )
         )
     session.flush()

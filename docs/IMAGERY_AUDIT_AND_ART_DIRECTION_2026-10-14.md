@@ -425,6 +425,59 @@ stylesheets in headless Chromium against the same markup (both themes,
 proxies to the real dev DB, and logging in would have meant creating an
 account there. **The Tamil-mode layout of the header window is unchecked.**
 
+## Rework 2026-10-28 — IMG-01: the light theme gets an engraving, not the photo
+
+**Owner:** the monthly calendar's top and bottom scenes "are apt for Nova but
+look awkward in the light theme." By then the light header had no art at all,
+and the closing was the night photo as a framed dark panorama with a black
+scrim and white type: the only dark object on a cream page.
+
+**Diagnosis:** the night photo's subject is darkness. On cream it can only be
+fog (10%), a window, or a slab. The day twin that would have fixed it was
+never delivered. Waiting for art left light-theme users with a broken page.
+
+**Change:** on the light theme a dark-ground photo is never shown. In its
+place is `<TempleTankEngraving>` (`web/components/temple-tank-engraving.tsx`):
+the same temple tank as a bronze line engraving, like an almanac frontispiece.
+It is pure SVG in `currentColor` (ink `--color-accent`), uses no colour
+literals, and needs no asset. It registers with the photo (sun or moon over
+the main peak, gopuram on the right, mandapams on the ghats, empty left sky).
+- **Ruling 1 holds:** the engraving draws the reader's hour. Day has the sun
+  with rays and birds. Dawn has the sun rising behind the hills east of the
+  peak, with mist. Dusk has it setting west of the peak, with homing birds.
+  Night has the moon, halo, stars and lit mandapam lamps reflected in the
+  tank. Before mount the sky is empty (the server cannot know the clock).
+- **Header** shows `scene="sky"`: hills, palms and mandapams, no gopuram. A
+  full plate there stood the view switch on the gopuram's crown. It is
+  full-bleed atmosphere like the photo on Nova, faded out under the copy,
+  and hidden at 720 px and below.
+- **Closing** shows the full plate, water dissolving into the page, with its
+  line set in the plate's empty sky (a caption beneath on phones). There is
+  no frame, no scrim and no white type.
+- **Nova** is unchanged (the photo, feathered). The Nova + light-art branch
+  (day slot, still undelivered) keeps the framed panorama. Its rules were
+  collapsed from three layered generations into one block.
+- Theme is still never read in JS: both media render and CSS picks one.
+
+**Gates:** `temple-tank-engraving.test.tsx` checks the hour drawn, lamps at
+night only, the sky empty before mount, `aria-hidden`, no colour literals,
+unique mask ids per instance, the gopuram absent from the sky scene, and that
+every hour's body plus glow and rays fits inside the band crop and clear of the
+closing's copy column. `sky-phase.test.ts` checks that the light theme hides
+the dark-ground photo and shows the engraving, that the light closing has no
+scrim and no white copy, and that the header passes `scene="sky"`. Each was
+run once with its fix removed (band crop back to y=110, `scene="sky"` dropped,
+the CSS assertions against `HEAD`'s stylesheet) and failed.
+**Blind spot:** none of these sees pixels. The look was reviewed in headless
+Chromium through a temporary unauthenticated route rendering the real
+components and stylesheets: day/night 1440, dawn 1280, Tamil dusk 1100,
+night 390, Nova night 1440. The authenticated page (real month grid, sidebar,
+real header data) was not shot.
+
+**Known, unchanged:** the header photo is still `priority` and so is still
+fetched on the light theme, where it is hidden (1.5 MB; it already was before
+this change). Re-mastering it as AVIF/WebP (IMG-01 "Also") remains open.
+
 **Not done:** IMG-06 beyond the calendar (~80 emoji remain across 16 files);
 deleting the seven now-unreferenced calendar icons (`chathurthi.png`,
 `ekadashi.png/.jpg`, `muhurtha.png/.jpg`, `shasti.png/.jpg`; per-file approval);

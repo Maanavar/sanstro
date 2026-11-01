@@ -4,6 +4,7 @@ from __future__ import annotations
 from collections.abc import Collection, Iterable, Mapping
 from dataclasses import replace
 
+from app.calculations._yoga_detect import detect_pancha_mahapurusha
 from app.calculations._yoga_helpers import (
     FEMALE_HIGH_ATTENTION_SEVVAI_HOUSES,
     HOUSE_SIGN_NIVARTHI,
@@ -13,7 +14,7 @@ from app.calculations._yoga_helpers import (
     RAHU_KETU_MARRIAGE_HOUSES,
     SEVEN_PLANETS,
     SEVVAI_BENEFIC_REDUCERS,
-    TAMIL_SEVVAI_HOUSES,
+    SEVVAI_HOUSE_SETS,
     TRIKONA_HOUSES,
     DoshamResult,
     KalasarpaResult,
@@ -199,22 +200,40 @@ def detect_sevvai_dosham(
     lagna_house = house_from_reference(lagna_rasi, mars_rasi)
     moon_house = house_from_reference(moon_rasi, mars_rasi)
     venus_house = house_from_reference(venus_rasi, mars_rasi)
+    sevvai_houses = SEVVAI_HOUSE_SETS[doctrine.sevvai_house_set]
 
-    if lagna_house in TAMIL_SEVVAI_HOUSES:
+    if lagna_house in sevvai_houses:
         conditions_met.append("from_lagna")
         house_hits["from_lagna"] = lagna_house
-    if moon_house in TAMIL_SEVVAI_HOUSES:
+    if moon_house in sevvai_houses:
         conditions_met.append("from_moon")
         house_hits["from_moon"] = moon_house
-    if venus_house in TAMIL_SEVVAI_HOUSES:
+    if venus_house in sevvai_houses:
         conditions_met.append("from_venus")
         house_hits["from_venus"] = venus_house
 
+    # AAU-13 (ruled 2026-10-29; the grading is Vinaadi product policy, not a
+    # verse — no classical text gives a combination rule). The Lagna is primary;
+    # the Moon and Venus corroborate. They grade the severity of a Lagna
+    # dosham and never declare one on their own:
+    #
+    #   Lagna only                  present, mild       (WEAK)
+    #   Lagna + Moon or Venus       confirmed           (PARTIAL)
+    #   Lagna + Moon + Venus        severe              (STRONG)
+    #   Moon and/or Venus, no Lagna placement noted, not declared
+    #
+    # OR-ing the three references is what made 91% of charts "have" Sevvai
+    # (1 - 0.5^3 = 87.5%, plus correlation). The house set is a separate
+    # question, ruled 2026-10-30 (Q5): the Tamil five by default. The sixth
+    # house was worth about 9 points (52.8% -> 43.5% declared), not the 91%.
+    lagna_hit = "from_lagna" in conditions_met
+    corroborators = sum(ref in conditions_met for ref in ("from_moon", "from_venus"))
+
     aggravation_count = 0
-    if conditions_met and "MARS" in combust_planets:
+    if lagna_hit and "MARS" in combust_planets:
         conditions_met.append("mars_combust")
         aggravation_count += 1
-    if conditions_met and any(
+    if lagna_hit and any(
         planet in planets and _planet_rasi(planets, planet) == mars_rasi
         for planet in ("SATURN", "RAHU")
     ):
@@ -382,32 +401,27 @@ def detect_sevvai_dosham(
             cancellation_factors.append("mars_neechabhanga")
             major_cancellation = True
 
-    is_present = bool(conditions_met) and not exempt_lagna
+    is_present = lagna_hit and not exempt_lagna
     # §8: only a two-chart reading can cancel; one or more reduction factors
     # is "present, reduced", one grade lower. (Q8 had required two.)
     is_cancelled = is_present and two_chart_reading and major_cancellation
     reduced = softened_by_exception or mitigation_score >= 1
-    strong_house_hit = any(house_hits.get(key) in {7, 8} for key in house_hits)
-    reference_count = len([c for c in conditions_met if c.startswith("from_")])
-    # DD-17: the formation's own grade, before any mitigation softens it.
-    formation_strength = ""
-    if is_present:
-        formation_strength = "STRONG" if (strong_house_hit or reference_count >= 2 or aggravation_count) else "PARTIAL"
+    grades = ("WEAK", "PARTIAL", "STRONG")
+    # The AAU-13 tier is the base grade. As before, reductions take it one grade
+    # down, and each aggravation (combust Mars; Mars with Saturn or Rahu) then
+    # lifts it one grade up. DD-17: the formation grade is the tier with its
+    # aggravations, before any mitigation softens it.
+    formation_strength = grades[min(2, corroborators + aggravation_count)] if is_present else ""
     if not is_present or is_cancelled:
         strength = "WEAK"
-    elif strong_house_hit or len([c for c in conditions_met if c.startswith("from_")]) >= 2:
-        strength = "PARTIAL" if reduced else "STRONG"
     else:
-        strength = "WEAK" if reduced else "PARTIAL"
-    if is_present and not is_cancelled and aggravation_count:
-        strength = {"WEAK": "PARTIAL", "PARTIAL": "STRONG", "STRONG": "STRONG"}[strength]
+        rank = max(0, corroborators - (1 if reduced else 0))
+        strength = grades[min(2, rank + aggravation_count)]
 
     if not is_present:
         label = "NO_SEVVAI_DOSHAM"
     elif is_cancelled:
         label = "SEVVAI_DOSHAM_WITH_NIVARTHI"
-    elif "from_lagna" not in conditions_met and "from_moon" not in conditions_met and "from_venus" in conditions_met:
-        label = "SEVVAI_DOSHAM_CANDIDATE"
     elif strength == "STRONG":
         label = "STRONG_ACTIVE_SEVVAI_DOSHAM"
     else:
@@ -421,20 +435,30 @@ def detect_sevvai_dosham(
         # Nivarthi needs a major factor now (Q8), and a major factor is never
         # a narrow margin.
         narrow_margin=False,
-        # The Lagna is the primary reference; a dosham counted only from the
-        # Moon or Venus is the lighter reading (DD-17).
-        primary_reference="from_lagna" in conditions_met,
+        # The Lagna is the primary reference, and since AAU-13 every declared
+        # Sevvai stands on it.
+        primary_reference=lagna_hit,
     )
     context_notes_list: list[str] = []
-    if is_present and "from_lagna" not in conditions_met:
-        context_notes_list.append("sevvai_not_from_lagna")
+    if not lagna_hit and conditions_met:
+        # AAU-13: the placement is reported, the dosham is not declared.
+        context_notes_list.append("sevvai_not_declared_without_lagna")
     # B3 (23 Oct follow-up): the astrologer's own wording for what debility
     # does, approved in both languages. Attached without counting (DD-17).
     if "mars_debilitated_in_dosha_house" in cancellation_factors:
         context_notes_list.append("sevvai_mars_debility_modifies")
+    # Owner ruling 2026-10-30 (V1 §18, B): where Ruchaka forms on the same Mars,
+    # both verdicts stand at full weight (O-18: strength never cancels) and the
+    # card says why, so a reader never sees two unexplained opposite verdicts.
+    # A display line only; it changes no grade. Read from the yoga detector
+    # itself so there is one definition of Ruchaka.
+    if is_present and any(
+        y.is_present and y.name == "RUCHAKA_YOGA" for y in detect_pancha_mahapurusha(planets, lagna_rasi)
+    ):
+        context_notes_list.append("sevvai_mars_strength_both_ways")
     context_notes = tuple(context_notes_list)
     reference_houses = tuple(
-        ReferenceHouse(reference=ref, reference_rasi=ref_rasi, houses=(house,), counts=house in TAMIL_SEVVAI_HOUSES)
+        ReferenceHouse(reference=ref, reference_rasi=ref_rasi, houses=(house,), counts=house in sevvai_houses)
         for ref, ref_rasi, house in (
             ("LAGNA", lagna_rasi, lagna_house),
             ("MOON", moon_rasi, moon_house),
@@ -1499,7 +1523,13 @@ def _join_en(items: list[str], word: str = "and") -> str:
     return items[0] if len(items) == 1 else f"{', '.join(items[:-1])} {word} {items[-1]}"
 
 
-_PUTRA_SARPA_AFFLICTORS = ("RAHU", "KETU", "SATURN")
+# AAU-12 (ruled 2026-10-29). சர்ப்ப means the serpent: Putra Sarpa needs a node.
+# Saturn on the 5th is புத்திர தடை (Santhana Thadai): delay, not curse, with a
+# different parihara (Sani worship, Thirunallar) from the naga route. Counting
+# Saturn here sent families to Rahu-Ketu temples for a Saturn placement, so the
+# two are separate detectors with separate remedy keys.
+_PUTRA_SARPA_AFFLICTORS = ("RAHU", "KETU")
+_SANTHANA_THADAI_AFFLICTORS = ("SATURN",)
 
 
 def _putra_sarpa_meaning(
@@ -1570,17 +1600,197 @@ def detect_putra_sarpa_dosham(
     *,
     doctrine: DoctrineOptions = DEFAULT_DOCTRINE,
 ) -> DoshamResult:
+    """புத்ர சர்ப்ப தோஷம். Owner ruling 2026-10-30 (DOCTRINE_DECISIONS_V1 §18, Q7-Q9): the
+    Sevvai grammar, anchored on the 5th house.
+
+    Only Rahu or Ketu **in the 5th** declares it. Two legs grade it:
+    a node beside the 5th lord (Q7), and Guru Chandala with Jupiter linked
+    to the 5th (Q8: in it, owning it, or aspecting it).
+
+        node in the 5th              declared, mild        WEAK
+        + one leg                    confirmed             PARTIAL
+        + both legs                  severe                STRONG
+        legs, no node in the 5th     watch-note only; no dosham, no parihara
+
+    A weak D7 is not a leg: no text defines it, so it would be an engine
+    inference (Q11, ruling C). A protecting Jupiter (in a kendra, not itself
+    joined by a node) or a strong 5th lord lowers the grade by one and never
+    cancels. Nodes only (AAU-12); Saturn is `detect_santhana_thadai`.
+    """
+    nodes = _PUTRA_SARPA_AFFLICTORS
+    fifth_lord = _house_lord(lagna_rasi, 5)
+    fifth_house_rasi = ((lagna_rasi + 5 - 2) % 12) + 1
+    lord_rasi = planets.get(fifth_lord)
+    jupiter_rasi = planets.get("JUPITER")
+
+    in_house = [p for p in nodes if planets.get(p) == fifth_house_rasi]
+    # One fact is counted once: a node already in the 5th is not a leg too.
+    beside_lord = [p for p in nodes if p not in in_house and lord_rasi is not None and planets.get(p) == lord_rasi]
+    jupiter_linked = jupiter_rasi is not None and (
+        jupiter_rasi == fifth_house_rasi
+        or fifth_lord == "JUPITER"
+        or aspects_house("JUPITER", jupiter_rasi, fifth_house_rasi)
+    )
+    # Where Jupiter is the 5th lord, a node beside it is one fact, already a leg.
+    with_guru = [
+        p for p in nodes
+        if jupiter_linked and p not in in_house and planets.get(p) == jupiter_rasi
+        and not (fifth_lord == "JUPITER" and p in beside_lord)
+    ]
+    # Q14 (V1 §18): no Rahu rule is extended to Ketu by default. applies_to: rahu —
+    # Guru + Rahu is YOG-CH-01, a leg. Guru + Ketu (YOG-CH-02, unsourced per the
+    # 2026-08-28 ruling) is a watch-note until D6b is ruled: under-declaring a
+    # children's dosham is the safer failure.
+    beside_guru = [p for p in with_guru if p == "RAHU"]
+    guru_ketu_noted = "KETU" in with_guru
+    legs = int(bool(beside_lord)) + int(bool(beside_guru))
+    declared = bool(in_house)
+
+    conditions_met: list[str] = (
+        [f"fifth_house_has_{p.lower()}" for p in in_house]
+        + [f"fifth_lord_{fifth_lord.lower()}_joined_by_{p.lower()}" for p in beside_lord]
+        + [f"jupiter_joined_by_{p.lower()}" for p in beside_guru]
+    )
+
+    lord_strong = planet_scores.get(fifth_lord, 50) >= 65
+    jupiter_house = house_from_reference(lagna_rasi, jupiter_rasi) if jupiter_rasi is not None else None
+    # Q12 (V1 §18): both protections are `engine_inference`, pending_definition.
+    # The kendra test is a positional stand-in for a relational question
+    # (strength, relevance to the 5th, affliction); it stays at its shipped
+    # behaviour so no live grade rises, and is not to be frozen.
+    protecting_jupiter_house = jupiter_house if jupiter_house in KENDRA_HOUSES else None
+    reducers: list[str] = []
+    if declared and lord_strong:
+        reducers.append(f"fifth_lord_{fifth_lord.lower()}_strong")
+    if declared and protecting_jupiter_house is not None:
+        reducers.append(f"jupiter_in_kendra_house_{protecting_jupiter_house}")
+
+    grades = ("WEAK", "PARTIAL", "STRONG")
+    formation_strength = grades[min(2, legs)] if declared else ""
+    strength = grades[max(0, min(2, legs) - (1 if reducers else 0))] if declared else "WEAK"
+    if not declared:
+        label = "NO_DOSHAM"
+    elif strength == "STRONG":
+        label = "STRONG_ACTIVE_DOSHAM"
+    else:
+        label = "ACTIVE_DOSHAM"
+    residual = dosham_residual(
+        is_present=declared,
+        is_cancelled=False,
+        strength=strength,
+        formation_strength=formation_strength,
+        narrow_margin=False,
+    )
+    watch_only = not declared and (legs > 0 or guru_ketu_noted)
+    notes: list[str] = []
+    if watch_only:
+        notes.append("putra_sarpa_watch_only")
+    if guru_ketu_noted:
+        notes.append("putra_sarpa_guru_ketu_noted")
+    if declared:
+        # Q13: no D7 and no dasha step yet, so the reading is not final.
+        notes.append("children_assessment_incomplete")
+    context_notes = tuple(notes)
+    what_ta, what_en, why_ta, why_en, how_ta, how_en = _build_dosham_explanations(
+        "PUTRA_SARPA_DOSHAM",
+        label,
+        conditions_met=conditions_met,
+        cancellation_factors=reducers,
+        missing_data=[],
+        residual=residual,
+        context_notes=context_notes,
+    )
+    meaning_ta, meaning_en = _putra_sarpa_meaning(
+        fifth_house_rasi=fifth_house_rasi,
+        fifth_lord=fifth_lord,
+        in_house=in_house,
+        beside_lord=beside_lord,
+        beside_guru=beside_guru,
+        lord_strong=lord_strong,
+        jupiter_house=protecting_jupiter_house,
+    ) if declared else ("", "")
+    return DoshamResult(
+        name="PUTRA_SARPA_DOSHAM",
+        is_present=declared,
+        # No cancellation is ruled for Putra Sarpa; protections lower the grade.
+        is_cancelled=False,
+        strength=strength,
+        formation_strength=formation_strength,
+        residual=residual,
+        label=label,
+        category="CHILDREN",
+        conditions_met=conditions_met,
+        cancellation_factors=reducers,
+        missing_data=[],
+        dasha_activated=False,
+        description_ta="புத்ர சர்ப்ப தோஷம் — 5-ஆம் வீட்டில் ராகு அல்லது கேது.",
+        description_en="Putra Sarpa dosham — Rahu or Ketu in the 5th house.",
+        explanation_what_ta=what_ta,
+        explanation_what_en=what_en,
+        explanation_why_ta=why_ta,
+        explanation_why_en=why_en,
+        explanation_how_ta=how_ta,
+        explanation_how_en=how_en,
+        context_notes=context_notes,
+        meaning_ta=meaning_ta,
+        meaning_en=meaning_en,
+        parihara="full" if declared else "none",
+        assessment_complete=not (declared or watch_only),
+        progeny_outlook=("difficulty" if strength != "WEAK" else "delay") if declared else (
+            "needs_attention" if watch_only else ""
+        ),
+    )
+
+
+def detect_santhana_thadai(
+    planets: dict[str, int],
+    lagna_rasi: int,
+    planet_scores: dict[str, int],
+    *,
+    doctrine: DoctrineOptions = DEFAULT_DOCTRINE,
+) -> DoshamResult:
+    """புத்திர தடை (Santhana Thadai): Saturn in the 5th or beside its lord.
+
+    Delay, not curse (AAU-12, ruled 2026-10-29). Split out of Putra Sarpa so a
+    Saturn placement is routed to Sani parihara, not to the naga temples. The
+    trigger surface is occupation and conjunction with the 5th lord only;
+    Saturn's aspect on the 5th is not counted.
+    """
+    return _detect_fifth_house_affliction(
+        planets,
+        lagna_rasi,
+        planet_scores,
+        name="SANTHANA_THADAI",
+        afflictors=_SANTHANA_THADAI_AFFLICTORS,
+        doctrine=doctrine,
+        description_ta="புத்திர தடை — 5-ஆம் வீட்டில் அல்லது அதன் அதிபதியுடன் சனி இருப்பதால் குழந்தைப்பேறில் தாமதம்.",
+        description_en="Santhana Thadai — delay around children, from Saturn in the 5th house or beside its lord.",
+    )
+
+
+def _detect_fifth_house_affliction(
+    planets: dict[str, int],
+    lagna_rasi: int,
+    planet_scores: dict[str, int],
+    *,
+    name: str,
+    afflictors: tuple[str, ...],
+    doctrine: DoctrineOptions,
+    description_ta: str,
+    description_en: str,
+) -> DoshamResult:
     fifth_lord = _house_lord(lagna_rasi, 5)
     fifth_rasi = planets.get(fifth_lord, lagna_rasi)
     fifth_house_rasi = ((lagna_rasi + 5 - 2) % 12) + 1
-    # Nodes/Saturn occupying the 5th house itself, not just conjunct its lord
+    # Afflictors occupying the 5th house itself, not just conjunct its lord
     # elsewhere (L-5) — the dosham's own description promises "5th house …
     # afflicted", which the lord-conjunction check alone doesn't cover.
-    in_house = [p for p in _PUTRA_SARPA_AFFLICTORS if planets.get(p) == fifth_house_rasi]
+    in_house = [p for p in afflictors if planets.get(p) == fifth_house_rasi]
     # O-32 (owner ruling 2026-10-06): for Thulam lagna, Sani in Kumbam is the
     # 5th lord in its own sign and the yogakaraka (4th + 5th). The placement is
-    # recorded but does not form the dosham on its own; an independent
+    # recorded but does not form the finding on its own; an independent
     # affliction still does. This one case only, not "own sign always cancels".
+    # Since AAU-12 Saturn belongs to Santhana Thadai, so that is where it lands.
     sani_neutralized = (
         doctrine.o32_putra_sarpa_thulam_sani == "neutralized"
         and lagna_rasi == 7 and "SATURN" in in_house
@@ -1588,18 +1798,20 @@ def detect_putra_sarpa_dosham(
     if sani_neutralized:
         in_house.remove("SATURN")
     # A planet does not join itself. For Thulam lagna Saturn *is* the 5th lord,
-    # and comparing Saturn's rasi with its own formed this dosham in every
+    # and comparing Saturn's rasi with its own formed this finding in every
     # Thulam-lagna chart. One already counted in the house is not counted twice.
     beside_lord = [
-        p for p in _PUTRA_SARPA_AFFLICTORS
+        p for p in afflictors
         if p != fifth_lord and p not in in_house and planets.get(p) == fifth_rasi
     ]
     # Guarded on presence: a chart missing both Jupiter and a node compared
     # None == None and formed the dosham. Where Jupiter is the 5th lord
     # (Simmam, Viruchigam lagna) a node beside it is already counted above.
+    # Nodes only: this is the serpent touching the karaka, so it belongs to
+    # Sarpa and never forms Santhana Thadai.
     beside_guru: list[str] = [
         p for p in ("RAHU", "KETU")
-        if "JUPITER" in planets and p in planets and p not in beside_lord
+        if p in afflictors and "JUPITER" in planets and p in planets and p not in beside_lord
         and planets[p] == planets["JUPITER"] and not (fifth_lord == "JUPITER" and p in in_house)
     ]
     present = bool(in_house or beside_lord or beside_guru)
@@ -1648,13 +1860,19 @@ def detect_putra_sarpa_dosham(
         formation_strength=formation_strength,
         narrow_margin=len(cancellation) == 1,
     )
+    # Q13 (V1 §18): say why the parihara is lighter, and that the reading is not final.
+    context_notes = (
+        (("santhana_thadai_lighter_parihara",) if is_cancelled else ()) + ("children_assessment_incomplete",)
+        if present else ()
+    )
     what_ta, what_en, why_ta, why_en, how_ta, how_en = _build_dosham_explanations(
-        "PUTRA_SARPA_DOSHAM",
+        name,
         label,
         conditions_met=conditions_met,
         cancellation_factors=cancellation,
         missing_data=[],
         residual=residual,
+        context_notes=context_notes,
     )
     meaning_ta, meaning_en = _putra_sarpa_meaning(
         fifth_house_rasi=fifth_house_rasi,
@@ -1669,15 +1887,15 @@ def detect_putra_sarpa_dosham(
         why_ta = (
             "சனி உங்கள் 5-ஆம் வீடான கும்பத்தில் உள்ளது. ஆனால் துலாம் லக்னத்திற்கு சனி 5-ஆம் அதிபதி, "
             "ஆட்சி பெற்றுள்ளது, யோககாரகனும் கூட; தன் சொந்த வீட்டை அது காக்கிறது. "
-            "5-ஆம் வீடு, அதன் அதிபதி அல்லது குருவுக்கு வேறு பாதிப்பு இல்லாததால் புத்ர சர்ப்ப தோஷம் செயல்படவில்லை."
+            "5-ஆம் வீட்டுக்கு வேறு பாதிப்பு இல்லாததால் புத்திர தடை செயல்படவில்லை."
         )
         why_en = (
             "Saturn sits in your 5th house, Kumbam. For Thulam lagna Saturn is the 5th lord, in its own sign, "
             "and the yogakaraka, so it guards the house it owns. With no other affliction to the 5th house, "
-            "its lord or Jupiter, Putra Sarpa Dosham is not active."
+            "Santhana Thadai is not active."
         )
     return DoshamResult(
-        name="PUTRA_SARPA_DOSHAM",
+        name=name,
         is_present=present,
         is_cancelled=is_cancelled,
         strength=strength,
@@ -1689,8 +1907,16 @@ def detect_putra_sarpa_dosham(
         cancellation_factors=cancellation,
         missing_data=[],
         dasha_activated=False,
-        description_ta="புத்ர சர்ப்ப தோஷம் — 5-ஆம் வீடு, அதன் அதிபதி அல்லது குரு ராகு, கேது அல்லது சனியால் பாதிக்கப்படுவது.",
-        description_en="Putra Sarpa dosham — the 5th house, its lord or Jupiter afflicted by Rahu, Ketu or Saturn.",
+        description_ta=description_ta,
+        description_en=description_en,
+        # Q13 (V1 §18): formation first (Saturn forms it), then protection. A
+        # guarded 5th lightens the parihara to the objective slot and the card
+        # says why; it is never withheld silently. D7 and dasha join once
+        # defined, and until then the reading is marked incomplete.
+        parihara=("objective_only" if is_cancelled else "full") if present else "none",
+        assessment_complete=not present,
+        progeny_outlook="delay" if present else "",
+        context_notes=context_notes,
         explanation_what_ta=what_ta,
         explanation_what_en=what_en,
         explanation_why_ta=why_ta,

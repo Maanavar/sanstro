@@ -931,6 +931,23 @@ def test_oauth_google_callback_creates_new_user_on_success(raw_client, _google_o
     assert me.json()["email"] == "oauth-newuser@example.com"
 
 
+def _google_sign_in(raw_client, monkeypatch, *, sub: str, email: str):
+    monkeypatch.setattr("app.api.auth._google_exchange_code_for_token", lambda code, redirect_uri, settings: "tok")
+    monkeypatch.setattr(
+        "app.api.auth._google_fetch_userinfo",
+        lambda access_token: {"sub": sub, "email": email, "email_verified": True},
+    )
+    start = raw_client.get("/api/v1/auth/oauth/google/start", follow_redirects=False)
+    state = start.cookies.get("vinaadi_oauth_state")
+    callback = raw_client.get(
+        "/api/v1/auth/oauth/google/callback",
+        params={"code": "fake-code", "state": state},
+        follow_redirects=False,
+    )
+    assert callback.status_code in (302, 307)
+    assert callback.headers["location"].endswith("/dashboard")
+
+
 def test_oauth_google_callback_links_existing_password_account_by_email(
     raw_client, _google_oauth_configured_env, monkeypatch
 ):
@@ -940,25 +957,13 @@ def test_oauth_google_callback_links_existing_password_account_by_email(
     )
     assert register.status_code == 200
     raw_client.post("/api/v1/auth/logout", headers=CSRF_HEADERS)
+    # The owner proved the address before linking, so the password is theirs.
+    with SessionLocal() as session:
+        owner = session.query(User).filter(User.email == "oauth-linkme@example.com").one()
+        owner.email_verified_at = datetime.now(UTC)
+        session.commit()
 
-    def fake_exchange(code, redirect_uri, settings):
-        return "fake-access-token"
-
-    def fake_userinfo(access_token):
-        return {"sub": "google-sub-link-456", "email": "oauth-linkme@example.com", "email_verified": True}
-
-    monkeypatch.setattr("app.api.auth._google_exchange_code_for_token", fake_exchange)
-    monkeypatch.setattr("app.api.auth._google_fetch_userinfo", fake_userinfo)
-
-    start = raw_client.get("/api/v1/auth/oauth/google/start", follow_redirects=False)
-    state = start.cookies.get("vinaadi_oauth_state")
-
-    callback = raw_client.get(
-        "/api/v1/auth/oauth/google/callback",
-        params={"code": "fake-code", "state": state},
-        follow_redirects=False,
-    )
-    assert callback.status_code in (302, 307)
+    _google_sign_in(raw_client, monkeypatch, sub="google-sub-link-456", email="oauth-linkme@example.com")
 
     me = raw_client.get("/api/v1/auth/me")
     assert me.status_code == 200
@@ -969,3 +974,42 @@ def test_oauth_google_callback_links_existing_password_account_by_email(
         assert linked is not None
         assert linked.google_sub == "google-sub-link-456"
         assert linked.hashed_password is not None  # password login still works
+        assert linked.consent_given_at is not None
+
+
+def test_oauth_google_link_to_unverified_account_evicts_the_registrant(
+    raw_client, _google_oauth_configured_env, monkeypatch
+):
+    """ARC-17 pre-hijack: a squatter registers the victim's address and never
+    verifies it. The victim's Google sign-in must not hand them an account the
+    squatter can still open with the password or an existing session."""
+    email = "oauth-squatted@example.com"
+    raw_client.post(
+        "/api/v1/auth/register",
+        json={"email": email, "password": "squatter-pass-1", "consentGiven": True},
+    )
+    login = raw_client.post("/api/v1/auth/login", json={"email": email, "password": "squatter-pass-1"})
+    assert login.status_code == 200
+    squatter_token = login.cookies.get("vinaadi_token")
+    assert squatter_token
+    # Not /logout: that revokes the token itself and would hide the fix.
+    raw_client.cookies.clear()
+
+    _google_sign_in(raw_client, monkeypatch, sub="google-sub-victim-789", email=email)
+
+    me = raw_client.get("/api/v1/auth/me")
+    assert me.status_code == 200
+    assert me.json()["emailVerified"] is True
+
+    raw_client.cookies.clear()
+    stale = raw_client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {squatter_token}"})
+    assert stale.status_code == 401
+    relogin = raw_client.post("/api/v1/auth/login", json={"email": email, "password": "squatter-pass-1"})
+    assert relogin.status_code == 401
+
+    with SessionLocal() as session:
+        linked = session.query(User).filter(User.email == email).one()
+        assert linked.google_sub == "google-sub-victim-789"
+        assert linked.hashed_password is None
+    # Last, so the security assertions above are what fail first without the fix.
+    assert me.json()["consentRequired"] is True  # the squatter's consent is not the owner's

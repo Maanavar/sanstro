@@ -1,6 +1,14 @@
 import type { BiText } from "../types";
 
 export type Tier = "guest" | "registered" | "premium";
+
+/**
+ * What a signed-in account can use right now (`MeResponse.accessState`).
+ * `premium` = an active subscription, purchase or courtesy grant; `trial` = the
+ * seven-day trial that starts on email verification (D-07); `free` = neither.
+ * Not a `Tier`: nobody buys a trial, so it has no row in TIER_LIMITS.
+ */
+export type AccessState = "free" | "trial" | "premium";
 export type DashaDepth = "none" | "current_only" | "full";
 
 export interface TierLimits {
@@ -50,7 +58,8 @@ export const TIER_LIMITS: Record<Tier, TierLimits> = {
     familyVaultProfilesMax: 0,
     goalsMax: 0,
     rasiPalanWindowDays: 0,
-    askVinaadiDailyLimit: 2,
+    // Ask needs a saved chart and a signed-in account (ARC-07).
+    askVinaadiDailyLimit: 0,
     askVinaadiMonthlyLimit: null,
     askVinaadiTopUpEnabled: false,
     dashaDepth: "none",
@@ -78,7 +87,7 @@ export const TIER_LIMITS: Record<Tier, TierLimits> = {
     familyVaultProfilesMax: 1,
     goalsMax: 3,
     rasiPalanWindowDays: 7,
-    askVinaadiDailyLimit: 7,
+    askVinaadiDailyLimit: 2,
     askVinaadiMonthlyLimit: null,
     askVinaadiTopUpEnabled: false,
     dashaDepth: "current_only",
@@ -106,12 +115,13 @@ export const TIER_LIMITS: Record<Tier, TierLimits> = {
     familyVaultProfilesMax: 5,
     goalsMax: Infinity,
     rasiPalanWindowDays: 30,
-    askVinaadiDailyLimit: null,
-    askVinaadiMonthlyLimit: 30,
+    askVinaadiDailyLimit: 5,
+    askVinaadiMonthlyLimit: null,
     askVinaadiTopUpEnabled: true,
     dashaDepth: "full",
-    detailedReportsMonthlyIncluded: 5,
-    poruthamReportsMonthlyIncluded: 3,
+    // 1 + 1 (ARC-06, owner decision 2026-11-01).
+    detailedReportsMonthlyIncluded: 1,
+    poruthamReportsMonthlyIncluded: 1,
     adsEnabled: false,
     annualWrappedEnabled: true,
     annualWrappedShareEnabled: true,
@@ -235,20 +245,27 @@ export const SUBSCRIPTION_PLANS = {
   monthly: {
     rcProductId: "vinaadi.premium.monthly",
     priceINR: 149,
-    trialDays: 7,
     savingsPercent: null,
     label: { ta: "மாத திட்டம்", en: "Monthly Plan" },
   },
   annual: {
     rcProductId: "vinaadi.premium.annual",
     priceINR: 999,
-    trialDays: 7,
     savingsPercent: 44,
     label: { ta: "வருட திட்டம்", en: "Annual Plan" },
   },
 } as const;
 
 export type SubscriptionPlan = keyof typeof SUBSCRIPTION_PLANS;
+
+/**
+ * The Premium trial: once per account, from email verification, no payment
+ * details asked and nothing charged at the end (D-07). A property of the
+ * account, not of a plan — it was `SUBSCRIPTION_PLANS.*.trialDays`, which
+ * described a store trial that started with the subscription.
+ * Server: TRIAL_LENGTH in app/services/entitlement_service.py.
+ */
+export const ACCOUNT_TRIAL_DAYS = 7;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -265,8 +282,16 @@ export function getTierLimits(tier: Tier): TierLimits {
  * would not enforce. Guests are never lifted: the beta is for accounts.
  * `tier` itself stays the subscription fact; this is only for gating.
  */
-export function effectiveTier(tier: Tier, openBeta: boolean | undefined): Tier {
+export function effectiveTier(
+  tier: Tier,
+  openBeta: boolean | undefined,
+  accessState?: AccessState,
+): Tier {
   if (tier === "guest") return tier;
+  // A trial unlocks Premium's features; the server holds its Ask allowance
+  // lower (TRIAL_LIMITS in app/core/tier_limits.py), and the Ask screen reads
+  // that allowance from /ask-vinaadi/daily-status, not from this table.
+  if (accessState === "trial") return "premium";
   return openBeta ? "premium" : tier;
 }
 

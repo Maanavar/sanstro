@@ -133,12 +133,11 @@ def _nakshatra_gana(nakshatra_number: int) -> str:
 
 
 def _nakshatra_nadi(nakshatra_number: int) -> str:
-    mod = (nakshatra_number - 1) % 9
-    if mod < 3:
-        return "Aadhi"
-    if mod < 6:
-        return "Madhya"
-    return "Anthya"
+    """Porutham's nadi table, in this payload's title case. This used contiguous
+    blocks of three and was wrong for 18 of 27 stars (AAU-08)."""
+    from app.calculations.porutham import nakshatra_nadi
+
+    return nakshatra_nadi(nakshatra_number).title()
 
 
 def _compute_vargas(planet_longitudes: dict[str, float]) -> dict[str, dict[str, int]]:

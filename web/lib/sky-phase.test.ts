@@ -43,45 +43,38 @@ describe("calendar sky art on disk", () => {
   });
 });
 
-describe("light theme never fades night art into fog", () => {
-  // The defect: `[data-theme="light"] .nova-cal-landscape { opacity: .1 }` turned
-  // a night scene into grey haze on cream. Night art on light must be a window.
+describe("the light theme draws night art instead of showing the photo", () => {
+  // 10-14: `opacity: .1` turned the night photo into grey fog on cream. 10-28:
+  // its replacements — a framed window, then a dark panorama with a black
+  // scrim and white copy — read as a navy slab pasted onto the page (owner).
+  // On the light theme a dark-ground photo is never shown; the engraving of
+  // the same hour (<TempleTankEngraving>) takes its place.
   const css = readFileSync(join(__dirname, "..", "app", "dashboard", "dashboard-nova.css"), "utf8");
   it("has no blanket light-theme opacity on the landscape", () => {
     expect(css).not.toMatch(/\[data-theme="light"\][^{]*\.nova-cal-landscape\s*\{[^}]*opacity:\s*\.1\b/);
   });
-  it("frames dark-ground art on the light theme", () => {
-    expect(css).toMatch(/\[data-theme="light"\][^{]*\.nova-cal-closing\[data-sky-ground="dark"\] \.nova-cal-landscape[^{]*\{[^}]*opacity:\s*1;/);
+  it("hides the dark-ground photo and shows the engraving on the light theme", () => {
+    expect(css).toMatch(/\[data-theme="light"\] \.cd-shell \[data-sky-ground="dark"\] \.nova-cal-landscape \{ display: none; \}/);
+    expect(css).toMatch(/\[data-theme="light"\] \.cd-shell \[data-sky-ground="dark"\] \.nova-cal-engraving \{[^}]*display: block;/);
+  });
+  it("puts no scrim and no white copy on the light-theme closing", () => {
+    expect(css).not.toMatch(/\[data-theme="light"\][^{]*\.nova-cal-closing\[data-sky-ground="dark"\]::before/);
+    expect(css).not.toMatch(/\[data-theme="light"\][^{]*\.nova-cal-closing\[data-sky-ground="dark"\] p[^{]*\{[^}]*color:\s*(#f{3}\b|#f{6}\b|white)/i);
   });
 });
 
-describe("the framed window never sits under a control", () => {
-  // 2026-10-14 owner screenshot: the header window was absolutely positioned
-  // at the header's right edge — exactly where the Panchangam/Monthly/Best
-  // Dates switch lives — so the switch floated over the photo. The window must
-  // be in flow, after the switch, inside the aside.
-  const css = readFileSync(join(__dirname, "..", "app", "dashboard", "dashboard-nova.css"), "utf8");
+describe("the header scene never puts the temple under a control", () => {
+  // 10-14: a framed window sat under the Panchangam/Monthly/Best Dates switch.
+  // 10-28: the full engraving behind the header stood the switch on the
+  // gopuram's crown. The header scene is sky-only; the closing has the temple.
   const tab = readFileSync(join(__dirname, "..", "components", "dashboard-calendar-tab-nova.tsx"), "utf8");
-  it("puts the header window in flow on the opposite ground", () => {
-    expect(css).toMatch(/\.nova-cal-monthly-header\[data-sky-ground="dark"\] \.nova-cal-landscape[^{]*\{[^}]*position:\s*relative;/);
-  });
-  it("renders the scene after the view switch, inside the aside", () => {
+  it("renders the scene after the view switch, inside the aside, as sky only", () => {
     const aside = tab.indexOf('className="nova-cal-header-aside"');
     const seg = tab.indexOf("<Segmented<CalendarViewExt>", aside);
     const scene = tab.indexOf("<MonthlyCalendarLandscape", aside);
     expect(aside).toBeGreaterThan(-1);
     expect(seg).toBeGreaterThan(aside);
     expect(scene).toBeGreaterThan(seg);
-  });
-});
-
-describe("the opposite-ground scene has one intentional home", () => {
-  const css = readFileSync(join(__dirname, "..", "app", "dashboard", "dashboard-nova.css"), "utf8");
-  it("does not repeat the night scene beneath the light-theme view switch", () => {
-    expect(css).toMatch(/\[data-theme="light"\][^{]*\.nova-cal-monthly-header\[data-sky-ground="dark"\] \.nova-cal-landscape[^{]*\{[^}]*display:\s*none;/);
-  });
-  it("uses the closing panorama as a full-width background with legible copy", () => {
-    expect(css).toMatch(/\.nova-cal-closing\[data-sky-ground="dark"\] \.nova-cal-landscape[^{]*\{[^}]*position:\s*absolute;[^}]*inset:\s*0;/);
-    expect(css).toMatch(/\.nova-cal-closing\[data-sky-ground="dark"\] p[^{]*\{[^}]*color:\s*#fff;/);
+    expect(tab.slice(scene, tab.indexOf("/>", scene))).toMatch(/scene="sky"/);
   });
 });

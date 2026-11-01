@@ -106,11 +106,14 @@ interface DashboardExploreGuideNovaProps {
   lang: Lang;
   kind: GuideKind;
   initialSlug?: string;
+  /** Back to this kind's list (the hub crumb). */
   onBack: () => void;
+  /** Leave for the Understand tab (the first crumb). */
+  onExit: () => void;
   onOpenAskVinaadi: () => void;
 }
 
-export function DashboardExploreGuideNova({ lang, kind, initialSlug, onBack, onOpenAskVinaadi }: DashboardExploreGuideNovaProps) {
+export function DashboardExploreGuideNova({ lang, kind, initialSlug, onBack, onExit, onOpenAskVinaadi }: DashboardExploreGuideNovaProps) {
   const slugs = getGuideSlugs(kind);
   const initialIndex = initialSlug ? Math.max(0, slugs.indexOf(initialSlug)) : 0;
   const [viewedIndex, setViewedIndex] = useState(() => wrapIndex(initialIndex, Math.max(slugs.length, 1)));
@@ -121,7 +124,7 @@ export function DashboardExploreGuideNova({ lang, kind, initialSlug, onBack, onO
   if (slugs.length === 0) {
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
-        <button type="button" onClick={onBack} style={{ alignSelf: "flex-start", fontSize: "var(--text-sm)", color: "var(--color-accent-strong)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+        <button type="button" onClick={onExit} style={{ alignSelf: "flex-start", fontSize: "var(--text-sm)", color: "var(--color-accent-strong)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
           <><ArrowLeft size={14} strokeWidth={1.5} aria-hidden="true" style={{ verticalAlign: "-2px", marginRight: "var(--space-1)" }} />{t("tab_explore_back", lang)}</>
         </button>
         <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>
@@ -144,8 +147,9 @@ export function DashboardExploreGuideNova({ lang, kind, initialSlug, onBack, onO
 
       {/* ===== Breadcrumb + prev/next nav ===== */}
       <NovaDetailBreadcrumb
-        onBack={onBack}
+        onBack={onExit}
         backLabel={t("tab_explore", lang)}
+        onHub={onBack}
         hubLabel={text(kindLabel)}
         currentLabel={text(content.title)}
         onPrev={slugs.length > 1 ? { label: text(prevContent.title), onClick: () => setViewedIndex((i) => wrapIndex(i - 1, slugs.length)) } : undefined}

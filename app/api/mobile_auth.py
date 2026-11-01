@@ -28,13 +28,14 @@ from app.core.auth import create_access_token
 from app.core.auth_throttle import AuthThrottleAction, get_auth_throttler
 from app.core.config import get_settings
 from app.core.privacy_policy import CURRENT_POLICY_VERSION, consent_required_for
-from app.core.subscription import is_premium
 from app.db.session import get_db
 from app.middleware import resolve_client_ip
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
-from app.schemas.auth import AuthUserResponse, ConsentGiven, RegisterResponse
+from app.schemas.auth import AuthUserResponse, ConsentGiven, RegisterResponse, access_response_fields
+from app.services import account_lifecycle
 from app.services.email_service import enqueue_existing_account_registration_email
+from app.services.kill_switch import raise_if_paused
 
 router = APIRouter(prefix="/mobile", tags=["mobile-auth"])
 
@@ -147,8 +148,9 @@ def _build_response(db: Session, user: User, device_id: str | None) -> MobileAut
             email=user.email or "",
             userMode=getattr(user, "user_mode", "BALANCED") or "BALANCED",
             goalTrack=getattr(user, "goal_track", None),
-            tier="premium" if is_premium(user.user_id, db) else "registered",
+            **access_response_fields(user.user_id, db),
             consentRequired=consent_required_for(user),
+            emailVerified=user.email_verified_at is not None,
         ),
     )
 
@@ -186,6 +188,8 @@ def mobile_register(
 ) -> RegisterResponse:
     client_ip = _get_client_ip(request)
 
+    # Same order as app/api/auth.py::register: a paused signup reveals nothing.
+    raise_if_paused("enable_signups")
     # Check throttles: per-IP and per-email
     _throttler.enforce(AuthThrottleAction.REGISTER, ip=client_ip, account_identifier=payload.email)
     existing = db.query(User).filter(User.email == payload.email).first()
@@ -206,6 +210,9 @@ def mobile_register(
     )
     db.add(user)
     db.flush()
+    account_lifecycle.on_account_created(
+        db, user, background_tasks=background_tasks, email_verified_by_provider=False
+    )
     return RegisterResponse(detail="If this email can be used, your account is ready. Please sign in to continue.")
 
 

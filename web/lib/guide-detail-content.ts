@@ -787,7 +787,7 @@ DOSHAM_DETAILS["sevvai-dosham"] = {
   lead: DOSHAM_SEVVAI.lead,
   quickFacts: [
     { label: b("Ruling graha", "ஆளும் கிரகம்"), value: b("Mars (Sevvai / Angaraka)", "செவ்வாய் (அங்காரகன்)") },
-    { label: b("Houses watched", "பார்க்கும் பாவங்கள்"), value: b("1, 2, 4, 7, 8, 12 from Lagna, Moon & Venus", "லக்னம், சந்திரன், சுக்கிரன் — 1,2,4,7,8,12") },
+    { label: b("Houses watched", "பார்க்கும் பாவங்கள்"), value: b("2, 4, 7, 8, 12 from Lagna; Moon & Venus grade it", "லக்னத்திலிருந்து 2, 4, 7, 8, 12; சந்திரன், சுக்கிரன் தீவிரத்தைக் காட்டும்") },
     { label: b("Life areas", "வாழ்க்கைத் துறைகள்"), value: b("Marriage, partnership, temperament", "திருமணம், துணை, குணம்") },
     { label: b("Severity depends on", "தீவிரம் சார்ந்தது"), value: b("Sign dignity, aspects, cancellations, dasa", "ராசி பலம், பார்வை, ரத்து காரணம், தசை") },
   ],
@@ -2233,8 +2233,8 @@ export const PARIHARAM_DETAILS: Record<string, GuideDetail> = {
       {
         heading: b("Who should consider it", "யார் கருத வேண்டும்"),
         body: [
-          b("Consider it once the chart confirms Mars genuinely afflicts the marriage houses (1, 2, 4, 7, 8, 12), and after checking whether strength, aspects or matching cancellations already reduce it. Many Sevvai dosham cases turn out mild or cancelled.",
-            "செவ்வாய் உண்மையில் திருமண பாவங்களை (1, 2, 4, 7, 8, 12) பாதிக்கிறது என ஜாதகம் உறுதி செய்தபின், பலம், பார்வை அல்லது பொருத்த ரத்து ஏற்கனவே அதைக் குறைக்கிறதா எனப் பார்த்தபின் கருதுங்கள். பல செவ்வாய் தோஷ வழக்குகள் மிதமானவை அல்லது ரத்தானவையாக மாறுகின்றன."),
+          b("Consider it once the chart confirms Mars genuinely afflicts the marriage houses (2, 4, 7, 8, 12 from the Lagna), and after checking whether strength, aspects or matching cancellations already reduce it. Many Sevvai dosham cases turn out mild or cancelled.",
+            "செவ்வாய் உண்மையில் திருமண பாவங்களை (லக்னத்திலிருந்து 2, 4, 7, 8, 12) பாதிக்கிறது என ஜாதகம் உறுதி செய்தபின், பலம், பார்வை அல்லது பொருத்த ரத்து ஏற்கனவே அதைக் குறைக்கிறதா எனப் பார்த்தபின் கருதுங்கள். பல செவ்வாய் தோஷ வழக்குகள் மிதமானவை அல்லது ரத்தானவையாக மாறுகின்றன."),
         ],
       },
     ],

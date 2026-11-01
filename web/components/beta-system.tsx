@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { useLang } from "@/components/lang-toggle";
+import { isSignedInPath } from "@/lib/auth-redirect";
 import { BETA, mt } from "@/lib/marketing-i18n";
 import "@/app/beta.css";
 
@@ -15,10 +16,12 @@ const WELCOME_KEY = "vinaadi_beta_welcome_seen";
  * Sitewide beta layer: a dismissible top banner plus a one-time welcome modal
  * on first visit. State persists in localStorage so we never nag a returning
  * user. Rendered once from the root layout so it covers both the public site
- * and the dashboard — except the dashboard itself, which suppresses this
- * entirely (both the banner and the welcome modal's CTA link to `/beta`, a
- * marketing page, and the dashboard must never link out to the marketing
- * site except sign-out).
+ * and the dashboard — except signed-in surfaces, which suppress this entirely
+ * (both the banner and the welcome modal's CTA link to `/beta`, a marketing
+ * page, and the dashboard must never link out to the marketing site except
+ * sign-out). "Signed-in" is `isSignedInPath`, the middleware's own list, so
+ * the inbox at `/notifications` is covered even though it is not under
+ * `/dashboard`.
  */
 export function BetaSystem() {
   const pathname = usePathname();
@@ -26,7 +29,7 @@ export function BetaSystem() {
   const [mounted, setMounted] = useState(false);
   const [bannerOpen, setBannerOpen] = useState(false);
   const [welcomeOpen, setWelcomeOpen] = useState(false);
-  const onDashboard = pathname?.startsWith("/dashboard") ?? false;
+  const onSignedInSurface = isSignedInPath(pathname);
 
   useEffect(() => {
     setMounted(true);
@@ -59,7 +62,7 @@ export function BetaSystem() {
 
   // Avoid hydration mismatch: render nothing until we've read localStorage.
   if (!mounted) return null;
-  if (onDashboard) return null;
+  if (onSignedInSurface) return null;
 
   return (
     <>

@@ -222,9 +222,10 @@ def assess_career_prediction(payload: CareerAssessmentInput) -> LifeAreaPredicti
         supports.append(BiText("நடுத்தர வயது கட்டம் பொறுப்பு விரிவாக்கத்திற்கு ஏற்றது.", "Mid-life phase supports responsibility expansion."))
     else:
         challenges.append(BiText("மூத்த வயது கட்டம் குறைந்த ஆபத்துள்ள மாற்றங்களை விரும்புகிறது.", "Senior phase favours lower-risk transitions."))
-    if 24 <= payload.age <= 50:
-        score += 5
-        supports.append(BiText("வயது கட்டம் தொழில் முன்னேற்றத்திற்கு ஏற்றது.", "Age phase is supportive for career growth."))
+    # No age-band term (the AAU-14 follow-up, 2026-10-29). It gave ages 24-50
+    # +5 ("Age phase is supportive") from no named source, so two people with
+    # one chart scored differently by age alone. Dasa and gochara carry the
+    # timing; the life-stage advice above stays.
 
     # ── Employment-type karaka adjustment ─────────────────────────────────────
     # Different employment modes activate different house lords as primary karakas.

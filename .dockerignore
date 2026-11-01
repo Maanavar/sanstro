@@ -21,3 +21,13 @@ backups
 docker-compose*.yml
 pytest_local_test.db
 node_modules
+**/node_modules
+artifacts
+db_backups
+mobile
+packages
+ux-research
+.claude
+.mypy_cache
+.ruff_cache
+*.egg-info

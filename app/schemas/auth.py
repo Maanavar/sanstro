@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import re
-from typing import Annotated, Literal
+from datetime import datetime
+from typing import Annotated, Any, Literal
+from uuid import UUID
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, field_validator
+from sqlalchemy.orm import Session
 
-from app.core.subscription import open_beta_active
+from app.core.subscription import access_for_user, is_premium, open_beta_active
 
 _EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 
@@ -124,8 +127,28 @@ class AuthUserResponse(BaseModel):
     #: to pass it asks a consenting user once more; the opposite default would
     #: silently skip the ask for someone who never consented at all.
     consent_required: bool = Field(default=True, alias="consentRequired")
+    #: The address has been proven (verification link, or Google SSO). The
+    #: trial starts on verification and the client nudges until it is true.
+    #: Defaults False — the lower privilege.
+    email_verified: bool = Field(default=False, alias="emailVerified")
+    #: free / trial / premium (``app.core.subscription.access_for_user``). Unlike
+    #: ``tier`` this counts the seven-day trial and courtesy grants, so it is what
+    #: a client gates features on (``effectiveTier`` in constants/tiers.ts).
+    #: Defaults "free" — the lower privilege.
+    access_state: Literal["free", "trial", "premium"] = Field(default="free", alias="accessState")
+    #: When the trial ends (UTC); null unless ``accessState`` is "trial".
+    trial_ends_at: datetime | None = Field(default=None, alias="trialEndsAt")
 
     model_config = ConfigDict(populate_by_name=True)
+
+
+class VerifyEmailRequest(BaseModel):
+    token: str = Field(min_length=10, max_length=2048)
+
+
+class VerifyEmailResponse(BaseModel):
+    verified: bool
+    detail: str
 
 
 class ConsentRequest(BaseModel):
@@ -157,3 +180,17 @@ class AccountDeletionResult(BaseModel):
 
 class AuthProvidersResponse(BaseModel):
     google: bool
+
+
+def access_response_fields(user_id: UUID, session: Session) -> dict[str, Any]:
+    """`tier`, `accessState` and `trialEndsAt` for an AuthUserResponse.
+
+    One helper for every construction site (web auth, mobile auth), so a new
+    site cannot report the subscription and forget the trial.
+    """
+    access = access_for_user(user_id, session)
+    return {
+        "tier": "premium" if is_premium(user_id, session) else "registered",
+        "accessState": access.state,
+        "trialEndsAt": access.trial_ends_at,
+    }

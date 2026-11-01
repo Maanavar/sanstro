@@ -51,6 +51,7 @@ from app.schemas.panchangam import (
 )
 from app.schemas.relationships import (
     DirectPoruthamData,
+    EkaNakshatraData,
     KutaResult,
     NadiDoshaData,
     RelationshipBiText,
@@ -62,6 +63,7 @@ from app.services.chart_service import (  # noqa: PLC2701 (internal use)
 )
 from app.services.dasha_service import get_chart_dasha_from_snapshot
 from app.services.feature_flags import get_flag
+from app.services.kill_switch import require_switch
 from app.services.numerology_naming_service import (
     UserNameQuery,
     baby_names_for_birth_details,
@@ -179,7 +181,7 @@ class _EphemeralProfile:
 # ── Endpoints ──────────────────────────────────────────────────────────────────
 
 
-@router.post("/chart-preview", response_model=PublicChartPreviewResponse)
+@router.post("/chart-preview", response_model=PublicChartPreviewResponse, dependencies=[Depends(require_switch("enable_guest_charts"))])
 @public_endpoint_rate_limit("public_chart")
 def public_chart_preview(payload: PublicChartRequest, request: Request) -> PublicChartPreviewResponse:
     """Calculate a transient chart plus summary and dasha without persistence."""
@@ -201,7 +203,7 @@ def public_chart_preview(payload: PublicChartRequest, request: Request) -> Publi
     )
 
 
-@router.post("/chart", response_model=PublicChartResponse)
+@router.post("/chart", response_model=PublicChartResponse, dependencies=[Depends(require_switch("enable_guest_charts"))])
 @public_endpoint_rate_limit("public_chart")
 def public_chart(payload: PublicChartRequest, request: Request) -> PublicChartResponse:
     """Calculate a Thirukanitham birth chart from raw birth details.
@@ -217,7 +219,7 @@ def public_chart(payload: PublicChartRequest, request: Request) -> PublicChartRe
     return PublicChartResponse(data=result.data)
 
 
-@router.post("/compare", response_model=PublicCompareResponse)
+@router.post("/compare", response_model=PublicCompareResponse, dependencies=[Depends(require_switch("enable_guest_charts"))])
 @public_endpoint_rate_limit("public_porutham")
 def public_compare(payload: PublicPoruthamRequest, request: Request) -> PublicCompareResponse:
     """Calculate two transient charts plus porutham without saving profiles."""
@@ -254,7 +256,7 @@ def public_compare(payload: PublicPoruthamRequest, request: Request) -> PublicCo
     )
 
 
-@router.post("/compare/pdf")
+@router.post("/compare/pdf", dependencies=[Depends(require_switch("enable_guest_charts"))])
 @public_endpoint_rate_limit("public_compare_pdf")
 def public_compare_pdf(payload: PublicPoruthamRequest, request: Request, lang: str = "en") -> Response:
     """Generate a transient porutham PDF without creating saved profiles."""
@@ -298,7 +300,7 @@ def public_compare_pdf(payload: PublicPoruthamRequest, request: Request, lang: s
     )
 
 
-@router.post("/porutham", response_model=PublicPoruthamResponse)
+@router.post("/porutham", response_model=PublicPoruthamResponse, dependencies=[Depends(require_switch("enable_guest_charts"))])
 @public_endpoint_rate_limit("public_porutham")
 def public_porutham(payload: PublicPoruthamRequest, request: Request) -> PublicPoruthamResponse:
     """Calculate 10-kuta porutham from two raw birth profiles.
@@ -335,6 +337,7 @@ def public_porutham(payload: PublicPoruthamRequest, request: Request) -> PublicP
         girl_rasi=moon_b.rasi,
         boy_pada=moon_a.pada,
         girl_pada=moon_b.pada,
+        pada_known=True,  # both from a computed Moon position
         nadi_parihara_mode=get_flag("nadi_parihara_mode"),
     )
 
@@ -380,6 +383,7 @@ def public_porutham(payload: PublicPoruthamRequest, request: Request) -> PublicP
         rajju_dosha=result.rajju_dosha,
         vedha_dosha=result.vedha_dosha,
         nadi_dosha=nadi_data,
+        eka_nakshatra=EkaNakshatraData.from_note(result.eka_nakshatra),
         summary=RelationshipBiText(ta=result.summary_ta, en=result.summary_en),
         compatibility_context=payload.compatibility_context,
         context_note=None,
@@ -428,6 +432,8 @@ class PublicPoruthamStarData(BaseModel):
     nadi_dosha: NadiDoshaData = Field(alias="nadiDosha")
     # F-POR-02 disclosure; optional so an older payload still validates.
     shashtashtaka: ShashtashtakaData | None = None
+    # F-POR-03 disclosure; optional for the same reason.
+    eka_nakshatra: EkaNakshatraData | None = Field(default=None, alias="ekaNakshatra")
     summary: RelationshipBiText
     compatibility_context: str = Field(default="MARRIAGE", alias="compatibilityContext")
 
@@ -542,6 +548,9 @@ def _compute_star_porutham(
                 ta=result.shashtashtaka.note_ta, en=result.shashtashtaka.note_en
             ),
         ),
+        # pada_known is not passed: this route's padas are "which half" markers
+        # or a default, so the note reports the padas as unknown.
+        eka_nakshatra=EkaNakshatraData.from_note(result.eka_nakshatra),
         summary=RelationshipBiText(ta=result.summary_ta, en=result.summary_en),
         compatibility_context=compatibility_context,
     )

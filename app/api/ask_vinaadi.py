@@ -37,6 +37,7 @@ from app.services.ask_vinaadi_usage_service import (
     refund_chip,
     reserve_chip,
 )
+from app.services.kill_switch import require_switch
 
 router = APIRouter()
 
@@ -227,7 +228,13 @@ def _senior_marriage_redirect_response(question: str) -> AskVinaadiResponse:
     )
 
 
-@router.post("/charts/{chart_id}/ask", response_model=AskVinaadiResponse, tags=["ask-vinaadi"])
+@router.post(
+    "/charts/{chart_id}/ask",
+    response_model=AskVinaadiResponse,
+    tags=["ask-vinaadi"],
+    # Kill switch first: a paused Ask must never reach the model provider.
+    dependencies=[Depends(require_switch("enable_ask_vinaadi"))],
+)
 def ask_vinaadi(
     chart_id: UUID,
     payload: AskVinaadiQuery,

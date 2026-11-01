@@ -201,9 +201,9 @@ def assess_wealth_prediction(payload: WealthAssessmentInput) -> LifeAreaPredicti
         )
     )
 
-    if 28 <= payload.age <= 50:
-        score += 5
-        supports.append(BiText("வயது கட்டம் செல்வ அடித்தளத்திற்கு ஏற்றது.", "Age phase supports wealth building."))
+    # No age-band term (the AAU-14 follow-up, 2026-10-29). It gave ages 28-50
+    # +5 ("Age phase supports wealth building") from no named source. Dasa and
+    # gochara carry the timing.
     pitru_label = (payload.pitru_dosham_label or "").upper()
     if pitru_label in {"STRONG_ACTIVE_DOSHAM", "ACTIVE_DOSHAM"}:
         score -= 4

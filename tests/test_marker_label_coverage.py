@@ -60,6 +60,17 @@ _NOT_MARKERS = frozenset(
         # O-27 / O-28 (DD-17) option values, compared the same way.
         "kendra_functional_benefic",
         "strong_or_benefic",
+        # `DoctrineOptions.sevvai_house_set` values (ruled 2026-10-30), keys of
+        # `_yoga_helpers.SEVVAI_HOUSE_SETS`; they pick a house set, never render.
+        "tamil_five",
+        "manglik_five",
+        "union_six",
+        # `DoshamResult.parihara` and `.progeny_outlook` values (V1 §18 Q13,
+        # Q17). Separate fields, never in conditions_met/cancellation_factors;
+        # the panel branches on `assessment.parihara` and never calls
+        # markerLabel on either.
+        "objective_only",
+        "needs_attention",
         # DD-05 (DOCTRINE_DECISIONS v1.3): `DoshamResult.astrologer_markers` is
         # a THIRD list, separate from conditions_met/cancellation_factors, and
         # is never rendered by this panel by design — it is the astrologer /

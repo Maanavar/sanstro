@@ -54,7 +54,20 @@ def test_d3_guru_grade_sits_over_the_classical_set() -> None:
 def test_the_transit_feed_spellings_resolve() -> None:
     assert g.gochara_grade("GURU", 9) == "SUPPORTIVE"
     assert g.gochara_grade("SANI", 9) == "NEEDS_CARE"
-    assert g.gochara_grade("RAHU", 3) is None
+    assert g.gochara_grade("MARS", 3) is None
+
+
+def test_aau09_rahu_and_ketu_are_graded_on_their_own_sets() -> None:
+    """Ruled 2026-10-29: Rahu 3/6/10/11, Ketu 3/6/11. The 10th is where they
+    part, and it is the cell the audit found scored one way and worded the other."""
+    rahu = {h for h in range(1, 13) if g.gochara_grade("RAHU", h) == "SUPPORTIVE"}
+    ketu = {h for h in range(1, 13) if g.gochara_grade("KETU", h) == "SUPPORTIVE"}
+    assert rahu == g.RAHU_SUPPORTIVE_FROM_MOON == {3, 6, 10, 11}
+    assert ketu == g.KETU_SUPPORTIVE_FROM_MOON == {3, 6, 11}
+    for node in ("RAHU", "KETU"):
+        assert "MIXED" not in {g.gochara_grade(node, h) for h in range(1, 13)}
+    assert g.RAHU_SUPPORTIVE_FROM_MOON | g.RAHU_NEEDS_CARE_FROM_MOON == set(range(1, 13))
+    assert g.KETU_SUPPORTIVE_FROM_MOON | g.KETU_NEEDS_CARE_FROM_MOON == set(range(1, 13))
 
 
 def _ts_array(name: str) -> set[int]:
@@ -74,6 +87,10 @@ def _ts_array(name: str) -> set[int]:
         ("SADE_SATI_FROM_MOON", g.SADE_SATI_FROM_MOON),
         ("ARDHASHTAMA_SANI_FROM_MOON", g.ARDHASHTAMA_SANI_FROM_MOON),
         ("ASHTAMA_SANI_FROM_MOON", g.ASHTAMA_SANI_FROM_MOON),
+        ("RAHU_SUPPORTIVE_FROM_MOON", g.RAHU_SUPPORTIVE_FROM_MOON),
+        ("RAHU_NEEDS_CARE_FROM_MOON", g.RAHU_NEEDS_CARE_FROM_MOON),
+        ("KETU_SUPPORTIVE_FROM_MOON", g.KETU_SUPPORTIVE_FROM_MOON),
+        ("KETU_NEEDS_CARE_FROM_MOON", g.KETU_NEEDS_CARE_FROM_MOON),
     ],
 )
 def test_web_and_mobile_read_the_same_table(ts_name: str, py_value: frozenset[int]) -> None:

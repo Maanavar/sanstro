@@ -5,14 +5,23 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { ModalShell } from "@/components/modal-shell";
 import { useSession } from "@/hooks/useSession";
 import { readErrorMessage } from "@/lib/api";
-import { parseApiErrorText, type ApiErrorCode } from "@vinaadi/shared/api";
+import {
+  ADMIN_MFA_REQUIRED,
+  ASSIGNABLE_ADMIN_ROLES,
+  adminAccessPaths,
+  adminSettingsPaths,
+  parseApiErrorText,
+  type AdminMe,
+  type AdminRole,
+  type AdminRoleEntry,
+  type ApiErrorCode,
+  type ElevationGrant,
+  type FlagChange,
+  type FlagEntry,
+  type MfaEnrolment,
+  type RecoveryCodes,
+} from "@vinaadi/shared/api";
 import { formatDateTimeLabel } from "@/lib/format";
-
-type ElevationGrant = {
-  token: string;
-  expires_at: string;
-  expires_in_seconds: number;
-};
 
 type AdminStats = {
   total_users: number;
@@ -122,10 +131,6 @@ type FeedbackResponse = {
 type JobInfo = { job_id: string; label: string; description: string };
 type JobRunResult = { job_id: string; started_at: string; finished_at: string; result_summary: string | null };
 
-type BroadcastResult = { sent: number; skipped: number; target: string; sent_at: string };
-
-type FlagEntry = { name: string; value: unknown; default: unknown; overridden: boolean };
-
 type AuditLogEntry = {
   id: string;
   action: string;
@@ -159,25 +164,62 @@ type AdminTab =
   | "notifications"
   | "config"
   | "audit"
-  | "privacy";
+  | "privacy"
+  | "roles";
 
-const tabs: Array<{ id: AdminTab; label: string }> = [
-  { id: "overview", label: "Overview" },
-  { id: "health", label: "Health" },
-  { id: "users", label: "Users" },
-  { id: "analytics", label: "Analytics" },
-  { id: "calibration", label: "Calibration" },
-  { id: "feedback", label: "Feedback" },
-  { id: "operations", label: "Operations" },
-  { id: "notifications", label: "Notifications" },
-  { id: "config", label: "Config" },
-  { id: "audit", label: "Audit Log" },
-  { id: "privacy", label: "Privacy" },
+// `permission` is the one the tab's first request needs (app/core/permissions.py).
+// Hiding a tab is a courtesy: the server refuses the request either way.
+const tabs: Array<{ id: AdminTab; label: string; permission: string }> = [
+  { id: "overview", label: "Overview", permission: "overview.read" },
+  { id: "health", label: "Health", permission: "overview.read" },
+  { id: "users", label: "Users", permission: "users.search" },
+  { id: "analytics", label: "Analytics", permission: "overview.read" },
+  { id: "calibration", label: "Calibration", permission: "overview.read" },
+  { id: "feedback", label: "Feedback", permission: "feedback.review" },
+  { id: "operations", label: "Operations", permission: "overview.read" },
+  { id: "notifications", label: "Notifications", permission: "messaging.broadcast" },
+  { id: "config", label: "Config", permission: "flags.read" },
+  { id: "audit", label: "Audit Log", permission: "audit.read" },
+  { id: "privacy", label: "Privacy", permission: "privacy.erase" },
+  { id: "roles", label: "Roles", permission: "roles.grant" },
 ];
 
 function numberLabel(value: number | null | undefined) {
   if (typeof value !== "number") return "-";
   return new Intl.NumberFormat().format(value);
+}
+
+/** A flag value as editable text. Lists stay JSON so they round-trip. */
+function draftFor(value: unknown): string {
+  if (Array.isArray(value)) return JSON.stringify(value);
+  return String(value);
+}
+
+type ParsedDraft = { ok: true; value: unknown } | { ok: false; message: string };
+
+/** Parse an edited flag by the type of its default, never by its look. */
+function parseFlagDraft(defaultValue: unknown, raw: string): ParsedDraft {
+  const text = raw.trim();
+  if (typeof defaultValue === "boolean") {
+    if (text === "true") return { ok: true, value: true };
+    if (text === "false") return { ok: true, value: false };
+    return { ok: false, message: "enter true or false." };
+  }
+  if (typeof defaultValue === "number") {
+    const value = Number(text);
+    if (text === "" || !Number.isInteger(value)) return { ok: false, message: "enter a whole number." };
+    return { ok: true, value };
+  }
+  if (Array.isArray(defaultValue)) {
+    try {
+      const value: unknown = JSON.parse(text);
+      if (Array.isArray(value)) return { ok: true, value };
+    } catch {
+      // fall through to the message below
+    }
+    return { ok: false, message: `"${raw}" is not a valid list, e.g. [3, 6].` };
+  }
+  return { ok: true, value: raw };
 }
 
 // ── Admin elevation (P1-4 step 2) ────────────────────────────────────────────
@@ -221,7 +263,7 @@ function forgetElevation() {
 }
 
 /**
- * Asks the operator for their password and returns whether elevation succeeded.
+ * Asks the operator for a second-factor code and returns whether elevation succeeded.
  * The console registers one on mount.
  *
  * This lives in the shared fetch layer rather than at each destructive call
@@ -238,6 +280,15 @@ function registerElevationPrompt(prompt: ElevationPrompt | null) {
 }
 
 /** The server's signal that this session may act, but must re-authenticate first. */
+// Called when any admin route answers 403 `mfa_required` — the account's
+// two-step sign-in was reset by another owner mid-session. The console swaps
+// to the set-up screen instead of showing a raw 403.
+let mfaRequiredHandler: (() => void) | null = null;
+
+function registerMfaRequiredHandler(handler: (() => void) | null) {
+  mfaRequiredHandler = handler;
+}
+
 function needsElevation(status: number, code?: ApiErrorCode) {
   return status === 403 && code === "ELEVATION_REQUIRED";
 }
@@ -286,6 +337,10 @@ async function adminFetchJson<T>(
     const detail = errorDetail(text);
     const apiError = parseApiErrorText(response.status, text, response.headers.get("X-Request-ID"));
 
+    if (response.status === 403 && detail === ADMIN_MFA_REQUIRED && mfaRequiredHandler) {
+      mfaRequiredHandler();
+    }
+
     if (allowElevationRetry && needsElevation(response.status, apiError.code) && elevationPrompt) {
       // Whatever we were holding is spent or was never right; do not send it again.
       forgetElevation();
@@ -305,7 +360,10 @@ export function AdminConsole() {
   // No credential is held here any more. Admin authority is a property of the
   // signed-in session and is checked server-side; the console only needs to
   // know whether this session has it, which it learns by asking.
-  const [access, setAccess] = useState<"checking" | "granted" | "denied">("checking");
+  // "enrol" = an admin who has not finished two-step sign-in set-up; every
+  // admin route except /admin/me and /admin/mfa/* answers them 403 mfa_required.
+  const [access, setAccess] = useState<"checking" | "enrol" | "granted" | "denied">("checking");
+  const [me, setMe] = useState<AdminMe | null>(null);
   const [activeTab, setActiveTab] = useState<AdminTab>("overview");
   const [status, setStatus] = useState("Checking admin access…");
   const [error, setError] = useState<string | null>(null);
@@ -330,19 +388,27 @@ export function AdminConsole() {
   const [jobs, setJobs] = useState<JobInfo[]>([]);
   const [jobResults, setJobResults] = useState<Record<string, JobRunResult>>({});
   const [runningJob, setRunningJob] = useState<string | null>(null);
-  const [notifTitle, setNotifTitle] = useState("");
-  const [notifBody, setNotifBody] = useState("");
-  const [notifTarget, setNotifTarget] = useState("");
-  const [broadcastResult, setBroadcastResult] = useState<BroadcastResult | null>(null);
   const [flags, setFlags] = useState<FlagEntry[]>([]);
   const [flagDrafts, setFlagDrafts] = useState<Record<string, string>>({});
+  // Every persisted change records why (admin spec §2.7); one reason covers the next save.
+  const [flagReason, setFlagReason] = useState("");
+  const [flagHistory, setFlagHistory] = useState<FlagChange[]>([]);
   const [auditLog, setAuditLog] = useState<AuditLogResponse | null>(null);
   const [auditPage, setAuditPage] = useState(1);
   const [deleteUserId, setDeleteUserId] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deleteResult, setDeleteResult] = useState<DataDeletionResult | null>(null);
+  const [roles, setRoles] = useState<AdminRoleEntry[]>([]);
+  const [roleUserId, setRoleUserId] = useState("");
+  const [roleChoice, setRoleChoice] = useState<AdminRole>("support");
+  const [roleReason, setRoleReason] = useState("");
+  const [newRecoveryCodes, setNewRecoveryCodes] = useState<string[] | null>(null);
 
   const isUnlocked = access === "granted";
+  const visibleTabs = useMemo(
+    () => tabs.filter((tab) => me?.permissions.includes(tab.permission)),
+    [me],
+  );
 
   // Probe once on mount. The backend is the only thing that can answer this:
   // get_admin_user checks the is_admin column and the bootstrap admin-email
@@ -362,26 +428,49 @@ export function AdminConsole() {
     };
   }, []);
 
-  // list against the session cookie. A 403 here is a legitimate answer about
-  // this account, not a failure to report as an error.
+  // role against the session. A 403 here is a legitimate answer about this
+  // account, not a failure to report as an error. /admin/me answers before
+  // two-step sign-in is set up, so it can tell "not an admin" from "an admin
+  // who must enrol first".
+  async function probeAccess(isCancelled: () => boolean = () => false) {
+    try {
+      const who = await adminFetchJson<AdminMe>(`/api/v1${adminAccessPaths.me}`);
+      if (isCancelled()) return;
+      setMe(who);
+      if (who.mfa_enrolled) {
+        setAccess("granted");
+        setStatus(`Signed in as ${who.role}.`);
+      } else {
+        setAccess("enrol");
+        setStatus("Set up two-step sign-in to open the console.");
+      }
+    } catch {
+      if (isCancelled()) return;
+      setMe(null);
+      setAccess("denied");
+      setStatus("This account does not have administrator access.");
+    }
+  }
+
   useEffect(() => {
     let cancelled = false;
-    void (async () => {
-      try {
-        await adminFetchJson<AdminStats>("/api/v1/admin/stats");
-        if (cancelled) return;
-        setAccess("granted");
-        setStatus("Signed in as an administrator.");
-      } catch {
-        if (cancelled) return;
-        setAccess("denied");
-        setStatus("This account does not have administrator access.");
-      }
-    })();
+    void probeAccess(() => cancelled);
+    registerMfaRequiredHandler(() => {
+      setAccess("enrol");
+      setStatus("Two-step sign-in must be set up again.");
+    });
     return () => {
       cancelled = true;
+      registerMfaRequiredHandler(null);
     };
   }, []);
+
+  // Land on the first tab the role can open; a support agent has no Config tab.
+  useEffect(() => {
+    if (visibleTabs.length > 0 && !visibleTabs.some((tab) => tab.id === activeTab)) {
+      setActiveTab(visibleTabs[0].id);
+    }
+  }, [visibleTabs, activeTab]);
 
   useEffect(() => {
     if (!isUnlocked || activeTab !== "overview") return;
@@ -427,6 +516,11 @@ export function AdminConsole() {
   useEffect(() => {
     if (!isUnlocked || activeTab !== "config") return;
     void loadFlags();
+  }, [isUnlocked, activeTab]);
+
+  useEffect(() => {
+    if (!isUnlocked || activeTab !== "roles") return;
+    void loadRoles();
   }, [isUnlocked, activeTab]);
 
   useEffect(() => {
@@ -609,41 +703,17 @@ export function AdminConsole() {
     }
   }
 
-  async function sendBroadcast() {
-    if (!notifTitle.trim() || !notifBody.trim()) {
-      setError("Title and body are required.");
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await adminFetchJson<BroadcastResult>("/api/v1/admin/notify/broadcast", {
-        method: "POST",
-        body: JSON.stringify({
-          title: notifTitle.trim(),
-          body: notifBody.trim(),
-          target_user_id: notifTarget.trim() || null,
-        }),
-      });
-      setBroadcastResult(result);
-      setNotifTitle("");
-      setNotifBody("");
-      setNotifTarget("");
-      setStatus(`Broadcast sent to ${result.sent} users.`);
-    } catch (err) {
-      setError(readErrorMessage(err));
-    } finally {
-      setLoading(false);
-    }
-  }
-
   async function loadFlags() {
     setLoading(true);
     setError(null);
     try {
-      const data = await adminFetchJson<FlagEntry[]>("/api/v1/admin/flags");
+      const [data, history] = await Promise.all([
+        adminFetchJson<FlagEntry[]>(`/api/v1${adminSettingsPaths.list}`),
+        adminFetchJson<FlagChange[]>(`/api/v1${adminSettingsPaths.history}?limit=50`),
+      ]);
       setFlags(data);
-      setFlagDrafts(Object.fromEntries(data.map((flag) => [flag.name, String(flag.value)])));
+      setFlagHistory(history);
+      setFlagDrafts(Object.fromEntries(data.map((flag) => [flag.name, draftFor(flag.value)])));
       setStatus("Config flags refreshed.");
     } catch (err) {
       setError(readErrorMessage(err));
@@ -652,29 +722,36 @@ export function AdminConsole() {
     }
   }
 
-  async function saveFlag(name: string, rawValue: string) {
-    let value: unknown = rawValue;
-    if (rawValue === "true") value = true;
-    else if (rawValue === "false") value = false;
-    else if (!Number.isNaN(Number(rawValue)) && rawValue.trim() !== "") value = Number(rawValue);
-    else if (rawValue.trim().startsWith("[")) {
-      // List-valued flags (e.g. doctrine_o2_rahu_favourable_rasis: [3, 6]).
-      try {
-        value = JSON.parse(rawValue);
-      } catch {
-        setError(`Flag ${name}: "${rawValue}" is not a valid list, e.g. [3, 6].`);
-        return;
-      }
+  function requireReason(): string | null {
+    const reason = flagReason.trim();
+    if (reason.length < 3) {
+      setError("Write a reason first. Every setting change records who, when and why.");
+      return null;
     }
+    return reason;
+  }
+
+  async function saveFlag(flag: FlagEntry, rawValue: string) {
+    // Parsed by the default's type, not by what the text looks like: a string
+    // flag such as a banner must be able to hold "10", and a boolean must never
+    // receive the text "false". The server checks the type again.
+    const parsed = parseFlagDraft(flag.default, rawValue);
+    if (!parsed.ok) {
+      setError(`Flag ${flag.name}: ${parsed.message}`);
+      return;
+    }
+    const reason = requireReason();
+    if (reason === null) return;
 
     setLoading(true);
     setError(null);
     try {
-      await adminFetchJson(`/api/v1/admin/flags/${encodeURIComponent(name)}`, {
+      await adminFetchJson(`/api/v1${adminSettingsPaths.flag(flag.name)}`, {
         method: "PATCH",
-        body: JSON.stringify({ value }),
+        body: JSON.stringify({ value: parsed.value, reason }),
       });
-      setStatus(`Flag ${name} updated.`);
+      setStatus(`Flag ${flag.name} updated${flag.doctrine ? " on this worker only" : " for every worker"}.`);
+      setFlagReason("");
       await loadFlags();
     } catch (err) {
       setError(readErrorMessage(err));
@@ -684,13 +761,36 @@ export function AdminConsole() {
   }
 
   async function resetFlag(name: string) {
+    const reason = requireReason();
+    if (reason === null) return;
     setLoading(true);
     setError(null);
     try {
-      await adminFetchJson(`/api/v1/admin/flags/${encodeURIComponent(name)}/reset`, {
+      await adminFetchJson(`/api/v1${adminSettingsPaths.reset(name, reason)}`, {
         method: "DELETE",
       });
       setStatus(`Flag ${name} reset to default.`);
+      setFlagReason("");
+      await loadFlags();
+    } catch (err) {
+      setError(readErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function rollbackFlagChange(change: FlagChange) {
+    const reason = requireReason();
+    if (reason === null) return;
+    setLoading(true);
+    setError(null);
+    try {
+      await adminFetchJson(`/api/v1${adminSettingsPaths.rollback(change.id)}`, {
+        method: "POST",
+        body: JSON.stringify({ reason }),
+      });
+      setStatus(`Change to ${change.name} rolled back.`);
+      setFlagReason("");
       await loadFlags();
     } catch (err) {
       setError(readErrorMessage(err));
@@ -745,6 +845,101 @@ export function AdminConsole() {
     }
   }
 
+  async function loadRoles() {
+    setLoading(true);
+    setError(null);
+    try {
+      setRoles(await adminFetchJson<AdminRoleEntry[]>(`/api/v1${adminAccessPaths.roles}`));
+      setStatus("Roles refreshed.");
+    } catch (err) {
+      setError(readErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function requireRoleReason(): string | null {
+    const reason = roleReason.trim();
+    if (reason.length < 3) {
+      setError("Write a short reason first. Every role change is audited with it.");
+      return null;
+    }
+    return reason;
+  }
+
+  async function grantRole(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const userId = roleUserId.trim();
+    const reason = requireRoleReason();
+    if (!userId || !reason) return;
+    setLoading(true);
+    setError(null);
+    try {
+      await adminFetchJson<AdminRoleEntry>(`/api/v1${adminAccessPaths.role(userId)}`, {
+        method: "PUT",
+        body: JSON.stringify({ role: roleChoice, reason }),
+      });
+      setRoleUserId("");
+      setRoleReason("");
+      setStatus(`Granted ${roleChoice}.`);
+      await loadRoles();
+    } catch (err) {
+      setError(readErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function revokeRole(entry: AdminRoleEntry) {
+    const reason = requireRoleReason();
+    if (!reason) return;
+    setLoading(true);
+    setError(null);
+    try {
+      await adminFetchJson(`/api/v1${adminAccessPaths.revokeRole(entry.user_id, reason)}`, { method: "DELETE" });
+      setRoleReason("");
+      setStatus(`Removed ${entry.role} from ${entry.email ?? entry.user_id}.`);
+      await loadRoles();
+    } catch (err) {
+      setError(readErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function resetMfa(entry: AdminRoleEntry) {
+    const reason = requireRoleReason();
+    if (!reason) return;
+    setLoading(true);
+    setError(null);
+    try {
+      await adminFetchJson(`/api/v1${adminAccessPaths.resetMfa(entry.user_id, reason)}`, { method: "DELETE" });
+      setRoleReason("");
+      setStatus(`Two-step sign-in reset for ${entry.email ?? entry.user_id}. They must set it up again.`);
+      await loadRoles();
+    } catch (err) {
+      setError(readErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function replaceRecoveryCodes() {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await adminFetchJson<RecoveryCodes>(`/api/v1${adminAccessPaths.mfaRecoveryCodes}`, {
+        method: "POST",
+      });
+      setNewRecoveryCodes(result.recovery_codes);
+      setStatus("New recovery codes issued. The old ones no longer work.");
+    } catch (err) {
+      setError(readErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
   function clearLoadedData() {
     setStats(null);
     setHealthDetail(null);
@@ -756,11 +951,12 @@ export function AdminConsole() {
     setFeedback(null);
     setJobs([]);
     setJobResults({});
-    setBroadcastResult(null);
     setFlags([]);
     setFlagDrafts({});
     setAuditLog(null);
     setDeleteResult(null);
+    setRoles([]);
+    setNewRecoveryCodes(null);
   }
 
   const statsRows = useMemo(
@@ -809,7 +1005,10 @@ export function AdminConsole() {
           <p className="admin-subtitle">Monitor health, manage users, and control runtime operations.</p>
         </div>
         <div className="admin-session">
-          <span className="admin-session__email">{userEmail ?? "Signed in"}</span>
+          <span className="admin-session__email">
+            {userEmail ?? "Signed in"}
+            {me ? ` · ${me.role}` : ""}
+          </span>
           <button className="admin-button admin-button--quiet" type="button" onClick={signOut}>Sign out</button>
         </div>
       </header>
@@ -833,7 +1032,13 @@ export function AdminConsole() {
         ) : null}
       </section>
 
-      {!isUnlocked ? (
+      {access === "enrol" ? (
+        <MfaSetup
+          onDone={() => {
+            void probeAccess();
+          }}
+        />
+      ) : !isUnlocked ? (
         <section className="admin-unlock" aria-labelledby="admin-unlock-title">
           <div>
             <p className="admin-kicker">Protected Area</p>
@@ -852,7 +1057,7 @@ export function AdminConsole() {
       ) : (
         <>
           <nav className="admin-tabs" aria-label="Admin sections">
-            {tabs.map((tab) => (
+            {visibleTabs.map((tab) => (
               <button
                 key={tab.id}
                 className={`admin-tab ${activeTab === tab.id ? "admin-tab--active" : ""}`}
@@ -1363,57 +1568,14 @@ export function AdminConsole() {
               <div className="admin-section__header">
                 <div>
                   <h2 id="notif-title">Push Notifications</h2>
-                  <p>Broadcast to all users or target a specific user.</p>
+                  <p>Messaging at launch is transactional only.</p>
                 </div>
               </div>
-              <div className="admin-notif-form">
-                <label>
-                  Title
-                  <input
-                    className="admin-input"
-                    type="text"
-                    value={notifTitle}
-                    onChange={(event) => setNotifTitle(event.target.value)}
-                    placeholder="Notification title"
-                  />
-                </label>
-                <label>
-                  Body
-                  <textarea
-                    className="admin-input admin-textarea"
-                    value={notifBody}
-                    onChange={(event) => setNotifBody(event.target.value)}
-                    placeholder="Notification body text"
-                    rows={3}
-                  />
-                </label>
-                <label>
-                  Target user ID <small>(leave blank to send to all users)</small>
-                  <input
-                    className="admin-input"
-                    type="text"
-                    value={notifTarget}
-                    onChange={(event) => setNotifTarget(event.target.value)}
-                    placeholder="UUID or blank for broadcast"
-                  />
-                </label>
-                <button
-                  className="admin-button admin-button--primary"
-                  type="button"
-                  onClick={() => void sendBroadcast()}
-                  disabled={loading || !notifTitle.trim() || !notifBody.trim()}
-                >
-                  {notifTarget.trim() ? "Send to user" : "Broadcast to all"}
-                </button>
-              </div>
-              {broadcastResult ? (
-                <div className="admin-result">
-                  <span>Sent: {numberLabel(broadcastResult.sent)}</span>
-                  <span>Skipped: {numberLabel(broadcastResult.skipped)}</span>
-                  <span>Target: {broadcastResult.target}</span>
-                  <span>At: {formatDateTimeLabel(broadcastResult.sent_at)}</span>
-                </div>
-              ) : null}
+              <p className="admin-note">
+                Broadcast is switched off until the consent-aware version ships (admin spec L8, decision D-17). Until
+                then Vinaadi sends only transactional messages and each user&apos;s own alerts, through the outbox,
+                and respects quiet hours (21:00–08:00 local).
+              </p>
             </section>
           ) : null}
 
@@ -1422,31 +1584,49 @@ export function AdminConsole() {
               <div className="admin-section__header">
                 <div>
                   <h2 id="config-title">Feature Flags</h2>
-                  <p>Runtime overrides reset on process restart. Permanent changes still belong in environment config.</p>
+                  <p>
+                    Changes apply to every worker within seconds and survive restarts. Doctrine flags are the exception:
+                    they change this worker only, and a ruling belongs in code.
+                  </p>
                 </div>
                 <button className="admin-button" type="button" onClick={() => void loadFlags()} disabled={loading}>
                   Refresh
                 </button>
+              </div>
+              <div className="admin-notif-form">
+                <label>
+                  Reason for the next change (required)
+                  <input
+                    className="admin-input"
+                    type="text"
+                    value={flagReason}
+                    maxLength={500}
+                    placeholder="e.g. Ask provider outage, pausing until resolved"
+                    onChange={(event) => setFlagReason(event.target.value)}
+                  />
+                </label>
               </div>
               <div className="admin-flags-list">
                 {flags.map((flag) => (
                   <div className="admin-flag-row" key={flag.name}>
                     <div className="admin-flag-info">
                       <code className="admin-flag-name">{flag.name}</code>
-                      {flag.overridden ? <span className="admin-badge admin-badge--warning">overridden</span> : null}
-                      <small>default: {String(flag.default)}</small>
+                      {flag.source === "persisted" ? <span className="admin-badge admin-badge--warning">overridden</span> : null}
+                      {flag.source === "process" ? <span className="admin-badge admin-badge--warning">this worker only</span> : null}
+                      <small>default: {draftFor(flag.default)}</small>
                     </div>
                     <div className="admin-flag-controls">
                       <input
                         className="admin-input admin-flag-input"
                         type="text"
-                        value={flagDrafts[flag.name] ?? String(flag.value)}
+                        aria-label={`Value for ${flag.name}`}
+                        value={flagDrafts[flag.name] ?? draftFor(flag.value)}
                         onChange={(event) => setFlagDrafts((prev) => ({ ...prev, [flag.name]: event.target.value }))}
                       />
                       <button
                         className="admin-button"
                         type="button"
-                        onClick={() => void saveFlag(flag.name, flagDrafts[flag.name] ?? String(flag.value))}
+                        onClick={() => void saveFlag(flag, flagDrafts[flag.name] ?? draftFor(flag.value))}
                         disabled={loading}
                       >
                         Save
@@ -1465,6 +1645,35 @@ export function AdminConsole() {
                   </div>
                 ))}
               </div>
+              <h3>Recent changes</h3>
+              {flagHistory.length === 0 ? (
+                <p>No setting has been changed yet.</p>
+              ) : (
+                <ul className="admin-flags-list">
+                  {flagHistory.map((change) => (
+                    <li className="admin-flag-row" key={change.id}>
+                      <div className="admin-flag-info">
+                        <code className="admin-flag-name">{change.name}</code>
+                        <small>
+                          {new Date(change.created_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })} IST ·{" "}
+                          {change.old_value === null ? "default" : draftFor(change.old_value)} →{" "}
+                          {change.new_value === null ? "default" : draftFor(change.new_value)} · {change.reason}
+                        </small>
+                      </div>
+                      <div className="admin-flag-controls">
+                        <button
+                          className="admin-button admin-button--quiet"
+                          type="button"
+                          onClick={() => void rollbackFlagChange(change)}
+                          disabled={loading}
+                        >
+                          Undo
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </section>
           ) : null}
 
@@ -1577,6 +1786,121 @@ export function AdminConsole() {
               ) : null}
             </section>
           ) : null}
+
+          {activeTab === "roles" ? (
+            <section className="admin-section" aria-labelledby="roles-title">
+              <div className="admin-section__header">
+                <div>
+                  <h2 id="roles-title">Admin roles</h2>
+                  <p>
+                    Owner and support can be granted today. The account must have confirmed its email
+                    address. Every change needs a reason, asks for your code, and is audited.
+                  </p>
+                </div>
+                <button className="admin-button" type="button" onClick={() => void loadRoles()} disabled={loading}>
+                  Refresh
+                </button>
+              </div>
+              <div className="admin-notif-form">
+                <label>
+                  Reason (required for every change on this tab)
+                  <input
+                    className="admin-input"
+                    type="text"
+                    value={roleReason}
+                    maxLength={500}
+                    onChange={(event) => setRoleReason(event.target.value)}
+                    placeholder="e.g. new support agent, starts Monday"
+                  />
+                </label>
+              </div>
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Account</th>
+                    <th>Role</th>
+                    <th>Two-step sign-in</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {roles.map((entry) => (
+                    <tr key={entry.user_id}>
+                      <td>
+                        {entry.email ?? "-"}
+                        <br />
+                        <small>{entry.user_id}</small>
+                      </td>
+                      <td><code>{entry.role}</code></td>
+                      <td>{entry.mfa_enrolled ? "Set up" : "Not set up"}</td>
+                      <td>
+                        <button
+                          className="admin-button admin-button--quiet"
+                          type="button"
+                          disabled={loading}
+                          onClick={() => void revokeRole(entry)}
+                        >
+                          Remove role
+                        </button>
+                        {entry.user_id !== me?.user_id ? (
+                          <button
+                            className="admin-button admin-button--quiet"
+                            type="button"
+                            disabled={loading || !entry.mfa_enrolled}
+                            onClick={() => void resetMfa(entry)}
+                          >
+                            Reset two-step sign-in
+                          </button>
+                        ) : null}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <form className="admin-delete" onSubmit={grantRole}>
+                <label>
+                  User id
+                  <input
+                    className="admin-input"
+                    type="text"
+                    value={roleUserId}
+                    onChange={(event) => setRoleUserId(event.target.value)}
+                    placeholder="00000000-0000-0000-0000-000000000000"
+                  />
+                </label>
+                <label>
+                  Role
+                  <select
+                    className="admin-input"
+                    value={roleChoice}
+                    onChange={(event) => setRoleChoice(event.target.value as AdminRole)}
+                  >
+                    {ASSIGNABLE_ADMIN_ROLES.map((role) => (
+                      <option key={role} value={role}>{role}</option>
+                    ))}
+                  </select>
+                </label>
+                <button className="admin-button" type="submit" disabled={loading || !roleUserId.trim()}>
+                  Grant role
+                </button>
+              </form>
+              <div className="admin-section__header">
+                <div>
+                  <h3>Your recovery codes</h3>
+                  <p>{numberLabel(me?.recovery_codes_remaining)} unused. Replacing them stops every old code working.</p>
+                </div>
+                <button
+                  className="admin-button admin-button--quiet"
+                  type="button"
+                  onClick={() => void replaceRecoveryCodes()}
+                  disabled={loading}
+                >
+                  Replace recovery codes
+                </button>
+              </div>
+              {newRecoveryCodes ? <RecoveryCodeList codes={newRecoveryCodes} /> : null}
+            </section>
+          ) : null}
         </>
       )}
 
@@ -1595,8 +1919,10 @@ export function AdminConsole() {
 /**
  * Re-authentication prompt for destructive operations.
  *
- * Deliberately narrow: it takes a password, exchanges it for a short-lived
- * elevation token, and reports success. It does not know which operation is
+ * Deliberately narrow: it takes a second-factor code (TOTP, or one recovery
+ * code), exchanges it for a short-lived elevation token, and reports success.
+ * It was the account password until spec L3; a code works for Google-sign-in
+ * admins, who have no password. It does not know which operation is
  * waiting on it, so it cannot leak what the operator was about to do into a
  * dialog that might be screenshotted or shoulder-read.
  *
@@ -1604,7 +1930,7 @@ export function AdminConsole() {
  * dialog that can be escaped into a stuck UI is its own bug.
  */
 function ElevationDialog({ onResolve }: { onResolve: (ok: boolean) => void }) {
-  const [password, setPassword] = useState("");
+  const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
 
@@ -1615,18 +1941,18 @@ function ElevationDialog({ onResolve }: { onResolve: (ok: boolean) => void }) {
     setFailure(null);
     try {
       const grant = await adminFetchJson<ElevationGrant>(
-        "/api/v1/admin/elevate",
-        { method: "POST", body: JSON.stringify({ password }) },
+        `/api/v1${adminAccessPaths.elevate}`,
+        { method: "POST", body: JSON.stringify({ code: code.trim() }) },
         // This endpoint is what satisfies elevation; it must never try to elevate
         // to reach itself.
         { allowElevationRetry: false },
       );
       rememberElevation(grant.token, grant.expires_in_seconds);
-      setPassword("");
+      setCode("");
       onResolve(true);
     } catch (error) {
-      setFailure(error instanceof Error ? error.message : "Could not confirm your password.");
-      setPassword("");
+      setFailure(error instanceof Error ? error.message : "Could not confirm your code.");
+      setCode("");
     } finally {
       setBusy(false);
     }
@@ -1634,7 +1960,7 @@ function ElevationDialog({ onResolve }: { onResolve: (ok: boolean) => void }) {
 
   return (
     <ModalShell
-      label="Confirm your password to continue"
+      label="Enter your two-step sign-in code to continue"
       onClose={() => onResolve(false)}
       overlayClassName="admin-elevate-overlay"
       panelClassName="admin-elevate-panel"
@@ -1642,20 +1968,22 @@ function ElevationDialog({ onResolve }: { onResolve: (ok: boolean) => void }) {
       <form className="admin-elevate" onSubmit={submit}>
         <h2 className="admin-elevate__title">Confirm it&rsquo;s you</h2>
         <p className="admin-elevate__body">
-          This action changes or removes data that people depend on. Re-enter your
-          password to authorise it. The confirmation lasts a few minutes and is
-          never stored.
+          This action changes or removes data that people depend on. Enter the
+          current code from your authenticator app, or one of your recovery codes,
+          to authorise it. The confirmation lasts a few minutes and is never stored.
         </p>
-        <label className="admin-elevate__label" htmlFor="admin-elevation-password">
-          Password
+        <label className="admin-elevate__label" htmlFor="admin-elevation-code">
+          Code
         </label>
         <input
-          id="admin-elevation-password"
+          id="admin-elevation-code"
           className="admin-input"
-          type="password"
-          autoComplete="current-password"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
+          type="text"
+          inputMode="text"
+          autoComplete="one-time-code"
+          spellCheck={false}
+          value={code}
+          onChange={(event) => setCode(event.target.value)}
           disabled={busy}
           required
         />
@@ -1671,11 +1999,139 @@ function ElevationDialog({ onResolve }: { onResolve: (ok: boolean) => void }) {
           >
             Cancel
           </button>
-          <button className="admin-button" type="submit" disabled={busy || !password}>
+          <button className="admin-button" type="submit" disabled={busy || !code.trim()}>
             {busy ? "Confirming…" : "Confirm"}
           </button>
         </div>
       </form>
     </ModalShell>
+  );
+}
+
+/**
+ * Two-step sign-in set-up (spec L3, D-15). Every admin route but this one and
+ * /admin/me refuses an admin who has not finished it.
+ *
+ * Three steps: get a secret, prove the authenticator app holds it with a first
+ * code, then see the ten recovery codes — once. The secret is shown as text and
+ * as an otpauth:// link; most authenticator apps accept either.
+ */
+function MfaSetup({ onDone }: { onDone: () => void }) {
+  const [enrolment, setEnrolment] = useState<MfaEnrolment | null>(null);
+  const [code, setCode] = useState("");
+  const [codes, setCodes] = useState<string[] | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [failure, setFailure] = useState<string | null>(null);
+
+  async function start() {
+    setBusy(true);
+    setFailure(null);
+    try {
+      setEnrolment(
+        await adminFetchJson<MfaEnrolment>(`/api/v1${adminAccessPaths.mfaEnroll}`, { method: "POST" }),
+      );
+    } catch (error) {
+      setFailure(readErrorMessage(error));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function confirm(event: FormEvent) {
+    event.preventDefault();
+    if (busy) return;
+    setBusy(true);
+    setFailure(null);
+    try {
+      const result = await adminFetchJson<RecoveryCodes>(
+        `/api/v1${adminAccessPaths.mfaConfirm}`,
+        { method: "POST", body: JSON.stringify({ code: code.trim() }) },
+        { allowElevationRetry: false },
+      );
+      setCodes(result.recovery_codes);
+    } catch (error) {
+      setFailure(readErrorMessage(error));
+      setCode("");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="admin-unlock" aria-labelledby="admin-mfa-title">
+      <div>
+        <p className="admin-kicker">Two-step sign-in</p>
+        <h2 id="admin-mfa-title">
+          {codes ? "Save your recovery codes" : "Set up two-step sign-in"}
+        </h2>
+        {codes ? (
+          <>
+            <p>
+              Each code works once, in place of your authenticator code, if you lose your phone.
+              They are shown only now. Store them offline, away from this computer.
+            </p>
+            <RecoveryCodeList codes={codes} />
+            <button className="admin-button" type="button" onClick={onDone}>
+              I have stored these codes
+            </button>
+          </>
+        ) : !enrolment ? (
+          <>
+            <p>
+              The admin console needs a code from an authenticator app (Google Authenticator,
+              Microsoft Authenticator, 1Password or similar) as well as your sign-in.
+            </p>
+            <button className="admin-button" type="button" onClick={() => void start()} disabled={busy}>
+              {busy ? "Starting…" : "Start set-up"}
+            </button>
+          </>
+        ) : (
+          <form className="admin-elevate" onSubmit={confirm}>
+            <p>
+              Add this key to your authenticator app, or open the link on the phone that has the app.
+            </p>
+            <p>
+              <code className="admin-mfa-secret">{enrolment.secret}</code>
+            </p>
+            <p>
+              <a href={enrolment.otpauth_uri}>Open in authenticator app</a>
+            </p>
+            <label className="admin-elevate__label" htmlFor="admin-mfa-code">
+              Then enter the 6-digit code it shows
+            </label>
+            <input
+              id="admin-mfa-code"
+              className="admin-input"
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              pattern="[0-9 ]*"
+              value={code}
+              onChange={(event) => setCode(event.target.value)}
+              disabled={busy}
+              required
+            />
+            <button className="admin-button" type="submit" disabled={busy || !code.trim()}>
+              {busy ? "Checking…" : "Confirm"}
+            </button>
+          </form>
+        )}
+        {failure ? (
+          <p className="admin-elevate__error" role="alert">{failure}</p>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+function RecoveryCodeList({ codes }: { codes: string[] }) {
+  return (
+    <ol className="admin-recovery-codes" aria-label="Recovery codes">
+      {codes.map((recoveryCode) => (
+        <li key={recoveryCode}>
+          <code>{recoveryCode}</code>
+        </li>
+      ))}
+    </ol>
   );
 }

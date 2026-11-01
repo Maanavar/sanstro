@@ -14,8 +14,8 @@ export const DOSHAM_SEVVAI = {
   ),
   calc_h2:   s("How Sevvai dosham is calculated", "செவ்வாய் தோஷம் எப்படி கணக்கிடப்படுகிறது"),
   calc_body: s(
-    "Sevvai dosham is present when Mars occupies the 1st, 2nd, 4th, 7th, 8th, or 12th house — counted from three reference points: the Lagna (ascendant), the Moon sign, and Venus (Sukran). The 7th house rules marriage, the 8th longevity of the union, the 2nd the family, and the 12th the bedroom; the 1st and 4th affect temperament and domestic peace. Strength depends on the sign Mars sits in and the aspects it receives.",
-    "செவ்வாய் 1, 2, 4, 7, 8 அல்லது 12-ஆம் பாவத்தில் அமரும்போது செவ்வாய் தோஷம் ஏற்படுகிறது — இது மூன்று இடங்களிலிருந்து எண்ணப்படுகிறது: லக்னம், சந்திர ராசி, சுக்கிரன். 7-ஆம் பாவம் திருமணம், 8-ஆம் பாவம் தாம்பத்திய ஆயுள், 2-ஆம் பாவம் குடும்பம், 12-ஆம் பாவம் படுக்கையறை; 1, 4-ஆம் பாவங்கள் குணத்தையும் வீட்டின் அமைதியையும் பாதிக்கின்றன. செவ்வாய் இருக்கும் ராசியும் அதற்கு வரும் பார்வைகளும் வலிமையை நிர்ணயிக்கின்றன."
+    "Sevvai dosham is present when Mars occupies the 2nd, 4th, 7th, 8th or 12th house counted from the Lagna (ascendant), the Tamil reckoning. The Moon sign and Venus (Sukran) are counted too: they never create the dosham on their own, but they show how strong a Lagna placement is. The 7th house rules marriage, the 8th longevity of the union, the 2nd the family, and the 12th the bedroom; the 4th affects domestic peace. Some traditions also count the 1st house; Vinaadi follows the Tamil five. Strength depends on the sign Mars sits in and the aspects it receives.",
+    "லக்னத்திலிருந்து எண்ணும்போது செவ்வாய் 2, 4, 7, 8 அல்லது 12-ஆம் பாவத்தில் அமரும்போது செவ்வாய் தோஷம் ஏற்படுகிறது — இது தமிழ் முறை. சந்திர ராசியிலிருந்தும் சுக்கிரனிலிருந்தும் எண்ணப்படுகிறது; அவை தனியாகத் தோஷத்தை உருவாக்குவதில்லை, லக்ன தோஷத்தின் தீவிரத்தை மட்டுமே காட்டுகின்றன. 7-ஆம் பாவம் திருமணம், 8-ஆம் பாவம் தாம்பத்திய ஆயுள், 2-ஆம் பாவம் குடும்பம், 12-ஆம் பாவம் படுக்கையறை; 4-ஆம் பாவம் வீட்டின் அமைதியைப் பாதிக்கிறது. சில மரபுகள் 1-ஆம் பாவத்தையும் சேர்க்கின்றன; இங்கு தமிழ் ஐந்து பாவ முறை பின்பற்றப்படுகிறது. செவ்வாய் இருக்கும் ராசியும் அதற்கு வரும் பார்வைகளும் வலிமையை நிர்ணயிக்கின்றன."
   ),
   brings_h2: s("What Sevvai dosham can bring", "செவ்வாய் தோஷம் என்ன கொண்டு வரலாம்"),
   brings_intro: s(
@@ -70,8 +70,8 @@ export const DOSHAM_SEVVAI = {
     {
       h: s("2 — Count from three reference points", "2 — மூன்று இடங்களிலிருந்து எண்ணுங்கள்"),
       b: s(
-        "In Thirukanitham reading, Mars's house is counted from three positions: from Lagna, from your Janma Rasi (Moon's house), and from Venus (Sukra's house). If Mars falls in house 1, 2, 4, 7, 8, or 12 counted from any of those three points, dosham is present for that reference. One reference showing dosham → mild. Two → moderate. All three → strong.",
-        "திருகணித வாசிப்பில் செவ்வாயின் இடம் மூன்று இடங்களிலிருந்து எண்ணப்படுகிறது: லக்னம், ஜென்ம ராசி (சந்திரன் இருக்கும் பாவம்), சுக்கிரன் இருக்கும் பாவம். அந்த மூன்றிலிருந்தும் எண்ணும்போது செவ்வாய் 1, 2, 4, 7, 8 அல்லது 12-ஆம் பாவத்தில் விழுந்தால் அந்த இடத்திலிருந்து தோஷம் காட்டுகிறது. ஒரு இடத்தில் → லேசான தோஷம். இரண்டு இடங்களில் → மிதமான தோஷம். மூன்றிலும் → வலுவான தோஷம்."
+        "In Thirukanitham reading, Mars's house is counted from three positions: from Lagna, from your Janma Rasi (Moon's house), and from Venus (Sukra's house). The dosham is declared only when Mars falls in house 2, 4, 7, 8 or 12 counted from the Lagna. The Moon and Venus then grade it: Lagna alone → mild. Lagna and one more → confirmed. All three → severe. A placement counted only from the Moon or Venus is noted, not declared.",
+        "திருகணித வாசிப்பில் செவ்வாயின் இடம் மூன்று இடங்களிலிருந்து எண்ணப்படுகிறது: லக்னம், ஜென்ம ராசி (சந்திரன் இருக்கும் பாவம்), சுக்கிரன் இருக்கும் பாவம். லக்னத்திலிருந்து எண்ணும்போது செவ்வாய் 2, 4, 7, 8 அல்லது 12-ஆம் பாவத்தில் இருந்தால் மட்டுமே தோஷம் அறிவிக்கப்படுகிறது. பின் சந்திரனும் சுக்கிரனும் அதன் தீவிரத்தைக் காட்டுகின்றன: லக்னம் மட்டும் → லேசான தோஷம். லக்னமும் இன்னொன்றும் → உறுதியான தோஷம். மூன்றிலும் → கடுமையான தோஷம். சந்திரன் அல்லது சுக்கிரனிலிருந்து மட்டும் வரும் நிலை குறிக்கப்படுகிறது, தோஷமாக அறிவிக்கப்படுவதில்லை."
       ),
     },
     {

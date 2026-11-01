@@ -389,10 +389,10 @@ def test_gandanta_ranges_sit_at_the_water_fire_junctions():
 # ---------------------------------------------------------------------------
 # DOS-01 — Sevvai house set
 # ---------------------------------------------------------------------------
-def test_sevvai_house_set_is_the_declared_tamil_six():
-    assert TAMIL_SEVVAI_HOUSES == {1, 2, 4, 7, 8, 12}, (
-        "DOS-01 publishes the house set as 1/2/4/7/8/12 from Lagna, Moon and "
-        "Venus. Changing it means changing the rulebook and the appendix too."
+def test_sevvai_house_set_is_the_declared_tamil_five():
+    assert TAMIL_SEVVAI_HOUSES == {2, 4, 7, 8, 12}, (
+        "DOS-01 publishes the default house set as 2/4/7/8/12 (owner ruling "
+        "2026-10-30). Changing it means changing the rulebook and the appendix too."
     )
 
 

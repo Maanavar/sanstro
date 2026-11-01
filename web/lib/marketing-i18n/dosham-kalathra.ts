@@ -123,8 +123,8 @@ export const DOSHAM_KALATHRA_FAQ = [
   {
     q: s("Is Kalathra dosham the same as Sevvai (Mangal) dosham?", "களத்திர தோஷம் செவ்வாய் (மங்கள) தோஷம் தானா?"),
     a: s(
-      "No. Sevvai dosham is specifically Mars in the marriage-sensitive houses (1st, 2nd, 4th, 7th, 8th, 12th). Kalathra dosham is broader — it is any malefic planet (Saturn, Mars, Rahu, Ketu, or the Sun) stressing the 7th house, the 7th lord, or Venus. Every Sevvai dosham creates Kalathra-type challenges, but Kalathra dosham has many more sources than just Mars.",
-      "இல்லை. செவ்வாய் தோஷம் குறிப்பாக திருமண உணர்திறன் வாய்ந்த பாவங்களில் (1, 2, 4, 7, 8, 12) செவ்வாய் அமர்வது. களத்திர தோஷம் பரந்தது — எந்த தீய கிரகமும் (சனி, செவ்வாய், ராகு, கேது, அல்லது சூரியன்) 7-ஆம் பாவம், 7-ஆம் அதிபதி அல்லது சுக்கிரனை அழுத்துவது. ஒவ்வொரு செவ்வாய் தோஷமும் களத்திர தரத்தை உருவாக்குகிறது, ஆனால் களத்திர தோஷம் செவ்வாயை விட பல அதிக ஆதாரங்கள் கொண்டது."
+      "No. Sevvai dosham is specifically Mars in the marriage-sensitive houses (2nd, 4th, 7th, 8th, 12th from the Lagna). Kalathra dosham is broader — it is any malefic planet (Saturn, Mars, Rahu, Ketu, or the Sun) stressing the 7th house, the 7th lord, or Venus. Every Sevvai dosham creates Kalathra-type challenges, but Kalathra dosham has many more sources than just Mars.",
+      "இல்லை. செவ்வாய் தோஷம் குறிப்பாக திருமண உணர்திறன் வாய்ந்த பாவங்களில் (லக்னத்திலிருந்து 2, 4, 7, 8, 12) செவ்வாய் அமர்வது. களத்திர தோஷம் பரந்தது — எந்த தீய கிரகமும் (சனி, செவ்வாய், ராகு, கேது, அல்லது சூரியன்) 7-ஆம் பாவம், 7-ஆம் அதிபதி அல்லது சுக்கிரனை அழுத்துவது. ஒவ்வொரு செவ்வாய் தோஷமும் களத்திர தரத்தை உருவாக்குகிறது, ஆனால் களத்திர தோஷம் செவ்வாயை விட பல அதிக ஆதாரங்கள் கொண்டது."
     ),
   },
   {

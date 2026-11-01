@@ -5,6 +5,7 @@ import {
   buildContentSecurityPolicy,
   buildSecurityHeaders,
   createNonce,
+  isCheckoutPath,
   isEmbeddablePath,
   type SecurityHeaderOptions,
 } from "./security-headers";
@@ -151,6 +152,33 @@ describe("isEmbeddablePath", () => {
     expect(isEmbeddablePath("/widget/panchangam")).toBe(true);
     expect(isEmbeddablePath("/widgets")).toBe(false);
     expect(isEmbeddablePath("/dashboard/widget")).toBe(false);
+  });
+});
+
+describe("Razorpay checkout route", () => {
+  it("widens the policy on the checkout route only", () => {
+    const checkout = buildContentSecurityPolicy({ ...base, checkout: true });
+    expect(directive(checkout, "frame-src")).toEqual(["https://api.razorpay.com", "https://checkout.razorpay.com"]);
+    expect(directive(checkout, "connect-src")).toContain("https://api.razorpay.com");
+    expect(directive(checkout, "script-src")).toContain("https://checkout.razorpay.com");
+
+    const elsewhere = buildContentSecurityPolicy(base);
+    expect(directive(elsewhere, "frame-src")).toBeNull();
+    expect(elsewhere).not.toContain("razorpay");
+  });
+
+  it("lets Checkout keep its UPI / 3-D Secure popup there and nowhere else", () => {
+    expect(buildSecurityHeaders({ ...base, checkout: true })["Cross-Origin-Opener-Policy"]).toBe(
+      "same-origin-allow-popups",
+    );
+    expect(buildSecurityHeaders(base)["Cross-Origin-Opener-Policy"]).toBe("same-origin");
+    expect(buildSecurityHeaders(base)["Permissions-Policy"]).toContain("payment=()");
+  });
+
+  it("covers the upgrade route and nothing that merely looks like it", () => {
+    expect(isCheckoutPath("/dashboard/upgrade")).toBe(true);
+    expect(isCheckoutPath("/dashboard/upgrades")).toBe(false);
+    expect(isCheckoutPath("/upgrade")).toBe(false);
   });
 });
 

@@ -89,11 +89,12 @@ def _sevvai_snap(lagna_rasi: int, planet_rasis: dict[str, int]) -> SimpleNamespa
         SimpleNamespace(
             graha=graha, rasi=rasi,
             house_from_lagna=house_from_reference(lagna_rasi, rasi),
+            is_combust=False, d9_rasi=None,
         )
         for graha, rasi in planet_rasis.items()
     ]
     return SimpleNamespace(data=SimpleNamespace(
-        lagna=SimpleNamespace(rasi=lagna_rasi),
+        lagna=SimpleNamespace(rasi=lagna_rasi, d9_rasi=None),
         planets=planets,
         birth_profile=SimpleNamespace(gender_for_traditional_rules=None),
     ))
@@ -102,9 +103,9 @@ def _sevvai_snap(lagna_rasi: int, planet_rasis: dict[str, int]) -> SimpleNamespa
 def test_compute_sevvai_agrees_with_main_engine_mars_clean_from_lagna_but_seventh_from_moon():
     # Regression for the pre-WI-13 disagreement case: Mars is clean from
     # Lagna (house 3, not a Sevvai house) but sits in the 7th house from
-    # Moon (a Sevvai house) — the compatibility report's old inline
-    # lagna-only check would have missed this; the main engine (which also
-    # checks the Moon and Venus references) correctly flags it.
+    # Moon (a Sevvai house). The report must read it exactly as the engine
+    # does. Since AAU-13 (2026-10-29) the engine notes a Moon-only placement
+    # and does not declare the dosham, so both now say "not present".
     lagna_rasi = 1
     planet_rasis = {
         "SUN": 5, "MOON": 9, "MARS": 3, "MERCURY": 6,
@@ -119,7 +120,9 @@ def test_compute_sevvai_agrees_with_main_engine_mars_clean_from_lagna_but_sevent
 
     assert detail.has_dosham == raw.is_present
     assert detail.is_cancelled == raw.is_cancelled
-    assert detail.has_dosham is True  # the actual regression: caught via Moon reference
+    assert detail.has_dosham is False
+    assert "from_moon" in raw.conditions_met
+    assert raw.context_notes == ("sevvai_not_declared_without_lagna",)
 
 
 # ---------------------------------------------------------------------------
@@ -322,11 +325,11 @@ def _stub_strong_layers(monkeypatch: pytest.MonkeyPatch) -> None:
     isolates the WI-21 label-cap logic from needing real chart snapshots."""
     monkeypatch.setattr(ci_module, "_compute_chart_marriage_strength", lambda snap: _STRONG_STRENGTH)
     monkeypatch.setattr(ci_module, "_compute_navamsa", lambda a, b: _STRONG_NAVAMSA)
-    monkeypatch.setattr(ci_module, "_compute_sevvai", lambda snap, partner=None: _STRONG_SEVVAI)
+    monkeypatch.setattr(ci_module, "_compute_sevvai", lambda snap, partner=None, doctrine=None: _STRONG_SEVVAI)
     monkeypatch.setattr(ci_module, "_compute_dasha_harmony", lambda a, b, jd: _STRONG_DASHA)
     monkeypatch.setattr(ci_module, "_compute_emotional_compatibility", lambda a, b: _STRONG_EMOTIONAL)
     # DD-03 samyam lines read real snapshots; text only, no score effect.
-    monkeypatch.setattr(ci_module, "marriage_samyam_lines", lambda a, b: ([], []))
+    monkeypatch.setattr(ci_module, "marriage_samyam_lines", lambda a, b, doctrine=None: ([], []))
     # F-CI-03's papa samyam reads real snapshots too, and these tests pass a
     # bare SimpleNamespace. Stubbed for the same reason, so a label-cap test
     # fails only on the label cap.
@@ -394,7 +397,7 @@ def _one_sided(monkeypatch: pytest.MonkeyPatch, sevvai_a: SevvaiDoshamDetail) ->
     """Person A carries `sevvai_a`; person B is clear."""
     seen: list[object] = []
 
-    def _compute(snap, partner=None):
+    def _compute(snap, partner=None, doctrine=None):
         seen.append(snap)
         return sevvai_a if len(seen) == 1 else _STRONG_SEVVAI
 

@@ -691,14 +691,11 @@ def _score_marriage_prediction(
     else:
         challenges.append(BiText("கோச்சார ஆதரவு குறைவு.", "Transit support is limited."))
 
-    if married_harmony_mode:
-        # Age range is irrelevant for married users — skip the timing-oriented age check.
-        pass
-    elif 25 <= payload.age <= 35:
-        score += 6
-        supports.append(BiText("வயது கட்டம் ஆதரிக்கும் நிலை.", "Age phase is supportive."))
-    else:
-        challenges.append(BiText("வயது கட்டம் மாறுபட்டு உள்ளது.", "Age phase is outside peak range."))
+    # No age term (AAU-14, decided 2026-10-29). It gave 25-35 +6 ("Age phase is
+    # supportive") and told everyone else, gender-blind and from no named
+    # source, that they were "outside peak range": a 23-year-old woman, a
+    # common Tamil marriage age, included. Dasa and gochara above carry the
+    # timing. A sourced, gender-aware band can come back with a ruling.
 
     if not payload.sevvai_dosham_present:
         # F-MAR-01: no dosham in the chart. Say nothing and score nothing —

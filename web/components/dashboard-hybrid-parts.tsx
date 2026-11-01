@@ -2060,8 +2060,9 @@ export function HyLifeAreaForecast({ lang, areas, age, onOpenLifeAreas, compact 
    retrograde or combust transit is nudged toward caution. Flagged for
    astrologer review.
 
-   Guru and Sani are the exception: they read the ruled table (D2/D3,
-   2026-10-04; `gocharaGrade` in packages/shared), the one the reading's
+   Guru, Sani, Rahu and Ketu are the exception: they read the ruled table
+   (D2/D3, 2026-10-04; nodes AAU-09, 2026-10-29; `gocharaGrade` in
+   packages/shared), the one the reading's
    "Running now" chapter and mobile use. Before, this card graded them by the
    generic rule above, so one page called Sani in the 7th "Steady" here and
    "Needs care" in §9. The words follow the ruling's vocabulary for every row. */

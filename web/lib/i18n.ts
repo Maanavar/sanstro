@@ -1061,7 +1061,7 @@ const STRINGS = {
   // from the Lagna degree, NOT Sripati chalit. New Tamil string, pending
   // native review.
   equal_bhava_title:       { ta: "சம பாவம்",                    en: "Equal Bhava (House)" },
-  equal_bhava_desc:        { ta: "ராசி வீட்டிலிருந்து பாவ வீட்டில் மாற்றம் உள்ள கிரகங்கள் மட்டும்", en: "Planets that differ between Rasi and equal-house (a secondary lens, not Sripati chalit)" },
+  equal_bhava_desc:        { ta: "ராசி வீட்டிலிருந்து பாவ வீட்டில் மாற்றம் உள்ள கிரகங்கள் மட்டும் (லக்னம் முதல் பாவத்தின் மத்தியில்)", en: "Planets whose house differs between Rasi and sama bhava: equal houses with the Lagna at the middle of the 1st (a secondary lens, not Sripati chalit)" },
 
   // ── Varuda Palan — simplified annual chart (internally "varshaphala"). The
   // feature's name and its computed/not-computed table live in

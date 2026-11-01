@@ -5,20 +5,22 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
-import bcrypt
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from pydantic import BaseModel
 from sqlalchemy import func, select, text, update
 from sqlalchemy.orm import Session
 
 from app.core.auth import (
+    admin_role_of,
     create_admin_elevation_token,
     get_admin_user,
+    get_admin_user_without_mfa,
     get_elevated_admin_user,
 )
 from app.core.auth_throttle import AuthThrottleAction, get_auth_throttler
 from app.core.clock import accounting_date
 from app.core.config import get_settings
+from app.core.permissions import ROLE_PERMISSIONS, require_permission
 from app.db.session import get_db
 from app.middleware import resolve_client_ip
 from app.models import (
@@ -30,24 +32,29 @@ from app.models import (
     RelationshipAlert,
     Subscription,
     User,
-    UserNotificationPreference,
 )
 from app.models.ask_vinaadi_usage import AskVinaadiUsage
 from app.models.family_daily_score import FamilyDailyScore
+from app.models.payment import Order, PaymentMismatch
 from app.models.prediction_log import PredictionLog
 from app.reasoning.calibration import GradedPrediction, build_calibration_report
+from app.services import admin_mfa_service, admin_roles_service
 from app.services.audit_service import log_admin_action
 from app.services.feature_flags import (
+    DoctrineFlagNotPersistable,
     FlagValueError,
     UnknownFlagError,
     all_flags,
+    clear_persisted_flag,
     doctrine_runtime_override_allowed,
+    flag_history,
     get_flag,
+    persist_flag,
     reset_flag,
+    rollback_change,
     set_flag,
 )
 from app.services.job_registry import get_all_jobs, get_job
-from app.services.push_service import send_push_to_token
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -55,7 +62,8 @@ _throttler = get_auth_throttler()
 
 
 class ElevationRequest(BaseModel):
-    password: str
+    #: A current TOTP code, or one unused recovery code.
+    code: str
 
 
 class ElevationGrant(BaseModel):
@@ -71,49 +79,37 @@ def _client_ip(request: Request) -> str:
 @router.post(
     "/elevate",
     response_model=ElevationGrant,
-    summary="Re-authenticate to authorise destructive admin operations",
+    summary="Re-authenticate with the second factor to authorise destructive operations",
 )
 def elevate_admin(
     payload: ElevationRequest,
     request: Request,
+    session: Session = Depends(get_db),
     admin_user: User = Depends(get_admin_user),
 ) -> ElevationGrant:
-    """Exchange the admin's own password for a short-lived elevation token.
+    """Exchange a TOTP code (or a recovery code) for a short-lived elevation token.
 
     Holding an admin session is authority to *look*. Destructive operations —
-    erasing a user's data, suspending an account, broadcasting a push, moving a
-    feature flag — additionally require proof that the person at the keyboard is
-    still the account holder, within the last few minutes. That is the one thing
-    a stolen session, an open laptop or an XSS-driven request cannot supply.
+    erasing a user's data, suspending an account, moving a feature flag —
+    additionally require proof that the person at the keyboard is still the
+    account holder, within the last few minutes. That is the one thing a stolen
+    session, an open laptop or an XSS-driven request cannot supply.
 
-    The password is never stored and the grant is not a cookie: the caller has to
-    attach it per request, deliberately, which is also why a CSRF-shaped request
-    cannot pick it up for free.
+    Was the account password (P1-4 step 2). The second factor replaces it
+    (spec L3, D-15): it works for Google-sign-in admins, who have no password —
+    they could never elevate before — and it is something a session thief who
+    also phished the password still does not have.
+
+    The grant is not a cookie: the caller attaches it per request, deliberately,
+    which is also why a CSRF-shaped request cannot pick it up for free.
     """
     client_ip = _client_ip(request)
     _throttler.enforce(AuthThrottleAction.ADMIN_ELEVATION, ip=client_ip, account_identifier=str(admin_user.user_id))
-    # An admin who signed up through OAuth has no password to re-enter, so there
-    # is no second factor available and elevation must be refused rather than
-    # waved through. Refusing is the fail-safe direction: the alternative is that
-    # the accounts hardest to re-verify are the ones that skip verification.
-    if not admin_user.hashed_password:
-        log_admin_action(
-            action="admin_elevation_unavailable_no_password",
-            actor_user_id=admin_user.user_id,
-            ip_address=client_ip,
-        )
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=(
-                "This admin account has no password set, so it cannot be elevated. "
-                "Set a password on the account to perform destructive operations."
-            ),
-        )
-
-    if not bcrypt.checkpw(payload.password.encode("utf-8"), admin_user.hashed_password.encode("utf-8")):
+    method = admin_mfa_service.verify_second_factor(session, admin_user, payload.code)
+    if method is None:
         # Logged as an admin action, not just an auth warning: a failed elevation
-        # is somebody holding a valid admin session who does not know the
-        # password, which is the exact shape of a session compromise.
+        # is somebody holding a valid admin session without the second factor,
+        # which is the exact shape of a session compromise.
         log_admin_action(
             action="admin_elevation_denied",
             actor_user_id=admin_user.user_id,
@@ -121,7 +117,7 @@ def elevate_admin(
         )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Password is incorrect.",
+            detail="That code did not match. Use the newest code from your authenticator app.",
         )
 
     token, expires_at = create_admin_elevation_token(admin_user)
@@ -129,13 +125,249 @@ def elevate_admin(
         action="admin_elevation_granted",
         actor_user_id=admin_user.user_id,
         ip_address=client_ip,
-        payload_summary=f"expires_at={expires_at.isoformat()}",
+        payload_summary=f"method={method} expires_at={expires_at.isoformat()}",
     )
     return ElevationGrant(
         token=token,
         expires_at=expires_at.isoformat(),
         expires_in_seconds=get_settings().admin_elevation_minutes * 60,
     )
+
+
+# ── Who am I, and two-step sign-in (spec L3, D-15) ───────────────────────────
+
+
+class AdminMe(BaseModel):
+    user_id: str
+    email: str | None
+    role: str
+    mfa_enrolled: bool
+    recovery_codes_remaining: int
+    permissions: list[str]
+
+
+class MfaEnrolment(BaseModel):
+    secret: str
+    otpauth_uri: str
+
+
+class MfaCodeRequest(BaseModel):
+    code: str
+
+
+class RecoveryCodes(BaseModel):
+    recovery_codes: list[str]
+
+
+@router.get("/me", response_model=AdminMe, summary="The signed-in admin, their role and MFA state")
+def admin_me(
+    request: Request,
+    session: Session = Depends(get_db),
+    admin_user: User = Depends(get_admin_user_without_mfa),
+) -> AdminMe:
+    role = "owner" if getattr(request.state, "admin_via_key", False) else (admin_role_of(admin_user) or "")
+    return AdminMe(
+        user_id=str(admin_user.user_id),
+        email=admin_user.email,
+        role=role,
+        mfa_enrolled=admin_mfa_service.is_enrolled(session, admin_user),
+        recovery_codes_remaining=admin_mfa_service.remaining_recovery_codes(session, admin_user),
+        permissions=sorted(ROLE_PERMISSIONS.get(role, frozenset())),
+    )
+
+
+@router.post("/mfa/enroll", response_model=MfaEnrolment, summary="Start two-step sign-in set-up")
+def mfa_enroll(
+    request: Request,
+    session: Session = Depends(get_db),
+    admin_user: User = Depends(get_admin_user_without_mfa),
+) -> MfaEnrolment:
+    try:
+        secret, uri = admin_mfa_service.start_enrolment(session, admin_user)
+    except admin_mfa_service.MfaError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    log_admin_action("mfa_enrolment_started", target_type="user", target_id=str(admin_user.user_id),
+                     ip_address=_client_ip(request), actor_user_id=admin_user.user_id)
+    return MfaEnrolment(secret=secret, otpauth_uri=uri)
+
+
+@router.post("/mfa/confirm", response_model=RecoveryCodes, summary="Finish set-up with a first code")
+def mfa_confirm(
+    payload: MfaCodeRequest,
+    request: Request,
+    session: Session = Depends(get_db),
+    admin_user: User = Depends(get_admin_user_without_mfa),
+) -> RecoveryCodes:
+    _throttler.enforce(AuthThrottleAction.ADMIN_MFA, ip=_client_ip(request), account_identifier=str(admin_user.user_id))
+    try:
+        codes = admin_mfa_service.confirm_enrolment(session, admin_user, payload.code)
+    except admin_mfa_service.MfaError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)) from exc
+    log_admin_action("mfa_enrolled", target_type="user", target_id=str(admin_user.user_id),
+                     ip_address=_client_ip(request), actor_user_id=admin_user.user_id)
+    return RecoveryCodes(recovery_codes=codes)
+
+
+@router.post("/mfa/recovery-codes", response_model=RecoveryCodes, summary="Replace all recovery codes")
+def mfa_regenerate_recovery_codes(
+    request: Request,
+    session: Session = Depends(get_db),
+    admin_user: User = Depends(get_elevated_admin_user),
+) -> RecoveryCodes:
+    try:
+        codes = admin_mfa_service.regenerate_recovery_codes(session, admin_user)
+    except admin_mfa_service.MfaError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    log_admin_action("mfa_recovery_codes_regenerated", target_type="user", target_id=str(admin_user.user_id),
+                     ip_address=_client_ip(request), actor_user_id=admin_user.user_id)
+    return RecoveryCodes(recovery_codes=codes)
+
+
+# ── Roles (spec L3, D-14) ─────────────────────────────────────────────────────
+
+
+class AdminRoleEntry(BaseModel):
+    user_id: str
+    email: str | None
+    role: str
+    mfa_enrolled: bool
+
+
+class RoleChangeRequest(BaseModel):
+    role: str
+    reason: str
+
+
+def _require_reason(reason: str | None) -> str:
+    cleaned = (reason or "").strip()
+    if len(cleaned) < 3:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="A reason is required.")
+    return cleaned
+
+
+@router.get(
+    "/roles",
+    response_model=list[AdminRoleEntry],
+    summary="Everyone who holds an admin role",
+    dependencies=[Depends(require_permission("roles.grant"))],
+)
+def list_admin_roles(
+    session: Session = Depends(get_db),
+    _: User = Depends(get_admin_user),
+) -> list[AdminRoleEntry]:
+    rows = session.query(User).filter((User.admin_role.is_not(None)) | (User.is_admin.is_(True))).all()
+    return [
+        AdminRoleEntry(
+            user_id=str(row.user_id),
+            email=row.email,
+            role=admin_role_of(row) or "",
+            mfa_enrolled=admin_mfa_service.is_enrolled(session, row),
+        )
+        for row in rows
+    ]
+
+
+@router.put(
+    "/users/{user_id}/role",
+    response_model=AdminRoleEntry,
+    summary="Grant or change an admin role",
+    dependencies=[Depends(require_permission("roles.grant"))],
+)
+def set_admin_role(
+    user_id: UUID,
+    body: RoleChangeRequest,
+    request: Request,
+    session: Session = Depends(get_db),
+    admin_user: User = Depends(get_elevated_admin_user),
+) -> AdminRoleEntry:
+    reason = _require_reason(body.reason)
+    target = session.get(User, user_id)
+    if target is None:
+        raise HTTPException(status_code=404, detail="User not found.")
+    try:
+        previous = admin_roles_service.grant_role(session, target=target, role=body.role)
+    except admin_roles_service.RoleChangeError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    log_admin_action(
+        "grant_role",
+        target_type="user",
+        target_id=str(user_id),
+        payload_summary=f"old={previous!r} new={body.role!r} reason={reason!r}",
+        ip_address=_client_ip(request),
+        actor_user_id=admin_user.user_id,
+    )
+    return AdminRoleEntry(
+        user_id=str(target.user_id), email=target.email, role=body.role,
+        mfa_enrolled=admin_mfa_service.is_enrolled(session, target),
+    )
+
+
+@router.delete(
+    "/users/{user_id}/role",
+    summary="Remove an admin role",
+    dependencies=[Depends(require_permission("roles.grant"))],
+)
+def revoke_admin_role(
+    user_id: UUID,
+    request: Request,
+    reason: str = "",
+    session: Session = Depends(get_db),
+    admin_user: User = Depends(get_elevated_admin_user),
+) -> dict[str, Any]:
+    cleaned = _require_reason(reason)
+    target = session.get(User, user_id)
+    if target is None:
+        raise HTTPException(status_code=404, detail="User not found.")
+    try:
+        previous = admin_roles_service.revoke_role(session, target=target)
+    except admin_roles_service.RoleChangeError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    # Removing a role ends their admin sessions now, not when the token expires.
+    if previous is not None:
+        target.token_version = int(target.token_version or 0) + 1
+    log_admin_action(
+        "revoke_role",
+        target_type="user",
+        target_id=str(user_id),
+        payload_summary=f"old={previous!r} reason={cleaned!r}",
+        ip_address=_client_ip(request),
+        actor_user_id=admin_user.user_id,
+    )
+    return {"user_id": str(user_id), "previous_role": previous}
+
+
+@router.delete(
+    "/users/{user_id}/mfa",
+    summary="Reset another admin's two-step sign-in (lost phone)",
+    dependencies=[Depends(require_permission("roles.grant"))],
+)
+def reset_admin_mfa(
+    user_id: UUID,
+    request: Request,
+    reason: str = "",
+    session: Session = Depends(get_db),
+    admin_user: User = Depends(get_elevated_admin_user),
+) -> dict[str, Any]:
+    cleaned = _require_reason(reason)
+    if user_id == admin_user.user_id:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Use a recovery code to sign in, then replace your codes. Another owner can reset yours.",
+        )
+    target = session.get(User, user_id)
+    if target is None:
+        raise HTTPException(status_code=404, detail="User not found.")
+    removed = admin_mfa_service.reset_for(session, target)
+    target.token_version = int(target.token_version or 0) + 1
+    log_admin_action(
+        "reset_admin_mfa",
+        target_type="user",
+        target_id=str(user_id),
+        payload_summary=f"removed={removed} reason={cleaned!r}",
+        ip_address=_client_ip(request),
+        actor_user_id=admin_user.user_id,
+    )
+    return {"user_id": str(user_id), "reset": removed}
 
 
 class DataDeletionResult(BaseModel):
@@ -220,28 +452,34 @@ class AuditLogResponse(BaseModel):
     items: list[AuditLogEntry]
 
 
-class BroadcastRequest(BaseModel):
-    title: str
-    body: str
-    target_user_id: str | None = None
-
-
-class BroadcastResult(BaseModel):
-    sent: int
-    skipped: int
-    target: str
-    sent_at: str
-
-
 class FlagEntry(BaseModel):
     name: str
     value: Any
     default: Any
     overridden: bool
+    #: default | persisted (every worker, survives restart) | process (this worker only)
+    source: str
+    doctrine: bool
 
 
 class FlagUpdate(BaseModel):
     value: Any
+    #: Why. Stored with the change; required for every persisted setting.
+    reason: str = ""
+
+
+class FlagChange(BaseModel):
+    id: str
+    name: str
+    old_value: Any
+    new_value: Any
+    reason: str
+    actor_user_id: str | None
+    created_at: str
+
+
+class FlagRollback(BaseModel):
+    reason: str
 
 
 class ComponentHealth(BaseModel):
@@ -290,6 +528,7 @@ def _count(model: object, session: Session) -> int:
     "/users/{owner_user_id}/data",
     response_model=DataDeletionResult,
     status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_permission("privacy.erase"))],
     summary="Delete all data for a user (GDPR erasure)",
 )
 def delete_user_data(
@@ -380,7 +619,7 @@ def delete_user_data(
     )
 
 
-@router.get("/stats", response_model=AdminStats, summary="Aggregate record counts for admin dashboard")
+@router.get("/stats", response_model=AdminStats, summary="Aggregate record counts for admin dashboard", dependencies=[Depends(require_permission("overview.read"))])
 def get_admin_stats(session: Session = Depends(get_db), _: User = Depends(get_admin_user)) -> AdminStats:
     return AdminStats(
         total_users=_count(User, session),
@@ -392,7 +631,7 @@ def get_admin_stats(session: Session = Depends(get_db), _: User = Depends(get_ad
     )
 
 
-@router.get("/users", response_model=UserListResponse, summary="List all users (paginated)")
+@router.get("/users", response_model=UserListResponse, summary="List all users (paginated)", dependencies=[Depends(require_permission("users.search"))])
 def list_users(
     page: int = 1,
     page_size: int = 50,
@@ -455,7 +694,7 @@ def list_users(
     return UserListResponse(total=total, items=items, page=page, page_size=page_size)
 
 
-@router.get("/users/{user_id}", response_model=UserDetail, summary="Get full detail for one user")
+@router.get("/users/{user_id}", response_model=UserDetail, summary="Get full detail for one user", dependencies=[Depends(require_permission("users.read_masked"))])
 def get_user_detail(
     user_id: UUID,
     session: Session = Depends(get_db),
@@ -512,7 +751,7 @@ def get_user_detail(
     )
 
 
-@router.patch("/users/{user_id}/suspend", summary="Suspend or unsuspend a user account")
+@router.patch("/users/{user_id}/suspend", summary="Suspend or unsuspend a user account", dependencies=[Depends(require_permission("users.suspend"))])
 def suspend_user(
     user_id: UUID,
     body: SuspendRequest,
@@ -522,8 +761,18 @@ def suspend_user(
     user = session.get(User, user_id)
     if user is None:
         raise HTTPException(status_code=404, detail="User not found.")
+    if body.suspend:
+        # Spec L3 guards: a mistaken click must not lock the operator, or the
+        # last person able to undo it, out of the console.
+        if user.user_id == admin_user.user_id:
+            raise HTTPException(status_code=409, detail="You cannot suspend your own account.")
+        if admin_role_of(user) == "owner":
+            raise HTTPException(status_code=409, detail="Remove the owner role before suspending this account.")
     user.is_suspended = body.suspend
     user.suspension_reason = body.reason if body.suspend else None
+    if body.suspend:
+        # Suspension ends every live session now, not when its token expires.
+        user.token_version = int(user.token_version or 0) + 1
     session.commit()
     log_admin_action(
         "suspend_user" if body.suspend else "reinstate_user",
@@ -539,12 +788,12 @@ def suspend_user(
     }
 
 
-@router.get("/jobs", response_model=list[JobInfo], summary="List all registered background jobs")
+@router.get("/jobs", response_model=list[JobInfo], summary="List all registered background jobs", dependencies=[Depends(require_permission("overview.read"))])
 def list_jobs(_: User = Depends(get_admin_user)) -> list[JobInfo]:
     return [JobInfo(**{k: v for k, v in job.items() if k != "fn"}) for job in get_all_jobs()]
 
 
-@router.post("/jobs/{job_id}/trigger", response_model=JobRunResult, summary="Manually trigger a background job")
+@router.post("/jobs/{job_id}/trigger", response_model=JobRunResult, summary="Manually trigger a background job", dependencies=[Depends(require_permission("jobs.trigger"))])
 def trigger_job(
     job_id: str,
     request: Request,
@@ -588,7 +837,7 @@ def trigger_job(
     )
 
 
-@router.get("/audit-log", response_model=AuditLogResponse, summary="List admin audit log entries")
+@router.get("/audit-log", response_model=AuditLogResponse, summary="List admin audit log entries", dependencies=[Depends(require_permission("audit.read"))])
 def get_audit_log(
     page: int = 1,
     page_size: int = 100,
@@ -623,126 +872,173 @@ def get_audit_log(
     )
 
 
-@router.post("/notify/broadcast", response_model=BroadcastResult, summary="Send push notification to users")
+@router.post(
+    "/notify/broadcast",
+    status_code=status.HTTP_410_GONE,
+    dependencies=[Depends(require_permission("messaging.broadcast"))],
+    summary="Disabled until consent-aware broadcast ships (admin spec L8, D-17)",
+)
 def broadcast_notification(
-    body: BroadcastRequest,
-    session: Session = Depends(get_db),
+    request: Request,
     admin_user: User = Depends(get_elevated_admin_user),
-) -> BroadcastResult:
-    if body.target_user_id:
-        try:
-            target_uuid = UUID(body.target_user_id)
-        except ValueError as exc:
-            raise HTTPException(status_code=422, detail="target_user_id must be a valid UUID.") from exc
-        prefs = session.execute(
-            select(UserNotificationPreference).where(UserNotificationPreference.owner_user_id == target_uuid)
-        ).scalars().all()
-    else:
-        prefs = session.execute(select(UserNotificationPreference)).scalars().all()
+) -> None:
+    """Gone until L+30.
 
-    if not bool(get_flag("enable_push_notifications")):
-        target_label = body.target_user_id or "all users"
-        log_admin_action(
-            "broadcast_notification",
-            target_type="segment",
-            target_id=target_label,
-            payload_summary="push_disabled",
-            actor_user_id=admin_user.user_id,
-        )
-        return BroadcastResult(
-            sent=0,
-            skipped=len(prefs),
-            target=target_label,
-            sent_at=datetime.now(UTC).isoformat(),
-        )
-
-    sent = 0
-    skipped = 0
-    for pref in prefs:
-        token = pref.fcm_device_token
-        if not token:
-            skipped += 1
-            continue
-        try:
-            if send_push_to_token(token, title=body.title, message=body.body):
-                sent += 1
-            else:
-                skipped += 1
-        except Exception:  # noqa: BLE001
-            skipped += 1
-
-    target_label = body.target_user_id or "all users"
+    The old handler sent pushes straight to every stored device token: it
+    ignored notification consent and bypassed the outbox (no idempotency, no
+    retry, no record), which is ADM-02. At launch Vinaadi sends transactional
+    messages and the user's own alerts only (D-17). Consent-aware broadcast —
+    segment, preview, test-to-self, schedule, typed-count confirm — is rebuilt
+    on the outbox at L+30. The attempt is still audited.
+    """
     log_admin_action(
-        "broadcast_notification",
+        "broadcast_notification_refused",
         target_type="segment",
-        target_id=target_label,
-        payload_summary=f"title={body.title!r}, sent={sent}",
+        payload_summary="broadcast disabled until consent-aware outbox version (L+30)",
+        ip_address=_client_ip(request),
         actor_user_id=admin_user.user_id,
     )
-    return BroadcastResult(
-        sent=sent,
-        skipped=skipped,
-        target=target_label,
-        sent_at=datetime.now(UTC).isoformat(),
+    raise HTTPException(
+        status_code=status.HTTP_410_GONE,
+        detail=(
+            "Broadcast is disabled until the consent-aware version ships. Transactional "
+            "messages and users' own alerts are unaffected."
+        ),
     )
 
 
-@router.get("/flags", response_model=list[FlagEntry], summary="List all feature flags with current values")
+@router.get("/flags", response_model=list[FlagEntry], summary="List all feature flags with current values", dependencies=[Depends(require_permission("flags.read"))])
 def list_flags(_: User = Depends(get_admin_user)) -> list[FlagEntry]:
     return [FlagEntry(**flag) for flag in all_flags().values()]
 
 
-@router.patch("/flags/{flag_name}", response_model=FlagEntry, summary="Set a feature flag value")
+_DOCTRINE_MULTI_WORKER_DETAIL = (
+    "Doctrine flags cannot be overridden at runtime with more than one worker: "
+    "the change would reach one worker only and be lost on restart. Record the "
+    "ruling in docs/DOCTRINE_DECISIONS_V1.2.md §16 and change the default in code."
+)
+
+
+@router.patch("/flags/{flag_name}", response_model=FlagEntry, summary="Set a feature flag value", dependencies=[Depends(require_permission("flags.write"))])
 def set_flag_value(
     flag_name: str,
     body: FlagUpdate,
+    request: Request,
     admin_user: User = Depends(get_elevated_admin_user),
 ) -> FlagEntry:
-    if flag_name.startswith("doctrine_") and not doctrine_runtime_override_allowed():
-        raise HTTPException(
-            status_code=409,
-            detail=(
-                "Doctrine flags cannot be overridden at runtime with more than one worker: "
-                "the change would reach one worker only and be lost on restart. Record the "
-                "ruling in docs/DOCTRINE_DECISIONS_V1.2.md §16 and change the default in code."
-            ),
+    """Non-doctrine flags are stored for every worker, with history (ADM-09).
+
+    Doctrine flags keep their old, deliberately weaker path: a process-local
+    trial on a single-worker deployment. They are never persisted — a stored
+    doctrine override would be a ruling made outside §16–§18.
+    """
+    if flag_name.startswith("doctrine_"):
+        if not doctrine_runtime_override_allowed():
+            raise HTTPException(status_code=409, detail=_DOCTRINE_MULTI_WORKER_DETAIL)
+        try:
+            set_flag(flag_name, body.value)
+        except UnknownFlagError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        except FlagValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        summary = f"value={body.value!r} scope=process reason={body.reason.strip()!r}"
+    else:
+        try:
+            change = persist_flag(flag_name, body.value, reason=body.reason, actor_user_id=admin_user.user_id)
+        except UnknownFlagError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        except (FlagValueError, DoctrineFlagNotPersistable) as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        # A process override would shadow the stored value on this worker only.
+        reset_flag(flag_name)
+        summary = (
+            f"old={change['old_value']!r} new={change['new_value']!r} "
+            f"change={change['change_id']} reason={body.reason.strip()!r}"
         )
-    try:
-        set_flag(flag_name, body.value)
-    except UnknownFlagError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except FlagValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
     log_admin_action(
         "set_flag",
         target_type="flag",
         target_id=flag_name,
-        payload_summary=f"value={body.value!r}",
+        payload_summary=summary,
+        ip_address=_client_ip(request),
         actor_user_id=admin_user.user_id,
     )
     return FlagEntry(**all_flags()[flag_name])
 
 
-@router.delete("/flags/{flag_name}/reset", summary="Reset a feature flag to its default value")
+@router.delete("/flags/{flag_name}/reset", summary="Reset a feature flag to its default value", dependencies=[Depends(require_permission("flags.write"))])
 def reset_flag_value(
     flag_name: str,
+    request: Request,
+    reason: str = "",
     admin_user: User = Depends(get_elevated_admin_user),
 ) -> dict[str, Any]:
     if flag_name not in all_flags():
         raise HTTPException(status_code=404, detail=f"Unknown flag: {flag_name}")
     reset_flag(flag_name)
+    change = None
+    if not flag_name.startswith("doctrine_"):
+        try:
+            change = clear_persisted_flag(flag_name, reason=reason, actor_user_id=admin_user.user_id)
+        except FlagValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
     log_admin_action(
         "reset_flag",
         target_type="flag",
         target_id=flag_name,
+        payload_summary=(
+            f"old={change['old_value']!r} change={change['change_id']} reason={reason.strip()!r}"
+            if change
+            else f"reason={reason.strip()!r}"
+        ),
+        ip_address=_client_ip(request),
         actor_user_id=admin_user.user_id,
     )
     return {"flag_name": flag_name, "reset": True, "current_value": all_flags()[flag_name]["value"]}
 
 
+@router.get("/flags/history", response_model=list[FlagChange], summary="Recorded setting changes, newest first", dependencies=[Depends(require_permission("flags.read"))])
+def list_flag_history(
+    name: str | None = None,
+    limit: int = 100,
+    _: User = Depends(get_admin_user),
+) -> list[FlagChange]:
+    return [FlagChange(**row) for row in flag_history(name, limit)]
+
+
+@router.post(
+    "/flags/changes/{change_id}/rollback",
+    response_model=FlagEntry,
+    dependencies=[Depends(require_permission("flags.write"))],
+    summary="Undo one recorded setting change",
+)
+def rollback_flag_change(
+    change_id: UUID,
+    body: FlagRollback,
+    request: Request,
+    admin_user: User = Depends(get_elevated_admin_user),
+) -> FlagEntry:
+    try:
+        change = rollback_change(change_id, reason=body.reason, actor_user_id=admin_user.user_id)
+    except UnknownFlagError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except (FlagValueError, DoctrineFlagNotPersistable) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    log_admin_action(
+        "rollback_flag",
+        target_type="flag",
+        target_id=change["name"],
+        payload_summary=f"rolled_back={change_id} new_change={change['change_id']} reason={body.reason.strip()!r}",
+        ip_address=_client_ip(request),
+        actor_user_id=admin_user.user_id,
+    )
+    return FlagEntry(**all_flags()[change["name"]])
+
+
 @router.get(
     "/calibration",
     response_model=CalibrationReportOut,
+    dependencies=[Depends(require_permission("overview.read"))],
     summary="D5 prediction calibration report — hit/near/miss per area, band, and dasha lord",
 )
 def get_calibration_report(
@@ -785,7 +1081,7 @@ def get_calibration_report(
     )
 
 
-@router.get("/health/detail", response_model=HealthDetailResponse, summary="Detailed system health for admin")
+@router.get("/health/detail", response_model=HealthDetailResponse, summary="Detailed system health for admin", dependencies=[Depends(require_permission("overview.read"))])
 def get_health_detail(
     session: Session = Depends(get_db),
     _: User = Depends(get_admin_user),
@@ -849,3 +1145,80 @@ def get_health_detail(
         components=components,
         checked_at=datetime.now(UTC).isoformat(),
     )
+
+
+# ── Payments (spec L1; the L9 support console builds on these) ───────────────
+
+
+class PaymentMismatchOut(BaseModel):
+    id: str
+    kind: str
+    provider_ref: str
+    detail: dict[str, Any]
+    auto_resolved: bool
+    found_at: str
+    resolved_at: str | None
+
+
+class RecentOrderOut(BaseModel):
+    provider_order_id: str
+    user_id: str | None
+    sku: str
+    amount_paise: int
+    status: str
+    created_at: str
+    paid_at: str | None
+
+
+@router.get(
+    "/payments/mismatches",
+    response_model=list[PaymentMismatchOut],
+    summary="What the nightly reconciliation found, newest first",
+    dependencies=[Depends(require_permission("payments.read"))],
+)
+def list_payment_mismatches(
+    open_only: bool = True,
+    session: Session = Depends(get_db),
+    _: User = Depends(get_admin_user),
+) -> list[PaymentMismatchOut]:
+    query = session.query(PaymentMismatch)
+    if open_only:
+        query = query.filter(PaymentMismatch.resolved_at.is_(None))
+    return [
+        PaymentMismatchOut(
+            id=str(row.id),
+            kind=row.kind,
+            provider_ref=row.provider_ref,
+            detail=row.detail or {},
+            auto_resolved=row.auto_resolved,
+            found_at=row.found_at.isoformat(),
+            resolved_at=row.resolved_at.isoformat() if row.resolved_at else None,
+        )
+        for row in query.order_by(PaymentMismatch.found_at.desc()).limit(200)
+    ]
+
+
+@router.get(
+    "/payments/orders",
+    response_model=list[RecentOrderOut],
+    summary="Recent one-time orders, newest first",
+    dependencies=[Depends(require_permission("payments.read"))],
+)
+def list_recent_orders(
+    limit: int = 50,
+    session: Session = Depends(get_db),
+    _: User = Depends(get_admin_user),
+) -> list[RecentOrderOut]:
+    rows = session.query(Order).order_by(Order.created_at.desc()).limit(max(1, min(limit, 200))).all()
+    return [
+        RecentOrderOut(
+            provider_order_id=row.provider_order_id,
+            user_id=str(row.user_id) if row.user_id else None,
+            sku=row.sku,
+            amount_paise=row.amount_paise,
+            status=row.status,
+            created_at=row.created_at.isoformat(),
+            paid_at=row.paid_at.isoformat() if row.paid_at else None,
+        )
+        for row in rows
+    ]

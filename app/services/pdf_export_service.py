@@ -42,16 +42,21 @@ from reportlab.platypus import (
 from sqlalchemy.orm import Session
 
 from app.calculations.astro import RASI_NAMES, format_clock_hhmm
+from app.calculations.day_quality import DayQuality
 from app.calculations.display_names import (
     nakshatra_en,
     nakshatra_ta,
+    paksha_display,
     planet_en,
     planet_ta,
     rasi_en,
     rasi_ta,
+    tithi_en,
+    tithi_ta,
 )
 from app.calculations.panchangam import (
     best_gowri_slot,
+    day_quality_for,
     gowri_good_label,
     gowri_good_purpose,
 )
@@ -64,10 +69,6 @@ from app.calculations.yoga_display import (
 )
 from app.constants.astrology import SIGN_LORD
 from app.models import BirthProfile, Chart
-from app.services._dg_scoring import (
-    AUSPICIOUS_DAILY_NAKSHATRAS,
-    CAUTION_DAILY_NAKSHATRAS,
-)
 from app.services.chart_service import load_persisted_chart_response
 from app.services.dasha_service import get_chart_dasha
 from app.services.location_service import resolve_effective_daily_location
@@ -99,6 +100,21 @@ def _normalize_lang(lang: str | None) -> str:
 def _label(key: str, lang: str) -> str:
     resolved = _normalize_lang(lang)
     return _LABELS[resolved].get(key) or _LABELS["en"][key]
+
+
+# Display names from numbers and keys, never a response's `*_name` field or a
+# bare graha key (CLAUDE.md "Display boundary"; AAU-03). Each falls back to the
+# key itself rather than printing nothing.
+def _rasi(rasi: int | None, lang: str) -> str:
+    return (rasi_ta if _normalize_lang(lang) == "ta" else rasi_en)(rasi) or str(rasi)
+
+
+def _star(nakshatra: int | None, lang: str) -> str:
+    return (nakshatra_ta if _normalize_lang(lang) == "ta" else nakshatra_en)(nakshatra) or str(nakshatra)
+
+
+def _graha(graha: str, lang: str) -> str:
+    return (planet_ta if _normalize_lang(lang) == "ta" else planet_en)(graha) or graha
 
 
 def _verdict(domain: str, label: str, lang: str) -> str:
@@ -272,6 +288,20 @@ def _section_birth_profile(chart_response, title_style, body_style, caption_styl
             f"{_label('pada', lang)} {lagna.pada}",
             body_style,
         ),
+    ]
+    # AAU-16: the year, ayanam and ruthu line, from the birth's Tamil day.
+    sig = chart_response.data.birth_panchangam_signature or {}
+    if sig.get("tamil_year_ta"):
+        ta = _normalize_lang(lang) == "ta"
+        year, ayanam, ruthu = (
+            (sig["tamil_year_ta"], sig.get("ayanam_ta"), sig.get("ruthu_ta")) if ta
+            else (sig["tamil_year_en"], sig.get("ayanam_en"), sig.get("ruthu_en"))
+        )
+        elements.append(Paragraph(
+            f"{year} வருடம், {ayanam}, {ruthu} ருது" if ta else f"{year} year, {ayanam}, {ruthu} season",
+            body_style,
+        ))
+    elements += [
         Paragraph(f"{_label('generated', lang)}: {generated_at.strftime('%Y-%m-%d')} {_format_clock_label(generated_at)} UTC", caption_style),
     ]
     return elements
@@ -332,16 +362,16 @@ def _section_couple_identity(
     def _person_lines(name: str, chart, dasha) -> list[str]:
         moon = next(p for p in chart.planets if p.graha == "MOON")
         lines = [
-            f"<b>{name}</b> &mdash; {_label('rasi', lang)}: {moon.rasi_name} &nbsp;&nbsp; "
-            f"{_label('nakshatra', lang)}: {moon.nakshatra_name} {_label('pada', lang)} {moon.pada} &nbsp;&nbsp; "
-            f"{_label('lagna', lang)}: {chart.lagna.rasi_name}"
+            f"<b>{name}</b> &mdash; {_label('rasi', lang)}: {_rasi(moon.rasi, lang)} &nbsp;&nbsp; "
+            f"{_label('nakshatra', lang)}: {_star(moon.nakshatra, lang)} {_label('pada', lang)} {moon.pada} &nbsp;&nbsp; "
+            f"{_label('lagna', lang)}: {_rasi(chart.lagna.rasi, lang)}"
         ]
         if dasha is not None:
             maha = dasha.current.mahadasha
             antar = dasha.current.antardasha
             lines.append(
-                f"{_label('mahadasha', lang)}: {maha.lord} ({_label('ends', lang)} {maha.end_date}) &nbsp;&nbsp; "
-                f"{_label('antardasha', lang)}: {antar.lord} ({_label('ends', lang)} {antar.end_date})"
+                f"{_label('mahadasha', lang)}: {_graha(maha.lord, lang)} ({_label('ends', lang)} {maha.end_date}) &nbsp;&nbsp; "
+                f"{_label('antardasha', lang)}: {_graha(antar.lord, lang)} ({_label('ends', lang)} {antar.end_date})"
             )
         return lines
 
@@ -349,7 +379,29 @@ def _section_couple_identity(
     return [Paragraph(_label("couple_identity", lang), heading_style)] + [Paragraph(line, body_style) for line in lines]
 
 
-def _section_daily(panchang, score: int, label: str, location_label: str, heading_style, body_style, lang: str = "en") -> list:
+def _day_star_text(panchang, quality: DayQuality, lang: str) -> str:
+    """The star the day block scored (AAU-20), in panchangam form.
+
+    It printed the sunrise star beside a score set by another one. Now it
+    prints the star `day_quality` judged, and on a split day both, with the
+    change time ("Bharani until 09:12, then Karthigai"). The pada belongs to
+    the sunrise star, so it is shown only when that is the star printed.
+    """
+    ta = _normalize_lang(lang) == "ta"
+    name = nakshatra_ta if ta else nakshatra_en
+    split = quality.split
+    if split is not None:
+        before, after, at = name(split.before_star), name(split.after_star), _format_clock_label(split.change_at)
+        return f"{before} {at} வரை, பின் {after}" if ta else f"{before} until {at}, then {after}"
+    text = name(quality.verdict_star) or panchang.nakshatra_name
+    if quality.verdict_star == panchang.nakshatra_number:
+        text += f" ({_label('pada', lang)} {panchang.nakshatra_pada})"
+    return text
+
+
+def _section_daily(
+    panchang, quality: DayQuality, label: str, location_label: str, heading_style, body_style, lang: str = "en",
+) -> list:
     slot = best_gowri_slot(panchang.nalla_neram)
     if slot:
         slot_name = getattr(slot, "name", None)
@@ -365,11 +417,17 @@ def _section_daily(panchang, score: int, label: str, location_label: str, headin
     else:
         nalla = "-"
     rahu = _format_time_range(panchang.rahu_kalam.start, panchang.rahu_kalam.end)
+    # Display names, never the snapshot's codes (UTHIRADAM, EKADASI (KRISHNA))
+    # under Tamil labels (AAU-03).
+    ta = _normalize_lang(lang) == "ta"
+    nakshatra = _day_star_text(panchang, quality, lang)
+    tithi = (tithi_ta if ta else tithi_en)(panchang.tithi_number)
+    paksha = paksha_display(panchang.tithi_paksha)[0 if ta else 1]
     lines = [
         f"{_label('location', lang)}: {location_label}",
-        f"{_label('date', lang)}: {panchang.date_local} &nbsp;&nbsp; {_label('nakshatra', lang)}: {panchang.nakshatra_name} ({_label('pada', lang)} {panchang.nakshatra_pada})",
-        f"{_label('tithi', lang)}: {panchang.tithi_name} ({panchang.tithi_paksha})",
-        f"{_label('daily_score', lang)}: <b>{score}/100</b> - {label}",
+        f"{_label('date', lang)}: {panchang.date_local} &nbsp;&nbsp; {_label('nakshatra', lang)}: {nakshatra}",
+        f"{_label('tithi', lang)}: {tithi} ({paksha})",
+        f"{_label('daily_score', lang)}: <b>{quality.score}/100</b> - {label}",
         f"{_label('nalla_neram', lang)}: {nalla} &nbsp;&nbsp; {_label('rahu_kalam', lang)}: {rahu}",
     ]
     return [Paragraph(_label("todays_guidance", lang), heading_style)] + [Paragraph(line, body_style) for line in lines]
@@ -695,18 +753,12 @@ def generate_chart_pdf(
         daily_location.timezone,
     )
 
-    # Quick score derivation from the day's star (same lightweight heuristic as
-    # daily_push_cron, and now literally the same two sets — these were hand-
-    # copies that had drifted: the push copy also listed 14 as a caution star.
-    # Dominant rather than sunrise, so an exported PDF and the app agree about
-    # which star ran the day.
-    nak = panchang.dominant_nakshatra_number or panchang.nakshatra_number
-    if nak in AUSPICIOUS_DAILY_NAKSHATRAS:
-        score, label = 72, _label("good", lang)
-    elif nak in CAUTION_DAILY_NAKSHATRAS:
-        score, label = 32, _label("caution", lang)
-    else:
-        score, label = 50, _label("balanced", lang)
+    # The day's one verdict (AAU-07): the same `day_quality` the calendar badge
+    # and the push fallback read, so a printed sheet cannot call a day caution
+    # that the calendar badges good. It used to key two hand lists on the
+    # 24-hour dominant star while the badge read the sunrise star.
+    quality = day_quality_for(panchang)
+    label = _label({"GOOD": "good", "CAUTION": "caution", "NEUTRAL": "balanced"}[quality.verdict], lang)
 
     buf = io.BytesIO()
     doc = SimpleDocTemplate(
@@ -730,7 +782,7 @@ def generate_chart_pdf(
     story.append(Spacer(1, 0.3 * cm))
     story += _section_daily(
         panchang,
-        score,
+        quality,
         label,
         daily_location.place or daily_location.timezone,
         heading_style,
@@ -818,6 +870,12 @@ def generate_porutham_pdf(
 
     if porutham.rajju_dosha:
         story.append(Paragraph(_label("warning_rajju", lang), body_style))
+    # F-POR-03, directly under the Rajju warning it qualifies: a same-star
+    # couple always fails Rajju, and the note says why that is not the whole
+    # story. A disclosure — no exception is applied.
+    if porutham.eka_nakshatra is not None and porutham.eka_nakshatra.present:
+        story.append(Paragraph(_bitext(porutham.eka_nakshatra.label, lang), body_style))
+        story.append(Paragraph(_bitext(porutham.eka_nakshatra.note, lang), small_style))
     if porutham.vedha_dosha:
         story.append(Paragraph(_label("warning_vedha", lang), body_style))
     # F-POR-02. A printed sheet is the copy taken to a jothidar, so it is the
@@ -957,15 +1015,15 @@ def generate_compatibility_intelligence_pdf(
         Spacer(1, 0.25 * cm),
         Paragraph(_label("couple_identity", lang), heading_style),
         Paragraph(
-            f"<b>{name_a}</b> &mdash; {_label('rasi', lang)}: {report.person_a_identity.rasi_name} &nbsp;&nbsp; "
-            f"{_label('nakshatra', lang)}: {report.person_a_identity.nakshatra_name} {_label('pada', lang)} {report.person_a_identity.pada} &nbsp;&nbsp; "
-            f"{_label('lagna', lang)}: {report.person_a_identity.lagna_rasi_name}",
+            f"<b>{name_a}</b> &mdash; {_label('rasi', lang)}: {_rasi(report.person_a_identity.rasi, lang)} &nbsp;&nbsp; "
+            f"{_label('nakshatra', lang)}: {_star(report.person_a_identity.nakshatra, lang)} {_label('pada', lang)} {report.person_a_identity.pada} &nbsp;&nbsp; "
+            f"{_label('lagna', lang)}: {_rasi(report.person_a_identity.lagna_rasi, lang)}",
             body_style,
         ),
         Paragraph(
-            f"<b>{name_b}</b> &mdash; {_label('rasi', lang)}: {report.person_b_identity.rasi_name} &nbsp;&nbsp; "
-            f"{_label('nakshatra', lang)}: {report.person_b_identity.nakshatra_name} {_label('pada', lang)} {report.person_b_identity.pada} &nbsp;&nbsp; "
-            f"{_label('lagna', lang)}: {report.person_b_identity.lagna_rasi_name}",
+            f"<b>{name_b}</b> &mdash; {_label('rasi', lang)}: {_rasi(report.person_b_identity.rasi, lang)} &nbsp;&nbsp; "
+            f"{_label('nakshatra', lang)}: {_star(report.person_b_identity.nakshatra, lang)} {_label('pada', lang)} {report.person_b_identity.pada} &nbsp;&nbsp; "
+            f"{_label('lagna', lang)}: {_rasi(report.person_b_identity.lagna_rasi, lang)}",
             body_style,
         ),
     ])
@@ -1016,6 +1074,10 @@ def generate_compatibility_intelligence_pdf(
         # cancellation (A-9 v2) clears has_nadi_dosha but the reason it was
         # cleared is still worth surfacing.
         story.append(Paragraph(f"Nadi Dosha notes: {', '.join(report.nadi_dosha.cancellations)}", body_style))
+    # F-POR-03 — see the porutham sheet above.
+    if report.eka_nakshatra is not None and report.eka_nakshatra.present:
+        story.append(Paragraph(_bitext(report.eka_nakshatra.label, lang), body_style))
+        story.append(Paragraph(_bitext(report.eka_nakshatra.note, lang), caption_style))
     # F-POR-02 — see the porutham sheet above for why this is printed.
     if report.shashtashtaka is not None and report.shashtashtaka.present:
         story.append(Paragraph(_bitext(report.shashtashtaka.label, lang), body_style))
@@ -1042,7 +1104,7 @@ def generate_compatibility_intelligence_pdf(
     story.extend([Spacer(1, 0.3 * cm), Paragraph(_label("navamsa_level", lang), heading_style)])
     story.append(
         Paragraph(
-            f"{_label('harmony', lang)}: {_verdict('harmony', report.navamsa.harmony_label, lang)}. {report.person_a_name} Venus D9: {report.navamsa.person_a_venus_d9}; {report.person_b_name} Venus D9: {report.navamsa.person_b_venus_d9}.",
+            f"{_label('harmony', lang)}: {_verdict('harmony', report.navamsa.harmony_label, lang)}. {report.person_a_name} {_graha('VENUS', lang)} D9: {_rasi(report.navamsa.person_a_venus_d9, lang)}; {report.person_b_name} {_graha('VENUS', lang)} D9: {_rasi(report.navamsa.person_b_venus_d9, lang)}.",
             body_style,
         )
     )
@@ -1067,8 +1129,8 @@ def generate_compatibility_intelligence_pdf(
     story.append(
         Paragraph(
             (
-                f"{report.person_a_name}: {report.dasha_harmony.person_a_maha_lord} / {report.dasha_harmony.person_a_antar_lord} until {report.dasha_harmony.person_a_maha_end}. "
-                f"{report.person_b_name}: {report.dasha_harmony.person_b_maha_lord} / {report.dasha_harmony.person_b_antar_lord} until {report.dasha_harmony.person_b_maha_end}."
+                f"{report.person_a_name}: {_graha(report.dasha_harmony.person_a_maha_lord, lang)} / {_graha(report.dasha_harmony.person_a_antar_lord, lang)} ({_label('ends', lang)} {report.dasha_harmony.person_a_maha_end}). "
+                f"{report.person_b_name}: {_graha(report.dasha_harmony.person_b_maha_lord, lang)} / {_graha(report.dasha_harmony.person_b_antar_lord, lang)} ({_label('ends', lang)} {report.dasha_harmony.person_b_maha_end})."
             ),
             body_style,
         )

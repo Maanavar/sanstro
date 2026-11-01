@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -112,6 +113,42 @@ class ShashtashtakaData(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class EkaNakshatraData(BaseModel):
+    """F-POR-03 — ஏக நட்சத்திரம்: both partners share a birth star.
+
+    A disclosure, never a verdict, rendered beside the Rajju row. Rajju is not
+    altered: a same-star couple still fails it. `classification` is null and
+    `rajjuExceptionApplied` false until a named source supplies the star+pada
+    table. The pada fields are null when the request had no birth pada (the
+    by-star tools).
+    """
+
+    present: bool
+    boy_pada: int | None = Field(default=None, alias="boyPada")
+    girl_pada: int | None = Field(default=None, alias="girlPada")
+    same_pada: bool | None = Field(default=None, alias="samePada")
+    classification: str | None = None
+    rajju_exception_applied: bool = Field(default=False, alias="rajjuExceptionApplied")
+    label: RelationshipBiText
+    note: RelationshipBiText
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    @classmethod
+    def from_note(cls, note: Any) -> EkaNakshatraData:
+        """Engine `EkaNakshatraNote` -> the wire shape, the one place that maps it."""
+        return cls(
+            present=note.present,
+            boy_pada=note.boy_pada,
+            girl_pada=note.girl_pada,
+            same_pada=note.same_pada,
+            classification=note.classification,
+            rajju_exception_applied=note.rajju_exception_applied,
+            label=RelationshipBiText(ta=note.label_ta, en=note.label_en),
+            note=RelationshipBiText(ta=note.note_ta, en=note.note_en),
+        )
+
+
 class PorutthamData(BaseModel):
     family_vault_id: UUID = Field(alias="familyVaultId")
     member_id: UUID = Field(alias="memberId")
@@ -132,6 +169,8 @@ class PorutthamData(BaseModel):
     # F-POR-02 disclosure. Optional so a payload produced before it existed
     # still validates; a surface treats absent the same as not present.
     shashtashtaka: ShashtashtakaData | None = None
+    # F-POR-03 disclosure, optional for the same reason.
+    eka_nakshatra: EkaNakshatraData | None = Field(default=None, alias="ekaNakshatra")
     summary: RelationshipBiText
     compatibility_context: str = Field(default="GENERAL", alias="compatibilityContext")
     context_note: RelationshipBiText | None = Field(default=None, alias="contextNote")
@@ -257,6 +296,8 @@ class DirectPoruthamData(BaseModel):
     # F-POR-02 disclosure. Optional so a payload produced before it existed
     # still validates; a surface treats absent the same as not present.
     shashtashtaka: ShashtashtakaData | None = None
+    # F-POR-03 disclosure, optional for the same reason.
+    eka_nakshatra: EkaNakshatraData | None = Field(default=None, alias="ekaNakshatra")
     summary: RelationshipBiText
     compatibility_context: str = Field(default="GENERAL", alias="compatibilityContext")
     context_note: RelationshipBiText | None = Field(default=None, alias="contextNote")
@@ -432,6 +473,8 @@ class CompatibilityIntelligenceData(BaseModel):
     # F-POR-02 disclosure. Optional so a payload produced before it existed
     # still validates; a surface treats absent the same as not present.
     shashtashtaka: ShashtashtakaData | None = None
+    # F-POR-03 disclosure, optional for the same reason.
+    eka_nakshatra: EkaNakshatraData | None = Field(default=None, alias="ekaNakshatra")
 
     # Layer 2+3: Chart strength
     chart_a_strength: ChartMarriageStrength = Field(alias="chartAStrength")

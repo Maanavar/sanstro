@@ -1121,7 +1121,7 @@ lagna-dependent but tabled statically (Dhana, Vipareetha) the listed set is a
 | **Emitted as** | `SUNAPHA_YOGA` |
 | **Detector** | `_yoga_detect.detect_sunapha_anapha_durudhura` |
 | **Markers** | `[TRADITION]` `[PRODUCT]` |
-| **Present when** | A graha other than Suriyan, Chandran, Rahu, Kethu and Mandhi occupies the 2nd rasi from Chandran. |
+| **Present when** | A graha other than Suriyan, Chandran, Rahu, Kethu and Mandhi occupies the 2nd rasi from Chandran, and none occupies the 12th (both is Durudhura, AAU-11). |
 | **Strength** | PARTIAL, flat. Ungated. |
 | **Cancellation** | — |
 | **Source** | Chandra yogas of BPHS — Sunapha, Anapha and Durudhura. |
@@ -1135,7 +1135,7 @@ lagna-dependent but tabled statically (Dhana, Vipareetha) the listed set is a
 | **Emitted as** | `ANAPHA_YOGA` |
 | **Detector** | `_yoga_detect.detect_sunapha_anapha_durudhura` |
 | **Markers** | `[TRADITION]` `[PRODUCT]` |
-| **Present when** | A graha other than Suriyan, Chandran, Rahu, Kethu and Mandhi occupies the 12th rasi from Chandran. |
+| **Present when** | A graha other than Suriyan, Chandran, Rahu, Kethu and Mandhi occupies the 12th rasi from Chandran, and none occupies the 2nd (both is Durudhura, AAU-11). |
 | **Strength** | PARTIAL, flat. Ungated. |
 | **Cancellation** | — |
 | **Source** | Chandra yogas of BPHS — Sunapha, Anapha and Durudhura. |
@@ -1154,7 +1154,7 @@ lagna-dependent but tabled statically (Dhana, Vipareetha) the listed set is a
 | **Cancellation** | — |
 | **Source** | Chandra yogas of BPHS — Sunapha, Anapha and Durudhura. |
 | **Activation grahas** | Per chart: The planets on both sides of Chandran (DD-15). |
-| **Note** | Emitted **in addition to** Sunapha and Anapha, not instead of them, so a chart with both sides occupied shows three cards for one configuration. Whether Durudhura should absorb the other two is a presentation call for the reviewer. |
+| **Note** | Emitted **instead of** Sunapha and Anapha (AAU-11, ruled 2026-10-29): Phaladeepika 6.1 gives the three "respectively" for the 2nd, the 12th and both, so a chart has exactly one of them. It used to be emitted beside them, three cards for one configuration. |
 
 #### `YOG-VS-01` Vasumati Yoga (வசுமதி யோகம்)
 
@@ -1219,14 +1219,18 @@ lagna-dependent but tabled statically (Dhana, Vipareetha) the listed set is a
 The rulebook previously said "from the relevant reference", which is not a
 specification. What the engine does:
 
-**References checked — all three, independently:** Lagna, Moon, and Venus.
-Mars's whole-sign house is counted from each; a hit from any one of the three
-raises the condition, and each hit is recorded by name (`from_lagna`,
-`from_moon`, `from_venus`) so the read-out can say which reference fired.
+**References — the Lagna declares, the Moon and Venus grade (AAU-13, 2026-10-29):**
+Mars's whole-sign house is counted from each of the three and each hit is
+recorded by name (`from_lagna`, `from_moon`, `from_venus`). Only a Lagna hit
+declares the dosham: Lagna alone is mild, Lagna plus one is confirmed, all three
+is severe. A Moon- or Venus-only hit is noted, not declared.
 
-**House set (identical for all three references):**
-{1, 2, 4, 7, 8, 12} — including the
-1st, per the standard Tamil set (`docs/SEVVAIRAGU.MD` section 4.1).
+**House set (identical for all three references), `DoctrineOptions.sevvai_house_set`:**
+the default `tamil_five` is {2, 4, 7, 8, 12}
+(owner ruling 2026-10-30, DOCTRINE_DECISIONS_V1 §18 Q5). Documented alternatives, never the
+default: `manglik_five` {1, 4, 7, 8, 12}
+and `union_six` {1, 2, 4, 7, 8, 12}, the two
+enumerations added together, which was the engine's set until this ruling.
 
 **Gender-weighted houses — astrologer / porutham view only** (DD-05, v1.3). They
 are recorded in `DoshamResult.astrologer_markers` and never reach a consumer
@@ -1243,6 +1247,10 @@ Mesham/Viruchigam Lagna (major; open item O-18); benefic
 association from {JUPITER, MERCURY, MOON, VENUS}; and the
 house-sign nivarthi table below. Two uncancelled charts cancel each other
 (`_apply_mutual_sevvai_cancellation`).
+
+**Ruchaka on the same Mars (owner ruling 2026-10-30, §18 B):** both verdicts
+stand at full weight (O-18: strength never cancels), and the card carries the
+context note `sevvai_mars_strength_both_ways` saying why. No `cancelled` state.
 
 **Nivarthi (house-specific sign exemption):**
 

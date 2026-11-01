@@ -22,9 +22,9 @@ from app.calculations.festivals import (
 from app.calculations.lunar_month import amanta_month_at, amavasai_month_for_day
 from app.calculations.observance_days import jayanthi_yoga_day, printed_tithi_day_on_or_after, select_in_solar_month
 from app.calculations.panchangam import (
-    _compute_subha_muhurtham_broad,
     _compute_subha_muhurtham_strict,
     _tithi_number_at_jd,
+    day_quality_for,
 )
 from app.calculations.tamil_calendar import (
     TAMIL_MONTHS,
@@ -33,6 +33,7 @@ from app.calculations.tamil_calendar import (
     tamil_month_spans,
     tamil_solar_date,
 )
+from app.calculations.tamil_year import tamil_year_info
 from app.constants.astrology import NAKSHATRA_NAMES
 from app.data.muhurtham_naals import get_muhurtham_naals
 from app.models import BirthProfile, Chart
@@ -45,6 +46,8 @@ from app.schemas.panchangam import (
     PanchangamDailyQuery,
     PanchangamDailyResponse,
     PanchangamDailyResponseData,
+    PanchangamDayQuality,
+    PanchangamDaySplit,
     PanchangamFestival,
     PanchangamHoraEntry,
     PanchangamKalam,
@@ -63,6 +66,7 @@ from app.schemas.panchangam import (
     PanchangamSoolam,
     PanchangamSpecialTithiDay,
     PanchangamSubhaMuhurtham,
+    PanchangamTamilYear,
     PanchangamTimingsData,
     PanchangamTimingsResponse,
     PanchangamTithi,
@@ -76,7 +80,9 @@ from app.services.location_service import EffectiveDailyLocation, resolve_effect
 from app.services.panchangam_cache import calculate_daily_panchangam, calculate_daily_panchangam_range
 from app.services.panchangam_events_service import is_karinaal
 
-PANCHANGAM_CALCULATION_VERSION = "thirukanitham-2026-v5"
+# v6 (2026-10-29, AAU-07): the good-day badge reads the daytime star on the
+# seven-class table, and the payload carries `subhaMuhurtham.dayQuality`.
+PANCHANGAM_CALCULATION_VERSION = "thirukanitham-2026-v6"
 logger = logging.getLogger(__name__)
 
 
@@ -103,6 +109,29 @@ def _build_slot(slot, snapshot, *, warn_on_conflict: bool) -> PanchangamSlot:
         name=slot.name,
         period=slot.period,
         is_good=slot.is_good,
+    )
+
+
+def _build_day_quality(snapshot) -> PanchangamDayQuality:
+    """The day's `day_quality` (AAU-07) for the badge payload, so a day view
+    can show the split time the ruling requires."""
+    quality = day_quality_for(snapshot)
+    split = quality.split
+    return PanchangamDayQuality(
+        verdict=quality.verdict,
+        verdict_star=NAKSHATRA_NAMES[quality.verdict_star - 1],
+        verdict_star_number=quality.verdict_star,
+        star_class=quality.star_class,
+        score=quality.score,
+        split=PanchangamDaySplit(
+            change_at=format_clock_hhmm(split.change_at),
+            before_star=NAKSHATRA_NAMES[split.before_star - 1],
+            before_star_number=split.before_star,
+            before=split.before,
+            after_star=NAKSHATRA_NAMES[split.after_star - 1],
+            after_star_number=split.after_star,
+            after=split.after,
+        ) if split is not None else None,
     )
 
 
@@ -465,6 +494,21 @@ def _build_tamil_date(snapshot) -> BiText | None:
         return None
 
 
+def _build_tamil_year(snapshot) -> PanchangamTamilYear | None:
+    """AAU-16: the day's Tamil year name, ayanam and ruthu (`tamil_year`)."""
+    try:
+        info = tamil_year_info(snapshot.date_local, snapshot.timezone_name, snapshot.latitude, snapshot.longitude)
+    except Exception as exc:
+        logger.debug("Tamil year lookup failed for %s: %s", snapshot.date_local, exc)
+        return None
+    return PanchangamTamilYear(
+        year_number=info.year_number,
+        year=BiText(ta=info.year_ta, en=info.year_en),
+        ayanam=BiText(ta=info.ayanam_ta, en=info.ayanam_en),
+        ruthu=BiText(ta=info.ruthu_ta, en=info.ruthu_en),
+    )
+
+
 def _build_tamil_date_source(snapshot) -> str | None:
     """FCA-02 — whether `_build_tamil_date` is the almanac's date or the rule's."""
     try:
@@ -551,6 +595,7 @@ def calculate_panchangam(query: PanchangamDailyQuery, session: Session | None = 
             date_local=snapshot.date_local,
             tamil_date=_build_tamil_date(snapshot),
             tamil_date_source=_build_tamil_date_source(snapshot),
+            tamil_year=_build_tamil_year(snapshot),
             location=PanchangamLocation(lat=snapshot.latitude, lng=snapshot.longitude, timezone=snapshot.timezone_name),
             sunrise=format_clock_hhmm(snapshot.sunrise),
             sunset=format_clock_hhmm(snapshot.sunset),
@@ -597,6 +642,7 @@ def calculate_panchangam(query: PanchangamDailyQuery, session: Session | None = 
                 reason=snapshot.subha_muhurtham_reason,
                 is_subha_strict=snapshot.is_subha_muhurtham_strict,
                 strict_reason=snapshot.subha_muhurtham_strict_reason,
+                day_quality=_build_day_quality(snapshot),
             ),
             festivals=_build_festivals(snapshot, previous_day_snapshot=previous_day_snapshot),
             hora=[
@@ -691,6 +737,7 @@ def calculate_panchangam_timings(query: PanchangamDailyQuery, session: Session |
                 reason=snapshot.subha_muhurtham_reason,
                 is_subha_strict=snapshot.is_subha_muhurtham_strict,
                 strict_reason=snapshot.subha_muhurtham_strict_reason,
+                day_quality=_build_day_quality(snapshot),
             ),
             festivals=_build_festivals(snapshot, previous_day_snapshot=previous_day_snapshot),
             hora=[
@@ -756,11 +803,11 @@ def build_monthly_panchangam(query: PanchangamMonthlyQuery, session: Session | N
         governing_tithi_name = snapshot.tithi_name
         governing_nakshatra_name = snapshot.nakshatra_name
         governing_yoga_name = snapshot.yoga_name
-        is_subha_muhurtham, _ = _compute_subha_muhurtham_broad(
-            governing_tithi_number,
-            governing_nakshatra_name,
-            date_local.weekday(),
-        )
+        # The நல்ல நாள் badge is the day's `day_quality` (AAU-07): the star
+        # holding most of the daytime, not the sunrise star the names above
+        # use. Read from the snapshot so the grid and the day view are one
+        # value, never two computations.
+        is_subha_muhurtham = snapshot.is_subha_muhurtham
         is_subha_muhurtham_strict, _ = _compute_subha_muhurtham_strict(
             governing_tithi_number,
             governing_tithi_paksha,

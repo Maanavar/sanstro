@@ -306,7 +306,9 @@ def test_jobs_list_and_manual_trigger(raw_client, monkeypatch):
     assert trigger_response.json()["result_summary"] == "ok=1"
 
 
-def test_broadcast_notification_to_specific_user(raw_client, monkeypatch):
+def test_broadcast_is_refused_even_for_a_single_target(raw_client, monkeypatch):
+    """Was: sent straight to the stored token, ignoring consent and the outbox
+    (ADM-02). Disabled until the consent-aware version (admin spec L8)."""
     admin_user_id = _create_user("admin@example.com")
     target_user_id = UUID(_create_user("notify@example.com"))
     headers = _admin_headers(admin_user_id, "test-admin-key")
@@ -321,18 +323,16 @@ def test_broadcast_notification_to_specific_user(raw_client, monkeypatch):
         )
         session.commit()
 
-    monkeypatch.setattr("app.api.admin.send_push_to_token", lambda *_args, **_kwargs: True)
+    sent: list[str] = []
+    monkeypatch.setattr("app.services.fcm_service.send_push", lambda *_a, **_k: sent.append("x") or "sent")
 
     response = raw_client.post(
         "/api/v1/admin/notify/broadcast",
         headers=headers,
         json={"title": "Test", "body": "Hello", "target_user_id": str(target_user_id)},
     )
-    assert response.status_code == 200
-    body = response.json()
-    assert body["sent"] == 1
-    assert body["skipped"] == 0
-    assert body["target"] == str(target_user_id)
+    assert response.status_code == 410
+    assert sent == []
 
 
 def test_feature_flags_round_trip(raw_client):
@@ -344,9 +344,15 @@ def test_feature_flags_round_trip(raw_client):
     names = {flag["name"] for flag in list_response.json()}
     assert {
         "enable_admin_data_delete",
-        "ask_vinaadi_daily_limit",
         "enable_push_notifications",
         "maintenance_mode",
+        # Kill switches and the site banner (admin spec L10).
+        "enable_ask_vinaadi",
+        "enable_payments_checkout",
+        "enable_guest_charts",
+        "enable_signups",
+        "maintenance_banner_en",
+        "maintenance_banner_ta",
         "max_birth_profiles_per_user",
         "reasoning_gate",
         "reasoning_bands",
@@ -426,6 +432,7 @@ def test_feature_flags_round_trip(raw_client):
         "doctrine_o28_rk_second_house_support",  # DD-17
         "doctrine_o29_rk_guru_counted_once",  # DD-17
         "doctrine_o32_putra_sarpa_thulam_sani",  # owner ruling 2026-10-06
+        "doctrine_sevvai_house_set",  # owner ruling 2026-10-30
         "doctrine_moon_72_degree_convention",
         "doctrine_show_lakshmi_phaladeepika",
     } == names
@@ -433,13 +440,16 @@ def test_feature_flags_round_trip(raw_client):
     set_response = raw_client.patch(
         "/api/v1/admin/flags/maintenance_mode",
         headers=headers,
-        json={"value": True},
+        json={"value": True, "reason": "round-trip test"},
     )
     assert set_response.status_code == 200
     assert set_response.json()["value"] is True
     assert set_response.json()["overridden"] is True
+    assert set_response.json()["source"] == "persisted"
 
-    reset_response = raw_client.delete("/api/v1/admin/flags/maintenance_mode/reset", headers=headers)
+    reset_response = raw_client.delete(
+        "/api/v1/admin/flags/maintenance_mode/reset", headers=headers, params={"reason": "round-trip test"}
+    )
     assert reset_response.status_code == 200
     assert reset_response.json()["reset"] is True
     assert reset_response.json()["current_value"] is False
@@ -484,9 +494,13 @@ def test_doctrine_flags_refuse_runtime_override_with_several_workers(raw_client,
     )
     assert response.status_code == 409
     assert "§16" in response.json()["detail"]
-    other = raw_client.patch("/api/v1/admin/flags/maintenance_mode", headers=headers, json={"value": False})
+    other = raw_client.patch(
+        "/api/v1/admin/flags/maintenance_mode", headers=headers, json={"value": False, "reason": "multi-worker test"}
+    )
     assert other.status_code == 200
-    raw_client.delete("/api/v1/admin/flags/maintenance_mode/reset", headers=headers)
+    raw_client.delete(
+        "/api/v1/admin/flags/maintenance_mode/reset", headers=headers, params={"reason": "multi-worker test"}
+    )
 
 
 def test_calibration_requires_admin(raw_client):

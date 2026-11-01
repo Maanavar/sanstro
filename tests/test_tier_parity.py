@@ -155,9 +155,10 @@ def test_tier_limits_python_ts_parity(tier: str, ts_limits: dict, py_limits: dic
     )
 
 
-def test_guest_ask_vinaadi_daily_limit_is_2(ts_limits: dict, py_limits: dict) -> None:
-    assert py_limits["guest"]["askVinaadiDailyLimit"] == 2
-    assert ts_limits["guest"]["askVinaadiDailyLimit"] == 2
+def test_guest_ask_vinaadi_daily_limit_is_0(ts_limits: dict, py_limits: dict) -> None:
+    """Ask needs a saved chart and an account (ARC-07, owner decision 2026-11-01)."""
+    assert py_limits["guest"]["askVinaadiDailyLimit"] == 0
+    assert ts_limits["guest"]["askVinaadiDailyLimit"] == 0
 
 
 def test_registered_rasi_palan_window_is_7(ts_limits: dict, py_limits: dict) -> None:
@@ -165,16 +166,23 @@ def test_registered_rasi_palan_window_is_7(ts_limits: dict, py_limits: dict) -> 
     assert ts_limits["registered"]["rasiPalanWindowDays"] == 7
 
 
-def test_registered_ask_vinaadi_daily_limit_is_7(ts_limits: dict, py_limits: dict) -> None:
-    assert py_limits["registered"]["askVinaadiDailyLimit"] == 7
-    assert ts_limits["registered"]["askVinaadiDailyLimit"] == 7
+def test_registered_ask_vinaadi_daily_limit_is_2(ts_limits: dict, py_limits: dict) -> None:
+    assert py_limits["registered"]["askVinaadiDailyLimit"] == 2
+    assert ts_limits["registered"]["askVinaadiDailyLimit"] == 2
+
+
+def test_premium_ask_vinaadi_is_5_a_day_not_monthly(ts_limits: dict, py_limits: dict) -> None:
+    for limits in (py_limits, ts_limits):
+        assert limits["premium"]["askVinaadiDailyLimit"] == 5
+        assert limits["premium"]["askVinaadiMonthlyLimit"] is None
 
 
 def test_premium_reports_included(ts_limits: dict, py_limits: dict) -> None:
-    assert py_limits["premium"]["detailedReportsMonthlyIncluded"] == 5
-    assert ts_limits["premium"]["detailedReportsMonthlyIncluded"] == 5
-    assert py_limits["premium"]["poruthamReportsMonthlyIncluded"] == 3
-    assert ts_limits["premium"]["poruthamReportsMonthlyIncluded"] == 3
+    """1 + 1 a month (ARC-06, owner decision 2026-11-01)."""
+    assert py_limits["premium"]["detailedReportsMonthlyIncluded"] == 1
+    assert ts_limits["premium"]["detailedReportsMonthlyIncluded"] == 1
+    assert py_limits["premium"]["poruthamReportsMonthlyIncluded"] == 1
+    assert ts_limits["premium"]["poruthamReportsMonthlyIncluded"] == 1
 
 
 def test_premium_birth_profiles_unlimited(ts_limits: dict, py_limits: dict) -> None:

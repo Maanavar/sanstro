@@ -1,3 +1,4 @@
+import type { AccessState } from "../constants/tiers";
 import { getApiClient } from "./client";
 
 export interface RegisterResponse {
@@ -15,6 +16,9 @@ export interface MobileAuthResponse {
     /** Same fields as `MeResponse` — the backend sends an `AuthUserResponse` here. */
     tier: "registered" | "premium";
     openBeta: boolean;
+    accessState: AccessState;
+    trialEndsAt: string | null;
+    emailVerified: boolean;
   };
 }
 
@@ -42,6 +46,19 @@ export interface MeResponse {
    * Do not use it to gate routes.
    */
   consentRequired: boolean;
+  /**
+   * The address has been proven (verification link, or Google sign-in). The
+   * seven-day trial starts on verification; until then the client nudges and
+   * offers `resendVerificationEmail()`.
+   */
+  emailVerified: boolean;
+  /**
+   * free / trial / premium. Unlike `tier` this counts the trial and courtesy
+   * grants. Gate features through `effectiveTier(tier, openBeta, accessState)`.
+   */
+  accessState: AccessState;
+  /** When the trial ends (ISO-8601 UTC); null unless `accessState` is "trial". */
+  trialEndsAt: string | null;
   /**
    * NOT SENT BY THE BACKEND. There is no user display name anywhere in this
    * system: `users` has no such column, registration does not accept one, and
@@ -114,6 +131,22 @@ export function requestPasswordReset(email: string): Promise<PasswordResetDetail
 
 export function confirmPasswordReset(token: string, password: string): Promise<PasswordResetDetailResponse> {
   return getApiClient().post("/auth/reset-password/confirm", { token, password }) as Promise<PasswordResetDetailResponse>;
+}
+
+/** POST /auth/verify-email and /auth/verify-email/resend — app/api/auth.py. */
+export interface VerifyEmailResponse {
+  verified: boolean;
+  detail: string;
+}
+
+/** Confirm an address from the emailed link (`/login?verifyToken=…`). Unauthenticated. */
+export function confirmEmailVerification(token: string): Promise<VerifyEmailResponse> {
+  return getApiClient().post("/auth/verify-email", { token }) as Promise<VerifyEmailResponse>;
+}
+
+/** Send the verification link again to the signed-in account's address. Throttled. */
+export function resendVerificationEmail(): Promise<VerifyEmailResponse> {
+  return getApiClient().post("/auth/verify-email/resend") as Promise<VerifyEmailResponse>;
 }
 
 export interface SubscriptionInfo {

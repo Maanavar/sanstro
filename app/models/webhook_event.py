@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, Index, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -39,6 +39,8 @@ class WebhookEvent(Base, TimestampMixin):
     __table_args__ = (
         # The idempotency guarantee, held by the database.
         UniqueConstraint("provider", "event_id", name="uq_webhook_events_provider_event_id"),
+        # "What is stuck or unreconciled": a scan over status by arrival.
+        Index("ix_webhook_events_status_created", "status", "created_at"),
     )
 
     webhook_event_id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
@@ -72,3 +74,11 @@ class WebhookEvent(Base, TimestampMixin):
     #: the whole payload, and never the Authorization header — the module that
     #: writes this picks the fields explicitly rather than storing what arrived.
     payload: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+
+    #: Razorpay (spec L1): whether the HMAC over the raw body matched. A row
+    #: with False is evidence of a forged or misconfigured sender; it grants
+    #: nothing and is stored under a generated `event_id`, never the one the
+    #: request claimed, so a forger cannot pre-empt a real event's id.
+    signature_valid: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    #: Why processing refused or failed, when it did.
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)

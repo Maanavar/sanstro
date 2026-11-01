@@ -1,5 +1,5 @@
 import { getApiClient } from "./client";
-import type { BiText, KutaResult, NadiDoshaResult, ShashtashtakaNote } from "../types";
+import type { BiText, EkaNakshatraNote, KutaResult, NadiDoshaResult, ShashtashtakaNote } from "../types";
 
 export interface PoruthamShareBirthInput {
   birthDateLocal: string;
@@ -48,6 +48,7 @@ export interface PoruthamShareViewData {
    * exactly as not present.
    */
   shashtashtaka?: ShashtashtakaNote | null;
+  ekaNakshatra?: EkaNakshatraNote | null;
   summary: BiText;
   compatibilityContext: string;
   contextNote: BiText | null;

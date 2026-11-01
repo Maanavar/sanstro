@@ -512,14 +512,18 @@ def section_sevvai() -> str:
 The rulebook previously said "from the relevant reference", which is not a
 specification. What the engine does:
 
-**References checked — all three, independently:** Lagna, Moon, and Venus.
-Mars's whole-sign house is counted from each; a hit from any one of the three
-raises the condition, and each hit is recorded by name (`from_lagna`,
-`from_moon`, `from_venus`) so the read-out can say which reference fired.
+**References — the Lagna declares, the Moon and Venus grade (AAU-13, 2026-10-29):**
+Mars's whole-sign house is counted from each of the three and each hit is
+recorded by name (`from_lagna`, `from_moon`, `from_venus`). Only a Lagna hit
+declares the dosham: Lagna alone is mild, Lagna plus one is confirmed, all three
+is severe. A Moon- or Venus-only hit is noted, not declared.
 
-**House set (identical for all three references):**
-{{{", ".join(str(h) for h in sorted(YH.TAMIL_SEVVAI_HOUSES))}}} — including the
-1st, per the standard Tamil set (`docs/SEVVAIRAGU.MD` section 4.1).
+**House set (identical for all three references), `DoctrineOptions.sevvai_house_set`:**
+the default `tamil_five` is {{{", ".join(str(h) for h in sorted(YH.TAMIL_SEVVAI_HOUSES))}}}
+(owner ruling 2026-10-30, DOCTRINE_DECISIONS_V1 §18 Q5). Documented alternatives, never the
+default: `manglik_five` {{{", ".join(str(h) for h in sorted(YH.SEVVAI_HOUSE_SETS["manglik_five"]))}}}
+and `union_six` {{{", ".join(str(h) for h in sorted(YH.SEVVAI_HOUSE_SETS["union_six"]))}}}, the two
+enumerations added together, which was the engine's set until this ruling.
 
 **Gender-weighted houses — astrologer / porutham view only** (DD-05, v1.3). They
 are recorded in `DoshamResult.astrologer_markers` and never reach a consumer
@@ -536,6 +540,10 @@ Mesham/Viruchigam Lagna (major; open item O-18); benefic
 association from {{{", ".join(sorted(YH.SEVVAI_BENEFIC_REDUCERS))}}}; and the
 house-sign nivarthi table below. Two uncancelled charts cancel each other
 (`_apply_mutual_sevvai_cancellation`).
+
+**Ruchaka on the same Mars (owner ruling 2026-10-30, §18 B):** both verdicts
+stand at full weight (O-18: strength never cancels), and the card carries the
+context note `sevvai_mars_strength_both_ways` saying why. No `cancelled` state.
 
 **Nivarthi (house-specific sign exemption):**
 

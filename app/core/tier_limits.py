@@ -48,7 +48,8 @@ TIER_LIMITS: dict[str, TierLimits] = {
         family_vault_profiles_max=0,
         goals_max=0,
         rasi_palan_window_days=0,
-        ask_vinaadi_daily_limit=2,
+        # Ask needs a saved chart and a signed-in account; a guest has neither (ARC-07).
+        ask_vinaadi_daily_limit=0,
         ask_vinaadi_monthly_limit=None,
         ask_vinaadi_topup_enabled=False,
         dasha_depth="none",
@@ -75,7 +76,7 @@ TIER_LIMITS: dict[str, TierLimits] = {
         family_vault_profiles_max=1,
         goals_max=3,
         rasi_palan_window_days=7,
-        ask_vinaadi_daily_limit=7,
+        ask_vinaadi_daily_limit=2,
         ask_vinaadi_monthly_limit=None,
         ask_vinaadi_topup_enabled=False,
         dasha_depth="current_only",
@@ -102,12 +103,14 @@ TIER_LIMITS: dict[str, TierLimits] = {
         family_vault_profiles_max=5,
         goals_max=math.inf,
         rasi_palan_window_days=30,
-        ask_vinaadi_daily_limit=None,
-        ask_vinaadi_monthly_limit=30,
+        ask_vinaadi_daily_limit=5,
+        ask_vinaadi_monthly_limit=None,
         ask_vinaadi_topup_enabled=True,
         dasha_depth="full",
-        detailed_reports_monthly_included=5,
-        porutham_reports_monthly_included=3,
+        # 1 + 1, not 5 + 3: ~₹790 of reports inside a ₹149 plan would leave
+        # nobody a reason to buy one (ARC-06, owner decision 2026-11-01).
+        detailed_reports_monthly_included=1,
+        porutham_reports_monthly_included=1,
         ads_enabled=False,
         annual_wrapped_enabled=True,
         annual_wrapped_share_enabled=True,
@@ -133,14 +136,32 @@ TIER_LIMITS: dict[str, TierLimits] = {
 # anyone buys, and TIER_LIMITS is pinned to tiers.ts by tests/test_tier_parity.py.
 #
 # The one departure is Ask Vinaadi. It is the only feature that costs money per
-# call, so it keeps a daily fair-use cap instead of premium's monthly allowance,
-# and that cap is the registered one — the beta costs no more per user than the
-# free tier already did.
+# call, so it keeps a daily fair-use cap with no top-up. The cap is pinned at 7,
+# the figure beta users have had all along: the 2026-11-01 ladder (registered
+# 2/day, premium 5/day) applies from launch, and the beta must not see it early.
+OPEN_BETA_ASK_DAILY_LIMIT = 7
+
 OPEN_BETA_LIMITS = replace(
     TIER_LIMITS["premium"],
-    ask_vinaadi_daily_limit=TIER_LIMITS["registered"].ask_vinaadi_daily_limit,
+    ask_vinaadi_daily_limit=OPEN_BETA_ASK_DAILY_LIMIT,
     ask_vinaadi_monthly_limit=None,
     ask_vinaadi_topup_enabled=False,
+)
+
+
+# Trial — seven days of Premium's features from email verification (D-07,
+# ARC-08). Not a TIER_LIMITS key for the same reason as the beta: nobody buys
+# it. Premium's features cost nothing to serve; Ask and included reports do, so
+# the trial gets Ask at 3/day with no top-up, and no included reports.
+TRIAL_ASK_DAILY_LIMIT = 3
+
+TRIAL_LIMITS = replace(
+    TIER_LIMITS["premium"],
+    ask_vinaadi_daily_limit=TRIAL_ASK_DAILY_LIMIT,
+    ask_vinaadi_monthly_limit=None,
+    ask_vinaadi_topup_enabled=False,
+    detailed_reports_monthly_included=0,
+    porutham_reports_monthly_included=0,
 )
 
 

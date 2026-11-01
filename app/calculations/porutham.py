@@ -18,12 +18,12 @@ The 10 Poruthams (Tamil → calculation rule):
   1. Dinam      (தினம்)           — count boy's nak from girl's (1-based, 1-27); pass only for the classical good-count table (incl. the 9th/18th counts, Parama Mitra tara)
   2. Ganam      (கணம்)            — Deva/Manushya/Rakshasa; Deva+Deva or Deva+Manushya = pass
   3. Mahendra   (மகேந்திரம்)      — count boy's nak from girl's; pass if result ∈ {4,7,10,13,16,19,22,25}
-  4. Stree Dirgham (ஸ்திரீ தீர்கம்) — count boy's nak from girl's; 1–7 Adhama,
+  4. Stree Dirgham (ஸ்திரீ தீர்க்கம்) — count boy's nak from girl's; 1–7 Adhama,
      8–13 Madhyama (0.5), 14–27 Uttama
   5. Yoni       (யோனி)            — same or neutral animal pair = pass; hostile pair = fail
   6. Rasi       (ராசி)            — pass unless 6th or 8th position (Shashtashtaka) between rasis
   7. Rasiyathipathi (ராசியாதிபதி) — FAIL if either rasi lord regards the other as an enemy (one-way enmity fails)
-  8. Vasya      (வாஸ்யம்)         — at least one rasi must be vasya of the other
+  8. Vasya      (வசியம்)          — at least one rasi must be vasya of the other
   9. Rajju      (ரஜ்ஜு)          — same Rajju group = VETO (see RAJJU_SOURCE_TEXT_CATEGORY)
  10. Vedha      (வேதை)           — Vedha nakshatra pair = VETO
 
@@ -189,6 +189,12 @@ _NADI_CYCLE = ("AADHI", "MADHYA", "ANTHYA", "ANTHYA", "MADHYA", "AADHI")
 _NAKSHATRA_NADI: dict[int, str] = {
     n: _NADI_CYCLE[(n - 1) % 6] for n in range(1, 28)
 }
+
+
+def nakshatra_nadi(nakshatra_number: int) -> str:
+    """The star's nadi ("AADHI" / "MADHYA" / "ANTHYA"). The one table: the chart
+    payload's nadi reads it too, so it cannot contradict the Nadi porutham."""
+    return _NAKSHATRA_NADI[nakshatra_number]
 
 # ---------------------------------------------------------------------------
 # Graha Maitri (planet friendship) table — Parashari Permanent Friendship
@@ -628,6 +634,106 @@ def shashtashtaka_relation(boy_rasi: int, girl_rasi: int) -> ShashtashtakaNote:
     )
 
 
+# ---------------------------------------------------------------------------
+# F-POR-03 — ஏக நட்சத்திரம் (same birth star), ruled 2026-10-13
+#
+# The ruling approved a dedicated assessment, separate from Dinam and Rajju, and
+# HELD its data: the star+pada classification table (uttama / madhyama /
+# prohibited). Sources disagree on Anusham and Uthirattathi, and "I would not
+# hardcode an UTTAMA list from memory or a single website." So what is built is
+# the assessment and its disclosure with **no exception applied**:
+#
+# * `classification` is always None and `rajju_exception_applied` always False
+#   until a named source supplies the table (OPEN_ITEMS 1C);
+# * Rajju is untouched — *"Do not falsify the Rajju calculation to produce a
+#   pass. Preserve both findings."* A same-star couple still fails Rajju, still
+#   reads CAUTION, and now also gets this note saying why that is not the whole
+#   story.
+#
+# English and Tamil below are Vinaadi's draft, NOT native-reviewed (§8).
+# ---------------------------------------------------------------------------
+
+_EKA_LABEL_EN = "Same birth star (Eka Nakshatra) — further examination advised"
+_EKA_LABEL_TA = "ஏக நட்சத்திரம் — மேலாய்வு தேவை"
+
+_EKA_NOTE_EN = (
+    "Both were born under the same nakshatra. Tamil marriage-matching practice "
+    "assesses this on its own, apart from Rajju, by each person's pada and by how "
+    "the tradition classes that star. Those classes differ between traditions, and "
+    "Vinaadi has not yet confirmed them from a named text, so no exception is "
+    "applied here and the Rajju result stands as calculated. An experienced "
+    "astrologer can say how your tradition treats this star."
+)
+_EKA_NOTE_TA = (
+    "இருவரும் ஒரே நட்சத்திரத்தில் பிறந்தவர்கள். தமிழ்த் திருமணப் பொருத்த மரபில் இது "
+    "ரஜ்ஜுவிலிருந்து தனியாக, இருவரின் பாதத்தையும் அந்த நட்சத்திரத்தை மரபு எவ்வாறு "
+    "வகைப்படுத்துகிறது என்பதையும் கொண்டு ஆராயப்படுகிறது. அந்த வகைப்பாடு மரபுக்கு மரபு "
+    "வேறுபடுகிறது; பெயர் குறிப்பிடப்பட்ட நூலிலிருந்து விநாடி அதை இன்னும் "
+    "உறுதிப்படுத்தவில்லை. எனவே இங்கு எந்த விதிவிலக்கும் வழங்கப்படவில்லை; ரஜ்ஜு முடிவு "
+    "கணக்கிட்டபடியே உள்ளது. உங்கள் மரபில் இந்த நட்சத்திரம் எவ்வாறு கருதப்படுகிறது "
+    "என்பதை அனுபவமுள்ள ஜோதிடரிடம் கேட்கலாம்."
+)
+_EKA_PADA_UNKNOWN_EN = "The birth padas are not known here; a full birth chart gives them."
+_EKA_PADA_UNKNOWN_TA = "பிறந்த பாதங்கள் இங்கு தெரியவில்லை; முழு ஜாதகம் அவற்றைத் தரும்."
+
+
+def eka_nakshatra_assessment(
+    boy_nakshatra: int,
+    girl_nakshatra: int,
+    boy_pada: int,
+    girl_pada: int,
+    *,
+    pada_known: bool,
+) -> EkaNakshatraNote:
+    """ஏக நட்சத்திரம் — both partners share the birth star. Disclosure only.
+
+    Changes no number: not `_rajju_score`, not any kuta, not `total_score`, the
+    band label or the veto. See the block comment above for why.
+
+    `pada_known` is the caller's word that the padas are *birth* padas. The
+    by-star route cannot give it: it sends 1 or 4 to mean "which half of the
+    star" and 3 when the user did not say, so a same-pada claim from those would
+    be a default dressed up as a fact. When False the padas are reported as
+    unknown rather than guessed.
+    """
+    present = boy_nakshatra == girl_nakshatra
+    if not present:
+        return EkaNakshatraNote(
+            present=False, boy_pada=None, girl_pada=None, same_pada=None,
+            classification=None, rajju_exception_applied=False,
+            label_en="", label_ta="", note_en="", note_ta="",
+        )
+
+    if pada_known:
+        same = boy_pada == girl_pada
+        if same:
+            pada_en = f"Birth padas: both {boy_pada}, the same pada."
+            pada_ta = f"பிறந்த பாதம்: இருவருக்கும் {boy_pada}, ஒரே பாதம்."
+        else:
+            pada_en = f"Birth padas: {boy_pada} and {girl_pada}, different padas."
+            pada_ta = f"பிறந்த பாதங்கள்: {boy_pada}, {girl_pada}, வேறு பாதங்கள்."
+        boy_p: int | None = boy_pada
+        girl_p: int | None = girl_pada
+        same_pada: bool | None = same
+    else:
+        pada_en, pada_ta = _EKA_PADA_UNKNOWN_EN, _EKA_PADA_UNKNOWN_TA
+        boy_p = girl_p = None
+        same_pada = None
+
+    return EkaNakshatraNote(
+        present=True,
+        boy_pada=boy_p,
+        girl_pada=girl_p,
+        same_pada=same_pada,
+        classification=None,
+        rajju_exception_applied=False,
+        label_en=_EKA_LABEL_EN,
+        label_ta=_EKA_LABEL_TA,
+        note_en=f"{_EKA_NOTE_EN} {pada_en}",
+        note_ta=f"{_EKA_NOTE_TA} {pada_ta}",
+    )
+
+
 def _graha_maitri_kuta(rasi_boy: int, rasi_girl: int) -> int:
     """Rasiyathipathi: FAIL if either rasi lord considers the other an enemy."""
     lb = SIGN_LORD[rasi_boy]
@@ -742,6 +848,29 @@ class ShashtashtakaNote:
 
 
 @dataclass(frozen=True, slots=True)
+class EkaNakshatraNote:
+    """ஏக நட்சத்திரம் (F-POR-03): the two partners share a birth star.
+
+    A disclosure, never a verdict — see `eka_nakshatra_assessment`. The pada
+    fields are None when the caller had no birth pada (`pada_known=False`).
+    """
+
+    present: bool
+    boy_pada: int | None
+    girl_pada: int | None
+    same_pada: bool | None
+    #: The star+pada class from a named source. Always None today: the table is
+    #: held (ASTROLOGER_RULINGS_2026-10-13 F-POR-03).
+    classification: str | None
+    #: Always False today, for the same reason. Rajju is never altered here.
+    rajju_exception_applied: bool
+    label_en: str
+    label_ta: str
+    note_en: str
+    note_ta: str
+
+
+@dataclass(frozen=True, slots=True)
 class PorutthamResult:
     kutas: list[KutaResult]
     total_score: float  # 0–10, in halves (a .5 can only come from a madhyama)
@@ -757,6 +886,9 @@ class PorutthamResult:
     #: `total_score`, `label` or the veto. A consumer that renders it must render
     #: it as a note beside the Rasi row, not as a verdict.
     shashtashtaka: ShashtashtakaNote
+    #: F-POR-03. Disclosure only, like `shashtashtaka`; a consumer renders it
+    #: beside the Rajju row. No exception is applied while the table is held.
+    eka_nakshatra: EkaNakshatraNote
 
 
 # ---------------------------------------------------------------------------
@@ -956,6 +1088,7 @@ def compute_porutham(
     girl_rasi: int,
     boy_pada: int = 1,
     girl_pada: int = 1,
+    pada_known: bool = False,
     nadi_parihara_mode: str = "strict",
 ) -> PorutthamResult:
     """
@@ -969,6 +1102,10 @@ def compute_porutham(
         feeds the Nadi "same nakshatra, different pada" Classical Exception
         (A-9 v2). Defaults to 1/1 (conservative: never spuriously grants the
         exception) when the caller doesn't have real pada data.
+    pada_known                     : True only when both padas come from a
+        computed Moon position. The eka-nakshatra note states the padas only
+        then; False (the default) reports them as unknown rather than echoing
+        a default or a "which half" marker as a birth pada.
     nadi_parihara_mode             : "strict" (default) | "classical_lenient"
         — resolved by the caller from the `nadi_parihara_mode` feature flag;
         this module deliberately does not read flags itself (calculations
@@ -990,8 +1127,9 @@ def compute_porutham(
 
     _names_ta = {
         "Dinam": "தினம்", "Ganam": "கணம்", "Mahendra": "மகேந்திரம்",
-        "Stree Dirgha": "ஸ்திரீ தீர்கம்", "Yoni": "யோனி", "Rasi": "ராசி",
-        "Graha Maitri": "ராசியாதிபதி", "Vasya": "வாஸ்யம்",
+        # Almanac spellings (AAU-18, 2026-10-29): வசியம், ஸ்திரீ தீர்க்கம்.
+        "Stree Dirgha": "ஸ்திரீ தீர்க்கம்", "Yoni": "யோனி", "Rasi": "ராசி",
+        "Graha Maitri": "ராசியாதிபதி", "Vasya": "வசியம்",
         "Rajju": "ரஜ்ஜு", "Vedha": "வேதை",
     }
 
@@ -1209,4 +1347,7 @@ def compute_porutham(
         summary_en=summary_en,
         summary_ta=summary_ta,
         shashtashtaka=shashtashtaka_relation(boy_rasi, girl_rasi),
+        eka_nakshatra=eka_nakshatra_assessment(
+            boy_nakshatra, girl_nakshatra, boy_pada, girl_pada, pada_known=pada_known
+        ),
     )

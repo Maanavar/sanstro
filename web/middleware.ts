@@ -4,9 +4,10 @@ import {
   analyticsOrigin,
   buildSecurityHeaders,
   createNonce,
+  isCheckoutPath,
   isEmbeddablePath,
 } from "@/lib/security-headers";
-import { NEXT_PARAM } from "@/lib/auth-redirect";
+import { NEXT_PARAM, isSignedInPath } from "@/lib/auth-redirect";
 import { LANG_COOKIE_NAME } from "@/lib/lang-core";
 import { LANG_HEADER, PATHNAME_HEADER, TA_PREFIX, isTaReady, splitLangPrefix } from "@/lib/ta-routes";
 
@@ -27,11 +28,12 @@ export async function middleware(request: NextRequest) {
       request.headers.get("x-forwarded-proto") === "https" ||
       request.nextUrl.protocol === "https:",
     embeddable: isEmbeddablePath(pathname),
+    checkout: isCheckoutPath(pathname),
     analyticsOrigin: analyticsOrigin(process.env),
   });
 
   const token = request.cookies.get("vinaadi_token")?.value;
-  const protectedPath = pathname.startsWith("/dashboard") || pathname.startsWith("/admin");
+  const protectedPath = isSignedInPath(pathname);
 
   // Next reads the nonce out of the CSP on the *request* headers to stamp its
   // own bootstrap and chunk <script> tags. Without this half, every Next-emitted

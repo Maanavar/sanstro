@@ -21,8 +21,8 @@ if TYPE_CHECKING:
     from app.calculations.compatibility_intelligence import (
         SevvaiDoshamDetail as CalcSevvaiDoshamDetail,
     )
+    from app.calculations.porutham import EkaNakshatraNote, ShashtashtakaNote
     from app.calculations.porutham import KutaResult as CalcKutaResult
-    from app.calculations.porutham import ShashtashtakaNote
 
 from app.calculations.astro import NAKSHATRA_NAMES, utc_datetime_to_julian_day
 from app.calculations.ephemeris import calculate_sidereal_planets
@@ -42,6 +42,7 @@ from app.schemas.relationships import (
     DirectPoruthamResponse,
     DirectSynastryData,
     DirectSynastryResponse,
+    EkaNakshatraData,
     EmotionalCompatibility,
     KutaResult,
     NadiDoshaData,
@@ -60,7 +61,7 @@ from app.schemas.relationships import (
     SynastryResponse,
 )
 from app.services.chart_service import load_persisted_chart_response
-from app.services.feature_flags import get_flag
+from app.services.feature_flags import current_doctrine_options, get_flag
 from app.services.location_service import local_noon_as_utc_for_profile
 
 _CALC_VERSION = "jothidam-formula-engine-v1.0-2026"
@@ -609,11 +610,11 @@ _CONTEXT_NOTE: dict[str, dict[str, str]] = {
         "en": "Friendship context: Dina, Gana, Rasi, Graha Maitri, and Vedha factors are evaluated.",
     },
     "BUSINESS": {
-        "ta": "தொழில் பொருத்தம்: கணம், மஹேந்திரம், ராசி, கிரக மைத்திரி, வாஸ்யம் மூலம் கூட்டாண்மை திறன் மதிப்பிடப்படுகிறது.",
+        "ta": "தொழில் பொருத்தம்: கணம், மகேந்திரம், ராசி, கிரக மைத்திரி, வசியம் மூலம் கூட்டாண்மை திறன் மதிப்பிடப்படுகிறது.",
         "en": "Business context: Gana, Mahendra, Rasi, Graha Maitri, and Vasya factors evaluate partnership potential.",
     },
     "FAMILY": {
-        "ta": "குடும்ப பொருத்தம்: ராசி, கணம், வாஸ்யம், கிரக மைத்திரி, வேதை மூலம் ஒற்றுமை மதிப்பிடப்படுகிறது.",
+        "ta": "குடும்ப பொருத்தம்: ராசி, கணம், வசியம், கிரக மைத்திரி, வேதை மூலம் ஒற்றுமை மதிப்பிடப்படுகிறது.",
         "en": "Family context: Rasi, Gana, Vasya, Graha Maitri, and Vedha factors evaluate harmony.",
     },
     "GENERAL": {
@@ -656,6 +657,7 @@ class ContextualizedPorutham(TypedDict):
     vedha_dosha: bool
     nadi_dosha: dict[str, object]
     shashtashtaka: ShashtashtakaNote
+    eka_nakshatra: EkaNakshatraNote | None
     summary: RelationshipBiText
 
 
@@ -720,8 +722,18 @@ def _contextualize_porutham_result(result, compatibility_context: str) -> Contex
         # contextualiser trims which kutas a non-marriage context shows, and a
         # 6/8 note belongs to the Rasi row, so it rides along with it.
         "shashtashtaka": result.shashtashtaka,
+        # F-POR-03. Its note is about the Rajju row ("the Rajju result stands"),
+        # so it goes only where this context shows Rajju.
+        "eka_nakshatra": (
+            result.eka_nakshatra if any(k.name == "Rajju" for k in selected) else None
+        ),
         "summary": summary,
     }
+
+
+def _eka_nakshatra_data(note: Any) -> EkaNakshatraData | None:
+    """Engine `EkaNakshatraNote` (or None, where the context hides Rajju) -> wire."""
+    return EkaNakshatraData.from_note(note) if note is not None else None
 
 
 def _shashtashtaka_data(note: Any) -> ShashtashtakaData:
@@ -762,6 +774,7 @@ def compare_chart_snapshots_direct(
         girl_rasi=girl_moon.rasi,
         boy_pada=boy_moon.pada,
         girl_pada=girl_moon.pada,
+        pada_known=True,
         nadi_parihara_mode=get_flag("nadi_parihara_mode"),
     )
     shaped = _contextualize_porutham_result(result, compatibility_context)
@@ -796,6 +809,7 @@ def compare_chart_snapshots_direct(
         vedha_dosha=shaped["vedha_dosha"],
         nadi_dosha=NadiDoshaData(**shaped["nadi_dosha"]),
         shashtashtaka=_shashtashtaka_data(shaped["shashtashtaka"]),
+        eka_nakshatra=_eka_nakshatra_data(shaped["eka_nakshatra"]),
         summary=shaped["summary"],
         compatibility_context=compatibility_context,
         context_note=RelationshipBiText(ta=note_ta, en=note_en),
@@ -825,6 +839,7 @@ def build_compatibility_intelligence_from_snapshots(
         girl_rasi=girl_moon.rasi,
         boy_pada=boy_moon.pada,
         girl_pada=girl_moon.pada,
+        pada_known=True,
         nadi_parihara_mode=get_flag("nadi_parihara_mode"),
     )
     synastry_data = compute_synastry_score(snap_a, snap_b)
@@ -841,6 +856,8 @@ def build_compatibility_intelligence_from_snapshots(
         today_jd=today_jd,
         person_a_name=name_a,
         person_b_name=name_b,
+        # The same live doctrine the chart's own dosham card reads (AAU-05).
+        doctrine=current_doctrine_options(),
     )
 
     nadi = porutham_result.nadi_dosha
@@ -925,6 +942,7 @@ def build_compatibility_intelligence_from_snapshots(
         # own, and the note must not be recomputed from the rasis here — one
         # derivation, in `shashtashtaka_relation`.
         shashtashtaka=_shashtashtaka_data(porutham_result.shashtashtaka),
+        eka_nakshatra=_eka_nakshatra_data(porutham_result.eka_nakshatra),
         chart_a_strength=_cms_schema(ci.chart_a_strength),
         chart_b_strength=_cms_schema(ci.chart_b_strength),
         navamsa=NavamsaCompatibility(
@@ -1038,6 +1056,7 @@ def get_porutham_for_member(
         girl_rasi=girl_moon.rasi,
         boy_pada=boy_moon.pada,
         girl_pada=girl_moon.pada,
+        pada_known=True,
         nadi_parihara_mode=get_flag("nadi_parihara_mode"),
     )
     shaped = _contextualize_porutham_result(result, compatibility_context)
@@ -1077,6 +1096,7 @@ def get_porutham_for_member(
         vedha_dosha=shaped["vedha_dosha"],
         nadi_dosha=NadiDoshaData(**shaped["nadi_dosha"]),
         shashtashtaka=_shashtashtaka_data(shaped["shashtashtaka"]),
+        eka_nakshatra=_eka_nakshatra_data(shaped["eka_nakshatra"]),
         summary=shaped["summary"],
         compatibility_context=compatibility_context,
         context_note=RelationshipBiText(ta=note_ta, en=note_en),
