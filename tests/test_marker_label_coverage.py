@@ -65,6 +65,12 @@ _NOT_MARKERS = frozenset(
         "tamil_five",
         "manglik_five",
         "union_six",
+        # `DoshamResult.parihara` and `.progeny_outlook` values (V1 §18 Q13,
+        # Q17). Separate fields, never in conditions_met/cancellation_factors;
+        # the panel branches on `assessment.parihara` and never calls
+        # markerLabel on either.
+        "objective_only",
+        "needs_attention",
         # DD-05 (DOCTRINE_DECISIONS v1.3): `DoshamResult.astrologer_markers` is
         # a THIRD list, separate from conditions_met/cancellation_factors, and
         # is never rendered by this panel by design — it is the astrologer /

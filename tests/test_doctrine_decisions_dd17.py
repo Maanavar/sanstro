@@ -217,8 +217,12 @@ def test_kalathra_uses_the_shared_strength_scale_and_names_the_graha() -> None:
     assert "VENUS" not in result.description_ta and "சுக்கிரன்" in result.description_ta
 
 
-def test_putra_sarpa_mitigated_reads_weak_with_a_residual() -> None:
-    result = detect_putra_sarpa_dosham({"SUN": 9, "RAHU": 5, "JUPITER": 4}, 1, {"SUN": 30})
-    assert result.is_cancelled is True  # Guru in Kadagam: a kendra
+def test_putra_sarpa_protection_lowers_one_grade_and_never_cancels() -> None:
+    # V1 §18 Q11-Q12 (superseding DD-17's cancellation here). Mesham lagna: Rahu
+    # in Simmam (the 5th) declares; Ketu beside the 5th lord (Sun, Kumbam) is one
+    # leg, so it forms PARTIAL; Guru in Kadagam (a kendra) lowers it to WEAK.
+    result = detect_putra_sarpa_dosham({"SUN": 11, "RAHU": 5, "KETU": 11, "JUPITER": 4}, 1, {"SUN": 30})
+    assert result.is_present is True and result.is_cancelled is False
+    assert result.formation_strength == "PARTIAL"
     assert result.strength == "WEAK"
-    assert result.formation_strength == "STRONG" and result.residual == "MODERATE"
+    assert result.cancellation_factors == ["jupiter_in_kendra_house_4"]

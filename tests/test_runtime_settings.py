@@ -11,10 +11,10 @@ from uuid import UUID
 
 import pytest
 
-from app.core.kill_switch import KILL_SWITCHES
 from app.db.session import SessionLocal
 from app.models.runtime_setting import RuntimeSetting, RuntimeSettingChange
 from app.services import feature_flags
+from app.services.kill_switch import KILL_SWITCHES
 from tests.conftest import TEST_USER_ID
 
 ACTOR = UUID(TEST_USER_ID)

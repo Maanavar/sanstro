@@ -4,6 +4,7 @@ from __future__ import annotations
 from collections.abc import Collection, Iterable, Mapping
 from dataclasses import replace
 
+from app.calculations._yoga_detect import detect_pancha_mahapurusha
 from app.calculations._yoga_helpers import (
     FEMALE_HIGH_ATTENTION_SEVVAI_HOUSES,
     HOUSE_SIGN_NIVARTHI,
@@ -29,7 +30,6 @@ from app.calculations._yoga_helpers import (
     _planets_as_rasi_map,
     dosham_residual,
 )
-from app.calculations._yoga_detect import detect_pancha_mahapurusha
 from app.calculations.aspects import aspects_house, effective_natural_class
 from app.calculations.astro import house_from_reference
 from app.calculations.chart_strength import DEBILITATION_RASI, EXALTATION_RASI, OWN_SIGN_RASI, SIGN_LORD

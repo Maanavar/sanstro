@@ -20,7 +20,6 @@ from app.core.age_gate import (
     is_young_child,
 )
 from app.core.auth import get_current_user
-from app.core.kill_switch import require_switch
 from app.db.session import get_db
 from app.models import BirthProfile, Chart
 from app.models.user import User
@@ -38,6 +37,7 @@ from app.services.ask_vinaadi_usage_service import (
     refund_chip,
     reserve_chip,
 )
+from app.services.kill_switch import require_switch
 
 router = APIRouter()
 

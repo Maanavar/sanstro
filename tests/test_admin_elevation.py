@@ -27,6 +27,7 @@ from uuid import uuid4
 import pytest
 from fastapi.params import Depends as DependsParam
 
+from app.core import totp
 from app.core.auth import (
     ADMIN_ELEVATION_HEADER,
     TOKEN_TYPE_ACCESS,
@@ -37,7 +38,6 @@ from app.core.auth import (
     get_current_user,
     get_elevated_admin_user,
 )
-from app.core import totp
 from app.db.session import SessionLocal
 from app.main import app
 from app.models.admin_mfa import AdminMfaCredential

@@ -20,7 +20,8 @@ from fastapi import HTTPException
 from sqlalchemy import select
 
 from app.constants.versions import CHART_CALCULATION_VERSION
-from app.core.tier_limits import ask_vinaadi_limit_for_tier
+from app.core.subscription import limits_for_user
+from app.core.tier_limits import ask_vinaadi_limits
 from app.db.session import SessionLocal
 from app.models.ask_vinaadi_usage import AskVinaadiUsage
 from app.models.birth_profile import BirthProfile
@@ -28,8 +29,6 @@ from app.models.daily_score import DailyScore
 from app.models.user import User
 from app.services.ask_vinaadi_usage_service import reserve_chip
 from app.services.birth_profile_service import apply_birth_profile_changes
-
-REGISTERED_DAILY_LIMIT = ask_vinaadi_limit_for_tier("registered")[0]
 
 # UTC-10 all year / UTC+14 all year: the same instant is two different days.
 ADAK = {"place": "Synthetic Adak", "lat": 51.88, "lng": -176.66, "tz": "America/Adak"}
@@ -63,10 +62,15 @@ def test_an_exhausted_quota_resets_at_kolkata_midnight(registered_user_id):
     Does not catch: a wrong accounting zone that happens to share IST's offset."""
     before = _FrozenClock("2026-01-31T18:29:59")
     after = _FrozenClock("2026-01-31T18:30:00")
+    # The limit this account is actually held to (the open beta lifts it above
+    # the registered tier's), so the test is about the clock, not the ladder.
+    with SessionLocal() as session:
+        daily_limit = ask_vinaadi_limits(limits_for_user(registered_user_id, session))[0]
+    assert daily_limit
     with SessionLocal() as session, session.begin():
         session.add(AskVinaadiUsage(
             id=uuid4(), user_id=registered_user_id,
-            usage_date=date(2026, 1, 31), chip_count=REGISTERED_DAILY_LIMIT,
+            usage_date=date(2026, 1, 31), chip_count=daily_limit,
         ))
 
     with SessionLocal() as session:
@@ -77,7 +81,7 @@ def test_an_exhausted_quota_resets_at_kolkata_midnight(registered_user_id):
 
     with SessionLocal() as session, session.begin():
         remaining = reserve_chip(session, registered_user_id, clock=after)
-    assert remaining == REGISTERED_DAILY_LIMIT - 1
+    assert remaining == daily_limit - 1
 
     with SessionLocal() as session:
         rows = {
@@ -86,7 +90,7 @@ def test_an_exhausted_quota_resets_at_kolkata_midnight(registered_user_id):
                 select(AskVinaadiUsage).where(AskVinaadiUsage.user_id == registered_user_id)
             ).scalars()
         }
-    assert rows == {date(2026, 1, 31): REGISTERED_DAILY_LIMIT, date(2026, 2, 1): 1}
+    assert rows == {date(2026, 1, 31): daily_limit, date(2026, 2, 1): 1}
 
 
 # --------------------------------------------------------------------------- #

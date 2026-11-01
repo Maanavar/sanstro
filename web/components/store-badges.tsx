@@ -1,5 +1,10 @@
 "use client";
 
+// ORPHANED 2026-11-01 — NOT IMPORTED ANYWHERE. Its one caller, the pricing
+// page, now sells Premium on the web (Razorpay, admin spec L1) and links to
+// /dashboard/upgrade instead. Kept for when the Play listing exists
+// (PLAY_STORE_URL); deletion is a separate, per-file decision.
+
 /**
  * Official store-badge assets. The multi-colour Google logo paths are brand
  * assets (Google's mandated colours), intentionally kept here rather than

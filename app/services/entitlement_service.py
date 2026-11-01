@@ -1,66 +1,41 @@
 """Entitlements: who has what access right now (admin spec L1, D-05, D-07).
 
-The one service that writes `entitlements` rows. `app.core.subscription`
-reads them, through `access_for_user`, to answer `limits_for_user` and
-`/auth/me`; nothing else should query the table for access decisions.
+The one service that writes `entitlements` rows. Reads live in
+`app.core.entitlement_access`, which `app.core.subscription` uses to answer
+`limits_for_user` and `/auth/me`; nothing else should query the table for
+access decisions.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from typing import Literal
 from uuid import UUID
 
-from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.entitlement_access import (
+    PREMIUM,
+    Access,
+    AccessState,
+    active_entitlements,
+    entitlement_access,
+)
 from app.models.entitlement import Entitlement
 from app.models.user import User
 
-PREMIUM = "premium"
+__all__ = [
+    "PREMIUM",
+    "TRIAL_LENGTH",
+    "Access",
+    "AccessState",
+    "active_entitlements",
+    "entitlement_access",
+    "has_had_trial",
+    "start_trial_if_eligible",
+]
 
 #: D-07: seven days of Premium from email verification.
 TRIAL_LENGTH = timedelta(days=7)
-
-AccessState = Literal["free", "trial", "premium"]
-
-
-@dataclass(frozen=True)
-class Access:
-    state: AccessState
-    #: When the trial ends; None unless state is "trial".
-    trial_ends_at: datetime | None = None
-
-
-def _active_filter(user_id: UUID, now: datetime) -> tuple:
-    return (
-        Entitlement.user_id == user_id,
-        Entitlement.revoked_at.is_(None),
-        Entitlement.starts_at <= now,
-        or_(Entitlement.ends_at.is_(None), Entitlement.ends_at > now),
-    )
-
-
-def active_entitlements(session: Session, user_id: UUID, *, now: datetime | None = None) -> list[Entitlement]:
-    """Unrevoked rows in force at `now`."""
-    at = now or datetime.now(UTC)
-    return session.query(Entitlement).filter(*_active_filter(user_id, at)).all()
-
-
-def entitlement_access(session: Session, user_id: UUID, *, now: datetime | None = None) -> Access:
-    """Access from entitlement rows alone (subscriptions are the caller's job).
-
-    A purchase or grant of `premium` outranks a trial, so a trial user who is
-    granted Premium sees "premium" at once, not at the trial's end.
-    """
-    premium_rows = [row for row in active_entitlements(session, user_id, now=now) if row.key == PREMIUM]
-    if any(row.source != "trial" for row in premium_rows):
-        return Access("premium")
-    trials = [row for row in premium_rows if row.source == "trial"]
-    if trials:
-        return Access("trial", trial_ends_at=trials[0].ends_at)
-    return Access("free")
 
 
 def has_had_trial(session: Session, user_id: UUID) -> bool:

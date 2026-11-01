@@ -24,7 +24,8 @@ def test_putra_sarpa_names_the_disturber_and_the_guard_separately() -> None:
     # Mesham lagna: 5th house Simmam, 5th lord Sun (in Dhanusu, unafflicted).
     # Rahu sits in Simmam; Guru in Kadagam (the 4th, a kendra) guards.
     result = detect_putra_sarpa_dosham({"SUN": 9, "RAHU": 5, "KETU": 11, "JUPITER": 4}, 1, {"SUN": 50})
-    assert result.is_present and result.is_cancelled
+    # V1 §18 Q12: a protection lowers the grade; it never cancels.
+    assert result.is_present and not result.is_cancelled
     assert result.conditions_met == ["fifth_house_has_rahu"]
     assert result.cancellation_factors == ["jupiter_in_kendra_house_4"]
     assert "What disturbs your 5th house (Simmam): Rahu in the house itself." in result.meaning_en
@@ -36,12 +37,20 @@ def test_putra_sarpa_names_the_disturber_and_the_guard_separately() -> None:
 
 
 def test_putra_sarpa_same_lord_on_both_sides_is_named_once() -> None:
-    # Rahu joins the 5th lord (Sun, in Dhanusu), and the Sun is strong.
-    result = detect_putra_sarpa_dosham({"SUN": 9, "RAHU": 9, "KETU": 3, "JUPITER": 2}, 1, {"SUN": 80})
-    assert result.conditions_met == ["fifth_lord_sun_joined_by_rahu"]
+    # Rahu in Simmam (the 5th) declares (V1 §18 Q11); Ketu joins the 5th lord
+    # (Sun, in Kumbam), and the Sun is strong, so the lord is on both sides.
+    result = detect_putra_sarpa_dosham({"SUN": 11, "RAHU": 5, "KETU": 11, "JUPITER": 2}, 1, {"SUN": 80})
+    assert result.conditions_met == ["fifth_house_has_rahu", "fifth_lord_sun_joined_by_ketu"]
     assert result.cancellation_factors == ["fifth_lord_sun_strong"]
-    assert "Rahu beside its lord, Sun" in result.meaning_en
+    assert "Ketu beside its lord, Sun" in result.meaning_en
     assert "the strength of that lord" in result.meaning_en
+
+
+def test_putra_sarpa_node_beside_the_lord_alone_declares_nothing() -> None:
+    # V1 §18 Q9: an escalating leg, never a declaration on its own.
+    result = detect_putra_sarpa_dosham({"SUN": 9, "RAHU": 9, "KETU": 3, "JUPITER": 2}, 1, {"SUN": 80})
+    assert result.is_present is False
+    assert result.cancellation_factors == []
 
 
 def test_putra_sarpa_unguarded_says_so_and_names_the_dasha() -> None:
@@ -139,7 +148,10 @@ def test_aau12_saturn_alone_forms_santhana_thadai_not_sarpa() -> None:
 
 def test_aau12_a_node_beside_guru_never_forms_santhana_thadai() -> None:
     chart = {"SUN": 9, "SATURN": 3, "RAHU": 6, "KETU": 12, "JUPITER": 6}
-    assert detect_putra_sarpa_dosham(chart, 1, {"SUN": 50}).conditions_met == ["jupiter_joined_by_rahu"]
+    # V1 §18 Q10: Guru in Kanni is not linked to the 5th (Simmam), so Rahu
+    # beside it is Guru Chandala, not a Putra Sarpa leg.
+    sarpa = detect_putra_sarpa_dosham(chart, 1, {"SUN": 50})
+    assert sarpa.is_present is False and sarpa.conditions_met == []
     assert detect_santhana_thadai(chart, 1, {"SUN": 50}).is_present is False
 
 

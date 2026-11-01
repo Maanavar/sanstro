@@ -27,7 +27,6 @@ from sqlalchemy.orm import Session
 from app.core.auth import create_access_token
 from app.core.auth_throttle import AuthThrottleAction, get_auth_throttler
 from app.core.config import get_settings
-from app.core.kill_switch import raise_if_paused
 from app.core.privacy_policy import CURRENT_POLICY_VERSION, consent_required_for
 from app.db.session import get_db
 from app.middleware import resolve_client_ip
@@ -36,6 +35,7 @@ from app.models.user import User
 from app.schemas.auth import AuthUserResponse, ConsentGiven, RegisterResponse, access_response_fields
 from app.services import account_lifecycle
 from app.services.email_service import enqueue_existing_account_registration_email
+from app.services.kill_switch import raise_if_paused
 
 router = APIRouter(prefix="/mobile", tags=["mobile-auth"])
 

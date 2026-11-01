@@ -21,12 +21,12 @@ from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user
 from app.core.config import get_settings
-from app.core.kill_switch import raise_if_paused
 from app.db.session import get_db
 from app.models.payment import Order
 from app.models.user import User
 from app.models.webhook_event import WebhookEvent
 from app.services import payment_service
+from app.services.kill_switch import raise_if_paused
 from app.services.razorpay_client import (
     RazorpayClient,
     RazorpayError,

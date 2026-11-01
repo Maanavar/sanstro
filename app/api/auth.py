@@ -24,7 +24,6 @@ from app.core.auth import (
 )
 from app.core.auth_throttle import AuthThrottleAction, get_auth_throttler
 from app.core.config import Settings, get_settings
-from app.core.kill_switch import raise_if_paused, switch_is_on
 from app.core.privacy_policy import CURRENT_POLICY_VERSION, consent_required_for
 from app.db.session import get_db
 from app.middleware import resolve_client_ip
@@ -60,6 +59,7 @@ from app.services.email_verification_service import (
     issue_verification_token,
     user_for_token,
 )
+from app.services.kill_switch import raise_if_paused, switch_is_on
 
 router = APIRouter()
 _COOKIE_NAME = "vinaadi_token"

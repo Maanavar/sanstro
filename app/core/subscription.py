@@ -13,9 +13,9 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
+from app.core.entitlement_access import Access, entitlement_access
 from app.core.tier_limits import OPEN_BETA_LIMITS, TIER_LIMITS, TRIAL_LIMITS, TierLimits
 from app.models.subscription import Subscription
-from app.services.entitlement_service import Access, entitlement_access
 
 # Tiers that do NOT grant premium access even when a row exists with status="active".
 # "trial" is intentionally absent — an active trial row grants premium access.

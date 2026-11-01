@@ -26,7 +26,6 @@ from app.calculations.numerology import ScriptMismatchError, analyze_object, bui
 from app.calculations.numerology_naming import NamingMode, UnverifiedCanonError
 from app.calculations.porutham import compute_porutham
 from app.constants.versions import CHART_CALCULATION_VERSION
-from app.core.kill_switch import require_switch
 from app.core.public_endpoint_limiter import public_endpoint_rate_limit
 from app.db.session import get_db
 from app.schemas.birth_profiles import validate_birth_date_bounds
@@ -64,6 +63,7 @@ from app.services.chart_service import (  # noqa: PLC2701 (internal use)
 )
 from app.services.dasha_service import get_chart_dasha_from_snapshot
 from app.services.feature_flags import get_flag
+from app.services.kill_switch import require_switch
 from app.services.numerology_naming_service import (
     UserNameQuery,
     baby_names_for_birth_details,

@@ -94,6 +94,9 @@ ENCRYPTED_COLUMNS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ),
     ("family_members", "family_member_id", ("date_of_birth_local",)),
     ("journal_entries", "journal_id", ("note_text",)),
+    # Admin TOTP seeds (admin spec L3). Missed here, every admin would lose
+    # their authenticator when the old key is dropped.
+    ("admin_mfa_credentials", "user_id", ("totp_secret",)),
 )
 
 _BATCH = 500

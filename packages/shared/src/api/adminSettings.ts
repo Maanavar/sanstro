@@ -47,7 +47,7 @@ export const adminSettingsPaths = {
   rollback: (changeId: string) => `/admin/flags/changes/${encodeURIComponent(changeId)}/rollback`,
 } as const;
 
-/** Kill switches (app/core/kill_switch.py). A name listed in `SiteStatus.paused` is off. */
+/** Kill switches (app/services/kill_switch.py). A name listed in `SiteStatus.paused` is off. */
 export type KillSwitch =
   | "enable_ask_vinaadi"
   | "enable_payments_checkout"

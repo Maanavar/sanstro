@@ -11,8 +11,8 @@ from sqlalchemy.orm import Session
 from app.core.age_gate import compute_age, get_blocked_life_modes
 from app.core.auth import get_admin_user
 from app.core.clock import accounting_date
-from app.core.permissions import require_permission
 from app.core.life_mode import DEFAULT_LIFE_MODE, FOCUS_TABLE
+from app.core.permissions import require_permission
 from app.db.session import get_db
 from app.models import BirthProfile, Chart, FamilyVault
 from app.models.ask_vinaadi_usage import AskVinaadiUsage

@@ -9,8 +9,8 @@ from __future__ import annotations
 from fastapi import APIRouter, Response
 from pydantic import BaseModel
 
-from app.core.kill_switch import KILL_SWITCHES, switch_is_on
 from app.services.feature_flags import get_flag
+from app.services.kill_switch import KILL_SWITCHES, switch_is_on
 
 router = APIRouter(tags=["site-status"])
 
