@@ -4,6 +4,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
+import pytest
 from sqlalchemy import select
 
 from app.db.session import SessionLocal
@@ -12,6 +13,14 @@ from app.models.notification_delivery import NotificationDelivery
 from app.services import notification_dispatch_service as dispatch
 
 TEST_USER_ID = UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+
+
+@pytest.fixture(autouse=True)
+def _outside_quiet_hours(monkeypatch) -> None:
+    # These tests read the real clock; between 21:00 and 08:00 IST quiet hours
+    # would defer every push past its one-hour expiry. Quiet hours have their
+    # own tests in test_messaging_safety.py.
+    monkeypatch.setattr(dispatch, "quiet_hours_release", lambda due_at, _tz: due_at)
 
 
 def _configure(channel: str, token: str | None = None) -> None:

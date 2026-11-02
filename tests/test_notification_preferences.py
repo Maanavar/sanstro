@@ -4,7 +4,19 @@ from __future__ import annotations
 from unittest.mock import patch
 from uuid import UUID
 
+import pytest
+
 TEST_USER_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+
+
+@pytest.fixture(autouse=True)
+def _outside_quiet_hours(monkeypatch) -> None:
+    # The dispatch tests read the real clock; between 21:00 and 08:00 IST quiet
+    # hours would defer the push past its expiry. Quiet hours have their own
+    # tests in test_messaging_safety.py.
+    from app.services import notification_dispatch_service
+
+    monkeypatch.setattr(notification_dispatch_service, "quiet_hours_release", lambda due_at, _tz: due_at)
 
 
 # ── Preference API tests ──────────────────────────────────────────────────────
