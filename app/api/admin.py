@@ -7,7 +7,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from pydantic import BaseModel
-from sqlalchemy import func, select, text, update
+from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
 from app.core.auth import (
@@ -20,6 +20,7 @@ from app.core.auth import (
 from app.core.auth_throttle import AuthThrottleAction, get_auth_throttler
 from app.core.clock import accounting_date
 from app.core.config import get_settings
+from app.core.errors import AppError
 from app.core.permissions import ROLE_PERMISSIONS, require_permission
 from app.db.session import get_db
 from app.middleware import resolve_client_ip
@@ -29,14 +30,13 @@ from app.models import (
     FamilyMember,
     FamilyVault,
     Feedback,
-    RelationshipAlert,
     Subscription,
     User,
 )
 from app.models.ask_vinaadi_usage import AskVinaadiUsage
-from app.models.family_daily_score import FamilyDailyScore
 from app.models.payment import Order, PaymentMismatch
 from app.models.prediction_log import PredictionLog
+from app.privacy.erasure import ErasureRefused, erase_user, export_user
 from app.reasoning.calibration import GradedPrediction, build_calibration_report
 from app.services import admin_mfa_service, admin_roles_service
 from app.services.audit_service import AuditEntry, audited
@@ -336,14 +336,16 @@ def reset_admin_mfa(
     return {"user_id": str(user_id), "reset": removed}
 
 
-class DataDeletionResult(BaseModel):
-    owner_user_id: str
-    deleted_at: str
-    birth_profiles_deleted: int
-    charts_deleted: int
-    family_vaults_deleted: int
-    family_members_deleted: int
-    family_daily_scores_deleted: int
+class ErasureResultOut(BaseModel):
+    """packages/shared/src/api/adminAudit.ts ErasureResult."""
+
+    #: The account is gone; this id is how the audit log names it from now on.
+    erasure_id: str
+    erased_at: str
+    #: Registry key -> rows deleted, detached or (accounting records) seen.
+    tables: dict[str, int]
+    #: External stores whose manual erasure step is now due (app/privacy/registry.py).
+    external_followups: list[str]
 
 
 class AdminStats(BaseModel):
@@ -501,104 +503,66 @@ def _count(model: object, session: Session) -> int:
 
 @router.delete(
     "/users/{owner_user_id}/data",
-    response_model=DataDeletionResult,
+    response_model=ErasureResultOut,
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(require_permission("privacy.erase"))],
-    summary="Delete all data for a user (GDPR erasure)",
+    summary="Erase an account and all its personal data (DPDP erasure)",
 )
 def delete_user_data(
     audit: Annotated[AuditEntry, audited("delete_user_data", target_type="user", reason_required=True)],
     owner_user_id: UUID,
     reason: str = "",
     session: Session = Depends(get_db),
-    _: User = Depends(get_elevated_admin_user),
-) -> DataDeletionResult:
+    admin: User = Depends(get_elevated_admin_user),
+) -> ErasureResultOut:
+    """Same effect as the person's own `DELETE /auth/me` (spec L5, decision 10).
+
+    The audit row names the person by the erasure pseudonym, as every earlier
+    row about them now does; per-store counts go in its details.
+    """
     audit.target_id = str(owner_user_id)
     audit.require_reason(reason)
     _assert_admin_delete_enabled()
-
-    user = session.get(User, owner_user_id)
-    if user is None:
-        raise HTTPException(status_code=404, detail=f"User '{owner_user_id}' not found.")
-
-    vault_ids = [
-        row[0]
-        for row in session.execute(
-            select(FamilyVault.family_vault_id).where(FamilyVault.owner_user_id == owner_user_id)
-        ).all()
-    ]
-    fds_deleted = 0
-    for vault_id in vault_ids:
-        alerts = session.execute(
-            select(RelationshipAlert).where(RelationshipAlert.vault_id == vault_id)
-        ).scalars().all()
-        for alert in alerts:
-            session.delete(alert)
-        rows = session.execute(
-            select(FamilyDailyScore).where(FamilyDailyScore.family_vault_id == vault_id)
-        ).scalars().all()
-        for row in rows:
-            session.delete(row)
-        fds_deleted += len(rows)
-
-    members = session.execute(
-        select(FamilyMember).where(FamilyMember.owner_user_id == owner_user_id)
-    ).scalars().all()
-    member_ids = [member.family_member_id for member in members]
-    if member_ids:
-        session.execute(
-            update(BirthProfile)
-            .where(BirthProfile.family_member_id.in_(member_ids))
-            .values(family_member_id=None)
-        )
-    for member in members:
-        session.delete(member)
-
-    vaults = session.execute(
-        select(FamilyVault).where(FamilyVault.owner_user_id == owner_user_id)
-    ).scalars().all()
-    for vault in vaults:
-        session.delete(vault)
-
-    profile_ids = [
-        row[0]
-        for row in session.execute(
-            select(BirthProfile.birth_profile_id).where(BirthProfile.owner_user_id == owner_user_id)
-        ).all()
-    ]
-    charts_deleted = 0
-    for profile_id in profile_ids:
-        charts = session.execute(select(Chart).where(Chart.birth_profile_id == profile_id)).scalars().all()
-        for chart in charts:
-            session.delete(chart)
-        charts_deleted += len(charts)
-
-    profiles = session.execute(
-        select(BirthProfile).where(BirthProfile.owner_user_id == owner_user_id)
-    ).scalars().all()
-    for profile in profiles:
-        session.delete(profile)
-
-    session.commit()
-    # Per-table counts (spec L4): what an erasure review checks first.
-    audit.details = {
-        "deleted": {
-            "birth_profiles": len(profiles),
-            "charts": charts_deleted,
-            "family_vaults": len(vaults),
-            "family_members": len(members),
-            "family_daily_scores": fds_deleted,
-        }
-    }
-    return DataDeletionResult(
-        owner_user_id=str(owner_user_id),
-        deleted_at=datetime.now(UTC).isoformat(),
-        birth_profiles_deleted=len(profiles),
-        charts_deleted=charts_deleted,
-        family_vaults_deleted=len(vaults),
-        family_members_deleted=len(members),
-        family_daily_scores_deleted=fds_deleted,
+    if owner_user_id == admin.user_id:
+        # The audit row would name an actor that no longer exists.
+        raise HTTPException(status_code=409, detail="Erase your own account from its settings, not the console.")
+    try:
+        result = erase_user(session, owner_user_id, via="admin")
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=f"User '{owner_user_id}' not found.") from exc
+    except ErasureRefused as exc:
+        raise AppError(exc.code) from exc
+    audit.target_id = result.pseudonym
+    audit.details = result.audit_details()
+    return ErasureResultOut(
+        erasure_id=str(result.erasure_id),
+        erased_at=result.erased_at.isoformat(),
+        tables=result.counts,
+        external_followups=result.external_followups,
     )
+
+
+@router.get(
+    "/users/{owner_user_id}/export",
+    dependencies=[Depends(require_permission("privacy.export"))],
+    summary="Export an account's personal data (DPDP access request)",
+)
+def export_user_data(
+    audit: Annotated[AuditEntry, audited("export_user_data", target_type="user", reason_required=True)],
+    owner_user_id: UUID,
+    reason: str = "",
+    session: Session = Depends(get_db),
+    _: User = Depends(get_elevated_admin_user),
+) -> dict[str, Any]:
+    """A reveal of everything held on the person, so elevated and reasoned (ARC-21)."""
+    audit.target_id = str(owner_user_id)
+    audit.require_reason(reason)
+    try:
+        data = export_user(session, owner_user_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=f"User '{owner_user_id}' not found.") from exc
+    audit.details = {"rows": {key: len(store["rows"]) for key, store in data["stores"].items() if store["rows"]}}
+    return data
 
 
 @router.get("/stats", response_model=AdminStats, summary="Aggregate record counts for admin dashboard", dependencies=[Depends(require_permission("overview.read"))])

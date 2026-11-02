@@ -242,7 +242,7 @@ container (not authoritative; CI is). Every migration below was round-tripped
 | 4 | **L1** core: ladder, trial, entitlements | Done. Ladder per §6 (Ask guest 0 / registered 2 / premium 5 a day; premium 1 + 1 reports); beta Ask pinned at 7; `TRIAL_LIMITS`; `entitlements` table (trial / purchase / grant, one trial per account enforced by a partial unique index); `limits_for_user` = premium → trial → beta → registered; `/auth/me` adds `accessState` + `trialEndsAt` (shared types, web, mobile `gateTier`). Dead `ask_vinaadi_daily_limit` flag/config removed. Pricing page copy fixed (ARC-11). Migration `xx7b8c9d0e1f`. | `test_trial_entitlements.py`, `test_tier_parity.py`, `test_open_beta.py` |
 | 4 | **L1** payments | Built, test mode only. `products` (seeded, prices as data), `orders`, `payments`, `refunds`, `credit_ledger`, `payment_mismatches`; `subscriptions` gains `provider_status` / `sku` / `cancel_at_period_end`; `webhook_events` gains `signature_valid` / `error`. Razorpay client over httpx; checkout (order + subscription), `/payments/confirm` (grants only on API confirmation), `/payments/razorpay/webhook` (HMAC over raw body, idempotent on `X-Razorpay-Event-Id`, inline), subscription lifecycle, refunds, nightly reconciliation (22:00 UTC = 03:30 IST), admin mismatch + order lists. Web `/dashboard/upgrade` with Razorpay Checkout; CSP widened on that route only. Migration `yy8c9d0e1f2a`. | `test_razorpay_payments.py` — all seven spec acceptance tests plus 15 more |
 | 3 | **L4** audit | Done (launch cut). `admin_audit_log` gains `actor_email`, `actor_role` (`service_key` for X-Admin-Key), `reason`, `outcome` (success / refused / error), `details` JSONB, `user_agent`, target index. One writer: every mutating admin route and the two personal-data reads (`GET /admin/users`, `/admin/users/{id}`) take `audited(...)` first, which writes one row per request on every outcome, commits the handler's session before "success" (ARC-20), and skips only the console's tokenless elevation prompt. Routes no longer call `log_admin_action`. Reason required on the nine destructive routes and destructive job runs (ARC-21). Append-only trigger: UPDATE/DELETE/TRUNCATE refused except actor nulling and `erased:` target pseudonymisation (ARC-19). `GET /admin/audit-log` filters by action, actor, target, outcome, date. Shared `adminAudit.ts`; console: Who/Outcome/Reason/Details columns, filters, reason inputs for suspend/reinstate, erasure and destructive jobs. Migration `ab0f1a2b3c4d`, round-tripped on scratch; applied to dev 2026-11-01 (backup first; legacy rows kept, DELETE refused, `alembic check` clean). Deferred per ARC-09: hash chain + verifier, CSV export. | `test_admin_audit.py` (structural, coverage over all 16 mutating routes, outcomes, reasons, DB guard, migration/model SQL parity) |
-| 5 | **L5** erasure | Not started. ADM-01 still open: `interpretation_outputs`, device tokens and feedback survive deletion. | — |
+| 5 | **L5** erasure | Done (launch cut, 2026-11-02). `app/privacy/registry.py` has 48 table stores (each with what it holds, how erasure treats it: delete, detach or keep, its retention and what export shows) plus 7 external processors as manual steps. One `erase_user` serves `DELETE /auth/me` and the console's `DELETE /admin/users/{id}/data`, which now removes the account itself (decision 10). Accounting records stay, detached: orders, subscriptions (now `SET NULL`, ARC-22), payments, refunds, webhook events. Audit rows: actor nulled, target rewritten to `erased:<tombstone id>`. Every erasure writes an `erasure_tombstones` row and an audit row with per-store counts. Refusals: ARC-23. Export: `GET /auth/me/export` (settings "Download my data") and `GET /admin/users/{id}/export` (elevated, reason, audited), ARC-27. `restore-dev-db.ps1` carries tombstones across a restore and replays them (`app.privacy.tombstones`). Migration `bc1d2e3f4a5b`, round-tripped on scratch (downgrade refuses while a detached subscription exists); applied to dev 2026-11-02 after backup `backup_20261102_1646.sql` (5 users, 4 profiles intact, `alembic check` clean). Deferred per §5: the readable Tamil/English summary, the `privacy_requests` table and UI (Zoho Desk meanwhile), and mobile export. | `test_account_deletion.py` (registry coverage walk; erase everything via each route, checked row by row; refusals; export; tombstone replay) |
 | 6–11 | L2, L7, L6, L9, L11 | Not started. | — |
 
 **Gates proven to fail with the fix removed** (CLAUDE.md): permission declared per route, the MFA
@@ -256,6 +256,13 @@ placed after the elevation guard (ordering test named it), one reason check remo
 named it). Blind spots are listed in the `test_admin_audit.py` docstring: permission refusals are
 not recorded, ARC-20's failed-commit path is not provoked, and the guard runs as a role that could
 still drop the trigger.
+L5 (2026-11-02), three mutants run one at a time, each caught. (1) Subscriptions back to
+`CASCADE`/`NOT NULL`: erasure failed, both routes. Simulating the old cascade reproduced
+`ck_payments_has_parent`, the bug ARC-22 fixes. (2) `interpretation_outputs` moved after `charts`:
+the row-by-row check named the surviving row. (3) `device_tokens` dropped from the registry: the
+coverage walk named the table. Blind spots are in the `test_account_deletion.py` docstring: personal
+data copied into an unrelated column, external processors (listed, not verified), and pre-L5 audit
+rows whose `details` or `payload_summary` hold an email the trigger will not let erasure rewrite.
 
 **Known blind spots**, also written in each test file's docstring:
 - The permission test sees permissions declared as dependencies, not a handler that branches on `role_has`.
@@ -396,3 +403,47 @@ just as often. Not required: elevation, MFA self-service, recompute jobs, the fe
 toggle, the broadcast refusal. The search text on `GET /admin/users` is not stored, since it is
 usually an email address; the row records that a search happened and how many results came back.
 Reveals do not exist yet (L9). When they ship, each takes `reason_required=True`.
+
+**ARC-22. Subscriptions outlive the account, detached.** Found while building L5:
+`subscriptions.user_id` was `NOT NULL ON DELETE CASCADE`, `payments.subscription_id` is `SET NULL`, and
+`payments.ck_payments_has_parent` needs an order or a subscription. Deleting any user with a
+subscription-only payment therefore failed the check and rolled back the whole delete, so
+self-deletion was broken for every paying subscriber. *Decided (architect, 2026-11-02):* migration
+`bc1d2e3f4a5b` makes `subscriptions.user_id` nullable with `SET NULL`, matching `orders`. Erasure
+detaches the row and the spec's "financial records kept, detached" now holds. Access checks filter on
+`user_id`, so a detached row grants nothing. The downgrade refuses while a detached row exists, since
+restoring `NOT NULL` would mean deleting accounting records.
+
+**ARC-23. When erasure refuses.** *Decided:* 409, with nothing touched, in three cases.
+(1) A Razorpay subscription that is active and not set to cancel. Erasing would not stop Razorpay from
+charging, and the person could no longer sign in to cancel. The person cancels at the end of the
+period, then deletes (code `ERASURE_BLOCKED_BY_SUBSCRIPTION`, bilingual message on web). App-store
+subscriptions cannot be cancelled from here and never report `cancel_at_period_end`, so they do not
+block erasure. The person is told to cancel in the store (`app_store_subscription` follow-up).
+(2) An account holding an admin role: remove the role first, so the last-owner guard is never bypassed
+(`ERASURE_BLOCKED_BY_ADMIN_ROLE`). (3) The console erasing its own operator: the audit row would name an
+actor that no longer exists.
+
+**ARC-24. A newsletter sign-up under the same email is erased too.** It is a separate sign-up with
+separate consent, but it is the same person's address. Erasure fails safe towards removing it. A
+person who wants the newsletter can sign up again. The match ignores case.
+
+**ARC-25. External processors are manual steps, listed.** PostHog, Sentry, Anthropic, the SMTP
+provider, Zoho Desk, Razorpay and app-store subscriptions each have a registry entry with the step to
+take. Erasure returns the list, the console shows it, and the audit row records it. Automating PostHog
+person deletion needs a server-side PostHog key the app does not hold. That is a later change.
+
+**ARC-26. How an erased person appears afterwards.** The tombstone keeps `user_id`, because replay after
+a restore needs it. Its `id` is the pseudonym (`erased:<id>`) that every audit row about the person now
+carries. The self-erasure audit row has `actor_role = "self"` and no actor, IP or user agent, since
+those would be the erased person's. **Retention check:** D-13 sets 12 months for the erased-account
+record. Tombstones must outlive the longest backup retention, or a restore of an older backup brings
+the person back with nothing to replay. Confirm the backup retention when the legal review settles D-13.
+
+**ARC-27. What an export contains.** Every registry store marked exportable, read through the ORM so
+encrypted columns come out decrypted. It leaves out credentials and hashes (password, refresh and reset
+tokens, porutham share tokens, push tokens, admin TOTP and recovery codes), recomputable derivations
+(planet positions, dasha, varga, daily scores) and other people's rows that name the person. Audit
+rows about the person are exported as action, outcome and date only, without other admins' identities.
+The console export is a reveal, so it is elevated, needs a reason and is audited with per-store counts
+(ARC-21). Self-export needs no reason: it is the person's own data.

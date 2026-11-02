@@ -37,6 +37,16 @@ Moved word for word from `CLAUDE.md` (lines 53-95) on 2026-10-22. `CLAUDE.md` ke
    ```powershell
    .\restore-dev-db.ps1 -BackupFile backup_20260526_1400.sql
    ```
+   **Erasures survive a restore (admin spec L5).** A backup taken before an account was
+   erased still holds that account. The script saves the live `erasure_tombstones` to
+   `tombstones_<stamp>.json` before resetting the schema. After restoring, it runs
+   `alembic upgrade head` and replays them, which erases every tombstoned account the
+   backup brought back. A restore done any other way must do the same by hand:
+   ```powershell
+   .\.venv\Scripts\python.exe -m app.privacy.tombstones export tombstones.json   # before, against the live DB
+   .\.venv\Scripts\python.exe -m app.privacy.tombstones replay tombstones.json   # after, against the restored DB
+   ```
+   The same applies to production restores.
 7. **`dev.ps1` runs `alembic upgrade head` on startup** — this is safe for forward-only migrations. It will NOT drop data. If a migration fails, fix the migration file, do NOT manually drop tables.
 8. **`DROP TABLE` alone does not remove Postgres composite/enum types tied to a table's columns** — a leftover type can collide on recreation (`UniqueViolation`) the second time a test suite resets schema state in the same session. Test fixtures that reset schema must use `DROP SCHEMA ... CASCADE` + `CREATE SCHEMA`, not per-table `DROP TABLE`. This only reproduces against real Postgres, not SQLite.
 

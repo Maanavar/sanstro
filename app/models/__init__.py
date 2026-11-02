@@ -10,6 +10,7 @@ from app.models.daily_score import DailyScore
 from app.models.dasha_period import DashaPeriod
 from app.models.device_token import DeviceToken
 from app.models.entitlement import Entitlement
+from app.models.erasure_tombstone import ErasureTombstone
 from app.models.family_daily_score import FamilyDailyScore
 from app.models.family_member import FamilyMember
 from app.models.family_vault import FamilyVault
@@ -59,6 +60,7 @@ __all__ = [
     "DashaPeriod",
     "DeviceToken",
     "Entitlement",
+    "ErasureTombstone",
     "FamilyDailyScore",
     "FamilyMember",
     "FamilyVault",

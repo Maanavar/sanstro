@@ -21,7 +21,9 @@ import {
   type AuditLogQuery,
   type AuditLogResponse,
   type AuditOutcome,
+  type DataExport,
   type ElevationGrant,
+  type ErasureResult,
   type FlagChange,
   type FlagEntry,
   type MfaEnrolment,
@@ -151,15 +153,15 @@ function auditDetailText(entry: AuditLogEntry): string {
   return entry.payload_summary ?? "-";
 }
 
-type DataDeletionResult = {
-  owner_user_id: string;
-  deleted_at: string;
-  birth_profiles_deleted: number;
-  charts_deleted: number;
-  family_vaults_deleted: number;
-  family_members_deleted: number;
-  family_daily_scores_deleted: number;
-};
+/** Hand the operator a JSON file. Never stored anywhere else by the console. */
+function downloadJson(filename: string, data: unknown) {
+  const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
 
 type AdminTab =
   | "overview"
@@ -409,7 +411,9 @@ export function AdminConsole() {
   const [deleteUserId, setDeleteUserId] = useState("");
   const [deleteReason, setDeleteReason] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState("");
-  const [deleteResult, setDeleteResult] = useState<DataDeletionResult | null>(null);
+  const [deleteResult, setDeleteResult] = useState<ErasureResult | null>(null);
+  const [exportUserId, setExportUserId] = useState("");
+  const [exportReason, setExportReason] = useState("");
   const [roles, setRoles] = useState<AdminRoleEntry[]>([]);
   const [roleUserId, setRoleUserId] = useState("");
   const [roleChoice, setRoleChoice] = useState<AdminRole>("support");
@@ -860,20 +864,46 @@ export function AdminConsole() {
     setLoading(true);
     setError(null);
     try {
-      const result = await adminFetchJson<DataDeletionResult>(
+      const result = await adminFetchJson<ErasureResult>(
         `/api/v1${adminAuditPaths.deleteUserData(userId, deleteReason.trim())}`,
         { method: "DELETE" },
       );
       setDeleteResult(result);
       setDeleteConfirm("");
       setDeleteReason("");
-      setStatus("User data deletion completed.");
+      setDeleteUserId("");
+      setStatus("Account erased.");
       if (activeTab === "overview") {
         await loadOverview();
       }
     } catch (err) {
       setError(readErrorMessage(err));
-      setStatus("User data deletion failed.");
+      setStatus("Erasure failed.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function exportUserData(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!isUnlocked) return;
+    const userId = exportUserId.trim();
+    if (!userId || !hasReason(exportReason)) {
+      setError("Enter a user id and a reason. Every export is audited with it.");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await adminFetchJson<DataExport>(
+        `/api/v1${adminAuditPaths.exportUserData(userId, exportReason.trim())}`,
+      );
+      downloadJson(`vinaadi-export-${userId}.json`, data);
+      setExportReason("");
+      setStatus("Export downloaded.");
+    } catch (err) {
+      setError(readErrorMessage(err));
+      setStatus("Export failed.");
     } finally {
       setLoading(false);
     }
@@ -991,6 +1021,8 @@ export function AdminConsole() {
     setAuditFilters(EMPTY_AUDIT_FILTERS);
     setDeleteResult(null);
     setDeleteReason("");
+    setExportUserId("");
+    setExportReason("");
     setJobReason("");
     setRoles([]);
     setNewRecoveryCodes(null);
@@ -1883,9 +1915,40 @@ export function AdminConsole() {
               <div className="admin-section__header">
                 <div>
                   <h2 id="privacy-title">Privacy Requests</h2>
-                  <p>Erase calculation and personal data for a user. This requires the deletion flag to be enabled.</p>
+                  <p>
+                    Export or erase everything held for a person. Erasure removes the account itself, the same as
+                    the person deleting it from their settings, and needs the deletion flag enabled. Both ask for
+                    your code and are audited.
+                  </p>
                 </div>
               </div>
+              <form className="admin-delete" onSubmit={exportUserData}>
+                <label>
+                  User id
+                  <input
+                    className="admin-input"
+                    type="text"
+                    inputMode="text"
+                    value={exportUserId}
+                    onChange={(event) => setExportUserId(event.target.value)}
+                    placeholder="00000000-0000-0000-0000-000000000000"
+                  />
+                </label>
+                <label>
+                  Reason (required, audited)
+                  <input
+                    className="admin-input"
+                    type="text"
+                    maxLength={500}
+                    value={exportReason}
+                    onChange={(event) => setExportReason(event.target.value)}
+                    placeholder="e.g. Access request received by email"
+                  />
+                </label>
+                <button className="admin-button" type="submit" disabled={loading || !hasReason(exportReason)}>
+                  Download export
+                </button>
+              </form>
               <form className="admin-delete" onSubmit={deleteUserData}>
                 <label>
                   User id
@@ -1924,17 +1987,21 @@ export function AdminConsole() {
                   type="submit"
                   disabled={loading || deleteConfirm !== "DELETE" || !hasReason(deleteReason)}
                 >
-                  Delete user data
+                  Erase account
                 </button>
               </form>
               {deleteResult ? (
                 <div className="admin-result admin-result--danger">
-                  <span>Deleted at: {formatDateTimeLabel(deleteResult.deleted_at)}</span>
-                  <span>Birth profiles: {numberLabel(deleteResult.birth_profiles_deleted)}</span>
-                  <span>Charts: {numberLabel(deleteResult.charts_deleted)}</span>
-                  <span>Family vaults: {numberLabel(deleteResult.family_vaults_deleted)}</span>
-                  <span>Family members: {numberLabel(deleteResult.family_members_deleted)}</span>
-                  <span>Daily scores: {numberLabel(deleteResult.family_daily_scores_deleted)}</span>
+                  <span>Erased at: {formatDateTimeLabel(deleteResult.erased_at)}</span>
+                  <span>Audit log name: erased:{deleteResult.erasure_id}</span>
+                  {Object.entries(deleteResult.tables)
+                    .filter(([, count]) => count > 0)
+                    .map(([store, count]) => (
+                      <span key={store}>
+                        {store}: {numberLabel(count)}
+                      </span>
+                    ))}
+                  <span>Still to do by hand: {deleteResult.external_followups.join(", ")}</span>
                 </div>
               ) : null}
             </section>

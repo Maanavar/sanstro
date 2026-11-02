@@ -18,7 +18,12 @@ class Subscription(TimestampMixin, Base):
     )
 
     subscription_id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False, index=True)
+    # NULL once the account is erased: the row stays as the accounting record its
+    # payments point at (payments.ck_payments_has_parent), detached from the
+    # person (spec L5, migration bc1d2e3f4a5b).
+    user_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("users.user_id", ondelete="SET NULL"), nullable=True, index=True
+    )
     tier: Mapped[str] = mapped_column(String(32), nullable=False)
     provider: Mapped[str | None] = mapped_column(String(64), nullable=True)
     #: The store's identity for this subscription — RevenueCat's

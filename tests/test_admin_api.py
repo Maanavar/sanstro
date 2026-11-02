@@ -83,22 +83,22 @@ def test_admin_delete_requires_explicit_enable_flag(raw_client, monkeypatch):
     feature_flags._overrides.clear()
 
     admin_user_id = _create_user("admin-delete-enabled@example.com")
+    target_user_id = _create_user("erasure-target@example.com")
     response = raw_client.delete(
-        f"/api/v1/admin/users/{admin_user_id}/data",
+        f"/api/v1/admin/users/{target_user_id}/data",
         headers=_admin_headers(admin_user_id, "test-admin-key"),
         params={"reason": "synthetic erasure request"},
     )
 
     assert response.status_code == 200
     body = response.json()
-    assert body["owner_user_id"] == admin_user_id
-    assert body["birth_profiles_deleted"] == 0
-    assert body["charts_deleted"] == 0
-    assert body["family_vaults_deleted"] == 0
-    assert body["family_members_deleted"] == 0
-    assert body["family_daily_scores_deleted"] == 0
+    assert body["tables"]["users"] == 1
+    assert body["tables"]["birth_profiles"] == 0
+    assert "posthog" in body["external_followups"]
 
+    # Admin erasure removes the account, like self-deletion (spec L5).
     with SessionLocal() as session:
+        assert session.get(User, UUID(target_user_id)) is None
         assert session.get(User, UUID(admin_user_id)) is not None
 
 

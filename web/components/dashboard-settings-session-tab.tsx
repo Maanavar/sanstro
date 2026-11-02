@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowUpRight, Check, ChevronDown, ChevronRight, Copy, Mail, RefreshCw, X } from "lucide-react";
+import { ArrowUpRight, Check, ChevronDown, ChevronRight, Copy, Download, Mail, RefreshCw, X } from "lucide-react";
 
 import { useTheme, type Theme } from "@/hooks/useTheme";
-import { apiFetchJson } from "@/lib/api";
+import { exportMyData } from "@vinaadi/shared/api";
+
+import { apiFetchJson, getApiError } from "@/lib/api";
 import { clearFcmTokenLocal, fetchFcmToken, hasFirebaseMessagingConfig } from "@/lib/firebase-messaging";
 import { rasiDisplayName } from "@/lib/chart-utils";
 import { formatDateLabel, formatDateTimeLabel, todayIso } from "@/lib/format";
@@ -271,6 +273,8 @@ export function DashboardSettingsSessionTab({
   const [deleteConfirming, setDeleteConfirming] = useState(false);
   const [deleteDeleting, setDeleteDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const [exportBusy, setExportBusy] = useState(false);
+  const [exportError, setExportError] = useState("");
 
   const [retentionPreview, setRetentionPreview] = useState<JournalRetentionApplyData | null>(null);
   const [retentionApplied, setRetentionApplied] = useState<JournalRetentionApplyData | null>(null);
@@ -469,9 +473,35 @@ export function DashboardSettingsSessionTab({
     try {
       await apiFetchJson<{ detail: string }>("/api/v1/auth/me", { method: "DELETE" });
       window.location.href = "/login";
-    } catch {
-      setDeleteError(lang === "ta" ? "நீக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்." : "Could not delete account. Please try again.");
+    } catch (error) {
+      // A refusal the person can act on (a renewing subscription) says what to
+      // do; anything else is a plain retry.
+      const apiError = getApiError(error);
+      const actionable = apiError?.code === "ERASURE_BLOCKED_BY_SUBSCRIPTION" || apiError?.code === "ERASURE_BLOCKED_BY_ADMIN_ROLE";
+      setDeleteError(
+        actionable && apiError
+          ? apiError.message[lang === "ta" ? "ta" : "en"]
+          : lang === "ta" ? "நீக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்." : "Could not delete account. Please try again.",
+      );
       setDeleteDeleting(false);
+    }
+  };
+
+  const handleExportData = async () => {
+    setExportBusy(true);
+    setExportError("");
+    try {
+      const data = await exportMyData();
+      const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "vinaadi-my-data.json";
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setExportError(lang === "ta" ? "பதிவிறக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்." : "Could not download your data. Please try again.");
+    } finally {
+      setExportBusy(false);
     }
   };
 
@@ -983,6 +1013,20 @@ export function DashboardSettingsSessionTab({
           {lang === "ta" ? "கேள்விகள் அல்லது பரிந்துரைகள்? நாங்கள் ஒரு சிறிய குழு — ஒவ்வொரு குறிப்பையும் படிக்கிறோம். உங்கள் கருத்து இறுதி வடிவத்தை வடிவமைக்கிறது." : "Questions or suggestions? We're a small team and read every note — your feedback shapes the final version."}
         </div>
         <GhostBtn onClick={openFeedback}><Mail size={14} strokeWidth={1.5} aria-hidden="true" />{lang === "ta" ? "கருத்து அனுப்பு" : "Send feedback"}</GhostBtn>
+      </Card>
+
+      <Card>
+        <div style={{ fontSize: "var(--text-md)", fontWeight: 600, color: "var(--color-text-strong)" }}>{lang === "ta" ? "உங்கள் தரவு" : "Your data"}</div>
+        <div style={{ fontFamily: "var(--font-body, ui-sans-serif, system-ui, sans-serif)", fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.6 }}>
+          {lang === "ta"
+            ? "விநாடி உங்களைப் பற்றி வைத்திருக்கும் அனைத்தையும் ஒரு கோப்பாகப் பதிவிறக்கவும்: பிறப்பு விவரங்கள், குடும்பம், குறிப்பேடு, அமைப்புகள், கட்டணங்கள்."
+            : "Download everything Vinaadi holds about you as one file: birth details, family, journal, settings and payments."}
+        </div>
+        {exportError && <div style={{ fontSize: "var(--text-base)", color: "var(--color-low)" }}>{exportError}</div>}
+        <GhostBtn onClick={() => void handleExportData()} disabled={exportBusy}>
+          <Download size={14} strokeWidth={1.5} aria-hidden="true" />
+          {exportBusy ? (lang === "ta" ? "தயாராகிறது…" : "Preparing…") : (lang === "ta" ? "என் தரவைப் பதிவிறக்கு" : "Download my data")}
+        </GhostBtn>
       </Card>
 
       <div style={{ background: "var(--color-hover-bg)", border: `1px solid var(--color-border)`, borderRadius: "var(--radius-xl)", padding: "var(--space-6) var(--space-7)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>

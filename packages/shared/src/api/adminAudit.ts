@@ -48,6 +48,34 @@ export interface AuditLogQuery {
   until?: string;
 }
 
+/** DELETE /admin/users/{id}/data answer (app/api/admin.py ErasureResultOut). The account is gone. */
+export interface ErasureResult {
+  /** How the audit log names the person from now on: `erased:<erasure_id>`. */
+  erasure_id: string;
+  erased_at: string;
+  /** Registry key (app/privacy/registry.py) -> rows deleted, detached or, for accounting records, seen. */
+  tables: Record<string, number>;
+  /** External stores whose manual erasure step is now due, e.g. "posthog". */
+  external_followups: string[];
+}
+
+/** One registry store in an export (app/privacy/erasure.py export_user). */
+export interface DataExportStore {
+  holds: string;
+  retention: string;
+  rows: Record<string, unknown>[];
+}
+
+/** GET /auth/me/export and GET /admin/users/{id}/export. */
+export interface DataExport {
+  format_version: number;
+  exported_at: string;
+  account_id: string;
+  stores: Record<string, DataExportStore>;
+  /** Processors outside the database that may hold data about the person. */
+  elsewhere: { store: string; holds: string; retention: string }[];
+}
+
 /** Shortest reason the server accepts where one is required (audit_service.MIN_REASON_LENGTH). */
 export const MIN_AUDIT_REASON_LENGTH = 3;
 
@@ -62,9 +90,12 @@ function query(params: Record<string, string | number | undefined>): string {
 
 export const adminAuditPaths = {
   log: (q: AuditLogQuery = {}) => `/admin/audit-log${query({ ...q })}`,
-  /** Reason required. Elevated. */
+  /** Reason required. Elevated. Erases the account itself, like DELETE /auth/me. Answers ErasureResult. */
   deleteUserData: (userId: string, reason: string) =>
     `/admin/users/${encodeURIComponent(userId)}/data${query({ reason })}`,
+  /** GET. Reason required. Elevated. Answers DataExport. */
+  exportUserData: (userId: string, reason: string) =>
+    `/admin/users/${encodeURIComponent(userId)}/export${query({ reason })}`,
   /** PATCH body {suspend, reason}; a reason is required both ways. Elevated. */
   suspend: (userId: string) => `/admin/users/${encodeURIComponent(userId)}/suspend`,
   /** A reason is required when the job is destructive (JobInfo.destructive), and elevation too. */
