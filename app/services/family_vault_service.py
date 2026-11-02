@@ -1463,7 +1463,8 @@ def get_family_harmony_remedies(
             _chart_to_member_input(
                 member.display_name,
                 member.relationship_to_owner,
-                member.is_minor,
+                # Today's age, not the stored flag, which stays set after an 18th birthday.
+                family_member_is_minor(member.relationship_to_owner, member.date_of_birth_local),
                 snapshot.data,
             )
         )

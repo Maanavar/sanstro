@@ -470,14 +470,22 @@ never answered) cannot store new birth details (`CONSENT_REQUIRED`, at `create_b
 and before a family member is written). A consent to an older version does not block. Withdrawing the
 service consent is erasure; the toggle route refuses a `service` field.
 
-**ARC-29. `is_minor` follows the date of birth; the child remedy does not (astrologer question).**
+**ARC-29. `is_minor` follows the date of birth, and so does the child remedy (ruled 2026-11-02).**
 `is_minor` is now "under 18 by date of birth", falling back to `relationship == "child"` when there is
 no date. It is set on add, on relationship edits and whenever the member's date of birth is mirrored
 from the profile. It is stored, so a child who turns 18 stays flagged, which only keeps an adult out of
 segments. `family_harmony_remedies` used `relationship == "child" or is_minor`. With the old flag that
 was the same as "child". With the new one it would give the child-remedy to an under-18 sibling or
-grandchild, so the remedy is pinned to `relationship == "child"` and readings are unchanged.
-**Astrologer:** should an under-18 member who is not the owner's child get the child remedy?
+grandchild. The L2 commit pinned it to `relationship == "child"` while the question was open.
+**Ruling (owner-delegated, 2026-11-02): age decides, not relationship.** The household performs this
+remedy on a minor's behalf, in the minor's name (daanam in their name, the family saying the mantra),
+and that is the same for a younger sibling or grandchild as for a son or daughter. An adult child
+performs their own remedies, and the copy ("the child's", Tamil குழந்தையின், "while touching them")
+is written for a young child. So the remedy requires `is_minor`, which `get_family_harmony_remedies`
+recomputes from the date of birth on the day of the reading (not the stored flag, which stays set
+past an 18th birthday). With no date of birth it falls back to `relationship == "child"`.
+Reading changes: under-18 siblings and grandchildren gain the item; children 18 or over with a known
+date of birth lose it. Copy unchanged.
 
 **ARC-30. Mobile carries the minimum until Gate M.**
 - Mobile signup asks for the 18+ declaration and records the three optional purposes as not granted.

@@ -409,10 +409,13 @@ def synthesize_family_harmony_remedies(members: list[MemberChartInput]) -> list[
 
     # ── 4. A weak planet in a child → a small remedy in the child's name ──
     for member in members:
-        # Relationship only. `is_minor` became "under 18 by date of birth" (admin
-        # spec L2), which would extend this remedy to a young sibling or
-        # grandchild; whether it should is the astrologer's call (plan ARC-29).
-        if member.relationship != "child":
+        # Age, not relationship (ruling ARC-29, 2026-11-02). The household does
+        # this remedy on a minor's behalf, in their name, so it fits a young
+        # sibling or grandchild as well as a son or daughter. An adult child does
+        # their own remedies and the copy ("the child's", "while touching them")
+        # is not written for them. The caller computes `is_minor` from the date
+        # of birth on the day of the reading.
+        if not member.is_minor:
             continue
         weak = [
             p for p in member.planets
