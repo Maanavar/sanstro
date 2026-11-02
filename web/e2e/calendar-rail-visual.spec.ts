@@ -90,7 +90,7 @@ test("calendar monthly rail — visual pass", async ({ browser }) => {
   const api = context.request;
 
   const reg = await api.post("/api/backend/api/v1/auth/register", {
-    data: { email: EMAIL, password: PASSWORD, consentGiven: true },
+    data: { email: EMAIL, password: PASSWORD, consentGiven: true, adultConfirmed: true },
   });
   if (!reg.ok()) throw new Error(`register failed: ${reg.status()} ${await reg.text()}`);
   let loggedIn = false;

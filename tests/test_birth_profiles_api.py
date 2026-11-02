@@ -9,6 +9,7 @@ from app.core.encryption import decrypt_bytes
 from app.db.session import SessionLocal
 from app.models.birth_profile import BirthProfile
 from app.models.notification import Notification
+from tests.conftest import TEST_USER_ID, grant_updates_consent
 
 
 def test_birth_profile_create_returns_profile_and_chart_ids(client):
@@ -246,7 +247,7 @@ def test_birth_profile_create_persists_encrypted_payload(client):
     assert decrypted["birth_time_local"] == payload["birthTimeLocal"]
     assert decrypted["birth_date_local"] == payload["birthDateLocal"]
 
-def test_birth_profile_create_schedules_d1_jadhagam_nudge(client):
+def _create_d1_nudge_profile(client) -> UUID:
     created = client.post(
         "/api/v1/birth-profiles",
         json={
@@ -261,9 +262,28 @@ def test_birth_profile_create_schedules_d1_jadhagam_nudge(client):
             "calculateNow": True,
         },
     )
-
     assert created.status_code == 200
-    chart_id = UUID(created.json()["data"]["chartId"])
+    return UUID(created.json()["data"]["chartId"])
+
+
+def test_birth_profile_create_skips_d1_nudge_without_updates_consent(client):
+    # Spec L2 P2: the nudge is an alert, so no "updates" consent means no row.
+    chart_id = _create_d1_nudge_profile(client)
+
+    with SessionLocal() as session:
+        assert session.execute(
+            select(Notification).where(
+                Notification.chart_id == chart_id,
+                Notification.type == "JADHAGAM_D1_NUDGE",
+            )
+        ).scalar_one_or_none() is None
+
+
+def test_birth_profile_create_schedules_d1_jadhagam_nudge(client):
+    with SessionLocal() as session:
+        with session.begin():
+            grant_updates_consent(session, UUID(TEST_USER_ID))
+    chart_id = _create_d1_nudge_profile(client)
 
     with SessionLocal() as session:
         notification = session.execute(

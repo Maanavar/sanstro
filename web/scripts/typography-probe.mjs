@@ -49,7 +49,7 @@ async function login() {
   throw new Error("login failed");
 }
 
-const reg = await api.post("/api/backend/api/v1/auth/register", { data: { email, password: PASSWORD, consentGiven: true }, headers: CSRF });
+const reg = await api.post("/api/backend/api/v1/auth/register", { data: { email, password: PASSWORD, consentGiven: true, adultConfirmed: true }, headers: CSRF });
 if (!reg.ok()) throw new Error(`register failed: ${reg.status()}`);
 await login();
 // Fictitious identity (repo synthetic-fixture rule).

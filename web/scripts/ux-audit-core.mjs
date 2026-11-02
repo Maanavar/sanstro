@@ -71,7 +71,7 @@ async function bootstrap(run, api) {
     await login(run, api);
     return;
   }
-  const reg = await api.post("/api/backend/api/v1/auth/register", { data: { email: run.email, password: run.password, consentGiven: true }, headers: CSRF });
+  const reg = await api.post("/api/backend/api/v1/auth/register", { data: { email: run.email, password: run.password, consentGiven: true, adultConfirmed: true }, headers: CSRF });
   if (!reg.ok()) throw new Error(`register failed: ${reg.status()} ${await reg.text()}`);
   await login(run, api); // register commits in dependency teardown — login is retried
   // Fictitious identity (repo synthetic-fixture rule).
