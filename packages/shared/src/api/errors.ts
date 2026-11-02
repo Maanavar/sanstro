@@ -27,6 +27,8 @@ export const API_ERROR_CODES = [
   "MONTHLY_LIMIT_REACHED",
   "DUPLICATE_RESOURCE",
   "EMAIL_ALREADY_EXISTS",
+  "ERASURE_BLOCKED_BY_SUBSCRIPTION",
+  "ERASURE_BLOCKED_BY_ADMIN_ROLE",
   "VALIDATION_ERROR",
   "INVALID_INPUT",
   "MISSING_REQUIRED_FIELD",
@@ -113,6 +115,14 @@ function fallbackMessage(code: ApiErrorCode): ApiErrorMessage {
     DAILY_LIMIT_REACHED: { ta: "இன்றைக்கான வரம்பை அடைந்துவிட்டீர்கள்.", en: "You have reached today's limit." },
     DUPLICATE_RESOURCE: { ta: "இதே தகவல் ஏற்கனவே உள்ளது.", en: "This resource already exists." },
     EMAIL_ALREADY_EXISTS: { ta: "இந்த மின்னஞ்சலுடன் ஏற்கனவே ஒரு கணக்கு உள்ளது.", en: "An account with this email already exists." },
+    ERASURE_BLOCKED_BY_SUBSCRIPTION: {
+      ta: "இந்தக் கணக்கில் தானாகப் புதுப்பிக்கப்படும் பிரீமியம் சந்தா உள்ளது. கணக்கை நீக்கும் முன் அதை ரத்து செய்யவும்; கணக்கை நீக்கினாலும் கட்டணம் வசூலிப்பது நிற்காது.",
+      en: "This account has a Premium subscription that renews automatically. Cancel it before deleting the account: deleting the account does not stop the charges.",
+    },
+    ERASURE_BLOCKED_BY_ADMIN_ROLE: {
+      ta: "இந்தக் கணக்கிற்கு நிர்வாகப் பொறுப்பு உள்ளது. முதலில் அந்தப் பொறுப்பை நீக்கி, பிறகு கணக்கை நீக்கவும்.",
+      en: "This account holds an admin role. Remove the role first, then delete the account.",
+    },
     VALIDATION_ERROR: { ta: "உள்ளிட்ட தகவலைச் சரிபார்க்கவும்.", en: "Please check the information entered and try again." },
     INVALID_INPUT: { ta: "உள்ளிட்ட தகவல் சரியல்ல.", en: "The information entered is invalid." },
     MISSING_REQUIRED_FIELD: { ta: "தேவையான தகவல் விடுபட்டுள்ளது.", en: "Required information is missing." },

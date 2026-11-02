@@ -44,6 +44,7 @@ RULES: dict[str, tuple[str, ...]] = {
     "app/db": ("app.services", "app.api", "app.models"),
     "app/core": ("app.services", "app.api"),
     "app/services": ("app.api",),
+    "app/privacy": ("app.api",),
 }
 
 # (module file, imported module) -> why it is still allowed. Remove an entry

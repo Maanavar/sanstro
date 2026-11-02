@@ -5,13 +5,13 @@ import logging
 import secrets
 import urllib.parse
 from datetime import UTC, datetime, timedelta
+from typing import Any
 from uuid import UUID, uuid4
 
 import bcrypt
 import httpx
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, Response, status
 from fastapi.responses import RedirectResponse
-from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.core.auth import (
@@ -24,6 +24,7 @@ from app.core.auth import (
 )
 from app.core.auth_throttle import AuthThrottleAction, get_auth_throttler
 from app.core.config import Settings, get_settings
+from app.core.errors import AppError
 from app.core.privacy_policy import CURRENT_POLICY_VERSION, consent_required_for
 from app.db.session import get_db
 from app.middleware import resolve_client_ip
@@ -31,6 +32,7 @@ from app.models.password_reset_token import PasswordResetToken
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
 from app.models.user_preference import UserPreference
+from app.privacy.erasure import ErasureRefused, erase_own_account, export_user
 from app.schemas.auth import (
     AccountDeletionResult,
     AuthProvidersResponse,
@@ -440,28 +442,27 @@ def delete_my_account(
     session: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> AccountDeletionResult:
-    """Permanently erase all user data and delete the account."""
-    uid = str(user.user_id)
+    """Permanently erase the account and everything the privacy registry holds for it.
 
-    session.execute(text("""
-        DELETE FROM interpretation_outputs
-        WHERE chart_id IN (
-            SELECT c.chart_id
-            FROM charts c
-            JOIN birth_profiles bp ON c.birth_profile_id = bp.birth_profile_id
-            WHERE bp.owner_user_id = :uid
-        )
-        OR family_vault_id IN (
-            SELECT family_vault_id FROM family_vaults WHERE owner_user_id = :uid
-        )
-    """), {"uid": uid})
-
-    session.delete(user)
-    session.flush()
-
-    _logger.info("account_erasure_complete user_id=%s", uid)
+    The same `erase_user` the console's erasure route calls (spec L5); the
+    audit row is written by `erase_own_account`.
+    """
+    try:
+        result = erase_own_account(session, user.user_id)
+    except ErasureRefused as exc:
+        raise AppError(exc.code) from exc
+    _logger.info("account_erasure_complete erasure_id=%s", result.erasure_id)
     response.delete_cookie(key=_COOKIE_NAME, path="/")
     return AccountDeletionResult(detail="Account permanently deleted.")
+
+
+@router.get("/me/export")
+def export_my_data(
+    session: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict[str, Any]:
+    """Everything Vinaadi holds on the signed-in person, as JSON (DPDP right of access)."""
+    return export_user(session, user.user_id)
 
 
 @router.post("/forgot-password", response_model=ForgotPasswordResponse)

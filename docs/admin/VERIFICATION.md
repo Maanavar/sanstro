@@ -28,4 +28,5 @@ Not yet checked: ADM-07, ADM-08, ADM-12 to ADM-37. Each gets a row before the pa
 | ADM-09 | L10a | Flags persisted in `runtime_settings`; every worker reads them within 5 s. |
 | ADM-02 | L8 (interim) | Broadcast returns 410. |
 | Payments (Part B) | L1 | Razorpay checkout, webhook, reconciliation; the `/reports/purchase` stub remains for the report waitlist until report deliverables exist (ARC-14). |
-| ADM-01 / ADM-01a | **open** — L5 | Unchanged by this work. |
+| ADM-01 / ADM-01a | L5 (2026-11-02) | Both routes call one `erase_user` over `app/privacy/registry.py`. Interpretation outputs, device tokens, feedback and every other store are deleted or detached, and `test_account_deletion.py` checks each seeded row. Found on the way: self-deletion failed outright for any subscriber with a subscription payment (ARC-22). |
+| ADM-12 / ADM-13 | not checked: source missing | The spec maps both to L5 ("core"; ADM-13 also to L2's consent ledger), but the 2026-11-01 addendum that defines ADM-10 to ADM-37 is not in the repo. L5 was built to the spec's own L5 text. Commit the addendum, then check these two against it. |

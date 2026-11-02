@@ -70,6 +70,7 @@ _MUTATING = {"POST", "PUT", "PATCH", "DELETE"}
 _AUDITED_READS = {
     ("GET", "/api/v1/admin/users"),
     ("GET", "/api/v1/admin/users/{user_id}"),
+    ("GET", "/api/v1/admin/users/{owner_user_id}/export"),
 }
 
 #: Routes that always need a reason (spec L4: destructive actions). The
@@ -80,6 +81,7 @@ _REASON_REQUIRED = {
     ("DELETE", "/api/v1/admin/users/{user_id}/role"),
     ("DELETE", "/api/v1/admin/users/{user_id}/mfa"),
     ("DELETE", "/api/v1/admin/users/{owner_user_id}/data"),
+    ("GET", "/api/v1/admin/users/{owner_user_id}/export"),
     ("PATCH", "/api/v1/admin/users/{user_id}/suspend"),
     ("PATCH", "/api/v1/admin/flags/{flag_name}"),
     ("DELETE", "/api/v1/admin/flags/{flag_name}/reset"),

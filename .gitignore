@@ -32,6 +32,7 @@ build/
 # Database backups (keep out of version control)
 backups/
 backup_*.sql
+tombstones_*.json
 
 # Transient test / debug output
 *.log

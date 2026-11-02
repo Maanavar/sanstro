@@ -1,4 +1,5 @@
 import type { AccessState } from "../constants/tiers";
+import type { DataExport } from "./adminAudit";
 import { getApiClient } from "./client";
 
 export interface RegisterResponse {
@@ -117,8 +118,17 @@ export function updateMe(patch: { displayName?: string }): Promise<MeResponse> {
   return getApiClient().patch("/auth/me", patch) as Promise<MeResponse>;
 }
 
+/**
+ * Erase the account and everything held for it (admin spec L5). Answers 409 while
+ * the account has a renewing Premium subscription: cancel that first.
+ */
 export function deleteAccount(): Promise<void> {
   return getApiClient().delete("/auth/me");
+}
+
+/** Everything held on the signed-in person, as JSON (DPDP right of access). */
+export function exportMyData(): Promise<DataExport> {
+  return getApiClient().get("/auth/me/export") as Promise<DataExport>;
 }
 
 export interface PasswordResetDetailResponse {

@@ -181,6 +181,13 @@
     ],
     "permission": "users.search"
   },
+  "GET /api/v1/admin/users/{owner_user_id}/export": {
+    "allowed": [
+      "owner",
+      "privacy"
+    ],
+    "permission": "privacy.export"
+  },
   "GET /api/v1/admin/users/{user_id}": {
     "allowed": [
       "owner",
