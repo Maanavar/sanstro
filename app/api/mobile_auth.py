@@ -17,6 +17,7 @@ import hashlib
 import logging
 import secrets
 from datetime import UTC, datetime, timedelta
+from typing import Literal
 from uuid import UUID, uuid4
 
 import bcrypt
@@ -27,12 +28,21 @@ from sqlalchemy.orm import Session
 from app.core.auth import create_access_token
 from app.core.auth_throttle import AuthThrottleAction, get_auth_throttler
 from app.core.config import get_settings
-from app.core.privacy_policy import CURRENT_POLICY_VERSION, consent_required_for
+from app.core.privacy_policy import consent_required_for
 from app.db.session import get_db
 from app.middleware import resolve_client_ip
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
-from app.schemas.auth import AuthUserResponse, ConsentGiven, RegisterResponse, access_response_fields
+from app.privacy.consent import consent_channel, record_consents
+from app.schemas.auth import (
+    AdultConfirmed,
+    AuthUserResponse,
+    ConsentGiven,
+    OptionalConsents,
+    RegisterResponse,
+    access_response_fields,
+    consent_response_fields,
+)
 from app.services import account_lifecycle
 from app.services.email_service import enqueue_existing_account_registration_email
 from app.services.kill_switch import raise_if_paused
@@ -84,6 +94,10 @@ class MobileRegisterRequest(BaseModel):
     #: DPDP Act 2023 §6, same rule as the web route. No default: a client that
     #: omits it is rejected rather than treated as consenting.
     consent_given: ConsentGiven = Field(alias="consentGiven")
+    #: Spec L2, D-12, same rule as the web route.
+    adult_confirmed: AdultConfirmed = Field(alias="adultConfirmed")
+    consents: OptionalConsents = Field(default_factory=OptionalConsents)
+    lang: Literal["ta", "en"] = "en"
 
     @field_validator("email")
     @classmethod
@@ -149,6 +163,7 @@ def _build_response(db: Session, user: User, device_id: str | None) -> MobileAut
             userMode=getattr(user, "user_mode", "BALANCED") or "BALANCED",
             goalTrack=getattr(user, "goal_track", None),
             **access_response_fields(user.user_id, db),
+            **consent_response_fields(user, db),
             consentRequired=consent_required_for(user),
             emailVerified=user.email_verified_at is not None,
         ),
@@ -203,13 +218,25 @@ def mobile_register(
         user_id=uuid4(),
         email=payload.email,
         hashed_password=_hash_password(payload.password),
-        # Same transaction as the account, so no account exists without a
-        # consent record. See app/api/auth.py::register.
-        consent_given_at=datetime.now(UTC),
-        consent_policy_version=CURRENT_POLICY_VERSION,
     )
     db.add(user)
     db.flush()
+    # Same transaction as the account, so no account exists without a
+    # consent record. See app/api/auth.py::register.
+    record_consents(
+        db,
+        user,
+        {
+            "service": True,
+            "updates": payload.consents.updates,
+            "analytics": payload.consents.analytics,
+            "ask_improve": payload.consents.ask_improve,
+        },
+        language=payload.lang,
+        channel=consent_channel(request),
+        ip=client_ip,
+        adult_declared=True,
+    )
     account_lifecycle.on_account_created(
         db, user, background_tasks=background_tasks, email_verified_by_provider=False
     )

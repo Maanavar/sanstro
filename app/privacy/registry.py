@@ -132,6 +132,11 @@ TABLE_STORES: tuple[TableStore, ...] = (
         "user_notification_preferences", "user_notification_preferences", "Notification settings and push token.",
         "owner_user_id = :uid", "delete", _UNTIL_ERASED, export_exclude=frozenset({"fcm_device_token"}),
     ),
+    TableStore(
+        "consent_records", "consent_records",
+        "Consent answers per purpose: what was agreed, to which notice version, when, in which language, from which IP.",
+        "user_id = :uid", "delete", _UNTIL_ERASED,
+    ),
     TableStore("user_streaks", "user_streaks", "Visit streak.", "user_id = :uid", "delete", _UNTIL_ERASED),
     TableStore("life_focus_events", "life_focus_events", "Life areas the person focused on.",
                "user_id = :uid", "delete", _UNTIL_ERASED),
@@ -206,7 +211,7 @@ TABLE_STORES: tuple[TableStore, ...] = (
     ),
     # ── The account itself: last.
     TableStore(
-        "users", "users", "Email, sign-in, consent, first-touch source, referral code.",
+        "users", "users", "Email, sign-in, consent stamp, 18+ declaration, first-touch source, referral code.",
         "user_id = :uid", "delete", _UNTIL_ERASED, export_exclude=frozenset({"hashed_password", "token_version"}),
     ),
 )

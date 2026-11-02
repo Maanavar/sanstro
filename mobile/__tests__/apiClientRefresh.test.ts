@@ -37,6 +37,8 @@
 // and hands the module under test `undefined`. Factories that dereference
 // lazily inside a function (every other mock here) are unaffected.
 jest.mock("expo-router", () => ({ router: { replace: jest.fn() } }));
+// client.ts reads Platform.OS for the X-Vinaadi-Client header (admin spec L2).
+jest.mock("react-native", () => ({ Platform: { OS: "android" } }));
 
 const mockTokenStore: { tokens: { accessToken: string; refreshToken: string } | null } = {
   tokens: { accessToken: "access-1", refreshToken: "refresh-1" },

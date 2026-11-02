@@ -29,6 +29,7 @@ export const API_ERROR_CODES = [
   "EMAIL_ALREADY_EXISTS",
   "ERASURE_BLOCKED_BY_SUBSCRIPTION",
   "ERASURE_BLOCKED_BY_ADMIN_ROLE",
+  "CONSENT_REQUIRED",
   "VALIDATION_ERROR",
   "INVALID_INPUT",
   "MISSING_REQUIRED_FIELD",
@@ -122,6 +123,10 @@ function fallbackMessage(code: ApiErrorCode): ApiErrorMessage {
     ERASURE_BLOCKED_BY_ADMIN_ROLE: {
       ta: "இந்தக் கணக்கிற்கு நிர்வாகப் பொறுப்பு உள்ளது. முதலில் அந்தப் பொறுப்பை நீக்கி, பிறகு கணக்கை நீக்கவும்.",
       en: "This account holds an admin role. Remove the role first, then delete the account.",
+    },
+    CONSENT_REQUIRED: {
+      ta: "பிறப்பு விவரங்களைச் சேமிக்கும் முன், தனியுரிமை அறிவிப்பைப் படித்து உங்கள் ஒப்புதலைத் தரவும்.",
+      en: "Before we save birth details, please read the privacy notice and give your consent.",
     },
     VALIDATION_ERROR: { ta: "உள்ளிட்ட தகவலைச் சரிபார்க்கவும்.", en: "Please check the information entered and try again." },
     INVALID_INPUT: { ta: "உள்ளிட்ட தகவல் சரியல்ல.", en: "The information entered is invalid." },

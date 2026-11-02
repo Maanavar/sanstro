@@ -1,4 +1,5 @@
 import { router } from "expo-router";
+import { Platform } from "react-native";
 import { getTokens, setTokens } from "@/lib/secureStore";
 import { isTokenPair } from "@/lib/tokenPair";
 import { ENV } from "@/lib/env";
@@ -124,6 +125,8 @@ async function sendOnce(url: string, init: RequestInit): Promise<Response> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     "X-Request-ID": generateRequestId(),
+    // Where a consent answer was given, for the server's ledger (admin spec L2).
+    "X-Vinaadi-Client": Platform.OS === "ios" ? "ios" : "android",
     ...(init.headers as Record<string, string> | undefined),
   };
   if (tokens) headers["Authorization"] = `Bearer ${tokens.accessToken}`;

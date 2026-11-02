@@ -47,6 +47,11 @@ class User(TimestampMixin, Base):
     # request rather than being silently counted as having agreed.
     consent_given_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     consent_policy_version: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    # When the account holder declared they are 18 or over (spec L2, D-12).
+    # Null on accounts from before the declaration existed; the consent panel
+    # asks them (`consent_required_for`). The per-purpose answers live in
+    # `consent_records`; the two columns above are the service (P1) stamp.
+    adult_declared_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     # First touch — where the visitor who became this account first arrived from
     # (GRW-03). Written once, at account creation, from the web's `vinaadi_ft`
     # cookie (app/services/acquisition_service.py). Campaign tags, a referrer

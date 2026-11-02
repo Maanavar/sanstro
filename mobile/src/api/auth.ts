@@ -9,6 +9,7 @@ export type { RegisterResponse, MobileAuthResponse, MeResponse, SubscriptionInfo
 export {
   register,
   recordConsent,
+  updateMyConsents,
   getMe,
   updateMe,
   deleteAccount,

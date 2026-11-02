@@ -19,7 +19,7 @@ import { beginAuthenticatedSession, endSession } from "@/state/sessionTransition
 import { syncPurchaseIdentity } from "@/lib/purchaseIdentity";
 import { currentGeneration } from "@/lib/sessionIdentity";
 import { initAnalytics, setAnalyticsConsent, setUser } from "@/lib/analytics";
-import { loadGuestPrefs } from "@/features/guest/guestStore";
+import { loadGuestPrefs, saveGuestPrefs } from "@/features/guest/guestStore";
 import { ENV } from "@/lib/env";
 import { getMe } from "@/api/auth";
 import { FONT_MAP } from "@/theme/typography";
@@ -100,6 +100,12 @@ function RootNavigation() {
         // restore — which is the point: on a warm start with another account's
         // bytes still on the device, nothing of theirs can be hydrated.
         await beginAuthenticatedSession(me.userId);
+
+        // Signed in, the account's own analytics answer (admin spec L2, P3)
+        // replaces the device's guest choice, before setUser below can identify.
+        const analyticsGranted = me.consents?.analytics === true;
+        setAnalyticsConsent(analyticsGranted);
+        void saveGuestPrefs({ analyticsOptedIn: analyticsGranted }).catch(() => undefined);
 
         // Determine the effective tier. RC is the source of truth for
         // subscription status: if RC confirms no active "premium" entitlement

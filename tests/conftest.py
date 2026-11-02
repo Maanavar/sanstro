@@ -159,7 +159,20 @@ def _make_test_user(session) -> User:
     session.add(user)
     session.flush()
     session.add(Subscription(user_id=uid, tier="premium", status="active"))
+    # Stands in for "agreed at signup" as the fixture stands in for "is an admin"
+    # (spec L2: no birth details are stored without a service consent).
+    # tests/test_consent_ledger.py drives the refusal for an account without one.
+    grant_service_consent(session, user)
     return user
+
+
+def grant_service_consent(session, user: User) -> None:
+    """The service consent and 18+ declaration registration records, for a User built by hand."""
+    from app.privacy.consent import record_consents
+
+    record_consents(
+        session, user, {"service": True}, language="en", channel="web", ip=None, adult_declared=True
+    )
 
 
 @pytest.fixture()
@@ -271,3 +284,10 @@ def family_member_payload_factory():
         }
 
     return _build
+
+
+def grant_updates_consent(session, user_id) -> None:
+    """Spec L2 P2: the notification outbox sends nothing to an account without it."""
+    from app.privacy.consent import record_consents
+
+    record_consents(session, session.get(User, user_id), {"updates": True}, language="en", channel="web", ip=None)

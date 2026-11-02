@@ -125,6 +125,8 @@ def _stub_dispatch_db(monkeypatch: pytest.MonkeyPatch) -> _DispatchSession:
     monkeypatch.setattr(nds, "get_flag", lambda *_args, **_kwargs: True)
     # Quiet hours (admin spec L8) read the user's timezone; this fake session has no query API.
     monkeypatch.setattr(nds, "_resolve_user_timezone", lambda *_args, **_kwargs: "Asia/Kolkata")
+    # The updates consent (admin spec L2, P2) is a ledger query; tests/test_consent_ledger.py covers it.
+    monkeypatch.setattr(nds, "has_consent", lambda *_args, **_kwargs: True)
     return _DispatchSession()
 
 

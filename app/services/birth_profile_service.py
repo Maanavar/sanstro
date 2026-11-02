@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.calculations.astro import local_datetime_to_utc
 from app.constants.versions import CHART_CALCULATION_VERSION
+from app.core.age_gate import family_member_is_minor
 from app.core.clock import (
     SYSTEM_CLOCK,
     Clock,
@@ -109,6 +110,7 @@ def _sync_linked_family_member(profile: BirthProfile) -> None:
         return
     member.display_name = profile.display_name
     member.date_of_birth_local = profile.birth_date_local
+    member.is_minor = family_member_is_minor(member.relationship_to_owner, member.date_of_birth_local)
     member.updated_at = datetime.now(tz=UTC)
 
 

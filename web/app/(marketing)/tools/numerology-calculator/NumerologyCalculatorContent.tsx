@@ -7,6 +7,7 @@ import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { NumerologyChainVisual } from "@/components/marketing-visuals";
 import { useLang } from "@/components/lang-toggle";
+import { GuestPrivacyNote } from "@/components/guest-privacy-note";
 import { PersonalYearMeaningCard } from "@/components/PersonalYearMeaningCard";
 import { TOOL_NUMEROLOGY, mt, type Lang } from "@/lib/marketing-i18n";
 import { readErrorMessage } from "@/lib/api";
@@ -631,6 +632,7 @@ function ProfileTool({ ta }: { ta: boolean }) {
                 autoComplete="off"
               />
             </label>
+            <GuestPrivacyNote />
             <button
               type="button"
               className="cl-num-submit"
@@ -893,6 +895,7 @@ function PersonalYearTool({ ta }: { ta: boolean }) {
                 onChange={(e) => setOnDate(e.target.value)}
               />
             </label>
+            <GuestPrivacyNote />
             <button
               type="button"
               className="cl-num-submit"

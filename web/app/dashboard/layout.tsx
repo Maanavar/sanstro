@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { Toaster } from "sonner";
 
 import { QueryProvider } from "@/components/query-provider";
+import { ConsentPanel } from "@/components/consent-panel";
 import { VerifyEmailNudge } from "@/components/verify-email-nudge";
 // Loaded here (not just in the (workspace) group) so the standalone routes under
 // /dashboard/* (reports, goals, chart-generate, daily-score, porutham, wrapped)
@@ -78,6 +79,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     <QueryProvider>
       <div className={`cd-font-host ${sourceSerif4.variable}`}>
         <VerifyEmailNudge />
+        <ConsentPanel />
         {children}
         <Toaster position="bottom-center" />
       </div>

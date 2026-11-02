@@ -6,6 +6,7 @@ from app.models.ask_vinaadi_usage import AskVinaadiUsage
 from app.models.birth_profile import BirthProfile
 from app.models.chart import Chart
 from app.models.chart_planet import ChartPlanet
+from app.models.consent_record import ConsentRecord
 from app.models.daily_score import DailyScore
 from app.models.dasha_period import DashaPeriod
 from app.models.device_token import DeviceToken
@@ -56,6 +57,7 @@ __all__ = [
     "BirthProfile",
     "Chart",
     "ChartPlanet",
+    "ConsentRecord",
     "DailyScore",
     "DashaPeriod",
     "DeviceToken",

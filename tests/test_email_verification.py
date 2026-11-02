@@ -50,7 +50,7 @@ def beta_off(monkeypatch):
 
 def _register(client, email: str) -> None:
     response = client.post(
-        "/api/v1/auth/register", json={"email": email, "password": _PASSWORD, "consentGiven": True}
+        "/api/v1/auth/register", json={"email": email, "password": _PASSWORD, "consentGiven": True, "adultConfirmed": True}
     )
     assert response.status_code == 200, response.text
 
@@ -177,7 +177,7 @@ def test_resend_sends_again_until_verified_then_sends_nothing(raw_client, sent):
 def test_mobile_registration_sends_a_link_too(raw_client, sent):
     email = _email()
     response = raw_client.post(
-        "/api/v1/auth/mobile/register", json={"email": email, "password": _PASSWORD, "consentGiven": True}
+        "/api/v1/auth/mobile/register", json={"email": email, "password": _PASSWORD, "consentGiven": True, "adultConfirmed": True}
     )
     assert response.status_code == 200, response.text
     assert [address for address, _ in sent] == [email]

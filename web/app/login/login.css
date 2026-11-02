@@ -636,6 +636,33 @@
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+.ca-consent + .ca-consent {
+  margin-top: 8px;
+}
+/* The optional purposes (admin spec L2): grouped under their own legend so they
+   read as separate choices from the required one above. */
+.ca-consent-optional {
+  margin: 12px 0 0;
+  padding: 0;
+  border: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ca-consent-optional legend {
+  padding: 0;
+  margin-bottom: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--panel-faint);
+}
+.ca-consent-desc {
+  display: block;
+  margin: 2px 0 0;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: var(--panel-faint);
+}
 .ca-consent .ca-link:hover {
   color: var(--planet-lagna);
   text-decoration-color: var(--underline-brand-strong);

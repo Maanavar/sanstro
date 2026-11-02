@@ -30,9 +30,10 @@ CSRF_HEADERS = {"X-Vinaadi-CSRF": "1"}
 # ---------------------------------------------------------------------------
 
 class _FakeUser:
-    def __init__(self, at=None, version=None):
+    def __init__(self, at=None, version=None, adult_declared_at=datetime.now(UTC)):
         self.consent_given_at = at
         self.consent_policy_version = version
+        self.adult_declared_at = adult_declared_at
 
 
 @pytest.mark.no_db
@@ -77,12 +78,19 @@ def test_consent_required_is_the_inverse_of_current():
     assert consent_required_for(_FakeUser()) is True
 
 
+@pytest.mark.no_db
+def test_a_current_consent_without_the_adult_declaration_is_asked():
+    """Spec L2, D-12: accounts from before the 18+ declaration answer it on the panel."""
+    user = _FakeUser(datetime.now(UTC), CURRENT_POLICY_VERSION, adult_declared_at=None)
+    assert consent_required_for(user) is True
+
+
 # ---------------------------------------------------------------------------
 # Registration
 # ---------------------------------------------------------------------------
 
 def _register(client, email, **extra):
-    body = {"email": email, "password": "password123"}
+    body = {"email": email, "password": "password123", "adultConfirmed": True}
     body.update(extra)
     return client.post("/api/v1/auth/register", json=body)
 
@@ -203,7 +211,7 @@ def test_recording_consent_clears_the_ask(raw_client):
     raw_client.post("/api/v1/auth/login", json={"email": email, "password": "password123"})
 
     response = raw_client.post(
-        "/api/v1/auth/consent", json={"consentGiven": True}, headers=CSRF_HEADERS
+        "/api/v1/auth/consent", json={"consentGiven": True, "adultConfirmed": True}, headers=CSRF_HEADERS
     )
 
     assert response.status_code == 200, response.text
@@ -240,7 +248,7 @@ def test_consent_records_the_servers_version_not_the_clients(raw_client):
 
     raw_client.post(
         "/api/v1/auth/consent",
-        json={"consentGiven": True, "policyVersion": "2026-06"},
+        json={"consentGiven": True, "adultConfirmed": True, "policyVersion": "2026-06"},
         headers=CSRF_HEADERS,
     )
 
@@ -254,8 +262,8 @@ def test_consenting_twice_is_allowed(raw_client):
     _make_legacy_user(raw_client, email)
     raw_client.post("/api/v1/auth/login", json={"email": email, "password": "password123"})
 
-    first = raw_client.post("/api/v1/auth/consent", json={"consentGiven": True}, headers=CSRF_HEADERS)
-    second = raw_client.post("/api/v1/auth/consent", json={"consentGiven": True}, headers=CSRF_HEADERS)
+    first = raw_client.post("/api/v1/auth/consent", json={"consentGiven": True, "adultConfirmed": True}, headers=CSRF_HEADERS)
+    second = raw_client.post("/api/v1/auth/consent", json={"consentGiven": True, "adultConfirmed": True}, headers=CSRF_HEADERS)
 
     assert first.status_code == 200
     assert second.status_code == 200
@@ -264,7 +272,7 @@ def test_consenting_twice_is_allowed(raw_client):
 
 def test_the_consent_endpoint_requires_authentication(raw_client):
     response = raw_client.post(
-        "/api/v1/auth/consent", json={"consentGiven": True}, headers=CSRF_HEADERS
+        "/api/v1/auth/consent", json={"consentGiven": True, "adultConfirmed": True}, headers=CSRF_HEADERS
     )
 
     assert response.status_code == 401, response.text
@@ -294,7 +302,7 @@ def test_mobile_registration_stamps_consent(raw_client):
 
     response = raw_client.post(
         "/api/v1/auth/mobile/register",
-        json={"email": email, "password": "password123", "consentGiven": True},
+        json={"email": email, "password": "password123", "consentGiven": True, "adultConfirmed": True},
     )
 
     assert response.status_code == 200, response.text

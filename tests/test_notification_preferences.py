@@ -6,6 +6,8 @@ from uuid import UUID
 
 import pytest
 
+from tests.conftest import grant_updates_consent
+
 TEST_USER_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
 
 
@@ -157,6 +159,7 @@ def test_dispatch_in_app_only_when_channel_none(client):
 
     with SessionLocal() as session:
         with session.begin():
+            grant_updates_consent(session, UUID(TEST_USER_ID))
             result = dispatch_notification(
                 session=session,
                 user_id=UUID(TEST_USER_ID),
@@ -198,6 +201,7 @@ def test_dispatch_uses_account_language_for_push_and_persists_both_translations(
             else:
                 ui_pref.dashboard_lang = "en"
 
+            grant_updates_consent(session, UUID(TEST_USER_ID))
             result = dispatch_notification(
                 session=session,
                 user_id=UUID(TEST_USER_ID),
@@ -238,6 +242,7 @@ def test_dispatch_smart_silence_suppresses_during_heavy_sani(client):
          patch("app.services.notification_dispatch_service.get_flag", return_value=True):
         with SessionLocal() as session:
             with session.begin():
+                grant_updates_consent(session, UUID(TEST_USER_ID))
                 result = dispatch_notification(
                     session=session,
                     user_id=UUID(TEST_USER_ID),
@@ -275,6 +280,7 @@ def test_dispatch_no_smart_silence_outside_heavy_sani(client):
          patch("app.services.notification_dispatch_service.get_flag", return_value=True):
         with SessionLocal() as session:
             with session.begin():
+                grant_updates_consent(session, UUID(TEST_USER_ID))
                 result = dispatch_notification(
                     session=session,
                     user_id=UUID(TEST_USER_ID),

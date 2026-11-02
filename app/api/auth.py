@@ -25,19 +25,23 @@ from app.core.auth import (
 from app.core.auth_throttle import AuthThrottleAction, get_auth_throttler
 from app.core.config import Settings, get_settings
 from app.core.errors import AppError
-from app.core.privacy_policy import CURRENT_POLICY_VERSION, consent_required_for
+from app.core.privacy_policy import consent_required_for
 from app.db.session import get_db
 from app.middleware import resolve_client_ip
 from app.models.password_reset_token import PasswordResetToken
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
 from app.models.user_preference import UserPreference
+from app.privacy.consent import consent_channel, forget_consents, record_consents
 from app.privacy.erasure import ErasureRefused, erase_own_account, export_user
 from app.schemas.auth import (
+    ADULT_REQUIRED_MESSAGE,
     AccountDeletionResult,
     AuthProvidersResponse,
     AuthUserResponse,
     ConsentRequest,
+    ConsentState,
+    ConsentUpdateRequest,
     ForgotPasswordRequest,
     ForgotPasswordResponse,
     LoginRequest,
@@ -48,6 +52,7 @@ from app.schemas.auth import (
     VerifyEmailRequest,
     VerifyEmailResponse,
     access_response_fields,
+    consent_response_fields,
 )
 from app.services import account_lifecycle
 from app.services.acquisition_service import apply_first_touch
@@ -179,6 +184,7 @@ def _build_auth_user_response(
         userMode=getattr(user, "user_mode", "BALANCED") or "BALANCED",
         goalTrack=getattr(user, "goal_track", None),
         **(access_response_fields(user.user_id, session) if session is not None else {}),
+        **(consent_response_fields(user, session) if session is not None else {}),
         consentRequired=consent_required_for(user),
         emailVerified=user.email_verified_at is not None,
     )
@@ -286,17 +292,29 @@ def register(
         user_id=uuid4(),
         email=payload.email,
         hashed_password=_hash_password(payload.password),
-        # DPDP §6: stamped in the same transaction that creates the account, so
-        # there is no window in which a user exists with data and no consent
-        # record. `payload.consent_given` is already validated to be exactly
-        # True — the schema rejects a missing or false value rather than
-        # defaulting it.
-        consent_given_at=datetime.now(UTC),
-        consent_policy_version=CURRENT_POLICY_VERSION,
     )
     apply_first_touch(user, request)
     session.add(user)
     session.flush()
+    # DPDP §6: recorded in the same transaction that creates the account, so
+    # there is no window in which a user exists with data and no consent
+    # record. `consent_given` and `adult_confirmed` are already validated to be
+    # exactly True — the schema rejects a missing or false value rather than
+    # defaulting it. The optional purposes are recorded as answered, off included.
+    record_consents(
+        session,
+        user,
+        {
+            "service": True,
+            "updates": payload.consents.updates,
+            "analytics": payload.consents.analytics,
+            "ask_improve": payload.consents.ask_improve,
+        },
+        language=payload.lang,
+        channel="web",
+        ip=client_ip,
+        adult_declared=True,
+    )
     account_lifecycle.on_account_created(
         session, user, background_tasks=background_tasks, email_verified_by_provider=False
     )
@@ -358,6 +376,7 @@ def me(
         goalTrack=getattr(user, "goal_track", None),
         lang=lang,
         **access_response_fields(user.user_id, session),
+        **consent_response_fields(user, session),
         consentRequired=consent_required_for(user),
         emailVerified=user.email_verified_at is not None,
     )
@@ -383,6 +402,7 @@ def patch_me(
         userMode=user.user_mode or "BALANCED",
         goalTrack=user.goal_track,
         **access_response_fields(user.user_id, session),
+        **consent_response_fields(user, session),
         consentRequired=consent_required_for(user),
         emailVerified=user.email_verified_at is not None,
     )
@@ -391,6 +411,7 @@ def patch_me(
 @router.post("/consent", response_model=AuthUserResponse, dependencies=[Depends(require_csrf_header)])
 def record_consent(
     payload: ConsentRequest,
+    request: Request,
     session: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> AuthUserResponse:
@@ -413,12 +434,28 @@ def record_consent(
     """
     email = _require_user_email(user)
 
-    # Always the version live *now*, never the one the client believed it was
-    # showing. A client running older code must not be able to record consent
-    # against a policy the user was never shown.
-    user.consent_given_at = datetime.now(UTC)
-    user.consent_policy_version = CURRENT_POLICY_VERSION
-    session.flush()
+    # The 18+ declaration is asked once (spec L2, D-12): required here only
+    # while the account has not made it.
+    if user.adult_declared_at is None and payload.adult_confirmed is not True:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=ADULT_REQUIRED_MESSAGE)
+    answers: dict = {"service": True}
+    if payload.consents is not None:
+        answers |= {
+            "updates": payload.consents.updates,
+            "analytics": payload.consents.analytics,
+            "ask_improve": payload.consents.ask_improve,
+        }
+    # Recorded against the version live *now*, never the one the client
+    # believed it was showing (`record_consents`).
+    record_consents(
+        session,
+        user,
+        answers,
+        language=payload.lang,
+        channel=consent_channel(request),
+        ip=_get_client_ip(request),
+        adult_declared=payload.adult_confirmed is True,
+    )
 
     return AuthUserResponse(
         userId=str(user.user_id),
@@ -426,10 +463,39 @@ def record_consent(
         userMode=user.user_mode or "BALANCED",
         goalTrack=user.goal_track,
         **access_response_fields(user.user_id, session),
+        **consent_response_fields(user, session),
         consentRequired=consent_required_for(user),
         emailVerified=user.email_verified_at is not None,
     )
 
+
+
+@router.put("/me/consents", response_model=ConsentState, dependencies=[Depends(require_csrf_header)])
+def update_my_consents(
+    payload: ConsentUpdateRequest,
+    request: Request,
+    session: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> ConsentState:
+    """Grant or withdraw an optional purpose (spec L2, D-10). Takes effect on the next request.
+
+    Withdrawal is one toggle, like granting. Only purposes the body names are
+    recorded. The service consent is not here: withdrawing it is `DELETE /auth/me`.
+    """
+    answers: dict = {
+        purpose: value
+        for purpose, value in (
+            ("updates", payload.updates),
+            ("analytics", payload.analytics),
+            ("ask_improve", payload.ask_improve),
+        )
+        if value is not None
+    }
+    if answers:
+        record_consents(
+            session, user, answers, language=payload.lang, channel=consent_channel(request), ip=_get_client_ip(request)
+        )
+    return consent_response_fields(user, session)["consents"]
 
 @router.delete(
     "/me",
@@ -666,8 +732,7 @@ def oauth_google_callback(
                 user.hashed_password = None
                 _advance_token_version(user)
                 _revoke_refresh_tokens(session, user, datetime.now(UTC))
-                user.consent_given_at = None
-                user.consent_policy_version = None
+                forget_consents(session, user)
             user.google_sub = google_sub
         else:
             # Signups paused: an existing account still signs in with Google,

@@ -66,6 +66,7 @@ const ERROR_META: Record<ApiErrorCode, ErrorMeta> = {
   EMAIL_ALREADY_EXISTS: { title: { ta: "மின்னஞ்சல் ஏற்கனவே உள்ளது", en: "Email Already Registered" } },
   ERASURE_BLOCKED_BY_SUBSCRIPTION: { title: { ta: "முதலில் சந்தாவை ரத்து செய்யவும்", en: "Cancel Your Subscription First" } },
   ERASURE_BLOCKED_BY_ADMIN_ROLE: { title: { ta: "முதலில் நிர்வாகப் பொறுப்பை நீக்கவும்", en: "Remove the Admin Role First" } },
+  CONSENT_REQUIRED: { title: { ta: "முதலில் உங்கள் ஒப்புதல் தேவை", en: "Your Consent Is Needed First" } },
   BIRTH_TIME_REQUIRED: { title: { ta: "பிறந்த நேரம் தேவை", en: "Birth Time Required" } },
   INVALID_DATE_RANGE: { title: { ta: "தேதிவரம்பு சரியல்ல", en: "Invalid Date Range" } },
   VALIDATION_ERROR: { title: { ta: "தகவலைச் சரிபார்க்கவும்", en: "Check Your Information" } },

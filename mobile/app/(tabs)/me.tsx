@@ -16,7 +16,7 @@ import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "@/hooks/useSession";
 import { loadGuestPrefs, saveGuestPrefs } from "@/features/guest/guestStore";
 import { setAnalyticsConsent } from "@/lib/analytics";
-import { getMySubscription } from "@/api/auth";
+import { getMySubscription, updateMyConsents } from "@/api/auth";
 import { endSession } from "@/state/sessionTransition";
 import { getPrimaryChartId } from "@/lib/userPrefs";
 import { FocusSettingsRow } from "@/components/LifeFocus";
@@ -98,6 +98,11 @@ export default function MeScreen() {
     // only after the storage write lands or on the next launch.
     setAnalyticsConsent(val);
     await saveGuestPrefs({ analyticsOptedIn: val });
+    // Signed in, the answer is the account's (admin spec L2, P3): recorded on
+    // the server so the web and the next launch read the same one.
+    if (user) {
+      await updateMyConsents({ analytics: val, lang }).catch(() => undefined);
+    }
   }
 
   async function handleSignOut() {

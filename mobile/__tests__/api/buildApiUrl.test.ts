@@ -12,6 +12,8 @@
  */
 
 jest.mock("expo-router", () => ({ router: { replace: jest.fn() } }));
+// client.ts reads Platform.OS for the X-Vinaadi-Client header (admin spec L2).
+jest.mock("react-native", () => ({ Platform: { OS: "android" } }));
 jest.mock("@/lib/secureStore", () => ({
   getTokens: jest.fn(),
   setTokens: jest.fn(),

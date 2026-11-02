@@ -27,7 +27,12 @@ from datetime import datetime
 # Bumped 2026-09-03: the policy gained the Ask Vinaadi / Anthropic PBC
 # data-processor disclosure required by DPDP §9. That names a new recipient of
 # user data outside India, which is squarely the kind of change consent is *for*.
-CURRENT_POLICY_VERSION = "2026-09"
+#
+# Bumped 2026-11-02 (admin spec L2): the notice now itemises the data held, the
+# four purposes (service, updates and alerts, product analytics, improving Ask
+# Vinaadi), withdrawal, rights, the grievance contact and the Data Protection
+# Board, and asks for the 18+ declaration. New purposes are a reason to ask.
+CURRENT_POLICY_VERSION = "2026-11"
 
 
 def consent_is_current(consent_given_at: datetime | None, consent_policy_version: str | None) -> bool:
@@ -59,6 +64,10 @@ def consent_required_for(user: object) -> bool:
     these attributes reads as *not consented* and is asked — the fail-safe
     direction, since the opposite silently skips the ask.
     """
+    if getattr(user, "adult_declared_at", None) is None:
+        # Accounts from before the 18+ declaration (spec L2, D-12) are asked
+        # for it on the same panel.
+        return True
     return not consent_is_current(
         getattr(user, "consent_given_at", None),
         getattr(user, "consent_policy_version", None),

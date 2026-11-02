@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { GuestPrivacyNote } from "@/components/guest-privacy-note";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import { MIN_BIRTH_DATE, maxBirthDateIso } from "@/lib/birth-date";
 import { dt, GUEST_CHART } from "@/lib/dashboard-i18n";
@@ -320,6 +321,8 @@ export function GuestChartModal({ lang, onClose, onCreateAccount }: GuestChartMo
           {submitError && (
             <p className="gcm-submit-error">{submitError}</p>
           )}
+
+          <GuestPrivacyNote />
 
           <button type="submit" className="gcm-submit" disabled={isSubmitting}>
             {isSubmitting

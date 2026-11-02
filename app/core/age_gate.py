@@ -28,6 +28,19 @@ def is_minor(birth_date: date, *, as_of: date | None = None) -> bool:
     return compute_age(birth_date, as_of=as_of) < MINOR_AGE
 
 
+def family_member_is_minor(relationship: str | None, birth_date: date | None, *, as_of: date | None = None) -> bool:
+    """`FamilyMember.is_minor` (admin spec L2, D-12): under 18 by date of birth.
+
+    Without a date of birth, a "child" counts as a minor: the flag keeps people
+    out of marketing segments, so the unknown case errs towards keeping out.
+    Stored, so it goes stale as a child turns 18; staying flagged only keeps an
+    adult out of segments, the safe side.
+    """
+    if birth_date is None:
+        return relationship == "child"
+    return is_minor(birth_date, as_of=as_of)
+
+
 def is_minor_age(age: int) -> bool:
     """Same as is_minor, but for callers that already have an int age
     rather than a birth_date (e.g. propensities, already computed once

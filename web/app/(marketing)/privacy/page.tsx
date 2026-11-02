@@ -48,7 +48,7 @@ export default async function PrivacyPage() {
           <div className="cl-container">
             <p className="cl-eyebrow">{ta ? "சட்டம்" : "Legal"}</p>
             <h1 className="cl-trust-h1">{ta ? "தனியுரிமைக் கொள்கை" : "Privacy Policy"}</h1>
-            <p className="cl-trust-sub">{ta ? "கடைசியாகப் புதுப்பித்தது: செப்டம்பர் 2026" : "Last updated: September 2026"}</p>
+            <p className="cl-trust-sub">{ta ? "கடைசியாகப் புதுப்பித்தது: நவம்பர் 2026" : "Last updated: November 2026"}</p>
             {ta && (
               // A translation of a legal text is a convenience, not the text.
               <p role="note" className="cl-trust-sub">
@@ -78,18 +78,71 @@ export default async function PrivacyPage() {
               </p>
             )}
 
-            <h2>{ta ? "நாங்கள் சேகரிப்பவை" : "What we collect"}</h2>
+            <h2 id="collect">{ta ? "நாங்கள் சேகரிப்பவை" : "What we collect"}</h2>
+            {ta ? (
+              <ul>
+                <li><strong>மின்னஞ்சல் முகவரி</strong> — உள்நுழையவும், கணக்கு மற்றும் கட்டணச் செய்திகளை அனுப்பவும்.</li>
+                <li><strong>உங்கள் பிறப்பு விவரங்கள்</strong> — பிறந்த தேதி, நேரம், இடம்; திருமண நிலை, வேலை வகை போன்ற நீங்கள் தரும் விவரங்கள்.</li>
+                <li><strong>குடும்ப உறுப்பினர்களின் விவரங்கள்</strong> — நீங்கள் சேர்க்கும் ஒவ்வொருவரின் பெயர், உறவு, பிறப்பு விவரங்கள்.</li>
+                <li><strong>Ask Vinaadi-இடம் நீங்கள் கேட்கும் கேள்விகளும் அதன் பதில்களும்.</strong></li>
+                <li><strong>குறிப்பேடு, அமைப்புகள், நினைவூட்டல் தேர்வுகள்.</strong></li>
+                <li><strong>கட்டணப் பதிவுகள்</strong> — ஆர்டர், தொகை, நிலை, ரசீது. அட்டை, UPI விவரங்களை Razorpay வைத்திருக்கிறது; நாங்கள் அல்ல.</li>
+                <li><strong>பாதுகாப்புப் பதிவுகள்</strong> — உள்நுழைவு மற்றும் ஒப்புதல் பதிவுகளுடன் IP முகவரி.</li>
+              </ul>
+            ) : (
+              <ul>
+                <li><strong>Email address</strong>, to sign you in and send account and payment messages.</li>
+                <li><strong>Your birth details</strong>: date, time and place of birth, and details you add such as marital status and employment type.</li>
+                <li><strong>Family members&apos; details</strong>: the name, relationship and birth details of each person you add.</li>
+                <li><strong>Questions you ask Ask Vinaadi</strong>, and its answers.</li>
+                <li><strong>Your journal, settings and reminder choices.</strong></li>
+                <li><strong>Payment records</strong>: order, amount, status and receipt. Card and UPI details are held by Razorpay, not by us.</li>
+                <li><strong>Security records</strong>: IP address with sign-ins and with each consent answer.</li>
+              </ul>
+            )}
+
+            <h2 id="purposes">{ta ? "நோக்கங்களும் உங்கள் ஒப்புதலும்" : "Purposes and your consent"}</h2>
+            {ta ? (
+              <>
+                <p>ஒவ்வொரு பயன்பாட்டுக்கும் தனி ஒப்புதல் உண்டு. முதலாவது மட்டுமே அவசியம்; மற்றவை நீங்கள் இயக்கும் வரை அணைந்திருக்கும்.</p>
+                <ol>
+                  <li><strong>சேவை (அவசியம்).</strong> உங்கள் ஜாதகம், தினசரி வழிகாட்டுதல், தசை, பெயர்ச்சி, பஞ்சாங்கம், பொருத்தம் ஆகியவற்றைக் கணித்துக் காட்டுதல்; உங்கள் கணக்கையும் கட்டணங்களையும் நடத்துதல். பயனர் எண்ணிக்கை, தொடர்ச்சி, வருவாய் போன்ற மொத்தக் கணக்குகளை எங்கள் சொந்தத் தரவுத்தளத்திலிருந்து கணக்கிடுவதும் இதில் அடங்கும்.</li>
+                  <li><strong>புதுப்பிப்புகளும் ஜோதிட அறிவிப்புகளும் (விருப்பத்திற்குரியது).</strong> காலை நல்ல நேரம், தசை மாற்றம், பிறந்த நட்சத்திர நாள், புதிய வசதிகள் பற்றிய குறிப்புகள். இது இல்லாமல் சரிபார்ப்பு, கடவுச்சொல் மீட்டமைப்பு, ரசீது போன்ற சேவைக்குத் தேவையான செய்திகள் மட்டுமே வரும்.</li>
+                  <li><strong>தயாரிப்புப் பகுப்பாய்வு (விருப்பத்திற்குரியது).</strong> Vinaadi-ஐ மேம்படுத்த, நீங்கள் அதைப் பயன்படுத்தும் விதத்தை உங்கள் கணக்குடன் இணைத்தல். இது இல்லாமல் வருகைகள் அடையாளமின்றி மட்டுமே எண்ணப்படும்.</li>
+                  <li><strong>Ask Vinaadi-ஐ மேம்படுத்துதல் (விருப்பத்திற்குரியது).</strong> பதில்களை மேம்படுத்த, உங்கள் கேள்விகளையும் பதில்களையும் எங்கள் குழு படிக்கலாம்.</li>
+                </ol>
+                <p>
+                  <strong>ஒப்புதலைத் திரும்பப் பெறுதல்.</strong> விருப்பத்திற்குரிய ஒவ்வொன்றையும் டாஷ்போர்டு அமைப்புகள் → தனியுரிமை &amp; சட்டம் பகுதியில் ஒரே தட்டலில் அணைக்கலாம்; அடுத்த கோரிக்கையிலிருந்தே அது நடைமுறைக்கு வரும்.
+                  சேவை ஒப்புதலைத் திரும்பப் பெறுவது என்பது கணக்கை நீக்குவதாகும் (கீழே பார்க்கவும்).
+                </p>
+              </>
+            ) : (
+              <>
+                <p>Each use has its own consent. Only the first is required; the others stay off until you switch them on.</p>
+                <ol>
+                  <li><strong>Service (required).</strong> Calculating and showing your charts, daily guidance, dasa, transits, panchangam and porutham; running your account and payments. This includes counting totals such as active users, retention and revenue from our own database.</li>
+                  <li><strong>Updates and astro alerts (optional).</strong> Morning nalla neram, dasa changes, your birth-star day and notes on new features. Without it you receive only messages the service needs, such as verification, password reset and receipts.</li>
+                  <li><strong>Product analytics (optional).</strong> Linking how you use Vinaadi to your account so we can improve it. Without it, visits are counted anonymously.</li>
+                  <li><strong>Help improve Ask Vinaadi (optional).</strong> Our team may read your questions and answers to make the answers better.</li>
+                </ol>
+                <p>
+                  <strong>Withdrawing consent.</strong> Switch any optional purpose off with one tap in your
+                  dashboard under Settings → Privacy &amp; Legal; it applies from your next request.
+                  Withdrawing the service consent means deleting your account (see below).
+                </p>
+              </>
+            )}
             <p>
               {ta
-                ? "உங்கள் ஜோதிட உதவியாளர் சேவையை வழங்கத் தேவையான தகவல்களை மட்டுமே Vinaadi சேகரிக்கிறது: உங்கள் மின்னஞ்சல் முகவரி (கணக்கு அங்கீகாரத்திற்கு), மற்றும் நீங்களாக உள்ளிடும் பிறப்பு விவரங்கள் (பிறந்த தேதி, நேரம், இடம்). நீங்கள் உருவாக்கும் குடும்ப உறுப்பினர் சுயவிவரங்கள் உங்கள் கணக்கின் கீழ் சேமிக்கப்படும்."
-                : "Vinaadi collects only the information required to provide your astrology assistant service: your email address (for account authentication), and your birth details (date, time, and place of birth) that you choose to enter. Family member profiles you create are stored under your account."}
+                ? "உங்கள் தனிப்பட்ட தகவலை விற்கவோ, சந்தைப்படுத்தலுக்காக மூன்றாம் தரப்பினருடன் பகிரவோ மாட்டோம்."
+                : "We do not sell your personal data or share it with third parties for their marketing."}
             </p>
 
-            <h2>{ta ? "உங்கள் தகவலை நாங்கள் பயன்படுத்தும் விதம்" : "How we use your data"}</h2>
+            <h2 id="children">{ta ? "18 வயதுக்குக் குறைவானவர்கள்" : "Under-18s"}</h2>
             <p>
               {ta
-                ? "உங்கள் பிறப்பு விவரங்கள் திருக்கணித அடிப்படையிலான ஜோதிடப் பலன்களைக் கணிக்க மட்டுமே பயன்படுத்தப்படுகின்றன — தினசரி வழிகாட்டுதல் மதிப்பெண்கள், தசா காலங்கள், கிரகப் பெயர்ச்சி நிலைகள், பஞ்சாங்க நேரங்கள், பொருத்த முடிவுகள், ஜாதகக் கட்டங்கள். உங்கள் தனிப்பட்ட தகவலை சந்தைப்படுத்தல் நோக்கத்திற்காக மூன்றாம் தரப்பினருக்கு விற்கவோ, பகிரவோ, மாற்றவோ மாட்டோம்."
-                : "Your birth details are used exclusively to calculate Thirukanitham-based astrological readings — daily guidance scores, dasa periods, transit positions, panchangam timings, porutham results, and jadhagam charts. We do not sell, share, or transfer your personal data to third parties for marketing purposes."}
+                ? "கணக்கு வைத்திருப்பவர் 18 வயது அல்லது அதற்கு மேற்பட்டவராக இருக்க வேண்டும். குழந்தைகள் பெற்றோர் சேர்க்கும் குடும்ப உறுப்பினர்களாக மட்டுமே இடம்பெறுவர். 18 வயதுக்குக் குறைவான உறுப்பினர் எந்தச் சந்தைப்படுத்தல் செய்தியிலும் சேர்க்கப்படமாட்டார்."
+                : "Account holders must be 18 or older. Children appear only as family members a parent adds. A family member under 18 is never included in any marketing message."}
             </p>
 
             <h2>{ta ? "Ask Vinaadi மற்றும் இந்தியாவுக்கு வெளியே செயலாக்கம்" : "Ask Vinaadi and processing outside India"}</h2>
@@ -141,28 +194,41 @@ export default async function PrivacyPage() {
               </p>
             )}
 
-            <h2>{ta ? "உங்கள் உரிமைகளும் தரவு நீக்கமும்" : "Your rights and data deletion"}</h2>
+            <h2 id="rights">{ta ? "உங்கள் உரிமைகளும் தரவு நீக்கமும்" : "Your rights and data deletion"}</h2>
+            {ta ? (
+              <ul>
+                <li><strong>அணுகல்.</strong> அமைப்புகள் → தனியுரிமை &amp; சட்டம் → &quot;என் தரவைப் பதிவிறக்கு&quot; நாங்கள் வைத்திருக்கும் அனைத்தையும் ஒரு கோப்பாகத் தரும்.</li>
+                <li><strong>திருத்தம்.</strong> உங்கள் விவரங்களையும் குடும்ப உறுப்பினர்களையும் டாஷ்போர்டிலேயே திருத்தலாம்.</li>
+                <li><strong>நீக்கம்.</strong> அமைப்புகள் → ஆபத்துப் பகுதியில் உங்கள் கணக்கை நீக்கலாம்: பிறப்பு விவரங்கள், ஜாதகங்கள், குடும்பம், குறிப்பேடு, கேள்விகள் அழிக்கப்படும். சட்டப்படி வைத்திருக்க வேண்டிய கட்டணப் பதிவுகள் உங்களுடன் இணைப்பின்றி மட்டுமே இருக்கும்.</li>
+                <li><strong>பரிந்துரை.</strong> உங்களால் இயலாதபோது உங்கள் உரிமைகளைப் பயன்படுத்த ஒருவரைப் பரிந்துரைக்க எங்களுக்கு எழுதலாம்.</li>
+              </ul>
+            ) : (
+              <ul>
+                <li><strong>Access.</strong> Settings → Privacy &amp; Legal → &quot;Download my data&quot; gives you everything we hold as one file.</li>
+                <li><strong>Correction.</strong> Edit your details and your family members in the dashboard.</li>
+                <li><strong>Erasure.</strong> Delete your account under Settings → Danger zone: birth details, charts, family, journal and questions are erased. Payment records the law requires us to keep stay, no longer linked to you.</li>
+                <li><strong>Nomination.</strong> Write to us to nominate someone to exercise these rights if you cannot.</li>
+              </ul>
+            )}
+
+            <h2 id="grievance">{ta ? "குறைதீர்ப்பும் புகாரும்" : "Grievances and complaints"}</h2>
             {ta ? (
               <p>
-                உங்கள் தனிப்பட்ட தரவை அணுக, திருத்த அல்லது நீக்கக் கோர எப்போது வேண்டுமானாலும் உங்களுக்கு உரிமை உண்டு. உங்கள் கணக்கையும் தொடர்புடைய அனைத்துத் தரவையும் —
-                பிறப்புச் சுயவிவரங்கள், ஜாதகங்கள், குடும்ப உறுப்பினர் சுயவிவரங்கள், பலன் வரலாறு — நீக்க <a href="mailto:privacy@vinaadi.com" className="cl-trust-link">privacy@vinaadi.com</a> முகவரிக்கு
-                மின்னஞ்சல் அனுப்பவும், அல்லது டாஷ்போர்டு அமைப்புகளில் உள்ள தொடர்பு வசதியைப் பயன்படுத்தவும். நீக்கக் கோரிக்கைகளை விரைந்து நிறைவேற்றி, முடிந்ததும் உறுதிப்படுத்துவோம்.
+                குறை அல்லது கோரிக்கை இருந்தால் <a href="mailto:privacy@vinaadi.com" className="cl-trust-link">privacy@vinaadi.com</a> முகவரிக்கு எழுதுங்கள். எங்கள் பதிலில் திருப்தி இல்லையெனில்,
+                இந்தியத் தரவுப் பாதுகாப்பு வாரியத்திடம் (Data Protection Board of India) புகார் அளிக்கலாம்.
               </p>
             ) : (
               <p>
-                You may request access to, correction of, or deletion of your
-                personal data at any time. To delete your account and all associated
-                data — birth profiles, charts, family member profiles, and reading
-                history — email <a href="mailto:privacy@vinaadi.com" className="cl-trust-link">privacy@vinaadi.com</a> or
-                use the contact option in your dashboard settings. We action deletion
-                requests promptly and confirm once complete.
+                For a grievance or a request about your data, write to{" "}
+                <a href="mailto:privacy@vinaadi.com" className="cl-trust-link">privacy@vinaadi.com</a>. If you are not
+                satisfied with our answer, you may complain to the Data Protection Board of India.
               </p>
             )}
 
             <h2>{ta ? "குக்கீகளும் பகுப்பாய்வும்" : "Cookies and analytics"}</h2>
             {ta ? (
               <p>
-                அங்கீகாரத்திற்கு Vinaadi ஒரு அமர்வுக் குக்கீயைப் பயன்படுத்துகிறது. தயாரிப்புப் பகுப்பாய்விற்கு PostHog-ஐத் தனியுரிமையை மதிக்கும் வகையில் அமைத்துப் பயன்படுத்துகிறோம்:
+                அங்கீகாரத்திற்கு Vinaadi ஒரு அமர்வுக் குக்கீயைப் பயன்படுத்துகிறது. தயாரிப்புப் பகுப்பாய்விற்கு PostHog-ஐத் தனியுரிமையை மதிக்கும் வகையில் அமைத்துப் பயன்படுத்துகிறோம்; &quot;தயாரிப்புப் பகுப்பாய்வு&quot; ஒப்புதல் தந்தால் மட்டுமே நிகழ்வுகள் உங்கள் கணக்குடன் இணைக்கப்படும், இல்லையெனில் அடையாளமின்றி இருக்கும்:
                 அது உங்கள் உலாவியின் உள்ளூர் சேமிப்பில் (local storage) முதல்தரப்பு அடையாளங்காட்டியைச் சேமிக்கிறது (கண்காணிப்புக் குக்கீ அல்ல), ஐரோப்பிய ஒன்றியத்தில் இயங்குகிறது,
                 உங்கள் உலாவியின் &quot;Do Not Track&quot; அமைப்பை மதிக்கிறது. மொத்தப் பயன்பாட்டைப் புரிந்துகொள்ள, பக்கப் பார்வை, ஜாதகம் உருவாக்குதல், கருத்துச் சமர்ப்பித்தல் போன்ற
                 சில குறிப்பிட்ட நிகழ்வுகளை மட்டுமே பதிவு செய்கிறோம். உங்கள் பிறப்பு விவரங்கள், பெயர், மின்னஞ்சல், நீங்கள் தட்டச்சு செய்யும் உள்ளடக்கம் எதையும் பகுப்பாய்விற்கு
@@ -171,7 +237,9 @@ export default async function PrivacyPage() {
             ) : (
               <p>
                 Vinaadi uses a session cookie for authentication. For product
-                analytics we use PostHog, configured in a privacy-respecting way: it
+                analytics we use PostHog, configured in a privacy-respecting way.
+                Events are linked to your account only if you allow product
+                analytics; otherwise they stay anonymous. PostHog
                 stores a first-party identifier in your browser&apos;s local storage
                 (not a tracking cookie), is hosted in the EU, and honours your
                 browser&apos;s &quot;Do Not Track&quot; setting. We only record a
