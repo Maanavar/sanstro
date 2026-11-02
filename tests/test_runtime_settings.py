@@ -211,7 +211,7 @@ def test_guest_chart_switch_pauses_the_public_chart_tools(raw_client):
 
 def test_signup_switch_blocks_new_accounts_on_web_and_mobile(raw_client):
     feature_flags.persist_flag("enable_signups", False, reason="spam wave", actor_user_id=None)
-    body = {"email": "new.person@example.invalid", "password": "synthetic-pass-123", "consentGiven": True}
+    body = {"email": "new.person@example.invalid", "password": "synthetic-pass-123", "consentGiven": True, "adultConfirmed": True}
     web = raw_client.post("/api/v1/auth/register", json=body)
     mobile = raw_client.post("/api/v1/auth/mobile/register", json=body)
     assert web.status_code == 503, web.text

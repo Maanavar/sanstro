@@ -17,7 +17,8 @@ import { firstTouchChannel, readFirstTouch } from "@/lib/acquisition";
 import { estimatePasswordStrength } from "@/lib/password-strength";
 import { lt, LEFT_PANEL_FEATURES, type LoginKey } from "@/lib/login-i18n";
 import { LangToggle, useLang } from "@/components/lang-toggle";
-import { confirmEmailVerification, getAuthProviders } from "@vinaadi/shared/api/auth";
+import { confirmEmailVerification, getAuthProviders, type OptionalConsents } from "@vinaadi/shared/api/auth";
+import { ADULT_DECLARATION, CHANGE_LATER, NO_OPTIONAL_CONSENTS, OPTIONAL_PURPOSES } from "@/lib/consent-copy";
 import "@/lib/api"; // side effect: initializes the shared API client used by getAuthProviders
 import { GuestChartModal } from "@/components/dashboard-guest-chart-modal";
 import { LoginWelcomeNova } from "@/components/login-welcome-nova";
@@ -85,6 +86,9 @@ export default function LoginPage() {
   // DPDP Act 2023 §6. Starts false, always: a pre-ticked box is not a consent
   // action the user performed.
   const [consentGiven, setConsentGiven] = useState(false);
+  // Admin spec L2: the 18+ declaration and the optional purposes start unticked too.
+  const [adultConfirmed, setAdultConfirmed] = useState(false);
+  const [optionalConsents, setOptionalConsents] = useState<OptionalConsents>(NO_OPTIONAL_CONSENTS);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -162,6 +166,8 @@ export default function LoginPage() {
     // Cleared with the rest of the form. Consent carried across a mode switch
     // would be a tick the user made in one context reused in another.
     setConsentGiven(false);
+    setAdultConfirmed(false);
+    setOptionalConsents(NO_OPTIONAL_CONSENTS);
     setShowPassword(false);
     setShowConfirm(false);
   }
@@ -215,6 +221,10 @@ export default function LoginPage() {
         setError({ key: "error_password_mismatch" });
         return;
       }
+      if (mode === "signup" && !adultConfirmed) {
+        setError({ key: "error_adult_required" });
+        return;
+      }
       if (mode === "signup" && !consentGiven) {
         setError({ key: "error_consent_required" });
         return;
@@ -229,7 +239,14 @@ export default function LoginPage() {
           method: "POST",
           headers: { "Content-Type": "application/json", "X-Vinaadi-CSRF": "1" },
           credentials: "include",
-          body: JSON.stringify({ email: email.trim(), password, consentGiven }),
+          body: JSON.stringify({
+            email: email.trim(),
+            password,
+            consentGiven,
+            adultConfirmed,
+            consents: optionalConsents,
+            lang,
+          }),
         });
         if (!response.ok) {
           const payload = await response.json().catch(() => ({} as { detail?: string }));
@@ -672,6 +689,41 @@ export default function LoginPage() {
                         {lt("consent_suffix", lang)}
                       </span>
                     </label>
+                    <label className="ca-consent" htmlFor="ca-adult">
+                      <input
+                        id="ca-adult"
+                        type="checkbox"
+                        checked={adultConfirmed}
+                        onChange={(e) => { setAdultConfirmed(e.target.checked); setError(null); }}
+                      />
+                      <span>{ADULT_DECLARATION[lang]}</span>
+                    </label>
+                    {/* The optional purposes (D-10 P2–P4), each its own box and
+                        each unticked: consent to one is not consent to another. */}
+                    <fieldset className="ca-consent-optional">
+                      <legend>{lt("consent_optional_heading", lang)}</legend>
+                      {OPTIONAL_PURPOSES.map((purpose) => (
+                        <label key={purpose.key} className="ca-consent" htmlFor={`ca-consent-${purpose.key}`}>
+                          <input
+                            id={`ca-consent-${purpose.key}`}
+                            type="checkbox"
+                            checked={optionalConsents[purpose.key]}
+                            aria-describedby={`ca-consent-${purpose.key}-desc`}
+                            onChange={(e) => {
+                              const granted = e.target.checked;
+                              setOptionalConsents((prev) => ({ ...prev, [purpose.key]: granted }));
+                            }}
+                          />
+                          <span>
+                            {purpose.title[lang]}
+                            <small id={`ca-consent-${purpose.key}-desc`} className="ca-consent-desc">
+                              {purpose.desc[lang]}
+                            </small>
+                          </span>
+                        </label>
+                      ))}
+                      <p className="ca-consent-desc">{CHANGE_LATER[lang]}</p>
+                    </fieldset>
                   </div>
                 )}
 

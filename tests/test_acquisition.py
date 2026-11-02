@@ -80,7 +80,7 @@ def _register(raw_client, email: str, cookie: str | None = None) -> None:
     if cookie is not None:
         raw_client.cookies.set(FIRST_TOUCH_COOKIE, cookie)
     assert raw_client.post(
-        "/api/v1/auth/register", json={"email": email, "password": "password123", "consentGiven": True}
+        "/api/v1/auth/register", json={"email": email, "password": "password123", "consentGiven": True, "adultConfirmed": True}
     ).status_code == 200
 
 

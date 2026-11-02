@@ -243,7 +243,8 @@ container (not authoritative; CI is). Every migration below was round-tripped
 | 4 | **L1** payments | Built, test mode only. `products` (seeded, prices as data), `orders`, `payments`, `refunds`, `credit_ledger`, `payment_mismatches`; `subscriptions` gains `provider_status` / `sku` / `cancel_at_period_end`; `webhook_events` gains `signature_valid` / `error`. Razorpay client over httpx; checkout (order + subscription), `/payments/confirm` (grants only on API confirmation), `/payments/razorpay/webhook` (HMAC over raw body, idempotent on `X-Razorpay-Event-Id`, inline), subscription lifecycle, refunds, nightly reconciliation (22:00 UTC = 03:30 IST), admin mismatch + order lists. Web `/dashboard/upgrade` with Razorpay Checkout; CSP widened on that route only. Migration `yy8c9d0e1f2a`. | `test_razorpay_payments.py` — all seven spec acceptance tests plus 15 more |
 | 3 | **L4** audit | Done (launch cut). `admin_audit_log` gains `actor_email`, `actor_role` (`service_key` for X-Admin-Key), `reason`, `outcome` (success / refused / error), `details` JSONB, `user_agent`, target index. One writer: every mutating admin route and the two personal-data reads (`GET /admin/users`, `/admin/users/{id}`) take `audited(...)` first, which writes one row per request on every outcome, commits the handler's session before "success" (ARC-20), and skips only the console's tokenless elevation prompt. Routes no longer call `log_admin_action`. Reason required on the nine destructive routes and destructive job runs (ARC-21). Append-only trigger: UPDATE/DELETE/TRUNCATE refused except actor nulling and `erased:` target pseudonymisation (ARC-19). `GET /admin/audit-log` filters by action, actor, target, outcome, date. Shared `adminAudit.ts`; console: Who/Outcome/Reason/Details columns, filters, reason inputs for suspend/reinstate, erasure and destructive jobs. Migration `ab0f1a2b3c4d`, round-tripped on scratch; applied to dev 2026-11-01 (backup first; legacy rows kept, DELETE refused, `alembic check` clean). Deferred per ARC-09: hash chain + verifier, CSV export. | `test_admin_audit.py` (structural, coverage over all 16 mutating routes, outcomes, reasons, DB guard, migration/model SQL parity) |
 | 5 | **L5** erasure | Done (launch cut, 2026-11-02). `app/privacy/registry.py` has 48 table stores (each with what it holds, how erasure treats it: delete, detach or keep, its retention and what export shows) plus 7 external processors as manual steps. One `erase_user` serves `DELETE /auth/me` and the console's `DELETE /admin/users/{id}/data`, which now removes the account itself (decision 10). Accounting records stay, detached: orders, subscriptions (now `SET NULL`, ARC-22), payments, refunds, webhook events. Audit rows: actor nulled, target rewritten to `erased:<tombstone id>`. Every erasure writes an `erasure_tombstones` row and an audit row with per-store counts. Refusals: ARC-23. Export: `GET /auth/me/export` (settings "Download my data") and `GET /admin/users/{id}/export` (elevated, reason, audited), ARC-27. `restore-dev-db.ps1` carries tombstones across a restore and replays them (`app.privacy.tombstones`). Migration `bc1d2e3f4a5b`, round-tripped on scratch (downgrade refuses while a detached subscription exists); applied to dev 2026-11-02 after backup `backup_20261102_1646.sql` (5 users, 4 profiles intact, `alembic check` clean). Deferred per §5: the readable Tamil/English summary, the `privacy_requests` table and UI (Zoho Desk meanwhile), and mobile export. | `test_account_deletion.py` (registry coverage walk; erase everything via each route, checked row by row; refusals; export; tombstone replay) |
-| 6–11 | L2, L7, L6, L9, L11 | Not started. | — |
+| 6 | **L2** consent | Built (launch cut, 2026-11-02, branch `feat/l2-consent`). Ledger `consent_records` P1–P4, append-only (ARC-28). `users.adult_declared_at`; policy version `2026-11`. Register (web, mobile) requires the 18+ declaration and records each optional purpose as answered. `/auth/consent` is the panel (adds the 18+ declaration and optional purposes). `PUT /auth/me/consents` holds the toggles. `/auth/me` returns `consents` and `adultDeclared`. P1 gate at the birth-profile sink and the family-member route (`CONSENT_REQUIRED`). P2 gate at the outbox (ARC-31). P3: web identifies PostHog only with consent (it identified every signed-in account before) and resets when it is withdrawn; mobile syncs the switch. `is_minor` from the date of birth (ARC-29). Web: signup boxes, consent panel in the dashboard, Settings → Privacy & Legal toggles, alerts note in Notifications, guest note on six birth-detail forms, privacy notice rewritten (itemised data, purposes, withdrawal, rights, grievance, Data Protection Board). Migration `cd2e3f4a5b6c` (backfills the service stamp). Mobile minimum per ARC-30. Not applied to dev yet. | `test_consent_ledger.py`, `test_consent.py` |
+| 7–11 | L7, L6, L9, L11 | Not started. | — |
 
 **Gates proven to fail with the fix removed** (CLAUDE.md): permission declared per route, the MFA
 requirement, the listed-email bypass, the trial branch of `limits_for_user`, the webhook signature
@@ -263,6 +264,14 @@ the row-by-row check named the surviving row. (3) `device_tokens` dropped from t
 coverage walk named the table. Blind spots are in the `test_account_deletion.py` docstring: personal
 data copied into an unrelated column, external processors (listed, not verified), and pre-L5 audit
 rows whose `details` or `payload_summary` hold an email the trigger will not let erasure rewrite.
+
+L2 (2026-11-02), mutants run together, each caught by its own test: P1 guard removed at the
+birth-profile sink and the family route (both refusal tests failed), P2 check removed from
+`dispatch_notification` (both outbox tests failed). Blind spots, in the `test_consent_ledger.py`
+docstring: the web and mobile clients are not driven (PostHog identification follows consent only by
+code review and type checks), `forget_consents` is called directly rather than through the Google
+callback, and the family-route guard is redundant with the sink guard inside one transaction, so its
+own removal alone would not fail a test.
 
 **Known blind spots**, also written in each test file's docstring:
 - The permission test sees permissions declared as dependencies, not a handler that branches on `role_has`.
@@ -447,3 +456,52 @@ tokens, porutham share tokens, push tokens, admin TOTP and recovery codes), reco
 rows about the person are exported as action, outcome and date only, without other admins' identities.
 The console export is a reveal, so it is elevated, needs a reason and is audited with per-store counts
 (ARC-21). Self-export needs no reason: it is the person's own data.
+
+**ARC-28. The consent ledger (L2).** *Decided:* `consent_records`, one row per answer per purpose
+(`service`, `updates`, `analytics`, `ask_improve`), with notice version, language, channel
+(web / android / ios) and IP. The latest row per purpose is the state, and no row means not granted.
+UPDATE and TRUNCATE are refused by trigger. DELETE is allowed, because erasure and ARC-17 need it.
+`users.consent_*` stays as the service stamp the panel reads. The migration backfills a `service` row
+(channel `legacy`) only from an existing stamp, and backfills no optional purpose, because nobody was
+asked about one. `CURRENT_POLICY_VERSION` moves to `2026-11` (new purposes), so every account sees the
+panel once. The panel also asks for the 18+ declaration where `users.adult_declared_at` is null. The ask
+stays non-blocking with one exception: an account with **no** service row at all (a Google sign-up that
+never answered) cannot store new birth details (`CONSENT_REQUIRED`, at `create_birth_profile_record`
+and before a family member is written). A consent to an older version does not block. Withdrawing the
+service consent is erasure; the toggle route refuses a `service` field.
+
+**ARC-29. `is_minor` follows the date of birth, and so does the child remedy (ruled 2026-11-02).**
+`is_minor` is now "under 18 by date of birth", falling back to `relationship == "child"` when there is
+no date. It is set on add, on relationship edits and whenever the member's date of birth is mirrored
+from the profile. It is stored, so a child who turns 18 stays flagged, which only keeps an adult out of
+segments. `family_harmony_remedies` used `relationship == "child" or is_minor`. With the old flag that
+was the same as "child". With the new one it would give the child-remedy to an under-18 sibling or
+grandchild. The L2 commit pinned it to `relationship == "child"` while the question was open.
+**Ruling (owner-delegated, 2026-11-02): age decides, not relationship.** The household performs this
+remedy on a minor's behalf, in the minor's name (daanam in their name, the family saying the mantra),
+and that is the same for a younger sibling or grandchild as for a son or daughter. An adult child
+performs their own remedies, and the copy ("the child's", Tamil குழந்தையின், "while touching them")
+is written for a young child. So the remedy requires `is_minor`, which `get_family_harmony_remedies`
+recomputes from the date of birth on the day of the reading (not the stored flag, which stays set
+past an 18th birthday). With no date of birth it falls back to `relationship == "child"`.
+Reading changes: under-18 siblings and grandchildren gain the item; children 18 or over with a known
+date of birth lose it. Copy unchanged.
+
+**ARC-30. Mobile carries the minimum until Gate M.**
+- Mobile signup asks for the 18+ declaration and records the three optional purposes as not granted.
+- The analytics switch records P3 on the server when signed in.
+- On launch, the server's answer replaces the device's guest choice.
+- The app sends `X-Vinaadi-Client` so the ledger records `android` or `ios`.
+- **Not built:** a consent panel and P2/P4 toggles on mobile. Until then, a mobile Google sign-up hits
+  `CONSENT_REQUIRED` at birth details and must answer on the web. Mobile isn't released, so this joins
+  Gate M.
+
+**ARC-31. P2 covers every outbox message, and alerts pause until it is granted.** Every outbox type
+is an alert or a nudge, so all six need `updates`. `NEEDS_UPDATES_CONSENT` lists each one, and a test
+fails on an unlisted type. Without consent, `dispatch_notification` writes nothing, not even the in-app
+row, and returns `no_consent`. Transactional mail (verification, reset, receipts) never goes through
+the outbox. **Effect on beta accounts:** anyone who turned an alert on before L2 stops getting it until
+they grant "Updates and astro alerts" on the panel (shown to everyone once) or in Settings.
+Notifications shows a one-tap switch for this. No P2 grant was backfilled from the alert toggles,
+because those toggles were not shown as a consent. **Launch checklist (L+30 broadcast):** the segment
+builder must exclude `is_minor` members and accounts without `updates`. No segment query exists today.

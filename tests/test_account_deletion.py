@@ -98,12 +98,12 @@ def test_every_table_that_reaches_a_user_is_in_the_registry():
 @pytest.mark.no_db
 def test_the_coverage_walk_is_not_vacuous():
     """Every assertion above is vacuous if the walk finds nothing. An exact count,
-    so a walk that quietly loses tables fails: 45 on 2026-11-02 (44 registered
+    so a walk that quietly loses tables fails: 46 on 2026-11-02 (45 registered
     tables it can reach, plus erasure_tombstones; newsletter_subscribers is
     registered but reachable only by email)."""
     found = _tables_reaching_users()
     assert {"users", "charts", "chart_planets", "payments", "refunds", "webhook_events", "erasure_tombstones"} <= found
-    assert len(found) == 45, sorted(found)
+    assert len(found) == 46, sorted(found)
 
 
 @pytest.mark.no_db
@@ -216,6 +216,9 @@ def _seed_everything() -> tuple[UUID, str, dict[str, list[Any]]]:
         add("user_preferences", session, models.UserPreference(owner_user_id=uid))
         add("user_notification_preferences", session, models.UserNotificationPreference(owner_user_id=uid))
         add("user_streaks", session, models.UserStreak(user_id=uid, last_active_date=date(2026, 1, 1)))
+        add("consent_records", session, models.ConsentRecord(
+            user_id=uid, purpose="analytics", granted=True, notice_version="2026-11", language="en", channel="web",
+        ))
         add("life_focus_events", session, models.LifeFocusEvent(
             user_id=uid, intent="SELECT", previous_mode="BALANCED", new_mode="BALANCED", is_first_run=False,
         ))

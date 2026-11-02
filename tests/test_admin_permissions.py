@@ -288,7 +288,7 @@ def test_registering_a_listed_admin_email_grants_nothing(raw_client, monkeypatch
     email = f"listed-{uuid4().hex}@example.invalid"
     monkeypatch.setattr(get_settings(), "admin_emails", email)
     assert raw_client.post(
-        "/api/v1/auth/register", json={"email": email, "password": "password123", "consentGiven": True}
+        "/api/v1/auth/register", json={"email": email, "password": "password123", "consentGiven": True, "adultConfirmed": True}
     ).status_code == 200
     assert raw_client.post("/api/v1/auth/login", json={"email": email, "password": "password123"}).status_code == 200
 

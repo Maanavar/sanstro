@@ -96,7 +96,7 @@ def test_beta_is_not_a_tier() -> None:
 
 def _register_and_login(raw_client, email: str) -> str:
     assert raw_client.post(
-        "/api/v1/auth/register", json={"email": email, "password": "password123", "consentGiven": True}
+        "/api/v1/auth/register", json={"email": email, "password": "password123", "consentGiven": True, "adultConfirmed": True}
     ).status_code == 200
     login = raw_client.post("/api/v1/auth/login", json={"email": email, "password": "password123"})
     assert login.status_code == 200

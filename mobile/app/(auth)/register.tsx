@@ -24,6 +24,8 @@ export default function RegisterScreen() {
   // DPDP Act 2023 §6. Starts false, always — a pre-ticked box is not a consent
   // action the user performed.
   const [consentGiven, setConsentGiven] = useState(false);
+  // Admin spec L2, D-12: account holders are 18+. Unticked, for the same reason.
+  const [adultConfirmed, setAdultConfirmed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,6 +39,14 @@ export default function RegisterScreen() {
       setError(isTamil ? "கடவுச்சொல் குறைந்தது 8 எழுத்துகள் இருக்க வேண்டும்." : "Password must be at least 8 characters.");
       return;
     }
+    if (!adultConfirmed) {
+      setError(
+        isTamil
+          ? "கணக்கை உருவாக்க உங்களுக்கு 18 வயது அல்லது அதற்கு மேல் என்பதை உறுதிப்படுத்தவும்."
+          : "Please confirm you are 18 or older to create your account."
+      );
+      return;
+    }
     if (!consentGiven) {
       setError(
         isTamil
@@ -48,9 +58,15 @@ export default function RegisterScreen() {
     setError(null);
     setLoading(true);
     try {
-      // `undefined` for displayName: this screen collects none, and the backend
-      // has no such column. Consent is the fourth argument.
-      await register(trimmedEmail, password, undefined, consentGiven);
+      // The optional purposes (updates, analytics, improving Ask Vinaadi) are
+      // not offered on this screen yet, so each is recorded as not granted;
+      // the in-app toggles grant them (plan ARC-30).
+      await register(trimmedEmail, password, {
+        consentGiven,
+        adultConfirmed,
+        consents: { updates: false, analytics: false, askImprove: false },
+        lang: isTamil ? "ta" : "en",
+      });
       const loginRes = await login(trimmedEmail, password);
       await setTokens({ accessToken: loginRes.accessToken, refreshToken: loginRes.refreshToken });
       setSession(
@@ -151,6 +167,22 @@ export default function RegisterScreen() {
                 {isTamil
                   ? "தனியுரிமைக் கொள்கையை ஏற்கிறேன். எனது பிறப்பு விவரங்கள் எனது பலன்களை உருவாக்கப் பயன்படுத்தப்படுவதற்கு சம்மதிக்கிறேன்."
                   : "I accept the Privacy Policy, and consent to my birth details being used to generate my readings."}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.consentRow}
+              onPress={() => { setAdultConfirmed((v) => !v); setError(null); }}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: adultConfirmed }}
+              accessibilityLabel={isTamil ? "எனக்கு 18 வயது அல்லது அதற்கு மேல்" : "I am 18 or older"}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.checkbox, adultConfirmed && styles.checkboxChecked]}>
+                {adultConfirmed && <Text style={styles.checkboxTick}>✓</Text>}
+              </View>
+              <Text style={[styles.consentText, isTamil ? TamilType.caption : EnType.caption]}>
+                {isTamil ? "எனக்கு 18 வயது அல்லது அதற்கு மேல்." : "I am 18 or older."}
               </Text>
             </TouchableOpacity>
 

@@ -17,6 +17,7 @@ import {
   RASI_LORDS as SIGN_LORD,
 } from "@/lib/chart-utils";
 import { useLang } from "@/components/lang-toggle";
+import { GuestPrivacyNote } from "@/components/guest-privacy-note";
 import { JadhagamShareButton } from "@/components/public-share-card";
 import { tKarana, tNakshatra, tPlanetLord, tTithi, tYoga } from "@/lib/i18n";
 import { nakshatraLordShort } from "@vinaadi/shared/nakshatraLord";
@@ -804,6 +805,8 @@ export function JadhagamTool() {
             {error}
           </p>
         )}
+
+        <GuestPrivacyNote />
 
         <button
           type="button" onClick={() => void handleGenerate()} disabled={loading}

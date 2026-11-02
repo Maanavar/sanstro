@@ -39,6 +39,54 @@ def require_true_consent(value: bool) -> bool:
 #: this way the rule travels with the type instead of being re-attached by hand.
 ConsentGiven = Annotated[bool, AfterValidator(require_true_consent)]
 
+ADULT_REQUIRED_MESSAGE = "You must confirm you are 18 or older to create an account."
+
+
+def require_adult_declaration(value: bool) -> bool:
+    """The 18+ self-declaration (spec L2, D-12): exactly True, like consent."""
+    if value is not True:
+        raise ValueError(ADULT_REQUIRED_MESSAGE)
+    return value
+
+
+AdultConfirmed = Annotated[bool, AfterValidator(require_adult_declaration)]
+
+
+class OptionalConsents(BaseModel):
+    """The optional purposes P2–P4 (D-10). Every one defaults off: no pre-ticked boxes."""
+
+    updates: bool = False
+    analytics: bool = False
+    ask_improve: bool = Field(default=False, alias="askImprove")
+
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
+
+
+class ConsentState(BaseModel):
+    """The latest answer per purpose (`app.privacy.consent.current_consents`)."""
+
+    service: bool = False
+    updates: bool = False
+    analytics: bool = False
+    ask_improve: bool = Field(default=False, alias="askImprove")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class ConsentUpdateRequest(BaseModel):
+    """Settings toggles. Only the purposes sent are recorded.
+
+    `service` is not a field, and unknown fields are refused: withdrawing the
+    service consent is erasing the account (`DELETE /auth/me`).
+    """
+
+    updates: bool | None = None
+    analytics: bool | None = None
+    ask_improve: bool | None = Field(default=None, alias="askImprove")
+    lang: Literal["ta", "en"] = "en"
+
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
+
 
 class RegisterRequest(BaseModel):
     email: str = Field(min_length=3, max_length=255)
@@ -48,6 +96,11 @@ class RegisterRequest(BaseModel):
     #: is rejected rather than treated as consenting, and a pre-ticked box on the
     #: form would not be an action the user took.
     consent_given: ConsentGiven = Field(alias="consentGiven")
+    #: Spec L2, D-12: account holders are 18+. No default, for the same reason.
+    adult_confirmed: AdultConfirmed = Field(alias="adultConfirmed")
+    consents: OptionalConsents = Field(default_factory=OptionalConsents)
+    #: The language the notice was shown in; recorded with each answer.
+    lang: Literal["ta", "en"] = "en"
 
     @field_validator("email")
     @classmethod
@@ -138,6 +191,12 @@ class AuthUserResponse(BaseModel):
     access_state: Literal["free", "trial", "premium"] = Field(default="free", alias="accessState")
     #: When the trial ends (UTC); null unless ``accessState`` is "trial".
     trial_ends_at: datetime | None = Field(default=None, alias="trialEndsAt")
+    #: Per-purpose consent (spec L2). Defaults all off — the fail-safe
+    #: direction: a construction site that forgets it stops analytics
+    #: identification rather than starting it.
+    consents: ConsentState = Field(default_factory=ConsentState)
+    #: The account holder has declared they are 18 or older.
+    adult_declared: bool = Field(default=False, alias="adultDeclared")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -152,9 +211,17 @@ class VerifyEmailResponse(BaseModel):
 
 
 class ConsentRequest(BaseModel):
-    """Consent recorded by an existing session, not at registration."""
+    """Consent recorded by an existing session, not at registration (the consent panel).
+
+    `adultConfirmed` is required (True) only while the account has not declared
+    it yet; the route checks. `consents`, when sent, records the optional
+    purposes as shown on the panel.
+    """
 
     consent_given: ConsentGiven = Field(alias="consentGiven")
+    adult_confirmed: bool | None = Field(default=None, alias="adultConfirmed")
+    consents: OptionalConsents | None = None
+    lang: Literal["ta", "en"] = "en"
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -193,4 +260,24 @@ def access_response_fields(user_id: UUID, session: Session) -> dict[str, Any]:
         "tier": "premium" if is_premium(user_id, session) else "registered",
         "accessState": access.state,
         "trialEndsAt": access.trial_ends_at,
+    }
+
+
+def consent_response_fields(user: Any, session: Session) -> dict[str, Any]:
+    """`consents` and `adultDeclared` for an AuthUserResponse (spec L2).
+
+    Beside `access_response_fields` for the same reason: one helper per group of
+    fields, so no construction site reports one half and forgets the other.
+    """
+    from app.privacy.consent import current_consents
+
+    state = current_consents(session, user.user_id)
+    return {
+        "consents": ConsentState(
+            service=state["service"],
+            updates=state["updates"],
+            analytics=state["analytics"],
+            askImprove=state["ask_improve"],
+        ),
+        "adultDeclared": getattr(user, "adult_declared_at", None) is not None,
     }

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
+import { GuestPrivacyNote } from "@/components/guest-privacy-note";
 import { PlaceCombobox } from "@/components/place-combobox";
 import { apiFetchJson } from "@/lib/api";
 import type { CityEntry } from "@/components/place-combobox";
@@ -129,6 +130,8 @@ export function FriendshipTool() {
             </div>
 
             {error && <p style={{ color: "var(--cl-rust)", fontSize: "0.9rem" }}>{error}</p>}
+
+            <GuestPrivacyNote />
 
             <div style={{ display: "flex", justifyContent: "center" }}>
               <button

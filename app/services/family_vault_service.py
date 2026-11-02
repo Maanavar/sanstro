@@ -19,9 +19,11 @@ from app.calculations.family_harmony_remedies import (
 from app.calculations.panchangam import PanchangamSnapshot
 from app.calculations.remedies import remedy_disclaimer
 from app.calculations.transits import classify_kandaka_cycle
+from app.core.age_gate import family_member_is_minor
 from app.core.subscription import limits_for_user
 from app.core.tier_limits import TIER_LIMITS
 from app.models import BirthProfile, Chart, FamilyDailyScore, FamilyMember, FamilyVault, User
+from app.privacy.consent import require_service_consent
 from app.schemas.daily_guidance import DailyGuidanceResponse, DailyGuidanceWindow
 from app.schemas.dasha import ResponseMeta
 from app.schemas.family_vaults import (
@@ -1061,6 +1063,9 @@ def add_family_member(
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Owner mismatch for family vault.")
 
     _ensure_user(session, owner_user_id)
+    # Spec L2: the member row itself holds a date of birth, so the consent
+    # check comes before it, not only at the birth-profile sink.
+    require_service_consent(session, owner_user_id)
 
     duplicate_member = _find_duplicate_family_member(session, family_vault.family_vault_id, payload)
     if duplicate_member is not None:
@@ -1096,7 +1101,7 @@ def add_family_member(
         display_name=payload.display_name,
         gender_for_traditional_rules=payload.gender_for_traditional_rules or "not_specified",
         date_of_birth_local=payload.birth_date_local,
-        is_minor=payload.relationship_to_owner == "child",
+        is_minor=family_member_is_minor(payload.relationship_to_owner, payload.birth_date_local),
         managed_by_user_id=owner_user_id,
         consent_status="owner_managed",
         member_weight=payload.member_weight,
@@ -1458,7 +1463,8 @@ def get_family_harmony_remedies(
             _chart_to_member_input(
                 member.display_name,
                 member.relationship_to_owner,
-                member.is_minor,
+                # Today's age, not the stored flag, which stays set after an 18th birthday.
+                family_member_is_minor(member.relationship_to_owner, member.date_of_birth_local),
                 snapshot.data,
             )
         )
@@ -1617,7 +1623,6 @@ def update_family_member(
         member.display_name = payload.display_name
     if payload.relationship_to_owner is not None:
         member.relationship_to_owner = payload.relationship_to_owner
-        member.is_minor = payload.relationship_to_owner == "child"
     if payload.member_weight is not None:
         member.member_weight = payload.member_weight
     if payload.gender_for_traditional_rules is not None:
@@ -1686,6 +1691,8 @@ def update_family_member(
         profile.marital_status = "married"
         profile.updated_at = datetime.now(tz=UTC)
 
+    # After the profile edit, which mirrors the date of birth onto the member.
+    member.is_minor = family_member_is_minor(member.relationship_to_owner, member.date_of_birth_local)
     session.flush()
     return FamilyMemberResponse(
         data=_member_data(member, profile),

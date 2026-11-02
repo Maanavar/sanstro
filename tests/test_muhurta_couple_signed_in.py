@@ -20,6 +20,7 @@ from app.main import app
 from app.models import BirthProfile, Chart
 from app.models.subscription import Subscription
 from app.models.user import User
+from tests.conftest import grant_service_consent
 
 INTRUDER_ID = "dddddddd-dddd-dddd-dddd-dddddddddddd"
 INTRUDER_EMAIL = "couple-intruder@jothidam.test"
@@ -186,9 +187,11 @@ def test_a_partner_chart_belonging_to_someone_else_is_refused(
     with SessionLocal() as session:
         with session.begin():
             uid = UUID(INTRUDER_ID)
-            session.add(User(user_id=uid, email=INTRUDER_EMAIL))
+            intruder_row = User(user_id=uid, email=INTRUDER_EMAIL)
+            session.add(intruder_row)
             session.flush()
             session.add(Subscription(user_id=uid, tier="premium", status="active"))
+            grant_service_consent(session, intruder_row)
     intruder = User(user_id=UUID(INTRUDER_ID), email=INTRUDER_EMAIL)
     app.dependency_overrides[get_current_user] = lambda: intruder
     # The location route reads the optional user; an un-overridden one would

@@ -13,6 +13,7 @@ from app.calculations.panchangam import NAKSHATRA_NAMES
 from app.calculations.transits import RASI_NAMES
 from app.core.encryption import encrypt_bytes
 from app.models import BirthProfile, Chart, ChartPlanet, User
+from app.privacy.consent import require_service_consent
 from app.schemas.birth_profiles import BirthProfileCreate
 from app.schemas.charts import ChartCalculateRequest, ChartCalculateResponse
 from app.services._chart_build import (
@@ -114,6 +115,9 @@ def create_birth_profile_record(
             detail="ownerUserId is required for birth profile creation.",
         )
     _ensure_user(session, owner_user_id)
+    # Spec L2: no birth details are stored before the account has a service
+    # consent on record. Every path that stores a birth profile comes through here.
+    require_service_consent(session, owner_user_id)
 
     birth_datetime_utc = None
     if _value(profile, "birth_time_local") is not None or _value(profile, "birth_datetime_utc") is not None:

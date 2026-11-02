@@ -7,7 +7,9 @@
  * - No-op unless NEXT_PUBLIC_POSTHOG_KEY is set (so dev/test never phone home).
  * - Autocapture and session recording are OFF — we only send the explicit,
  *   named events below. Birth details, names, and free-text are NEVER sent.
- * - We identify users by their opaque user UUID only — never email.
+ * - We identify users by their opaque user UUID only — never email — and only
+ *   while the account grants the analytics purpose (admin spec L2, D-11 P3).
+ *   Without it, events stay anonymous: `applyAnalyticsConsent`.
  * - Respects Do Not Track.
  *
  * All functions are safe to call before init and on the server (they no-op).
@@ -56,10 +58,21 @@ export function trackPageview(url: string): void {
   posthog.capture("$pageview", { $current_url: url });
 }
 
-/** Associate events with an opaque user id. Never pass email or name here. */
-export function identifyUser(userId: string): void {
-  if (!enabled() || !userId) return;
-  posthog.identify(userId);
+/** Fired with the new `ConsentState` after the account answers (consent panel, Settings). */
+export const CONSENTS_CHANGED_EVENT = "vinaadi:consents-changed";
+
+/**
+ * Identify the account only while it grants product analytics (P3); otherwise
+ * return to anonymous. Reset only when currently identified, so an anonymous
+ * visitor keeps one id across page loads instead of minting a new one each time.
+ */
+export function applyAnalyticsConsent(userId: string, granted: boolean): void {
+  if (!enabled()) return;
+  if (granted) {
+    if (userId) posthog.identify(userId);
+    return;
+  }
+  if (posthog.get_property("$user_state") === "identified") posthog.reset();
 }
 
 /** Clear identity on sign-out. */

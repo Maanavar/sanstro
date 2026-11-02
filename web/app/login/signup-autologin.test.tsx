@@ -40,6 +40,7 @@ function fillSignup() {
   fireEvent.change(screen.getByLabelText("Password"), { target: { value: PASSWORD } });
   fireEvent.change(screen.getByLabelText("Confirm password"), { target: { value: PASSWORD } });
   fireEvent.click(document.getElementById("ca-consent")!);
+  fireEvent.click(document.getElementById("ca-adult")!);
   fireEvent.submit(document.querySelector("form")!);
 }
 
@@ -65,6 +66,11 @@ describe("signup", () => {
     const urls = fetchMock.mock.calls.map((c) => String(c[0]));
     expect(urls.filter((u) => u.endsWith("/auth/login"))).toHaveLength(1);
     expect(screen.queryByText("Account created")).toBeNull();
+    // Admin spec L2: the declaration is sent, and every optional purpose is off unless ticked.
+    const registerCall = fetchMock.mock.calls.find((c) => String(c[0]).endsWith("/auth/register")) as unknown[];
+    const body = JSON.parse(String((registerCall[1] as RequestInit).body));
+    expect(body.adultConfirmed).toBe(true);
+    expect(body.consents).toEqual({ updates: false, analytics: false, askImprove: false });
   });
 
   it("falls back to the neutral 'account created' screen when sign-in fails", async () => {

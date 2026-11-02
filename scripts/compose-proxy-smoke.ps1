@@ -349,7 +349,9 @@ try {
     # Clearly-synthetic identity: never a real address (CLAUDE.md, test data).
     $email = "smoke+$([Guid]::NewGuid().ToString('N').Substring(0,10))@example.invalid"
     $password = "Sm0ke-" + (New-SyntheticSecret 12)
-    $registerBody = @{ email = $email; password = $password; consentGiven = $true } | ConvertTo-Json -Compress
+    # consentGiven and adultConfirmed have no default (spec L2, D-12); omitting either is a 422.
+    $registerBody = @{ email = $email; password = $password; consentGiven = $true; adultConfirmed = $true } |
+        ConvertTo-Json -Compress
     $register = Invoke-Probe -Url "http://127.0.0.1:$WebPort/api/backend/api/v1/auth/mobile/register" `
         -Method POST -Body $registerBody
     Claim "proxy forwards a POST body (mobile register)" ($register.Status -eq 200) `

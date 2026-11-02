@@ -31,6 +31,7 @@ from app.models.notification_delivery import NotificationDelivery
 from app.models.user import User
 from app.models.user_notification_preference import UserNotificationPreference
 from app.models.user_preference import UserPreference
+from app.privacy.consent import has_consent
 from app.services.email_service import build_notification_email, send_email
 from app.services.fcm_service import send_push
 from app.services.feature_flags import get_flag
@@ -102,6 +103,20 @@ NotificationType = Literal[
     "PEYARCHI",
     "GENERAL",
 ]
+
+#: Which types need the "updates and astro alerts" consent (spec L2, D-10 P2).
+#: Every type is listed, so a new one is a decision rather than a default:
+#: tests/test_consent_ledger.py fails on a type missing here. Transactional
+#: messages (verification, password reset, receipts) go out through
+#: email_service directly and never reach this outbox.
+NEEDS_UPDATES_CONSENT: dict[str, bool] = {
+    "MORNING_NALLA_NERAM": True,
+    "DASHA_TRANSITION": True,
+    "JADHAGAM_D1_NUDGE": True,
+    "PIRANTHA_NAAL": True,
+    "PEYARCHI": True,
+    "GENERAL": True,
+}
 
 NotificationLanguage = Literal["ta", "en"]
 
@@ -221,6 +236,9 @@ def dispatch_notification(
     expiry = expires_at or (due_at + timedelta(days=1))
     if expiry <= due_at:
         raise ValueError("notification expiry must be later than send_at")
+    # Unknown types need consent: the fail-safe direction.
+    if NEEDS_UPDATES_CONSENT.get(notification_type, True) and not has_consent(session, user_id, "updates"):
+        return "no_consent"
 
     preference = get_or_create_preferences(session, user_id)
     language = _notification_language(session, user_id)

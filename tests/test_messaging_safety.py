@@ -16,7 +16,7 @@ from app.services.notification_dispatch_service import (
     dispatch_notification,
     quiet_hours_release,
 )
-from tests.conftest import TEST_USER_ID
+from tests.conftest import TEST_USER_ID, grant_updates_consent
 
 IST = "Asia/Kolkata"
 
@@ -94,6 +94,7 @@ def _push_only_user(session) -> UUID:
     uid = UUID(TEST_USER_ID)
     session.add(UserNotificationPreference(owner_user_id=uid, notification_channel="push", fcm_device_token="tok-synthetic"))
     session.flush()
+    grant_updates_consent(session, uid)
     return uid
 
 

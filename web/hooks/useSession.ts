@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
-import { identifyUser, resetAnalytics } from "@/lib/analytics";
+import { applyAnalyticsConsent, CONSENTS_CHANGED_EVENT, resetAnalytics } from "@/lib/analytics";
 import { withNextPath } from "@/lib/auth-redirect";
 
 export type UserMode = "BEGINNER" | "BALANCED" | "TRADITIONAL";
@@ -16,6 +16,7 @@ type AuthSession = {
   userMode?: UserMode;
   goalTrack?: GoalTrack;
   lang?: Lang;
+  consents?: { analytics: boolean };
 };
 
 type UseSessionOptions = {
@@ -42,7 +43,8 @@ export function useSession(options: UseSessionOptions = {}) {
 
         setSessionUserId(me.userId);
         setUserEmail(me.email);
-        identifyUser(me.userId); // opaque UUID only — never email
+        // Opaque UUID only — never email — and only with the analytics consent (admin spec L2, P3).
+        applyAnalyticsConsent(me.userId, me.consents?.analytics === true);
         if (me.userMode) setUserMode(me.userMode);
         if (me.goalTrack !== undefined) setGoalTrack(me.goalTrack ?? null);
         if (me.lang === "ta" || me.lang === "en") {
@@ -92,6 +94,16 @@ export function useSession(options: UseSessionOptions = {}) {
       active = false;
     };
   }, [onSetupRedirect]);
+
+  // A change of answer applies on this page, not only after the next load.
+  useEffect(() => {
+    function onConsentsChanged(event: Event) {
+      const detail = (event as CustomEvent<{ analytics?: boolean } | undefined>).detail;
+      if (sessionUserId) applyAnalyticsConsent(sessionUserId, detail?.analytics === true);
+    }
+    window.addEventListener(CONSENTS_CHANGED_EVENT, onConsentsChanged);
+    return () => window.removeEventListener(CONSENTS_CHANGED_EVENT, onConsentsChanged);
+  }, [sessionUserId]);
 
   const signOut = useCallback(() => {
     resetAnalytics();

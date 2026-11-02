@@ -125,6 +125,9 @@ const LOGIN_STRINGS = {
   consent_privacy_link: { en: "Privacy Policy", ta: "தனியுரிமைக் கொள்கை" },
   consent_suffix: { en: ", and consent to my birth details being used to generate my readings.", ta: ". எனது பிறப்பு விவரங்கள் எனது பலன்களை உருவாக்கப் பயன்படுத்தப்படுவதற்கு சம்மதிக்கிறேன்." },
   error_consent_required: { en: "Please accept the privacy policy to create your account.", ta: "கணக்கை உருவாக்க தனியுரிமைக் கொள்கையை ஏற்கவும்." },
+  // Admin spec L2. New Tamil, pending native review.
+  error_adult_required: { en: "Please confirm you are 18 or older to create your account.", ta: "கணக்கை உருவாக்க உங்களுக்கு 18 வயது அல்லது அதற்கு மேல் என்பதை உறுதிப்படுத்தவும்." },
+  consent_optional_heading: { en: "Optional — leave unticked if you prefer", ta: "விருப்பத்திற்குரியவை — விரும்பாவிட்டால் தேர்வு செய்யாமல் விடலாம்" },
   error_password_short: { en: "Password must be at least 8 characters.", ta: "கடவுச்சொல் குறைந்தது 8 எழுத்துகள் இருக்க வேண்டும்." },
   error_password_mismatch: { en: "Passwords do not match.", ta: "கடவுச்சொற்கள் பொருந்தவில்லை." },
   error_reset_link_invalid: { en: "This reset link is invalid or has expired.", ta: "இந்த மீட்டமைப்பு இணைப்பு செல்லாதது அல்லது காலாவதியானது." },

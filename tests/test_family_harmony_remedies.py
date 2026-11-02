@@ -145,6 +145,31 @@ def test_child_weak_planet_attributed_to_the_child() -> None:
     assert "FOR_CHILD" in weak[0].tags
 
 
+def _weak_mercury_member(name: str, relationship: str, *, is_minor: bool) -> MemberChartInput:
+    return MemberChartInput(
+        display_name=name,
+        relationship=relationship,
+        is_minor=is_minor,
+        lagna_rasi=3,
+        planets=_with(_base_planets(), _mp("MERCURY", 2, strength=30)),
+    )
+
+
+@pytest.mark.parametrize(
+    ("relationship", "is_minor", "expected"),
+    [
+        ("sibling", True, True),  # ARC-29: a young sibling gets it
+        ("grandchild", True, True),  # ARC-29: so does a grandchild
+        ("child", True, True),
+        ("child", False, False),  # an adult son or daughter does not
+        ("parent", False, False),
+    ],
+)
+def test_child_weak_planet_follows_age_not_relationship(relationship: str, is_minor: bool, expected: bool) -> None:
+    items = synthesize_family_harmony_remedies([_weak_mercury_member("Test Member", relationship, is_minor=is_minor)])
+    assert any(i.signal == "CHILD_WEAK_PLANET" for i in items) is expected
+
+
 def test_retrograde_load_triggers_and_lists_affected_members() -> None:
     items = synthesize_family_harmony_remedies(_household())
     retro = [i for i in items if i.signal == "RETROGRADE_LOAD"]

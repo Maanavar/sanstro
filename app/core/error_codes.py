@@ -74,6 +74,7 @@ class ErrorCode(str, Enum):
     # a renewing subscription would keep charging, an admin role would be orphaned.
     ERASURE_BLOCKED_BY_SUBSCRIPTION = "ERASURE_BLOCKED_BY_SUBSCRIPTION"
     ERASURE_BLOCKED_BY_ADMIN_ROLE = "ERASURE_BLOCKED_BY_ADMIN_ROLE"
+    CONSENT_REQUIRED = "CONSENT_REQUIRED"
 
     # Caller-correctable input errors.
     VALIDATION_ERROR = "VALIDATION_ERROR"
@@ -131,6 +132,7 @@ ERROR_MESSAGES: dict[ErrorCode, ErrorMessageDefinition] = {
     ErrorCode.EMAIL_ALREADY_EXISTS: _entry(409, "இந்த மின்னஞ்சலுடன் ஏற்கனவே ஒரு கணக்கு உள்ளது.", "An account with this email already exists.", "Email already exists."),
     ErrorCode.ERASURE_BLOCKED_BY_SUBSCRIPTION: _entry(409, "இந்தக் கணக்கில் தானாகப் புதுப்பிக்கப்படும் பிரீமியம் சந்தா உள்ளது. கணக்கை நீக்கும் முன் அதை ரத்து செய்யவும்; கணக்கை நீக்கினாலும் கட்டணம் வசூலிப்பது நிற்காது.", "This account has a Premium subscription that renews automatically. Cancel it before deleting the account: deleting the account does not stop the charges.", "Erasure refused: renewing Razorpay subscription."),
     ErrorCode.ERASURE_BLOCKED_BY_ADMIN_ROLE: _entry(409, "இந்தக் கணக்கிற்கு நிர்வாகப் பொறுப்பு உள்ளது. முதலில் அந்தப் பொறுப்பை நீக்கி, பிறகு கணக்கை நீக்கவும்.", "This account holds an admin role. Remove the role first, then delete the account.", "Erasure refused: account holds an admin role."),
+    ErrorCode.CONSENT_REQUIRED: _entry(403, "பிறப்பு விவரங்களைச் சேமிக்கும் முன், தனியுரிமை அறிவிப்பைப் படித்து உங்கள் ஒப்புதலைத் தரவும்.", "Before we save birth details, please read the privacy notice and give your consent.", "Refused: no service consent (P1) recorded for this account."),
     ErrorCode.VALIDATION_ERROR: _entry(422, "உள்ளிட்ட தகவலைச் சரிபார்த்து மீண்டும் முயற்சிக்கவும்.", "Please check the information entered and try again.", "Validation error."),
     ErrorCode.INVALID_INPUT: _entry(422, "உள்ளிட்ட தகவல் சரியல்ல.", "The information entered is invalid.", "Invalid input."),
     ErrorCode.MISSING_REQUIRED_FIELD: _entry(422, "தேவையான தகவல் விடுபட்டுள்ளது.", "Required information is missing.", "Required field missing."),

@@ -11,6 +11,7 @@ from app.db.session import SessionLocal
 from app.models.notification import Notification
 from app.models.notification_delivery import NotificationDelivery
 from app.services import notification_dispatch_service as dispatch
+from tests.conftest import grant_updates_consent
 
 TEST_USER_ID = UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 
@@ -28,6 +29,7 @@ def _configure(channel: str, token: str | None = None) -> None:
         preference = dispatch.get_or_create_preferences(session, TEST_USER_ID)
         preference.notification_channel = channel
         preference.fcm_device_token = token
+        grant_updates_consent(session, TEST_USER_ID)
 
 
 def _enqueue(

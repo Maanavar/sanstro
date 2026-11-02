@@ -20,7 +20,32 @@ export interface MobileAuthResponse {
     accessState: AccessState;
     trialEndsAt: string | null;
     emailVerified: boolean;
+    consentRequired: boolean;
+    consents: ConsentState;
+    adultDeclared: boolean;
   };
+}
+
+/**
+ * The latest answer per purpose (admin spec L2, D-10). Anything never answered
+ * reads false.
+ * - `service` (P1): required to store birth details; withdrawn only by deleting the account.
+ * - `updates` (P2): astro alerts and nudges. The server sends none without it.
+ * - `analytics` (P3): identify the account to PostHog only while true.
+ * - `askImprove` (P4): Ask Vinaadi answers may be reviewed to improve it.
+ */
+export interface ConsentState {
+  service: boolean;
+  updates: boolean;
+  analytics: boolean;
+  askImprove: boolean;
+}
+
+/** The optional purposes, as answered on a form. Every one starts unticked. */
+export interface OptionalConsents {
+  updates: boolean;
+  analytics: boolean;
+  askImprove: boolean;
 }
 
 export interface MeResponse {
@@ -40,11 +65,12 @@ export interface MeResponse {
   openBeta: boolean;
   /**
    * True when the consent panel should be shown: the user has never consented,
-   * or consented to a policy version older than the live one (DPDP Act 2023 §6).
-   * Answer it with `recordConsent()` below.
+   * consented to a policy version older than the live one (DPDP Act 2023 §6), or
+   * has not made the 18+ declaration. Answer it with `recordConsent()` below.
    *
-   * Non-blocking by decision — an account with this true still works normally.
-   * Do not use it to gate routes.
+   * Non-blocking by decision — an account with this true still works normally,
+   * except that an account with no service consent at all cannot store new
+   * birth details (`CONSENT_REQUIRED`). Do not use it to gate routes.
    */
   consentRequired: boolean;
   /**
@@ -60,6 +86,10 @@ export interface MeResponse {
   accessState: AccessState;
   /** When the trial ends (ISO-8601 UTC); null unless `accessState` is "trial". */
   trialEndsAt: string | null;
+  /** Per-purpose consent (admin spec L2). Defaults all false on the server. */
+  consents: ConsentState;
+  /** The account holder has declared they are 18 or older. `recordConsent` asks while false. */
+  adultDeclared: boolean;
   /**
    * NOT SENT BY THE BACKEND. There is no user display name anywhere in this
    * system: `users` has no such column, registration does not accept one, and
@@ -77,33 +107,49 @@ export function login(email: string, password: string): Promise<MobileAuthRespon
   return getApiClient().post("/auth/mobile/login", { email, password }) as Promise<MobileAuthResponse>;
 }
 
-export function register(
-  email: string,
-  password: string,
-  displayName?: string,
-  /**
-   * DPDP Act 2023 §6. Required, not optional with a default: the backend rejects
-   * a missing or false value rather than treating it as consent, and a default
-   * here would send `true` for a box the user never ticked.
-   */
-  consentGiven?: boolean,
-): Promise<RegisterResponse> {
-  return getApiClient().post("/auth/mobile/register", {
-    email,
-    password,
-    displayName,
-    consentGiven,
-  }) as Promise<RegisterResponse>;
+/**
+ * What a signup form answers (admin spec L2). `consentGiven` and `adultConfirmed`
+ * are required, not defaulted: the backend rejects a missing or false value
+ * rather than treating it as consent, and a default here would send `true` for
+ * a box the user never ticked.
+ */
+export interface SignupAnswers {
+  consentGiven: boolean;
+  adultConfirmed: boolean;
+  consents: OptionalConsents;
+  /** The language the notice was shown in. */
+  lang: "ta" | "en";
+}
+
+export function register(email: string, password: string, answers: SignupAnswers): Promise<RegisterResponse> {
+  return getApiClient().post("/auth/mobile/register", { email, password, ...answers }) as Promise<RegisterResponse>;
 }
 
 /**
- * Record consent for an already-signed-in account, when `MeResponse.consentRequired`
- * is true. Returns the refreshed user, on which `consentRequired` is then false.
+ * Answer the consent panel, when `MeResponse.consentRequired` is true. Returns
+ * the refreshed user, on which `consentRequired` is then false.
  *
+ * `adultConfirmed` is required (true) only while `MeResponse.adultDeclared` is
+ * false. `consents`, when sent, records the optional purposes as shown.
  * POST, and the backend requires the CSRF header — the shared client adds it.
  */
-export function recordConsent(): Promise<MeResponse> {
-  return getApiClient().post("/auth/consent", { consentGiven: true }) as Promise<MeResponse>;
+export function recordConsent(answers: {
+  adultConfirmed?: boolean;
+  consents?: OptionalConsents;
+  lang: "ta" | "en";
+}): Promise<MeResponse> {
+  return getApiClient().post("/auth/consent", { consentGiven: true, ...answers }) as Promise<MeResponse>;
+}
+
+/**
+ * Grant or withdraw optional purposes from settings. Only the purposes passed
+ * are recorded; the change applies from the next request. The service consent
+ * is not here: withdrawing it is `deleteAccount()`.
+ */
+export function updateMyConsents(
+  changes: Partial<OptionalConsents> & { lang: "ta" | "en" },
+): Promise<ConsentState> {
+  return getApiClient().put("/auth/me/consents", changes) as Promise<ConsentState>;
 }
 
 export function logout(): Promise<void> {

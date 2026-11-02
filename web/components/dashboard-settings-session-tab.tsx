@@ -18,6 +18,7 @@ import { lifeModeLabel, MODE_ORDER } from "./life-mode-picker";
 import { CONTEXT_EVENT_TYPES, CTX_TYPE_KEY, type ContextEventType } from "./dashboard-journal-shared";
 import { NovaSelect } from "./nova-select";
 import { SettingsRail, type SettingsSectionId } from "./dashboard-settings-rail";
+import { PrivacyChoicesCard, UpdatesConsentNotice } from "./settings-privacy-choices";
 import { Toggle } from "./ui";
 import { Field, Input } from "./ui/field";
 
@@ -768,6 +769,8 @@ export function DashboardSettingsSessionTab({
         desc={lang === "ta" ? "விநாடி எப்படி, எத்தனை முறை உங்களை அடைகிறது என்பதைத் தேர்வுசெய்யுங்கள். அமைதி நேரங்களில் Smart silence அறிவிப்புகளைப் பிடித்து வைக்கும்." : "Choose how, and how often, Vinaadi reaches you. Smart silence holds alerts during your quiet hours."}
       />
 
+      <UpdatesConsentNotice lang={lang} />
+
       <Card>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--space-4)", flexWrap: "wrap" }}>
           <RowHeader title={t("notif_channel", lang)} desc={lang === "ta" ? "அறிவிப்புகள் எங்கு அனுப்பப்படும்." : "Where alerts are sent."} />
@@ -1014,6 +1017,8 @@ export function DashboardSettingsSessionTab({
         </div>
         <GhostBtn onClick={openFeedback}><Mail size={14} strokeWidth={1.5} aria-hidden="true" />{lang === "ta" ? "கருத்து அனுப்பு" : "Send feedback"}</GhostBtn>
       </Card>
+
+      <PrivacyChoicesCard lang={lang} />
 
       <Card>
         <div style={{ fontSize: "var(--text-md)", fontWeight: 600, color: "var(--color-text-strong)" }}>{lang === "ta" ? "உங்கள் தரவு" : "Your data"}</div>

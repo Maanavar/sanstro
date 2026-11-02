@@ -7,6 +7,7 @@ import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { PlaceCombobox } from "@/components/place-combobox";
 import { useLang } from "@/components/lang-toggle";
+import { GuestPrivacyNote } from "@/components/guest-privacy-note";
 import { useBirthProfileForm } from "@/hooks/useBirthProfileForm";
 import { readErrorMessage } from "@/lib/api";
 import { VERDICT_LABEL, plainSummaryText } from "@/lib/numerology-labels";
@@ -359,6 +360,7 @@ export function BabyNameFinderContent() {
                   ta={ta}
                 />
 
+                <GuestPrivacyNote />
                 <button
                   type="button"
                   className="cl-num-submit"
