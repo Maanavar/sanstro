@@ -241,7 +241,7 @@ container (not authoritative; CI is). Every migration below was round-tripped
 | 2 | **L3** admin access | Done. TOTP enrolment + 10 hashed single-use recovery codes; `403 mfa_required` on every admin route except `/admin/me` and `/admin/mfa/*`; elevation by TOTP or recovery code; roles `owner`/`support` (+4 defined, unassignable); `require_permission` on every admin route; seed-once owner from `JOTHIDAM_ADMIN_EMAILS` (verified account only); 8 h admin session; last-owner and self-suspend guards. Email verification (`/auth/verify-email`, resend, bilingual email). Console: code-based elevation dialog, set-up screen, Roles tab. Migration `ww6a7b8c9d0e`. | `test_admin_permissions.py` (structural + snapshot `tests/golden/admin_permission_matrix.json` + real support account), `test_admin_mfa.py`, `test_email_verification.py`, `test_admin_elevation.py` |
 | 4 | **L1** core: ladder, trial, entitlements | Done. Ladder per §6 (Ask guest 0 / registered 2 / premium 5 a day; premium 1 + 1 reports); beta Ask pinned at 7; `TRIAL_LIMITS`; `entitlements` table (trial / purchase / grant, one trial per account enforced by a partial unique index); `limits_for_user` = premium → trial → beta → registered; `/auth/me` adds `accessState` + `trialEndsAt` (shared types, web, mobile `gateTier`). Dead `ask_vinaadi_daily_limit` flag/config removed. Pricing page copy fixed (ARC-11). Migration `xx7b8c9d0e1f`. | `test_trial_entitlements.py`, `test_tier_parity.py`, `test_open_beta.py` |
 | 4 | **L1** payments | Built, test mode only. `products` (seeded, prices as data), `orders`, `payments`, `refunds`, `credit_ledger`, `payment_mismatches`; `subscriptions` gains `provider_status` / `sku` / `cancel_at_period_end`; `webhook_events` gains `signature_valid` / `error`. Razorpay client over httpx; checkout (order + subscription), `/payments/confirm` (grants only on API confirmation), `/payments/razorpay/webhook` (HMAC over raw body, idempotent on `X-Razorpay-Event-Id`, inline), subscription lifecycle, refunds, nightly reconciliation (22:00 UTC = 03:30 IST), admin mismatch + order lists. Web `/dashboard/upgrade` with Razorpay Checkout; CSP widened on that route only. Migration `yy8c9d0e1f2a`. | `test_razorpay_payments.py` — all seven spec acceptance tests plus 15 more |
-| 3 | **L4** audit | Next. | — |
+| 3 | **L4** audit | Done (launch cut). `admin_audit_log` gains `actor_email`, `actor_role` (`service_key` for X-Admin-Key), `reason`, `outcome` (success / refused / error), `details` JSONB, `user_agent`, target index. One writer: every mutating admin route and the two personal-data reads (`GET /admin/users`, `/admin/users/{id}`) take `audited(...)` first, which writes one row per request on every outcome, commits the handler's session before "success" (ARC-20), and skips only the console's tokenless elevation prompt. Routes no longer call `log_admin_action`. Reason required on the nine destructive routes and destructive job runs (ARC-21). Append-only trigger: UPDATE/DELETE/TRUNCATE refused except actor nulling and `erased:` target pseudonymisation (ARC-19). `GET /admin/audit-log` filters by action, actor, target, outcome, date. Shared `adminAudit.ts`; console: Who/Outcome/Reason/Details columns, filters, reason inputs for suspend/reinstate, erasure and destructive jobs. Migration `ab0f1a2b3c4d`, round-tripped on scratch; applied to dev 2026-11-01 (backup first; legacy rows kept, DELETE refused, `alembic check` clean). Deferred per ARC-09: hash chain + verifier, CSV export. | `test_admin_audit.py` (structural, coverage over all 16 mutating routes, outcomes, reasons, DB guard, migration/model SQL parity) |
 | 5 | **L5** erasure | Not started. ADM-01 still open: `interpretation_outputs`, device tokens and feedback survive deletion. | — |
 | 6–11 | L2, L7, L6, L9, L11 | Not started. | — |
 
@@ -250,6 +250,12 @@ requirement, the listed-email bypass, the trial branch of `limits_for_user`, the
 check, "grant only on API confirmation", refund revocation, a halted subscription ending at period
 end, and reconciliation recording a missing payment. One test passed a mutant: the lifecycle test
 rewrote the field the mutant broke. It now asserts the period end before moving the clock.
+L4 (2026-11-01), four mutants at once, each caught by its own layer: no trigger in `create_all`
+(7 guard tests failed), one route's rows dropped (coverage test named it), the audit parameter
+placed after the elevation guard (ordering test named it), one reason check removed (reason test
+named it). Blind spots are listed in the `test_admin_audit.py` docstring: permission refusals are
+not recorded, ARC-20's failed-commit path is not provoked, and the guard runs as a role that could
+still drop the trigger.
 
 **Known blind spots**, also written in each test file's docstring:
 - The permission test sees permissions declared as dependencies, not a handler that branches on `role_has`.
@@ -277,9 +283,23 @@ into a second table. `subscriptions.status` is the access projection ("active" =
 being retried) keeps access past the period end until `halted` or `cancelled` arrives. Reconciliation
 catches a pending state whose closing webhook never came.
 
+*Ruled 2026-11-01 (delegated): confirmed as built.* One fact, one owner. Copying the provider's period
+end into `entitlements` would create two answers to "does this user have access", and they would
+drift on every renewal, retry and cancellation. Keeping access through a `pending` retry is the
+customer-fair default. Razorpay retries a failed card for days, and cutting a paying user off
+mid-retry for a bank's delay costs more trust than the few days of access it saves. The exposure
+ends when `halted` or `cancelled` arrives, or when reconciliation finds the missing close.
+
 **ARC-14. Products with nothing to deliver are not sold.** The Jadhagam report, Porutham report and Ask
 top-up are seeded inactive: no report deliverable exists yet, and Ask credit spending is L7. Their
 purchase, refund and credit paths are built and tested. Turning one on is a row update.
+
+*Ruled 2026-11-01 (delegated): confirmed as built.* Taking money for something that cannot be handed
+over is a refund queue and a consumer-protection complaint, not revenue. Each SKU's switch-on
+condition: a report SKU goes active when its deliverable (generated report, download path, Tamil
+copy reviewed) ships and has a test buying it end to end. The Ask top-up goes active only after L7
+spends credits, so a bought credit can never sit unspendable. Each switch-on is its own reviewed
+change that names the SKU, not a bulk "activate all".
 
 **ARC-15. The webhook inbox stores ids, states and amounts, not the raw body.** The spec asks for
 `raw_body`. Razorpay's payment entity carries the payer's email, phone and VPA, and the existing inbox
@@ -288,10 +308,26 @@ test pins that contact details are absent. Reuses `webhook_events` (spec §0.3) 
 `payment_events` table. A bad-signature request is stored under a generated id, never the id it
 claimed, so a forger cannot pre-empt a real event's idempotency key.
 
+*Ruled 2026-11-01 (delegated): confirmed as built; the spec is wrong and is corrected.* Data
+minimisation (DPDP) beats debugging convenience. A raw body would put payer email, phone and VPA in
+a table that is retained, backed up and read by admins, and none of that is needed. Nothing is lost:
+any event's full entity can be re-fetched from Razorpay's API by the id the inbox keeps, under
+Razorpay's access control instead of ours. Spec §0.3's `payment_events.raw_body` line now points
+here. If a dispute ever needs a field outside `minimal_payload`, add that one field with a test,
+never the whole body.
+
 **ARC-16. No trial starts while the open beta is on.** The trial outranks the beta in `limits_for_user`
 and its Ask allowance is smaller (3 vs 7 a day). A beta user who verified their email would lose
 allowance and spend their one trial invisibly. Beta accounts get the ARC-12 grant instead. Accounts
 created after the beta ends get the trial as designed.
+
+*Ruled 2026-11-01 (delegated): confirmed as built.* A trial that lowers what the user already has is
+a penalty with a "free" label, and spending someone's only trial while they cannot notice it breaks
+the trial's purpose. The trial starts on email verification, so the consequences are: a beta account
+that verifies during the beta never gets a trial and is covered by the ARC-12 launch grant. An
+account that registers during the beta but verifies after it ends gets the trial normally. Launch
+checklist item this creates: the ARC-12 grant must run in the same release that sets
+`JOTHIDAM_OPEN_BETA=false`. Otherwise beta users drop to Registered with neither trial nor grant.
 
 **ARC-17. New finding, not changed: Google sign-in links to an unverified password account.** If someone
 registers `victim@gmail.com` with a password and never verifies it, the victim's later Google sign-in
@@ -328,4 +364,35 @@ in the model and lax in the database, so migration `zz9d0e1f2a3b` sets NOT NULL.
 counts, if any NULL exists, and its downgrade drops the constraints. Verified on a scratch DB:
 `alembic check` reports no new operations at head. The downgrade and re-upgrade round trip is clean.
 A seeded NULL row made the upgrade refuse with its message. vinaadi_dev held 0 NULLs of 4 rows. Not
-applied to dev; it rides with the rest of the unapplied chain.
+applied to dev at first; applied to vinaadi_dev with the rest of the chain on 2026-11-01, after the
+`backup_20261101_1745.sql` backup (dev verified at `zz9d0e1f2a3b`, 4 birth_profiles intact).
+
+**ARC-19. Append-only is a trigger now; the role split is a hosting step.** Spec L4 asks that the
+app's DB role hold only `INSERT, SELECT` on the audit table. ARC-09 said to check first whether
+migrations run as the app's role. In dev and CI they do (`slw_admin` owns the table and runs the
+app), so a `REVOKE` there would revoke nothing. Production's role layout is not verified. *Decided (architect, 2026-11-01):* a
+`BEFORE UPDATE OR DELETE` row trigger plus a `BEFORE TRUNCATE` statement trigger, which bind the
+table owner too. UPDATE is allowed only to null `actor_user_id` (the FK's ON DELETE SET NULL, or no
+admin account could be deleted), null `actor_email`, or set `target_id` to `erased:...`. Those are
+the changes L5 erasure needs. Residual: the owning role can still `DROP TRIGGER`. **Launch
+checklist:** run the app as a role that does not own the table (migrations keep the owner), then
+`REVOKE UPDATE, DELETE, TRUNCATE ON admin_audit_log FROM <app role>`. **L5 note:** the D-13
+retention job (audit log 3 years) cannot delete through this guard. It must run as the owner role,
+in its own audited job.
+
+**ARC-20. "Success" is written only after the handler's commit.** `get_db` commits after the response
+is sent, so a row written by the handler could say "success" for a change the database then lost,
+and the client would get a 200 for it. That is a pre-existing gap for every route relying on
+`get_db`'s commit, not only admin ones. *Decided:* the audit dependency (function scope, so its exit
+runs before the response) commits the handler's session, then writes "success". If that commit
+fails, the row says "error" and the client gets a 500. This closes the gap for audited routes only.
+The general `get_db` ordering is left as it is.
+
+**ARC-21. Which actions need a reason.** Spec L4: "required for reveals and destructive actions".
+*Decided:* the nine routes pinned in `tests/test_admin_audit.py` `_REASON_REQUIRED` (role grant and
+revoke, MFA reset, erasure, suspend, flag set, reset and rollback, QA clear), plus any destructive
+job run. Reinstating a suspended account needs one too: it undoes a decision, and a review asks why
+just as often. Not required: elevation, MFA self-service, recompute jobs, the feedback reward
+toggle, the broadcast refusal. The search text on `GET /admin/users` is not stored, since it is
+usually an email address; the row records that a search happened and how many results came back.
+Reveals do not exist yet (L9). When they ship, each takes `reason_required=True`.

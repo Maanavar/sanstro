@@ -436,6 +436,7 @@ def test_destructive_job_runs_once_elevated(admin_client):
     response = admin_client.post(
         "/api/v1/admin/jobs/journal_purge/trigger",
         headers={ADMIN_ELEVATION_HEADER: granted.json()["token"]},
+        params={"reason": "synthetic retention sweep"},
     )
 
     assert response.status_code == 200, response.text

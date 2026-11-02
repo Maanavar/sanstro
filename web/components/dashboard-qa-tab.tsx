@@ -2,6 +2,13 @@
 
 import { useState } from "react";
 
+import {
+  MIN_AUDIT_REASON_LENGTH,
+  adminAccessPaths,
+  adminAuditPaths,
+  type ElevationGrant,
+} from "@vinaadi/shared/api";
+
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
@@ -21,6 +28,9 @@ export function QATab({ lang }: { lang: Lang }) {
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [clearReason, setClearReason] = useState("");
+  const [clearCode, setClearCode] = useState("");
+  const [clearing, setClearing] = useState(false);
 
   async function runTests() {
     setRunning(true);
@@ -37,12 +47,32 @@ export function QATab({ lang }: { lang: Lang }) {
     }
   }
 
+  // Clearing erases the evidence of which golden cases failed, so the server
+  // wants elevation and a reason (admin spec L4). This tab sits outside the
+  // admin console's fetch layer, so it elevates inline: code in, token out,
+  // token sent once on the DELETE and then dropped.
+  const canClear = clearReason.trim().length >= MIN_AUDIT_REASON_LENGTH && clearCode.trim().length > 0;
+
   async function clearRegressions() {
+    if (!canClear || clearing) return;
+    setClearing(true);
+    setError(null);
     try {
-      await apiFetchJson("/api/v1/qa/regressions", { method: "DELETE" });
+      const grant = await apiFetchJson<ElevationGrant>(`/api/v1${adminAccessPaths.elevate}`, {
+        method: "POST",
+        body: JSON.stringify({ code: clearCode.trim() }),
+      });
+      await apiFetchJson(`/api/v1${adminAuditPaths.clearQaRegressions(clearReason.trim())}`, {
+        method: "DELETE",
+        headers: { "X-Admin-Elevation": grant.token },
+      });
       setRegressions({ total_stored: 0, failures: [] });
+      setClearReason("");
     } catch (e) {
       setError(readErrorMessage(e));
+    } finally {
+      setClearCode("");
+      setClearing(false);
     }
   }
 
@@ -166,11 +196,40 @@ export function QATab({ lang }: { lang: Lang }) {
 
       {regressions && (
         <Surface title={t("qa_regressions", lang)}>
-          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "var(--space-2)" }}>
-            <Button onClick={() => void clearRegressions()} variant="ghost" disabled={regressions.total_stored === 0}>
-              {t("qa_clear_all", lang)}
-            </Button>
-          </div>
+          {regressions.total_stored > 0 && (
+            <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "flex-end", flexWrap: "wrap", gap: "var(--space-2)", marginBottom: "var(--space-2)" }}>
+              <label style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)", fontSize: "0.75rem", color: MUTED, flex: "1 1 220px" }}>
+                {t("qa_clear_reason", lang)}
+                <input
+                  className="input"
+                  type="text"
+                  value={clearReason}
+                  maxLength={500}
+                  onChange={(e) => setClearReason(e.target.value)}
+                  disabled={clearing}
+                />
+              </label>
+              <label style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)", fontSize: "0.75rem", color: MUTED, flex: "0 1 160px" }}>
+                {t("qa_clear_code", lang)}
+                <input
+                  className="input"
+                  type="text"
+                  inputMode="text"
+                  autoComplete="one-time-code"
+                  spellCheck={false}
+                  value={clearCode}
+                  onChange={(e) => setClearCode(e.target.value)}
+                  disabled={clearing}
+                />
+              </label>
+              <Button onClick={() => void clearRegressions()} variant="ghost" disabled={!canClear || clearing}>
+                {t("qa_clear_all", lang)}
+              </Button>
+              {!canClear && (
+                <p style={{ flexBasis: "100%", textAlign: "right", margin: 0, fontSize: "0.75rem", color: FAINT }}>{t("qa_clear_needs", lang)}</p>
+              )}
+            </div>
+          )}
 
           {regressions.total_stored === 0 ? (
             <p style={{ fontSize: "0.875rem", color: FAINT, margin: 0 }}>{t("qa_no_regressions", lang)}</p>

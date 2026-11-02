@@ -8,13 +8,19 @@ import { readErrorMessage } from "@/lib/api";
 import {
   ADMIN_MFA_REQUIRED,
   ASSIGNABLE_ADMIN_ROLES,
+  MIN_AUDIT_REASON_LENGTH,
   adminAccessPaths,
+  adminAuditPaths,
   adminSettingsPaths,
   parseApiErrorText,
   type AdminMe,
   type AdminRole,
   type AdminRoleEntry,
   type ApiErrorCode,
+  type AuditLogEntry,
+  type AuditLogQuery,
+  type AuditLogResponse,
+  type AuditOutcome,
   type ElevationGrant,
   type FlagChange,
   type FlagEntry,
@@ -128,20 +134,22 @@ type FeedbackResponse = {
   items: FeedbackItem[];
 };
 
-type JobInfo = { job_id: string; label: string; description: string };
+// `destructive` jobs need elevation and a reason (app/api/admin.py trigger_job).
+type JobInfo = { job_id: string; label: string; description: string; destructive: boolean };
 type JobRunResult = { job_id: string; started_at: string; finished_at: string; result_summary: string | null };
 
-type AuditLogEntry = {
-  id: string;
-  action: string;
-  target_type: string | null;
-  target_id: string | null;
-  payload_summary: string | null;
-  ip_address: string | null;
-  created_at: string;
-};
+type AuditFilters = { action: string; actor: string; target_id: string; outcome: AuditOutcome | "" };
+const EMPTY_AUDIT_FILTERS: AuditFilters = { action: "", actor: "", target_id: "", outcome: "" };
 
-type AuditLogResponse = { total: number; items: AuditLogEntry[] };
+function hasReason(text: string): boolean {
+  return text.trim().length >= MIN_AUDIT_REASON_LENGTH;
+}
+
+// What the row says beyond its columns: the structured details, or the old free text.
+function auditDetailText(entry: AuditLogEntry): string {
+  if (entry.details && Object.keys(entry.details).length > 0) return JSON.stringify(entry.details);
+  return entry.payload_summary ?? "-";
+}
 
 type DataDeletionResult = {
   owner_user_id: string;
@@ -388,6 +396,8 @@ export function AdminConsole() {
   const [jobs, setJobs] = useState<JobInfo[]>([]);
   const [jobResults, setJobResults] = useState<Record<string, JobRunResult>>({});
   const [runningJob, setRunningJob] = useState<string | null>(null);
+  // Destructive jobs need a reason (admin spec L4); one reason covers the next run.
+  const [jobReason, setJobReason] = useState("");
   const [flags, setFlags] = useState<FlagEntry[]>([]);
   const [flagDrafts, setFlagDrafts] = useState<Record<string, string>>({});
   // Every persisted change records why (admin spec §2.7); one reason covers the next save.
@@ -395,7 +405,9 @@ export function AdminConsole() {
   const [flagHistory, setFlagHistory] = useState<FlagChange[]>([]);
   const [auditLog, setAuditLog] = useState<AuditLogResponse | null>(null);
   const [auditPage, setAuditPage] = useState(1);
+  const [auditFilters, setAuditFilters] = useState<AuditFilters>(EMPTY_AUDIT_FILTERS);
   const [deleteUserId, setDeleteUserId] = useState("");
+  const [deleteReason, setDeleteReason] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deleteResult, setDeleteResult] = useState<DataDeletionResult | null>(null);
   const [roles, setRoles] = useState<AdminRoleEntry[]>([]);
@@ -525,7 +537,9 @@ export function AdminConsole() {
 
   useEffect(() => {
     if (!isUnlocked || activeTab !== "audit") return;
-    void loadAuditLog();
+    // Opening the tab starts unfiltered, so the list and the filter inputs agree.
+    setAuditFilters(EMPTY_AUDIT_FILTERS);
+    void loadAuditLog(1, EMPTY_AUDIT_FILTERS);
   }, [isUnlocked, activeTab]);
 
   async function loadOverview() {
@@ -589,12 +603,17 @@ export function AdminConsole() {
   }
 
   async function toggleSuspend(userId: string, suspend: boolean) {
+    // Required both ways: a reinstatement undoes a decision and is audited with why.
+    if (!hasReason(suspendReason)) {
+      setError("Write a short reason first. Suspending and reinstating are both audited with it.");
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
-      await adminFetchJson(`/api/v1/admin/users/${encodeURIComponent(userId)}/suspend`, {
+      await adminFetchJson(`/api/v1${adminAuditPaths.suspend(userId)}`, {
         method: "PATCH",
-        body: JSON.stringify({ suspend, reason: suspend ? suspendReason || null : null }),
+        body: JSON.stringify({ suspend, reason: suspendReason.trim() }),
       });
       setSuspendReason("");
       await loadUserDetail(userId);
@@ -686,14 +705,20 @@ export function AdminConsole() {
     }
   }
 
-  async function triggerJob(jobId: string) {
+  async function triggerJob(job: JobInfo) {
+    const jobId = job.job_id;
+    if (job.destructive && !hasReason(jobReason)) {
+      setError("This job deletes or sends something. Write a reason first; the run is audited with it.");
+      return;
+    }
     setRunningJob(jobId);
     setError(null);
     try {
       const result = await adminFetchJson<JobRunResult>(
-        `/api/v1/admin/jobs/${encodeURIComponent(jobId)}/trigger`,
+        `/api/v1${adminAuditPaths.triggerJob(jobId, jobReason.trim() || undefined)}`,
         { method: "POST" },
       );
+      if (job.destructive) setJobReason("");
       setJobResults((prev) => ({ ...prev, [jobId]: result }));
       setStatus(`Job ${jobId} completed.`);
     } catch (err) {
@@ -799,13 +824,21 @@ export function AdminConsole() {
     }
   }
 
-  async function loadAuditLog(page = 1) {
+  // Filters are an argument, not read from state, so the tab-open effect does
+  // not depend on (and re-run for) every keystroke in the filter inputs.
+  async function loadAuditLog(page: number, filters: AuditFilters) {
     setLoading(true);
     setError(null);
+    const query: AuditLogQuery = {
+      page,
+      page_size: 100,
+      action: filters.action.trim() || undefined,
+      actor: filters.actor.trim() || undefined,
+      target_id: filters.target_id.trim() || undefined,
+      outcome: filters.outcome || undefined,
+    };
     try {
-      const data = await adminFetchJson<AuditLogResponse>(
-        `/api/v1/admin/audit-log?page=${page}&page_size=100`,
-      );
+      const data = await adminFetchJson<AuditLogResponse>(`/api/v1${adminAuditPaths.log(query)}`);
       setAuditLog(data);
       setAuditPage(page);
       setStatus("Audit log refreshed.");
@@ -820,19 +853,20 @@ export function AdminConsole() {
     event.preventDefault();
     if (!isUnlocked) return;
     const userId = deleteUserId.trim();
-    if (!userId || deleteConfirm.trim() !== "DELETE") {
-      setError("Enter a user id and type DELETE to confirm.");
+    if (!userId || deleteConfirm.trim() !== "DELETE" || !hasReason(deleteReason)) {
+      setError("Enter a user id and a reason, and type DELETE to confirm.");
       return;
     }
     setLoading(true);
     setError(null);
     try {
       const result = await adminFetchJson<DataDeletionResult>(
-        `/api/v1/admin/users/${encodeURIComponent(userId)}/data`,
+        `/api/v1${adminAuditPaths.deleteUserData(userId, deleteReason.trim())}`,
         { method: "DELETE" },
       );
       setDeleteResult(result);
       setDeleteConfirm("");
+      setDeleteReason("");
       setStatus("User data deletion completed.");
       if (activeTab === "overview") {
         await loadOverview();
@@ -954,7 +988,10 @@ export function AdminConsole() {
     setFlags([]);
     setFlagDrafts({});
     setAuditLog(null);
+    setAuditFilters(EMPTY_AUDIT_FILTERS);
     setDeleteResult(null);
+    setDeleteReason("");
+    setJobReason("");
     setRoles([]);
     setNewRecoveryCodes(null);
   }
@@ -1199,34 +1236,38 @@ export function AdminConsole() {
                   <div className="admin-suspend-section">
                     <h4>{userDetail.is_suspended ? "Account is suspended" : "Account is active"}</h4>
                     {userDetail.suspension_reason ? <p>Reason: {userDetail.suspension_reason}</p> : null}
-                    {userDetail.is_suspended ? (
-                      <button
-                        className="admin-button"
-                        type="button"
-                        onClick={() => void toggleSuspend(userDetail.user_id, false)}
-                        disabled={loading}
-                      >
-                        Reinstate account
-                      </button>
-                    ) : (
-                      <div className="admin-suspend-form">
-                        <input
-                          className="admin-input"
-                          type="text"
-                          placeholder="Suspension reason (optional)"
-                          value={suspendReason}
-                          onChange={(event) => setSuspendReason(event.target.value)}
-                        />
+                    <div className="admin-suspend-form">
+                      <input
+                        className="admin-input"
+                        type="text"
+                        aria-label={userDetail.is_suspended ? "Reinstatement reason" : "Suspension reason"}
+                        placeholder={
+                          userDetail.is_suspended ? "Why reinstate (required)" : "Suspension reason (required)"
+                        }
+                        maxLength={500}
+                        value={suspendReason}
+                        onChange={(event) => setSuspendReason(event.target.value)}
+                      />
+                      {userDetail.is_suspended ? (
+                        <button
+                          className="admin-button"
+                          type="button"
+                          onClick={() => void toggleSuspend(userDetail.user_id, false)}
+                          disabled={loading || !hasReason(suspendReason)}
+                        >
+                          Reinstate account
+                        </button>
+                      ) : (
                         <button
                           className="admin-button admin-button--danger"
                           type="button"
                           onClick={() => void toggleSuspend(userDetail.user_id, true)}
-                          disabled={loading}
+                          disabled={loading || !hasReason(suspendReason)}
                         >
                           Suspend account
                         </button>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </div>
               ) : (userList?.items ?? []).length > 0 ? (
@@ -1538,10 +1579,28 @@ export function AdminConsole() {
                 </button>
               </div>
               {jobs.length === 0 ? <div className="admin-empty">No jobs registered yet.</div> : null}
+              {jobs.some((job) => job.destructive) ? (
+                <div className="admin-notif-form">
+                  <label>
+                    Reason for the next destructive run (required for jobs marked destructive)
+                    <input
+                      className="admin-input"
+                      type="text"
+                      value={jobReason}
+                      maxLength={500}
+                      placeholder="e.g. Retention sweep after the policy change"
+                      onChange={(event) => setJobReason(event.target.value)}
+                    />
+                  </label>
+                </div>
+              ) : null}
               {jobs.map((job) => (
                 <div className="admin-action-row" key={job.job_id}>
                   <div>
-                    <h3>{job.label}</h3>
+                    <h3>
+                      {job.label}
+                      {job.destructive ? <span className="admin-badge admin-badge--warning">destructive</span> : null}
+                    </h3>
                     <p>{job.description}</p>
                     {jobResults[job.job_id] ? (
                       <div className="admin-result">
@@ -1553,8 +1612,8 @@ export function AdminConsole() {
                   <button
                     className="admin-button admin-button--primary"
                     type="button"
-                    onClick={() => void triggerJob(job.job_id)}
-                    disabled={runningJob !== null}
+                    onClick={() => void triggerJob(job)}
+                    disabled={runningJob !== null || (job.destructive && !hasReason(jobReason))}
                   >
                     {runningJob === job.job_id ? "Running..." : "Run now"}
                   </button>
@@ -1684,18 +1743,85 @@ export function AdminConsole() {
                   <h2 id="audit-title">Audit Log</h2>
                   <p>{numberLabel(auditLog?.total)} admin actions recorded.</p>
                 </div>
-                <button className="admin-button" type="button" onClick={() => void loadAuditLog()} disabled={loading}>
+                <button className="admin-button" type="button" onClick={() => void loadAuditLog(auditPage, auditFilters)} disabled={loading}>
                   Refresh
                 </button>
               </div>
+              <form
+                className="admin-notif-form"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void loadAuditLog(1, auditFilters);
+                }}
+              >
+                <label>
+                  Action
+                  <input
+                    className="admin-input"
+                    type="text"
+                    value={auditFilters.action}
+                    placeholder="e.g. suspend_user"
+                    onChange={(event) => setAuditFilters((prev) => ({ ...prev, action: event.target.value }))}
+                  />
+                </label>
+                <label>
+                  Who (email or user id)
+                  <input
+                    className="admin-input"
+                    type="text"
+                    value={auditFilters.actor}
+                    onChange={(event) => setAuditFilters((prev) => ({ ...prev, actor: event.target.value }))}
+                  />
+                </label>
+                <label>
+                  Target id
+                  <input
+                    className="admin-input"
+                    type="text"
+                    value={auditFilters.target_id}
+                    onChange={(event) => setAuditFilters((prev) => ({ ...prev, target_id: event.target.value }))}
+                  />
+                </label>
+                <label>
+                  Outcome
+                  <select
+                    className="admin-input"
+                    value={auditFilters.outcome}
+                    onChange={(event) =>
+                      setAuditFilters((prev) => ({ ...prev, outcome: event.target.value as AuditFilters["outcome"] }))
+                    }
+                  >
+                    <option value="">Any</option>
+                    <option value="success">Success</option>
+                    <option value="refused">Refused</option>
+                    <option value="error">Error</option>
+                  </select>
+                </label>
+                <button className="admin-button" type="submit" disabled={loading}>
+                  Filter
+                </button>
+                <button
+                  className="admin-button admin-button--quiet"
+                  type="button"
+                  disabled={loading}
+                  onClick={() => {
+                    setAuditFilters(EMPTY_AUDIT_FILTERS);
+                    void loadAuditLog(1, EMPTY_AUDIT_FILTERS);
+                  }}
+                >
+                  Clear
+                </button>
+              </form>
               <table className="admin-table">
                 <thead>
                   <tr>
                     <th>Time</th>
+                    <th>Who</th>
                     <th>Action</th>
+                    <th>Outcome</th>
                     <th>Target</th>
-                    <th>ID</th>
-                    <th>Summary</th>
+                    <th>Reason</th>
+                    <th>Details</th>
                     <th>IP</th>
                   </tr>
                 </thead>
@@ -1703,10 +1829,26 @@ export function AdminConsole() {
                   {(auditLog?.items ?? []).map((entry) => (
                     <tr key={entry.id}>
                       <td>{formatDateTimeLabel(entry.created_at)}</td>
+                      <td>
+                        {entry.actor_email ?? "-"}
+                        {entry.actor_role ? <small> ({entry.actor_role})</small> : null}
+                      </td>
                       <td><code>{entry.action}</code></td>
-                      <td>{entry.target_type ?? "-"}</td>
-                      <td><small>{entry.target_id ?? "-"}</small></td>
-                      <td>{entry.payload_summary ?? "-"}</td>
+                      <td>
+                        <span
+                          className={
+                            entry.outcome === "success" ? "admin-badge" : "admin-badge admin-badge--warning"
+                          }
+                        >
+                          {entry.outcome}
+                        </span>
+                      </td>
+                      <td>
+                        {entry.target_type ?? "-"}
+                        {entry.target_id ? <small> {entry.target_id}</small> : null}
+                      </td>
+                      <td>{entry.reason ?? "-"}</td>
+                      <td><small>{auditDetailText(entry)}</small></td>
                       <td><small>{entry.ip_address ?? "-"}</small></td>
                     </tr>
                   ))}
@@ -1718,7 +1860,7 @@ export function AdminConsole() {
                     className="admin-button admin-button--quiet"
                     type="button"
                     disabled={auditPage <= 1}
-                    onClick={() => void loadAuditLog(auditPage - 1)}
+                    onClick={() => void loadAuditLog(auditPage - 1, auditFilters)}
                   >
                     Previous
                   </button>
@@ -1727,7 +1869,7 @@ export function AdminConsole() {
                     className="admin-button admin-button--quiet"
                     type="button"
                     disabled={auditPage * 100 >= (auditLog?.total ?? 0)}
-                    onClick={() => void loadAuditLog(auditPage + 1)}
+                    onClick={() => void loadAuditLog(auditPage + 1, auditFilters)}
                   >
                     Next
                   </button>
@@ -1757,6 +1899,17 @@ export function AdminConsole() {
                   />
                 </label>
                 <label>
+                  Reason (required, audited)
+                  <input
+                    className="admin-input"
+                    type="text"
+                    maxLength={500}
+                    value={deleteReason}
+                    onChange={(event) => setDeleteReason(event.target.value)}
+                    placeholder="e.g. Erasure request received by email"
+                  />
+                </label>
+                <label>
                   Type DELETE to confirm
                   <input
                     className="admin-input"
@@ -1769,7 +1922,7 @@ export function AdminConsole() {
                 <button
                   className="admin-button admin-button--danger"
                   type="submit"
-                  disabled={loading || deleteConfirm !== "DELETE"}
+                  disabled={loading || deleteConfirm !== "DELETE" || !hasReason(deleteReason)}
                 >
                   Delete user data
                 </button>

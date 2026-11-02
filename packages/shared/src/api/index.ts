@@ -43,4 +43,5 @@ export * from "./places";
 export * from "./adminAnalytics";
 export * from "./adminAccess";
 export * from "./adminSettings";
+export * from "./adminAudit";
 export * from "./payments";

@@ -14,6 +14,7 @@ from app.models.chart import Chart
 from app.models.family_member import FamilyMember
 from app.models.user import User
 from app.models.user_notification_preference import UserNotificationPreference
+from app.services.audit_service import AuditEntry
 from app.services.daily_push_cron import run_daily_push_cron
 from app.services.family_vault_service import _collect_member_snapshots
 
@@ -56,7 +57,13 @@ def test_admin_user_list_uses_constant_query_count(client, query_counter) -> Non
             users = [_add_user_with_profile_and_chart(session, index) for index in range(3)]
 
         with query_counter() as counter:
-            response = list_users(page=1, page_size=50, session=session, admin_user=users[0])
+            response = list_users(
+                audit=AuditEntry(action="list_users", target_type="user"),
+                page=1,
+                page_size=50,
+                session=session,
+                _=users[0],
+            )
 
     summaries = {item.email: item for item in response.items}
     for index in range(3):
