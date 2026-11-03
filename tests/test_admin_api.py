@@ -439,6 +439,14 @@ def test_feature_flags_round_trip(raw_client):
         "doctrine_sevvai_house_set",  # owner ruling 2026-10-30
         "doctrine_moon_72_degree_convention",
         "doctrine_show_lakshmi_phaladeepika",
+        # Ask Vinaadi rails (admin spec L7): the spend cap, the USD rate and
+        # the per-state daily question allowance.
+        "ask_daily_spend_cap_paise",
+        "ask_usd_inr_paise",
+        "ask_daily_limit_registered",
+        "ask_daily_limit_trial",
+        "ask_daily_limit_beta",
+        "ask_daily_limit_premium",
     } == names
 
     set_response = raw_client.patch(

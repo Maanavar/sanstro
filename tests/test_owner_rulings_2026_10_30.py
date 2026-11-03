@@ -187,8 +187,11 @@ def test_every_children_finding_carries_an_outlook_and_never_denies() -> None:
 
 _ROOT = Path(__file__).resolve().parents[1]
 _SHIPPED = ("app", "packages/shared/src", "web/lib", "web/components", "web/app", "mobile/src", "mobile/app")
-#: Files that name the forbidden claim in order to forbid it.
-_ALLOWED_FILES = {"app/services/qa_service.py"}
+#: Files that name the forbidden claim in order to forbid it, or to recognise
+#: it in what a person typed. ask_vinaadi_topics.py matches "infertility" in a
+#: question so it gets the safety addendum (spec L7); it renders no copy. Blind
+#: spot: a denial string added to either file as shipped copy would pass here.
+_ALLOWED_FILES = {"app/services/qa_service.py", "app/services/ask_vinaadi_topics.py"}
 
 
 def test_no_shipped_string_claims_denial() -> None:
