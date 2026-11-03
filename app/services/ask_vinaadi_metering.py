@@ -122,6 +122,13 @@ def daily_cap_paise() -> int:
     return int(get_flag("ask_daily_spend_cap_paise"))
 
 
+def spend_cap_reached(session: Session, *, clock: Clock = SYSTEM_CLOCK) -> bool:
+    """Has today's spend reached the cap? The same test `assert_spend_headroom`
+    applies, read without raising or alerting, so the daily status can tell a
+    reader Ask is paused before they type (audit U4, 2026-11-03)."""
+    return spent_paise(session, accounting_date(clock=clock)) >= daily_cap_paise()
+
+
 def assert_spend_headroom(session: Session, *, clock: Clock = SYSTEM_CLOCK) -> None:
     """503 with "come back tomorrow" once today's spend has reached the cap."""
     day = accounting_date(clock=clock)

@@ -14,6 +14,8 @@ import { useKalamReminderToggle } from "@/hooks/useKalamReminderToggle";
 import type { KalamReminderKind } from "@/lib/kalamReminders";
 import type { NotificationPreferenceData } from "@vinaadi/shared";
 import { accountKey } from "@/lib/queryKeys";
+import { useMyConsents } from "@/hooks/useMyConsents";
+import { UpdatesConsentCard } from "@/components/UpdatesConsentCard";
 
 export default function NotificationSettingsScreen() {
   const { lang } = useI18n();
@@ -28,11 +30,18 @@ export default function NotificationSettingsScreen() {
 
   const prefs: NotificationPreferenceData | undefined = data?.data;
   const { prefs: kalamPrefs, setKind: setKalamKind } = useKalamReminderToggle();
+  // Server alerts need the "updates" purpose (admin spec L2). While it is off
+  // the switches below would save and still deliver nothing, so they are
+  // disabled under the card that explains why and turns it on. Unknown (null)
+  // is not "off": nothing is disabled before the answer arrives.
+  const { consents } = useMyConsents();
+  const alertsPaused = consents?.updates === false;
 
   const [morningEnabled, setMorningEnabled] = useState(false);
   const [morningTime, setMorningTime] = useState("06:00");
   const [dashaAlert, setDashaAlert] = useState(true);
   const [piranthaNaal, setPiranthaNaal] = useState(true);
+  const [chandrashtama, setChandrashtama] = useState(true);
 
   useEffect(() => {
     if (!prefs) return;
@@ -40,6 +49,7 @@ export default function NotificationSettingsScreen() {
     setMorningTime(prefs.morningAlertTime ?? "06:00");
     setDashaAlert(prefs.dashaAlertEnabled ?? true);
     setPiranthaNaal(prefs.piranthaNaalAlertEnabled ?? true);
+    setChandrashtama(prefs.chandrashtamaAlertEnabled ?? true);
   }, [prefs]);
 
   const mutation = useMutation({
@@ -53,6 +63,7 @@ export default function NotificationSettingsScreen() {
       morningAlertTime: morningTime,
       dashaAlertEnabled: dashaAlert,
       piranthaNaalAlertEnabled: piranthaNaal,
+      chandrashtamaAlertEnabled: chandrashtama,
       ...patch,
     });
   }
@@ -84,10 +95,12 @@ export default function NotificationSettingsScreen() {
         )}
         {isError && <ErrorCard onRetry={refetch} />}
 
+        <UpdatesConsentCard />
+
         {!isLoading && !isError && (
           <>
           {/* Morning push big card */}
-          <View style={styles.morningCard}>
+          <View style={[styles.morningCard, alertsPaused && styles.paused]}>
             <View style={styles.morningRow}>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.morningTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
@@ -101,6 +114,7 @@ export default function NotificationSettingsScreen() {
               </View>
               <Switch
                 value={morningEnabled}
+                disabled={alertsPaused}
                 onValueChange={(v) => { setMorningEnabled(v); save({ morningAlertEnabled: v }); }}
                 trackColor={{ false: C.divider, true: C.saffron }}
                 thumbColor={C.surface}
@@ -117,6 +131,7 @@ export default function NotificationSettingsScreen() {
                     <TouchableOpacity
                       key={t}
                       style={[styles.timeChip, morningTime === t && styles.timeChipActive]}
+                      disabled={alertsPaused}
                       onPress={() => { setMorningTime(t); save({ morningAlertTime: t }); }}
                     >
                       <Text style={[styles.timeChipText, morningTime === t && styles.timeChipTextActive]}>
@@ -148,13 +163,25 @@ export default function NotificationSettingsScreen() {
               key: "piranthanaal",
               ta: "பிறந்தநாள் நினைவூட்டல்",
               en: "Birthday Reminder",
-              subTa: "தமிழ் பிறந்தநாள் (நட்சத்திர நாள்) முன்",
-              subEn: "Before Tamil birthday (nakshatra day)",
+              // Sent ON the day (daily_push_cron: `pirantha.is_today`), not
+              // before it, and for your own chart only.
+              subTa: "உங்கள் பிறந்த நட்சத்திர நாளன்று",
+              subEn: "On your birth-star day",
               val: piranthaNaal,
               set: (v: boolean) => { setPiranthaNaal(v); save({ piranthaNaalAlertEnabled: v }); },
             },
+            {
+              key: "chandrashtama",
+              ta: "சந்திராஷ்டம அறிவிப்பு",
+              en: "Chandrashtamam Alert",
+              // The evening before, with start and end (daily_push_cron, F4).
+              subTa: "முந்தைய மாலை, தொடங்கும், முடியும் நேரத்துடன்",
+              subEn: "The evening before, with start and end times",
+              val: chandrashtama,
+              set: (v: boolean) => { setChandrashtama(v); save({ chandrashtamaAlertEnabled: v }); },
+            },
           ].map((item) => (
-            <View key={item.key} style={styles.toggleRow}>
+            <View key={item.key} style={[styles.toggleRow, alertsPaused && styles.paused]}>
               <View style={{ flex: 1, gap: 2 }}>
                 <Text style={[styles.toggleTitle, {
                   fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_600SemiBold",
@@ -168,6 +195,7 @@ export default function NotificationSettingsScreen() {
               </View>
               <Switch
                 value={item.val}
+                disabled={alertsPaused}
                 onValueChange={item.set}
                 trackColor={{ false: C.divider, true: C.saffron }}
                 thumbColor={C.surface}
@@ -273,5 +301,6 @@ const styles = StyleSheet.create({
   },
   toggleTitle: {},
   toggleSub: { color: C.textSecond },
+  paused: { opacity: 0.5 },
   errorText: { fontFamily: "Inter_400Regular", fontSize: 13, color: C.alert, textAlign: "center" },
 });

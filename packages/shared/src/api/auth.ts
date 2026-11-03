@@ -208,8 +208,15 @@ export function resendVerificationEmail(): Promise<VerifyEmailResponse> {
 export interface SubscriptionInfo {
   tier: string;
   status: string;
+  /** `revenuecat` = bought in the app; `razorpay` = bought on the web. */
   provider: string | null;
   current_period_end: string | null;
+  /**
+   * Renewal is already stopped, so `current_period_end` is when access *ends*.
+   * Read it through `subscriptionManage.ts`, not inline: where a subscription
+   * can be cancelled depends on the provider.
+   */
+  cancel_at_period_end: boolean;
 }
 
 export interface SubscriptionInfoResponse {

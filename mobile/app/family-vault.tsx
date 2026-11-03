@@ -132,11 +132,13 @@ function MemberDetail({
   isTamil,
   onAskVinaadi,
   onOpenSynastry,
+  onEdit,
 }: {
   member: FamilyMemberDayView;
   isTamil: boolean;
   onAskVinaadi: () => void;
   onOpenSynastry: () => void;
+  onEdit: () => void;
 }) {
   const C = useColors();
   const styles = useMemo(() => makeStyles(C), [C]);
@@ -154,6 +156,14 @@ function MemberDetail({
           <Text style={[styles.detailLabel, isTamil ? TamilType.caption : EnType.caption]}>
             {member.label}
           </Text>
+          {/* The way into the member editor — name, relationship, the
+              per-person alert opt-in (audit F5) and where they live now.
+              Mobile had no edit surface at all before. */}
+          <TouchableOpacity onPress={onEdit} style={styles.editLinkBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Text style={[styles.editLinkText, isTamil ? TamilType.caption : EnType.caption]}>
+              {isTamil ? "விவரங்களைத் திருத்து" : "Edit details"}
+            </Text>
+          </TouchableOpacity>
           {member.chandrashtama && (
             <View style={styles.chandraChip}>
               <AlertTriangle size={10} color={C.caution} strokeWidth={2} />
@@ -559,6 +569,14 @@ export default function FamilyVaultScreen() {
     Haptics.selectionAsync();
     synastrySheetRef.current?.expand();
   }
+
+  function openAddMember() {
+    if (!firstVault) return;
+    router.push({
+      pathname: "/family-member-add",
+      params: { vaultId: firstVault.familyVaultId },
+    });
+  }
   // Premium gate
   if (tier !== "premium") {
     return (
@@ -623,10 +641,10 @@ export default function FamilyVaultScreen() {
         <Text style={[styles.headerTitle, isTamil ? TamilType.heading : EnType.heading]}>
           {isTamil ? "குடும்ப Vault" : "Family Vault"}
         </Text>
-        {vaults.length > 0 && (
+        {vaults.length > 0 && firstVault && (
           <TouchableOpacity
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            onPress={() => router.push("/premium")}
+            onPress={openAddMember}
           >
             <Text style={styles.addBtn}>{isTamil ? "சேர்க்க +" : "Add +"}</Text>
           </TouchableOpacity>
@@ -687,6 +705,22 @@ export default function FamilyVaultScreen() {
                 ))}
           </ScrollView>
 
+          {/* A vault with no members yet — the first thing to do is add one. */}
+          {!todayLoading && !todayError && members.length === 0 && (
+            <View style={styles.emptyMembers}>
+              <Text style={[styles.emptyMembersText, isTamil ? TamilType.body : EnType.body]}>
+                {isTamil
+                  ? "இந்த Vault-இல் இன்னும் யாரும் இல்லை."
+                  : "No one in this vault yet."}
+              </Text>
+              <TouchableOpacity style={styles.createBtn} onPress={openAddMember} activeOpacity={0.85}>
+                <Text style={[styles.createBtnText, isTamil ? TamilType.body : EnType.body]}>
+                  {isTamil ? "முதல் உறுப்பினரைச் சேர்" : "Add your first member"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
           {/* Selected member detail */}
           {todayError && (
             <View style={{ padding: S.base }}>
@@ -704,6 +738,13 @@ export default function FamilyVaultScreen() {
                   router.push({ pathname: "/ask-vinaadi", params: { chartId: selectedMember.chartId } })
                 }
                 onOpenSynastry={() => handleOpenSynastry(selectedMember)}
+                onEdit={() =>
+                  firstVault &&
+                  router.push({
+                    pathname: "/family-member",
+                    params: { memberId: selectedMember.memberId, vaultId: firstVault.familyVaultId },
+                  })
+                }
               />
             </View>
           )}
@@ -829,6 +870,8 @@ function makeStyles(C: ColorTokens) {
   detailScoreInfo: { flex: 1, gap: S.xs },
   detailName: { color: C.indigoText },
   detailLabel: { color: C.indigoText, opacity: 0.7 },
+  editLinkBtn: { marginTop: S.xs, alignSelf: "flex-start", minHeight: 32, justifyContent: "center" },
+  editLinkText: { color: C.gold, textDecorationLine: "underline" },
   chandraChip: {
     backgroundColor: C.goldMethodLight,
     borderRadius: RADIUS.chip,
@@ -975,6 +1018,8 @@ function makeStyles(C: ColorTokens) {
     padding: S.xxl,
     gap: S.base,
   },
+  emptyMembers: { padding: S.base, alignItems: "center", gap: S.md },
+  emptyMembersText: { color: C.textSecond, textAlign: "center" },
   emptyIcon: { fontSize: 56, marginBottom: S.sm },
   emptyTitle: { color: C.textPrimary, textAlign: "center" },
   emptySub: { color: C.textSecond, textAlign: "center", lineHeight: 22 },

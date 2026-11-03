@@ -36,6 +36,13 @@ class FamilyMember(TimestampMixin, Base):
     member_weight: Mapped[float] = mapped_column(
         Numeric(5, 2), nullable=False, default=1.0, server_default=text("1.00")
     )
+    # Per-member opt-in for the evening family digest (Chandrashtamam and
+    # Pirantha Naal, audit F5). Default false: the member is a separate data
+    # principal, and alerting about them is a further use the owner chooses
+    # person by person (decision D3). The user's own alerts default on.
+    alerts_enabled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("false")
+    )
 
     family_vault = relationship("FamilyVault", back_populates="family_members")
     owner_user = relationship("User", back_populates="family_members", foreign_keys=[owner_user_id])

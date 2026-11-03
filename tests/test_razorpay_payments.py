@@ -415,6 +415,40 @@ def test_subscription_lifecycle_created_active_charged_twice_halted_then_ends(bu
     assert not _premium(user.user_id), "after the period end, access is gone"
 
 
+def test_cancelling_tells_the_clients_the_period_end_is_now_a_stop_date(buyer, fake):
+    """`GET /users/me/subscription` is what both clients read to label the date.
+
+    Without `cancelAtPeriodEnd` on that response the mobile Me tab said
+    "Renews: <date>" to a user who had just cancelled, and neither client could
+    tell a store-bought subscription (only the store can stop it) from a web
+    one (audit 2026-11-03). The field is also what hides the cancel control
+    once renewal is already stopped.
+    """
+    client, user = buyer
+    sub_id = client.post(
+        "/api/v1/payments/checkout/subscription", json={"sku": "premium_monthly"}, headers=_csrf()
+    ).json()["subscriptionId"]
+    period_end = datetime.now(UTC) + timedelta(days=30)
+    _post_webhook(
+        client,
+        _event("subscription.activated", created_at=_now(), subscription=_sub_entity(sub_id, "active", end=period_end)),
+    )
+
+    before = client.get("/api/v1/users/me/subscription").json()["data"]
+    assert before["provider"] == "razorpay", "a web subscription: ours to cancel, not the store's"
+    assert before["cancel_at_period_end"] is False
+    assert before["current_period_end"] is not None
+
+    cancelled = client.post("/api/v1/payments/subscription/cancel", headers=_csrf())
+    assert cancelled.status_code == 200, cancelled.text
+    assert cancelled.json()["cancelAtPeriodEnd"] is True
+
+    after = client.get("/api/v1/users/me/subscription").json()["data"]
+    assert after["cancel_at_period_end"] is True
+    assert after["current_period_end"] == before["current_period_end"], "cancelling does not move the date"
+    assert _premium(user.user_id), "access runs to the end of the paid period (D-18)"
+
+
 def test_a_renewal_in_retry_keeps_access_past_the_period_end(buyer, fake):
     client, user = buyer
     sub_id = client.post(

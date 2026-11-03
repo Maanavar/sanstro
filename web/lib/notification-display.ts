@@ -1,4 +1,4 @@
-import { Bell, Cake, Orbit, Route, Sparkles, Sunrise } from "lucide-react";
+import { Bell, Cake, Moon, Orbit, Route, Sparkles, Sunrise, Users } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { Lang } from "@/lib/i18n";
 
@@ -12,7 +12,7 @@ export type NotificationTone = "cycle" | "day" | "neutral";
 
 type TypeMeta = { icon: LucideIcon; tone: NotificationTone; en: string; ta: string };
 
-/** The six types `notification_dispatch_service.NotificationType` can emit.
+/** The types `notification_dispatch_service.NotificationType` can emit.
  *  Anything else falls back to the humanised enum + a neutral bell, so a new
  *  backend type renders sensibly before this map catches up. */
 const TYPE_META: Record<string, TypeMeta> = {
@@ -20,6 +20,8 @@ const TYPE_META: Record<string, TypeMeta> = {
   DASHA_TRANSITION: { icon: Orbit, tone: "cycle", en: "Dasa change", ta: "தசை மாற்றம்" },
   PEYARCHI: { icon: Route, tone: "cycle", en: "Peyarchi", ta: "பெயர்ச்சி" },
   PIRANTHA_NAAL: { icon: Cake, tone: "day", en: "Pirantha Naal", ta: "பிறந்த நாள்" },
+  CHANDRASHTAMA: { icon: Moon, tone: "day", en: "Chandrashtamam", ta: "சந்திராஷ்டமம்" },
+  FAMILY_DIGEST: { icon: Users, tone: "day", en: "Family reminders", ta: "குடும்ப நினைவூட்டல்கள்" },
   JADHAGAM_D1_NUDGE: { icon: Sparkles, tone: "neutral", en: "Chart nudge", ta: "ஜாதக நினைவூட்டல்" },
   GENERAL: { icon: Bell, tone: "neutral", en: "Update", ta: "தகவல்" },
 };

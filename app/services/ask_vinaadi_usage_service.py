@@ -32,7 +32,9 @@ from app.core.clock import (
 from app.core.subscription import is_premium, limits_for_state, limits_state_for_user, open_beta_active
 from app.core.tier_limits import ask_vinaadi_limits
 from app.models.ask_vinaadi_usage import AskVinaadiUsage
+from app.services.ask_vinaadi_metering import spend_cap_reached
 from app.services.feature_flags import get_flag
+from app.services.kill_switch import switch_is_on
 from app.services.payment_service import credit_balance, return_credit, spend_credit
 
 #: The credit key the Ask top-up grants (`products.credit_grants`).
@@ -90,7 +92,8 @@ def get_daily_status(
     *,
     clock: Clock = SYSTEM_CLOCK,
 ) -> dict:
-    """Return chip usage: {chipsUsed, chipsRemaining, isPremium, openBeta, dailyLimit, monthlyLimit, resetsAt}.
+    """Return chip usage: {chipsUsed, chipsRemaining, isPremium, openBeta, dailyLimit, monthlyLimit, resetsAt,
+    creditsRemaining, askPaused}.
 
     `isPremium` is the subscription fact. `openBeta` tells the client that a
     spent daily allowance is a fair-use cap to wait out, not a paywall — so it
@@ -101,6 +104,12 @@ def get_daily_status(
     premium = is_premium(user_id, session)
     open_beta = open_beta_active() and not premium
     daily_limit, monthly_limit = _limits(user_id, session)
+    # Audit U4 (2026-11-03): bought credits were spent but never shown, and a
+    # paused Ask only surfaced as an error after the reader had typed.
+    extras = {
+        "creditsRemaining": max(0, credit_balance(session, user_id, ASK_CREDIT_KEY)),
+        "askPaused": not switch_is_on("enable_ask_vinaadi") or spend_cap_reached(session, clock=clock),
+    }
 
     if monthly_limit is not None:
         used = _get_monthly_count(session, user_id, clock=clock)
@@ -112,6 +121,7 @@ def get_daily_status(
             "dailyLimit": None,
             "monthlyLimit": monthly_limit,
             "resetsAt": _wire_instant(next_accounting_month_start(clock=clock)),
+            **extras,
         }
 
     usage = _get_usage(session, user_id, _quota_day(clock=clock))
@@ -124,6 +134,7 @@ def get_daily_status(
         "dailyLimit": daily_limit,
         "monthlyLimit": None,
         "resetsAt": _wire_instant(next_accounting_day_start(clock=clock)),
+        **extras,
     }
 
 

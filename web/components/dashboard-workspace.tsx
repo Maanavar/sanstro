@@ -986,6 +986,7 @@ export function DashboardWorkspace() {
             onClose={() => setEditMember(null)}
             onChange={setEditMember}
             onSave={() => void handleSaveEdit()}
+            ownerNotificationChannel={journal.notificationPrefs?.notification_channel ?? null}
           />
         )}
 

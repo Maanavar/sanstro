@@ -132,7 +132,12 @@ def test_ask_status_keys_match_the_shared_interface(raw_client) -> None:
     mobile's limit bar. This pins the keys to packages/shared/src/api/askVinaadi.ts."""
     _register_and_login(raw_client, "openbeta-keys@example.com")
     status = raw_client.get("/api/v1/ask-vinaadi/daily-status").json()
-    assert set(status) == {"chipsUsed", "chipsRemaining", "isPremium", "openBeta", "dailyLimit", "monthlyLimit", "resetsAt"}
+    # creditsRemaining and askPaused: audit U4 (2026-11-03), in the generated
+    # type that packages/shared/src/api/askVinaadi.ts re-exports.
+    assert set(status) == {
+        "chipsUsed", "chipsRemaining", "isPremium", "openBeta", "dailyLimit", "monthlyLimit", "resetsAt",
+        "creditsRemaining", "askPaused",
+    }
 
 
 def test_ask_status_names_the_reset_instant_not_tomorrow(raw_client) -> None:

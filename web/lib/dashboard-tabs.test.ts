@@ -98,7 +98,7 @@ describe("dashboardPath", () => {
   it("round-trips every settings section", () => {
     const sections = [
       "setup", "account", "context", "experience", "appearance",
-      "notifications", "journal", "privacy", "danger",
+      "notifications", "billing", "journal", "privacy", "danger",
     ] as const;
     for (const section of sections) {
       const path = dashboardPath("settings", { section });

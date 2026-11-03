@@ -363,3 +363,28 @@ def test_a_credit_is_given_back_when_its_answer_never_arrives(client):
         release_question(session, UID, reservation)
         release_question(session, UID, reservation)  # idempotent: one spend, one return
         assert credit_balance(session, UID, "ask_question") == 1
+
+
+# ── The daily status says what the reader can do before they type (audit U4) ─
+
+
+def test_daily_status_reports_bought_credits(client):
+    """Credits were spent but never shown: a buyer could not see how many remained."""
+    assert client.get("/api/v1/ask-vinaadi/daily-status").json()["creditsRemaining"] == 0
+    _give_credits(3)
+    assert client.get("/api/v1/ask-vinaadi/daily-status").json()["creditsRemaining"] == 3
+
+
+def test_daily_status_reports_a_spend_cap_pause_without_alerting(client):
+    _make_owner()
+    _set("ask_daily_spend_cap_paise", 500)
+    assert client.get("/api/v1/ask-vinaadi/daily-status").json()["askPaused"] is False
+    _seed_spend(accounting_date(), 500)
+    with patch.object(metering, "dispatch_owner_alert") as dispatch:
+        assert client.get("/api/v1/ask-vinaadi/daily-status").json()["askPaused"] is True
+    dispatch.assert_not_called()  # reading the status is not a refused question
+
+
+def test_daily_status_reports_the_kill_switch(client):
+    _set("enable_ask_vinaadi", False)
+    assert client.get("/api/v1/ask-vinaadi/daily-status").json()["askPaused"] is True

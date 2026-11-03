@@ -36,6 +36,7 @@ function stateFor(scope: "member" | "profile", overrides: Partial<EditMemberStat
     displayName: "Test Subject",
     relationshipToOwner: "spouse",
     memberWeight: "1.00",
+    alertsEnabled: false,
     birthDateLocal: "1991-07-22",
     birthTimeLocal: "06:30:00",
     birthPlace: "Madurai, Tamil Nadu, India",

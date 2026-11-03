@@ -100,6 +100,8 @@ NotificationType = Literal[
     "DASHA_TRANSITION",
     "JADHAGAM_D1_NUDGE",
     "PIRANTHA_NAAL",
+    "CHANDRASHTAMA",
+    "FAMILY_DIGEST",
     "PEYARCHI",
     "GENERAL",
 ]
@@ -114,6 +116,8 @@ NEEDS_UPDATES_CONSENT: dict[str, bool] = {
     "DASHA_TRANSITION": True,
     "JADHAGAM_D1_NUDGE": True,
     "PIRANTHA_NAAL": True,
+    "CHANDRASHTAMA": True,
+    "FAMILY_DIGEST": True,
     "PEYARCHI": True,
     "GENERAL": True,
 }

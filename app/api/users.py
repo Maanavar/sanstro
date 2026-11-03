@@ -34,6 +34,10 @@ class SubscriptionInfo(BaseModel):
     status: str
     provider: str | None = None
     current_period_end: str | None = None
+    #: Renewal already stopped: `current_period_end` is when access ends, not
+    #: when it renews, and there is nothing left to cancel. Both clients said
+    #: "Renews" either way before this field existed (audit 2026-11-03).
+    cancel_at_period_end: bool = False
 
 
 class SubscriptionInfoResponse(BaseModel):
@@ -66,6 +70,7 @@ def get_own_subscription(
             current_period_end=(
                 sub.current_period_end.isoformat() if sub.current_period_end else None
             ),
+            cancel_at_period_end=sub.cancel_at_period_end,
         )
     )
 

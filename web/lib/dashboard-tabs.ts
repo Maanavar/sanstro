@@ -171,6 +171,7 @@ const SETTINGS_SECTION_SLUGS: Record<SettingsSectionId, string> = {
   experience: "experience",
   appearance: "appearance",
   notifications: "notifications",
+  billing: "plan-billing",
   journal: "journal",
   privacy: "privacy",
   danger: "danger-zone",

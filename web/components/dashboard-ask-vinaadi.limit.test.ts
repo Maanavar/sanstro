@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   askAllowanceRefilled,
+  askCreditsLine,
   askLimitMessage,
+  askOutOfQuestions,
   askResetWhen,
   type AskAllowanceStatus,
   type UtcOffsetAt,
@@ -103,5 +105,42 @@ describe("askAllowanceRefilled", () => {
     expect(askAllowanceRefilled(RESET, at("2026-10-12T18:29:59Z"))).toBe(false);
     expect(askAllowanceRefilled(RESET, at("2026-10-12T18:30:00Z"))).toBe(true);
     expect(askAllowanceRefilled(undefined, NOW)).toBe(false);
+  });
+});
+
+// Audit U4 (2026-11-03): both clients blocked on the allowance alone, so a
+// reader holding bought credits could not type the question they had paid for.
+describe("askOutOfQuestions", () => {
+  const spent = { chipsRemaining: 0, resetsAt: RESET };
+
+  it("blocks a spent allowance with no credits", () => {
+    expect(askOutOfQuestions({ ...spent, creditsRemaining: 0 }, NOW)).toBe(true);
+  });
+
+  it("does not block while a bought credit is left", () => {
+    expect(askOutOfQuestions({ ...spent, creditsRemaining: 2 }, NOW)).toBe(false);
+  });
+
+  it("does not block with allowance left or no status yet", () => {
+    expect(askOutOfQuestions({ ...spent, chipsRemaining: 3 }, NOW)).toBe(false);
+    expect(askOutOfQuestions({ ...spent, chipsRemaining: null }, NOW)).toBe(false);
+    expect(askOutOfQuestions(null, NOW)).toBe(false);
+  });
+
+  it("steps aside once the reset instant has passed", () => {
+    expect(askOutOfQuestions(spent, at("2026-10-12T19:00:00Z"))).toBe(false);
+  });
+
+  it("reads an older server without the field as holding no credits", () => {
+    expect(askOutOfQuestions(spent, NOW)).toBe(true);
+  });
+});
+
+describe("askCreditsLine", () => {
+  it("names the bought questions left, and nothing when there are none", () => {
+    expect(askCreditsLine(2, "en")).toBe("2 bought questions left");
+    expect(askCreditsLine(1, "en")).toBe("1 bought question left");
+    expect(askCreditsLine(0, "en")).toBe("");
+    expect(askCreditsLine(3, "ta")).toContain("3");
   });
 });

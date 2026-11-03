@@ -145,7 +145,7 @@ def _dispatch(monkeypatch, *, focus_line):
     guidance.data.activity_board = _board(favourable=["job_change"])
 
     sent: dict = {}
-    monkeypatch.setattr(cron, "_latest_active_profile", lambda *_: profile)
+    monkeypatch.setattr(cron, "_own_profile", lambda *_: profile)
     monkeypatch.setattr(cron, "_latest_completed_chart", lambda *_: chart)
     monkeypatch.setattr(cron, "_morning_alert_due", lambda *_: True)
     monkeypatch.setattr(cron, "_already_sent_today", lambda *_: False)

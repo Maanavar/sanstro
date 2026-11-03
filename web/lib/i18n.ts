@@ -760,6 +760,7 @@ const STRINGS = {
   notif_morning_time:      { ta: "நேரம்",                           en: "Time" },
   notif_dasha_alert:       { ta: "தசை மாற்ற அறிவிப்பு",            en: "Dasa transition alert" },
   notif_pirantha_alert:    { ta: "பிறந்த நாள் அறிவிப்பு",           en: "Pirantha Naal alert" },
+  notif_chandrashtama_alert: { ta: "சந்திராஷ்டம அறிவிப்பு",        en: "Chandrashtamam alert" },
   notif_smart_silence:     { ta: "நுட்பமான அமைதி",                 en: "Smart silence" },
   notif_fcm_registered:    { ta: "FCM பதிவு செய்யப்பட்டது",         en: "Push token registered" },
   notif_fcm_not_registered:{ ta: "FCM பதிவு இல்லை",                en: "No push token registered" },

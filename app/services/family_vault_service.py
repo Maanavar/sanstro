@@ -1535,6 +1535,7 @@ def _member_data(member: FamilyMember, birth_profile: BirthProfile | None) -> Fa
         genderForTraditionalRules=member.gender_for_traditional_rules,
         dateOfBirthLocal=member.date_of_birth_local,
         isMinor=member.is_minor,
+        alertsEnabled=bool(member.alerts_enabled),
         birthProfileId=birth_profile.birth_profile_id if birth_profile else None,
         maritalStatus=birth_profile.marital_status if birth_profile else None,
         employmentType=birth_profile.employment_type if birth_profile else None,
@@ -1627,6 +1628,8 @@ def update_family_member(
         member.member_weight = payload.member_weight
     if payload.gender_for_traditional_rules is not None:
         member.gender_for_traditional_rules = payload.gender_for_traditional_rules
+    if payload.alerts_enabled is not None:
+        member.alerts_enabled = payload.alerts_enabled
     member.updated_at = datetime.now(tz=UTC)
 
     # Update birth profile fields if any profile data was supplied.

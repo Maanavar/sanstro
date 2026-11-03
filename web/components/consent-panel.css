@@ -1,0 +1,209 @@
+/* Consent panel (components/consent-panel.tsx), on the feedback-modal pattern:
+   a centered dialog on a solid Nova surface, every value from the token layer.
+
+   The panel mounts in app/dashboard/layout.tsx, OUTSIDE the .cd-shell that
+   carries the Nova palette, so it used to fall back to the marketing :root
+   colours and its <Toggle>s (styled only under `.cd-shell .ui-toggle`) had no
+   track at all. The host below is a .cd-shell that generates no box: the
+   custom properties and the toggle rules reach the dialog, and .cd-shell's
+   own min-height and background never touch the page. */
+.cd-shell.cp-host {
+  display: contents;
+}
+
+.cp-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: var(--ink-overlay);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.cp-panel {
+  width: min(520px, 100%);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  padding: 22px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: var(--color-surface-soft);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg, 14px);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
+}
+
+.cp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.cp-title {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--color-text-strong);
+}
+
+/* Icon-only close: a quiet ghost, 44px so it clears the touch-target floor. */
+.cp-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  margin: -8px -10px -8px 0;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--color-muted);
+  cursor: pointer;
+  transition: background 0.15s var(--ease-nova, ease-in-out), color 0.15s var(--ease-nova, ease-in-out);
+}
+
+.cp-close:hover {
+  background: var(--color-surface);
+  color: var(--color-text-strong);
+}
+
+.cp-lead {
+  margin: 0;
+  font-size: var(--text-base);
+  line-height: 1.55;
+  color: var(--color-muted);
+}
+
+.cp-link {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* What Vinaadi holds: the DPDP §5 notice, in view ahead of every choice. */
+.cp-notice {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: 1.55;
+  color: var(--color-muted);
+}
+
+.cp-note {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--color-accent-muted);
+  color: var(--color-text-strong);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+.cp-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cp-group-label {
+  margin: 0;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-faint);
+}
+
+.cp-rows {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+}
+
+.cp-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-height: 44px;
+  padding: 12px 14px;
+}
+
+.cp-row + .cp-row {
+  border-top: 1px solid var(--color-border);
+}
+
+.cp-row--check {
+  cursor: pointer;
+}
+
+.cp-row--toggle {
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* A real checkbox for the required items (they are agreements, not on/off
+   settings), drawn at 20px with the accent fill so it reads as one family
+   with the toggles beside it. */
+.cp-check {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  margin: 1px 0 0;
+  accent-color: var(--color-accent);
+  cursor: pointer;
+}
+
+.cp-row-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cp-row-title {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-text-strong);
+  line-height: 1.4;
+}
+
+.cp-row-desc {
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+  line-height: 1.5;
+}
+
+.cp-hint {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-faint);
+}
+
+.cp-error {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-low);
+}
+
+.cp-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.cp-actions .cp-hint {
+  margin-right: auto;
+}

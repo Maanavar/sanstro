@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowUpRight, Check, ChevronDown, ChevronRight, Copy, Download, Mail, RefreshCw, X } from "lucide-react";
 
 import { useTheme, type Theme } from "@/hooks/useTheme";
-import { exportMyData } from "@vinaadi/shared/api";
+import { deleteAccount, exportMyData } from "@vinaadi/shared/api";
 
 import { apiFetchJson, getApiError } from "@/lib/api";
 import { clearFcmTokenLocal, fetchFcmToken, hasFirebaseMessagingConfig } from "@/lib/firebase-messaging";
@@ -18,7 +18,8 @@ import { lifeModeLabel, MODE_ORDER } from "./life-mode-picker";
 import { CONTEXT_EVENT_TYPES, CTX_TYPE_KEY, type ContextEventType } from "./dashboard-journal-shared";
 import { NovaSelect } from "./nova-select";
 import { SettingsRail, type SettingsSectionId } from "./dashboard-settings-rail";
-import { PrivacyChoicesCard, UpdatesConsentNotice } from "./settings-privacy-choices";
+import { PrivacyChoicesCard, UpdatesConsentNotice, useUpdatesConsent } from "./settings-privacy-choices";
+import { PlanBillingSummary } from "./settings-plan-billing";
 import { Toggle } from "./ui";
 import { Field, Input } from "./ui/field";
 
@@ -265,6 +266,9 @@ export function DashboardSettingsSessionTab({
   const [notifMorningTime, setNotifMorningTime] = useState("06:00");
   const [notifDasha, setNotifDasha] = useState(false);
   const [notifPirantha, setNotifPirantha] = useState(false);
+  const [notifChandrashtama, setNotifChandrashtama] = useState(true);
+  // Off only when known to be off: an unknown answer must not lock the switches.
+  const alertsPaused = useUpdatesConsent() === false;
   const [notifSmartSilence, setNotifSmartSilence] = useState(false);
   const [notifSaving, setNotifSaving] = useState(false);
   const [pushBusy, setPushBusy] = useState(false);
@@ -392,6 +396,7 @@ export function DashboardSettingsSessionTab({
       setNotifMorningTime(notificationPrefs.morningAlertTime);
       setNotifDasha(notificationPrefs.dashaAlertEnabled);
       setNotifPirantha(notificationPrefs.piranthaNaalAlertEnabled);
+      setNotifChandrashtama(notificationPrefs.chandrashtamaAlertEnabled);
       setNotifSmartSilence(notificationPrefs.smartSilenceEnabled);
     }
   }, [notificationPrefs]);
@@ -460,6 +465,7 @@ export function DashboardSettingsSessionTab({
         morningAlertTime: notifMorningTime,
         dashaAlertEnabled: notifDasha,
         piranthaNaalAlertEnabled: notifPirantha,
+        chandrashtamaAlertEnabled: notifChandrashtama,
         smartSilenceEnabled: notifSmartSilence,
       }),
     })
@@ -472,7 +478,7 @@ export function DashboardSettingsSessionTab({
     setDeleteDeleting(true);
     setDeleteError("");
     try {
-      await apiFetchJson<{ detail: string }>("/api/v1/auth/me", { method: "DELETE" });
+      await deleteAccount();
       window.location.href = "/login";
     } catch (error) {
       // A refusal the person can act on (a renewing subscription) says what to
@@ -766,7 +772,7 @@ export function DashboardSettingsSessionTab({
     <div style={panelWrap}>
       <PanelHeader
         title={lang === "ta" ? "அறிவிப்புகள்" : "Notifications"}
-        desc={lang === "ta" ? "விநாடி எப்படி, எத்தனை முறை உங்களை அடைகிறது என்பதைத் தேர்வுசெய்யுங்கள். அமைதி நேரங்களில் Smart silence அறிவிப்புகளைப் பிடித்து வைக்கும்." : "Choose how, and how often, Vinaadi reaches you. Smart silence holds alerts during your quiet hours."}
+        desc={lang === "ta" ? "விநாடி எப்படி, எத்தனை முறை உங்களை அடைகிறது என்பதைத் தேர்வுசெய்யுங்கள். கடுமையான சனி காலத்தில் Smart silence அறிவிப்புகளை நாளொன்றுக்கு ஒன்றாகக் கட்டுப்படுத்தும்." : "Choose how, and how often, Vinaadi reaches you. During a heavy Saturn period, Smart silence limits you to one push a day."}
       />
 
       <UpdatesConsentNotice lang={lang} />
@@ -797,16 +803,21 @@ export function DashboardSettingsSessionTab({
                 type="time"
                 value={notifMorningTime}
                 onChange={(e) => setNotifMorningTime(e.target.value)}
+                disabled={alertsPaused}
                 aria-label={t("notif_morning_alert", lang)}
                 style={{ width: "auto", padding: "var(--space-2) var(--space-3)", fontSize: "var(--text-sm)" }}
               />
             )}
-            <Toggle checked={notifMorning} onChange={setNotifMorning} />
+            <Toggle checked={notifMorning} onChange={setNotifMorning} disabled={alertsPaused} label={t("notif_morning_alert", lang)} />
           </div>,
         )}
-        {notifRow(t("notif_dasha_alert", lang), lang === "ta" ? "ஒரு பெரிய கிரக காலம் மாறும்போது." : "When a major planetary period shifts.", <Toggle checked={notifDasha} onChange={setNotifDasha} />)}
-        {notifRow(t("notif_pirantha_alert", lang), lang === "ta" ? "குடும்ப உறுப்பினர்களுக்கான நட்சத்திரப் பிறந்தநாள் நினைவூட்டல்." : "Star-birthday reminders for family members.", <Toggle checked={notifPirantha} onChange={setNotifPirantha} />)}
-        {notifRow(t("notif_smart_silence", lang), lang === "ta" ? "ராகு காலம் & இரவில் அவசரமற்ற அறிவிப்புகளை இடைநிறுத்து." : "Pause non-urgent alerts during Rahu Kalam & night.", <Toggle checked={notifSmartSilence} onChange={setNotifSmartSilence} />, true)}
+        {notifRow(t("notif_dasha_alert", lang), lang === "ta" ? "ஒரு பெரிய கிரக காலம் மாறும்போது." : "When a major planetary period shifts.", <Toggle checked={notifDasha} onChange={setNotifDasha} disabled={alertsPaused} label={t("notif_dasha_alert", lang)} />)}
+        {/* Sent on the day, for your own chart only (daily_push_cron). This
+            promised "for family members", which the backend has never done. */}
+        {notifRow(t("notif_pirantha_alert", lang), lang === "ta" ? "உங்கள் பிறந்த நட்சத்திர நாளன்று நினைவூட்டல்." : "A reminder on your own birth-star day.", <Toggle checked={notifPirantha} onChange={setNotifPirantha} disabled={alertsPaused} label={t("notif_pirantha_alert", lang)} />)}
+        {/* The evening before, with start and end (daily_push_cron, audit F4). */}
+        {notifRow(t("notif_chandrashtama_alert", lang), lang === "ta" ? "உங்கள் சந்திராஷ்டமத்திற்கு முந்தைய மாலை, தொடங்கும், முடியும் நேரத்துடன்." : "The evening before your Chandrashtamam, with its start and end times.", <Toggle checked={notifChandrashtama} onChange={setNotifChandrashtama} disabled={alertsPaused} label={t("notif_chandrashtama_alert", lang)} />)}
+        {notifRow(t("notif_smart_silence", lang), lang === "ta" ? "கடுமையான சனி காலத்தில் நாளொன்றுக்கு ஒரே ஒரு push மட்டும்." : "During a heavy Saturn period, at most one push a day.", <Toggle checked={notifSmartSilence} onChange={setNotifSmartSilence} />, true)}
       </div>
 
       {(notificationPrefs && !notificationPrefs.fcmTokenRegistered) || pushUnavailable ? (
@@ -1003,6 +1014,18 @@ export function DashboardSettingsSessionTab({
     </div>
   );
 
+  const renderBilling = () => (
+    <div style={panelWrap}>
+      <PanelHeader
+        title={lang === "ta" ? "திட்டம் & கட்டணம்" : "Plan & billing"}
+        desc={lang === "ta" ? "உங்கள் திட்டம், அது எப்போது வரை, அதை எங்கே நிர்வகிப்பது." : "Your plan, how long it runs, and where to manage it."}
+      />
+      <Card>
+        <PlanBillingSummary lang={lang} />
+      </Card>
+    </div>
+  );
+
   const renderPrivacy = () => (
     <div style={panelWrap}>
       <PanelHeader
@@ -1090,6 +1113,7 @@ export function DashboardSettingsSessionTab({
     : section === "experience" ? renderExperience()
     : section === "appearance" ? renderAppearance()
     : section === "notifications" ? renderNotifications()
+    : section === "billing" ? renderBilling()
     : section === "journal" ? renderJournal()
     : section === "privacy" ? renderPrivacy()
     : section === "danger" ? renderDanger()

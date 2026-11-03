@@ -23,6 +23,7 @@ import { loadGuestPrefs, saveGuestPrefs } from "@/features/guest/guestStore";
 import { ENV } from "@/lib/env";
 import { getMe } from "@/api/auth";
 import { FONT_MAP } from "@/theme/typography";
+import { ConsentSheet } from "@/components/ConsentSheet";
 // Lazy-loaded to avoid crashing in Expo Go — JSI modules fail at import time when native bridge is absent.
 let Purchases: typeof import("react-native-purchases").default | null = null;
 // A static import would run at module load and crash Expo Go, where the
@@ -191,6 +192,8 @@ function RootNavigation() {
         <Stack.Screen name="chandrashtama" />
         <Stack.Screen name="premium" />
         <Stack.Screen name="family-vault" />
+        <Stack.Screen name="family-member" />
+        <Stack.Screen name="family-member-add" />
         <Stack.Screen name="ask-vinaadi" />
         <Stack.Screen name="dasha" />
         <Stack.Screen name="transits" />
@@ -206,6 +209,9 @@ function RootNavigation() {
         <Stack.Screen name="profile-manager" />
       </Stack>
       <OfflineBanner />
+      {/* Signed-in accounts that still owe a consent answer (admin spec L2).
+          Renders nothing for guests and for accounts that have answered. */}
+      <ConsentSheet />
     </View>
   );
 }

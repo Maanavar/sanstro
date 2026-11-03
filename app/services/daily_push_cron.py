@@ -14,6 +14,8 @@ pirantha_naal_alert the function:
   3. Builds and enqueues the Morning Nalla Neram notification (MORNING_NALLA_NERAM).
   4. Checks for dasha transitions within 90 days (DASHA_TRANSITION).
   5. Checks for today's Pirantha Naal (PIRANTHA_NAAL).
+  6. In the evening, checks whether tomorrow is the user's Chandrashtamam
+     (CHANDRASHTAMA), and says when it starts and ends.
 
 All external delivery is opt-in. ``dispatch_notification`` commits an intent
 and per-channel work; the separate notification-outbox job performs provider
@@ -40,7 +42,8 @@ invoke it as a standard job.
 from __future__ import annotations
 
 import logging
-from datetime import UTC, date, datetime, time
+from dataclasses import dataclass
+from datetime import UTC, date, datetime, time, timedelta
 from uuid import UUID
 
 from sqlalchemy import or_, select
@@ -49,37 +52,52 @@ from sqlalchemy.orm import Session
 from app.calculations.astro import (
     NAKSHATRA_NAME_TO_NUMBER,
     local_datetime_to_utc,
+    nakshatra_from_degree,
+    rasi_from_degree,
     resolve_timezone,
     utc_datetime_to_julian_day,
 )
 from app.calculations.panchangam import (
+    PanchangamChandrashtamamNakshatraWindow,
     best_gowri_slot,
+    chandrashtama_window_for_day,
     day_quality_for,
     gowri_good_label,
     gowri_good_purpose,
+    is_chandrashtama_day,
 )
 from app.db.session import SessionLocal
 from app.models.birth_profile import BirthProfile
 from app.models.chart import Chart
 from app.models.chart_planet import ChartPlanet
+from app.models.family_member import FamilyMember
 from app.models.notification import Notification
 from app.models.user import User
 from app.models.user_notification_preference import UserNotificationPreference
+from app.services.birth_profile_service import find_owner_birth_profile
 from app.services.daily_guidance_service import get_daily_guidance
 from app.services.dasha_transition_service import get_dasha_transition_alerts
 from app.services.life_focus_service import focus_push_line
-from app.services.location_service import resolve_effective_daily_location
+from app.services.location_service import EffectiveDailyLocation, resolve_effective_daily_location
 from app.services.nakshatra_content import build_nakshatra_perspective
+from app.services.narrative_engine import format_clock_label
 from app.services.notification_dispatch_service import dispatch_notification
 from app.services.notification_service import build_morning_notification
 from app.services.panchangam_cache import calculate_daily_panchangam
-from app.services.pirantha_naal_service import next_janma_nakshatra_date
+from app.services.pirantha_naal_service import PiranthaNaalAlert, next_janma_nakshatra_date
 
 logger = logging.getLogger(__name__)
 
 # Bounded so a large opted-in cohort cannot build an IN clause past the
 # driver's parameter limit.
 _USER_LOOKUP_CHUNK = 500
+
+# The Chandrashtamam alert goes out the evening before the day the almanac
+# names (audit F4). Evening because that is when a household plans tomorrow,
+# and because the named day's window usually opens that afternoon: a morning
+# alert on the day would arrive hours into it. Fixed rather than a preference:
+# one alert per ~27 days does not earn a second time picker.
+_CHANDRASHTAMA_ALERT_TIME = time(19, 0)
 
 # ---------------------------------------------------------------------------
 # Internal helpers
@@ -130,16 +148,14 @@ def _clock_hm(value: datetime | time | None) -> str:
     return f"{hour:02d}:{minute:02d}"
 
 
-def _latest_active_profile(session: Session, user_id: UUID) -> BirthProfile | None:
-    return session.execute(
-        select(BirthProfile)
-        .where(
-            BirthProfile.owner_user_id == user_id,
-            BirthProfile.deleted_at.is_(None),
-        )
-        .order_by(BirthProfile.created_at.desc())
-        .limit(1)
-    ).scalar_one_or_none()
+def _own_profile(session: Session, user_id: UUID) -> BirthProfile | None:
+    """The user's own profile — never a family member's (audit N2, 2026-11-03).
+
+    This used to take the newest owned profile, so once a user added a family
+    member every alert (score, Chandrashtamam, dasha, Pirantha Naal) was
+    computed on that member's chart and sent as the user's own.
+    """
+    return find_owner_birth_profile(session, user_id)
 
 
 def _latest_completed_chart(session: Session, profile: BirthProfile) -> Chart | None:
@@ -153,6 +169,47 @@ def _latest_completed_chart(session: Session, profile: BirthProfile) -> Chart | 
         .order_by(Chart.created_at.desc())
         .limit(1)
     ).scalar_one_or_none()
+
+
+def _natal_moon(session: Session, chart: Chart) -> tuple[int, int] | None:
+    """(rasi, janma nakshatra) from the chart's stored Moon, or None."""
+    moon = session.execute(
+        select(ChartPlanet).where(
+            ChartPlanet.chart_id == chart.chart_id,
+            ChartPlanet.graha == "MOON",
+        )
+    ).scalar_one_or_none()
+    if moon is None:
+        return None
+    moon_lon = float(moon.absolute_longitude)
+    return rasi_from_degree(moon_lon), nakshatra_from_degree(moon_lon)
+
+
+def _chandrashtama_fallback(
+    session: Session, chart: Chart, run_date: date, location: EffectiveDailyLocation
+) -> bool:
+    """Chandrashtamam from the panchangam alone, for when full guidance fails.
+
+    The same `is_chandrashtama_day` test the Today hero and Ask use, read off the
+    chart's stored Moon. This used to be a flat ``False``, so a guidance failure
+    told the user nothing on the one day the warning matters (audit F6). A
+    failure here still answers ``False`` rather than cost the user the push.
+    """
+    try:
+        natal = _natal_moon(session, chart)
+        if natal is None:
+            return False
+        return is_chandrashtama_day(
+            run_date,
+            location.timezone or "Asia/Kolkata",
+            location.latitude,
+            location.longitude,
+            natal_moon_rasi=natal[0],
+            janma_nakshatra=natal[1],
+        )
+    except Exception as exc:
+        logger.warning("chandrashtama_fallback_error chart=%s exc=%s", chart.chart_id, exc)
+        return False
 
 
 def _morning_alert_due(pref: UserNotificationPreference, now_utc: datetime, tz_name: str) -> bool:
@@ -179,6 +236,219 @@ def _morning_alert_in_catchup_window(pref: UserNotificationPreference, now_utc: 
     alert_dt = datetime.combine(local_now.date(), alert_time)
     elapsed = (local_now.replace(tzinfo=None) - alert_dt).total_seconds()
     return 1800 < elapsed <= 7200  # missed 30 min–2 hours ago
+
+
+def _chandrashtama_alert_due(now_utc: datetime, tz_name: str) -> bool:
+    """True from 30 min before the evening alert time to 2 h after it: the
+    morning alert's window and its restart catch-up, as one test."""
+    try:
+        local_now = now_utc.astimezone(resolve_timezone(tz_name))
+    except Exception:
+        return False
+    alert_dt = datetime.combine(local_now.date(), _CHANDRASHTAMA_ALERT_TIME)
+    elapsed = (local_now.replace(tzinfo=None) - alert_dt).total_seconds()
+    return -1800 <= elapsed <= 7200
+
+
+def _day_and_clock(moment: datetime, run_date: date, tz_name: str) -> tuple[str, str]:
+    """("நாளை காலை 8:20", "tomorrow 8:20 am"), relative to the alert's own day.
+
+    The window crosses midnight more often than not, so a bare time is
+    ambiguous. Tamil puts the period-word before the time (owner ruling
+    2026-09-17) through `format_clock_label`; no "pm" inside Tamil.
+    """
+    local = moment.astimezone(resolve_timezone(tz_name))
+    words = {0: ("இன்று", "today"), 1: ("நாளை", "tomorrow"), 2: ("நாளை மறுநாள்", "the day after")}
+    day_ta, day_en = words.get((local.date() - run_date).days, (local.strftime("%d-%m"), local.strftime("%d %b")))
+    hm = _clock_hm(local)
+    return f"{day_ta} {format_clock_label(hm, 'ta')}", f"{day_en} {format_clock_label(hm, 'en')}"
+
+
+def chandrashtama_alert_copy(
+    window: PanchangamChandrashtamamNakshatraWindow, run_date: date, tz_name: str
+) -> dict[str, dict[str, str]]:
+    """Title and body for the evening-before alert. Advisory, never the
+    imperative (தவிர்ப்பது நல்லது, not தவிர்க்கவும்), and no `X — verb`
+    construction in Tamil. New Tamil, pending native review."""
+    start_ta, start_en = _day_and_clock(window.start, run_date, tz_name)
+    end_ta, end_en = _day_and_clock(window.end, run_date, tz_name)
+    return {
+        "title": {
+            "ta": "நாளை உங்களுக்குச் சந்திராஷ்டமம்",
+            "en": "Tomorrow is your Chandrashtamam",
+        },
+        "body": {
+            "ta": (
+                f"{start_ta} முதல் {end_ta} வரை. இந்த நேரத்தில் புதிய முயற்சிகளையும் "
+                "முக்கிய முடிவுகளையும் தவிர்ப்பது நல்லது; வழக்கமான வேலைகளை அமைதியாகத் தொடரலாம்."
+            ),
+            "en": (
+                f"From {start_en} to {end_en}. Better to hold off on new ventures and "
+                "big decisions; routine work can go on calmly."
+            ),
+        },
+    }
+
+
+def _janma_nakshatra_number(chart: Chart) -> int | None:
+    """The chart's janma star as a 1-27 number, or None. Shared by the user's
+    own Pirantha Naal and each family member's digest line."""
+    name = chart.janma_nakshatra  # stored uppercase, e.g. "ROHINI"
+    if not name:
+        return None
+    key = "".join(c for c in name.lower() if c.isalnum())
+    return NAKSHATRA_NAME_TO_NUMBER.get(key)
+
+
+def _own_chandrashtama_window(
+    session: Session, chart: Chart, run_date: date, tz_name: str, lat: float, lon: float
+) -> PanchangamChandrashtamamNakshatraWindow | None:
+    """Tomorrow's Chandrashtamam window for this chart, or None if the almanac
+    does not name tomorrow for it (audit F4). Lifted out of the dispatch block
+    so the family digest (F5) can fold the user's own window into one evening
+    push rather than send it separately."""
+    natal = _natal_moon(session, chart)
+    if natal is None:
+        return None
+    return chandrashtama_window_for_day(
+        run_date + timedelta(days=1), tz_name, lat, lon,
+        natal_moon_rasi=natal[0], janma_nakshatra=natal[1],
+    )
+
+
+@dataclass
+class FamilyDigestEntry:
+    """One person named in the evening family digest. At least one of
+    `chandra`/`pirantha` is set; an entry with neither is dropped by the caller."""
+    name_ta: str
+    name_en: str
+    chandra: PanchangamChandrashtamamNakshatraWindow | None = None
+    pirantha: PiranthaNaalAlert | None = None
+    is_self: bool = False
+
+
+def family_digest_copy(
+    entries: list[FamilyDigestEntry], run_date: date, tz_name: str
+) -> dict[str, dict[str, str]]:
+    """Title and body for the one evening push that names everyone — the user
+    and each opted-in family member — whose Chandrashtamam or birth-star falls
+    tomorrow (audit F5, decision D3). One line per flag per person. Advisory,
+    not imperative; no `X — verb` construction and no "am/pm" inside Tamil (the
+    window times carry Tamil period-words through `_day_and_clock`). New Tamil,
+    pending native review."""
+    lines_ta: list[str] = []
+    lines_en: list[str] = []
+    for entry in entries:
+        if entry.chandra is not None:
+            start_ta, start_en = _day_and_clock(entry.chandra.start, run_date, tz_name)
+            end_ta, end_en = _day_and_clock(entry.chandra.end, run_date, tz_name)
+            lines_ta.append(
+                f"{entry.name_ta}: சந்திராஷ்டமம். {start_ta} முதல் {end_ta} வரை "
+                "புதிய முயற்சிகளைத் தவிர்ப்பது நல்லது."
+            )
+            lines_en.append(
+                f"{entry.name_en}: Chandrashtamam, {start_en} to {end_en}. "
+                "Better to hold off on new ventures."
+            )
+        if entry.pirantha is not None:
+            lines_ta.append(
+                f"{entry.name_ta}: நாளை பிறந்த நட்சத்திரம் ({entry.pirantha.nakshatra_name_ta}). "
+                "பிரார்த்தனைக்கு நல்ல நாள்."
+            )
+            lines_en.append(
+                f"{entry.name_en}: birth-star day tomorrow ({entry.pirantha.nakshatra_name_en}). "
+                "A good day for prayer."
+            )
+    return {
+        "title": {
+            "ta": "நாளைய குடும்ப நினைவூட்டல்கள்",
+            "en": "Family reminders for tomorrow",
+        },
+        "body": {
+            "ta": "\n".join(lines_ta),
+            "en": "\n".join(lines_en),
+        },
+    }
+
+
+def _opted_in_family_members(session: Session, owner_user_id: UUID) -> list[FamilyMember]:
+    """Non-deleted family members this user has turned alerts on for (audit F5).
+
+    Defensive: a failure here (or a mocked session in a unit test) returns an
+    empty list, so the evening block falls back to the user's own standalone
+    Chandrashtamam alert rather than raising.
+    """
+    try:
+        rows = session.execute(
+            select(FamilyMember).where(
+                FamilyMember.owner_user_id == owner_user_id,
+                FamilyMember.alerts_enabled.is_(True),
+                FamilyMember.deleted_at.is_(None),
+            )
+        ).scalars().all()
+        return list(rows)
+    except Exception:
+        return []
+
+
+def _member_latest_chart(session: Session, member: FamilyMember) -> tuple[BirthProfile, Chart] | None:
+    """A family member's newest non-deleted profile and its latest completed
+    chart, or None if either is missing (digest needs a completed chart, D3)."""
+    profile = session.execute(
+        select(BirthProfile)
+        .where(
+            BirthProfile.family_member_id == member.family_member_id,
+            BirthProfile.deleted_at.is_(None),
+        )
+        .order_by(BirthProfile.created_at.desc())
+        .limit(1)
+    ).scalar_one_or_none()
+    if profile is None:
+        return None
+    chart = _latest_completed_chart(session, profile)
+    if chart is None:
+        return None
+    return profile, chart
+
+
+def _member_digest_entry(
+    session: Session, member: FamilyMember, run_date: date
+) -> FamilyDigestEntry | None:
+    """Build this member's digest entry for tomorrow, or None if neither a
+    Chandrashtamam window nor a birth-star day falls then. Computed on the
+    member's own chart and location (audit N2 taught us not to cross charts)."""
+    loaded = _member_latest_chart(session, member)
+    if loaded is None:
+        return None
+    profile, chart = loaded
+    location = resolve_effective_daily_location(profile)
+    tz_name = location.timezone or "Asia/Kolkata"
+    lat, lon = location.latitude, location.longitude
+    tomorrow = run_date + timedelta(days=1)
+
+    natal = _natal_moon(session, chart)
+    chandra = (
+        chandrashtama_window_for_day(
+            tomorrow, tz_name, lat, lon,
+            natal_moon_rasi=natal[0], janma_nakshatra=natal[1],
+        )
+        if natal is not None
+        else None
+    )
+
+    pirantha = None
+    janma_num = _janma_nakshatra_number(chart)
+    if janma_num is not None:
+        found = next_janma_nakshatra_date(janma_num, tomorrow, lat, lon, tz_name)
+        if found is not None and found.is_today:  # "today" relative to `tomorrow`
+            pirantha = found
+
+    if chandra is None and pirantha is None:
+        return None
+    return FamilyDigestEntry(
+        name_ta=member.display_name, name_en=member.display_name,
+        chandra=chandra, pirantha=pirantha,
+    )
 
 
 def _already_sent_today(
@@ -220,7 +490,7 @@ def _dispatch_for_user(
     """Process one user; return a dict of alert_type → dispatch result."""
     results: dict[str, str] = {}
 
-    profile = _latest_active_profile(session, user.user_id)
+    profile = _own_profile(session, user.user_id)
     if profile is None:
         return results
 
@@ -285,7 +555,7 @@ def _dispatch_for_user(
                 # caution on a day the calendar badges good (AAU-07).
                 score = day.score
                 label = _score_label(score)
-                is_chandrashtama = False
+                is_chandrashtama = _chandrashtama_fallback(session, chart, run_date, daily_location)
                 action_ta = action_en = ""
                 dasha_ctx_ta = dasha_ctx_en = ""
                 activity_board = None
@@ -310,7 +580,7 @@ def _dispatch_for_user(
 
             # Enrich body with chandrashtama warning, dasha context, action guidance.
             if is_chandrashtama:
-                payload["body"]["ta"] += " சந்திராஷ்டமம் — உணர்ச்சி ரீதியாக சற்று கவனம் தேவை."
+                payload["body"]["ta"] += " இன்று சந்திராஷ்டமம். உணர்ச்சி ரீதியாக சற்று கவனம் தேவை."
                 payload["body"]["en"] += " Chandrashtama day — be emotionally mindful."
             # Life focus, Phase 3: one line, ahead of the longer dasha context so
             # a truncated notification still shows it. A failure here must never
@@ -408,9 +678,7 @@ def _dispatch_for_user(
     # ----------------------------------------------------------------
     if pref.pirantha_naal_alert_enabled and not _already_sent_today(session, user.user_id, "PIRANTHA_NAAL", run_date, tz_name):
         try:
-            janma_nak_name = chart.janma_nakshatra  # stored as uppercase string e.g. "ROHINI"
-            nak_key = "".join(c for c in janma_nak_name.lower() if c.isalnum()) if janma_nak_name else None
-            janma_nak_num = NAKSHATRA_NAME_TO_NUMBER.get(nak_key) if nak_key else None
+            janma_nak_num = _janma_nakshatra_number(chart)
             if janma_nak_num:
                 pirantha = next_janma_nakshatra_date(janma_nak_num, run_date, lat, lon, tz_name)
                 if pirantha and pirantha.is_today:
@@ -439,6 +707,102 @@ def _dispatch_for_user(
         except Exception as exc:
             logger.error("pirantha_naal_error user=%s exc=%s", user.user_id, exc)
             session.rollback()
+
+    # ----------------------------------------------------------------
+    # 4. Chandrashtamam, the evening before — own + family (audit F4 / F5)
+    #
+    # One evening push per household. The user's own Chandrashtamam goes out
+    # alone (CHANDRASHTAMA), naming the same day `is_chandrashtama_day` badges
+    # with the window's true start (often this afternoon); the morning push
+    # keeps its one-line reminder on the day itself. When the user has opted-in
+    # family members with a Chandrashtamam or birth-star day tomorrow, the own
+    # window is folded into a single FAMILY_DIGEST instead, so the household is
+    # not pushed twice the same evening (decision D3). The same ~19:00-local
+    # window gates both.
+    # ----------------------------------------------------------------
+    if _chandrashtama_alert_due(now_utc, tz_name):
+        self_window = (
+            _own_chandrashtama_window(session, chart, run_date, tz_name, lat, lon)
+            if pref.chandrashtama_alert_enabled
+            else None
+        )
+
+        # Family digest: sent only when at least one opted-in member actually
+        # has something tomorrow. The own window rides inside it when present,
+        # which then suppresses the standalone push below.
+        self_covered = False
+        members = _opted_in_family_members(session, user.user_id)
+        if members and not _already_sent_today(session, user.user_id, "FAMILY_DIGEST", run_date, tz_name):
+            try:
+                entries: list[FamilyDigestEntry] = []
+                for member in members:
+                    entry = _member_digest_entry(session, member, run_date)
+                    if entry is not None:
+                        entries.append(entry)
+                if entries:
+                    if self_window is not None:
+                        entries.insert(0, FamilyDigestEntry(
+                            name_ta="நீங்கள்", name_en="You",
+                            chandra=self_window, is_self=True,
+                        ))
+                    copy = family_digest_copy(entries, run_date, tz_name)
+                    tomorrow = run_date + timedelta(days=1)
+                    result = dispatch_notification(
+                        session=session,
+                        user_id=user.user_id,
+                        notification_type="FAMILY_DIGEST",
+                        title_ta=copy["title"]["ta"],
+                        title_en=copy["title"]["en"],
+                        body_ta=copy["body"]["ta"],
+                        body_en=copy["body"]["en"],
+                        user_email=user.email,
+                        chart_id=chart.chart_id,
+                        priority=70,
+                        # One digest per evening for tomorrow; a second tick the
+                        # same evening is deduped on this key.
+                        logical_key=f"daily:{user.user_id}:FAMILY_DIGEST:{tomorrow.isoformat()}",
+                        expires_at=_local_day_expiry(tomorrow, tz_name),
+                    )
+                    results["FAMILY_DIGEST"] = result
+                    session.commit()
+                    self_covered = self_window is not None
+            except Exception as exc:
+                logger.error("family_digest_error user=%s exc=%s", user.user_id, exc)
+                session.rollback()
+
+        # Standalone own Chandrashtamam, unless already folded into the digest.
+        if (
+            self_window is not None
+            and not self_covered
+            and not _already_sent_today(session, user.user_id, "CHANDRASHTAMA", run_date, tz_name)
+        ):
+            try:
+                copy = chandrashtama_alert_copy(self_window, run_date, tz_name)
+                result = dispatch_notification(
+                    session=session,
+                    user_id=user.user_id,
+                    notification_type="CHANDRASHTAMA",
+                    title_ta=copy["title"]["ta"],
+                    title_en=copy["title"]["en"],
+                    body_ta=copy["body"]["ta"],
+                    body_en=copy["body"]["en"],
+                    user_email=user.email,
+                    chart_id=chart.chart_id,
+                    priority=75,
+                    # Keyed on the window, not the date: a window covering two
+                    # sunrises names both days, and must still warn only once.
+                    logical_key=(
+                        f"daily:{user.user_id}:CHANDRASHTAMA:"
+                        f"{self_window.start.astimezone(UTC):%Y%m%dT%H%M}"
+                    ),
+                    # Nothing to warn about once the window has closed.
+                    expires_at=self_window.end.astimezone(UTC),
+                )
+                results["CHANDRASHTAMA"] = result
+                session.commit()
+            except Exception as exc:
+                logger.error("chandrashtama_alert_error user=%s exc=%s", user.user_id, exc)
+                session.rollback()
 
     return results
 
@@ -488,6 +852,7 @@ def run_daily_push_cron(run_at_utc: datetime | None = None) -> dict[str, int]:
                     UserNotificationPreference.morning_alert_enabled.is_(True),
                     UserNotificationPreference.dasha_alert_enabled.is_(True),
                     UserNotificationPreference.pirantha_naal_alert_enabled.is_(True),
+                    UserNotificationPreference.chandrashtama_alert_enabled.is_(True),
                 )
             )
         ).scalars().all()
@@ -495,7 +860,12 @@ def run_daily_push_cron(run_at_utc: datetime | None = None) -> dict[str, int]:
         users_by_id = _load_users_by_id(session, {pref.owner_user_id for pref in prefs})
 
         for pref in prefs:
-            if not (pref.morning_alert_enabled or pref.dasha_alert_enabled or pref.pirantha_naal_alert_enabled):
+            if not (
+                pref.morning_alert_enabled
+                or pref.dasha_alert_enabled
+                or pref.pirantha_naal_alert_enabled
+                or pref.chandrashtama_alert_enabled
+            ):
                 skipped += 1
                 continue
 

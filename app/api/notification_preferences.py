@@ -29,6 +29,7 @@ def _to_response(pref) -> NotificationPreferenceResponse:
             morningAlertTime=pref.morning_alert_time.strftime("%H:%M"),
             dashaAlertEnabled=pref.dasha_alert_enabled,
             piranthaNaalAlertEnabled=pref.pirantha_naal_alert_enabled,
+            chandrashtamaAlertEnabled=pref.chandrashtama_alert_enabled,
             smartSilenceEnabled=pref.smart_silence_enabled,
             fcmTokenRegistered=bool(pref.fcm_device_token),
         )
@@ -88,6 +89,9 @@ def update_notification_preferences(
 
     if payload.pirantha_naal_alert_enabled is not None:
         pref.pirantha_naal_alert_enabled = payload.pirantha_naal_alert_enabled
+
+    if payload.chandrashtama_alert_enabled is not None:
+        pref.chandrashtama_alert_enabled = payload.chandrashtama_alert_enabled
 
     if payload.smart_silence_enabled is not None:
         pref.smart_silence_enabled = payload.smart_silence_enabled

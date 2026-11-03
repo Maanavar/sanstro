@@ -133,3 +133,46 @@ export function askLimitMessage(
   const used = monthly ? `You've used this month's ${n} ${noun}.` : `You've used today's ${n} ${noun}.`;
   return canUpgrade ? `${used} Upgrade for more, or ask again ${when}.` : `${used} Ask again ${when}.`;
 }
+
+/** The fields that decide whether the reader can ask right now. */
+export interface AskAvailability {
+  chipsRemaining: number | null | undefined;
+  /** Bought question credits; optional so an older server reads as none. */
+  creditsRemaining?: number | null;
+  resetsAt?: string | null;
+}
+
+/**
+ * Has the reader run out of questions? The day's allowance pays first and a
+ * bought credit after it (app/api/ask_vinaadi.py `reserve_question`), so a
+ * spent allowance is only "out" when no credit is left either. Both clients
+ * used to block on the allowance alone, which disabled the input for a reader
+ * holding credits they had paid for (audit U4, 2026-11-03).
+ *
+ * A count from before the reset instant no longer blocks: the server decides.
+ * Says nothing about subscribers: web lets one type and leaves a spent monthly
+ * cap to the server, mobile blocks it here. Each caller keeps its own rule.
+ */
+export function askOutOfQuestions(status: AskAvailability | null | undefined, now: Date = new Date()): boolean {
+  if (!status) return false;
+  const chips = status.chipsRemaining;
+  if (chips === null || chips === undefined || chips > 0) return false;
+  if ((status.creditsRemaining ?? 0) > 0) return false;
+  return !askAllowanceRefilled(status.resetsAt, now);
+}
+
+/** "2 bought questions left", for a reader holding credits. Empty when none. */
+export function askCreditsLine(credits: number | null | undefined, lang: Lang): string {
+  const n = credits ?? 0;
+  if (n <= 0) return "";
+  if (lang === "ta") return `வாங்கிய கேள்விகள் ${n} மீதம்`;
+  return `${n} bought question${n === 1 ? "" : "s"} left`;
+}
+
+/** Shown before the reader types while the server reports `askPaused` (the
+ *  kill switch, or today's spend cap). The server's own error after a question
+ *  says which; this up-front line cannot know, so it promises no time. */
+export const ASK_PAUSED_MESSAGE: Readonly<Record<Lang, string>> = {
+  en: "Ask Vinaadi is paused right now. Please come back a little later.",
+  ta: "Ask Vinaadi இப்போது இடைநிறுத்தப்பட்டுள்ளது. சற்று நேரம் கழித்து மீண்டும் வாருங்கள்.",
+};

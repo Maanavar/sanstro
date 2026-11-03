@@ -15,6 +15,7 @@ import { SkeletonCard } from "@/components/SkeletonCard";
 import { ErrorCard } from "@/components/ErrorCard";
 import type { NotificationInboxItem } from "@vinaadi/shared";
 import { accountKey } from "@/lib/queryKeys";
+import { UpdatesConsentCard } from "@/components/UpdatesConsentCard";
 
 const FILTERS = [
   { id: "all",        ta: "அனைத்தும்",  en: "All" },
@@ -113,6 +114,9 @@ export default function NotificationInboxScreen() {
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={isFetching} onRefresh={refetch} tintColor={C.saffron} />}
+          // Why the inbox is empty when it is: since L2 nothing is written
+          // here without the "updates" purpose (audit 2026-11-03, F3).
+          ListHeaderComponent={<UpdatesConsentCard style={{ marginBottom: S.md }} />}
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <Text style={styles.emptyIcon}>📭</Text>

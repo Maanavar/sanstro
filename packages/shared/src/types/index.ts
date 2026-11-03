@@ -1526,7 +1526,8 @@ export interface FamilyCalendarData {
 export interface FamilyMemberData {
   familyMemberId: string; familyVaultId: string; ownerUserId: string; displayName: string;
   relationshipToOwner: string; memberWeight: number; genderForTraditionalRules: string;
-  dateOfBirthLocal: string | null; isMinor: boolean; birthProfileId: string | null;
+  dateOfBirthLocal: string | null; isMinor: boolean; alertsEnabled: boolean;
+  birthProfileId: string | null;
   maritalStatus: string | null; employmentType: string | null;
 }
 
@@ -1661,7 +1662,8 @@ export type NakshatraCardData = {
 export type NotificationPreferenceData = {
   notification_channel: "none" | "email" | "push" | "both";
   morningAlertEnabled: boolean; morningAlertTime: string; dashaAlertEnabled: boolean;
-  piranthaNaalAlertEnabled: boolean; smartSilenceEnabled: boolean; fcmTokenRegistered: boolean;
+  piranthaNaalAlertEnabled: boolean; chandrashtamaAlertEnabled: boolean;
+  smartSilenceEnabled: boolean; fcmTokenRegistered: boolean;
 };
 
 export type NotificationInboxItem = {
