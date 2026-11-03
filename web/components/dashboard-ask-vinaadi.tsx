@@ -227,6 +227,10 @@ export function DashboardAskVinaadi({ lang, chartId, goalTrack, activeLifeMode =
       if (apiError?.code === "DAILY_LIMIT_REACHED" || apiError?.code === "MONTHLY_LIMIT_REACHED") {
         setStatus((prev) => (prev ? { ...prev, chipsRemaining: 0 } : prev));
         setShowUpgrade(true);
+      } else if (apiError?.code === "SERVICE_UNAVAILABLE") {
+        // Paused by the kill switch, or the day's spend cap is reached (spec L7):
+        // the server's own words say which, and whether to come back tomorrow.
+        setError(apiError.message[lang === "ta" ? "ta" : "en"]);
       } else {
         setError(lang === "ta" ? "பதில் பெற முடியவில்லை. மீண்டும் முயற்சிக்கவும்." : "Could not get a response. Please try again.");
       }

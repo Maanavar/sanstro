@@ -135,7 +135,7 @@ class CreditLedgerEntry(Base):
     user_id: Mapped[UUID] = mapped_column(ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
     credit_key: Mapped[str] = mapped_column(String(32), nullable=False)
     delta: Mapped[int] = mapped_column(Integer, nullable=False)
-    #: purchase | refund | spend | grant
+    #: purchase | refund | spend | return (a spend given back) | grant
     source: Mapped[str] = mapped_column(String(16), nullable=False)
     source_id: Mapped[str | None] = mapped_column(String(120), nullable=True)
     idempotency_key: Mapped[str] = mapped_column(String(160), nullable=False, unique=True)

@@ -244,7 +244,8 @@ container (not authoritative; CI is). Every migration below was round-tripped
 | 3 | **L4** audit | Done (launch cut). `admin_audit_log` gains `actor_email`, `actor_role` (`service_key` for X-Admin-Key), `reason`, `outcome` (success / refused / error), `details` JSONB, `user_agent`, target index. One writer: every mutating admin route and the two personal-data reads (`GET /admin/users`, `/admin/users/{id}`) take `audited(...)` first, which writes one row per request on every outcome, commits the handler's session before "success" (ARC-20), and skips only the console's tokenless elevation prompt. Routes no longer call `log_admin_action`. Reason required on the nine destructive routes and destructive job runs (ARC-21). Append-only trigger: UPDATE/DELETE/TRUNCATE refused except actor nulling and `erased:` target pseudonymisation (ARC-19). `GET /admin/audit-log` filters by action, actor, target, outcome, date. Shared `adminAudit.ts`; console: Who/Outcome/Reason/Details columns, filters, reason inputs for suspend/reinstate, erasure and destructive jobs. Migration `ab0f1a2b3c4d`, round-tripped on scratch; applied to dev 2026-11-01 (backup first; legacy rows kept, DELETE refused, `alembic check` clean). Deferred per ARC-09: hash chain + verifier, CSV export. | `test_admin_audit.py` (structural, coverage over all 16 mutating routes, outcomes, reasons, DB guard, migration/model SQL parity) |
 | 5 | **L5** erasure | Done (launch cut, 2026-11-02). `app/privacy/registry.py` has 48 table stores (each with what it holds, how erasure treats it: delete, detach or keep, its retention and what export shows) plus 7 external processors as manual steps. One `erase_user` serves `DELETE /auth/me` and the console's `DELETE /admin/users/{id}/data`, which now removes the account itself (decision 10). Accounting records stay, detached: orders, subscriptions (now `SET NULL`, ARC-22), payments, refunds, webhook events. Audit rows: actor nulled, target rewritten to `erased:<tombstone id>`. Every erasure writes an `erasure_tombstones` row and an audit row with per-store counts. Refusals: ARC-23. Export: `GET /auth/me/export` (settings "Download my data") and `GET /admin/users/{id}/export` (elevated, reason, audited), ARC-27. `restore-dev-db.ps1` carries tombstones across a restore and replays them (`app.privacy.tombstones`). Migration `bc1d2e3f4a5b`, round-tripped on scratch (downgrade refuses while a detached subscription exists); applied to dev 2026-11-02 after backup `backup_20261102_1646.sql` (5 users, 4 profiles intact, `alembic check` clean). Deferred per §5: the readable Tamil/English summary, the `privacy_requests` table and UI (Zoho Desk meanwhile), and mobile export. | `test_account_deletion.py` (registry coverage walk; erase everything via each route, checked row by row; refusals; export; tombstone replay) |
 | 6 | **L2** consent | Built (launch cut, 2026-11-02, branch `feat/l2-consent`). Ledger `consent_records` P1–P4, append-only (ARC-28). `users.adult_declared_at`; policy version `2026-11`. Register (web, mobile) requires the 18+ declaration and records each optional purpose as answered. `/auth/consent` is the panel (adds the 18+ declaration and optional purposes). `PUT /auth/me/consents` holds the toggles. `/auth/me` returns `consents` and `adultDeclared`. P1 gate at the birth-profile sink and the family-member route (`CONSENT_REQUIRED`). P2 gate at the outbox (ARC-31). P3: web identifies PostHog only with consent (it identified every signed-in account before) and resets when it is withdrawn; mobile syncs the switch. `is_minor` from the date of birth (ARC-29). Web: signup boxes, consent panel in the dashboard, Settings → Privacy & Legal toggles, alerts note in Notifications, guest note on six birth-detail forms, privacy notice rewritten (itemised data, purposes, withdrawal, rights, grievance, Data Protection Board). Migration `cd2e3f4a5b6c` (backfills the service stamp). Mobile minimum per ARC-30. Not applied to dev yet. | `test_consent_ledger.py`, `test_consent.py` |
-| 7–11 | L7, L6, L9, L11 | Not started. | — |
+| 7 | **L7** Ask rails | Built (launch cut, 2026-11-02, branch `feat/l7-ask-limits`). `ask_vinaadi_calls`: one row per provider call, answered or not, with `prompt_version`, model, input/output/cache tokens, `cost_paise` (rounded up), `latency_ms`, outcome (`answered` / `unusable` / `provider_error`) and sensitive-topic `flags`. It has no user, chart or question text (ARC-33). It is written in its own session, so a failed request's call still counts. Spend cap `ask_daily_spend_cap_paise` (default ₹1,000/day, ARC-32) is checked before the person's allowance is touched. At the cap: 503 with a bilingual "come back tomorrow" message and no provider call. Owners are emailed once a day at 80% and at 100% (`ask_spend_alerts`). Rate setting `ask_usd_inr_paise`. Per-state quota `ask_daily_limit_{registered,trial,beta,premium}` (ARC-07), defaults = the tier_limits constants, read through `limits_state_for_user`. Ask top-up credits are spent once the allowance is gone and returned if the answer fails (ARC-34). The SKU stays inactive (ARC-14). Sensitive topics (death, illness, pregnancy, child health, divorce, self-harm, money loss; EN + TA keywords) add a safety addendum to the question, with Tele-MANAS 14416 for self-harm (ARC-35). `ASK_PROMPT_VERSION` is fingerprint-pinned. Fixed on the way: `AppError(message=…)` never reached the wire (the envelope always sent the catalogue text). Web and mobile Ask now show the server's message on `SERVICE_UNAVAILABLE` (kill switch and cap); before, they showed "try again". Kill switch: L10a, unchanged. Migration `de3f4a5b6c7d`, round-tripped on scratch, `alembic check` clean. Applied to dev 2026-11-03 after backup `backup_20261103_0710.sql` (5 users, 4 profiles intact). Deferred per §5: the review list, transcripts and their retention, a console spend tile. | `test_ask_rails.py` (31); kill switch in `test_runtime_settings.py` |
+| 8–11 | L6, L9, L11 | Not started. | — |
 
 **Gates proven to fail with the fix removed** (CLAUDE.md): permission declared per route, the MFA
 requirement, the listed-email bypass, the trial branch of `limits_for_user`, the webhook signature
@@ -505,3 +506,42 @@ they grant "Updates and astro alerts" on the panel (shown to everyone once) or i
 Notifications shows a one-tap switch for this. No P2 grant was backfilled from the alert toggles,
 because those toggles were not shown as a consent. **Launch checklist (L+30 broadcast):** the segment
 builder must exclude `is_minor` members and accounts without `updates`. No segment query exists today.
+
+**ARC-32. The spend cap starts at ₹1,000 a day.** One answer costs about ₹2.2 on Sonnet 4.6
+(~1,500 tokens in, ~1,200 out, $3/$15 per MTok, ₹88/$), so the cap is roughly 450 answers a day.
+That's well above five beta accounts at 7 a day, and low enough that a runaway loop or abuse costs at
+most ₹1,000 before Ask pauses. Both the cap and the exchange rate are settings with history, so
+changing either is a console edit with a reason, not a deploy. **(owner: set the launch figure)**
+Cap behaviour: the check runs before any provider call. Calls already in flight finish, so a day can
+overshoot by about one answer per concurrent request. A strict reservation would serialise every Ask
+request behind one row for the length of a provider call, which costs more than the overshoot. At
+the cap the refusal is `SERVICE_UNAVAILABLE`, not `DAILY_LIMIT_REACHED`, because clients answer the
+latter with an upgrade offer and buying Premium would not help.
+
+**ARC-33. Call rows don't name the person, and transcripts wait for the review list.** The spec asks
+every answer to store prompt version, model, tokens, cost, latency and topic flags. It doesn't ask for
+the user. Flags such as "pregnancy" or "self-harm" tied to an account are health-adjacent personal
+data. So the rows carry no user, chart or question text. They aren't an erasure store (registry walk
+unchanged), and they need no retention job. The cost: no per-user spend report. Quota and credits are
+still per user, in their own tables. The L+30 review list brings transcripts in a table of their own:
+encrypted, flagged answers plus P4-consented ones, 90 days (D-13, D-16), with its own registry entry.
+
+**ARC-34. Bought question credits are spent after the day's allowance.** The allowance goes first
+because it expires at midnight and a credit doesn't. The balance is read under a row lock on the
+account's usage row for today, so two concurrent questions can't both spend the last credit. A failed
+answer returns the credit (ledger `return:<id>`, once per spend). The Ask top-up SKU stays
+`active=false`. Turning it on is its own reviewed change per ARC-14, now that a bought credit can be
+spent. Web never limits Premium accounts client-side and the top-up is Premium-only (decision 8), so
+no client change is needed. Daily status doesn't show a credit balance yet. Add it with the top-up
+switch-on.
+
+**ARC-35. Sensitive questions get a safety addendum; the system prompt stays fixed.** A keyword match
+in English and Tamil (word-bounded in English, substring in Tamil) flags seven categories. A flagged
+question gets an instruction block appended to it. The block says: no predictions of death or certain
+outcomes, refer to professionals, speak gently, verdict "NA". For self-harm it adds: safety first, talk
+to someone now, Tele-MANAS 14416 (India's free 24-hour line), astrology brief and hopeful. The block
+goes on the question, not the system prompt, so the system prompt stays one text.
+`ASK_PROMPT_VERSION` names both, and a test pins their sha256, so a prompt edit without a version bump
+fails. The matcher errs toward flagging: a false flag costs one paragraph to the model. **(owner/
+astrologer: review the keyword lists and the addendum; the Tamil terms are input matchers, not
+rendered copy)**

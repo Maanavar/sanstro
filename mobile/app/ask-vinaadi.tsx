@@ -197,8 +197,10 @@ export default function AskVinaadiScreen() {
       const status = err instanceof Error && "status" in err ? (err as { status: number }).status : 0;
       const code = err instanceof ApiError ? err.apiError?.code : undefined;
       let errText = isTamil ? "பிழை ஏற்பட்டது. மீண்டும் முயற்சிக்கவும்." : "Something went wrong. Please try again.";
-      if (code === "RATE_LIMITED" && err instanceof ApiError && err.apiError) {
-        // Also a 429, but "slow down", not a spent quota.
+      if ((code === "RATE_LIMITED" || code === "SERVICE_UNAVAILABLE") && err instanceof ApiError && err.apiError) {
+        // RATE_LIMITED is also a 429, but "slow down", not a spent quota.
+        // SERVICE_UNAVAILABLE: Ask is paused, or today's spend cap is reached
+        // (spec L7); the server's words say which.
         errText = isTamil ? err.apiError.message.ta : err.apiError.message.en;
       } else if (status === 429) {
         // Re-read the status so the limit bar appears with the server's
