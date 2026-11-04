@@ -98,12 +98,13 @@ def test_every_table_that_reaches_a_user_is_in_the_registry():
 @pytest.mark.no_db
 def test_the_coverage_walk_is_not_vacuous():
     """Every assertion above is vacuous if the walk finds nothing. An exact count,
-    so a walk that quietly loses tables fails: 46 on 2026-11-02 (45 registered
+    so a walk that quietly loses tables fails: 47 on 2026-11-04 (46 registered
     tables it can reach, plus erasure_tombstones; newsletter_subscribers is
-    registered but reachable only by email)."""
+    registered but reachable only by email). Was 46 until `job_runs` arrived
+    with L10b — this count going up is what adding a table looks like."""
     found = _tables_reaching_users()
     assert {"users", "charts", "chart_planets", "payments", "refunds", "webhook_events", "erasure_tombstones"} <= found
-    assert len(found) == 46, sorted(found)
+    assert len(found) == 47, sorted(found)
 
 
 @pytest.mark.no_db
@@ -286,6 +287,10 @@ def _seed_everything() -> tuple[UUID, str, dict[str, list[Any]]]:
         ))
         add("runtime_setting_changes.actor", session, models.RuntimeSettingChange(
             name="maintenance_mode", reason="synthetic", actor_user_id=uid,
+        ))
+        add("job_runs.actor", session, models.JobRun(
+            job_id="synthetic_job", trigger="manual", actor_user_id=uid, actor_email=email,
+            started_at=now, finished_at=now, outcome="success", summary="synthetic=1",
         ))
         add("admin_audit_log.actor", session, AdminAuditLog(action="synthetic", actor_user_id=uid, actor_email=email))
         add("admin_audit_log.target", session, AdminAuditLog(
