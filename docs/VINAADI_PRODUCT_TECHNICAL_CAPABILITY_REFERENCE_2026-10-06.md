@@ -49,7 +49,7 @@ updated in place and marked **(changed after 8913117)**.
 | Date | Change | Sections | Tests |
 |---|---|---|---|
 | 2026-10-06 | **R-2 fixed.** RevenueCat `CANCELLATION` and `BILLING_ISSUE` no longer end premium; they record the period end, and one rule (`current_subscription_filter`) stops granting premium when it passes — so a lost `EXPIRATION` webhook cannot leave a lapsed user on premium either. `/users/me/subscription` reads the same rule | §21.2, §41.1 | `tests/test_revenuecat_webhook.py` (5 of its 11 fail with the fix removed) |
-| 2026-10-06 | **R-1 partly fixed.** `require_feature(...)` (`app/core/entitlements.py`) gates Varshaphala, Synastry (member and direct), Retrospective, the life-event log and rectification on the server, with a new `PREMIUM_REQUIRED` error code. No visible change while the open beta runs. Vargas, remedies, life-area history, Ask top-ups and `dasha_depth` are **not** enforced; each reason is recorded in `UNENFORCEABLE_FEATURES` and a test fails if a new premium flag is neither gated nor listed | §21.1, §41.1, §42 | `tests/test_entitlements.py` (beta on/off × registered/premium for every gated route) |
+| 2026-10-06 | **R-1 partly fixed.** `require_feature(...)` (`app/core/entitlements.py`) gates Varshaphala, Synastry (member and direct), Retrospective, the life-event log and rectification on the server, with a new `PREMIUM_REQUIRED` error code. No visible change while the open beta runs. Vargas, life-area history, Ask top-ups and `dasha_depth` are **not** enforced; each reason is recorded in `UNENFORCEABLE_FEATURES` and a test fails if a new premium flag is neither gated nor listed. Remedies were on that list until the 2026-11-04 ruling made them free for every signed-in account | §21.1, §41.1, §42 | `tests/test_entitlements.py` (beta on/off × registered/premium for every gated route) |
 | 2026-10-06 | **Rectification withdrawn from native promotion.** Removed from the Tools catalogue and the Me tab; the chart-screen card now shows only when no birth time is on file — the same single entry web keeps. Tools header count is now computed (19) | §6.3, §7.8, §36, §40 | `tsc`, `eslint` |
 
 ---
@@ -1568,7 +1568,8 @@ Source of truth `app/core/tier_limits.py`, mirrored in `packages/shared/src/cons
 | Journal, streak, push | — | ✓ | ✓ | No |
 | Annual Wrapped / share | — | ✓ / — | ✓ / ✓ | No |
 | Varshaphala, Synastry, Retrospective, Life-event log, Rectification | — | — | ✓ | **Yes** *(changed after 8913117)* — `require_feature`, 403 `PREMIUM_REQUIRED`; web has no lock UI yet |
-| Vargas, Remedies, Life-area history | — | — | ✓ | **No** — reasons in `UNENFORCEABLE_FEATURES` (Vargas ride in the chart payload; remedies need an owner ruling; history has no route) |
+| Vargas, Life-area history | — | — | ✓ | **No** — reasons in `UNENFORCEABLE_FEATURES` (Vargas ride in the chart payload; history has no route) |
+| Remedies (Pariharam) | — | ✓ | ✓ | **Not premium** — free for every signed-in account (ruling 2026-11-04); guest has no saved chart to read a plan off |
 | Ads | Yes | Yes | No | Native placeholder only |
 | Included reports / month | 0 | 0 | 5 detailed + 3 porutham | No |
 
@@ -2565,7 +2566,7 @@ owner verification of DD-17 dosham surfaces on the real app, native-Tamil review
 
 | ID | Risk | Evidence | Consequence |
 |---|---|---|---|
-| R-1 | **Premium entitlements not enforced server-side** — *partly fixed after 8913117* | At 8913117 only 5 caps read `limits_for_user`. Now five feature booleans are gated by `require_feature`; Vargas, remedies, life-area history and `dasha_depth` remain open (`UNENFORCEABLE_FEATURES`), and web has no `PREMIUM_REQUIRED` UI | Ending the open beta still leaves Vargas and remedies free, and shows web users errors instead of an upgrade path |
+| R-1 | **Premium entitlements not enforced server-side** — *partly fixed after 8913117* | At 8913117 only 5 caps read `limits_for_user`. Now five feature booleans are gated by `require_feature`; Vargas, life-area history and `dasha_depth` remain open (`UNENFORCEABLE_FEATURES`), and web has no `PREMIUM_REQUIRED` UI. Remedies left the list on 2026-11-04: ruled free for every signed-in account, so there is nothing to enforce | Ending the open beta still leaves Vargas free, and shows web users errors instead of an upgrade path |
 | R-2 | ~~**RevenueCat `CANCELLATION` deactivates immediately**~~ — *fixed after 8913117* | `api/webhooks.py` mapped CANCELLATION → inactive | Paying users lost backend premium on turning off auto-renew. Now access runs to the period end |
 | R-3 | **iOS push token type** | `getDevicePushTokenAsync` + FCM v1 sender | iOS users likely receive no pushes |
 | R-4 | **No error monitoring on backend or web** | No Sentry/APM in `app/` or `web/` | Production failures invisible except in logs |

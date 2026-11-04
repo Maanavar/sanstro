@@ -156,7 +156,7 @@ ARC item named.
 | Journal, goals, streaks | — | Journal, 3 goals | Unlimited | Unlimited | — |
 | Notifications and alerts | — | Yes | Yes | Yes | — |
 | Included reports per month | — | — | **0** (ARC-08) | **1 Jadhagam + 1 Porutham** (ARC-06) | — |
-| Personalised remedies | Owner ruling pending (`UNENFORCEABLE_FEATURES`) | ? | ? | ? | — |
+| Personalised remedies | Public daily pariharam line; no chart plan | **Full remedy plan** (ARC-43 ruling) | Full | Full | Written parihāram chapter in the 10-page and Porutham reports |
 | Numerology, baby naming | No tier assigned; baby naming blocked by the unverified pada-akshara canon | ? | ? | ? | ? |
 | Buying anything | Sign up first | Yes | Yes | Yes | — |
 
@@ -289,6 +289,18 @@ the two client headers are proven only through FastAPI's dependency and type che
 real event inspected in Sentry's UI. And no test asserts the *absence* of a write: a second stamp in
 some other code path would not fail anything.
 
+ARC-43 (2026-11-04), seven mutants: the grant call removed from `apply_order_paid` first, on its own
+(six tests failed), then six together, each caught by its own gate — the revocation removed from
+`apply_refund`, the stacking collapsed to `now + days`, the bad-config check short-circuited to
+`if False`, `remedies_enabled` flipped back to `False` (two tests: the ruling test and the
+premium-only invariant), `GrantRequest.key` widened to `str`, and the subscription CHECK deleted from
+the model. One test passed a mutant and had to: the partial-refund test asserts that *nothing* is
+taken back, so it cannot tell a correctly skipped revocation from a missing one. Blind spots are in
+the `test_entitlement_grants.py` docstring: a future reader could branch on `entitlements.key`
+without being added to `GRANTABLE_KEYS` and nothing here would notice the set going stale the other
+way, and no pass SKU is exercised against live Razorpay — the fake answers as the documentation
+says, same as the rest of this file.
+
 \
 
 - The permission test sees permissions declared as dependencies, not a handler that branches on `role_has`.
@@ -305,6 +317,9 @@ some other code path would not fail anything.
    Subscription checkout answers 503 until this is done.
 3. The report SKUs and the Ask top-up are seeded `active = false` (ARC-14). Switch each on when it
    has something to deliver.
+   To sell a **pass** — days of Premium bought outright, no mandate — insert a `one_time` SKU with
+   `entitlement_grants = '{"premium": <days>}'` and the price you want; the grant and its refund are
+   built (ARC-43). None is seeded, because the price is yours to set.
 4. `JOTHIDAM_OPEN_BETA=false` on launch day, together with the ARC-12 founding-member grant (not built yet).
 
 ## 8. Decisions taken while building (owner to confirm)
@@ -632,8 +647,50 @@ Nothing is broken today: the seeded report SKUs grant credits, and the spec's ow
 credits. It matters at the moment the report SKUs are switched on (ARC-14), if any of them is meant
 to *unlock a feature* for a period rather than be consumed once.
 
-Two ways out, for the owner: either read `entitlement_keys` in `apply_order_paid` (create an
-`Entitlement` with `source="purchase"`, and revoke it in `apply_refund` — that is the shape the spec
-text implies), or drop the column and state that one-time purchases are always credits. Recorded
-rather than fixed, because it changes what a purchase means and the pricing sheet is the owner's.
-The L11 runbook says plainly that the column is dead config so nobody configures it in the meantime.
+*Ruled 2026-11-04 (delegated): read it, in a shape that can say for how long.* Dropping the column
+was the cheaper answer and the wrong one. A time-boxed unlock bought outright — a thirty-day Premium
+pass for someone who will pay by UPI but will not put a card on a mandate — is a SKU this market
+asks for, and without this column the only ways to sell one are to abuse credits (a credit is a
+thing you consume once, not a window) or to fake a `subscriptions` row, which ARC-13 forbids. Adding
+a money-to-access code path later, under launch pressure, is worse than adding it now with the
+tests.
+
+But the column as declared was wrong twice over, which is why nobody wired it up. **An array cannot
+say for how long.** An entitlement row needs `ends_at`; a key with no duration is either meaningless
+or a permanent give-away bought for ₹99. And it was **seeded on the subscription SKUs**, where it
+must never be read at all.
+
+So: `entitlement_keys` (array) becomes **`entitlement_grants`** (object, key → days), e.g.
+`{"premium": 30}`. `apply_order_paid` mints an `Entitlement` with `source="purchase"` and
+`source_id` = the order, and `apply_refund` revokes exactly that order's rows — a stacked second
+purchase and any courtesy grant survive a refund of the first. A second pass **extends** the end
+date rather than being swallowed: someone who pays twice has bought twice. Three things are enforced
+rather than documented:
+
+* A CHECK constraint allows grants only on a `one_time` SKU, so a subscription row can never mint
+  the second answer to "does this user have access" that ARC-13 exists to prevent.
+* Keys are validated against `GRANTABLE_KEYS` — the set `entitlement_access` actually branches on —
+  and so is the admin courtesy grant, whose `key` was a free string. A key nothing reads was the
+  whole of ARC-43; it could be typed into the console just as easily as configured into a product.
+* A misconfigured SKU (unknown key, non-positive days) writes a `payment_mismatches` row and the
+  payment still lands. The money arrived and the credits are granted; someone gets *told* the SKU is
+  wrong. That is the exact inversion of the bug: bad config is now loud.
+
+Migration `bc2d3e4f5a6b`, round-tripped on scratch with `alembic check` clean, applied to dev
+2026-11-04 after backup `backup_20261104_105619_pre_arc43.sql` (5 users, 4 profiles intact). The
+report SKUs stay credit-granting and stay inactive (ARC-14); no pass SKU is seeded, because its
+price is the owner's to set.
+
+**Remedies (`UNENFORCEABLE_FEATURES`, §5 launch matrix) — ruled 2026-11-04 (delegated): Pariharam is
+free for every signed-in account.** Naming someone's dosham and then charging to see what to do
+about it monetises the anxiety the reading has just created. In the Tamil tradition the parihāram is
+not an upsell on the prediction; it is the half of the consultation that makes the prediction
+bearable, and an astrologer who names an affliction and withholds the remedy has not finished the
+job. The remedies themselves cost nobody anything — a temple visit, a lamp, a Thursday fast, feeding
+someone, wearing no stone at all — and the app already gives one away to unauthenticated visitors on
+every public rasi-palan page, so gating the personal plan would also have been incoherent.
+
+`remedies_enabled` is therefore `true` at registered, not listed as unenforceable, and nothing needs
+a gate. Guest stays `false` as a prerequisite rather than a price: the plan is read off a saved chart
+and a guest has none. What stays paid is the *written* parihāram chapter in the 10-page report and
+the Porutham report — the work, not the mercy.

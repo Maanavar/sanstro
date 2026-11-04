@@ -81,19 +81,30 @@ After refunding there:
 2. A negative balance means the credits were already spent. That is the
    founder's call (D-18), not a bug: the balance blocks further use rather than
    hiding the debt.
-3. **Know what a one-time purchase actually grants.** It grants *credits* and
-   nothing else — `apply_order_paid` reads `products.credit_grants` only. A
-   one-time order never creates an `entitlements` row, so there is nothing to
-   revoke and the support panel will show none. Premium access comes from a
-   subscription (computed live from `subscriptions`) or a courtesy grant.
-4. If the credits were not reversed, the webhook did not land — §2. Re-send the
+3. **Know what a one-time purchase actually grants.** Read the SKU's two
+   columns and you know: `credit_grants` is credits to spend (the reports),
+   `entitlement_grants` is days of access (a pass). A SKU may carry either or
+   both. A pass purchase makes a real `entitlements` row with
+   `source="purchase"`, visible on the support panel, and a full refund revokes
+   that order's row — stamped `revoked_at`, not deleted, so the history of why
+   someone had access on a given day survives the argument.
+4. **A second pass extends; a refund of the first does not touch the second.**
+   Rows are matched by order, so someone who bought two months and refunded one
+   keeps the other. If a customer says "I bought twice and only got a month",
+   check for two rows, not one.
+5. If the credits were not reversed, the webhook did not land — §2. Re-send the
    event rather than adjusting the ledger by hand; it is idempotent.
 
-> **`products.entitlement_keys` is dead config.** The column exists and nothing
-> reads it. A one-time SKU configured with an entitlement key grants nothing,
-> silently — so a report SKU meant to *unlock a feature* rather than consume a
-> credit does not work yet. Flagged to the founder; it matters when the report
-> SKUs are switched on (ARC-14).
+> **A misconfigured pass SKU shows up in Admin → Mismatches**, kind
+> `product_entitlement_grant`, not as a silent nothing (ARC-43). It means the
+> SKU names a key no code reads, or a duration that is not a positive number of
+> days: the customer was charged and got their credits, but the access half of
+> that SKU granted nothing. Fix the product row, then grant the days as a
+> courtesy (§3) — do not ask for a second payment.
+>
+> Only `premium` is a grantable key, and only a `one_time` SKU may carry grants
+> at all; the database refuses a subscription SKU with them, because
+> subscription access is computed live from `subscriptions` (ARC-13).
 
 For a subscription the customer wants to stop rather than reverse, use
 `POST /payments/subscription/cancel` (the customer can do this themselves in

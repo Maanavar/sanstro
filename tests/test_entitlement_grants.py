@@ -8,11 +8,23 @@ instance: every path that can write an `entitlements` row is held to the set of
 keys a reader actually branches on, so the next key someone invents cannot
 repeat the silence one layer along.
 
+Gates proven to fail with the fix removed (CLAUDE.md), 2026-11-04. Mutant 1
+alone, then six together, each caught by its own test: the grant call removed
+from `apply_order_paid` (six tests), the revocation removed from `apply_refund`,
+the stacking collapsed to `now + days`, the bad-config check short-circuited to
+`if False`, `remedies_enabled` flipped back to False, `GrantRequest.key` widened
+to `str`, and the subscription CHECK deleted from the model.
+
 BLIND SPOT: these tests prove a key outside `GRANTABLE_KEYS` grants no *access
 state*. They do not prove the row is useless — a future reader could branch on
 `entitlements.key` without being added here, and these tests would still pass
 while the set went stale in the other direction. Only the key-by-key behaviour
 below, plus a reviewer reading `entitlement_access`, covers that.
+
+BLIND SPOT: `test_a_partial_refund_of_a_pass_keeps_the_access` passed with the
+revocation removed, as it must — it asserts that nothing is taken back. It
+cannot tell "a partial refund is correctly skipped" from "revocation was never
+written", and leans on its full-refund sibling for that.
 """
 from __future__ import annotations
 

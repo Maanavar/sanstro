@@ -84,7 +84,7 @@ In each case v1.0 had claimed coverage that does not exist.
 | Rasi palan window (0 / 7 / 30 days) | No reader in `app/` or in either client | grep of `rasi_palan_window_days` / `rasiPalanWindowDays` |
 | Vargas | UI lock on mobile only; data ships in `GET /charts/{id}` | `entitlements.py` `UNENFORCEABLE_FEATURES`; `mobile/app/(tabs)/insights/index.tsx:291` |
 | Life-area history | No route serves it | `UNENFORCEABLE_FEATURES` |
-| Remedies | **Owner decision pending**: shown to every account | `UNENFORCEABLE_FEATURES["remedies_enabled"]` |
+| Remedies | **Ruled 2026-11-04**: free for every signed-in account, as the code already behaved | `app/core/tier_limits.py` (`remedies_enabled` true at registered); `tests/test_entitlements.py` |
 | Wrapped share | Client action, no route | same |
 | Ask top-up | No purchase path | same |
 

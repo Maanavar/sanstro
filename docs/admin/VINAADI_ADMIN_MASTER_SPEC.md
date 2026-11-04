@@ -118,7 +118,8 @@ correctly, and every rupee is traceable.
 
 **Data model** (extend existing `subscriptions` and `WebhookEvent`/`webhook_events` where they exist):
 
-- `products`: `sku` (pk), `kind` (`subscription` | `one_time`), `name_en`, `name_ta`, `price_inr_paise`, `billing_period` (null | `month` | `year`), `entitlement_keys` (array), `razorpay_plan_id` (subscriptions), `active`, timestamps.
+- `products`: `sku` (pk), `kind` (`subscription` | `one_time`), `name_en`, `name_ta`, `price_inr_paise`, `billing_period` (null | `month` | `year`), `entitlement_grants` (object, key → days; one-time SKUs only, ARC-43), `credit_grants` (object),
+  `razorpay_plan_id` (subscriptions), `active`, timestamps.
 - `orders`: `id`, `user_id`, `sku`, `provider` (`razorpay`), `provider_order_id` (unique), `amount_paise`, `currency`, `status` (`created` | `paid` | `failed` | `refunded` | `partially_refunded`), `tax_paise` (nullable), `invoice_number` (nullable), timestamps.
 - `payments`: `id`, `order_id` or `subscription_id`, `provider_payment_id` (unique), `method` (upi | card | netbanking | wallet | other), `amount_paise`, `fee_paise`, `tax_on_fee_paise`, `status`, timestamps.
 - `subscriptions` (extend): `provider` (`razorpay` | `revenuecat`), `provider_subscription_id` (unique), `sku`, `status` (`created` | `authenticated` | `active` | `pending` | `halted` | `cancelled` | `completed` | `expired`), `current_period_start`, `current_period_end`, `cancel_at_period_end`.
