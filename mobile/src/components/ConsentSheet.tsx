@@ -108,6 +108,7 @@ export function ConsentSheet() {
       statusBarTranslucent
     >
       <View style={styles.backdrop}>
+        <View style={styles.scrim} />
         <View
           style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, S.base) }]}
           accessibilityViewIsModal
@@ -270,7 +271,10 @@ function CheckRow({
 
 function makeStyles(C: ColorTokens) {
   return StyleSheet.create({
-    backdrop: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.45)" },
+    backdrop: { flex: 1, justifyContent: "flex-end" },
+    // `darkBg` is dark in both themes; no scrim token exists, and a literal
+    // would trip the colour ratchet. Its own layer, so the opacity skips the sheet.
+    scrim: { ...StyleSheet.absoluteFillObject, backgroundColor: C.darkBg, opacity: 0.45 },
     sheet: {
       backgroundColor: C.parchment,
       borderTopLeftRadius: RADIUS.bottomSheet,
