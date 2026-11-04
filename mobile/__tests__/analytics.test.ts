@@ -96,3 +96,47 @@ describe("analytics consent has a surface that can grant it", () => {
     expect(mockSentry.captureException).toHaveBeenCalled();
   });
 });
+
+describe("Sentry context is scrubbed (spec §9)", () => {
+  it("strips birth details and free text from the extra context", () => {
+    // Running outside the consent gate is exactly why this matters: a crash in
+    // a birth-details screen is where someone attaches the form state they
+    // were debugging, and it would leave the device from an account that
+    // granted nothing.
+    captureError(new Error("synthetic failure"), {
+      step: "location_entry",
+      birthDate: "1990-01-01",
+      birthPlace: "Example City",
+      email: "synthetic@example.test",
+      question: "free text the person typed",
+    });
+
+    expect(mockSentry.captureException).toHaveBeenCalledWith(expect.any(Error), {
+      extra: { step: "location_entry" },
+    });
+  });
+
+  it("sends no extra at all when nothing survives scrubbing", () => {
+    captureError(new Error("synthetic failure"), { birthTime: "06:30" });
+    expect(mockSentry.captureException).toHaveBeenCalledWith(expect.any(Error), {
+      extra: undefined,
+    });
+  });
+});
+
+describe("the taxonomy is shared with the web app", () => {
+  it("accepts an event this client does not fire but the taxonomy defines", () => {
+    // Both clients now read one allowlist (packages/shared/src/analytics.ts).
+    // Before, mobile kept its own pair of sets and web had none, so the two
+    // boundaries could not be tested together or kept in step.
+    setAnalyticsConsent(true);
+    trackEvent("paywall_viewed", { trigger_feature: "ask" });
+    expect(mockPosthog.capture).toHaveBeenCalledWith("paywall_viewed", { trigger_feature: "ask" });
+  });
+
+  it("still drops the properties the old local allowlist dropped", () => {
+    setAnalyticsConsent(true);
+    trackEvent("share_card_shared", { pages: 2, rasi: "mesham", memberName: "Synthetic Person" });
+    expect(mockPosthog.capture).toHaveBeenCalledWith("share_card_shared", { pages: 2 });
+  });
+});

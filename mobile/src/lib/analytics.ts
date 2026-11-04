@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { filterAnalyticsPayload, isAllowedAnalyticsEvent } from "@vinaadi/shared/analytics";
 
 type SentryModule = {
   init: (opts: { dsn: string; enableNative: boolean }) => void;
@@ -16,28 +17,6 @@ let _sentry: SentryModule | null = null;
 let _posthog: AnalyticsClient | null = null;
 let _analyticsConsent = false;
 
-const ALLOWED_EVENTS = new Set([
-  "onboarding_step_completed",
-  "jadhagam_teaser_shown",
-  "register_from_teaser",
-  "share_card_opened",
-  "share_card_shared",
-  "onboarding_complete",
-  "whatsapp_share_tapped",
-  "life_focus_ask_chip_tapped",
-]);
-
-const ALLOWED_EVENT_PROPERTIES = new Set([
-  "step",
-  "skipped",
-  "source",
-  "report_upsell",
-  "pages",
-  "focus",
-  "surface",
-  "chip_index",
-]);
-
 /**
  * Consent is deliberately opt-in. The caller owns persistence/UI, while this
  * module is the non-bypassable transport gate for both identity and events.
@@ -52,14 +31,6 @@ export function setAnalyticsConsent(granted: boolean): void {
 
 export function hasAnalyticsConsent(): boolean {
   return _analyticsConsent;
-}
-
-function allowedProperties(props?: Record<string, unknown>): Record<string, unknown> | undefined {
-  if (!props) return undefined;
-  const filtered = Object.fromEntries(
-    Object.entries(props).filter(([key]) => ALLOWED_EVENT_PROPERTIES.has(key)),
-  );
-  return Object.keys(filtered).length > 0 ? filtered : undefined;
 }
 
 function isValidSentryDsn(dsn: string): boolean {
@@ -117,9 +88,15 @@ export function initAnalytics(sentryDsn: string, posthogApiKey: string, posthogH
  * runs under legitimate interest — a stack trace carries no identity once setUser
  * has been withheld — while product analytics runs under consent. Do not
  * "harmonise" the two in either direction without revisiting DATA_PROTECTION.md.
+ *
+ * `context` is scrubbed through the same allowlist as events (spec §9, "Sentry
+ * scrubbing verified"). Running outside the consent gate is exactly why it has
+ * to be: a crash in a birth-details screen is the most likely place for someone
+ * to attach the form state they were debugging, and that payload would leave
+ * the device from an account that granted nothing.
  */
 export function captureError(err: unknown, context?: Record<string, unknown>) {
-  _sentry?.captureException(err, { extra: context });
+  _sentry?.captureException(err, { extra: filterAnalyticsPayload(context) });
 }
 
 export function setUser(userId: string | null) {
@@ -133,6 +110,6 @@ export function setUser(userId: string | null) {
 }
 
 export function trackEvent(name: string, props?: Record<string, unknown>) {
-  if (!_analyticsConsent || !ALLOWED_EVENTS.has(name)) return;
-  _posthog?.capture(name, allowedProperties(props));
+  if (!_analyticsConsent || !isAllowedAnalyticsEvent(name)) return;
+  _posthog?.capture(name, filterAnalyticsPayload(props));
 }

@@ -211,7 +211,9 @@ TABLE_STORES: tuple[TableStore, ...] = (
     ),
     # ── The account itself: last.
     TableStore(
-        "users", "users", "Email, sign-in, consent stamp, 18+ declaration, first-touch source, referral code.",
+        "users", "users",
+        "Email, sign-in, consent stamp, 18+ declaration, first-touch source, referral code, "
+        "last-seen day with the client and language it used.",
         "user_id = :uid", "delete", _UNTIL_ERASED, export_exclude=frozenset({"hashed_password", "token_version"}),
     ),
 )

@@ -17,6 +17,7 @@
     "./familyMember": "./src/familyMember.ts",
     "./personalPalan": "./src/personalPalan.ts",
     "./checkIn": "./src/checkIn.ts",
+    "./analytics": "./src/analytics.ts",
     "./constants": "./src/constants/index.ts",
     "./constants/tiers": "./src/constants/tiers.ts",
     "./yogaDisplay": "./src/yogaDisplay.ts",

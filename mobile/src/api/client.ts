@@ -5,6 +5,7 @@ import { isTokenPair } from "@/lib/tokenPair";
 import { ENV } from "@/lib/env";
 import { currentGeneration, isCurrentGeneration } from "@/lib/sessionIdentity";
 import { requestConsentSheet } from "@/lib/consentPrompt";
+import { currentLang } from "@/lib/clientLang";
 import {
   apiErrorDetail,
   initApiClient,
@@ -126,8 +127,13 @@ async function sendOnce(url: string, init: RequestInit): Promise<Response> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     "X-Request-ID": generateRequestId(),
-    // Where a consent answer was given, for the server's ledger (admin spec L2).
+    // Where a consent answer was given, for the server's ledger (admin spec
+    // L2), and the platform behind `users.last_platform` (L6).
     "X-Vinaadi-Client": Platform.OS === "ios" ? "ios" : "android",
+    // The language this session is reading in, for `users.last_language`.
+    // Read from the module-level mirror rather than `useLanguage()` because
+    // this is not a component; the provider keeps the two in step.
+    "X-Client-Language": currentLang(),
     ...(init.headers as Record<string, string> | undefined),
   };
   if (tokens) headers["Authorization"] = `Bearer ${tokens.accessToken}`;

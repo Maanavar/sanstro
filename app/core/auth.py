@@ -27,6 +27,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.core.jwt_keys import decode_jwt_payload, signing_secret
+from app.core.presence import touch_last_seen
 from app.db.session import get_db
 from app.models.user import User
 
@@ -117,6 +118,8 @@ def get_current_user(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
     vinaadi_token: Annotated[str | None, Cookie()] = None,
     db: Session = Depends(get_db),
+    x_vinaadi_client: Annotated[str | None, Header()] = None,
+    x_client_language: Annotated[str | None, Header()] = None,
 ) -> User:
     """Validate JWT and return the corresponding User row.
 
@@ -127,6 +130,17 @@ def get_current_user(
     The JWT `sub` claim may be:
     - A UUID string  → looked up directly as user_id.
     - An email string → looked up by email.
+
+    Also stamps `users.last_seen_on` (spec §8 "active user"), which is why the
+    two client headers are read here: this is the one dependency every
+    authenticated request passes through, so it is the only place the stamp
+    cannot be forgotten by a new route. See `app.core.presence` —
+    it writes at most once per account per IST day, in its own transaction, and
+    never raises.
+
+    `X-Vinaadi-Client` is the header the consent ledger already uses for "which
+    client is this" (`app.privacy.consent.CLIENT_HEADER`); reusing it keeps one
+    answer per request instead of two headers that can disagree.
     """
     token: str | None = credentials.credentials if credentials is not None else None
     if token is None:
@@ -172,6 +186,11 @@ def get_current_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Account suspended. Contact support.",
         )
+
+    # After the suspension check on purpose: a suspended account is not an
+    # active user, and counting it would inflate DAU with people who cannot
+    # reach the product.
+    touch_last_seen(user.user_id, platform=x_vinaadi_client, language=x_client_language)
 
     return user
 
