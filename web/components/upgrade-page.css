@@ -1,0 +1,74 @@
+/* Upgrade page (app/dashboard/upgrade/page.tsx), filed under components/ so it
+   travels with its importer (lib/css-surface-boundary.test.ts). Cards and buttons are the
+   kit's <Card>/<Button>; this file only lays them out, on the Nova type scale
+   rather than the ad-hoc 1.25rem/1.3rem/800 it used to hand-roll. */
+.upg-page {
+  color: var(--color-text);
+  padding-top: var(--space-6);
+  padding-bottom: var(--space-8);
+}
+
+.upg-wrap {
+  max-width: 820px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.upg-title {
+  margin: 0;
+  font-family: var(--font-display, Georgia, serif);
+  font-size: var(--text-xl);
+  font-weight: 600;
+  color: var(--color-text-strong);
+}
+
+.upg-lead {
+  margin: 4px 0 0;
+  font-size: var(--text-base);
+  color: var(--color-muted);
+  line-height: 1.55;
+}
+
+.upg-status {
+  margin: 0;
+  min-height: 1.2em;
+  font-size: var(--text-base);
+  color: var(--color-text);
+}
+
+.upg-status[data-tone="error"] {
+  color: var(--color-alert-critical);
+}
+
+.upg-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+  gap: 14px;
+}
+
+.upg-product-name {
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: 700;
+  color: var(--color-text-strong);
+}
+
+.upg-price {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--color-accent-strong);
+}
+
+.upg-period {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-muted);
+}
+
+/* Pins the buy button to the card's foot so a row of cards lines up. */
+.upg-cta {
+  margin-top: auto;
+  align-self: stretch;
+}

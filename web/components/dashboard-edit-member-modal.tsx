@@ -7,13 +7,15 @@ import { MIN_BIRTH_DATE, maxBirthDateIso } from "@/lib/birth-date";
 import { PlaceCombobox } from "./place-combobox";
 import { usePlaceCoordinatesConfirm, PlaceMatchedBadge, PlaceCoordinatesFooter } from "./place-coordinates-field";
 import { ModalShell } from "./modal-shell";
+import { RELATIONSHIP_DEFAULT_WEIGHT, type FamilyRelationship } from "@vinaadi/shared/familyMember";
 
-type Relationship = "self" | "spouse" | "child" | "parent" | "sibling" | "grandparent" | "other";
+// One table, shared with the mobile member screen and mirroring the server's
+// own fallback (`@vinaadi/shared/familyMember`).
+type Relationship = FamilyRelationship;
 
-const RELATIONSHIP_WEIGHTS: Record<Relationship, string> = {
-  self: "1.00", spouse: "1.00", child: "0.75",
-  parent: "1.15", sibling: "0.75", grandparent: "1.15", other: "1.00",
-};
+function weightFieldValue(relationship: Relationship): string {
+  return RELATIONSHIP_DEFAULT_WEIGHT[relationship].toFixed(2);
+}
 
 /** Which record is open, and therefore which endpoint the save goes to.
  *
@@ -38,6 +40,8 @@ export type EditMemberState = {
   displayName: string;
   relationshipToOwner: Relationship;
   memberWeight: string;
+  /** Opt-in to the evening family digest (audit F5). Member scope only. */
+  alertsEnabled: boolean;
   birthDateLocal: string;
   birthTimeLocal: string;
   birthPlace: string;
@@ -57,6 +61,10 @@ interface EditMemberModalProps {
   onClose: () => void;
   onChange: (next: EditMemberState) => void;
   onSave: () => void;
+  /** The owner's transport channel. When "none", a per-member alert opt-in still
+   *  reaches the in-app bell but is never pushed or emailed — the toggle says
+   *  so rather than promise a buzz the transport will not deliver. */
+  ownerNotificationChannel?: string | null;
 }
 
 /* ── Warm design tokens ── */
@@ -142,7 +150,7 @@ function WSelect(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
   );
 }
 
-export function EditMemberModal({ lang, editMember, busySaving, onClose, onChange, onSave }: EditMemberModalProps) {
+export function EditMemberModal({ lang, editMember, busySaving, onClose, onChange, onSave, ownerNotificationChannel }: EditMemberModalProps) {
   const coordsConfirm = usePlaceCoordinatesConfirm(editMember.birthPlace, editMember.birthLatitude, editMember.birthLongitude);
   const isMemberScope = editMember.scope === "member";
   const title = isMemberScope
@@ -194,7 +202,7 @@ export function EditMemberModal({ lang, editMember, busySaving, onClose, onChang
               <WSelect value={editMember.relationshipToOwner}
                 onChange={(e) => {
                   const rel = e.target.value as Relationship;
-                  onChange({ ...editMember, relationshipToOwner: rel, memberWeight: RELATIONSHIP_WEIGHTS[rel] });
+                  onChange({ ...editMember, relationshipToOwner: rel, memberWeight: weightFieldValue(rel) });
                 }}>
                 <option value="self">{t("rel_self", lang)}</option>
                 <option value="spouse">{t("rel_spouse", lang)}</option>
@@ -309,6 +317,41 @@ export function EditMemberModal({ lang, editMember, busySaving, onClose, onChang
             <WField label={t("field_weight", lang)} hint={t("field_weight_hint", lang)}>
               <WInput inputMode="decimal" value={editMember.memberWeight}
                 onChange={(e) => onChange({ ...editMember, memberWeight: e.target.value })} />
+            </WField>
+          )}
+          {/* Per-member opt-in to the evening family digest (audit F5). Off by
+              default: a family member is a separate person, and alerting about
+              them is a choice the owner makes member by member. Free. */}
+          {isMemberScope && (
+            <WField
+              span
+              ariaLabelled
+              label={lang === "ta" ? "இவருக்கான எச்சரிக்கைகள்" : "Alerts for this person"}
+              hint={lang === "ta"
+                ? "நாளை சந்திராஷ்டமம் அல்லது பிறந்த நட்சத்திர நாள் எனில் மாலையில் ஒரு நினைவூட்டல். கட்டணமில்லை."
+                : "An evening reminder when their Chandrashtamam or birth-star day falls tomorrow. Free."}
+            >
+              <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", minHeight: "44px" }}>
+                <input
+                  type="checkbox"
+                  checked={editMember.alertsEnabled}
+                  aria-label={lang === "ta" ? "இவருக்கான எச்சரிக்கைகள்" : "Alerts for this person"}
+                  onChange={(e) => onChange({ ...editMember, alertsEnabled: e.target.checked })}
+                  style={{ width: "20px", height: "20px", accentColor: W.terracota, cursor: "pointer" }}
+                />
+                <span style={{ fontSize: "0.875rem", color: W.inkMid }}>
+                  {editMember.alertsEnabled
+                    ? (lang === "ta" ? "இயக்கத்தில்" : "On")
+                    : (lang === "ta" ? "அணைக்கப்பட்டது" : "Off")}
+                </span>
+              </label>
+              {editMember.alertsEnabled && ownerNotificationChannel === "none" && (
+                <span style={{ fontSize: "0.75rem", lineHeight: 1.45, color: W.terracota }}>
+                  {lang === "ta"
+                    ? "இவை உங்கள் ஆப் அறிவிப்புகளில் மட்டும் தோன்றும். மின்னஞ்சல் அல்லது Push மூலம் பெற, அறிவிப்பு அமைப்புகளில் ஒரு channel-ஐ இயக்கவும்."
+                    : "These appear only in your in-app alerts. Turn on Email or Push in Notification settings to also be notified there."}
+                </span>
+              )}
             </WField>
           )}
         </div>

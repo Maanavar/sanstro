@@ -48,6 +48,11 @@ class UserNotificationPreference(TimestampMixin, Base):
     # Pirantha Naal (Nakshatra birthday) alert (FEATURE-06)
     pirantha_naal_alert_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default=text("false"))
 
+    # Chandrashtamam, the evening before (audit F4, 2026-11-03). On by default,
+    # unlike the toggles above: delivery still needs the "updates" consent, and
+    # a user who gave it asked for exactly this alert. See the migration.
+    chandrashtama_alert_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default=text("true"))
+
     # FCM device token for push delivery (nullable — only set when push channel active)
     fcm_device_token: Mapped[str | None] = mapped_column(String(512), nullable=True)
 

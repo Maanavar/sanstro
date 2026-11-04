@@ -49,6 +49,8 @@ export interface AskVinaadiDailyStatus {
   dailyLimit: number | null;
   monthlyLimit: number | null;
   resetsAt: string;
+  creditsRemaining: number;
+  askPaused: boolean;
 }
 
 export interface BabyNameCandidateOut {

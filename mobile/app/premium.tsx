@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import * as Haptics from "expo-haptics";
 import {
+  Alert,
+  Linking,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,6 +14,7 @@ import { useToast } from "@/context/ToastContext";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import type { PurchasesPackage } from "react-native-purchases";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useColors } from "@/hooks/useColors";
 import type { ColorTokens } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
@@ -19,6 +23,11 @@ import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "@/hooks/useSession";
 import { assertPurchaseReady } from "@/lib/purchaseIdentity";
 import { getMySubscription } from "@/api/auth";
+import { cancelSubscription, listPaymentProducts, type PaymentProduct } from "@/api/payments";
+import { accountKey } from "@/lib/queryKeys";
+import { OPEN_BETA } from "@vinaadi/shared/constants";
+import { periodEndMeaning, subscriptionManageAction } from "@vinaadi/shared/subscriptionManage";
+import { MANAGE_SUB_URL } from "@/lib/storeLinks";
 let Purchases: typeof import("react-native-purchases").default | null = null;
 // A static import would run at module load and crash Expo Go, where the
 // native bridge these JSI modules need does not exist. The require has to
@@ -39,16 +48,31 @@ const FEATURES = [
 
 type Plan = "monthly" | "annual";
 
+/** ₹ from paise, the catalogue's unit (`products.price_inr_paise`). */
+function rupees(paise: number): string {
+  return `₹${Math.round(paise / 100).toLocaleString("en-IN")}`;
+}
+
+function catalogueSubscription(products: PaymentProduct[] | undefined, period: "month" | "year") {
+  return (products ?? []).find((p) => p.kind === "subscription" && p.billingPeriod === period) ?? null;
+}
+
+function dayLabel(iso: string): string {
+  return new Date(iso).toLocaleDateString();
+}
+
 export default function PremiumScreen() {
   const { showToast, showError } = useToast();
   const { lang } = useI18n();
-  const { setSession, user } = useSession();
+  const { setSession, user, tier } = useSession();
   const isTamil = lang === "ta";
   const [selectedPlan, setSelectedPlan] = useState<Plan>("annual");
   const [monthlyPkg, setMonthlyPkg] = useState<PurchasesPackage | null>(null);
   const [annualPkg, setAnnualPkg] = useState<PurchasesPackage | null>(null);
+  const [cancelling, setCancelling] = useState(false);
   const C = useColors();
   const styles = useMemo(() => makeStyles(C), [C]);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     Purchases?.getOfferings()
@@ -58,9 +82,29 @@ export default function PremiumScreen() {
         setAnnualPkg(pkgs.find((p) => p.packageType === "ANNUAL") ?? null);
       })
       .catch(() => {
-        // No offerings in dev/sandbox without RevenueCat keys — use fallback prices.
+        // No offerings in dev/sandbox without RevenueCat keys — the catalogue
+        // price below stands in.
       });
   }, []);
+
+  // Same key as the Me tab, so cancelling here updates that screen's summary.
+  const { data: subData } = useQuery({
+    queryKey: accountKey("my-subscription"),
+    queryFn: getMySubscription,
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000,
+  });
+  const sub = subData?.data ?? null;
+
+  // Only to price the pills when the store has no offering (Expo Go, a build
+  // without store keys, a region with no product). Never to *charge*: the app
+  // buys through the store, never through Razorpay.
+  const { data: products } = useQuery({
+    queryKey: accountKey("payment-products"),
+    queryFn: listPaymentProducts,
+    enabled: !OPEN_BETA && tier !== "premium",
+    staleTime: 60 * 60 * 1000,
+  });
 
   /**
    * Take the tier from the SERVER, not from the store's reply.
@@ -136,6 +180,66 @@ export default function PremiumScreen() {
     }
   }
 
+  /**
+   * Stop renewing a subscription bought on the **web**. A store-bought one is
+   * not cancellable here at all — `subscriptionManageAction` says which, and
+   * the store branch opens the store's own subscriptions screen.
+   */
+  async function handleStopRenewing() {
+    Haptics.selectionAsync();
+    const confirmed = await new Promise<boolean>((resolve) => {
+      Alert.alert(
+        isTamil ? "புதுப்பித்தலை நிறுத்தவா?" : "Stop renewing?",
+        sub?.current_period_end
+          ? isTamil
+            ? `${dayLabel(sub.current_period_end)} வரை Premium தொடரும். அதன் பிறகு புதுப்பிக்கப்படாது.`
+            : `Premium continues until ${dayLabel(sub.current_period_end)}. It will not renew after that.`
+          : isTamil
+            ? "செலுத்திய காலம் முடியும் வரை Premium தொடரும்."
+            : "Premium continues to the end of the paid period.",
+        [
+          { text: isTamil ? "வேண்டாம்" : "Keep Premium", style: "cancel", onPress: () => resolve(false) },
+          { text: isTamil ? "நிறுத்து" : "Stop renewing", style: "destructive", onPress: () => resolve(true) },
+        ],
+        { onDismiss: () => resolve(false) },
+      );
+    });
+    if (!confirmed) return;
+    setCancelling(true);
+    try {
+      const result = await cancelSubscription();
+      await queryClient.invalidateQueries({ queryKey: accountKey("my-subscription") });
+      showToast(
+        result.currentPeriodEnd
+          ? isTamil
+            ? `புதுப்பித்தல் நிறுத்தப்பட்டது. ${dayLabel(result.currentPeriodEnd)} வரை Premium தொடரும்.`
+            : `Renewal stopped. Premium continues until ${dayLabel(result.currentPeriodEnd)}.`
+          : isTamil
+            ? "புதுப்பித்தல் நிறுத்தப்பட்டது."
+            : "Renewal stopped.",
+        "success",
+      );
+    } catch (e: unknown) {
+      showError(
+        (e as { message?: string }).message ??
+          (isTamil ? "புதுப்பித்தலை நிறுத்த முடியவில்லை." : "Could not stop the renewal."),
+      );
+    } finally {
+      setCancelling(false);
+    }
+  }
+
+  async function handleOpenStore() {
+    Haptics.selectionAsync();
+    await Linking.openURL(MANAGE_SUB_URL).catch(() => {
+      showError(
+        isTamil
+          ? "கடையின் சந்தா பக்கத்தைத் திறக்க முடியவில்லை."
+          : "Could not open the store's subscriptions page.",
+      );
+    });
+  }
+
   async function handleRestore() {
     if (!Purchases) {
       showToast(
@@ -166,8 +270,28 @@ export default function PremiumScreen() {
     }
   }
 
-  const monthlyPrice = monthlyPkg?.product.priceString ?? "₹149";
-  const annualPrice = annualPkg?.product.priceString ?? "₹999";
+  // The store's price is the one that will actually be charged, so it wins;
+  // the catalogue price only stands in when the store has no offering.
+  const monthlyCatalogue = catalogueSubscription(products, "month");
+  const annualCatalogue = catalogueSubscription(products, "year");
+  const monthlyPrice =
+    monthlyPkg?.product.priceString ?? (monthlyCatalogue ? rupees(monthlyCatalogue.priceInrPaise) : null);
+  const annualPrice =
+    annualPkg?.product.priceString ?? (annualCatalogue ? rupees(annualCatalogue.priceInrPaise) : null);
+
+  // Was a hardcoded "44% off!" beside hardcoded prices. Derived now, and shown
+  // only when both prices are known from the same source, so the badge cannot
+  // claim a discount the user is not getting.
+  const monthlyAmount = monthlyPkg?.product.price ?? (monthlyCatalogue ? monthlyCatalogue.priceInrPaise / 100 : null);
+  const annualAmount = annualPkg?.product.price ?? (annualCatalogue ? annualCatalogue.priceInrPaise / 100 : null);
+  const savingsPct =
+    monthlyAmount && annualAmount && monthlyAmount > 0
+      ? Math.round((1 - annualAmount / (monthlyAmount * 12)) * 100)
+      : 0;
+
+  const isPremium = tier === "premium";
+  const manageAction = subscriptionManageAction(sub);
+  const endMeaning = periodEndMeaning(sub);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -211,58 +335,126 @@ export default function PremiumScreen() {
           ))}
         </View>
 
-        {/* Plan selector */}
-        <View style={styles.planRow}>
-          <TouchableOpacity
-            style={[styles.planPill, selectedPlan === "monthly" && styles.planPillActive]}
-            onPress={() => { Haptics.selectionAsync(); setSelectedPlan("monthly"); }}
-            activeOpacity={0.85}
-          >
-            <Text
-              style={[
-                styles.planLabel,
-                selectedPlan === "monthly" && styles.planLabelActive,
-                isTamil ? { fontFamily: "NotoSansTamil_400Regular" } : { fontFamily: "Inter_400Regular" },
-              ]}
-            >
-              {isTamil ? `${monthlyPrice} / மாதம்` : `${monthlyPrice} / month`}
+        {/* One of three states: beta (nothing to sell), already a subscriber
+            (manage it), or the plan selector. */}
+        {OPEN_BETA ? (
+          <View style={styles.noticeCard}>
+            <Text style={[styles.noticeText, isTamil ? TamilType.body : EnType.body]}>
+              {isTamil
+                ? "Vinaadi திறந்த பீட்டாவில் இருக்கும் வரை அனைத்து வசதிகளும் இலவசம். இப்போது வாங்க எதுவும் இல்லை."
+                : "Every feature is free while Vinaadi is in open beta. Nothing to buy yet."}
             </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.planPill, selectedPlan === "annual" && styles.planPillActive]}
-            onPress={() => { Haptics.selectionAsync(); setSelectedPlan("annual"); }}
-            activeOpacity={0.85}
-          >
-            <Text
-              style={[
-                styles.planLabel,
-                selectedPlan === "annual" && styles.planLabelActive,
-                isTamil ? { fontFamily: "NotoSansTamil_400Regular" } : { fontFamily: "Inter_400Regular" },
-              ]}
-            >
-              {isTamil ? `${annualPrice} / ஆண்டு` : `${annualPrice} / year`}
+          </View>
+        ) : isPremium ? (
+          <View style={styles.noticeCard}>
+            <Text style={[styles.noticeTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
+              {isTamil ? "உங்களிடம் Premium உள்ளது." : "You have Premium."}
             </Text>
-            <View style={styles.savingsBadge}>
-              <Text style={styles.savingsText}>
-                {isTamil ? "44% சேமிப்பு!" : "44% off!"}
+            {sub?.current_period_end && endMeaning !== "none" ? (
+              <Text style={[styles.noticeText, isTamil ? TamilType.body : EnType.body]}>
+                {endMeaning === "ends"
+                  ? isTamil
+                    ? `${dayLabel(sub.current_period_end)} அன்று முடிகிறது. புதுப்பிக்கப்படாது.`
+                    : `Premium ends on ${dayLabel(sub.current_period_end)}. It will not renew.`
+                  : isTamil
+                    ? `${dayLabel(sub.current_period_end)} அன்று புதுப்பிக்கப்படும்.`
+                    : `It renews on ${dayLabel(sub.current_period_end)}.`}
               </Text>
+            ) : null}
+            {manageAction === "store" ? (
+              <>
+                <Text style={[styles.noticeText, isTamil ? TamilType.caption : EnType.caption]}>
+                  {isTamil
+                    ? "நீங்கள் செயலியில் சந்தா செலுத்தியதால், புதுப்பித்தலை கடையில் நிர்வகிக்க வேண்டும்."
+                    : Platform.OS === "ios"
+                      ? "You subscribed in the app, so renewal is managed in the App Store."
+                      : "You subscribed in the app, so renewal is managed in Google Play."}
+                </Text>
+                <TouchableOpacity style={styles.secondaryBtn} onPress={handleOpenStore} activeOpacity={0.85}>
+                  <Text style={[styles.secondaryText, isTamil ? TamilType.body : EnType.body]}>
+                    {isTamil ? "கடையில் சந்தாவை நிர்வகி" : "Manage in the store"}
+                  </Text>
+                </TouchableOpacity>
+              </>
+            ) : manageAction === "cancel_in_app" ? (
+              <TouchableOpacity
+                style={[styles.secondaryBtn, cancelling && styles.btnBusy]}
+                onPress={handleStopRenewing}
+                disabled={cancelling}
+                activeOpacity={0.85}
+              >
+                <Text style={[styles.secondaryText, isTamil ? TamilType.body : EnType.body]}>
+                  {cancelling
+                    ? "…"
+                    : isTamil
+                      ? "புதுப்பித்தலை நிறுத்து"
+                      : "Stop renewing"}
+                </Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+        ) : (
+          <>
+            {/* Plan selector */}
+            <View style={styles.planRow}>
+              <TouchableOpacity
+                style={[styles.planPill, selectedPlan === "monthly" && styles.planPillActive]}
+                onPress={() => { Haptics.selectionAsync(); setSelectedPlan("monthly"); }}
+                activeOpacity={0.85}
+              >
+                <Text
+                  style={[
+                    styles.planLabel,
+                    selectedPlan === "monthly" && styles.planLabelActive,
+                    isTamil ? { fontFamily: "NotoSansTamil_400Regular" } : { fontFamily: "Inter_400Regular" },
+                  ]}
+                >
+                  {monthlyPrice
+                    ? isTamil ? `${monthlyPrice} / மாதம்` : `${monthlyPrice} / month`
+                    : isTamil ? "மாதச் சந்தா" : "Monthly"}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.planPill, selectedPlan === "annual" && styles.planPillActive]}
+                onPress={() => { Haptics.selectionAsync(); setSelectedPlan("annual"); }}
+                activeOpacity={0.85}
+              >
+                <Text
+                  style={[
+                    styles.planLabel,
+                    selectedPlan === "annual" && styles.planLabelActive,
+                    isTamil ? { fontFamily: "NotoSansTamil_400Regular" } : { fontFamily: "Inter_400Regular" },
+                  ]}
+                >
+                  {annualPrice
+                    ? isTamil ? `${annualPrice} / ஆண்டு` : `${annualPrice} / year`
+                    : isTamil ? "ஆண்டுச் சந்தா" : "Yearly"}
+                </Text>
+                {savingsPct >= 5 && (
+                  <View style={styles.savingsBadge}>
+                    <Text style={styles.savingsText}>
+                      {isTamil ? `${savingsPct}% சேமிப்பு!` : `${savingsPct}% off!`}
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
             </View>
-          </TouchableOpacity>
-        </View>
 
-        {/* CTA */}
-        <TouchableOpacity style={styles.ctaBtn} onPress={handleSubscribe} activeOpacity={0.85}>
-          <Text style={[styles.ctaText, isTamil ? TamilType.heading : EnType.heading]}>
-            {isTamil ? "Premium தொடங்கு" : "Start Premium"}
-          </Text>
-        </TouchableOpacity>
+            {/* CTA */}
+            <TouchableOpacity style={styles.ctaBtn} onPress={handleSubscribe} activeOpacity={0.85}>
+              <Text style={[styles.ctaText, isTamil ? TamilType.heading : EnType.heading]}>
+                {isTamil ? "Premium தொடங்கு" : "Start Premium"}
+              </Text>
+            </TouchableOpacity>
 
-        <Text style={[styles.trialNote, isTamil ? TamilType.caption : EnType.caption]}>
-          {isTamil
-            ? "7 நாட்கள் இலவச சோதனை. எந்த நேரத்திலும் ரத்து செய்யலாம்."
-            : "7-day free trial. Cancel anytime."}
-        </Text>
+            <Text style={[styles.trialNote, isTamil ? TamilType.caption : EnType.caption]}>
+              {isTamil
+                ? "எந்த நேரத்திலும் ரத்து செய்யலாம். செலுத்திய காலம் முடியும் வரை Premium தொடரும்."
+                : "Cancel any time; Premium continues to the end of the paid period."}
+            </Text>
+          </>
+        )}
 
         <TouchableOpacity style={styles.restoreBtn} onPress={handleRestore}>
           <Text style={[styles.restoreText, isTamil ? TamilType.caption : EnType.caption]}>
@@ -384,6 +576,28 @@ function makeStyles(C: ColorTokens) { return StyleSheet.create({
   },
   ctaText: { color: C.textPrimary },
   trialNote: { textAlign: "center", color: C.textTertiary },
+  noticeCard: {
+    backgroundColor: C.surface,
+    borderRadius: RADIUS.card,
+    borderWidth: 1,
+    borderColor: C.divider,
+    padding: S.base,
+    gap: S.sm,
+  },
+  noticeTitle: { color: C.textPrimary },
+  noticeText: { color: C.textSecond },
+  secondaryBtn: {
+    minHeight: 48,
+    borderRadius: RADIUS.button,
+    borderWidth: 1.5,
+    borderColor: C.gold,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: S.base,
+    marginTop: S.xs,
+  },
+  secondaryText: { color: C.textPrimary },
+  btnBusy: { opacity: 0.6 },
   laterBtn: { alignItems: "center", paddingVertical: S.sm },
   laterText: { color: C.textTertiary },
   restoreBtn: { alignItems: "center", paddingVertical: S.xs },

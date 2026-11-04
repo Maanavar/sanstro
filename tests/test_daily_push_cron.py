@@ -194,8 +194,9 @@ def test_dispatch_for_user_uses_current_location_for_daily_panchangam(monkeypatc
             rahu_kalam=rahu,
         )
 
-    monkeypatch.setattr("app.services.daily_push_cron._latest_active_profile", lambda *_: profile)
+    monkeypatch.setattr("app.services.daily_push_cron._own_profile", lambda *_: profile)
     monkeypatch.setattr("app.services.daily_push_cron._latest_completed_chart", lambda *_: chart)
+    monkeypatch.setattr("app.services.daily_push_cron._chandrashtama_fallback", lambda *_: False)
     monkeypatch.setattr("app.services.daily_push_cron._morning_alert_due", lambda *_: True)
     monkeypatch.setattr("app.services.daily_push_cron._already_sent_today", lambda *_: False)
     monkeypatch.setattr("app.services.daily_push_cron.calculate_daily_panchangam", fake_calculate_daily_panchangam)
@@ -223,3 +224,90 @@ def test_dispatch_for_user_uses_current_location_for_daily_panchangam(monkeypatc
     notification_kwargs = captured["notification_kwargs"]
     assert notification_kwargs["nalla_neram_category_en"] == "Labham"
     assert "profit" in notification_kwargs["nalla_neram_purpose_en"]
+
+
+# ---------------------------------------------------------------------------
+# F6 — a guidance failure must not silently clear Chandrashtamam
+# ---------------------------------------------------------------------------
+
+def _morning_push_with_failed_guidance(monkeypatch, *, fallback_answer: bool) -> dict:
+    """One morning push where `get_daily_guidance` raises; returns the dispatched kwargs."""
+    import app.services.daily_push_cron as cron
+
+    user = MagicMock(user_id=uuid4(), email="user@example.com")
+    pref = MagicMock(morning_alert_enabled=True, dasha_alert_enabled=False, pirantha_naal_alert_enabled=False)
+    profile = MagicMock(current_latitude=13.08, current_longitude=80.27, current_timezone="Asia/Kolkata")
+    chart = MagicMock(chart_id=uuid4())
+
+    slot = MagicMock(start=datetime(2026, 10, 9, 4, 0, tzinfo=UTC), end=datetime(2026, 10, 9, 5, 0, tzinfo=UTC))
+    slot.name = "LABHAM"
+    rahu = MagicMock(start=datetime(2026, 10, 9, 7, 30, tzinfo=UTC), end=datetime(2026, 10, 9, 9, 0, tzinfo=UTC))
+    panchang = MagicMock(
+        nakshatra_number=1,
+        nakshatra_spans=(),
+        sunrise=datetime(2026, 10, 9, 0, 30, tzinfo=UTC),
+        sunset=datetime(2026, 10, 9, 12, 30, tzinfo=UTC),
+        tithi_number=5,
+        date_local=date(2026, 10, 9),
+        nalla_neram=[slot],
+        rahu_kalam=rahu,
+    )
+
+    def failing_guidance(*_):
+        raise RuntimeError("guidance unavailable")
+
+    sent: dict = {}
+    monkeypatch.setattr(cron, "_own_profile", lambda *_: profile)
+    monkeypatch.setattr(cron, "_latest_completed_chart", lambda *_: chart)
+    monkeypatch.setattr(cron, "_morning_alert_due", lambda *_: True)
+    monkeypatch.setattr(cron, "_already_sent_today", lambda *_: False)
+    monkeypatch.setattr(cron, "calculate_daily_panchangam", lambda *_: panchang)
+    monkeypatch.setattr(cron, "build_nakshatra_perspective", lambda *_: None)
+    monkeypatch.setattr(cron, "get_daily_guidance", failing_guidance)
+    monkeypatch.setattr(cron, "_chandrashtama_fallback", lambda *_: fallback_answer)
+    monkeypatch.setattr(cron, "focus_push_line", lambda *_: None)
+    monkeypatch.setattr(cron, "dispatch_notification", lambda **kw: sent.update(kw) or "sent_push")
+
+    cron._dispatch_for_user(MagicMock(), user, pref, date(2026, 10, 9), datetime(2026, 10, 9, 0, 30, tzinfo=UTC))
+    return sent
+
+
+def test_failed_guidance_still_warns_on_a_chandrashtama_day(monkeypatch):
+    """With the old flat ``False`` fallback this body carries no warning."""
+    sent = _morning_push_with_failed_guidance(monkeypatch, fallback_answer=True)
+    assert "Chandrashtama" in sent["body_en"]
+    assert "சந்திராஷ்டமம்" in sent["body_ta"]
+
+
+def test_failed_guidance_adds_no_warning_on_an_ordinary_day(monkeypatch):
+    sent = _morning_push_with_failed_guidance(monkeypatch, fallback_answer=False)
+    assert "Chandrashtama" not in sent["body_en"]
+
+
+def test_chandrashtama_fallback_reads_the_charts_own_moon(monkeypatch):
+    """The fallback asks the shared almanac test with the stored Moon's rasi and star."""
+    import app.services.daily_push_cron as cron
+
+    captured: dict = {}
+
+    def fake_is_chandrashtama_day(day, tz, lat, lon, *, natal_moon_rasi, janma_nakshatra):
+        captured.update(day=day, tz=tz, rasi=natal_moon_rasi, star=janma_nakshatra)
+        return True
+
+    monkeypatch.setattr(cron, "is_chandrashtama_day", fake_is_chandrashtama_day)
+    session = MagicMock()
+    # 45.0° sidereal: Rishabam (rasi 2), Rohini (star 4).
+    session.execute.return_value.scalar_one_or_none.return_value = MagicMock(absolute_longitude=45.0)
+    location = MagicMock(timezone="Asia/Kolkata", latitude=13.08, longitude=80.27)
+
+    assert cron._chandrashtama_fallback(session, MagicMock(), date(2026, 10, 9), location) is True
+    assert captured == {"day": date(2026, 10, 9), "tz": "Asia/Kolkata", "rasi": 2, "star": 4}
+
+
+def test_chandrashtama_fallback_answers_false_without_a_moon_row():
+    session = MagicMock()
+    session.execute.return_value.scalar_one_or_none.return_value = None
+    import app.services.daily_push_cron as cron
+
+    location = MagicMock(timezone="Asia/Kolkata", latitude=13.08, longitude=80.27)
+    assert cron._chandrashtama_fallback(session, MagicMock(), date(2026, 10, 9), location) is False

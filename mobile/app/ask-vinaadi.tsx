@@ -24,7 +24,7 @@ import { getDailyStatus, askVinaadi } from "@/api/askVinaadi";
 import { ApiError } from "@/api/client";
 import { useLifeFocus } from "@/hooks/useLifeFocus";
 import { askChipsForMode } from "@vinaadi/shared/lifeFocus";
-import { askAllowanceRefilled, askLimitMessage } from "@vinaadi/shared/askAllowance";
+import { ASK_PAUSED_MESSAGE, askCreditsLine, askLimitMessage, askOutOfQuestions } from "@vinaadi/shared/askAllowance";
 import { trackEvent } from "@/lib/analytics";
 import { accountKey } from "@/lib/queryKeys";
 
@@ -72,8 +72,14 @@ export default function AskVinaadiScreen() {
   // fallback of 5, so `atLimit` was always false and the limit bar never showed.
   // A count from before the reset instant no longer blocks: the server decides.
   const chipsLeft = statusData?.chipsRemaining;
-  const atLimit =
-    chipsLeft !== null && chipsLeft !== undefined && chipsLeft <= 0 && !askAllowanceRefilled(statusData?.resetsAt);
+  const creditsLeft = statusData?.creditsRemaining ?? 0;
+  // Out only when the allowance AND any bought credits are spent: blocking on
+  // the allowance alone locked out a reader holding credits (audit U4).
+  const atLimit = askOutOfQuestions(statusData);
+  // Kill switch off or today's spend cap reached: said before the reader
+  // types, not as an error after (audit U4).
+  const askPaused = statusData?.askPaused === true;
+  const blocked = atLimit || askPaused;
   // Same rule as web: no upgrade to a subscriber, and none in the open beta,
   // which promised every feature unlocked.
   const canUpgrade = statusData !== undefined && !statusData.isPremium && !statusData.openBeta;
@@ -91,6 +97,16 @@ export default function AskVinaadiScreen() {
     }, Math.min(wait + 1000, 2_147_483_647));
     return () => clearTimeout(timer);
   }, [atLimit, resetsAt, queryClient]);
+
+  // A pause lifts on the server with nothing here to notice it. Re-read every
+  // few minutes while paused; bounded, and it stops once Ask is back.
+  useEffect(() => {
+    if (!askPaused) return;
+    const timer = setTimeout(() => {
+      void queryClient.invalidateQueries({ queryKey: accountKey("ask-vinaadi-status") });
+    }, 5 * 60 * 1000);
+    return () => clearTimeout(timer);
+  }, [askPaused, statusData, queryClient]);
 
   // Gate: guests and registered users without a chartId need to go create a chart first
   if (tier === "guest") {
@@ -193,12 +209,17 @@ export default function AskVinaadiScreen() {
         caveat: caveatText,
       };
       setMessages((prev) => [...prev, assistantMsg]);
+      // The allowance and the credit balance both moved; the header count
+      // reads them, and the answer reports neither.
+      void queryClient.invalidateQueries({ queryKey: statusKey });
     } catch (err: unknown) {
       const status = err instanceof Error && "status" in err ? (err as { status: number }).status : 0;
       const code = err instanceof ApiError ? err.apiError?.code : undefined;
       let errText = isTamil ? "பிழை ஏற்பட்டது. மீண்டும் முயற்சிக்கவும்." : "Something went wrong. Please try again.";
-      if (code === "RATE_LIMITED" && err instanceof ApiError && err.apiError) {
-        // Also a 429, but "slow down", not a spent quota.
+      if ((code === "RATE_LIMITED" || code === "SERVICE_UNAVAILABLE") && err instanceof ApiError && err.apiError) {
+        // RATE_LIMITED is also a 429, but "slow down", not a spent quota.
+        // SERVICE_UNAVAILABLE: Ask is paused, or today's spend cap is reached
+        // (spec L7); the server's words say which.
         errText = isTamil ? err.apiError.message.ta : err.apiError.message.en;
       } else if (status === 429) {
         // Re-read the status so the limit bar appears with the server's
@@ -234,8 +255,15 @@ export default function AskVinaadiScreen() {
           </Text>
         </View>
         {chipsLeft !== null && chipsLeft !== undefined && (
-          <View style={styles.chipCountBadge}>
-            <Text style={styles.chipCountText}>{chipsLeft}</Text>
+          <View
+            style={styles.chipCountBadge}
+            accessibilityLabel={
+              creditsLeft > 0
+                ? `${isTamil ? `இன்று ${chipsLeft} மீதம்` : `${chipsLeft} left today`}, ${askCreditsLine(creditsLeft, lang)}`
+                : (isTamil ? `இன்று ${chipsLeft} மீதம்` : `${chipsLeft} left today`)
+            }
+          >
+            <Text style={styles.chipCountText}>{chipsLeft + creditsLeft}</Text>
           </View>
         )}
       </View>
@@ -329,7 +357,7 @@ export default function AskVinaadiScreen() {
                   });
                   void sendMessage(isTamil ? q.ta : q.en, true);
                 }}
-                disabled={atLimit}
+                disabled={blocked}
                 activeOpacity={0.85}
               >
                 <Text style={[styles.suggestChipText, isTamil ? TamilType.caption : EnType.caption]}>
@@ -363,19 +391,37 @@ export default function AskVinaadiScreen() {
             placeholderTextColor={C.textTertiary}
             multiline
             maxLength={500}
-            editable={!atLimit}
+            editable={!blocked}
             returnKeyType="send"
             onSubmitEditing={() => sendMessage(input)}
           />
           <TouchableOpacity
-            style={[styles.sendBtn, (!input.trim() || isSending || atLimit) && styles.sendBtnDisabled]}
+            style={[styles.sendBtn, (!input.trim() || isSending || blocked) && styles.sendBtnDisabled]}
             onPress={() => sendMessage(input)}
-            disabled={!input.trim() || isSending || atLimit}
+            disabled={!input.trim() || isSending || blocked}
             activeOpacity={0.85}
           >
             <Text style={styles.sendBtnText}>→</Text>
           </TouchableOpacity>
         </View>
+
+        {askPaused && !atLimit && (
+          <View style={styles.limitBar} accessibilityRole="alert">
+            <Text style={[styles.limitBarText, isTamil ? TamilType.caption : EnType.caption]}>
+              {ASK_PAUSED_MESSAGE[lang]}
+            </Text>
+          </View>
+        )}
+
+        {!blocked && chipsLeft === 0 && creditsLeft > 0 && (
+          <View style={styles.limitBar}>
+            <Text style={[styles.limitBarText, { color: C.textSecond }, isTamil ? TamilType.caption : EnType.caption]}>
+              {isTamil
+                ? `இன்றைய இலவச கேள்விகள் முடிந்தன; ${askCreditsLine(creditsLeft, lang)}`
+                : `Today's free questions are used; ${askCreditsLine(creditsLeft, lang)}`}
+            </Text>
+          </View>
+        )}
 
         {atLimit && (
           <View style={styles.limitBar}>

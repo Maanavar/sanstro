@@ -42,6 +42,7 @@ import type {
 import type { Tab } from "@/lib/dashboard-tabs";
 import type { StatusMessage } from "./dashboard-ui-nova";
 import { Presence } from "./ui/presence";
+import { AlertsPausedNote } from "./settings-privacy-choices";
 
 type LabelKey = Parameters<typeof t>[0];
 
@@ -699,6 +700,10 @@ export function DashboardHero(props: DashboardHeroProps) {
                 {/* tabIndex: a scroll region holding only text (read rows, the
                     day's alerts) is otherwise unreachable by keyboard. */}
                 <div className="cd-notif__body" tabIndex={0} aria-label={t("notif_section_title", lang)}>
+                  <AlertsPausedNote
+                    lang={lang}
+                    onOpenSettings={onOpenNotificationSettings ? () => { closeInbox(false); onOpenNotificationSettings(); } : undefined}
+                  />
                   {inboxItems.length === 0 && alertItems.length === 0 ? (
                     <div className="cd-notif__empty">
                       <span className="cd-notif__empty-disc" aria-hidden="true">

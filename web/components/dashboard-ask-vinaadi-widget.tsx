@@ -28,10 +28,12 @@ export function DashboardAskVinaadiWidget({ lang, chartId, goalTrack, activeLife
 
   // Counter badge — show remaining free chips when fewer than the daily allowance.
   useEffect(() => {
-    apiFetchJson<{ chipsRemaining: number | null; isPremium: boolean; dailyLimit: number }>(
+    apiFetchJson<{ chipsRemaining: number | null; isPremium: boolean; dailyLimit: number; creditsRemaining?: number }>(
       "/api/v1/ask-vinaadi/daily-status",
     )
-      .then((s) => setChipsRemaining(s.isPremium ? null : s.chipsRemaining))
+      // Bought credits count: they are spent after the allowance, so a reader
+      // holding them is not at zero (audit U4).
+      .then((s) => setChipsRemaining(s.isPremium || s.chipsRemaining === null ? null : s.chipsRemaining + (s.creditsRemaining ?? 0)))
       .catch(() => {});
   }, [open]);
 
@@ -79,7 +81,7 @@ export function DashboardAskVinaadiWidget({ lang, chartId, goalTrack, activeLife
         {lang === "ta" ? "கேள் வினாடி" : "Ask Vinaadi"}
         {showBadge && (
           <span
-            title={lang === "ta" ? `இன்று ${chipsRemaining} மீதம்` : `${chipsRemaining} left today`}
+            title={lang === "ta" ? `${chipsRemaining} கேள்விகள் மீதம்` : `${chipsRemaining} questions left`}
             style={{
               position: "absolute", top: "-6px", right: "-6px", minWidth: "18px", height: "18px",
               padding: "0 5px", borderRadius: "999px", background: chipsRemaining! > 0 ? "var(--chart-d9-active)" : "var(--planet-saturn)",

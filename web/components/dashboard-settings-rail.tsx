@@ -15,6 +15,7 @@ export type SettingsSectionId =
   | "experience"
   | "appearance"
   | "notifications"
+  | "billing"
   | "journal"
   | "privacy"
   | "danger";
@@ -31,6 +32,9 @@ const ITEMS: RailItem[] = [
   { id: "experience",    labelEn: "Experience",      labelTa: "அனுபவம்" },
   { id: "appearance",    labelEn: "Appearance",      labelTa: "தோற்றம்" },
   { id: "notifications", labelEn: "Notifications",   labelTa: "அறிவிப்புகள்" },
+  // Audit U3 (2026-11-03): the only way to the upgrade page, and so to
+  // "Stop renewing", from inside the signed-in app.
+  { id: "billing",       labelEn: "Plan & billing",  labelTa: "திட்டம் & கட்டணம்" },
   { id: "journal",       labelEn: "Journal & Data",  labelTa: "குறிப்பேடு & தரவு" },
   { id: "privacy",       labelEn: "Privacy & Legal", labelTa: "தனியுரிமை & சட்டம்" },
 ];

@@ -97,6 +97,9 @@ class FamilyMemberUpdate(BaseModel):
     relationship_to_owner: str | None = Field(default=None, alias="relationshipToOwner")
     member_weight: float | None = Field(default=None, alias="memberWeight", gt=0)
     gender_for_traditional_rules: str | None = Field(default=None, alias="genderForTraditionalRules")
+    # Per-member opt-in for the evening family digest (audit F5). Omitted means
+    # "leave alone" in a PATCH, like every other field here.
+    alerts_enabled: bool | None = Field(default=None, alias="alertsEnabled")
     # The edit modal has always sent birthDateLocal; this schema never declared
     # it, and pydantic drops unknown keys silently, so a corrected birth date
     # was discarded while the UI reported "updated". It is the one birth field
@@ -148,6 +151,7 @@ class FamilyMemberData(BaseModel):
     gender_for_traditional_rules: str = Field(alias="genderForTraditionalRules")
     date_of_birth_local: date | None = Field(default=None, alias="dateOfBirthLocal")
     is_minor: bool = Field(alias="isMinor")
+    alerts_enabled: bool = Field(default=False, alias="alertsEnabled")
     birth_profile_id: UUID | None = Field(default=None, alias="birthProfileId")
     marital_status: str | None = Field(default=None, alias="maritalStatus")
     employment_type: str | None = Field(default=None, alias="employmentType")

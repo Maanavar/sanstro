@@ -2,6 +2,7 @@
 
 from app.models.admin_audit_log import AdminAuditLog
 from app.models.admin_mfa import AdminMfaCredential, AdminRecoveryCode
+from app.models.ask_vinaadi_call import AskSpendAlert, AskVinaadiCall
 from app.models.ask_vinaadi_usage import AskVinaadiUsage
 from app.models.birth_profile import BirthProfile
 from app.models.chart import Chart
@@ -49,6 +50,8 @@ from app.models.varga_position import VargaPosition
 from app.models.webhook_event import WebhookEvent
 
 __all__ = [
+    "AskSpendAlert",
+    "AskVinaadiCall",
     "AskVinaadiUsage",
     "CreditLedgerEntry",
     "AdminAuditLog",

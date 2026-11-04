@@ -26,9 +26,11 @@ import {
   type ErasureResult,
   type FlagChange,
   type FlagEntry,
+  type LifeFocusMetrics,
   type MfaEnrolment,
   type RecoveryCodes,
 } from "@vinaadi/shared/api";
+import { AdminLifeFocusPanel } from "@/components/admin-life-focus-panel";
 import { formatDateTimeLabel } from "@/lib/format";
 
 type AdminStats = {
@@ -193,6 +195,14 @@ const tabs: Array<{ id: AdminTab; label: string; permission: string }> = [
   { id: "privacy", label: "Privacy", permission: "privacy.erase" },
   { id: "roles", label: "Roles", permission: "roles.grant" },
 ];
+
+/** `month` is "YYYY-MM" from the picker; empty means "the endpoint's default". */
+function lifeFocusPath(month: string): string {
+  const trimmed = month.trim();
+  return trimmed
+    ? `/api/v1/admin/analytics/life-focus?month=${encodeURIComponent(trimmed)}`
+    : "/api/v1/admin/analytics/life-focus";
+}
 
 function numberLabel(value: number | null | undefined) {
   if (typeof value !== "number") return "-";
@@ -393,6 +403,10 @@ export function AdminConsole() {
   const [dailyMetrics, setDailyMetrics] = useState<DailyMetrics | null>(null);
   const [featureUsage, setFeatureUsage] = useState<FeatureUsage | null>(null);
   const [retention, setRetention] = useState<RetentionReport | null>(null);
+  // Life Focus (audit U7). "" = whatever month the endpoint defaults to (the
+  // current one), so the first load needs no date arithmetic here.
+  const [lifeFocus, setLifeFocus] = useState<LifeFocusMetrics | null>(null);
+  const [lifeFocusMonth, setLifeFocusMonth] = useState("");
   const [calibration, setCalibration] = useState<CalibrationReport | null>(null);
   const [feedback, setFeedback] = useState<FeedbackResponse | null>(null);
   const [jobs, setJobs] = useState<JobInfo[]>([]);
@@ -511,7 +525,11 @@ export function AdminConsole() {
 
   useEffect(() => {
     if (!isUnlocked || activeTab !== "analytics") return;
+    // Load on tab activation only. loadAnalytics reads lifeFocusMonth, but the
+    // month picker reloads Life Focus itself (loadLifeFocus), so reacting to the
+    // month here would refetch all four reports on every pick.
     void loadAnalytics();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isUnlocked, activeTab]);
 
   useEffect(() => {
@@ -634,15 +652,31 @@ export function AdminConsole() {
     setLoading(true);
     setError(null);
     try {
-      const [daily, features, ret] = await Promise.all([
+      const [daily, features, ret, focus] = await Promise.all([
         adminFetchJson<DailyMetrics>("/api/v1/admin/analytics/daily?days=30"),
         adminFetchJson<FeatureUsage>("/api/v1/admin/analytics/features"),
         adminFetchJson<RetentionReport>("/api/v1/admin/analytics/retention"),
+        adminFetchJson<LifeFocusMetrics>(lifeFocusPath(lifeFocusMonth)),
       ]);
       setDailyMetrics(daily);
       setFeatureUsage(features);
       setRetention(ret);
+      setLifeFocus(focus);
       setStatus("Analytics refreshed.");
+    } catch (err) {
+      setError(readErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  /** Reload Life Focus alone, for the month selector (audit U7). */
+  async function loadLifeFocus() {
+    setLoading(true);
+    setError(null);
+    try {
+      setLifeFocus(await adminFetchJson<LifeFocusMetrics>(lifeFocusPath(lifeFocusMonth)));
+      setStatus("Life Focus measures refreshed.");
     } catch (err) {
       setError(readErrorMessage(err));
     } finally {
@@ -1445,6 +1479,14 @@ export function AdminConsole() {
                   </table>
                 </div>
               ) : null}
+
+              <AdminLifeFocusPanel
+                metrics={lifeFocus}
+                month={lifeFocusMonth}
+                onMonthChange={setLifeFocusMonth}
+                onRefresh={() => void loadLifeFocus()}
+                loading={loading}
+              />
             </section>
           ) : null}
 

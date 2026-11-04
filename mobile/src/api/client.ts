@@ -4,6 +4,7 @@ import { getTokens, setTokens } from "@/lib/secureStore";
 import { isTokenPair } from "@/lib/tokenPair";
 import { ENV } from "@/lib/env";
 import { currentGeneration, isCurrentGeneration } from "@/lib/sessionIdentity";
+import { requestConsentSheet } from "@/lib/consentPrompt";
 import {
   apiErrorDetail,
   initApiClient,
@@ -234,6 +235,9 @@ export async function apiDelete(url: string): Promise<void> {
 export class ApiError extends Error {
   static async fromResponse(response: Response): Promise<ApiError> {
     const apiError = await parseApiError(response);
+    // The account has not agreed to the service purpose: offer the consent
+    // sheet rather than leave the caller with an error it cannot resolve.
+    if (apiError.code === "CONSENT_REQUIRED") requestConsentSheet();
     return new ApiError(response.status, apiErrorDetail(apiError), apiError);
   }
 

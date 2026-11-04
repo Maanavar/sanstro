@@ -6,7 +6,7 @@ separate premium flag to the user model (see GROWTH_FEATURES.md key decision #8)
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from sqlalchemy import or_
@@ -91,11 +91,33 @@ def limits_for_user(user_id: UUID, db: Session) -> TierLimits:
     subscriber, so `/auth/me` keeps reporting the true tier and carries
     `openBeta` and `accessState` beside it.
     """
+    return limits_for_state(limits_state_for_user(user_id, db))
+
+
+LimitsState = Literal["premium", "trial", "beta", "registered"]
+
+
+def limits_state_for_user(user_id: UUID, db: Session) -> LimitsState:
+    """Which rung of the `limits_for_user` ladder this account stands on.
+
+    Named separately so a setting keyed by rung (the Ask quota, spec L7) reads
+    the same ladder instead of re-deriving it.
+    """
     state = access_for_user(user_id, db).state
-    if state == "premium":
-        return TIER_LIMITS["premium"]
-    if state == "trial":
-        return TRIAL_LIMITS
+    if state in ("premium", "trial"):
+        return state
     if open_beta_active():
-        return OPEN_BETA_LIMITS
-    return TIER_LIMITS["registered"]
+        return "beta"
+    return "registered"
+
+
+_LIMITS_BY_STATE: dict[str, TierLimits] = {
+    "premium": TIER_LIMITS["premium"],
+    "trial": TRIAL_LIMITS,
+    "beta": OPEN_BETA_LIMITS,
+    "registered": TIER_LIMITS["registered"],
+}
+
+
+def limits_for_state(state: LimitsState) -> TierLimits:
+    return _LIMITS_BY_STATE[state]

@@ -150,6 +150,55 @@ def test_future_inbox_only_intent_expires_without_staying_queued(client) -> None
         assert intent.suppression_reason == "expired"
 
 
+def test_family_digest_reaches_the_inbox_when_owner_channel_is_none(client) -> None:
+    """A family digest about an opted-in member is still delivered to the in-app
+    bell when the owner has turned off their own push/email channel. This is the
+    deliberate, privacy-respecting behaviour: the per-member opt-in chooses who
+    is in the digest, not whether the owner's global "none" is overridden to
+    start pushing. The gate would re-open only if the delivery path were ever
+    taught to decouple family alerts from the owner's channel; this pins it shut.
+
+    Blind spot: proves the dispatch outcome and the inbox row, not the cron that
+    assembles the digest copy (test_family_alert_digest.py) nor any UI hint.
+    """
+    now = datetime.now(UTC)
+    logical_key = f"test:outbox:family-digest-none:{uuid4()}"
+    _configure("none")
+    with SessionLocal.begin() as session:
+        result = dispatch.dispatch_notification(
+            session=session,
+            user_id=TEST_USER_ID,
+            notification_type="FAMILY_DIGEST",
+            title_ta="குடும்ப எச்சரிக்கை",
+            title_en="Family alert",
+            body_ta="அம்மா: நாளை பிறந்த நட்சத்திரம்.",
+            body_en="Amma: birth-star day tomorrow.",
+            logical_key=logical_key,
+            send_at=now,
+            expires_at=now + timedelta(hours=12),
+            priority=70,
+        )
+        # Not "no_consent" (consent is granted) and not "queued" (no channel) —
+        # the inbox-only path.
+        assert result == "in_app_only"
+
+    with SessionLocal() as session:
+        intent = session.execute(
+            select(Notification).where(Notification.logical_key == logical_key)
+        ).scalar_one()
+        assert intent.status == "sent"
+        deliveries = session.execute(
+            select(NotificationDelivery).where(
+                NotificationDelivery.notification_id == intent.notification_id
+            )
+        ).scalars().all()
+        assert deliveries == []  # nothing pushed or emailed
+
+    inbox = client.get("/api/v1/notifications")
+    assert inbox.status_code == 200
+    assert str(intent.notification_id) in {row["notification_id"] for row in inbox.json()["data"]}
+
+
 def test_partial_channel_success_retries_only_failed_channel(client, monkeypatch) -> None:
     now = datetime.now(UTC)
     notification_id = _enqueue(

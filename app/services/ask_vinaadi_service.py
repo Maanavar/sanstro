@@ -8,11 +8,15 @@ Rate limit: enforced by the DB-backed ask_vinaadi_usage table (see
 app.services.ask_vinaadi_usage_service). That table is the single source of
 truth — this service no longer keeps an in-process counter, so the limit is
 correct across multiple workers/restarts.
+
+Cost: every provider call is metered (app.services.ask_vinaadi_metering) with
+`ASK_PROMPT_VERSION`, the model, tokens, cost and latency (spec L7).
 """
 from __future__ import annotations
 
 import json
 import logging
+import time
 from datetime import UTC, datetime
 from uuid import UUID
 
@@ -38,6 +42,8 @@ from app.models import BirthProfile, Chart
 from app.reasoning.verdict import legacy_confidence_to_band
 from app.schemas.ask_vinaadi import AskVinaadiResponse, AskVinaadiResponseData, AskVinaadiVerdict, BiText
 from app.schemas.dasha import ResponseMeta
+from app.services.ask_vinaadi_metering import record_call, usage_from_message
+from app.services.ask_vinaadi_topics import sensitive_topics
 from app.services.chart_service import load_persisted_chart_response
 from app.services.life_focus_service import chart_goal_track, is_own_chart, resolve_focus
 from app.services.location_service import resolve_effective_daily_location
@@ -51,6 +57,14 @@ _CALC_VERSION = API_RESPONSE_VERSION
 # Hard ceiling on how long we will wait for the Anthropic API before giving up,
 # so a hung request cannot pin a worker thread indefinitely.
 _CLAUDE_TIMEOUT_SECONDS = 30.0
+
+_MODEL = "claude-sonnet-4-6"
+
+#: Names the exact instructions an answer was produced under: `_SYSTEM_PROMPT`
+#: and `_SAFETY_ADDENDUM`. Stored on every metered call (spec L7), so a change in
+#: answers can be traced to a prompt change. Bump it with any edit to either;
+#: tests/test_ask_rails.py pins their fingerprint to this value.
+ASK_PROMPT_VERSION = "ask-2026-11-02"
 
 
 # ── System prompt ─────────────────────────────────────────────────────────────
@@ -105,6 +119,34 @@ CONSTRAINTS:
 - Never invent planetary positions not in the provided chart context
 - Keep signals_used to the actual astrological factors referenced in the answer\
 """
+
+
+# ── Safety addendum (spec L7, D-16) ──────────────────────────────────────────
+#
+# Added to the question, not the system prompt, when the question touches a
+# sensitive topic (app.services.ask_vinaadi_topics), so the system prompt stays
+# one fixed text. `{topics}` and `{self_harm}` are filled per question.
+
+_SAFETY_ADDENDUM = """\
+SAFETY — this question touches: {topics}.
+- Never predict death, its timing or likelihood, or state the outcome of an illness, a pregnancy or a marriage as certain.
+- Do not diagnose or advise on treatment, legal steps or money; name the right professional (doctor, lawyer, financial adviser) to consult.
+- Speak gently. Do not frighten. Frame difficult periods as times for care and support, with a remedy or prayer that comforts.
+- Set "verdict.kind" to "NA" unless the question is a plain decision that can be answered without any of the above.{self_harm}\
+"""
+
+_SELF_HARM_ADDENDUM = """
+- The person may be thinking of harming themselves. Put their safety before any astrology: say plainly that you care, \
+urge them to talk now to someone they trust, and give India's free 24-hour Tele-MANAS helpline, 14416. \
+Keep any astrology brief and hopeful, and never suggest that a planetary period makes harm likely or inevitable.\
+"""
+
+
+def _safety_addendum(topics: tuple[str, ...]) -> str:
+    if not topics:
+        return ""
+    self_harm = _SELF_HARM_ADDENDUM if "self_harm" in topics else ""
+    return _SAFETY_ADDENDUM.format(topics=", ".join(t.replace("_", " ") for t in topics), self_harm=self_harm)
 
 
 # ── Calibration-log area classifier (P1-3) ──────────────────────────────────
@@ -325,7 +367,7 @@ def _is_credit_balance_error(exc: Exception) -> bool:
     return "credit balance" in str(exc).lower()
 
 
-def _call_claude(context: str, question: str) -> dict:
+def _call_claude(context: str, question: str, *, topics: tuple[str, ...] = ()) -> dict:
     settings = get_settings()
     api_key = settings.anthropic_api_key
     if not api_key:
@@ -344,10 +386,36 @@ def _call_claude(context: str, question: str) -> dict:
 
     client = anthropic.Anthropic(api_key=api_key, timeout=_CLAUDE_TIMEOUT_SECONDS, max_retries=1)
     user_message = f"Chart context:\n{context}\n\nQuestion: {question}"
+    addendum = _safety_addendum(topics)
+    if addendum:
+        user_message = f"{user_message}\n\n{addendum}"
 
+    # Metered on every outcome once the provider has been asked: a reply we
+    # could not use was still billed, and a failure's latency is still news.
+    started = time.monotonic()
+    message = None
+    answered = False
     try:
-        message = client.messages.create(
-            model="claude-sonnet-4-6",
+        message = _send(client, anthropic, user_message)
+        parsed = _parse_provider_payload(_answer_text(message))
+        answered = True
+        return parsed
+    finally:
+        record_call(
+            model=_MODEL,
+            prompt_version=ASK_PROMPT_VERSION,
+            usage=usage_from_message(message),
+            latency_ms=int((time.monotonic() - started) * 1000),
+            outcome="answered" if answered else ("unusable" if message is not None else "provider_error"),
+            flags=topics,
+        )
+
+
+def _send(client, anthropic, user_message: str):  # noqa: ANN001 — the SDK module is imported lazily above
+    """One provider request, with its failures mapped to bounded HTTP errors."""
+    try:
+        return client.messages.create(
+            model=_MODEL,
             max_tokens=1400,
             system=_SYSTEM_PROMPT,
             messages=[{"role": "user", "content": user_message}],
@@ -424,6 +492,8 @@ def _call_claude(context: str, question: str) -> dict:
             detail="Vinaadi could not be reached. Please try again shortly.",
         ) from exc
 
+
+def _answer_text(message) -> str:  # noqa: ANN001 — an SDK Message
     # Guard the response shape: an empty or non-text content block must not raise
     # an IndexError/AttributeError that surfaces as an opaque 500.
     raw = ""
@@ -437,8 +507,7 @@ def _call_claude(context: str, question: str) -> dict:
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="Vinaadi returned an empty response. Please try again.",
         )
-
-    return _parse_provider_payload(raw)
+    return raw
 
 
 def _parse_provider_payload(raw: str) -> dict:
@@ -506,7 +575,7 @@ def answer_question(
         session, chart_id, owner_user_id
     )
 
-    result = _call_claude(context_text, question)
+    result = _call_claude(context_text, question, topics=sensitive_topics(question))
     count = used_before + 1
 
     ta_answer = result.get("ta", "")

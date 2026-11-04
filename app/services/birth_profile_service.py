@@ -593,6 +593,50 @@ def list_birth_profiles_for_owner(
     return results
 
 
+def find_owner_birth_profile(
+    session: Session,
+    owner_user_id: UUID,
+    *,
+    include_other_family: bool = False,
+) -> BirthProfile | None:
+    """The owner's own birth profile, or None.
+
+    Ordering preference:
+    1) Direct personal profile (not attached to a family member) — oldest first,
+       so the user's real onboarding profile wins over any ephemeral temp profiles
+       created by tools like chart-generate (which are always newer).
+    2) Family member profile where relationship is `self`
+    3) Any other owned profile — only with ``include_other_family``.
+
+    Anything that speaks to the user ABOUT the user (alerts, the daily push)
+    must leave ``include_other_family`` off: tier 3 is someone else's chart.
+    The push cron used to pick the newest owned profile, so adding a family
+    member silently moved every alert onto that member's chart.
+    """
+    tier = case(
+        (BirthProfile.family_member_id.is_(None), 0),
+        (FamilyMember.relationship_to_owner == "self", 1),
+        else_=2,
+    )
+    stmt = (
+        select(BirthProfile)
+        .outerjoin(FamilyMember, BirthProfile.family_member_id == FamilyMember.family_member_id)
+        .where(
+            BirthProfile.owner_user_id == owner_user_id,
+            BirthProfile.deleted_at.is_(None),
+        )
+        # Within each priority tier, prefer the oldest profile. For standalone
+        # profiles (priority 0) this ensures the user's real personal profile
+        # (created at onboarding) beats any ephemeral temp profiles created
+        # later by the chart-generate tool.
+        .order_by(tier, BirthProfile.created_at.asc())
+        .limit(1)
+    )
+    if not include_other_family:
+        stmt = stmt.where(tier < 2)
+    return session.execute(stmt).scalars().first()
+
+
 def get_latest_birth_profile_for_owner(
     session: Session,
     owner_user_id: UUID,
@@ -601,33 +645,9 @@ def get_latest_birth_profile_for_owner(
 ) -> BirthProfileGetResponse:
     """Return the owner's best personal profile candidate for dashboard restore.
 
-    Ordering preference:
-    1) Direct personal profile (not attached to a family member) — oldest first,
-       so the user's real onboarding profile wins over any ephemeral temp profiles
-       created by tools like chart-generate (which are always newer).
-    2) Family member profile where relationship is `self`
-    3) Any other owned profile
+    Ordering is `find_owner_birth_profile`'s, falling back to any owned profile.
     """
-    birth_profile = session.execute(
-        select(BirthProfile)
-        .outerjoin(FamilyMember, BirthProfile.family_member_id == FamilyMember.family_member_id)
-        .where(
-            BirthProfile.owner_user_id == owner_user_id,
-            BirthProfile.deleted_at.is_(None),
-        )
-        .order_by(
-            case(
-                (BirthProfile.family_member_id.is_(None), 0),
-                (FamilyMember.relationship_to_owner == "self", 1),
-                else_=2,
-            ),
-            # Within each priority tier, prefer the oldest profile. For standalone
-            # profiles (priority 0) this ensures the user's real personal profile
-            # (created at onboarding) beats any ephemeral temp profiles created
-            # later by the chart-generate tool.
-            BirthProfile.created_at.asc(),
-        )
-    ).scalars().first()
+    birth_profile = find_owner_birth_profile(session, owner_user_id, include_other_family=True)
 
     if birth_profile is None:
         raise AppError(ErrorCode.BIRTH_PROFILE_NOT_FOUND)

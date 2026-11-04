@@ -791,6 +791,7 @@
    "editMember": {
     "busySaving": false,
     "editMember": {
+     "alertsEnabled": false,
      "birthDateLocal": "1992-03-03",
      "birthLatitude": "11.5",
      "birthLongitude": "78.25",
@@ -812,7 +813,8 @@
     "lang": "en",
     "onChange": "ƒ",
     "onClose": "ƒ",
-    "onSave": "ƒ"
+    "onSave": "ƒ",
+    "ownerNotificationChannel": null
    },
    "family": {
     "alertsLoading": false,
@@ -1947,7 +1949,8 @@
      "currentPlace": "",
      "recalculate": true,
      "relationshipToOwner": "spouse",
-     "memberWeight": 1.15
+     "memberWeight": 1.15,
+     "alertsEnabled": false
     }
    ],
    [
@@ -2093,6 +2096,7 @@
    "editMember": {
     "busySaving": false,
     "editMember": {
+     "alertsEnabled": false,
      "birthDateLocal": "1992-03-03",
      "birthLatitude": "11.5",
      "birthLongitude": "78.25",
@@ -2114,7 +2118,8 @@
     "lang": "en",
     "onChange": "ƒ",
     "onClose": "ƒ",
-    "onSave": "ƒ"
+    "onSave": "ƒ",
+    "ownerNotificationChannel": null
    },
    "family": {
     "alertsLoading": false,
@@ -7240,6 +7245,7 @@
     "→",
     "editMember.onChange",
     {
+     "alertsEnabled": false,
      "birthDateLocal": "1990-01-15",
      "birthLatitude": "11.5",
      "birthLongitude": "78.25",

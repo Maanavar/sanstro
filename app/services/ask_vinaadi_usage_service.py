@@ -1,15 +1,19 @@
 """Ask Vinaadi chip-usage accounting — tier-aware.
 
-The numbers live in app/core/tier_limits.py; this module only reads them through
-`limits_for_user`, so the open beta (OPEN_BETA_LIMITS: a daily fair-use cap) and
-a paid subscription (a monthly allowance) resolve in one place.
+The daily allowance is a setting per rung of the `limits_for_user` ladder
+(`ask_daily_limit_<state>` in feature_flags, spec L7 / ARC-07), whose defaults
+are the app/core/tier_limits.py constants. A tier with a monthly allowance (none
+today) still takes it from tier_limits.
 
 Daily caps are DB-backed and reset at the local date boundary; the monthly cap
-is summed from the same daily rows, so it needs no schema of its own.
+is summed from the same daily rows, so it needs no schema of its own. Once the
+allowance is spent, a bought question credit (the Ask top-up) is spent instead.
 """
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import UTC, date, datetime
+from typing import Literal
 from uuid import UUID, uuid4
 
 from fastapi import HTTPException, status
@@ -25,13 +29,24 @@ from app.core.clock import (
     next_accounting_day_start,
     next_accounting_month_start,
 )
-from app.core.subscription import is_premium, limits_for_user, open_beta_active
+from app.core.subscription import is_premium, limits_for_state, limits_state_for_user, open_beta_active
 from app.core.tier_limits import ask_vinaadi_limits
 from app.models.ask_vinaadi_usage import AskVinaadiUsage
+from app.services.ask_vinaadi_metering import spend_cap_reached
+from app.services.feature_flags import get_flag
+from app.services.kill_switch import switch_is_on
+from app.services.payment_service import credit_balance, return_credit, spend_credit
+
+#: The credit key the Ask top-up grants (`products.credit_grants`).
+ASK_CREDIT_KEY = "ask_question"
 
 
 def _limits(user_id: UUID, session: Session) -> tuple[int | None, int | None]:
-    return ask_vinaadi_limits(limits_for_user(user_id, session))
+    state = limits_state_for_user(user_id, session)
+    _, monthly_limit = ask_vinaadi_limits(limits_for_state(state))
+    if monthly_limit is not None:
+        return None, monthly_limit
+    return int(get_flag(f"ask_daily_limit_{state}")), None
 
 
 def _quota_day(*, clock: Clock = SYSTEM_CLOCK) -> date:
@@ -77,7 +92,8 @@ def get_daily_status(
     *,
     clock: Clock = SYSTEM_CLOCK,
 ) -> dict:
-    """Return chip usage: {chipsUsed, chipsRemaining, isPremium, openBeta, dailyLimit, monthlyLimit, resetsAt}.
+    """Return chip usage: {chipsUsed, chipsRemaining, isPremium, openBeta, dailyLimit, monthlyLimit, resetsAt,
+    creditsRemaining, askPaused}.
 
     `isPremium` is the subscription fact. `openBeta` tells the client that a
     spent daily allowance is a fair-use cap to wait out, not a paywall — so it
@@ -88,6 +104,12 @@ def get_daily_status(
     premium = is_premium(user_id, session)
     open_beta = open_beta_active() and not premium
     daily_limit, monthly_limit = _limits(user_id, session)
+    # Audit U4 (2026-11-03): bought credits were spent but never shown, and a
+    # paused Ask only surfaced as an error after the reader had typed.
+    extras = {
+        "creditsRemaining": max(0, credit_balance(session, user_id, ASK_CREDIT_KEY)),
+        "askPaused": not switch_is_on("enable_ask_vinaadi") or spend_cap_reached(session, clock=clock),
+    }
 
     if monthly_limit is not None:
         used = _get_monthly_count(session, user_id, clock=clock)
@@ -99,6 +121,7 @@ def get_daily_status(
             "dailyLimit": None,
             "monthlyLimit": monthly_limit,
             "resetsAt": _wire_instant(next_accounting_month_start(clock=clock)),
+            **extras,
         }
 
     usage = _get_usage(session, user_id, _quota_day(clock=clock))
@@ -111,6 +134,7 @@ def get_daily_status(
         "dailyLimit": daily_limit,
         "monthlyLimit": None,
         "resetsAt": _wire_instant(next_accounting_day_start(clock=clock)),
+        **extras,
     }
 
 
@@ -305,3 +329,68 @@ def refund_chip(
         .values(chip_count=AskVinaadiUsage.chip_count - 1)
     )
     session.flush()
+
+
+# ── One question: the allowance first, then a bought credit ──────────────────
+
+
+@dataclass(frozen=True)
+class AskReservation:
+    """What paid for one question, so `release_question` can give back the same thing."""
+
+    source: Literal["allowance", "credit"]
+    #: Allowance left after this question (0 when a credit paid).
+    chips_remaining: int | None
+    #: Ledger key of the spent credit; None for the allowance.
+    credit_spend_key: str | None = None
+
+
+def reserve_question(
+    session: Session,
+    user_id: UUID,
+    *,
+    clock: Clock = SYSTEM_CLOCK,
+) -> AskReservation:
+    """Claim the right to one question BEFORE the provider call.
+
+    The day's allowance goes first (`reserve_chip`). When it is spent, one
+    bought question credit is taken instead; with neither, the allowance's own
+    429 stands, so a client sees the same refusal it always has.
+
+    Concurrent questions from one account would both read a balance of 1 and
+    both spend it. The balance is read under a lock on the account's usage row
+    for today (which `reserve_chip` has just made sure exists), so the second
+    request waits for the first to commit and then reads 0.
+    """
+    try:
+        return AskReservation("allowance", reserve_chip(session, user_id, clock=clock))
+    except HTTPException as exc:
+        if exc.status_code != status.HTTP_429_TOO_MANY_REQUESTS:
+            raise
+        session.execute(
+            select(AskVinaadiUsage.id)
+            .where(AskVinaadiUsage.user_id == user_id, AskVinaadiUsage.usage_date == _quota_day(clock=clock))
+            .with_for_update()
+        )
+        if credit_balance(session, user_id, ASK_CREDIT_KEY) <= 0:
+            raise
+        key = spend_credit(session, user_id=user_id, credit_key=ASK_CREDIT_KEY, source_id=f"ask:{uuid4()}")
+        session.flush()
+        return AskReservation("credit", 0, key)
+
+
+def release_question(
+    session: Session,
+    user_id: UUID,
+    reservation: AskReservation,
+    *,
+    clock: Clock = SYSTEM_CLOCK,
+) -> None:
+    """Give back what paid for a question whose answer never arrived."""
+    if reservation.credit_spend_key is not None:
+        return_credit(
+            session, user_id=user_id, credit_key=ASK_CREDIT_KEY, spend_key=reservation.credit_spend_key
+        )
+        session.flush()
+        return
+    refund_chip(session, user_id, clock=clock)

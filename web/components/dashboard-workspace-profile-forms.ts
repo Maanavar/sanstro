@@ -325,7 +325,7 @@ export function useProfileForms({
         method: "PATCH",
         body: JSON.stringify(
           editMember.scope === "member"
-            ? { ...body, relationshipToOwner: editMember.relationshipToOwner, memberWeight: parseNumber(editMember.memberWeight, 1) }
+            ? { ...body, relationshipToOwner: editMember.relationshipToOwner, memberWeight: parseNumber(editMember.memberWeight, 1), alertsEnabled: editMember.alertsEnabled }
             : body,
         ),
       });
@@ -538,6 +538,7 @@ export function useProfileForms({
       displayName: member.displayName,
       relationshipToOwner: (row?.relationshipToOwner as Relationship) ?? "other",
       memberWeight: member.memberWeight.toFixed(2),
+      alertsEnabled: row?.alertsEnabled ?? false,
       birthDateLocal: bp.birthDateLocal ?? "",
       birthTimeLocal: bp.birthTimeLocal ?? "",
       birthPlace: bp.birthPlace ?? "",
@@ -568,6 +569,7 @@ export function useProfileForms({
       displayName: profile.displayName,
       relationshipToOwner: (profile.relationshipToOwner as Relationship) ?? "other",
       memberWeight: "1.00",
+      alertsEnabled: false,
       birthDateLocal: profile.birthDateLocal ?? "",
       birthTimeLocal: profile.birthTimeLocal ?? "",
       birthPlace: profile.birthPlace ?? "",

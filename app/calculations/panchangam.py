@@ -1831,6 +1831,54 @@ def is_chandrashtama_day(
     ))
 
 
+def chandrashtama_window_for_day(
+    date_local: date,
+    timezone_name: str,
+    latitude: float,
+    longitude: float,
+    *,
+    natal_moon_rasi: int,
+    janma_nakshatra: int,
+) -> PanchangamChandrashtamamNakshatraWindow | None:
+    """The whole of THIS chart's Chandrashtamam window that `date_local` is named
+    for, or None if the almanac does not name that day for this chart.
+
+    Which day: exactly `is_chandrashtama_day`, so an alert cannot name a day the
+    badge does not. The timing is not the day's list, which is clipped to its
+    solar day: under the உதய rule (D11) the named day's window usually OPENS the
+    afternoon before (2026-09-09 15:14 for the 10th), and the clipped list would
+    report it as opening at the 10th's sunrise. A person told "from 06:01" would
+    start something at 16:00 on the 9th inside the window. So the timing is
+    re-walked a day either side, which covers any star window (27 h at the
+    Moon's slowest), and the piece of this star and rasi that overlaps the named
+    day is returned with its true edges.
+    """
+    windows = chandrashtamam_janma_nakshatra_windows_for_day(
+        date_local, timezone_name, latitude, longitude,
+    )
+    own = own_chandrashtama_windows(
+        windows, janma_nakshatra=janma_nakshatra, natal_moon_rasi=natal_moon_rasi,
+    )
+    if not own:
+        return None
+    sunrise_jd, next_sunrise_jd = _solar_day_bounds_jd(
+        date_local, timezone_name, latitude, longitude,
+    )
+    wide = _chandrashtamam_janma_nakshatra_windows(
+        sunrise_jd - 1.0, next_sunrise_jd + 1.0, timezone_name,
+    )
+    anchor = own[0]
+    for window in wide:
+        if (
+            window.name == anchor.name
+            and (not anchor.rasi_number or window.rasi_number == anchor.rasi_number)
+            and window.start < anchor.end
+            and window.end > anchor.start
+        ):
+            return window
+    return anchor
+
+
 def _chandrashtamam_janma_nakshatra_windows(
     start_jd: float,
     end_jd: float,

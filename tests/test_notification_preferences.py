@@ -32,8 +32,20 @@ def test_get_notification_preferences_defaults(client):
     assert data["morningAlertEnabled"] is False
     assert data["dashaAlertEnabled"] is False
     assert data["piranthaNaalAlertEnabled"] is False
+    # On by default (audit F4): delivery still needs the updates consent.
+    assert data["chandrashtamaAlertEnabled"] is True
     assert data["smartSilenceEnabled"] is True
     assert data["fcmTokenRegistered"] is False
+
+
+def test_patch_chandrashtama_alert_off(client):
+    resp = client.patch(
+        "/api/v1/settings/notifications",
+        json={"chandrashtamaAlertEnabled": False},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["data"]["chandrashtamaAlertEnabled"] is False
+    assert client.get("/api/v1/settings/notifications").json()["data"]["chandrashtamaAlertEnabled"] is False
 
 
 def test_patch_notification_channel(client):

@@ -9,6 +9,7 @@ class NotificationPreferenceData(BaseModel):
     morning_alert_time: str = Field(alias="morningAlertTime", description="HH:MM local time")
     dasha_alert_enabled: bool = Field(alias="dashaAlertEnabled")
     pirantha_naal_alert_enabled: bool = Field(alias="piranthaNaalAlertEnabled")
+    chandrashtama_alert_enabled: bool = Field(alias="chandrashtamaAlertEnabled")
     smart_silence_enabled: bool = Field(alias="smartSilenceEnabled")
     fcm_token_registered: bool = Field(alias="fcmTokenRegistered")
 
@@ -28,6 +29,7 @@ class NotificationPreferenceUpdateRequest(BaseModel):
     morning_alert_time: str | None = Field(default=None, alias="morningAlertTime", description="HH:MM")
     dasha_alert_enabled: bool | None = Field(default=None, alias="dashaAlertEnabled")
     pirantha_naal_alert_enabled: bool | None = Field(default=None, alias="piranthaNaalAlertEnabled")
+    chandrashtama_alert_enabled: bool | None = Field(default=None, alias="chandrashtamaAlertEnabled")
     smart_silence_enabled: bool | None = Field(default=None, alias="smartSilenceEnabled")
 
     model_config = ConfigDict(populate_by_name=True)

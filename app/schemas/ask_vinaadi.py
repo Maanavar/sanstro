@@ -74,5 +74,13 @@ class AskVinaadiDailyStatus(BaseModel):
     daily_limit: int | None = Field(alias="dailyLimit")
     monthly_limit: int | None = Field(alias="monthlyLimit")
     resets_at: datetime = Field(alias="resetsAt")
+    #: Bought question credits left (the Ask top-up). Spent only after the
+    #: allowance, so a reader with `chipsRemaining: 0` can still ask while this
+    #: is above zero.
+    credits_remaining: int = Field(alias="creditsRemaining")
+    #: Ask is answering nobody right now: the kill switch is off or today's
+    #: spend cap is reached. A client shows that up front rather than after
+    #: the reader has typed a question.
+    ask_paused: bool = Field(alias="askPaused")
 
     model_config = ConfigDict(populate_by_name=True)

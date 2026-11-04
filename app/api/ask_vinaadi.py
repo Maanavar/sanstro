@@ -31,11 +31,12 @@ from app.schemas.ask_vinaadi import (
     BiText,
 )
 from app.schemas.dasha import ResponseMeta
+from app.services.ask_vinaadi_metering import assert_spend_headroom
 from app.services.ask_vinaadi_service import answer_question
 from app.services.ask_vinaadi_usage_service import (
     get_daily_status,
-    refund_chip,
-    reserve_chip,
+    release_question,
+    reserve_question,
 )
 from app.services.kill_switch import require_switch
 
@@ -278,14 +279,19 @@ def ask_vinaadi(
         if any(k in q_lower for k in SENIOR_MARRIAGE_REDIRECT_KEYWORDS):
             return _senior_marriage_redirect_response(payload.question)
 
-    # Feature 3 — claim the chip BEFORE the provider call, not after.
+    # Spend cap (spec L7) before the person's own allowance: at the cap nobody's
+    # question is answered today, and theirs should not be spent on a refusal.
+    assert_spend_headroom(session)
+
+    # Feature 3 — claim the question BEFORE the provider call, not after.
     #
     # Checking availability and then counting afterwards left a window in which
     # concurrent questions all passed the check and all called the provider: the
     # user got more answers than their quota allowed and we paid for every one.
     # Reserving first closes it; the cost is that a reservation must be given
     # back if the answer never arrives, which is what the except clause is for.
-    chips_remaining = reserve_chip(session, current_user.user_id)
+    # The day's allowance pays first, then a bought question credit.
+    reservation = reserve_question(session, current_user.user_id)
 
     try:
         response = answer_question(
@@ -295,8 +301,8 @@ def ask_vinaadi(
             owner_user_id=current_user.user_id,
         )
     except Exception:
-        refund_chip(session, current_user.user_id)
+        release_question(session, current_user.user_id, reservation)
         raise
 
-    response.data.chips_remaining = chips_remaining
+    response.data.chips_remaining = reservation.chips_remaining
     return response

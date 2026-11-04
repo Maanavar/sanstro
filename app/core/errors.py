@@ -84,11 +84,12 @@ def error_envelope(
     request: Request,
     detail: Any,
     field: str | None = None,
+    message: BilingualMessage | None = None,
 ) -> dict[str, Any]:
     stable_code = coerce_error_code(code)
     error: dict[str, Any] = {
         "code": stable_code.value,
-        "message": get_bilingual_error_message(stable_code),
+        "message": message or get_bilingual_error_message(stable_code),
         "request_id": _request_id(request),
     }
     if field:
@@ -176,7 +177,12 @@ def register_error_handlers(app) -> None:
             # them, and a typed raiser must not quietly lose what an untyped one
             # keeps.
             headers=exc.headers,
-            content=error_envelope(code=exc.code, request=request, detail=exc.detail, field=exc.field),
+            # `exc.message` is the catalogue's unless the raiser supplied its own
+            # (e.g. the Ask spend cap's "come back tomorrow"); before, a supplied
+            # message reached `detail` only and the client showed the catalogue's.
+            content=error_envelope(
+                code=exc.code, request=request, detail=exc.detail, field=exc.field, message=exc.message
+            ),
         )
 
     @app.exception_handler(HTTPException)

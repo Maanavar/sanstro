@@ -102,6 +102,25 @@ def _ledger(
     return bool(result.rowcount)
 
 
+def spend_credit(session: Session, *, user_id: UUID, credit_key: str, source_id: str) -> str:
+    """Take one credit (−1). The caller checks the balance under a lock it holds.
+
+    Returns the ledger key, which `return_credit` needs to give it back.
+    """
+    key = f"spend:{source_id}"
+    _ledger(session, user_id=user_id, credit_key=credit_key, delta=-1, source="spend", source_id=source_id, key=key)
+    return key
+
+
+def return_credit(session: Session, *, user_id: UUID, credit_key: str, spend_key: str) -> None:
+    """Give back a credit whose use never happened. Once per spend, by key."""
+    source_id = spend_key.removeprefix("spend:")
+    _ledger(
+        session, user_id=user_id, credit_key=credit_key, delta=1, source="return",
+        source_id=source_id, key=f"return:{source_id}",
+    )
+
+
 # ── Checkout ─────────────────────────────────────────────────────────────────
 
 

@@ -26,6 +26,18 @@ from uuid import UUID
 
 from app.calculations.doctrine_options import DoctrineOptions, validated
 from app.core.config import get_settings
+from app.core.tier_limits import OPEN_BETA_ASK_DAILY_LIMIT, TIER_LIMITS, TRIAL_ASK_DAILY_LIMIT
+
+#: Integer settings where a negative value has no meaning (a cap, a quota, a rate).
+_NON_NEGATIVE_INTS = frozenset({
+    "ask_daily_spend_cap_paise",
+    "ask_usd_inr_paise",
+    "ask_daily_limit_registered",
+    "ask_daily_limit_trial",
+    "ask_daily_limit_beta",
+    "ask_daily_limit_premium",
+    "max_birth_profiles_per_user",
+})
 
 
 def _defaults() -> dict[str, Any]:
@@ -46,6 +58,22 @@ def _defaults() -> dict[str, Any]:
         "enable_guest_charts": True,
         # New accounts (password and Google). Existing users still sign in.
         "enable_signups": True,
+        # ── Ask Vinaadi rails (spec L7). ────────────────────────────────────
+        # Whole-product model spend per accounting day, in paise. At the cap
+        # Ask answers "come back tomorrow" without calling the provider, and
+        # owners are emailed at 80% and 100%. ₹1,000/day is ~450 answers at
+        # today's ~₹2.2 each; the owner tunes it (ARC-32).
+        "ask_daily_spend_cap_paise": 100_000,
+        # Paise per US dollar, for turning the provider's USD price into
+        # `cost_paise`. A setting so a rupee move is not a deploy.
+        "ask_usd_inr_paise": 8_800,
+        # Questions a day by access state (ARC-07). Defaults are the
+        # tier_limits.py constants, which tiers.ts mirrors for display copy;
+        # a change here is what every server-side check enforces.
+        "ask_daily_limit_registered": TIER_LIMITS["registered"].ask_vinaadi_daily_limit,
+        "ask_daily_limit_trial": TRIAL_ASK_DAILY_LIMIT,
+        "ask_daily_limit_beta": OPEN_BETA_ASK_DAILY_LIMIT,
+        "ask_daily_limit_premium": TIER_LIMITS["premium"].ask_vinaadi_daily_limit,
         # Site-wide notice shown on web and app. Empty = no banner.
         "maintenance_banner_en": "",
         "maintenance_banner_ta": "",
@@ -439,6 +467,8 @@ def _coerce_value(name: str, default: Any, value: Any) -> Any:
     elif isinstance(default, int):
         if isinstance(value, bool) or not isinstance(value, int):
             raise FlagValueError(f"{name} expects an integer, got {value!r}")
+        if name in _NON_NEGATIVE_INTS and value < 0:
+            raise FlagValueError(f"{name} cannot be negative, got {value!r}")
     elif isinstance(default, str):
         if not isinstance(value, str):
             raise FlagValueError(f"{name} expects a string, got {value!r}")

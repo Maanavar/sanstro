@@ -13,19 +13,15 @@ import { useSession } from "@/hooks/useSession";
 import { OnboardingProgressBar } from "@/components/OnboardingProgressBar";
 import { fetchWithAuth } from "@/api/client";
 import { createBirthProfile } from "@/api/charts";
-import { searchPlaces, type PlaceSearchResult } from "@vinaadi/shared/api/places";
+import { searchPlaces, type PlaceSearchResult } from "@/api/places";
+import { PLACE_DEBOUNCE_MS, PLACE_MIN_QUERY_LENGTH, formatPlaceLabel } from "@/lib/placeSearch";
 import { setPrimaryChartId, setPrimaryProfileId } from "@/lib/userPrefs";
 import { trackEvent } from "@/lib/analytics";
 
-// Mirrors `app/api/places.py`'s `_MIN_QUERY_LENGTH` — below this the backend
-// returns no results, so there is no point firing a request.
-const PLACE_MIN_QUERY_LENGTH = 2;
-const PLACE_DEBOUNCE_MS = 200;
-
-function formatPlaceLabel(place: PlaceSearchResult): string {
-  const region = place.admin1Name ? `${place.admin1Name}, ` : "";
-  return `${place.name}, ${region}${place.countryName}`;
-}
+// The query-length floor, the debounce and the label format now live in
+// `@/lib/placeSearch`, shared with the family member screen. The search itself
+// stays here: this screen also owns the opt-in online geocode fallback
+// (owner ruling B-006), which that helper deliberately does not.
 
 interface GeoResult {
   lat: number;

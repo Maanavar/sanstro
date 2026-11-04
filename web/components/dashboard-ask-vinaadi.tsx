@@ -8,7 +8,7 @@ import { track } from "@/lib/analytics";
 import type { Lang } from "@/lib/i18n";
 import type { AskVinaadiResponseData, ConfidenceTier, LifeMode } from "@/lib/types";
 import { getChipsForMode } from "@/lib/ask-vinaadi-chips";
-import { askAllowanceRefilled, askLimitMessage } from "@vinaadi/shared/askAllowance";
+import { ASK_PAUSED_MESSAGE, askCreditsLine, askLimitMessage, askOutOfQuestions } from "@vinaadi/shared/askAllowance";
 import { ConfidenceBadge } from "./dashboard-ui";
 
 type GoalTrack = "CAREER" | "EXAM" | "RELATIONSHIP" | "FINANCIAL" | null;
@@ -25,6 +25,10 @@ interface DailyStatus {
   monthlyLimit: number | null;
   /** UTC instant the allowance refills (Kolkata midnight for a daily one). */
   resetsAt?: string;
+  /** Bought question credits, spent after the allowance. */
+  creditsRemaining?: number;
+  /** Kill switch off or today's spend cap reached: nobody is answered now. */
+  askPaused?: boolean;
 }
 
 interface DashboardAskVinaadiProps {
@@ -166,8 +170,12 @@ export function DashboardAskVinaadi({ lang, chartId, goalTrack, activeLifeMode =
   const isPremium = status?.isPremium ?? false;
   const openBeta = status?.openBeta ?? false;
   const chipsRemaining = status?.chipsRemaining ?? null;
-  // A count from before the reset instant no longer blocks: the server decides.
-  const limitReached = !isPremium && chipsRemaining !== null && chipsRemaining <= 0 && !askAllowanceRefilled(status?.resetsAt);
+  const creditsRemaining = status?.creditsRemaining ?? 0;
+  // Out only when the allowance AND any bought credits are spent; a count from
+  // before the reset instant no longer blocks (the server decides).
+  const limitReached = !isPremium && askOutOfQuestions(status);
+  const askPaused = status?.askPaused === true;
+  const blocked = limitReached || askPaused;
   // While blocked, the input and chips are disabled, so nothing re-renders at
   // the reset on its own. Re-read the status when it arrives.
   const resetsAt = status?.resetsAt;
@@ -181,6 +189,14 @@ export function DashboardAskVinaadi({ lang, chartId, goalTrack, activeLifeMode =
     }, Math.min(wait + 1000, 2_147_483_647));
     return () => clearTimeout(timer);
   }, [limitReached, resetsAt, loadStatus]);
+  // A pause lifts on the server (the switch flips back, or the spend day
+  // rolls over) with nothing here to notice. Re-read every few minutes while
+  // paused; each read is one GET, and the timer stops once Ask is back.
+  useEffect(() => {
+    if (!askPaused) return;
+    const timer = setTimeout(() => void loadStatus(), 5 * 60 * 1000);
+    return () => clearTimeout(timer);
+  }, [askPaused, status, loadStatus]);
   // An upgrade is only offered when one exists: not to a subscriber, and not
   // during the open beta, when /beta has promised every feature is unlocked.
   const canUpgrade = !isPremium && !openBeta;
@@ -220,6 +236,9 @@ export function DashboardAskVinaadi({ lang, chartId, goalTrack, activeLifeMode =
       setQuota({ used: data.questionsUsedToday, limit: data.dailyLimit });
       if (data.chipsRemaining !== null && data.chipsRemaining !== undefined) {
         setStatus((prev) => (prev ? { ...prev, chipsRemaining: data.chipsRemaining ?? prev.chipsRemaining } : prev));
+        // At zero this question may have been paid by a credit, which the
+        // answer does not report: re-read the balance rather than guess it.
+        if (data.chipsRemaining === 0) void loadStatus();
       }
       setQuestion("");
     } catch (e) {
@@ -227,6 +246,10 @@ export function DashboardAskVinaadi({ lang, chartId, goalTrack, activeLifeMode =
       if (apiError?.code === "DAILY_LIMIT_REACHED" || apiError?.code === "MONTHLY_LIMIT_REACHED") {
         setStatus((prev) => (prev ? { ...prev, chipsRemaining: 0 } : prev));
         setShowUpgrade(true);
+      } else if (apiError?.code === "SERVICE_UNAVAILABLE") {
+        // Paused by the kill switch, or the day's spend cap is reached (spec L7):
+        // the server's own words say which, and whether to come back tomorrow.
+        setError(apiError.message[lang === "ta" ? "ta" : "en"]);
       } else {
         setError(lang === "ta" ? "பதில் பெற முடியவில்லை. மீண்டும் முயற்சிக்கவும்." : "Could not get a response. Please try again.");
       }
@@ -256,11 +279,27 @@ export function DashboardAskVinaadi({ lang, chartId, goalTrack, activeLifeMode =
         </div>
       </div>
 
+      {/* Audit U4: said only after a question failed; now it is the first
+          thing a reader sees, and the input below is disabled with it. */}
+      {askPaused && (
+        <p role="status" style={{ fontSize: "13px", lineHeight: 1.5, color: "var(--color-text, var(--panel-earth))", margin: "0 0 10px", padding: "8px 12px", background: "var(--color-accent-muted)", border: "1px solid var(--color-border)", borderRadius: "8px" }}>
+          {ASK_PAUSED_MESSAGE[lang === "ta" ? "ta" : "en"]}
+        </p>
+      )}
+
       {!isPremium && chipsRemaining !== null && (
-        <p style={{ fontSize: "12px", color: chipsRemaining > 0 ? "var(--color-muted, var(--panel-mid-earth))" : "var(--color-score-low, var(--planet-saturn))", margin: "0 0 10px", fontWeight: 600 }}>
+        <p style={{ fontSize: "12px", color: chipsRemaining > 0 || creditsRemaining > 0 ? "var(--color-muted, var(--panel-mid-earth))" : "var(--color-score-low, var(--planet-saturn))", margin: "0 0 10px", fontWeight: 600 }}>
           {chipsRemaining > 0
             ? (lang === "ta" ? `இன்று ${chipsRemaining} கேள்விகள் மீதம்` : `${chipsRemaining} question${chipsRemaining === 1 ? "" : "s"} left today`)
-            : (lang === "ta" ? "இன்றைய இலவச கேள்விகள் முடிந்தன" : "You've used today's free questions")}
+            : creditsRemaining > 0
+              ? (lang === "ta" ? "இன்றைய இலவச கேள்விகள் முடிந்தன; இனி வாங்கிய கேள்விகள் பயன்படும்" : "Today's free questions are used; your bought questions come next")
+              : (lang === "ta" ? "இன்றைய இலவச கேள்விகள் முடிந்தன" : "You've used today's free questions")}
+          {creditsRemaining > 0 && <> · {askCreditsLine(creditsRemaining, lang === "ta" ? "ta" : "en")}</>}
+        </p>
+      )}
+      {isPremium && creditsRemaining > 0 && (
+        <p style={{ fontSize: "12px", color: "var(--color-muted, var(--panel-mid-earth))", margin: "0 0 10px", fontWeight: 600 }}>
+          {askCreditsLine(creditsRemaining, lang === "ta" ? "ta" : "en")}
         </p>
       )}
 
@@ -271,7 +310,7 @@ export function DashboardAskVinaadi({ lang, chartId, goalTrack, activeLifeMode =
             {modeChips.map((s, i) => (
               <button
                 key={`chip-${i}`}
-                disabled={limitReached}
+                disabled={blocked}
                 onClick={() => {
                   track("life_focus_ask_chip_tapped", {
                     focus: activeLifeMode,
@@ -280,7 +319,7 @@ export function DashboardAskVinaadi({ lang, chartId, goalTrack, activeLifeMode =
                   });
                   void submit(lang === "ta" ? s.ta : s.en, true);
                 }}
-                style={{ fontSize: "12px", padding: "5px 10px", borderRadius: "20px", border: "1px solid var(--cl-brand-edge)", background: limitReached ? "var(--brand-tint-faint)" : "var(--ring-brand)", color: "var(--color-accent, var(--panel-brand))", cursor: limitReached ? "not-allowed" : "pointer", opacity: limitReached ? 0.5 : 1 }}
+                style={{ fontSize: "12px", padding: "5px 10px", borderRadius: "20px", border: "1px solid var(--cl-brand-edge)", background: blocked ? "var(--brand-tint-faint)" : "var(--ring-brand)", color: "var(--color-accent, var(--panel-brand))", cursor: blocked ? "not-allowed" : "pointer", opacity: blocked ? 0.5 : 1 }}
               >
                 {lang === "ta" ? s.ta : s.en}
               </button>
@@ -327,12 +366,12 @@ export function DashboardAskVinaadi({ lang, chartId, goalTrack, activeLifeMode =
             }
           }}
           placeholder={lang === "ta" ? "உங்கள் கேள்வியை இங்கே தட்டச்சு செய்யவும்…" : "Type your question here…"}
-          disabled={loading || limitReached}
+          disabled={loading || blocked}
           rows={2}
           maxLength={500}
           style={{ width: "100%", boxSizing: "border-box", padding: "10px 80px 10px 14px", borderRadius: "10px", border: "1px solid var(--color-border, var(--panel-tan-light))", background: "var(--color-surface-soft, var(--panel-cream))", color: "var(--color-text, var(--panel-earth))", fontSize: "14px", resize: "vertical", outline: "none", fontFamily: "inherit" }}
         />
-        <button onClick={() => void submit(question)} disabled={loading || !question.trim() || limitReached} style={{ position: "absolute", right: "8px", bottom: "8px", padding: "6px 14px", borderRadius: "8px", border: "none", background: loading ? "var(--color-faint, var(--color-faint))" : "var(--color-accent, var(--panel-brand))", color: "var(--color-on-accent)", fontSize: "13px", cursor: loading ? "wait" : "pointer" }}>
+        <button onClick={() => void submit(question)} disabled={loading || !question.trim() || blocked} style={{ position: "absolute", right: "8px", bottom: "8px", padding: "6px 14px", borderRadius: "8px", border: "none", background: loading ? "var(--color-faint, var(--color-faint))" : "var(--color-accent, var(--panel-brand))", color: "var(--color-on-accent)", fontSize: "13px", cursor: loading ? "wait" : "pointer" }}>
           {loading ? "…" : (lang === "ta" ? "கேள்" : "Ask")}
         </button>
       </div>

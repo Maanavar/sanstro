@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import * as Haptics from "expo-haptics";
 import {
-  Platform, RefreshControl, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View,
+  RefreshControl, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View,
   Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -16,18 +16,19 @@ import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "@/hooks/useSession";
 import { loadGuestPrefs, saveGuestPrefs } from "@/features/guest/guestStore";
 import { setAnalyticsConsent } from "@/lib/analytics";
-import { getMySubscription, updateMyConsents } from "@/api/auth";
+import { getMySubscription } from "@/api/auth";
+import { OPTIONAL_PURPOSES } from "@vinaadi/shared/consentCopy";
+import type { OptionalConsents } from "@vinaadi/shared/api/auth";
+import { useMyConsents } from "@/hooks/useMyConsents";
+import { requestConsentSheet } from "@/lib/consentPrompt";
 import { endSession } from "@/state/sessionTransition";
 import { getPrimaryChartId } from "@/lib/userPrefs";
 import { FocusSettingsRow } from "@/components/LifeFocus";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { entranceDelay, spring, staggerInterval, duration } from "@/theme/motion";
 import { accountKey } from "@/lib/queryKeys";
-
-const MANAGE_SUB_URL =
-  Platform.OS === "ios"
-    ? "itms-apps://apps.apple.com/account/subscriptions"
-    : "https://play.google.com/store/account/subscriptions?package=ai.vinaadi.app";
+import { MANAGE_SUB_URL } from "@/lib/storeLinks";
+import { periodEndMeaning, subscriptionManageAction } from "@vinaadi/shared/subscriptionManage";
 
 const RASI_NAMES: Record<string, { ta: string; en: string }> = {
   mesham: { ta: "மேஷம்", en: "Aries" },
@@ -58,6 +59,8 @@ export default function MeScreen() {
   const [city, setCity] = useState<string | null>(null);
   const [primaryChartId, setPrimaryChartId_] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const { me, consents, change: changeConsents } = useMyConsents();
+  const [consentBusy, setConsentBusy] = useState<keyof OptionalConsents | null>(null);
 
   const { data: subData } = useQuery({
     queryKey: accountKey("my-subscription"),
@@ -66,6 +69,8 @@ export default function MeScreen() {
     staleTime: 5 * 60 * 1000,
   });
   const sub = subData?.data ?? null;
+  const subManage = subscriptionManageAction(sub);
+  const subPeriodMeaning = periodEndMeaning(sub);
 
   async function applyPrefs() {
     const [p, chartId] = await Promise.all([loadGuestPrefs(), getPrimaryChartId()]);
@@ -101,7 +106,22 @@ export default function MeScreen() {
     // Signed in, the answer is the account's (admin spec L2, P3): recorded on
     // the server so the web and the next launch read the same one.
     if (user) {
-      await updateMyConsents({ analytics: val, lang }).catch(() => undefined);
+      await changeConsents({ analytics: val }, lang).catch(() => undefined);
+    }
+  }
+
+  // The other two optional purposes (admin spec L2), account-only. "updates"
+  // is the one every server alert needs; mobile had no way to grant it, so a
+  // mobile-only account could never receive an alert (audit 2026-11-03, N4).
+  async function toggleConsent(key: "updates" | "askImprove", val: boolean) {
+    Haptics.selectionAsync();
+    setConsentBusy(key);
+    try {
+      await changeConsents({ [key]: val }, lang);
+    } catch {
+      /* the switch shows the server's answer, which did not change */
+    } finally {
+      setConsentBusy(null);
     }
   }
 
@@ -229,6 +249,51 @@ export default function MeScreen() {
           </View>
           <View style={styles.divider} />
 
+          {user && consents && OPTIONAL_PURPOSES.filter((p) => p.key !== "analytics").map((purpose) => (
+            <React.Fragment key={purpose.key}>
+              <View style={styles.menuRow}>
+                <Text style={styles.menuIcon}>{purpose.key === "updates" ? "🔔" : "💬"}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.menuLabel, { fontFamily: T.body.fontFamily }]}>
+                    {purpose.title[lang]}
+                  </Text>
+                  <Text style={[styles.menuValue, { marginTop: 2, fontFamily: T.caption.fontFamily }]}>
+                    {purpose.desc[lang]}
+                  </Text>
+                </View>
+                <Switch
+                  value={consents[purpose.key]}
+                  disabled={consentBusy !== null}
+                  onValueChange={(v) => void toggleConsent(purpose.key as "updates" | "askImprove", v)}
+                  accessibilityLabel={purpose.title[lang]}
+                  trackColor={{ false: C.divider, true: C.saffron }}
+                  thumbColor={C.surface}
+                />
+              </View>
+              <View style={styles.divider} />
+            </React.Fragment>
+          ))}
+
+          {/* Consent still owed (never given, older notice, or no 18+
+              declaration): the way back to the sheet after "Not now". */}
+          {me?.consentRequired && (
+            <>
+              <TouchableOpacity style={styles.menuRow} onPress={requestConsentSheet}>
+                <Text style={styles.menuIcon}>✅</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.menuLabel, { fontFamily: T.body.fontFamily }]}>
+                    {isTamil ? "தனியுரிமைத் தேர்வுகள்" : "Privacy choices"}
+                  </Text>
+                  <Text style={[styles.menuValue, { marginTop: 2, color: C.saffron, fontFamily: T.caption.fontFamily }]}>
+                    {isTamil ? "உங்கள் பதில் தேவை" : "Your answer is needed"}
+                  </Text>
+                </View>
+                <ChevronRight size={18} color={C.textTertiary} strokeWidth={1.5} />
+              </TouchableOpacity>
+              <View style={styles.divider} />
+            </>
+          )}
+
           {/* Privacy */}
           <TouchableOpacity style={styles.menuRow} onPress={() => router.push("/privacy" as any)}>
             <Text style={styles.menuIcon}>🔒</Text>
@@ -268,6 +333,28 @@ export default function MeScreen() {
           </Animated.View>
         )}
 
+        {/* Account & data (registered): export, delete, email verification.
+            The mobile home for the DPDP + account actions web already had. */}
+        {tier !== "guest" && user && (
+          <Animated.View style={styles.menuSection} entering={FadeIn.delay(entranceDelay.tertiary).duration(duration.medium)}>
+            <Text style={styles.menuSectionHeader}>{isTamil ? "கணக்கு & தரவு" : "Account & data"}</Text>
+            <TouchableOpacity style={styles.menuRow} onPress={() => router.push("/account" as Href)}>
+              <Text style={styles.menuIcon}>🗂️</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.menuLabel, { fontFamily: T.body.fontFamily }]}>
+                  {isTamil ? "கணக்கு & தரவு" : "Account & data"}
+                </Text>
+                {me && !me.emailVerified && (
+                  <Text style={[styles.menuValue, { marginTop: 2, color: C.saffron, fontFamily: T.caption.fontFamily }]}>
+                    {isTamil ? "மின்னஞ்சல் உறுதிசெய்யப்படவில்லை" : "Email not verified"}
+                  </Text>
+                )}
+              </View>
+              <ChevronRight size={18} color={C.textTertiary} strokeWidth={1.5} />
+            </TouchableOpacity>
+          </Animated.View>
+        )}
+
         {/* Premium: Subscription management section */}
         {tier === "premium" && (
           <Animated.View style={styles.menuSection} entering={FadeIn.delay(entranceDelay.tertiary).duration(duration.medium)}>
@@ -284,27 +371,53 @@ export default function MeScreen() {
                     ? (isTamil ? "Premium திட்டம்" : "Premium plan")
                     : (isTamil ? "Premium" : "Premium")}
                 </Text>
-                {sub?.current_period_end ? (
+                {sub?.current_period_end && subPeriodMeaning !== "none" ? (
                   <Text style={[styles.menuValue, { marginTop: 2 }]}>
-                    {isTamil ? "புதுப்பிப்பு: " : "Renews: "}
+                    {/* "Renews" was shown even after the user had cancelled —
+                        the opposite of what they had just done. */}
+                    {subPeriodMeaning === "ends"
+                      ? (isTamil ? "முடிவு: " : "Ends: ")
+                      : (isTamil ? "புதுப்பிப்பு: " : "Renews: ")}
                     {new Date(sub.current_period_end).toLocaleDateString()}
                   </Text>
                 ) : null}
               </View>
             </View>
-            <View style={styles.divider} />
-            <TouchableOpacity
-              style={styles.menuRow}
-              onPress={async () => {
-                Haptics.selectionAsync();
-                await Linking.openURL(MANAGE_SUB_URL).catch(() => {});
-              }}
-            >
-              <Text style={[styles.menuLabel, { fontFamily: T.body.fontFamily, color: C.saffron }]}>
-                {isTamil ? "சந்தாவை நிர்வகிக்கவும்" : "Manage subscription"}
-              </Text>
-              <ChevronRight size={18} color={C.saffron} strokeWidth={1.5} />
-            </TouchableOpacity>
+            {/* Where renewal is stopped depends on where it was bought: the
+                store for an in-app subscription, our own API for a web one.
+                This row used to send everyone to the store, where a web
+                subscriber finds an empty list (audit 2026-11-03). */}
+            {subManage === "store" && (
+              <>
+                <View style={styles.divider} />
+                <TouchableOpacity
+                  style={styles.menuRow}
+                  onPress={async () => {
+                    Haptics.selectionAsync();
+                    await Linking.openURL(MANAGE_SUB_URL).catch(() => {});
+                  }}
+                >
+                  <Text style={[styles.menuLabel, { fontFamily: T.body.fontFamily, color: C.saffron }]}>
+                    {isTamil ? "கடையில் சந்தாவை நிர்வகி" : "Manage in the store"}
+                  </Text>
+                  <ChevronRight size={18} color={C.saffron} strokeWidth={1.5} />
+                </TouchableOpacity>
+              </>
+            )}
+            {subManage === "cancel_in_app" && (
+              <>
+                <View style={styles.divider} />
+                <TouchableOpacity
+                  style={styles.menuRow}
+                  onPress={() => { Haptics.selectionAsync(); router.push("/premium" as Href); }}
+                >
+                  <Text style={[styles.menuLabel, { fontFamily: T.body.fontFamily, color: C.saffron }]}>
+                    {isTamil ? "சந்தாவை நிர்வகிக்கவும்" : "Manage subscription"}
+                  </Text>
+                  <ChevronRight size={18} color={C.saffron} strokeWidth={1.5} />
+                </TouchableOpacity>
+              </>
+            )}
           </Animated.View>
         )}
 
