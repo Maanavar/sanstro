@@ -7,6 +7,9 @@
  * - No-op unless NEXT_PUBLIC_POSTHOG_KEY is set (so dev/test never phone home).
  * - Autocapture and session recording are OFF — we only send the explicit,
  *   named events below. Birth details, names, and free-text are NEVER sent.
+ * - Every event name and property goes through `@vinaadi/shared/analytics`
+ *   (admin spec §7): an unlisted event is dropped, an unlisted property is
+ *   stripped. Mobile uses the same module, so there is one boundary to test.
  * - We identify users by their opaque user UUID only — never email — and only
  *   while the account grants the analytics purpose (admin spec L2, D-11 P3).
  *   Without it, events stay anonymous: `applyAnalyticsConsent`.
@@ -15,6 +18,7 @@
  * All functions are safe to call before init and on the server (they no-op).
  */
 import posthog from "posthog-js";
+import { filterAnalyticsPayload, isAllowedAnalyticsEvent } from "@vinaadi/shared/analytics";
 
 let initialized = false;
 
@@ -46,10 +50,15 @@ export function initAnalytics(): void {
   initialized = true;
 }
 
-/** Named product event. `props` must contain no PII or birth details. */
+/**
+ * Named product event. The taxonomy, not the call site, decides what is sent:
+ * an unlisted event name never reaches PostHog, and properties are stripped to
+ * the allowlist. Callers may therefore pass a whole object without auditing it.
+ */
 export function track(event: string, props?: Record<string, unknown>): void {
   if (!enabled()) return;
-  posthog.capture(event, props);
+  if (!isAllowedAnalyticsEvent(event)) return;
+  posthog.capture(event, filterAnalyticsPayload(props));
 }
 
 /** Manual SPA pageview (App Router doesn't fire one on client navigation). */

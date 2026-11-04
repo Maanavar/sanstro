@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import Boolean, DateTime, Integer, String, Text
+from sqlalchemy import Boolean, Date, DateTime, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
@@ -64,6 +64,20 @@ class User(TimestampMixin, Base):
     acquisition_ref: Mapped[str | None] = mapped_column(String(32), nullable=True)
     acquisition_referrer_host: Mapped[str | None] = mapped_column(String(255), nullable=True)
     acquisition_landing_path: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # Last activity, for the business metrics in spec §8 (L6, D-11): an active
+    # user is a signed-in account whose `last_seen_on` is that IST day, and
+    # DAU/WAU/MAU and the retention cohorts are all counted off this column.
+    #
+    # A *date*, not a timestamp, and that is the privacy point as much as the
+    # metric one: the day someone used the app answers every question in §8,
+    # while a per-request timestamp would be a usage trail — when they wake up,
+    # when they cannot sleep — on an app people consult about illness and
+    # marriage. `touch_last_seen` writes at most one row per account per day.
+    last_seen_on: Mapped[date | None] = mapped_column(Date, nullable=True, index=True)
+    # Which client and language that day's last session used: "web" | "ios" |
+    # "android", and "ta" | "en". Overwritten, never accumulated.
+    last_platform: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    last_language: Mapped[str | None] = mapped_column(String(2), nullable=True)
     # This account's own referral code (GRW-13), minted on first request, so
     # accounts that never share never get one. Random, not derived from the
     # user id: a share link must not leak an identifier.

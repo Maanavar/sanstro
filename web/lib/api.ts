@@ -10,10 +10,33 @@ const BACKEND_PREFIX = "/api/backend";
 const API_V1_PREFIX = "/api/v1";
 const MUTATING_METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"]);
 
+/**
+ * The language this browser is reading in, for `X-Client-Language`.
+ *
+ * Read from the cookie rather than `useLang()` because `buildHeaders` is
+ * module scope, not a component — and the cookie is the authoritative copy
+ * anyway (`lib/server-lang.ts`). Absent on the server and before the provider
+ * first writes it; the backend treats a missing header as "unchanged", so the
+ * worst case is that one request does not refresh the stored language.
+ */
+function currentLang(): string | null {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(/(?:^|;\s*)jothidam-lang=(ta|en)\b/);
+  return match ? match[1] : null;
+}
+
 function buildHeaders(init?: RequestInit) {
   const headers = new Headers(init?.headers);
   headers.set("Content-Type", headers.get("Content-Type") ?? "application/json");
   headers.set("X-Request-ID", crypto.randomUUID());
+  // Which client and language the account is active on (admin spec L6, §8).
+  // Sent on every call because `get_current_user` is where the day is stamped;
+  // it writes at most once per account per day and ignores anything else.
+  // `X-Vinaadi-Client` is the header the consent ledger already reads, where
+  // the web was "whatever sends nothing" — it now says so.
+  headers.set("X-Vinaadi-Client", "web");
+  const lang = currentLang();
+  if (lang) headers.set("X-Client-Language", lang);
   const method = (init?.method ?? "GET").toUpperCase();
   if (MUTATING_METHODS.has(method)) {
     headers.set("X-Vinaadi-CSRF", "1");

@@ -4,6 +4,7 @@ import type { Lang } from "@vinaadi/shared";
 import { LANG_STORAGE_KEY } from "@vinaadi/shared";
 import { apiPatch } from "@/api/client";
 import { getTokens } from "@/lib/secureStore";
+import { setCurrentLang } from "@/lib/clientLang";
 
 interface LanguageContextValue {
   lang: Lang;
@@ -20,12 +21,18 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     AsyncStorage.getItem(LANG_STORAGE_KEY).then((stored) => {
-      if (stored === "ta" || stored === "en") setLangState(stored);
+      if (stored === "ta" || stored === "en") {
+        setLangState(stored);
+        // Keep the non-component mirror in step, so the API client's
+        // `X-Client-Language` header reports what the UI is showing.
+        setCurrentLang(stored);
+      }
     });
   }, []);
 
   function setLang(l: Lang) {
     setLangState(l);
+    setCurrentLang(l);
     AsyncStorage.setItem(LANG_STORAGE_KEY, l);
     // Notifications are generated server-side, so the selected language must
     // travel with the account rather than remain only in AsyncStorage. Skip
