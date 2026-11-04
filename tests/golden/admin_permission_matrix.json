@@ -129,6 +129,17 @@
     ],
     "permission": "overview.read"
   },
+  "GET /api/v1/admin/job-runs": {
+    "allowed": [
+      "astrologer",
+      "ops",
+      "owner",
+      "privacy",
+      "support",
+      "viewer"
+    ],
+    "permission": "overview.read"
+  },
   "GET /api/v1/admin/jobs": {
     "allowed": [
       "astrologer",

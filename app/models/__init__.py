@@ -18,6 +18,7 @@ from app.models.family_member import FamilyMember
 from app.models.family_vault import FamilyVault
 from app.models.feedback import Feedback
 from app.models.interpretation_output import InterpretationOutput
+from app.models.job_run import JobRun
 from app.models.journal_entry import JournalEntry
 from app.models.life_focus_event import LifeFocusEvent
 from app.models.newsletter_subscriber import NewsletterSubscriber
@@ -71,6 +72,7 @@ __all__ = [
     "FamilyVault",
     "Feedback",
     "InterpretationOutput",
+    "JobRun",
     "JournalEntry",
     "LifeFocusEvent",
     "NewsletterSubscriber",

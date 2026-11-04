@@ -78,6 +78,19 @@ def _defaults() -> dict[str, Any]:
         "maintenance_banner_en": "",
         "maintenance_banner_ta": "",
         "max_birth_profiles_per_user": 10,
+        # ── Operations record (spec L10). The restore drill is performed, not
+        # coded (docs/runbooks/KEY_ESCROW_AND_RESTORE.md), so its result lives
+        # where every worker and the Health tab can read it: an ISO date and one
+        # line of outcome. Empty = never recorded, which the Health tab reports
+        # as a warning rather than passing silently. The runbook says re-run it
+        # quarterly, so the tab also warns once the date is older than that.
+        "ops_last_restore_drill_at": "",
+        "ops_last_restore_drill_note": "",
+        # `scripts.verify_restore` exit 0 and nothing less. A drill that read
+        # every populated column but skipped an empty table is not a pass, and
+        # the note says why; without this the Health tab would show a green row
+        # under a note that says otherwise.
+        "ops_last_restore_drill_passed": False,
         # D1 reasoning gate (docs/REASONING_LAYER_UPGRADE_PLAN.md Phase 1).
         # Rollout: internal → beta → all; watch for over-suppression
         # (too many BLOCKED/SILENT means the gate is too strict).

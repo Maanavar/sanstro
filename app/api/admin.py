@@ -1,7 +1,7 @@
 """Admin operations, analytics controls, and privacy tooling."""
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
 from typing import Annotated, Any, Literal
 from uuid import UUID
 
@@ -55,6 +55,13 @@ from app.services.feature_flags import (
     set_flag,
 )
 from app.services.job_registry import get_all_jobs, get_job
+from app.services.job_run_service import (
+    TRIGGER_MANUAL,
+    last_run_per_job,
+    recent_job_runs,
+    record_job_run,
+    summarise_result,
+)
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -389,6 +396,19 @@ class SuspendRequest(BaseModel):
     reason: str | None = None
 
 
+class JobRunOut(BaseModel):
+    """One row of `job_runs` (spec L10). `finished_at` is null while it runs."""
+
+    id: str
+    job_id: str
+    trigger: Literal["schedule", "manual"]
+    actor_email: str | None
+    started_at: str
+    finished_at: str | None
+    outcome: Literal["running", "success", "error"]
+    summary: str | None
+
+
 class JobInfo(BaseModel):
     job_id: str
     label: str
@@ -396,6 +416,9 @@ class JobInfo(BaseModel):
     # Surfaced so the console can mark the job before an operator runs it, rather
     # than only discovering it needs elevation from a 403.
     destructive: bool = False
+    #: Newest `job_runs` row for this job, scheduled or manual. Null = never run
+    #: since the table existed, which for a daily job is itself the finding.
+    last_run: JobRunOut | None = None
 
 
 class JobRunResult(BaseModel):
@@ -403,6 +426,9 @@ class JobRunResult(BaseModel):
     started_at: str
     finished_at: str
     result_summary: str | None
+    #: The `job_runs` row this trigger wrote, so the console can link to it.
+    run_id: str | None = None
+    outcome: Literal["success", "error"] = "success"
 
 
 class AuditLogEntry(BaseModel):
@@ -833,9 +859,52 @@ def suspend_user(
     }
 
 
+def _job_run_out(row: Any) -> JobRunOut:
+    return JobRunOut(
+        id=str(row.id),
+        job_id=row.job_id,
+        trigger=row.trigger,
+        actor_email=row.actor_email,
+        started_at=row.started_at.isoformat(),
+        finished_at=row.finished_at.isoformat() if row.finished_at else None,
+        outcome=row.outcome,
+        summary=row.summary,
+    )
+
+
 @router.get("/jobs", response_model=list[JobInfo], summary="List all registered background jobs", dependencies=[Depends(require_permission("overview.read"))])
-def list_jobs(_: User = Depends(get_admin_user)) -> list[JobInfo]:
-    return [JobInfo(**{k: v for k, v in job.items() if k != "fn"}) for job in get_all_jobs()]
+def list_jobs(
+    session: Session = Depends(get_db),
+    _: User = Depends(get_admin_user),
+) -> list[JobInfo]:
+    last_runs = last_run_per_job(session)
+    return [
+        JobInfo(
+            **{k: v for k, v in job.items() if k != "fn"},
+            last_run=(
+                _job_run_out(last_runs[job["job_id"]]) if job["job_id"] in last_runs else None
+            ),
+        )
+        for job in get_all_jobs()
+    ]
+
+
+@router.get("/job-runs", response_model=list[JobRunOut], summary="Recent background job runs", dependencies=[Depends(require_permission("overview.read"))])
+def list_job_runs(
+    job_id: str | None = None,
+    outcome: Literal["running", "success", "error"] | None = None,
+    limit: int = 50,
+    session: Session = Depends(get_db),
+    _: User = Depends(get_admin_user),
+) -> list[JobRunOut]:
+    """History of what actually ran (spec L10), newest first.
+
+    Read-only and on `overview.read`, the same permission as the job list: this
+    is the answer to "did last night's reconciliation run", which every admin
+    role that can see the overview needs.
+    """
+    rows = recent_job_runs(session, job_id=job_id, outcome=outcome, limit=limit)
+    return [_job_run_out(row) for row in rows]
 
 
 @router.post("/jobs/{job_id}/trigger", response_model=JobRunResult, summary="Manually trigger a background job", dependencies=[Depends(require_permission("jobs.trigger"))])
@@ -866,12 +935,23 @@ def trigger_job(
     else:
         audit.note_reason(reason)
 
-    started = datetime.now(UTC)
+    # The run is recorded whichever way it ends (spec L10): the row is committed
+    # before the job body starts and closed after it, in its own session, so a
+    # failure leaves history rather than silence. The exception is converted
+    # outside the recorder so the row carries the job's own error rather than
+    # "HTTPException: 500".
     summary: str | None = None
     try:
-        result = job["fn"]()
-        if isinstance(result, dict):
-            summary = ", ".join(f"{key}={value}" for key, value in result.items())
+        with record_job_run(
+            job_id,
+            trigger=TRIGGER_MANUAL,
+            actor_user_id=admin_user.user_id,
+            actor_email=admin_user.email,
+        ) as run:
+            started = run.started_at
+            result = job["fn"]()
+            summary = summarise_result(result)
+            run.summary = summary
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=500, detail=f"Job failed: {exc}") from exc
 
@@ -879,8 +959,10 @@ def trigger_job(
     return JobRunResult(
         job_id=job_id,
         started_at=started.isoformat(),
-        finished_at=datetime.now(UTC).isoformat(),
+        finished_at=(run.finished_at or datetime.now(UTC)).isoformat(),
         result_summary=summary,
+        run_id=str(run.run_id) if run.run_id else None,
+        outcome=run.outcome,
     )
 
 
@@ -1183,6 +1265,96 @@ def get_health_detail(
                 detail="Could not check lock (non-PostgreSQL DB)",
             )
         )
+
+    # What actually ran (spec L10). A job list proves jobs are registered; this
+    # is the only component that can tell an operator the schedule stopped
+    # firing, or that last night's run failed while nobody was watching.
+    try:
+        recent = recent_job_runs(session, limit=200)
+        day_ago = datetime.now(UTC) - timedelta(hours=24)
+        in_day = [run for run in recent if run.started_at >= day_ago]
+        failed = [run for run in in_day if run.outcome == "error"]
+        # A row left `running` past the window is a process that died mid-job.
+        stuck = [run for run in recent if run.outcome == "running" and run.started_at < day_ago]
+        if failed:
+            jobs_listed = ", ".join(sorted({run.job_id for run in failed}))
+            components.append(
+                ComponentHealth(
+                    name="job_runs",
+                    status="error",
+                    detail=f"{len(failed)} failed run(s) in 24h: {jobs_listed}",
+                )
+            )
+        elif stuck:
+            components.append(
+                ComponentHealth(
+                    name="job_runs",
+                    status="warning",
+                    detail=f"{len(stuck)} run(s) still marked running after 24h",
+                )
+            )
+        elif not recent:
+            components.append(
+                ComponentHealth(
+                    name="job_runs", status="warning", detail="No job run recorded yet"
+                )
+            )
+        else:
+            newest = recent[0]
+            components.append(
+                ComponentHealth(
+                    name="job_runs",
+                    status="ok",
+                    detail=(
+                        f"{len(in_day)} run(s) in 24h, none failed; "
+                        f"last {newest.job_id} at {newest.started_at.isoformat()}"
+                    ),
+                )
+            )
+    except Exception as exc:  # noqa: BLE001
+        components.append(ComponentHealth(name="job_runs", status="warning", detail=str(exc)))
+
+    # The restore drill (spec L10: "record date and result on the Health tab").
+    # Performed by hand against a scratch database — see
+    # docs/runbooks/KEY_ESCROW_AND_RESTORE.md — so what the tab can check is
+    # whether the record exists and how stale it is. The runbook's own cadence
+    # is quarterly, which is where 90 days comes from.
+    drill_at = str(get_flag("ops_last_restore_drill_at") or "").strip()
+    drill_note = str(get_flag("ops_last_restore_drill_note") or "").strip()
+    if not drill_at:
+        components.append(
+            ComponentHealth(
+                name="restore_drill",
+                status="warning",
+                detail="No restore drill recorded. Run docs/runbooks/KEY_ESCROW_AND_RESTORE.md.",
+            )
+        )
+    else:
+        try:
+            drill_date = date.fromisoformat(drill_at[:10])
+        except ValueError:
+            components.append(
+                ComponentHealth(
+                    name="restore_drill",
+                    status="warning",
+                    detail=f"Recorded date is not a date: {drill_at!r}",
+                )
+            )
+        else:
+            age_days = (datetime.now(UTC).date() - drill_date).days
+            passed = bool(get_flag("ops_last_restore_drill_passed"))
+            suffix = f" - {drill_note}" if drill_note else ""
+            verdict = "pass" if passed else "NOT a pass"
+            components.append(
+                ComponentHealth(
+                    name="restore_drill",
+                    status="ok" if (passed and age_days <= 90) else "warning",
+                    detail=(
+                        f"Last drill {drill_date.isoformat()} ({age_days}d ago, {verdict})"
+                        f"{suffix}"
+                    ),
+                )
+            )
 
     from app.core.config import get_settings
 

@@ -199,6 +199,11 @@ TABLE_STORES: tuple[TableStore, ...] = (
     TableStore("runtime_setting_changes.actor", "runtime_setting_changes", "Setting changes this person made.",
                "actor_user_id = :uid", "detach", "Kept.", detach_set="actor_user_id = NULL", export=False),
     TableStore(
+        "job_runs.actor", "job_runs", "Background jobs this person triggered as an admin.",
+        "actor_user_id = :uid", "detach", "Kept as operational history, detached from the person.",
+        detach_set="actor_user_id = NULL, actor_email = NULL", export=False,
+    ),
+    TableStore(
         "admin_audit_log.actor", "admin_audit_log", "Admin actions this person took.",
         "actor_user_id = :uid", "detach", "3 years (D-13, pending legal).",
         detach_set="actor_user_id = NULL, actor_email = NULL", export=False,

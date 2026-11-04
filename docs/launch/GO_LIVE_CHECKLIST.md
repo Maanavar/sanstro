@@ -158,6 +158,20 @@ backup and the key it was run against.
 - [ ] A restored journal entry decrypts successfully — same run
 - [ ] Old-key recovery has been tested after a rotation — runbook Part 2.4
 
+**Dev rehearsal, 2026-11-04 — no tick above.** The drill was run end to end
+against `vinaadi_dev`: `backup_20261104_1216.sql` restored into
+`vinaadi_restore_check` on :5434, then `scripts/verify_restore.py` with the key
+the dev host runs on. Every encrypted column in the five populated tables (20
+columns across `birth_profiles`, `charts`, `chart_planets`, `family_members`,
+`journal_entries`) decrypted, each read by the newest key. The script still
+**exited 1**, because `admin_mfa_credentials` had no rows and it refuses to call
+an unproved table a pass — correctly, and the same will be true in production
+until an admin has enrolled TOTP. So the rehearsal proves the procedure and the
+tooling, and none of the seven lines above, every one of which is about the
+production backup and the escrowed copy of the key. Recorded on the admin Health
+tab (`ops_last_restore_drill_at`, `..._passed` = false, `..._note`), and in the
+runbook's drill log.
+
 The escrowed key must be the one you verify with. Retrieve it **from escrow**, not
 from the host: escrowing a key from a previous deployment, a truncated paste, and
 one with a trailing newline all look identical in a password manager, and the

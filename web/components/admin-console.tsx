@@ -27,6 +27,9 @@ import {
   type ErasureResult,
   type FlagChange,
   type FlagEntry,
+  type JobInfo,
+  type JobRun,
+  type JobRunResult,
   type LifeFocusMetrics,
   type MfaEnrolment,
   type RecoveryCodes,
@@ -141,15 +144,33 @@ type FeedbackResponse = {
   items: FeedbackItem[];
 };
 
+// JobInfo (with its last run), JobRun and JobRunResult come from
+// @vinaadi/shared/api, so the console cannot drift from app/api/admin.py.
 // `destructive` jobs need elevation and a reason (app/api/admin.py trigger_job).
-type JobInfo = { job_id: string; label: string; description: string; destructive: boolean };
-type JobRunResult = { job_id: string; started_at: string; finished_at: string; result_summary: string | null };
 
 type AuditFilters = { action: string; actor: string; target_id: string; outcome: AuditOutcome | "" };
 const EMPTY_AUDIT_FILTERS: AuditFilters = { action: "", actor: "", target_id: "", outcome: "" };
 
 function hasReason(text: string): boolean {
   return text.trim().length >= MIN_AUDIT_REASON_LENGTH;
+}
+
+function jobRunBadgeClass(outcome: JobRun["outcome"]): string {
+  if (outcome === "success") return "admin-badge admin-badge--ok";
+  if (outcome === "error") return "admin-badge admin-badge--danger";
+  return "admin-badge admin-badge--warning";
+}
+
+// A run that never finished has no duration to report, which is the point.
+function jobRunDurationLabel(run: JobRun): string {
+  if (!run.finished_at) return "-";
+  const ms = new Date(run.finished_at).getTime() - new Date(run.started_at).getTime();
+  if (!Number.isFinite(ms) || ms < 0) return "-";
+  return ms < 1000 ? `${ms} ms` : `${(ms / 1000).toFixed(1)} s`;
+}
+
+function jobRunOutcomeLabel(run: JobRun): string {
+  return run.outcome === "running" ? "still running" : run.outcome;
 }
 
 // What the row says beyond its columns: the structured details, or the old free text.
@@ -418,6 +439,9 @@ export function AdminConsole() {
   const [feedback, setFeedback] = useState<FeedbackResponse | null>(null);
   const [jobs, setJobs] = useState<JobInfo[]>([]);
   const [jobResults, setJobResults] = useState<Record<string, JobRunResult>>({});
+  // What actually ran, scheduled or manual (spec L10 `job_runs`). The question
+  // the job list cannot answer: did last night's run happen, and did it finish?
+  const [jobRuns, setJobRuns] = useState<JobRun[]>([]);
   const [runningJob, setRunningJob] = useState<string | null>(null);
   // Destructive jobs need a reason (admin spec L4); one reason covers the next run.
   const [jobReason, setJobReason] = useState("");
@@ -774,8 +798,12 @@ export function AdminConsole() {
     setLoading(true);
     setError(null);
     try {
-      const data = await adminFetchJson<JobInfo[]>("/api/v1/admin/jobs");
+      const [data, runs] = await Promise.all([
+        adminFetchJson<JobInfo[]>(`/api/v1${adminAuditPaths.jobs()}`),
+        adminFetchJson<JobRun[]>(`/api/v1${adminAuditPaths.jobRuns({ limit: 20 })}`),
+      ]);
       setJobs(data);
+      setJobRuns(runs);
       setStatus("Job registry refreshed.");
     } catch (err) {
       setError(readErrorMessage(err));
@@ -800,6 +828,7 @@ export function AdminConsole() {
       if (job.destructive) setJobReason("");
       setJobResults((prev) => ({ ...prev, [jobId]: result }));
       setStatus(`Job ${jobId} completed.`);
+      void loadJobs();
     } catch (err) {
       setError(readErrorMessage(err));
     } finally {
@@ -1090,6 +1119,7 @@ export function AdminConsole() {
     setFeedback(null);
     setJobs([]);
     setJobResults({});
+    setJobRuns([]);
     setFlags([]);
     setFlagDrafts({});
     setAuditLog(null);
@@ -1761,7 +1791,21 @@ export function AdminConsole() {
                         <span>Result: {jobResults[job.job_id].result_summary ?? "OK"}</span>
                         <span>Ran at: {formatDateTimeLabel(jobResults[job.job_id].started_at)}</span>
                       </div>
-                    ) : null}
+                    ) : job.last_run ? (
+                      <div className="admin-result">
+                        <span>
+                          Last run: {jobRunOutcomeLabel(job.last_run)}
+                          {job.last_run.summary ? ` - ${job.last_run.summary}` : ""}
+                        </span>
+                        <span>
+                          {formatDateTimeLabel(job.last_run.started_at)} ({job.last_run.trigger})
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="admin-result">
+                        <span>No recorded run yet.</span>
+                      </div>
+                    )}
                   </div>
                   <button
                     className="admin-button admin-button--primary"
@@ -1773,6 +1817,47 @@ export function AdminConsole() {
                   </button>
                 </div>
               ))}
+              <div className="admin-section__header">
+                <div>
+                  <h3>Recent runs</h3>
+                  <p>
+                    Every run of every job, scheduled or triggered here (spec L10). A run still
+                    marked <code>running</code> long after it started is a worker that died mid-job.
+                  </p>
+                </div>
+              </div>
+              {jobRuns.length === 0 ? (
+                <div className="admin-empty">No job run recorded yet.</div>
+              ) : (
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Started</th>
+                      <th>Job</th>
+                      <th>Trigger</th>
+                      <th>Who</th>
+                      <th>Outcome</th>
+                      <th>Took</th>
+                      <th>Summary</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {jobRuns.map((run) => (
+                      <tr key={run.id}>
+                        <td>{formatDateTimeLabel(run.started_at)}</td>
+                        <td><code>{run.job_id}</code></td>
+                        <td>{run.trigger}</td>
+                        <td>{run.actor_email ?? "-"}</td>
+                        <td>
+                          <span className={jobRunBadgeClass(run.outcome)}>{run.outcome}</span>
+                        </td>
+                        <td>{jobRunDurationLabel(run)}</td>
+                        <td>{run.summary ?? "-"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </section>
           ) : null}
 

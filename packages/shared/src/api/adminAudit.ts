@@ -76,6 +76,55 @@ export interface DataExport {
   elsewhere: { store: string; holds: string; retention: string }[];
 }
 
+/** What fired a job run: the cron schedule, or an admin pressing Run now. */
+export type JobRunTrigger = "schedule" | "manual";
+
+/** `running` until the run ends; a row stuck on it is a process that died mid-job. */
+export type JobRunOutcome = "running" | "success" | "error";
+
+/** One `job_runs` row (app/api/admin.py JobRunOut, spec L10). */
+export interface JobRun {
+  id: string;
+  job_id: string;
+  trigger: JobRunTrigger;
+  /** Null for a scheduled run: nobody pressed anything. */
+  actor_email: string | null;
+  started_at: string;
+  /** Null while the run is in flight. */
+  finished_at: string | null;
+  outcome: JobRunOutcome;
+  summary: string | null;
+}
+
+/** GET /admin/jobs row (app/api/admin.py JobInfo). */
+export interface JobInfo {
+  job_id: string;
+  label: string;
+  description: string;
+  /** Deletes data or sends something outward: the trigger needs elevation and a reason. */
+  destructive: boolean;
+  /** Null = never run since `job_runs` existed, which for a daily job is the finding. */
+  last_run: JobRun | null;
+}
+
+/** POST /admin/jobs/{id}/trigger answer (app/api/admin.py JobRunResult). */
+export interface JobRunResult {
+  job_id: string;
+  started_at: string;
+  finished_at: string;
+  result_summary: string | null;
+  /** The `job_runs` row this trigger wrote; null if history could not be written. */
+  run_id: string | null;
+  outcome: "success" | "error";
+}
+
+/** GET /admin/job-runs query. */
+export interface JobRunQuery {
+  job_id?: string;
+  outcome?: JobRunOutcome;
+  limit?: number;
+}
+
 /** Shortest reason the server accepts where one is required (audit_service.MIN_REASON_LENGTH). */
 export const MIN_AUDIT_REASON_LENGTH = 3;
 
@@ -98,6 +147,10 @@ export const adminAuditPaths = {
     `/admin/users/${encodeURIComponent(userId)}/export${query({ reason })}`,
   /** PATCH body {suspend, reason}; a reason is required both ways. Elevated. */
   suspend: (userId: string) => `/admin/users/${encodeURIComponent(userId)}/suspend`,
+  /** GET. The registry plus each job's last run. */
+  jobs: () => "/admin/jobs",
+  /** GET. Run history, newest first (spec L10). */
+  jobRuns: (q: JobRunQuery = {}) => `/admin/job-runs${query({ ...q })}`,
   /** A reason is required when the job is destructive (JobInfo.destructive), and elevation too. */
   triggerJob: (jobId: string, reason?: string) =>
     `/admin/jobs/${encodeURIComponent(jobId)}/trigger${query({ reason })}`,

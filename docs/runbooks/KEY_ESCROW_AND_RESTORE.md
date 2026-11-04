@@ -111,10 +111,30 @@ column would still be unreadable if the escrowed key were the wrong one.
 ### 2.1 Take a backup
 
 ```powershell
-docker exec vinaadi-postgres pg_dump -U slw_admin vinaadi_dev > backup_$(Get-Date -Format 'yyyyMMdd_HHmm').sql
+$stamp = Get-Date -Format 'yyyyMMdd_HHmm'
+docker exec vinaadi-postgres pg_dump -U slw_admin -f /tmp/dump.sql vinaadi_dev
+docker cp vinaadi-postgres:/tmp/dump.sql "backup_$stamp.sql"
+docker exec vinaadi-postgres rm -f /tmp/dump.sql
 ```
 
-Production is the same command against the production container and database.
+Production is the same three commands against the production container and
+database.
+
+**Why not `pg_dump ... > backup.sql`.** PowerShell owns that redirection, and
+depending on the host it writes the file as UTF-8 **with a BOM** and converts
+every line ending to CRLF. A dump that starts with a BOM is not valid SQL —
+`psql` stops on the first line — and CRLF inside a `COPY` block or a
+dollar-quoted body corrupts data that restores without an error. Checked here on
+2026-11-04: the redirected dump began `357 273 277 - -`, the three bytes of a
+BOM. `pg_dump -f` inside the container plus `docker cp` moves bytes, so the file
+is what Postgres wrote.
+
+Verify any dump you intend to rely on, before you need it:
+
+```powershell
+# Expect 45 45 10 -- "-", "-", LF. 239 187 191 is a BOM; 45 45 13 means CRLF.
+Get-Content backup_20261104_1216.sql -Encoding Byte -TotalCount 3
+```
 
 ### 2.2 Create a scratch database
 
@@ -130,13 +150,38 @@ rather than on the operator.
 
 ### 2.3 Restore and verify, using the key from escrow
 
+Two steps, because `--dump` and `--docker-container` cannot be combined with a
+containerised Postgres reached over a published port. `--docker-container` runs
+`psql` **inside** the container, where the database listens on **5432**; the
+`--scratch-url` the operator needs is the **host** one, `localhost:5434`. Passing
+one URL to both fails with `connection to server at "localhost", port 5434
+failed: Connection refused`, which reads like a dead container and is not one.
+(Hit on 2026-11-04; the single-command form that used to be written here never
+worked against this setup.)
+
+Restore with the container's own port, then verify over the host's:
+
 ```powershell
+# 1. Restore. 5432 is the port INSIDE the container.
+docker exec -i vinaadi-postgres psql -v ON_ERROR_STOP=1 `
+  -d "postgresql://slw_admin:slw_dev_password@localhost:5432/vinaadi_restore_check" `
+  < backup_20260903_1400.sql
+
+# 2. Verify what is now in there. 5434 is the port on THIS host.
 $env:JOTHIDAM_ENCRYPTION_KEYS = "<paste the key retrieved FROM ESCROW>"
 python -m scripts.verify_restore `
-  --scratch-url "postgresql://slw_admin:slw_dev_password@localhost:5434/vinaadi_restore_check" `
-  --dump backup_20260903_1400.sql `
-  --docker-container vinaadi-postgres
+  --scratch-url "postgresql://slw_admin:slw_dev_password@localhost:5434/vinaadi_restore_check"
 ```
+
+`verify_restore` with no `--dump` verifies the database as it stands, which is
+the documented "somebody already restored it by hand" path. If `psql` lives on
+the host, the one-command form still works — give `--scratch-url` the host port
+and leave `--docker-container` off.
+
+In PowerShell 5.1, `<` is not an input redirection operator. Run step 1 from Git
+Bash, or hand it to cmd: `cmd /c "docker exec -i vinaadi-postgres psql ... <
+backup.sql"`. Do not pipe the dump through `Get-Content` — PowerShell decodes
+and re-encodes it on the way, which is the same corruption 2.1 is about.
 
 Expected output, and note that no decrypted value ever appears — the script
 reports the *shape* of what it read, because this output ends up pasted into
@@ -207,6 +252,27 @@ field-encrypted.
 Tick the S0 block in [`../launch/GO_LIVE_CHECKLIST.md`](../launch/GO_LIVE_CHECKLIST.md)
 **with the date**. A tick with no date decays into an assumption; a dated tick
 tells the next reader how stale it is.
+
+Then record it where the system can show it, which is what admin spec L10 asks
+for ("record date and result on the Health tab"). Three settings, through
+`PATCH /admin/flags/{name}` or the console's Config tab:
+
+| Setting | Value |
+|---|---|
+| `ops_last_restore_drill_at` | the ISO date of the drill |
+| `ops_last_restore_drill_passed` | `true` only if `verify_restore` exited 0 |
+| `ops_last_restore_drill_note` | one line: which dump, which database, what was not proved |
+
+The Health tab reads all three: no date is a warning, a date older than this
+runbook's quarterly cadence is a warning, and a date with `passed = false` is a
+warning that says `NOT a pass`. A green row means a drill that actually exited 0,
+within 90 days.
+
+### Drill log
+
+| Date | Target | Dump | Key from | Result |
+|---|---|---|---|---|
+| 2026-11-04 | `vinaadi_dev` → `vinaadi_restore_check` (:5434) | `backup_20261104_1216.sql` | the dev host's live key, **not escrow** | **Not a pass (exit 1).** All 20 encrypted columns in the five populated tables decrypted, each read by the newest key. `admin_mfa_credentials` had no rows, so the script refused to call it proved. Procedure and tooling rehearsed; S0 unticked. |
 
 The result is true for *that backup* and *that key* only. Re-run the drill:
 
