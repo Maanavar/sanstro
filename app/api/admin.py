@@ -34,7 +34,7 @@ from app.models import (
     User,
 )
 from app.models.ask_vinaadi_usage import AskVinaadiUsage
-from app.models.payment import Order, PaymentMismatch
+from app.models.payment import Order, Payment, PaymentMismatch, Refund
 from app.models.prediction_log import PredictionLog
 from app.privacy.erasure import ErasureRefused, erase_user, export_user
 from app.reasoning.calibration import GradedPrediction, build_calibration_report
@@ -577,6 +577,88 @@ def get_admin_stats(session: Session = Depends(get_db), _: User = Depends(get_ad
     )
 
 
+#: Razorpay's id prefixes, and the column each one resolves through.
+#: Support is handed these by a customer pasting a payment confirmation or by
+#: Razorpay's own dashboard, and before L9 the only way in was an email address
+#: — which is exactly what someone who paid from a different address does not
+#: have to hand (spec L9: "search by … Razorpay order/payment/subscription ID").
+_RAZORPAY_PREFIXES = ("order_", "pay_", "sub_", "rfnd_")
+
+
+def _user_search_clause(search: str, session: Session) -> tuple[str, Any]:
+    """(how it matched, the WHERE clause) for one search box.
+
+    One box, several kinds of identifier, because a support agent should not
+    have to know which field a pasted string belongs to. The shape of the
+    string decides:
+
+    - a Razorpay prefix → resolve that record to its account
+    - a UUID → our own user id
+    - anything else → email, case-insensitive substring
+
+    A Razorpay id that matches nothing returns no users rather than falling
+    back to an email search: `pay_X` is never somebody's email address, and a
+    silent fallback to "no rows" that *looks* like an email miss is how an
+    agent concludes an account does not exist.
+    """
+    if search.startswith(_RAZORPAY_PREFIXES):
+        return "provider_id", User.user_id.in_(_user_ids_for_provider_id(search, session))
+
+    try:
+        return "user_id", User.user_id == UUID(search)
+    except ValueError:
+        pass
+
+    return "email", User.email.ilike(f"%{search}%")
+
+
+def _user_ids_for_provider_id(provider_id: str, session: Session) -> list[UUID]:
+    """Accounts behind a Razorpay order, payment, subscription or refund id.
+
+    A payment hangs off an order or a subscription (`ck_payments_has_parent`),
+    and a refund off a payment, so both are followed one hop at a time rather
+    than joined — the parent may be the detached accounting record of an erased
+    account (spec L5), in which case there is no account to find and that is
+    the correct answer.
+    """
+    if provider_id.startswith("order_"):
+        return [
+            uid for (uid,) in session.execute(
+                select(Order.user_id).where(Order.provider_order_id == provider_id)
+            ).all() if uid is not None
+        ]
+
+    if provider_id.startswith("sub_"):
+        return [
+            uid for (uid,) in session.execute(
+                select(Subscription.user_id).where(
+                    Subscription.provider_subscription_id == provider_id
+                )
+            ).all() if uid is not None
+        ]
+
+    payment_id = provider_id
+    if provider_id.startswith("rfnd_"):
+        payment_id = session.execute(
+            select(Refund.provider_payment_id).where(Refund.provider_refund_id == provider_id)
+        ).scalar_one_or_none() or ""
+        if not payment_id:
+            return []
+
+    payment = session.execute(
+        select(Payment).where(Payment.provider_payment_id == payment_id)
+    ).scalars().first()
+    if payment is None:
+        return []
+    if payment.order_id is not None:
+        order = session.get(Order, payment.order_id)
+        return [order.user_id] if order and order.user_id else []
+    if payment.subscription_id is not None:
+        subscription = session.get(Subscription, payment.subscription_id)
+        return [subscription.user_id] if subscription and subscription.user_id else []
+    return []
+
+
 @router.get("/users", response_model=UserListResponse, summary="List all users (paginated)", dependencies=[Depends(require_permission("users.search"))])
 def list_users(
     audit: Annotated[AuditEntry, audited("list_users", target_type="user")],
@@ -593,8 +675,10 @@ def list_users(
     page_size = max(1, min(page_size, 100))
 
     q = select(User)
+    matched_by = "none"
     if search:
-        q = q.where(User.email.ilike(f"%{search}%"))
+        matched_by, clause = _user_search_clause(search.strip(), session)
+        q = q.where(clause)
     if suspended_only:
         q = q.where(User.is_suspended.is_(True))
 
@@ -642,6 +726,10 @@ def list_users(
 
     audit.details = {
         "searched": bool(search),
+        # *How* it matched, never what was typed: the search text is usually an
+        # email address, and this row is the audit trail, not a second copy of
+        # the thing being looked up.
+        "matched_by": matched_by,
         "suspended_only": suspended_only,
         "page": page,
         "returned": len(items),

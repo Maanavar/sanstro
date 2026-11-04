@@ -7,6 +7,7 @@ from fastapi import Depends, FastAPI
 
 from app.api.admin import router as admin_router
 from app.api.admin_analytics import router as admin_analytics_router
+from app.api.admin_support import router as admin_support_router
 from app.api.alerts import router as alerts_router
 from app.api.annual_wrapped import router as annual_wrapped_router
 from app.api.ask_vinaadi import router as ask_vinaadi_router
@@ -320,6 +321,7 @@ def create_app() -> FastAPI:
     app.include_router(settings_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
     app.include_router(admin_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
     app.include_router(admin_analytics_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
+    app.include_router(admin_support_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
     app.include_router(feedback_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
     app.include_router(whatif_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
     app.include_router(content_router, prefix=settings.api_v1_prefix)

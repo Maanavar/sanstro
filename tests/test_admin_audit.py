@@ -71,6 +71,8 @@ _AUDITED_READS = {
     ("GET", "/api/v1/admin/users"),
     ("GET", "/api/v1/admin/users/{user_id}"),
     ("GET", "/api/v1/admin/users/{owner_user_id}/export"),
+    # Reads one person's email and whole payment history (L9).
+    ("GET", "/api/v1/admin/users/{user_id}/support"),
 }
 
 #: Routes that always need a reason (spec L4: destructive actions). The
@@ -87,6 +89,12 @@ _REASON_REQUIRED = {
     ("DELETE", "/api/v1/admin/flags/{flag_name}/reset"),
     ("POST", "/api/v1/admin/flags/changes/{change_id}/rollback"),
     ("DELETE", "/api/v1/qa/regressions"),
+    # L9 support console, 2026-11-04. Each one answers "an agent touched this
+    # account", the question the audit log exists for, so all four need a reason.
+    ("POST", "/api/v1/admin/users/{user_id}/reset-link"),
+    ("POST", "/api/v1/admin/users/{user_id}/force-logout"),
+    ("POST", "/api/v1/admin/users/{user_id}/entitlements"),
+    ("POST", "/api/v1/admin/users/{user_id}/entitlements/{entitlement_id}/revoke"),
 }
 
 #: The only routes whose audit dependency resolves an actor without TOTP.
@@ -131,10 +139,11 @@ def _must_audit() -> dict[tuple[str, str], object]:
 
 @pytest.mark.no_db
 def test_the_route_walk_finds_the_mutating_admin_routes():
-    """Everything below is vacuous if this finds nothing. 16 on 2026-11-01, the
-    same set tests/test_admin_elevation.py classifies."""
+    """Everything below is vacuous if this finds nothing. 16 on 2026-11-01, and
+    20 once L9 added its four support actions (2026-11-04); the same set
+    tests/test_admin_elevation.py classifies."""
     mutating = [key for key in _admin_routes() if key[0] in _MUTATING]
-    assert len(mutating) == 16, sorted(mutating)
+    assert len(mutating) == 20, sorted(mutating)
     assert _AUDITED_READS <= set(_admin_routes())
 
 
@@ -233,6 +242,7 @@ def _fill(path: str) -> str:
         .replace("{change_id}", str(uuid4()))
         .replace("{flag_name}", "maintenance_mode")
         .replace("{job_id}", "synthetic_job")
+        .replace("{entitlement_id}", str(uuid4()))
     )
 
 
@@ -248,7 +258,7 @@ def _make_user() -> str:
 
 def test_every_mutating_admin_route_writes_one_row_naming_the_actor(raw_client, owner):
     routes = sorted(key for key in _must_audit() if key[0] in _MUTATING)
-    assert len(routes) == 16
+    assert len(routes) == 20
     missing, wrong = {}, {}
     for method, path in routes:
         before = len(_rows_by(owner.user_id))
@@ -302,6 +312,10 @@ _NO_REASON_BODIES = {
     ("PATCH", "/api/v1/admin/users/{user_id}/suspend"): {"suspend": True},
     ("PATCH", "/api/v1/admin/flags/{flag_name}"): {"value": True},
     ("POST", "/api/v1/admin/flags/changes/{change_id}/rollback"): {"reason": " "},
+    ("POST", "/api/v1/admin/users/{user_id}/reset-link"): {},
+    ("POST", "/api/v1/admin/users/{user_id}/force-logout"): {},
+    ("POST", "/api/v1/admin/users/{user_id}/entitlements"): {"days": 7},
+    ("POST", "/api/v1/admin/users/{user_id}/entitlements/{entitlement_id}/revoke"): {"reason": " "},
 }
 
 
