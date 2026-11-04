@@ -176,6 +176,7 @@ Order follows the spec (one package per PR), with the changes above.
 | # | Package | In launch | Moved to L+30 |
 |---|---|---|---|
 | 1 | **L10a** flags and settings in DB | Flags, kill switches, settings with history | `job_runs` UI, restore drill UI (do the drill itself) |
+| 1b | **L10b** `job_runs` + restore drill | The table, both write paths, the read API, the console rows, the two Health components, the drill itself (2026-11-04) | Manual triggers that enqueue rather than run inline |
 | 2 | **L3** admin access | TOTP, recovery codes, owner/support roles, seed-once, permission matrix test | Owner sign-in email, idle timeout |
 | 3 | **L4** audit | Extended columns, reason required, route-coverage test, DB grant | Hash chain + verifier (ARC-09), CSV export |
 | 4 | **L1** payments | Razorpay orders + subscriptions, webhook, entitlements + credit ledger, trial, paywall, reconciliation job | Reconciliation UI beyond a list |
@@ -234,9 +235,22 @@ Branch `harden/production-readiness`, uncommitted. Backend tests run in the `vin
 container (not authoritative; CI is). Every migration below was round-tripped
 (upgrade → downgrade to `vv5f6a7b8c9d` → upgrade → step down/up) on a scratch database.
 
+**Restore drill, 2026-11-04 (L10b).** Run end to end on dev: `backup_20261104_1216.sql` restored into
+`vinaadi_restore_check` and read back with `scripts/verify_restore.py`. All 20 encrypted columns in
+the five populated tables decrypted, each by the newest key. The script exited **1** all the same,
+because `admin_mfa_credentials` had no rows and it refuses to call an unproved table a pass — so the
+drill rehearses the procedure and ticks nothing in the S0 block, which is about the production backup
+and the escrowed copy of the key. Two commands in the runbook could not work as written and are
+fixed: the PowerShell `>` redirection wrote the dump with a UTF-8 BOM and CRLF, and `--dump` with
+`--docker-container` sends the host's port 5434 to a `psql` running inside the container. Still the
+owner's: escrow in two independent locations, and verifying with the key retrieved *from escrow*
+rather than from the host (runbook 1.4). Old-key recovery (2.4) cannot be exercised until the first
+rotation.
+
 | # | Package | State | Tests |
 |---|---|---|---|
 | 1 | **L10a** flags in DB | Done (2026-11-01). `runtime_settings` + history, kill switches, `/site-status`, banner, console flag tab with reason and Undo. Migration `vv5f6a7b8c9d`. | `test_runtime_settings.py` |
+| 1 | **L10b** `job_runs` + the restore drill | Done (2026-11-04). `job_runs` (job, trigger, actor, start, end, outcome, summary): a row per execution, opened before the body and closed after, in its own session — so a failure leaves history and a worker killed mid-job leaves a visible `running` row. Scheduled firings are wrapped where the schedule is built (`schedule_all_jobs`), so one execution is one row; the manual trigger records the admin who pressed it and answers with `run_id`. Recording can never be what breaks a job: every write is guarded. Reads: `GET /admin/job-runs` (filters by job and outcome) and `last_run` on `GET /admin/jobs`, both on `overview.read`; console Operations tab shows each job's last run and a Recent-runs table. Health tab gains `job_runs` (failed run in 24 h = error, stuck `running` = warning, nothing ever = warning) and `restore_drill` (reads `ops_last_restore_drill_at` / `_passed` / `_note`; green only on an exit-0 drill inside 90 days). Restore drill performed against dev, see the note above this table. Migration `cd3e4f5a6b7c`, round-tripped on scratch (full chain up, down, up; `alembic check` clean); applied to dev 2026-11-04 after backup `backup_20261104_1216.sql` (5 users, 4 profiles intact). Still deferred: "manual triggers enqueue instead of running inline" — the trigger still runs in the request, which is why `test_admin_elevation.py::test_a_recompute_job_still_needs_no_elevation` takes minutes locally. Enqueueing needs a claim loop and a 202 contract across the console; it belongs with the L+30 work queue, not under a table that now records what ran. | `test_job_runs.py` (20) |
 | 8 | **L8** messaging | Done. Broadcast 410 and audited; quiet hours 21:00–08:00 local (IST fallback), priority ≥ 90 urgent. | `test_messaging_safety.py` |
 | 2 | **L3** admin access | Done. TOTP enrolment + 10 hashed single-use recovery codes; `403 mfa_required` on every admin route except `/admin/me` and `/admin/mfa/*`; elevation by TOTP or recovery code; roles `owner`/`support` (+4 defined, unassignable); `require_permission` on every admin route; seed-once owner from `JOTHIDAM_ADMIN_EMAILS` (verified account only); 8 h admin session; last-owner and self-suspend guards. Email verification (`/auth/verify-email`, resend, bilingual email). Console: code-based elevation dialog, set-up screen, Roles tab. Migration `ww6a7b8c9d0e`. | `test_admin_permissions.py` (structural + snapshot `tests/golden/admin_permission_matrix.json` + real support account), `test_admin_mfa.py`, `test_email_verification.py`, `test_admin_elevation.py` |
 | 4 | **L1** core: ladder, trial, entitlements | Done. Ladder per §6 (Ask guest 0 / registered 2 / premium 5 a day; premium 1 + 1 reports); beta Ask pinned at 7; `TRIAL_LIMITS`; `entitlements` table (trial / purchase / grant, one trial per account enforced by a partial unique index); `limits_for_user` = premium → trial → beta → registered; `/auth/me` adds `accessState` + `trialEndsAt` (shared types, web, mobile `gateTier`). Dead `ask_vinaadi_daily_limit` flag/config removed. Pricing page copy fixed (ARC-11). Migration `xx7b8c9d0e1f`. | `test_trial_entitlements.py`, `test_tier_parity.py`, `test_open_beta.py` |
