@@ -11,6 +11,7 @@ import {
   MIN_AUDIT_REASON_LENGTH,
   adminAccessPaths,
   adminAuditPaths,
+  adminSupportPaths,
   adminSettingsPaths,
   parseApiErrorText,
   type AdminMe,
@@ -29,8 +30,10 @@ import {
   type LifeFocusMetrics,
   type MfaEnrolment,
   type RecoveryCodes,
+  type SupportView,
 } from "@vinaadi/shared/api";
 import { AdminLifeFocusPanel } from "@/components/admin-life-focus-panel";
+import { AdminSupportPanel } from "@/components/admin-support-panel";
 import { formatDateTimeLabel } from "@/lib/format";
 
 type AdminStats = {
@@ -398,6 +401,10 @@ export function AdminConsole() {
   const [userList, setUserList] = useState<UserListResponse | null>(null);
   const [userSearch, setUserSearch] = useState("");
   const [userDetail, setUserDetail] = useState<UserDetail | null>(null);
+  // The L9 support view, loaded alongside the detail for the same account. Kept
+  // separate because it is the one request that may be refused on its own: a
+  // role with `users.search` but not `users.read_masked` still gets the list.
+  const [supportView, setSupportView] = useState<SupportView | null>(null);
   const [suspendReason, setSuspendReason] = useState("");
   const [userPage, setUserPage] = useState(1);
   const [dailyMetrics, setDailyMetrics] = useState<DailyMetrics | null>(null);
@@ -617,6 +624,40 @@ export function AdminConsole() {
       const data = await adminFetchJson<UserDetail>(`/api/v1/admin/users/${encodeURIComponent(userId)}`);
       setUserDetail(data);
       setStatus("User details loaded.");
+      await loadSupportView(userId);
+    } catch (err) {
+      setError(readErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  /** The L9 support view. A refusal here must not blank the detail already shown. */
+  async function loadSupportView(userId: string) {
+    try {
+      setSupportView(
+        await adminFetchJson<SupportView>(`/api/v1${adminSupportPaths.view(userId)}`),
+      );
+    } catch {
+      setSupportView(null);
+    }
+  }
+
+  /** The four L9 actions, which differ only in path, body and what to say after. */
+  async function supportAction(
+    userId: string,
+    path: string,
+    body: Record<string, unknown>,
+    done: string,
+  ) {
+    setLoading(true);
+    setError(null);
+    try {
+      await adminFetchJson(`/api/v1${path}`, { method: "POST", body: JSON.stringify(body) });
+      setStatus(done);
+      // Re-read rather than patch local state: a grant changes the access
+      // state, and the sources list is computed server-side.
+      await loadSupportView(userId);
     } catch (err) {
       setError(readErrorMessage(err));
     } finally {
@@ -1335,6 +1376,45 @@ export function AdminConsole() {
                       )}
                     </div>
                   </div>
+                  {supportView ? (
+                    <AdminSupportPanel
+                      view={supportView}
+                      role={me?.role ?? null}
+                      busy={loading}
+                      onResetLink={(reason) =>
+                        void supportAction(
+                          userDetail.user_id,
+                          adminSupportPaths.resetLink(userDetail.user_id),
+                          { reason },
+                          "A reset link has been emailed to the account holder.",
+                        )
+                      }
+                      onForceLogout={(reason) =>
+                        void supportAction(
+                          userDetail.user_id,
+                          adminSupportPaths.forceLogout(userDetail.user_id),
+                          { reason },
+                          "Every session has been ended.",
+                        )
+                      }
+                      onGrant={(key, days, reason) =>
+                        void supportAction(
+                          userDetail.user_id,
+                          adminSupportPaths.grantEntitlement(userDetail.user_id),
+                          { key, days, reason },
+                          `Granted ${key} for ${days} days.`,
+                        )
+                      }
+                      onRevoke={(entitlementId, reason) =>
+                        void supportAction(
+                          userDetail.user_id,
+                          adminSupportPaths.revokeEntitlement(userDetail.user_id, entitlementId),
+                          { reason },
+                          "The entitlement has been revoked.",
+                        )
+                      }
+                    />
+                  ) : null}
                 </div>
               ) : (userList?.items ?? []).length > 0 ? (
                 <table className="admin-table">

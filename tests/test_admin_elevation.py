@@ -105,6 +105,21 @@ _ELEVATION_NOT_REQUIRED: dict[tuple[str, str], str] = {
     ("PATCH", "/api/v1/feedback/{feedback_id}/reward"):
         "Toggles an internal 'this reviewer may qualify for extended access' "
         "flag. Reversible, affects no user data, promises nothing to the user.",
+    ("POST", "/api/v1/admin/users/{user_id}/reset-link"):
+        "Spec section 6 marks only suspend, privacy and the owner-only writes as "
+        "elevated. The link goes to the address on the account and is never "
+        "returned to the agent (ARC-40), so holding the session does not hold the "
+        "account. A TOTP code on every ticket is a code written on a sticky note.",
+    ("POST", "/api/v1/admin/users/{user_id}/force-logout"):
+        "Disruptive but not destructive: the person signs in again. Reason "
+        "required and audited, not elevated (spec section 6).",
+    ("POST", "/api/v1/admin/users/{user_id}/entitlements"):
+        "A courtesy grant GIVES access; the risk is cost, not data loss, and it is "
+        "capped at 30 days for support and revocable. Reason required and audited.",
+    ("POST", "/api/v1/admin/users/{user_id}/entitlements/{entitlement_id}/revoke"):
+        "Owner-only by permission (entitlements.revoke is absent from support). "
+        "Stamps revoked_at and deletes nothing, so it is reversible by granting "
+        "again. Reason required and audited.",
 }
 
 _MUTATING = {"POST", "PATCH", "PUT", "DELETE"}

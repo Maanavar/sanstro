@@ -246,7 +246,8 @@ container (not authoritative; CI is). Every migration below was round-tripped
 | 6 | **L2** consent | Built (launch cut, 2026-11-02, branch `feat/l2-consent`). Ledger `consent_records` P1–P4, append-only (ARC-28). `users.adult_declared_at`; policy version `2026-11`. Register (web, mobile) requires the 18+ declaration and records each optional purpose as answered. `/auth/consent` is the panel (adds the 18+ declaration and optional purposes). `PUT /auth/me/consents` holds the toggles. `/auth/me` returns `consents` and `adultDeclared`. P1 gate at the birth-profile sink and the family-member route (`CONSENT_REQUIRED`). P2 gate at the outbox (ARC-31). P3: web identifies PostHog only with consent (it identified every signed-in account before) and resets when it is withdrawn; mobile syncs the switch. `is_minor` from the date of birth (ARC-29). Web: signup boxes, consent panel in the dashboard, Settings → Privacy & Legal toggles, alerts note in Notifications, guest note on six birth-detail forms, privacy notice rewritten (itemised data, purposes, withdrawal, rights, grievance, Data Protection Board). Migration `cd2e3f4a5b6c` (backfills the service stamp). Mobile minimum per ARC-30. Applied to dev 2026-11-02 after backup `backup_20261102_1842.sql` (0 rows backfilled — none of the 5 accounts carried the old stamp). | `test_consent_ledger.py`, `test_consent.py` |
 | 7 | **L7** Ask rails | Built (launch cut, 2026-11-02, branch `feat/l7-ask-limits`). `ask_vinaadi_calls`: one row per provider call, answered or not, with `prompt_version`, model, input/output/cache tokens, `cost_paise` (rounded up), `latency_ms`, outcome (`answered` / `unusable` / `provider_error`) and sensitive-topic `flags`. It has no user, chart or question text (ARC-33). It is written in its own session, so a failed request's call still counts. Spend cap `ask_daily_spend_cap_paise` (default ₹1,000/day, ARC-32) is checked before the person's allowance is touched. At the cap: 503 with a bilingual "come back tomorrow" message and no provider call. Owners are emailed once a day at 80% and at 100% (`ask_spend_alerts`). Rate setting `ask_usd_inr_paise`. Per-state quota `ask_daily_limit_{registered,trial,beta,premium}` (ARC-07), defaults = the tier_limits constants, read through `limits_state_for_user`. Ask top-up credits are spent once the allowance is gone and returned if the answer fails (ARC-34). The SKU stays inactive (ARC-14). Sensitive topics (death, illness, pregnancy, child health, divorce, self-harm, money loss; EN + TA keywords) add a safety addendum to the question, with Tele-MANAS 14416 for self-harm (ARC-35). `ASK_PROMPT_VERSION` is fingerprint-pinned. Fixed on the way: `AppError(message=…)` never reached the wire (the envelope always sent the catalogue text). Web and mobile Ask now show the server's message on `SERVICE_UNAVAILABLE` (kill switch and cap); before, they showed "try again". Kill switch: L10a, unchanged. Migration `de3f4a5b6c7d`, round-tripped on scratch, `alembic check` clean. Applied to dev 2026-11-03 after backup `backup_20261103_0710.sql` (5 users, 4 profiles intact). Deferred per §5: the review list, transcripts and their retention, a console spend tile. | `test_ask_rails.py` (31); kill switch in `test_runtime_settings.py` |
 | 9 | **L6** analytics | Built (launch cut, 2026-11-04, branch `feat/l6-analytics`). `users.last_seen_on` (date, IST) + `last_platform` + `last_language`, stamped in `get_current_user` — the one dependency every authenticated request passes — by `app/core/presence.py`: at most one UPDATE per account per IST day, guarded in SQL (`last_seen_on IS DISTINCT FROM :today`) so concurrent requests settle in the database, in its own transaction, never fatal. After the suspension check, so a suspended account is not counted active. Platform comes from the `X-Vinaadi-Client` header the consent ledger already reads (ARC-36); language from a new `X-Client-Language`, sent by both clients. One shared PostHog taxonomy in `packages/shared/src/analytics.ts` (spec §7): unlisted event dropped, unlisted property stripped, event still sent. Web had **no** payload filter before — `track()` passed its argument straight to `posthog.capture` (ARC-38). Mobile's own two sets replaced by the shared one; `captureError` now scrubs its Sentry `extra` through the same allowlist (spec §9). Migration `ab1c2d3e4f5a`, round-tripped on scratch, `alembic check` clean. Deferred per §5: the `daily_metrics` rollup and the Overview tiles. | `test_presence.py` (21: through the real dependency, the once-a-day property, suspension, header normalisation, telemetry-never-fatal), `web/lib/analytics.test.ts` (8), `mobile/__tests__/analytics.test.ts` (10) |
-| 10–11 | L9, L11 | Not started. | — |
+| 10 | **L9** support | Built (launch cut, 2026-11-04, branch `feat/l9-support`). `app/api/admin_support.py`. One read, `GET /admin/users/{id}/support`: account (status, created, last seen with client and language, acquisition), access state **with its sources** (`trial`/`purchase`/`grant`/`subscription` — the question a billing ticket actually asks), entitlements, subscriptions with both our access `status` and Razorpay's `provider_status`, orders, payments, refunds, credit balances, consent state. It reports premium when an active subscription exists but no entitlement row does, because `limits_for_user` unions the two and a half-answer would contradict the app. Four actions, each audited with a required reason, none elevated (§6 marks only suspend, privacy and the owner-only writes): email a reset link (never returned, ARC-40), force logout (`token_version` bump **plus** refresh-token revocation, or the next refresh mints the session this ended), grant a courtesy entitlement (a real `source="grant"` row; support capped at 30 days, owner uncapped; key restricted to `premium`), revoke one (stamps `revoked_at`, deletes nothing; owner only by permission). Search now takes a Razorpay `order_`/`pay_`/`sub_`/`rfnd_` id or a user UUID as well as an email, resolved one hop at a time; the audit row records *how* it matched, never what was typed. Console: `web/components/admin-support-panel.tsx` under Users. Deferred per §5: the masked family view and the audited birth-data reveal, support notes, the Sentry link. **No migration.** | `test_admin_support.py` (22), `web/components/admin-support-panel.test.tsx` (12); structural coverage by the three admin walkers, with the permission snapshot regenerated |
+| 11 | L11 runbooks | Not started. | — |
 
 **Gates proven to fail with the fix removed** (CLAUDE.md): permission declared per route, the MFA
 requirement, the listed-email bypass, the trial branch of `limits_for_user`, the webhook signature
@@ -286,6 +287,16 @@ the two client headers are proven only through FastAPI's dependency and type che
 "Sentry scrubbing verified with a test error" is satisfied by a unit test on `captureError`, not by a
 real event inspected in Sentry's UI. And no test asserts the *absence* of a write: a second stamp in
 some other code path would not fail anything.
+
+L9 (2026-11-04), three mutants run together, each caught by its own test. (1) The support 30-day cap
+removed: the cap test failed. (2) The `row.user_id != user_id` check dropped from revoke: the
+cross-account test failed, and nothing else did — which is the point, since without it knowing one
+entitlement id would let an agent revoke any account's access through any other path. (3) The
+provider-id branch removed from search: all four Razorpay-id cases failed, plus the audit-detail
+test. Blind spots are in the `test_admin_support.py` docstring: the reset email is followed only as
+far as the enqueue call, nothing drives the console (the panel has its own component test), and the
+support read asserts birth data is *absent* rather than correctly masked — masking does not exist
+yet, and that assertion is what stops this route becoming the way round the reveal gate.
 
 **Known blind spots**, also written in each test file's docstring:
 - The permission test sees permissions declared as dependencies, not a handler that branches on `role_has`.
@@ -593,3 +604,26 @@ test alone would still pass the day someone adds `birthDate` to it deliberately.
 `app/core` from importing the service layer, and `get_current_user` — in core — is the only writer.
 It earns the place: a clock, a closed enum and one UPDATE, with no domain logic, the same shape as
 `app/core/clock.py`.
+
+**ARC-40. A support agent never sees the reset link.** The spec's L9 action is "send
+password-reset link", and that is all the route does: it issues the token, hands it to the mailer and
+answers "sent". Returning it to the console would make every support agent able to take over any
+account — set the password, sign in, read the birth charts — and the audit row would record that
+afterwards rather than prevent it. The screen says which address it went to, because "sent" is then
+the only confirmation either side gets. One consequence, handled: a Google-only account has no
+password, so the route refuses with "no email address to send to" instead of reporting a send that
+can never arrive.
+
+**ARC-41. Support actions are audited and reasoned, not elevated.** §6 marks suspend, the privacy
+routes and the owner-only writes as elevated; it does not mark the four L9 actions, and this follows
+it rather than hardening past it. The reasoning is recorded because it looks like a gap: a support
+agent works a queue of tickets, and a TOTP prompt on each one ends as a code written on a sticky
+note beside the screen — worse than the audit row the action already writes. Revocation is
+owner-only by permission instead, and the cap bounds what support can do without one.
+
+**ARC-42. Access is reported with its sources, and a subscription alone counts.** The support read
+answers "premium" when an active subscription exists even with no entitlement row, because
+`limits_for_user` unions the two: a page that read only the entitlement half would tell an agent
+"free" about an account the app treats as premium, which is the exact contradiction the ticket
+started from. `access.sources` names which halves are in force, so "I paid and it says free" is
+answered by which one is missing rather than by reading two tables.

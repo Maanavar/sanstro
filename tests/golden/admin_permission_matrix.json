@@ -196,6 +196,14 @@
     ],
     "permission": "users.read_masked"
   },
+  "GET /api/v1/admin/users/{user_id}/support": {
+    "allowed": [
+      "owner",
+      "privacy",
+      "support"
+    ],
+    "permission": "users.read_masked"
+  },
   "GET /api/v1/feedback": {
     "allowed": [
       "owner",
@@ -254,6 +262,33 @@
       "owner"
     ],
     "permission": "messaging.broadcast"
+  },
+  "POST /api/v1/admin/users/{user_id}/entitlements": {
+    "allowed": [
+      "owner",
+      "support"
+    ],
+    "permission": "entitlements.grant"
+  },
+  "POST /api/v1/admin/users/{user_id}/entitlements/{entitlement_id}/revoke": {
+    "allowed": [
+      "owner"
+    ],
+    "permission": "entitlements.revoke"
+  },
+  "POST /api/v1/admin/users/{user_id}/force-logout": {
+    "allowed": [
+      "owner",
+      "support"
+    ],
+    "permission": "users.force_logout"
+  },
+  "POST /api/v1/admin/users/{user_id}/reset-link": {
+    "allowed": [
+      "owner",
+      "support"
+    ],
+    "permission": "users.reset_link"
   },
   "PUT /api/v1/admin/users/{user_id}/role": {
     "allowed": [
