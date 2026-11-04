@@ -30,7 +30,9 @@ from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
+from app.core.entitlement_access import GRANTABLE_KEYS
 from app.core.subscription import is_premium, limits_for_user
+from app.models.entitlement import Entitlement
 from app.models.payment import CreditLedgerEntry, Order, Payment, PaymentMismatch, Product, Refund
 from app.models.subscription import Subscription
 from app.models.user import User
@@ -100,6 +102,108 @@ def _ledger(
         .on_conflict_do_nothing(index_elements=["idempotency_key"])
     )
     return bool(result.rowcount)
+
+
+def _entitlement_grants(session: Session, product: Product) -> list[tuple[str, int]]:
+    """`products.entitlement_grants` as (key, days), bad config dropped and recorded.
+
+    Validated here rather than trusted, because this is a row an owner edits by
+    hand in psql against a live catalogue. A key no reader knows about, or a
+    duration that is not a positive whole number of days, cannot grant anything
+    sensible — so it is skipped and written to `payment_mismatches`, where the
+    console surfaces it, instead of failing the payment. The money arrived; the
+    customer still gets their credits; someone gets told the SKU is misconfigured.
+    That is the opposite of ARC-43, where a misconfigured SKU said nothing at all.
+    """
+    grants: list[tuple[str, int]] = []
+    for key, days in sorted((product.entitlement_grants or {}).items()):
+        if key not in GRANTABLE_KEYS or not isinstance(days, int) or isinstance(days, bool) or days <= 0:
+            _record_mismatch(
+                session,
+                "product_entitlement_grant",
+                f"{product.sku}:{key}",
+                {"sku": product.sku, "key": key, "days": days, "grantable": sorted(GRANTABLE_KEYS)},
+            )
+            continue
+        grants.append((key, days))
+    return grants
+
+
+def _grant_entitlement(session: Session, *, user_id: UUID, order_id: UUID, key: str, days: int) -> None:
+    """One purchased entitlement row, stacked onto any time already held.
+
+    Idempotent on (order, key): `apply_order_paid` already refuses to grant
+    twice for one order, and this is the second belt — the webhook, the
+    confirm route and reconciliation all reach it.
+
+    Stacking is deliberate. Buying a second month's pass before the first runs
+    out extends the end date instead of being swallowed, because a customer who
+    pays twice has bought twice; charging for a window that overlaps one they
+    already own would be taking money for nothing. The new row starts now, so
+    the union read in `entitlement_access` is unaffected either way, and it is
+    the *end* that moves out.
+    """
+    source_id = str(order_id)
+    existing = (
+        session.query(Entitlement.id)
+        .filter(
+            Entitlement.user_id == user_id,
+            Entitlement.key == key,
+            Entitlement.source == "purchase",
+            Entitlement.source_id == source_id,
+        )
+        .first()
+    )
+    if existing is not None:
+        return
+
+    now = datetime.now(UTC)
+    held_until = (
+        session.query(func.max(Entitlement.ends_at))
+        .filter(
+            Entitlement.user_id == user_id,
+            Entitlement.key == key,
+            Entitlement.revoked_at.is_(None),
+            Entitlement.ends_at.is_not(None),
+            Entitlement.ends_at > now,
+        )
+        .scalar()
+    )
+    if held_until is not None and held_until.tzinfo is None:
+        held_until = held_until.replace(tzinfo=UTC)
+    session.add(
+        Entitlement(
+            user_id=user_id,
+            key=key,
+            source="purchase",
+            source_id=source_id,
+            starts_at=now,
+            ends_at=(held_until or now) + timedelta(days=days),
+        )
+    )
+
+
+def _revoke_purchased_entitlements(session: Session, *, order: Order) -> None:
+    """Take back exactly what this order granted, and nothing else.
+
+    Matched on `source_id`, so a stacked second purchase and any courtesy grant
+    survive a refund of the first. Revoking stamps rather than deletes: the row
+    is the record of why someone had access on a given day, which support and
+    any chargeback argument both read backwards (L9).
+    """
+    now = datetime.now(UTC)
+    rows = (
+        session.query(Entitlement)
+        .filter(
+            Entitlement.source == "purchase",
+            Entitlement.source_id == str(order.id),
+            Entitlement.revoked_at.is_(None),
+        )
+        .all()
+    )
+    for row in rows:
+        row.revoked_at = now
+        row.revoked_reason = f"refund of order {order.id}"
 
 
 def spend_credit(session: Session, *, user_id: UUID, credit_key: str, source_id: str) -> str:
@@ -243,7 +347,12 @@ def _upsert_payment(
 
 
 def apply_order_paid(session: Session, order: Order, payment_entity: dict[str, Any]) -> bool:
-    """Mark a one-time order paid and grant its credits. True if this call granted.
+    """Mark a one-time order paid and grant what it bought. True if this call granted.
+
+    What it bought is credits (`products.credit_grants`) and/or time-ranged
+    access (`products.entitlement_grants`, ARC-43). A SKU may carry either or
+    both: the report SKUs grant a credit to spend once, a pass grants days of
+    Premium.
 
     Safe to call any number of times, from any path.
     """
@@ -274,12 +383,19 @@ def apply_order_paid(session: Session, order: Order, payment_entity: dict[str, A
                 source_id=str(order.id),
                 key=f"order:{order.id}:{credit_key}",
             )
+        for key, days in _entitlement_grants(session, product):
+            _grant_entitlement(session, user_id=order.user_id, order_id=order.id, key=key, days=days)
     session.flush()
     return True
 
 
 def apply_refund(session: Session, entity: dict[str, Any]) -> str:
-    """Record a refund; a processed full refund of a one-time order takes its credits back."""
+    """Record a refund; a processed full refund of a one-time order takes back what it granted.
+
+    Both halves: the credits come off the ledger, and any entitlement this
+    order minted is revoked (ARC-43). A partial refund takes back neither — the
+    order is marked `partially_refunded` and the owner decides (D-18).
+    """
     refund = session.query(Refund).filter(Refund.provider_refund_id == entity["id"]).first()
     payment = session.query(Payment).filter(Payment.provider_payment_id == entity.get("payment_id")).first()
     if refund is None:
@@ -323,6 +439,7 @@ def apply_refund(session: Session, entity: dict[str, Any]) -> str:
                 source_id=str(order.id),
                 key=f"refund:{order.id}:{credit_key}",
             )
+        _revoke_purchased_entitlements(session, order=order)
     session.flush()
     return "ok"
 

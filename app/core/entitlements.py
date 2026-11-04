@@ -43,8 +43,10 @@ UNENFORCEABLE_FEATURES: dict[str, str] = {
     "vargas_enabled": "Vargas ride in the GET /charts/{id} payload every chart surface reads; "
     "no route of their own to gate.",
     "life_area_history_enabled": "No route serves life-area history.",
-    "remedies_enabled": "Owner decision pending: the tier table says premium, but native "
-    "Pariharam shows remedies to every account and daily guidance embeds a remedy focus.",
+    # `remedies_enabled` was listed here while the question was open. It is not
+    # listed now because it is no longer premium-only: the 2026-11-04 ruling
+    # made Pariharam free for every signed-in account, so there is nothing to
+    # enforce. See app/core/tier_limits.py for the reasoning.
     "annual_wrapped_share_enabled": "Sharing is a client action; there is no share route.",
     "ask_vinaadi_topup_enabled": "No top-up purchase path exists yet (pay-per-use is not live) and "
     "nothing reads this flag; gate the purchase route when one is built.",

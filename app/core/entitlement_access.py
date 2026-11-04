@@ -19,6 +19,18 @@ from app.models.entitlement import Entitlement
 
 PREMIUM = "premium"
 
+#: The only `entitlements.key` values anything reads for access. A row with a
+#: key outside this set grants nothing: `entitlement_access` below looks at
+#: `premium` and no other key, and `limits_for_user` has no third answer to
+#: give. Every writer validates against this set — the purchase path
+#: (`products.entitlement_grants`) and the admin courtesy grant — so a key can
+#: never be configured into a product or typed into the console and then grant
+#: nothing silently. That silence was ARC-43: a column whose values no reader
+#: knew about. tests/test_entitlement_grants.py pins this set to what this
+#: module actually branches on, so adding a key here without teaching a reader
+#: about it fails.
+GRANTABLE_KEYS = frozenset({PREMIUM})
+
 AccessState = Literal["free", "trial", "premium"]
 
 

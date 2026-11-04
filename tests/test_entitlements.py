@@ -76,6 +76,28 @@ def test_every_premium_only_boolean_is_gated_or_has_a_recorded_reason() -> None:
 
 
 @pytest.mark.no_db
+def test_pariharam_is_free_for_every_signed_in_account() -> None:
+    """Owner ruling 2026-11-04: remedies are not a paywall.
+
+    Naming someone's dosham and then charging to see what to do about it
+    monetises the anxiety the reading just created, and in the Tamil tradition
+    the parihāram is part of the reading rather than an extra. Pinned here
+    because the flag sat in `UNENFORCEABLE_FEATURES` as "owner decision
+    pending" for a month, and the cheapest way to lose a ruling is to leave no
+    test that fails when it flips back.
+
+    The paid reports still sell their written parihāram chapter: that is the
+    work, not the mercy, and it is a credit-granting SKU, not this flag.
+    """
+    assert TIER_LIMITS["registered"].remedies_enabled is True
+    assert TIER_LIMITS["premium"].remedies_enabled is True
+    # Guest stays False as a prerequisite, not a price: the remedy plan is read
+    # off a saved chart and a guest has none.
+    assert TIER_LIMITS["guest"].remedies_enabled is False
+    assert "remedies_enabled" not in UNENFORCEABLE_FEATURES, "nothing left to not-enforce"
+
+
+@pytest.mark.no_db
 def test_the_gated_route_set_is_exactly_the_expected_one() -> None:
     gates = _gates_by_route()
     expected = {

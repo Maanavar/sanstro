@@ -65,6 +65,9 @@ TIER_LIMITS: dict[str, TierLimits] = {
         vargas_enabled=False,
         synastry_enabled=False,
         retrospective_enabled=False,
+        # Not a paywall, a prerequisite: the remedy plan is read off a saved
+        # chart and a guest has none. The daily pariharam line on the public
+        # rasi-palan pages is served to everyone and is not this flag.
         remedies_enabled=False,
         life_event_log_enabled=False,
         birth_time_rectification_enabled=False,
@@ -92,7 +95,14 @@ TIER_LIMITS: dict[str, TierLimits] = {
         vargas_enabled=False,
         synastry_enabled=False,
         retrospective_enabled=False,
-        remedies_enabled=False,
+        # Pariharam is not a paywall (owner ruling 2026-11-04). Naming someone's
+        # dosham and then charging to see what to do about it monetises the
+        # anxiety we just created; in the Tamil tradition the parihāram is part
+        # of the reading, not an extra. The remedies themselves — a temple
+        # visit, a lamp, a fast, feeding someone — cost nobody anything and
+        # belong to everyone. The paid reports still sell the written parihāram
+        # chapter: that is the work, not the mercy.
+        remedies_enabled=True,
         life_event_log_enabled=False,
         birth_time_rectification_enabled=False,
         life_area_history_enabled=False,
