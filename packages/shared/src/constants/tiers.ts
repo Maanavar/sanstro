@@ -75,6 +75,9 @@ export const TIER_LIMITS: Record<Tier, TierLimits> = {
     vargasEnabled: false,
     synastryEnabled: false,
     retrospectiveEnabled: false,
+    // Not a paywall, a prerequisite: the remedy plan is read off a saved chart
+    // and a guest has none. The daily pariharam line on the public rasi-palan
+    // pages is served to everyone and is not this flag.
     remediesEnabled: false,
     lifeEventLogEnabled: false,
     birthTimeRectificationEnabled: false,
@@ -103,7 +106,12 @@ export const TIER_LIMITS: Record<Tier, TierLimits> = {
     vargasEnabled: false,
     synastryEnabled: false,
     retrospectiveEnabled: false,
-    remediesEnabled: false,
+    // Pariharam is not a paywall (owner ruling 2026-11-04). Naming someone's
+    // dosham and then charging to see what to do about it monetises the anxiety
+    // we just created; in the Tamil tradition the parihāram is part of the
+    // reading, not an extra. The paid reports still sell the written parihāram
+    // chapter: that is the work, not the mercy.
+    remediesEnabled: true,
     lifeEventLogEnabled: false,
     birthTimeRectificationEnabled: false,
     lifeAreaHistoryEnabled: false,

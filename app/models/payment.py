@@ -39,6 +39,15 @@ class Product(TimestampMixin, Base):
         CheckConstraint("kind IN ('subscription', 'one_time')", name="kind"),
         CheckConstraint("billing_period IS NULL OR billing_period IN ('month', 'year')", name="billing_period"),
         CheckConstraint("price_inr_paise > 0", name="price_positive"),
+        # A subscription's access is computed live from `subscriptions`, whose
+        # period end is the provider's fact (ARC-13). If a subscription SKU
+        # could also mint an entitlement row, "does this user have access"
+        # would have two answers that drift on every renewal and retry. The
+        # constraint, not a comment, is what keeps that impossible.
+        CheckConstraint(
+            "kind = 'one_time' OR entitlement_grants = '{}'::jsonb",
+            name="entitlement_grants_one_time_only",
+        ),
     )
 
     sku: Mapped[str] = mapped_column(String(64), primary_key=True)
@@ -47,8 +56,15 @@ class Product(TimestampMixin, Base):
     name_ta: Mapped[str] = mapped_column(Text, nullable=False)
     price_inr_paise: Mapped[int] = mapped_column(Integer, nullable=False)
     billing_period: Mapped[str | None] = mapped_column(String(8), nullable=True)
-    #: Time-ranged access a subscription grants, e.g. ["premium"].
-    entitlement_keys: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    #: Time-ranged access a *one-time* purchase grants: key → days, e.g.
+    #: {"premium": 30} for a month's pass bought outright. Keys must be in
+    #: `GRANTABLE_KEYS` and days must be a positive int, both checked when the
+    #: order is paid. Empty for every subscription SKU — see the constraint
+    #: above. Was `entitlement_keys`, a bare array no code read, which meant a
+    #: SKU configured with one granted nothing at all (ARC-43, ruled 2026-11-04):
+    #: an array cannot say *for how long*, and a key with no duration is either
+    #: meaningless or an unbounded give-away.
+    entitlement_grants: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     #: What a one-time purchase adds to the credit ledger, e.g. {"ask_question": 10}.
     credit_grants: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     #: The plan created in the Razorpay dashboard (subscriptions only).

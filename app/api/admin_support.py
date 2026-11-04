@@ -171,7 +171,11 @@ class ReasonRequest(BaseModel):
 
 
 class GrantRequest(BaseModel):
-    key: str = "premium"
+    #: Only keys something reads (`GRANTABLE_KEYS`). A free string here let an
+    #: agent grant, say, "varshaphala" in good faith and hand the customer
+    #: nothing, with the row looking right in the console — the same silence as
+    #: ARC-43, one layer up. 422 beats a grant that does not grant.
+    key: Literal["premium"] = "premium"
     days: int = Field(gt=0, le=3650)
     reason: str | None = None
 

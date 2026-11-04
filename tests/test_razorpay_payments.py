@@ -31,9 +31,11 @@ from app.api import payments as payments_api
 from app.core.auth import get_admin_user, get_current_user
 from app.core.config import get_settings
 from app.core.permissions import get_admin_role
-from app.core.subscription import is_premium
+from app.core.subscription import access_for_user, is_premium, limits_for_user
+from app.core.tier_limits import TIER_LIMITS
 from app.db.session import SessionLocal
 from app.main import app
+from app.models.entitlement import Entitlement
 from app.models.payment import CreditLedgerEntry, Order, Payment, PaymentMismatch, Product
 from app.models.subscription import Subscription
 from app.models.user import User
@@ -100,14 +102,25 @@ def _seed_products() -> None:
         session.add_all(
             [
                 Product(sku="premium_monthly", kind="subscription", name_en="Premium, monthly", name_ta="பிரீமியம்",
-                        price_inr_paise=14900, billing_period="month", entitlement_keys=["premium"],
+                        price_inr_paise=14900, billing_period="month", entitlement_grants={},
                         credit_grants={}, razorpay_plan_id="plan_synthetic", active=True),
                 Product(sku="jadhagam_report", kind="one_time", name_en="Jadhagam report", name_ta="ஜாதக அறிக்கை",
-                        price_inr_paise=9900, entitlement_keys=[], credit_grants={"jadhagam_report": 1}, active=True),
+                        price_inr_paise=9900, entitlement_grants={}, credit_grants={"jadhagam_report": 1}, active=True),
                 Product(sku="ask_topup_10", kind="one_time", name_en="Top-up", name_ta="கேள்விகள்",
-                        price_inr_paise=4900, entitlement_keys=[], credit_grants={"ask_question": 10}, active=True),
+                        price_inr_paise=4900, entitlement_grants={}, credit_grants={"ask_question": 10}, active=True),
                 Product(sku="porutham_report", kind="one_time", name_en="Porutham report", name_ta="பொருத்தம்",
-                        price_inr_paise=9900, entitlement_keys=[], credit_grants={"porutham_report": 1}, active=False),
+                        price_inr_paise=9900, entitlement_grants={}, credit_grants={"porutham_report": 1}, active=False),
+                # A one-time pass: thirty days of Premium bought outright, no
+                # card on file (ARC-43). The SKU the entitlement_grants column
+                # exists for.
+                Product(sku="premium_pass_30", kind="one_time", name_en="Premium, 30-day pass",
+                        name_ta="பிரீமியம் — 30 நாள் அனுமதி", price_inr_paise=19900,
+                        entitlement_grants={"premium": 30}, credit_grants={}, active=True),
+                # Misconfigured on purpose: a key no reader knows about, and a
+                # duration that is not a count of days.
+                Product(sku="broken_pass", kind="one_time", name_en="Broken pass", name_ta="தவறான அனுமதி",
+                        price_inr_paise=19900, entitlement_grants={"varshaphala": 30, "premium": 0},
+                        credit_grants={}, active=True),
             ]
         )
 
@@ -234,7 +247,10 @@ def test_the_ask_top_up_is_for_premium_only(buyer):
 def test_the_catalogue_lists_only_active_products(buyer):
     client, _ = buyer
     skus = {row["sku"] for row in client.get("/api/v1/payments/products").json()}
-    assert skus == {"premium_monthly", "jadhagam_report", "ask_topup_10"}
+    # `porutham_report` is seeded inactive and must not appear. The two pass
+    # SKUs are fixtures for the ARC-43 tests below, active so they can be
+    # bought; neither is a real catalogue entry.
+    assert skus == {"premium_monthly", "jadhagam_report", "ask_topup_10", "premium_pass_30", "broken_pass"}
 
 
 # ── The client's callback alone grants nothing ───────────────────────────────
@@ -475,9 +491,9 @@ def test_a_subscriber_cannot_start_a_second_subscription(buyer, fake):
 # ── Refunds ──────────────────────────────────────────────────────────────────
 
 
-def _paid_order(client) -> tuple[str, dict]:
-    order_id = _checkout_order(client)["orderId"]
-    payment = _payment(order_id, 9900)
+def _paid_order(client, sku: str = "jadhagam_report", amount: int = 9900) -> tuple[str, dict]:
+    order_id = _checkout_order(client, sku)["orderId"]
+    payment = _payment(order_id, amount)
     _post_webhook(client, _event("order.paid", payment=payment, order={"id": order_id}))
     return order_id, payment
 
@@ -512,6 +528,118 @@ def test_a_pending_refund_changes_nothing_yet(buyer, fake):
     _, payment = _paid_order(client)
     _post_webhook(client, _event("refund.created", refund=_refund(payment, 9900, status="pending")))
     assert _credits(user.user_id, "jadhagam_report") == 1
+
+
+# ── A one-time purchase that grants access, not credits (ARC-43) ─────────────
+
+
+def _local_order_id(provider_order_id: str):
+    with SessionLocal() as session:
+        return session.query(Order).filter(Order.provider_order_id == provider_order_id).one().id
+
+
+def _purchased(user_id) -> list:
+    """This account's purchase entitlements, newest last."""
+    with SessionLocal() as session:
+        return (
+            session.query(Entitlement)
+            .filter(Entitlement.user_id == user_id, Entitlement.source == "purchase")
+            .order_by(Entitlement.created_at)
+            .all()
+        )
+
+
+def _access(user_id) -> str:
+    with SessionLocal() as session:
+        return access_for_user(user_id, session).state
+
+
+def test_a_pass_purchase_grants_premium_for_its_days(buyer, fake):
+    client, user = buyer
+    assert _access(user.user_id) == "free"
+    order_id, _ = _paid_order(client, "premium_pass_30", 19900)
+
+    rows = _purchased(user.user_id)
+    assert [(r.key, r.source) for r in rows] == [("premium", "purchase")]
+    assert rows[0].source_id == str(_local_order_id(order_id)), "tied to the order that paid for it"
+    assert (rows[0].ends_at - rows[0].starts_at).days == 30
+    # And it is access, read through the same union as a subscription.
+    assert _access(user.user_id) == "premium"
+    with SessionLocal() as session:
+        assert limits_for_user(user.user_id, session) is TIER_LIMITS["premium"]
+    assert not _premium(user.user_id), "a pass is not a subscription row"
+
+
+def test_a_second_pass_extends_the_first_instead_of_being_swallowed(buyer, fake):
+    client, user = buyer
+    _paid_order(client, "premium_pass_30", 19900)
+    first_end = _purchased(user.user_id)[0].ends_at
+    _paid_order(client, "premium_pass_30", 19900)
+
+    rows = _purchased(user.user_id)
+    assert len(rows) == 2, "a second purchase is a second row, tied to its own order"
+    # Sixty days bought, sixty days held — not thirty.
+    assert (rows[1].ends_at - first_end).days == 30
+    assert rows[1].ends_at > first_end
+
+
+def test_a_refund_of_a_pass_revokes_the_access_it_granted(buyer, fake):
+    client, user = buyer
+    _, payment = _paid_order(client, "premium_pass_30", 19900)
+    assert _access(user.user_id) == "premium"
+
+    refund = _refund(payment, 19900)
+    _post_webhook(client, _event("refund.processed", refund=refund))
+    _post_webhook(client, _event("refund.processed", refund=refund))  # replayed
+
+    rows = _purchased(user.user_id)
+    assert len(rows) == 1
+    assert rows[0].revoked_at is not None
+    assert "refund of order" in (rows[0].revoked_reason or "")
+    assert _access(user.user_id) == "free"
+
+
+def test_a_refund_of_one_pass_leaves_the_other_alone(buyer, fake):
+    client, user = buyer
+    _, first_payment = _paid_order(client, "premium_pass_30", 19900)
+    _paid_order(client, "premium_pass_30", 19900)
+    _post_webhook(client, _event("refund.processed", refund=_refund(first_payment, 19900)))
+
+    rows = _purchased(user.user_id)
+    assert [r.revoked_at is None for r in rows] == [False, True], "only the refunded order's row goes"
+    assert _access(user.user_id) == "premium", "the second pass still stands"
+
+
+def test_a_partial_refund_of_a_pass_keeps_the_access(buyer, fake):
+    client, user = buyer
+    _, payment = _paid_order(client, "premium_pass_30", 19900)
+    _post_webhook(client, _event("refund.processed", refund=_refund(payment, 10000)))
+    assert _purchased(user.user_id)[0].revoked_at is None
+    assert _access(user.user_id) == "premium"
+
+
+def test_a_misconfigured_grant_is_recorded_and_the_payment_still_lands(buyer, fake):
+    """The ARC-43 inversion: bad config is loud, not silent.
+
+    A key nothing reads and a zero duration each grant nothing — they cannot
+    grant anything sensible — so neither is written as access. What changed is
+    that the console now says so.
+    """
+    client, user = buyer
+    order_id, _ = _paid_order(client, "broken_pass", 19900)
+
+    assert _purchased(user.user_id) == []
+    assert _access(user.user_id) == "free"
+    with SessionLocal() as session:
+        order = session.query(Order).filter(Order.provider_order_id == order_id).one()
+        assert order.status == "paid", "the money arrived; only the grant was unconfigurable"
+        refs = {
+            row.provider_ref
+            for row in session.query(PaymentMismatch).filter(
+                PaymentMismatch.kind == "product_entitlement_grant"
+            )
+        }
+    assert refs == {"broken_pass:varshaphala", "broken_pass:premium"}
 
 
 # ── Reconciliation ───────────────────────────────────────────────────────────
