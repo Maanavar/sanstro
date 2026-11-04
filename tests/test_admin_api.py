@@ -358,6 +358,11 @@ def test_feature_flags_round_trip(raw_client):
         "maintenance_banner_en",
         "maintenance_banner_ta",
         "max_birth_profiles_per_user",
+        # The restore-drill record (spec L10). The drill is performed by hand,
+        # so its date and result are settings; the Health tab reads them.
+        "ops_last_restore_drill_at",
+        "ops_last_restore_drill_note",
+        "ops_last_restore_drill_passed",
         "reasoning_gate",
         "reasoning_bands",
         "reasoning_contradiction",

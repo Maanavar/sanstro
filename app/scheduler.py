@@ -15,6 +15,7 @@ from typing import Any
 
 from app.services.daily_push_cron import run_daily_push_cron
 from app.services.job_registry import register_job
+from app.services.job_run_service import recorded
 from app.services.journal_purge import run_journal_purge_cron
 from app.services.notification_dispatch_service import run_notification_outbox
 from app.services.panchangam_prewarm import run_panchangam_prewarm_cron
@@ -122,7 +123,16 @@ def register_all_jobs() -> None:
 
 
 def schedule_all_jobs(scheduler: Any) -> None:
-    """Add every job to an APScheduler instance as a cron trigger."""
+    """Add every job to an APScheduler instance as a cron trigger.
+
+    Each callable is wrapped so the firing writes a `job_runs` row (spec L10).
+    The wrap happens here rather than in `SCHEDULED_JOBS` or `register_all_jobs`
+    so that one execution is one row: the admin trigger path records its own run
+    with the actor who pressed the button, against the unwrapped callable the
+    registry holds.
+    """
     for job in SCHEDULED_JOBS:
-        scheduler.add_job(job.func, "cron", id=job.id, replace_existing=True, **job.trigger)
+        scheduler.add_job(
+            recorded(job.id, job.func), "cron", id=job.id, replace_existing=True, **job.trigger
+        )
         logger.info("scheduled job=%s trigger=%s", job.id, job.trigger)
