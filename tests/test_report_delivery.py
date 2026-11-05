@@ -24,15 +24,19 @@ credit already in the ledger, because how it got there is that file's subject.
 CSRF on `POST /reports` is driven in tests/test_dashboard_bundle_api.py, where
 the DASH-07 gate test for the route it replaced already lived.
 
-BLIND SPOT: the PDF is checked for being a PDF, for its size and for its
-stability across downloads — not for its contents. Nothing here reads the
-rendered text, so a chapter that renders empty (an engine returning nothing for
-a section) would pass. `test_pdf_export.py` has the same gap for the free
-sheets. The Tamil document is built and sized but its wording is unreviewed
-(Phase 4 owner decision: Tamil copy unreviewed).
+BLIND SPOT: the document's chapters are now read back (see "The document has
+words in it"), so an empty or dropped chapter fails in both languages — proved
+by mutation: forcing `_windows_chapter`'s Moon-missing `return []` names
+`ch_windows` as absent from the document entirely. What is still NOT checked is
+whether what a chapter says is *right*: no number, date, score or sentence is
+verified against the engine here, so a chapter full of wrong values passes.
+The per-engine suites own that. `test_pdf_export.py` still has the original gap
+for the free sheets. The Tamil document is built, sized and chapter-checked,
+but its wording is unreviewed (Phase 4 owner decision: Tamil copy unreviewed).
 """
 from __future__ import annotations
 
+import re
 from datetime import UTC, date, datetime, timedelta
 from uuid import UUID, uuid4
 
@@ -569,6 +573,173 @@ def test_an_adult_single_chart_does_get_marriage_windows(
         == 201
     )
     assert "MARRIAGE" in seen
+
+
+# ── The document has words in it ───────────────────────────────
+#
+# Closing the blind spot this file used to declare: every other test here
+# checks that the PDF *is* a PDF, how big it is, and that it comes back
+# byte-identical — none of them read it, so a chapter that rendered empty
+# passed. `_windows_chapter` can `return []` outright when the Moon is
+# missing, which drops a whole chapter from a paid document silently.
+#
+# Read back through the production assembler rather than by calling the
+# chapter builders directly: the bug worth catching is a chapter the
+# assembler stops including, and a direct call cannot see that. There is no
+# PDF text extractor in the image (reportlab only, and adding a dependency
+# would trip the drift check), so the story reportlab is handed is captured
+# on its way into `doc.build` — the same flowables that become the page.
+
+#: Every chapter key the two reports use, so a heading is recognised wherever
+#: it appears.
+_CHAPTER_KEYS = (
+    "ch_identity", "ch_navamsam", "ch_strength", "ch_adhipathi", "ch_yoga",
+    "ch_dasha", "ch_windows", "ch_now", "ch_guidance", "ch_parihaaram",
+    "ch_verdict", "ch_factors", "ch_layers", "ch_notes",
+)
+
+#: What the jadhagam report promises. A chapter missing from the story at all
+#: is the `return []` bug; a chapter present but empty is an engine that gave
+#: the composer nothing.
+_JADHAGAM_CHAPTERS = (
+    "ch_identity", "ch_navamsam", "ch_strength", "ch_adhipathi", "ch_yoga",
+    "ch_dasha", "ch_windows", "ch_now", "ch_parihaaram",
+)
+
+
+def _capture_story(monkeypatch) -> list[list]:
+    """The flowables the production composer hands to reportlab."""
+    from app.services import report_pdf_service
+
+    captured: list[list] = []
+    real_document = report_pdf_service._document
+
+    def spy(*args, **kwargs):
+        doc = real_document(*args, **kwargs)
+        real_build = doc.build
+
+        def build(story, **build_kwargs):
+            captured.append(list(story))
+            return real_build(story, **build_kwargs)
+
+        doc.build = build
+        return doc
+
+    monkeypatch.setattr(report_pdf_service, "_document", spy)
+    return captured
+
+
+def _flowable_text(flowable) -> str:
+    """Whatever a reader would see in this flowable: paragraph text, or every
+    cell of a table."""
+    text = getattr(flowable, "text", None)
+    if isinstance(text, str):
+        return re.sub(r"<[^>]+>", " ", text)
+    rows = getattr(flowable, "_cellvalues", None)
+    if rows:
+        out = []
+        for row in rows:
+            for cell in row:
+                out.append(cell if isinstance(cell, str) else _flowable_text(cell))
+        return " ".join(out)
+    return ""
+
+
+def _chapters(story: list, lang: str) -> dict[str, str]:
+    """Story split at its chapter headings: {chapter key: text under it}.
+
+    A heading is matched by its own translated title, so this asks the same
+    question a reader does — "is there anything under this heading?"
+    """
+    from app.services.report_pdf_service import _t
+
+    titles = {_t(key, lang): key for key in _CHAPTER_KEYS}
+    found: dict[str, list[str]] = {}
+    current: str | None = None
+    for flowable in story:
+        text = _flowable_text(flowable).strip()
+        key = titles.get(text)
+        if key is not None:
+            current = key
+            found.setdefault(key, [])
+            continue
+        if current is not None and text:
+            found[current].append(text)
+    return {key: " ".join(parts).strip() for key, parts in found.items()}
+
+
+@pytest.mark.parametrize("lang", ["en", "ta"])
+def test_every_jadhagam_chapter_has_content_under_it(
+    client, birth_profile_payload_factory, monkeypatch, lang
+):
+    """Both languages: a paid document must not carry an empty chapter."""
+    chart_id = _chart(client, birth_profile_payload_factory)
+    story = _capture_story(monkeypatch)
+
+    created = client.post(
+        "/api/v1/reports",
+        json={"kind": "jadhagam", "chartId": chart_id, "lang": lang},
+        headers=_csrf(),
+    )
+    assert created.status_code == 201, created.text
+    assert len(story) == 1, "the composer built something other than one document"
+
+    chapters = _chapters(story[0], lang)
+    missing = [key for key in _JADHAGAM_CHAPTERS if key not in chapters]
+    assert not missing, f"chapter heading absent from the document entirely: {missing}"
+
+    empty = {key: chapters[key] for key in _JADHAGAM_CHAPTERS if len(chapters[key]) < 20}
+    assert not empty, f"chapter heading with (almost) nothing under it: {empty}"
+
+
+def test_the_timing_chapter_says_something_for_every_event_it_names(
+    client, birth_profile_payload_factory, monkeypatch
+):
+    """The windows chapter is the one that can go empty quietly — it returns []
+    when the Moon is missing, and each event prints either windows or an
+    explicit "no windows" line. Silence under an event heading is the bug."""
+    chart_id = _chart(client, birth_profile_payload_factory)
+    story = _capture_story(monkeypatch)
+
+    assert (
+        client.post(
+            "/api/v1/reports", json={"kind": "jadhagam", "chartId": chart_id}, headers=_csrf()
+        ).status_code
+        == 201
+    )
+
+    from app.services.report_pdf_service import _t
+
+    windows = _chapters(story[0], "en")["ch_windows"]
+    for event in ("MARRIAGE", "CAREER", "FINANCE"):
+        assert _t(f"event_{event}", "en") in windows, f"{event} is not in the timing chapter"
+    # ...and the chapter carries either real windows or the honest empty line,
+    # never just the three headings.
+    assert len(windows) > 120, windows
+
+
+def test_the_porutham_report_has_its_verdict_and_factors(
+    client, birth_profile_payload_factory, monkeypatch
+):
+    """The porutham document's own chapters, for the same reason."""
+    chart_a = _chart(client, birth_profile_payload_factory, display_name="Arjun Kumar")
+    chart_b = _chart(client, birth_profile_payload_factory, display_name="Anitha Raman")
+    story = _capture_story(monkeypatch)
+
+    created = client.post(
+        "/api/v1/reports",
+        json={"kind": "porutham", "chartId": chart_a, "partnerChartId": chart_b},
+        headers=_csrf(),
+    )
+    assert created.status_code == 201, created.text
+
+    chapters = _chapters(story[0], "en")
+    assert "ch_verdict" in chapters, sorted(chapters)
+    assert len(chapters["ch_verdict"]) > 20, chapters["ch_verdict"]
+    # The ten poruthams are the substance of the document; the verdict alone is
+    # a score with no reasoning under it.
+    assert "ch_factors" in chapters, sorted(chapters)
+    assert len(chapters["ch_factors"]) > 120, chapters["ch_factors"]
 
 
 # ── The retired stub ────────────────────────────────────────────────────────
