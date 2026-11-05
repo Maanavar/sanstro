@@ -97,6 +97,10 @@ ENCRYPTED_COLUMNS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     # Admin TOTP seeds (admin spec L3). Missed here, every admin would lose
     # their authenticator when the old key is dropped.
     ("admin_mfa_credentials", "user_id", ("totp_secret",)),
+    # Delivered report PDFs. Missed here, a bought document becomes
+    # undownloadable the moment the old key is dropped -- and unlike a chart it
+    # cannot be recomputed, which is the whole reason it is stored.
+    ("reports", "id", ("pdf",)),
 )
 
 _BATCH = 500

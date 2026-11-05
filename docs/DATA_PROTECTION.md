@@ -22,6 +22,25 @@
 | `chart_planets.absolute_longitude` / `degree_in_rasi` / `speed_deg_per_day` | `EncryptedFloat` | **A12 C** |
 | `chart_planets.raw_payload` | `EncryptedJSON` | **A12 C** |
 | `family_members.date_of_birth_local` | `EncryptedDate` | **A12 C** |
+| `admin_mfa_credentials.totp_secret` | `EncryptedString` | admin L3 |
+| `reports.pdf` | `EncryptedBytes` | **reports** |
+
+**`reports.pdf` (2026-11-05, migration `fa6b7c8d9e0f`).** Report delivery
+introduced a table holding the rendered document, and the document repeats the
+birth place, the birth date and the planet longitudes that A12 had just
+finished encrypting -- so a plaintext blob put all of them back into a readable
+dump through a new table. The PDF's own compression is not protection, and this
+was measured rather than argued: reportlab writes
+`/Filter [ /ASCII85Decode /FlateDecode ]`, and an ASCII85-decode followed by an
+inflate -- two standard transforms, no key -- returns the birth place as a
+substring. `tests/test_birth_data_at_rest.py` now does exactly that to the
+stored column, and proves the probe works against the reader's own decrypted
+download first, because a probe that silently stops working passes everything.
+
+`byte_size` and `sha256` on that row describe the **plaintext** document: they
+are what proves a re-download is byte-identical, so they are computed before
+the value reaches the column type, never from the stored length (ciphertext is
+roughly 4/3 the size).
 
 **A12 Option C (2026-10-08, migration `uu4e5f6a7b8c`).** Before it, a dump gave
 the exact birth instant away through `birth_datetime_utc` and `julian_day`, and

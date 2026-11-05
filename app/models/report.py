@@ -9,13 +9,13 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
-    LargeBinary,
     String,
     func,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
+from app.db.encrypted_types import EncryptedBytes
 
 #: What a report can be. One `kind` per credit key in `payment.CREDIT_KEYS`.
 REPORT_KINDS = ("jadhagam", "porutham")
@@ -83,7 +83,16 @@ class Report(Base):
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     #: The engine version that wrote it, for a support ticket about its contents.
     calculation_version: Mapped[str] = mapped_column(String(64), nullable=False)
-    pdf: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    #: The document, encrypted at rest (A12 Option C). It repeats the birth
+    #: place, the birth date and the planet longitudes, every one of which is
+    #: ciphertext in `birth_profiles`, `charts` and `chart_planets` by owner
+    #: ruling -- a plaintext blob here would put all of them back into a
+    #: readable dump through a new table. The PDF's own compression is not
+    #: protection: ASCII85-decode, inflate, and the birth place is a substring.
+    pdf: Mapped[bytes] = mapped_column(EncryptedBytes, nullable=False)
+    #: Of the plaintext document, not of the stored ciphertext -- the
+    #: ciphertext is ~4/3 the size, and this number is what the client shows
+    #: and what a support ticket compares against a downloaded file.
     byte_size: Mapped[int] = mapped_column(Integer, nullable=False)
     #: Of the bytes above. Proves the file a person downloaded twice is the
     #: same file, which is the whole point of storing it.

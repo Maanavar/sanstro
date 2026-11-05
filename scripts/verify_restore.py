@@ -217,6 +217,22 @@ def _check_totp_secret(raw: bytes) -> str:
     return f"a base32 TOTP seed of {len(decoded)} bytes"
 
 
+def _check_pdf(raw: bytes) -> str:
+    # A delivered report. Describes the file, never its contents: the document
+    # carries the reader's birth place, birth time and planet longitudes, which
+    # is exactly why the column is encrypted (A12 Option C).
+    #
+    # The shape check matters more here than elsewhere. The other columns hold
+    # a date or a number, where a successful decrypt is almost proof in itself;
+    # a blob that decrypts to the wrong bytes would still "decrypt fine" and
+    # only fail when somebody opened the file. `%PDF-` is the cheapest evidence
+    # that what came back is the document and not a stray buffer.
+    if not raw.startswith(b"%PDF-"):
+        raise ValueError(f"decrypted to {len(raw)} bytes that do not begin with %PDF-")
+    version = raw[5:8].decode("ascii", "replace")
+    return f"a PDF {version} document of {len(raw)} bytes"
+
+
 ShapeCheck = Callable[[bytes], str]
 
 # (table, primary key, [(column, shape check)]). Kept in step with
@@ -255,6 +271,7 @@ CHECKS: tuple[tuple[str, str, tuple[tuple[str, ShapeCheck], ...]], ...] = (
     ("family_members", "family_member_id", (("date_of_birth_local", _check_date),)),
     ("journal_entries", "journal_id", (("note_text", _check_text),)),
     ("admin_mfa_credentials", "user_id", (("totp_secret", _check_totp_secret),)),
+    ("reports", "id", (("pdf", _check_pdf),)),
 )
 
 
