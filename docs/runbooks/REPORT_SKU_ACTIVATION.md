@@ -90,11 +90,12 @@ and an already-delivered report stays downloadable. Refunds are
 
 ## What is still open after activation
 
-- **Mobile cannot make or download a report.** `mobile/app/reports/index.tsx`
-  is a catalogue with hardcoded prices that routes to `/premium`; it never
-  called the retired stub, so nothing there broke, but it has no delivery
-  surface. The typed wrappers it would need are already in
-  `packages/shared/src/api/reports.ts`.
+- **Mobile can make and save a report, but cannot buy a credit.** That is
+  deliberate: Apple and Google require their own purchase flow for digital
+  goods. So activating these SKUs adds a *web* purchase path only, and a phone
+  user spends what their Premium plan includes or what they bought on the web.
+  If you want in-app purchase of report credits, that is a store product
+  (RevenueCat, `mobile/app/premium.tsx`) and a separate piece of work.
 - **`ask_topup_10` is still inactive** and is not covered here. Its deliverable
   (Ask Vinaadi questions) exists, so it is a separate ARC-14 judgement.
 - **The Tamil document is unreviewed.** The report renders in Tamil and is
