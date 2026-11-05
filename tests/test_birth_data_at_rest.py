@@ -16,6 +16,7 @@ import math
 import uuid
 
 import sqlalchemy as sa
+from _pdf_readable import assert_probe_works, pdf_readable_text
 
 from app.db.session import SessionLocal
 
@@ -34,6 +35,8 @@ ENCRYPTED = (
     ("chart_planets", "speed_deg_per_day"),
     ("chart_planets", "raw_payload"),
     ("family_members", "date_of_birth_local"),
+    # The delivered report repeats all of the above in one blob (2026-11-05).
+    ("reports", "pdf"),
 )
 
 BIRTH_PLACE = "Synthetic Testpur, Nowhere"
@@ -128,3 +131,69 @@ def test_a_readable_dump_does_not_carry_the_birth_facts(
     profile = client.get(f"/api/v1/charts/{chart_id}").json()["data"]
     assert profile["julianDay"] == data["julianDay"]
     assert moon["absoluteLongitude"] == next(p for p in profile["planets"] if p["graha"] == "MOON")["absoluteLongitude"]
+
+
+def test_a_delivered_report_does_not_carry_the_birth_facts_in_plaintext(
+    client, birth_profile_payload_factory
+):
+    """A12 for `reports.pdf` (report delivery, 2026-11-05).
+
+    The delivered document repeats the birth place, the birth date and the
+    planet longitudes -- every one of them a column that is ciphertext in
+    `birth_profiles`, `charts` and `chart_planets` by owner ruling. A plaintext
+    blob here puts all of them back into a readable dump through a new table,
+    which is the finding A12 Option C exists to close.
+
+    Two inputs, deliberately. The **downloaded** PDF proves the probe can read
+    a report at all -- and it carries the birth facts, which is correct: that
+    is the reader's own document, decrypted for them over an authenticated
+    request. The **stored column** must then yield nothing. Checking only the
+    column would pass on a probe that had quietly stopped working, which is
+    exactly how the first two versions of this test passed while the blob was
+    plaintext.
+    """
+    payload = birth_profile_payload_factory(display_name="Synthetic Reportee")
+    payload.update(birthPlace=BIRTH_PLACE)
+    created = client.post("/api/v1/birth-profiles", json=payload)
+    assert created.status_code == 200, created.text
+    chart_id = created.json()["data"]["chartId"]
+
+    made = client.post(
+        "/api/v1/reports",
+        json={"kind": "jadhagam", "chartId": chart_id},
+        headers={"X-Vinaadi-CSRF": "1"},
+    )
+    assert made.status_code == 201, made.text
+    report_id = uuid.UUID(made.json()["report"]["id"])
+
+    # 1. The probe, proved against the document as the reader receives it.
+    downloaded = client.get(f"/api/v1/reports/{report_id}/download")
+    assert downloaded.status_code == 200, downloaded.text
+    plain_readable, plain_inflated = pdf_readable_text(downloaded.content)
+    assert_probe_works(plain_readable, plain_inflated)
+    assert BIRTH_PLACE in plain_readable, (
+        "the probe cannot find the birth place in the reader's own decrypted "
+        "document, so it cannot be trusted to find it in the stored column"
+    )
+
+    # 2. The stored column, which must give nothing up.
+    with SessionLocal() as session:
+        blob = bytes(
+            session.execute(
+                sa.text("SELECT pdf FROM reports WHERE id = :i"), {"i": report_id}
+            ).scalar_one()
+        )
+    assert blob.startswith(b"gAAAAA"), (
+        "reports.pdf is not Fernet ciphertext -- it begins "
+        f"{blob[:8]!r}. Nothing below proves anything if the column is not encrypted."
+    )
+    stored_readable, _ = pdf_readable_text(blob)
+    leaks = [
+        needle
+        for needle in (BIRTH_PLACE, "Asia/Kolkata", "1991-07-2")
+        if needle in stored_readable
+    ]
+    assert not leaks, (
+        f"{len(leaks)} plaintext birth fact(s) recoverable from reports.pdf without a key: "
+        f"{leaks!r}"
+    )

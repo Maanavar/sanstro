@@ -25,6 +25,7 @@ from sqlalchemy.types import TypeDecorator
 from app.core.encryption import decrypt_bytes, encrypt_bytes
 
 __all__ = [
+    "EncryptedBytes",
     "EncryptedDate",
     "EncryptedDateTime",
     "EncryptedFloat",
@@ -180,3 +181,38 @@ class EncryptedString(TypeDecorator):
         if value is None:
             return None
         return decrypt(bytes(value)).decode("utf-8")
+
+
+class EncryptedBytes(TypeDecorator):
+    """Stores an opaque byte string as Fernet-encrypted bytes.
+
+    For a blob that is already bytes and must not be readable in a dump --
+    `Report.pdf`, where the rendered document repeats the birth place, the birth
+    date and the planet longitudes that are ciphertext in `birth_profiles`,
+    `charts` and `chart_planets` by owner ruling (A12 Option C).
+
+    A compressed PDF is not a protected one. reportlab writes
+    `/Filter [ /ASCII85Decode /FlateDecode ]`, and both are standard, keyless
+    transforms: ASCII85-decode then inflate and the birth place is a substring.
+    Measured, not assumed.
+
+    **Size.** Fernet base64-encodes its output, so ciphertext is roughly 4/3 of
+    the plaintext plus a small header. `byte_size` and `sha256` on the row
+    describe the *plaintext* document -- they are what proves a re-download is
+    byte-identical -- so they must keep being computed before the value is
+    handed to this type, never from the stored column's length.
+    """
+    impl = LargeBinary
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return None
+        if isinstance(value, bytes | bytearray | memoryview):
+            return encrypt(bytes(value))
+        raise TypeError(f"EncryptedBytes expects bytes, got {type(value)!r}")
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return None
+        return decrypt(bytes(value))
