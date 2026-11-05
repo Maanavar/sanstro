@@ -114,6 +114,26 @@ def _sync_linked_family_member(profile: BirthProfile) -> None:
     member.updated_at = datetime.now(tz=UTC)
 
 
+def resolve_relationship_to_owner(session: Session, profile: BirthProfile) -> str:
+    """Who this chart belongs to, relative to the account looking at it.
+
+    `BirthProfile` does not carry the relationship — `FamilyMember` does, and
+    only when the profile was created through the family vault. "self" is the
+    answer for an unlinked profile and for a link whose member row is gone.
+
+    One function because four surfaces asked the same question of the same two
+    columns: the event-windows route, the predictions assembler, the
+    one-minute reading, and now the paid report. Three of the four already
+    carried a comment pointing at the other two.
+    """
+    if profile.family_member_id is None:
+        return "self"
+    member = session.get(FamilyMember, profile.family_member_id)
+    if member is None:
+        return "self"
+    return member.relationship_to_owner or "self"
+
+
 def normalise_current_location_updates(update_data: dict[str, object]) -> None:
     """In place: expand `current_place == ""` into a full clear of all four fields.
 

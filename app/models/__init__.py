@@ -35,6 +35,7 @@ from app.models.prediction_log import PredictionLog
 from app.models.qa_golden_case import QaGoldenCase
 from app.models.refresh_token import RefreshToken
 from app.models.relationship_alert import RelationshipAlert
+from app.models.report import Report
 from app.models.retrospective_entry import RetrospectiveEntry
 from app.models.runtime_setting import RuntimeSetting, RuntimeSettingChange
 from app.models.scheduler_heartbeat import SchedulerHeartbeat
@@ -93,6 +94,7 @@ __all__ = [
     "Refund",
     "RefreshToken",
     "RelationshipAlert",
+    "Report",
     "RetrospectiveEntry",
     "RuntimeSetting",
     "RuntimeSettingChange",

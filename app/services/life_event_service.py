@@ -96,8 +96,19 @@ _REASON_EN: dict[str, str] = {
 }
 
 
-def _reason_bitext(key: str) -> BiText:
+def reason_bitext(key: str) -> BiText:
+    """An event-window reason key in both languages.
+
+    Public because the paid report prints the same reasons the Life Events
+    surface does, and `find_event_windows` returns bare keys
+    (`7th_lord_dasha_active`). An unmapped key falls back to itself, which is
+    the one case worth catching in review: a raw key reaching a reader.
+    """
     return _t(_REASON_TA.get(key, key), _REASON_EN.get(key, key))
+
+
+#: Kept so the older private name still resolves.
+_reason_bitext = reason_bitext
 
 
 def _gochar_summary(gochar_reasons: list[str], supported_ta: str, supported_en: str) -> tuple[str, str]:

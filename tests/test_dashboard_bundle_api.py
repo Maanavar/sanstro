@@ -2,7 +2,7 @@
 
 Covers the composite dashboard-bundle endpoint (one round trip instead of ~13),
 the comma-list dasha `level`, the activity-timing batch route, and the CSRF
-gate on /reports/purchase. All birth data is the synthetic "Arjun Kumar"
+gate on POST /reports. All birth data is the synthetic "Arjun Kumar"
 fixture identity used across the suite.
 """
 from __future__ import annotations
@@ -177,20 +177,23 @@ def test_activity_timing_batch_rejects_empty_and_oversized(client, chart_id):
     assert oversized.status_code == 422
 
 
-def test_reports_purchase_requires_csrf_header(client):
-    """DASH-07: the state-changing purchase POST enforces the same CSRF gate
-    as logout / PATCH /me for cookie-authenticated callers."""
+def test_creating_a_report_requires_csrf_header(client, chart_id):
+    """DASH-07: the state-changing report POST enforces the same CSRF gate as
+    logout / PATCH /me for cookie-authenticated callers.
+
+    It used to be `/reports/purchase`, a waitlist stub that stored nothing.
+    That route is gone; `POST /reports` is the state-changing one now, and it
+    spends an inclusion or a credit, so the gate matters more than it did.
+    """
     client.cookies.set("vinaadi_token", "cookie-session")
-    missing = client.post(
-        "/api/v1/reports/purchase", json={"product_id": "vinaadi.ppu.report.1page"}
-    )
+    missing = client.post("/api/v1/reports", json={"kind": "jadhagam", "chartId": chart_id})
     assert missing.status_code == 403
 
     with_header = client.post(
-        "/api/v1/reports/purchase",
-        json={"product_id": "vinaadi.ppu.report.1page"},
+        "/api/v1/reports",
+        json={"kind": "jadhagam", "chartId": chart_id},
         headers={"X-Vinaadi-CSRF": "1"},
     )
-    assert with_header.status_code == 200
-    assert with_header.json()["status"] == "queued"
+    assert with_header.status_code == 201
+    assert with_header.json()["report"]["source"] == "included"
     client.cookies.delete("vinaadi_token")

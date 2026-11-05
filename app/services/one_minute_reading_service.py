@@ -109,7 +109,7 @@ from app.core.age_gate import (
     is_past_prime_marriage_age,
     is_seeking_marriage,
 )
-from app.models import BirthProfile, Chart, FamilyMember
+from app.models import BirthProfile, Chart
 from app.reasoning.chart_signature import detect_signature
 from app.schemas.charts import LagnaPosition, PlanetPosition
 from app.schemas.one_minute_reading import (
@@ -131,6 +131,7 @@ from app.services.age_phase_service import (
     life_stage,
     remedy_lead_in_for_stage,
 )
+from app.services.birth_profile_service import resolve_relationship_to_owner
 from app.services.chart_service import load_persisted_chart_response
 from app.services.feature_flags import get_flag
 from app.services.life_areas_service import _DASHA_AREA_SCORE
@@ -4158,19 +4159,9 @@ def _beat_one_thing(
 
 
 def _relationship_to_owner(session: Session, profile: BirthProfile) -> str:
-    """Who this chart belongs to, relative to the account looking at it.
-
-    Resolved exactly as charts.py:233 and predictions.py:171 already resolve it,
-    down to the "self" default when there is no family-member row — three
-    surfaces asking the same question of the same two columns should not answer
-    it three ways.
-    """
-    if profile.family_member_id is None:
-        return "self"
-    member = session.get(FamilyMember, profile.family_member_id)
-    if member is None:
-        return "self"
-    return member.relationship_to_owner or "self"
+    """Kept as a local name; the answer now comes from the one implementation
+    (`birth_profile_service.resolve_relationship_to_owner`)."""
+    return resolve_relationship_to_owner(session, profile)
 
 
 def _lagna_is_reliable(profile: BirthProfile) -> bool:

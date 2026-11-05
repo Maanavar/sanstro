@@ -106,6 +106,17 @@ TABLE_STORES: tuple[TableStore, ...] = (
                "owner_user_id = :uid", "delete", _UNTIL_ERASED),
     TableStore("daily_scores", "daily_scores", "Daily scores for the person's birth profiles.",
                f"birth_profile_id IN {_PROFILES}", "delete", _UNTIL_ERASED, export=False),
+    TableStore(
+        "reports", "reports", "Reports the person bought or had included, as delivered PDFs.",
+        "user_id = :uid", "delete", _UNTIL_ERASED,
+        # The bytes are the person's own chart rendered as a document, so the
+        # rows go with them. They are listed in an export but the blob is not
+        # inlined: a base64 PDF per report would make the export unreadable and
+        # is already downloadable at /reports/{id}/download while the account
+        # exists. The money record of the purchase stays in `orders` and
+        # `credit_ledger`, detached, as an accounting record.
+        export_exclude=frozenset({"pdf"}),
+    ),
     TableStore("charts", "charts", "The person's computed charts.",
                f"birth_profile_id IN {_PROFILES}", "delete", _UNTIL_ERASED),
     TableStore("family_daily_scores", "family_daily_scores", "Family day scores.",

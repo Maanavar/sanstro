@@ -16,9 +16,9 @@ from app.core.age_gate import is_married_settled, is_minor_age, is_past_prime_ma
 from app.core.auth import get_current_user
 from app.db.session import get_db
 from app.models import BirthProfile, Chart
-from app.models.family_member import FamilyMember
 from app.models.user import User
 from app.reasoning.verdict import legacy_confidence_to_band
+from app.services.birth_profile_service import resolve_relationship_to_owner
 from app.services.career_service import CareerAssessmentInput, assess_career_prediction
 from app.services.chart_service import load_persisted_chart_response
 from app.services.context_service import get_context_row
@@ -168,11 +168,7 @@ def _load_chart_context(session: Session, chart_id: UUID, current_user: User, as
     )
     life_stage = _derive_life_stage(age, getattr(profile, "employment_type", None))
 
-    relationship_to_owner = "self"
-    if profile.family_member_id is not None:
-        member = session.get(FamilyMember, profile.family_member_id)
-        if member is not None:
-            relationship_to_owner = member.relationship_to_owner or "self"
+    relationship_to_owner = resolve_relationship_to_owner(session, profile)
 
     return (
         snapshot,
