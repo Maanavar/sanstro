@@ -33,6 +33,7 @@ BLIND SPOTS (CLAUDE.md "a gate proves its own check"):
 """
 from __future__ import annotations
 
+import hashlib
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
@@ -98,13 +99,14 @@ def test_every_table_that_reaches_a_user_is_in_the_registry():
 @pytest.mark.no_db
 def test_the_coverage_walk_is_not_vacuous():
     """Every assertion above is vacuous if the walk finds nothing. An exact count,
-    so a walk that quietly loses tables fails: 47 on 2026-11-04 (46 registered
+    so a walk that quietly loses tables fails: 48 on 2026-11-05 (47 registered
     tables it can reach, plus erasure_tombstones; newsletter_subscribers is
     registered but reachable only by email). Was 46 until `job_runs` arrived
-    with L10b — this count going up is what adding a table looks like."""
+    with L10b, then 47 until `reports` arrived with report delivery — this count
+    going up is what adding a table looks like."""
     found = _tables_reaching_users()
     assert {"users", "charts", "chart_planets", "payments", "refunds", "webhook_events", "erasure_tombstones"} <= found
-    assert len(found) == 47, sorted(found)
+    assert len(found) == 48, sorted(found)
 
 
 @pytest.mark.no_db
@@ -273,6 +275,18 @@ def _seed_everything() -> tuple[UUID, str, dict[str, list[Any]]]:
         add("webhook_events", session, models.WebhookEvent(
             provider="razorpay", event_id=uuid4().hex, event_type="payment.captured", status="ok",
             resolved_user_id=uid, provider_app_user_id=str(uid),
+        ))
+
+        # A delivered report: the person's own chart as a stored document. The
+        # bytes have to be a real non-empty blob — `ck_reports_byte_size_positive`
+        # rejects a placeholder, and `source = 'included'` must carry no
+        # `credit_spend_key` or `ck_reports_credit_spend_key_matches_source`
+        # rejects the row.
+        _pdf = b"%PDF-1.4 synthetic report body"
+        add("reports", session, models.Report(
+            user_id=uid, kind="jadhagam", lang="en", source="included", chart_id=cid,
+            title="Jadhagam Report — Synthetic Person", calculation_version="test-1",
+            pdf=_pdf, byte_size=len(_pdf), sha256=hashlib.sha256(_pdf).hexdigest(),
         ))
 
         # Other people's rows that name this person.

@@ -11,6 +11,7 @@ never stored as flags, so they auto-update when the user's profile changes):
 """
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import date
 
 
@@ -112,6 +113,52 @@ def get_blocked_life_modes(age: int, marital_status: str | None) -> frozenset[st
         blocked.add("MARRIAGE")
 
     return frozenset(blocked)
+
+
+# ── Marriage timing: one gate, two surfaces ─────────────────────────────────
+
+
+@dataclass(frozen=True)
+class MarriageTimingGate:
+    """Whether marriage-timing windows may be shown for a profile.
+
+    One function because there are now two surfaces that must agree:
+    `GET /charts/{id}/event-windows` and the paid Jadhagam report's
+    life-event chapter. A second copy of these four conditions is a copy
+    that can drift, and the way it drifts is a printed sheet naming a
+    marriage window for a minor or for someone else's parent — the one
+    output nobody can take back once it has been downloaded.
+    """
+
+    #: No windows at all. Not "an empty list because none were found".
+    hard_blocked: bool
+    #: Shown with different framing, or withheld.
+    age_gated: bool
+    #: What to read instead, when there is something to read instead.
+    alternative_framing: str | None
+
+
+#: Relationships whose marriage timing is never the asking user's to read.
+PARENTAL_RELATIONSHIPS: frozenset[str] = frozenset({"parent", "grandparent"})
+
+
+def marriage_timing_gate(
+    *,
+    birth_date: date,
+    marital_status: str | None,
+    relationship_to_owner: str | None,
+    as_of: date | None = None,
+) -> MarriageTimingGate:
+    """Resolve the gate from already-loaded profile facts (no DB access)."""
+    age = compute_age(birth_date, as_of=as_of)
+    is_parental = (relationship_to_owner or "self") in PARENTAL_RELATIONSHIPS
+    if is_minor(birth_date, as_of=as_of) or is_past_prime_marriage_age(age) or is_parental:
+        return MarriageTimingGate(hard_blocked=True, age_gated=True, alternative_framing=None)
+    if is_married_settled(marital_status):
+        return MarriageTimingGate(
+            hard_blocked=False, age_gated=True, alternative_framing="RELATIONSHIP_HARMONY"
+        )
+    return MarriageTimingGate(hard_blocked=False, age_gated=False, alternative_framing=None)
 
 
 # ── Ask Vinaadi keyword redirects ───────────────────────────────────────────

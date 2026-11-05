@@ -12,7 +12,7 @@ from app.calculations.event_windows import ChartData, EventType, find_event_wind
 from app.calculations.jaimini_dasha import calculate_chara_dasha, current_chara_dasha
 from app.calculations.jaimini_karakas import compute_char_karakas, compute_karakamsa
 from app.calculations.tajaka import calculate_tajaka_chart
-from app.core.age_gate import is_married_settled, is_minor, is_past_prime_marriage_age
+from app.core.age_gate import marriage_timing_gate
 from app.core.auth import get_current_user
 from app.core.chart_access import assert_chart_owner as _assert_chart_owner
 from app.core.clock import local_date
@@ -20,7 +20,6 @@ from app.core.entitlements import require_feature
 from app.db.session import get_db
 from app.models import BirthProfile, Chart
 from app.models.chart_planet import ChartPlanet
-from app.models.family_member import FamilyMember
 from app.models.user import User
 from app.schemas.chart_explanation import ChartExplanationResponse
 from app.schemas.charts import (
@@ -47,6 +46,7 @@ from app.schemas.secondary_dashas import (
 from app.schemas.shadbala import ShadbalaResponse
 from app.schemas.varshaphala import VarshaphalaResponse
 from app.services.ashtottari_dasha_service import build_ashtottari_dasha_response
+from app.services.birth_profile_service import resolve_relationship_to_owner
 from app.services.chart_explanation_service import build_chart_explanation
 from app.services.chart_service import (
     calculate_chart as calculate_chart_snapshot,
@@ -264,23 +264,15 @@ def get_event_windows(
     alternative_framing: str | None = None
     hard_blocked = False
     if event == "MARRIAGE":
-        today = _profile_today(profile)
-        birth_age = today.year - profile.birth_date_local.year - (
-            (today.month, today.day) < (profile.birth_date_local.month, profile.birth_date_local.day)
+        gate = marriage_timing_gate(
+            birth_date=profile.birth_date_local,
+            marital_status=profile.marital_status,
+            relationship_to_owner=resolve_relationship_to_owner(session, profile),
+            as_of=_profile_today(profile),
         )
-        relationship_to_owner = "self"
-        if profile.family_member_id is not None:
-            member = session.get(FamilyMember, profile.family_member_id)
-            if member is not None:
-                relationship_to_owner = member.relationship_to_owner or "self"
-
-        is_parental = relationship_to_owner in {"parent", "grandparent"}
-        if is_minor(profile.birth_date_local) or is_past_prime_marriage_age(birth_age) or is_parental:
-            hard_blocked = True
-            age_gated = True
-        elif is_married_settled(profile.marital_status):
-            age_gated = True
-            alternative_framing = "RELATIONSHIP_HARMONY"
+        hard_blocked = gate.hard_blocked
+        age_gated = gate.age_gated
+        alternative_framing = gate.alternative_framing
 
     if hard_blocked:
         return EventWindowsResponse(

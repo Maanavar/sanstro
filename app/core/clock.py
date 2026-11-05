@@ -67,6 +67,17 @@ def next_accounting_day_start(*, clock: Clock = SYSTEM_CLOCK) -> datetime:
     return _accounting_midnight_utc(accounting_date(clock=clock) + timedelta(days=1))
 
 
+def accounting_month_start_utc(*, clock: Clock = SYSTEM_CLOCK) -> datetime:
+    """UTC instant the current quota month began.
+
+    The bound a monthly allowance is counted from. A `created_at` comparison
+    needs an instant, not a civil date: counting from midnight UTC would give
+    a 5.5-hour window at each month boundary in which last month's rows still
+    count against this month's allowance.
+    """
+    return _accounting_midnight_utc(accounting_month_start(clock=clock))
+
+
 def next_accounting_month_start(*, clock: Clock = SYSTEM_CLOCK) -> datetime:
     """UTC instant the next quota month begins."""
     start = accounting_month_start(clock=clock)
