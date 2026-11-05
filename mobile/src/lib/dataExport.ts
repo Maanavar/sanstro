@@ -77,3 +77,56 @@ export async function shareJsonFile(filename: string, data: unknown): Promise<bo
     throw error;
   }
 }
+
+/** base64 of raw bytes. Separate from `utf8ToBase64` because a PDF is bytes,
+ *  not text: running it through the UTF-8 encoder above would corrupt every
+ *  byte above 0x7f. The same pure-JS loop, kept free of `btoa` for the same
+ *  reason — which Hermes build exposes it is not something to depend on. */
+export function bytesToBase64(bytes: Uint8Array): string {
+  let out = "";
+  for (let i = 0; i < bytes.length; i += 3) {
+    const b0 = bytes[i];
+    const b1 = i + 1 < bytes.length ? bytes[i + 1] : 0;
+    const b2 = i + 2 < bytes.length ? bytes[i + 2] : 0;
+    out += B64[b0 >> 2];
+    out += B64[((b0 & 0x03) << 4) | (b1 >> 4)];
+    out += i + 1 < bytes.length ? B64[((b1 & 0x0f) << 2) | (b2 >> 6)] : "=";
+    out += i + 2 < bytes.length ? B64[b2 & 0x3f] : "=";
+  }
+  return out;
+}
+
+/**
+ * Open the share sheet on a PDF built from `bytes`. Resolves `false` when the
+ * user dismisses the sheet (not an error), `true` once it is handed off.
+ *
+ * Same `data:` URL route as the JSON export: the app bundles no file-system
+ * module, and the share sheet turns a base64 data URL with a `filename` into a
+ * real file on both platforms. The lazy require is load-bearing — a static
+ * import runs at module load and crashes Expo Go, where the native bridge does
+ * not exist.
+ */
+export async function sharePdfFile(
+  filename: string,
+  bytes: Uint8Array,
+  title?: string,
+): Promise<boolean> {
+  const url = `data:application/pdf;base64,${bytesToBase64(bytes)}`;
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const Share = (require("react-native-share") as ShareModule).default;
+  try {
+    await Share.open({
+      ...(title ? { title } : {}),
+      url,
+      filename,
+      type: "application/pdf",
+      failOnCancel: false,
+      saveToFiles: Platform.OS === "ios" ? true : undefined,
+    });
+    return true;
+  } catch (error) {
+    const message = error instanceof Error ? error.message.toLowerCase() : "";
+    if (message.includes("cancel")) return false;
+    throw error;
+  }
+}

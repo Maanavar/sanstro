@@ -3,6 +3,7 @@ import * as Haptics from "expo-haptics";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useToast } from "@/context/ToastContext";
 import { fetchWithAuth } from "@/api/client";
+import { sharePdfFile } from "@/lib/dataExport";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams, type Href } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
@@ -23,12 +24,6 @@ import {
   tPlanetLord,
   type ChartCalculateResponseData,
 } from "@vinaadi/shared";
-let Share: typeof import("react-native-share").default | null = null;
-// A static import would run at module load and crash Expo Go, where the
-// native bridge these JSI modules need does not exist. The require has to
-// stay a require: that is the point, not an oversight.
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-try { Share = require("react-native-share").default; } catch { /* Expo Go */ }
 
 const PLANET_SHORT_TA: Record<string, string> = {
   Sun: "சூ", Moon: "சந்", Mars: "செ", Mercury: "பு",
@@ -129,24 +124,14 @@ export default function JadhagamDetailScreen() {
     try {
       const res = await fetchWithAuth(jadhagamPdfPath(id, { lang: isTamil ? "ta" : "en", detail }));
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const buffer = await res.arrayBuffer();
-      // Pure-JS base64 encoding - works on all RN platforms without btoa
-      const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-      const bytes = new Uint8Array(buffer);
-      let b64 = "";
-      for (let i = 0; i < bytes.length; i += 3) {
-        const b0 = bytes[i], b1 = i + 1 < bytes.length ? bytes[i + 1] : 0, b2 = i + 2 < bytes.length ? bytes[i + 2] : 0;
-        b64 += alphabet[b0 >> 2];
-        b64 += alphabet[((b0 & 3) << 4) | (b1 >> 4)];
-        b64 += i + 1 < bytes.length ? alphabet[((b1 & 15) << 2) | (b2 >> 6)] : "=";
-        b64 += i + 2 < bytes.length ? alphabet[b2 & 63] : "=";
-      }
-      await Share?.open({
-        title: isTamil ? "ஜாதகம் PDF" : "Jadhagam PDF",
-        type: "application/pdf",
-        url: `data:application/pdf;base64,${b64}`,
-        filename: detail === "astrologer" ? `jadhagam-${id}-astrologer.pdf` : `jadhagam-${id}.pdf`,
-      });
+      const bytes = new Uint8Array(await res.arrayBuffer());
+      // One base64-and-share implementation, in lib/dataExport, shared with the
+      // paid report screen. The loop used to be inlined here.
+      await sharePdfFile(
+        detail === "astrologer" ? `jadhagam-${id}-astrologer.pdf` : `jadhagam-${id}.pdf`,
+        bytes,
+        isTamil ? "ஜாதகம் PDF" : "Jadhagam PDF",
+      );
     } catch {
       showError(isTamil ? "PDF ஏற்றுமதி தோல்வி. மீண்டும் முயற்சிக்கவும்" : "Could not export PDF. Please try again.");
     } finally {
