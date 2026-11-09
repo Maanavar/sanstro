@@ -64,7 +64,7 @@ _MODEL = "claude-sonnet-4-6"
 #: and `_SAFETY_ADDENDUM`. Stored on every metered call (spec L7), so a change in
 #: answers can be traced to a prompt change. Bump it with any edit to either;
 #: tests/test_ask_rails.py pins their fingerprint to this value.
-ASK_PROMPT_VERSION = "ask-2026-11-02"
+ASK_PROMPT_VERSION = "ask-2026-11-09"
 
 
 # ── System prompt ─────────────────────────────────────────────────────────────
