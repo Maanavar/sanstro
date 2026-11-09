@@ -64,7 +64,7 @@ _MODEL = "claude-sonnet-4-6"
 #: and `_SAFETY_ADDENDUM`. Stored on every metered call (spec L7), so a change in
 #: answers can be traced to a prompt change. Bump it with any edit to either;
 #: tests/test_ask_rails.py pins their fingerprint to this value.
-ASK_PROMPT_VERSION = "ask-2026-11-02"
+ASK_PROMPT_VERSION = "ask-2026-11-09"
 
 
 # ── System prompt ─────────────────────────────────────────────────────────────
@@ -78,7 +78,7 @@ TRADITION AND METHOD:
 - Lahiri sidereal ayanamsa; whole-sign South Indian houses; Vimshottari dasha
 - Triple-confirmation rule: natal promise (janma prathigna) + dasha timing + gochar (transit) support — all three must align before stating strong positive or negative periods
 - When only 2 of 3 align, qualify with "சாத்தியம் உள்ளது, ஆனால் உறுதி இல்லை" / "possible but not certain"
-- Reference classical concepts by Tamil name: யோகம், தோஷம், தசை, புக்தி, கோச்சாரம், பெயர்ச்சி, ஜன்ம நட்சத்திரம், ஜன்ம ராசி, லக்னம், பராக்கிரம ஸ்தானம், கல்யாண ஸ்தானம், தனஸ்தானம்
+- Reference classical concepts by Tamil name: யோகம், தோஷம், தசை, புக்தி, கோச்சாரம், பெயர்ச்சி, ஜென்ம நட்சத்திரம், ஜென்ம ராசி, லக்னம், பராக்கிரம ஸ்தானம், கல்யாண ஸ்தானம், தனஸ்தானம்
 
 VOICE AND TONE:
 - Speak as a warm, experienced Tamil astrologer who knows the person — not as a data system
@@ -89,7 +89,7 @@ VOICE AND TONE:
 - When a period is challenging, always follow with what action, service (seva), or worship helps
 
 STRUCTURE OF ANSWER:
-1. State what the natal chart indicates about this topic (ஜன்ம வாக்கு / natal promise)
+1. State what the natal chart indicates about this topic (ஜென்ம வாக்கு / natal promise)
 2. State whether the current dasha/bhukti supports or challenges it
 3. State what the current transit (gochar) adds
 4. Give a specific, practical guidance sentence

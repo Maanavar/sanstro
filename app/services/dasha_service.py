@@ -48,7 +48,7 @@ _PLANET_DOMAIN: dict[str, tuple[str, str]] = {
 
 # House signification labels
 _HOUSE_DOMAIN: dict[int, tuple[str, str]] = {
-    1:  ("உடல், ஆளுமை, ஆரோக்யம்", "Body, personality, health"),
+    1:  ("உடல், ஆளுமை, ஆரோக்கியம்", "Body, personality, health"),
     2:  ("குடும்பம், சொத்து, பேச்சு", "Family, wealth, speech"),
     3:  ("சகோதரர், தைரியம், குறுந்தூரம்", "Siblings, courage, short journeys"),
     4:  ("தாய், வீடு, கல்வி, சுகம்", "Mother, home, education, comfort"),

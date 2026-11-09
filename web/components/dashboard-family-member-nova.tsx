@@ -7,6 +7,7 @@ import { formatClockLabel, formatDateLabel, scoreColor } from "@/lib/format";
 import { t, tNakshatra, tPlanetLord, tTithi, tYoga } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { rasiDisplayName } from "@/lib/chart-utils";
+import { saniConfirmation } from "@/lib/family-flags";
 import { compareSynastry } from "@vinaadi/shared/api/relationships";
 import type {
   ChartDoshamInsight,
@@ -224,7 +225,7 @@ export function DashboardFamilyMemberNova({
     ? `${lang === "ta" ? "திதி" : "Tithi"} ${panchangam.tithi.number} ${tTithi(panchangam.tithi.name, lang)} · ${tYoga(panchangam.yoga.name, lang)} ${lang === "ta" ? "யோகம்" : "Yoga"}`
     : null;
   const transitLine = sani?.moonBasedCycle.isActive
-    ? sani.confirmationSentence
+    ? saniConfirmation(sani, lang)
     : isChandrashtama
       ? (lang === "ta" ? "இன்று சந்திராஷ்டமம் — கவனமாக இருக்கவும்." : "Chandrashtama today — proceed with care.")
       : (lang === "ta" ? "இன்று பெரிய கோச்சார எச்சரிக்கை இல்லை." : "No major transit caution today.");
@@ -398,7 +399,7 @@ export function DashboardFamilyMemberNova({
               )}
               <div style={{ display: "flex", gap: "var(--space-2_5)", fontSize: "var(--text-sm)", lineHeight: 1.55, color: "var(--color-muted)" }}>
                 <span style={{ flexShrink: 0, width: "6px", height: "6px", borderRadius: "var(--radius-pill)", background: "var(--color-accent)", marginTop: "6px" }} />
-                <span><b style={{ color: "var(--color-text-strong)" }}>{lang === "ta" ? "கோச்சாரம்" : "Transit"}</b> — <span data-server-prose={sani?.moonBasedCycle.isActive || undefined}>{transitLine}</span></span>
+                <span><b style={{ color: "var(--color-text-strong)" }}>{lang === "ta" ? "கோச்சாரம்" : "Transit"}</b> — <span>{transitLine}</span></span>
               </div>
             </div>
             <div style={{ marginTop: "auto", background: "linear-gradient(135deg, var(--color-accent-muted), transparent)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-3_5)" }}>

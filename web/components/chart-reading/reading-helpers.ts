@@ -463,7 +463,7 @@ export function classifySaniFromMoon(house: number | null | undefined): BiCopy {
   }
   if (house === 1) {
     return {
-      ta: "ஜன்ம சனி / ஏழரை சனி மையம்: பொறுப்பு, மன உறுதி, நீண்டகால மாற்றம் முக்கியம்.",
+      ta: "ஜென்ம சனி / ஏழரை சனி மையம்: பொறுப்பு, மன உறுதி, நீண்டகால மாற்றம் முக்கியம்.",
       en: "Janma Sani / Sade Sati peak: responsibility, resilience, and long-term change are emphasized.",
     };
   }
@@ -535,7 +535,7 @@ export function formatPeyarchiDate(value: string): string {
 export function saniCycleLabel(value: string, lang: Lang): string {
   const labels: Record<string, BiCopy> = {
     EZHARAI_SANI_PHASE_1: { ta: "ஏழரை சனி தொடக்கம்", en: "Sade Sati beginning" },
-    JANMA_SANI: { ta: "ஜன்ம சனி", en: "Janma Sani" },
+    JANMA_SANI: { ta: "ஜென்ம சனி", en: "Janma Sani" },
     EZHARAI_SANI_PHASE_3: { ta: "ஏழரை சனி முடிவு", en: "Sade Sati ending" },
     ARDHASHTAMA_SANI: { ta: "அர்த்தாஷ்டம சனி", en: "Ardhashtama Sani" },
     ASHTAMA_SANI: { ta: "அஷ்டம சனி", en: "Ashtama Sani" },

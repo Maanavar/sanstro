@@ -73,6 +73,23 @@ import { DashboardTodayPalanNova, type PalanMember } from "./dashboard-today-pal
 import { FocusNudgeStrip, LifeModeBadge } from "./life-mode-picker";
 
 /**
+ * A clock range ("காலை 10:26 – காலை 11:53") that may break at the dash and
+ * nowhere else. Each end is kept whole, so a narrow card puts the end time on
+ * a second line instead of clipping it, and never strands the period word
+ * (காலை, மதியம்) away from its number. The Tamil form is about 70% wider than
+ * "10:26 am – 11:53 am", which is why the old nowrap clipped it mid-number.
+ */
+function ClockRangeParts({ range }: { range: string }) {
+  const [start, end] = range.split(" – ");
+  if (end === undefined) return <span className="nova-range-part">{range}</span>;
+  return (
+    <>
+      <span className="nova-range-part">{start} –</span> <span className="nova-range-part">{end}</span>
+    </>
+  );
+}
+
+/**
  * Hash navigation scrolls to its target, but leaves keyboard focus on the
  * activated link. Move focus after the browser has completed its native hash
  * navigation so a keyboard or screen-reader user arrives at the explanation.
@@ -1643,7 +1660,7 @@ export function DashboardTodayTabNova({
                       {dt(isKuligaiPeriod ? TODAY_TIMINGS.kuligaiPeriodLabel : TODAY_TIMINGS.avoidWindowLabel, lang)}
                     </Kicker>
                     <div className="nova-hero-time" style={{ marginTop: "4px" }}>
-                      {formatClockLabel(avoidWindow.start, lang)} – {formatClockLabel(avoidWindow.end, lang)}
+                      <ClockRangeParts range={`${formatClockLabel(avoidWindow.start, lang)} – ${formatClockLabel(avoidWindow.end, lang)}`} />
                     </div>
                     {avoidPhase && (
                       <div
@@ -1754,7 +1771,7 @@ export function DashboardTodayTabNova({
                             <span aria-hidden="true" className="nova-hero-timing__dot" style={{ background: row.dot }} />
                             <span className="nova-hero-timing__name">{row.name}</span>
                             <span className="nova-hero-timing__times">
-                              {row.times.map((span) => <span key={span}>{span}</span>)}
+                              {row.times.map((span) => <span key={span}><ClockRangeParts range={span} /></span>)}
                             </span>
                           </div>
                           {row.note && (

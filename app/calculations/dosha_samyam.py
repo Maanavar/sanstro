@@ -93,18 +93,40 @@ PAPA_HOUSES: frozenset[int] = frozenset({1, 2, 4, 7, 8, 12})
 PAPA_REFERENCES: tuple[str, ...] = ("LAGNA", "MOON", "VENUS")
 
 
+#: How the points are weighed. Only ``equal_count`` exists: one point per
+#: malefic per reference. The weight table (per-graha weights, reference
+#: weights, cancellations, tolerance) is owed by the astrologer (deferred-checks
+#: plan, item 3); a second method is added here only with a cited page.
+PAPA_METHOD = "equal_count"
+
+
+@dataclass(frozen=True, slots=True)
+class PapaRow:
+    """One point: this malefic sits in this papa house from this reference."""
+
+    reference: str
+    graha: str
+    house: int
+    points: int = 1
+
+
 @dataclass(frozen=True, slots=True)
 class PapaCount:
     """One chart's papa points, with the per-reference breakdown kept.
 
     The breakdown is kept because the total alone cannot be checked by hand
     against a jothidar's own count, and an unexplainable number in a marriage
-    report is worse than no number.
+    report is worse than no number. `rows` is the finest form of it: every
+    point, with the reference, graha and house that earned it.
     """
 
     total: int
     by_reference: dict[str, int]
     grahas: tuple[str, ...]
+    rows: tuple[PapaRow, ...] = ()
+    #: References that could not be read (their own graha was missing), so
+    #: their count is unknown rather than zero.
+    missing_references: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -144,23 +166,30 @@ def papa_count(
     }
     by_reference: dict[str, int] = {}
     hits: set[str] = set()
+    rows: list[PapaRow] = []
+    missing: list[str] = []
     for reference in PAPA_REFERENCES:
         origin = reference_rasi[reference]
         if origin is None:
+            missing.append(reference)
             continue
         count = 0
         for graha in sorted(PAPA_GRAHAS):
             rasi = planets_rasi.get(graha)
             if rasi is None:
                 continue
-            if house_from_reference(origin, rasi) in houses:
+            house = house_from_reference(origin, rasi)
+            if house in houses:
                 count += 1
                 hits.add(graha)
+                rows.append(PapaRow(reference=reference, graha=graha, house=house))
         by_reference[reference] = count
     return PapaCount(
         total=sum(by_reference.values()),
         by_reference=by_reference,
         grahas=tuple(sorted(hits)),
+        rows=tuple(rows),
+        missing_references=tuple(missing),
     )
 
 

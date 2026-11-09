@@ -9,6 +9,7 @@ import { readErrorMessage } from "@/lib/api";
 import { verdictPhrase } from "@/lib/verdict-lexicon";
 import { madhyamaLabel, madhyamaGloss, hasMadhyama } from "@/lib/kuta-grade";
 import { getPorutham, getPoruthamGrid } from "@vinaadi/shared/api/porutham";
+import { papaNotCheckedNote } from "@vinaadi/shared/papaSamyam";
 import type { PublicPoruthamGridItem, PublicPoruthamStarData } from "@vinaadi/shared";
 
 // ========== DISPLAY-ONLY REFERENCE DATA ==========
@@ -450,6 +451,11 @@ export function PoruthamTool() {
                   <EkaNakshatraNoteCard note={detailData.ekaNakshatra} lang={ta ? "ta" : "en"} />
                   {/* F-POR-02: a disclosure beside the verdict, never part of it. */}
                   <ShashtashtakaNoteCard note={detailData.shashtashtaka} lang={ta ? "ta" : "en"} />
+                  {/* Plan item 3: a stars-only tool cannot count papa samyam,
+                      so it says so rather than reading as a clean result. */}
+                  <p style={{ margin: "0 0 14px", fontSize: "12px", color: "var(--cl-ink-2)", lineHeight: 1.6 }}>
+                    {papaNotCheckedNote(ta ? "ta" : "en")}
+                  </p>
 
                   {detailData.nadiDosha.hasNadiDosha && (
                     <div style={{ background: "var(--cl-bg-2)", border: "1px solid var(--cl-border-2)", borderLeft: "4px solid var(--cl-accent)", borderRadius: "8px", padding: "10px 14px", marginBottom: "14px", fontSize: "12px", color: "var(--cl-ink-2)", lineHeight: 1.6 }}>

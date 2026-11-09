@@ -70,3 +70,54 @@ describe("LifeAreaCard — band sentence and remedy kind (2026-10-01)", () => {
     expect(screen.getByText("Remedy / Worship")).toBeInTheDocument();
   });
 });
+
+/** Every text node in the card, one by one. Joining textContent would run
+ *  adjacent nodes together and hide a tag between two words. */
+function textNodes(root: HTMLElement): string[] {
+  const out: string[] = [];
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    const text = node.textContent?.trim();
+    if (text) out.push(text);
+  }
+  return out;
+}
+
+describe("LifeAreaCard — Tamil mode renders no server tag (2026-11-09)", () => {
+  // Blind spot: catches upper-case Latin tags (SATURN, NEUTRAL, FLAT). A
+  // mixed-case English sentence from the server would pass; the prose fields
+  // are tLang pairs and are not what this guards.
+  const leaked = (texts: string[]) => texts.filter((t) => /[A-Z]{3,}/.test(t));
+
+  it("names the karaka planet, chip strengths, trend and factors in Tamil", () => {
+    const { container } = render(
+      <LifeAreaCard
+        area={area({
+          trend: "STABLE",
+          primaryHouseStrength: "WEAK",
+          karakaStatus: "MODERATE",
+          driver: { planet: "SATURN", reason: { ta: "", en: "" } },
+          supportingFactors: ["JUPITER_transit_supportive"],
+          blockingFactors: ["MOON_lord_weak"],
+          narrative: { ta: "தொழிலில் ஆதரவு உண்டு.", en: "Career support is strong." },
+        })}
+        lang="ta"
+        ageRelevant
+      />,
+    );
+    const texts = textNodes(container);
+    expect(leaked(texts)).toEqual([]);
+    expect(texts).toContain("சனி");
+    expect(texts.join(" ")).toContain("குரு: கோச்சார ஆதரவு");
+    expect(texts.join(" ")).toContain("சந்திரன்: அதிபதி பலவீனம்");
+  });
+
+  it("reads the same tags in plain English case in English mode", () => {
+    const { container } = render(
+      <LifeAreaCard area={area({ trend: "STABLE", driver: { planet: "SATURN", reason: { ta: "", en: "" } } })} lang="en" ageRelevant />,
+    );
+    const texts = textNodes(container);
+    expect(texts).toContain("Saturn");
+    expect(texts.join(" ")).toContain("Neutral");
+  });
+});

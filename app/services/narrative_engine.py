@@ -185,7 +185,7 @@ NAKSHATRA_NAME: dict[int, BiText] = {
     14: _bi("சித்திரை",      "Chithirai"),
     15: _bi("சுவாதி",        "Swathi"),
     16: _bi("விசாகம்",       "Visakam"),
-    17: _bi("அனுசம்",        "Anusham"),
+    17: _bi("அனுஷம்",        "Anusham"),
     18: _bi("கேட்டை",        "Kettai"),
     19: _bi("மூலம்",         "Moolam"),
     20: _bi("பூராடம்",       "Pooradam"),
@@ -304,7 +304,7 @@ def moon_transit_reason(
     if chandrashtama:
         rasi_name = _rasi_name_safe(current_moon_rasi)
         return _bi(
-            f"சந்திரன் இன்று ஜன்ம ராசியிலிருந்து 8ஆம் ராசியான {rasi_name.ta}-ல் உள்ளது (சந்திராஷ்டமம்). "
+            f"சந்திரன் இன்று ஜென்ம ராசியிலிருந்து 8ஆம் ராசியான {rasi_name.ta}-ல் உள்ளது (சந்திராஷ்டமம்). "
             f"{nak_name.ta} நட்சத்திரத்தின் {nak_quality.ta} தன்மை இருந்தாலும், முக்கிய முடிவுகளை தவிர்க்கவும்.",
             f"Moon is in {rasi_name.en}, the 8th rasi from your birth Moon sign (Chandrashtamam). "
             f"The {nak_name.en} quality brings {nak_quality.en}, but avoid major decisions.",
@@ -314,7 +314,7 @@ def moon_transit_reason(
     # Distinct from Chandrashtamam (8th Rasi from natal Moon, checked above via moon.rasi).
     if current_nakshatra == janma_nakshatra:
         return _bi(
-            f"இன்று சந்திரன் ஜன்ம நட்சத்திரமான {nak_name.ta}-ல் உள்ளது. "
+            f"இன்று சந்திரன் ஜென்ம நட்சத்திரமான {nak_name.ta}-ல் உள்ளது. "
             f"{nak_quality.ta} தெளிவாக தெரியும்; உணர்ச்சிகரமான சூழல்களில் கவனமாக இருக்கவும்.",
             f"Moon is in your birth nakshatra {nak_name.en} today (Janma Nakshatra). "
             f"Its {nak_quality.en} quality is pronounced; be mindful in emotionally charged situations.",
@@ -323,14 +323,14 @@ def moon_transit_reason(
     if moon_score >= 65:
         return _bi(
             f"சந்திரன் {nak_name.ta} நட்சத்திரத்தில், {_rasi_name_safe(current_moon_rasi).ta}-ல் உள்ளது. "
-            f"ஜன்ம ராசியிலிருந்து {house}ஆம் இடம்; {nak_quality.ta} இன்று மனநிலைக்கு நல்ல ஆதரவு தருகிறது.",
+            f"ஜென்ம ராசியிலிருந்து {house}ஆம் இடம்; {nak_quality.ta} இன்று மனநிலைக்கு நல்ல ஆதரவு தருகிறது.",
             f"Moon is in {nak_name.en}, {_rasi_name_safe(current_moon_rasi).en}, "
             f"house {house} from birth sign. Its {nak_quality.en} quality supports the mind today.",
         )
 
     return _bi(
         f"சந்திரன் {nak_name.ta} நட்சத்திரத்தில், {_rasi_name_safe(current_moon_rasi).ta}-ல் உள்ளது. "
-        f"ஜன்ம ராசியிலிருந்து {house}ஆம் இடம்; {nak_quality.ta} இருந்தாலும் நிதானம் உதவும்.",
+        f"ஜென்ம ராசியிலிருந்து {house}ஆம் இடம்; {nak_quality.ta} இருந்தாலும் நிதானம் உதவும்.",
         f"Moon is in {nak_name.en}, {_rasi_name_safe(current_moon_rasi).en}, "
         f"house {house} from birth sign. Its {nak_quality.en} tone is present, but steadiness helps.",
     )
@@ -484,7 +484,7 @@ _TRANSIT_QUALITY: dict[str, dict[int, BiText]] = {
 }
 
 _SANI_CYCLE_WARN: dict[str, BiText] = {
-    "JANMA_SANI":           _bi("ஜன்ம சனி நடப்பு — உடல் மற்றும் முயற்சிகளில் கவனம்",
+    "JANMA_SANI":           _bi("ஜென்ம சனி நடப்பு — உடல் மற்றும் முயற்சிகளில் கவனம்",
                                 "Janma Sani active — take care of health and efforts"),
     "ARDHASHTAMA_SANI":     _bi("அர்த்தாஷ்டம சனி — திடீர் சங்கடங்கள் சாத்தியம்",
                                 "Ardhashtama Sani — sudden difficulties possible"),
@@ -496,7 +496,7 @@ _SANI_CYCLE_WARN: dict[str, BiText] = {
                                 "Kantaka Sani (from Janma Rasi) — obstruction and blocked-effort cycle"),
     "EZHARAI_SANI_PHASE_1": _bi("ஏழரை சனி — முதல் கட்டம். மாற்றங்களை ஏற்க தயாராகுங்கள்.",
                                 "Ezhara Sani — phase 1. Prepare to accept transitions."),
-    "EZHARAI_SANI_PHASE_2": _bi("ஏழரை சனி — இரண்டாம் கட்டம் (ஜன்ம சனி). உடல் மற்றும் முயற்சிகளில் கவனம்.",
+    "EZHARAI_SANI_PHASE_2": _bi("ஏழரை சனி — இரண்டாம் கட்டம் (ஜென்ம சனி). உடல் மற்றும் முயற்சிகளில் கவனம்.",
                                 "Ezhara Sani — phase 2 (Janma Sani). Take care of health and efforts."),
     "EZHARAI_SANI_PHASE_3": _bi("ஏழரை சனி — மூன்றாம் கட்டம். குடும்ப, பொருள் விஷயங்களில் கவனம்.",
                                 "Ezhara Sani — phase 3. Attention to family and financial matters."),
@@ -515,7 +515,7 @@ _SANI_CYCLE_WARN: dict[str, BiText] = {
 # read the same tomorrow, so it must not be the longest thing on the card — it
 # is there to scope the day, not to compete with it.
 _SANI_CYCLE_BACKGROUND: dict[str, BiText] = {
-    "JANMA_SANI":           _bi("பின்னணியில் ஜன்ம சனி — மாதங்கள் நீளும் கட்டம், உடல்நலத்தில் கவனம்.",
+    "JANMA_SANI":           _bi("பின்னணியில் ஜென்ம சனி — மாதங்கள் நீளும் கட்டம், உடல்நலத்தில் கவனம்.",
                                 "In the background, Janma Sani — a months-long phase; mind your health across it."),
     "ARDHASHTAMA_SANI":     _bi("பின்னணியில் அர்த்தாஷ்டம சனி — ஆண்டுகள் நீளும் கட்டம், இன்றைய நிகழ்வு அல்ல.",
                                 "In the background, Ardhashtama Sani — a years-long phase, not a today event."),

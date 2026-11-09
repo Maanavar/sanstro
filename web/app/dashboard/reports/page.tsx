@@ -293,7 +293,7 @@ export default function ReportsPage() {
                   <p className="rep-note">
                     {L(
                       `You have used this month's allowance. Another one is ${rupees(sku.priceInrPaise)}.`,
-                      `இந்த மாதத்தின் அளவை நீங்கள் பயன்படுத்திவிட்டீர்கள். மற்றொன்று ${rupees(sku.priceInrPaise)}.`,
+                      `இந்த மாதத்துக்கான அறிக்கைகளைப் பெற்றுவிட்டீர்கள். இன்னொரு அறிக்கை ${rupees(sku.priceInrPaise)}.`,
                     )}{" "}
                     <Link href="/dashboard/upgrade" className="rep-link">
                       {L("Buy a report →", "அறிக்கை வாங்கு →")}

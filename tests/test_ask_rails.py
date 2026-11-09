@@ -115,6 +115,9 @@ def test_usage_reads_only_real_counts():
 #: version bump fails here; add the new version's line rather than editing one.
 _PROMPT_FINGERPRINTS = {
     "ask-2026-11-02": "d6608e5bdf1ce649d11f1d3fd0ea5c6d5ebcf82055c107c9a451936c700579db",
+    # ஜன்ம → ஜென்ம in the Tamil term list and the natal-promise line (owner's
+    # Part B, B4, 2026-11-09). Spelling only; no instruction changed.
+    "ask-2026-11-09": "e804a2582f252b3c7845cc74dfc9cce01cb616ffc97334e4d7f40325834a400b",
 }
 
 

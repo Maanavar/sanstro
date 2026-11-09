@@ -77,9 +77,7 @@ def send_verification_email(to_address: str, token: str) -> bool:
     known yet at registration. Tamil copy: PENDING NATIVE-TAMIL REVIEW."""
     link = _verify_email_link(token)
     ta = (
-        "உங்கள் Vinaadi கணக்கின் மின்னஞ்சல் முகவரியை உறுதிசெய்ய இந்த இணைப்பைத் திறக்கவும். "
-        "இந்த இணைப்பு 48 மணி நேரத்தில் காலாவதியாகும். இந்தக் கணக்கை நீங்கள் உருவாக்கவில்லை "
-        "என்றால், இந்த மின்னஞ்சலைப் புறக்கணிக்கலாம்."
+        "உங்கள் Vinaadi கணக்கின் மின்னஞ்சல் முகவரியை உறுதி செய்ய, இந்த இணைப்பைத் திறந்து பாருங்கள். இந்த இணைப்பு 48 மணி நேரம் மட்டுமே செயல்படும். இந்தக் கணக்கை நீங்கள் உருவாக்கவில்லை என்றால், இந்த மின்னஞ்சலை விட்டுவிடலாம்."
     )
     en = (
         "Open this link to confirm the email address for your Vinaadi account. "
@@ -221,36 +219,36 @@ _RASI_TA = {
 _SANI_REMEDY = {
     "JANMA_SANI": (
         "Strengthen daily routines and physical health. Hanuman or Sani stotra recitation supports resilience.",
-        "தினசரி ஒழுக்கம் மற்றும் உடல்நலத்தை பலப்படுத்துங்கள். ஹனுமான் அல்லது சனி ஸ்தோத்திரம் உதவும்.",
+        "தினசரி ஒழுங்கையும் உடல்நலத்தையும் பலப்படுத்துங்கள். அனுமன் அல்லது சனி ஸ்தோத்திரம் சொல்வது உதவும்.",
     ),
     "EZHARAI_SANI_PHASE_1": (
         "Focus on letting go of what no longer serves you. Saturn brings restructuring — trust the process.",
-        "உங்களுக்கு உதவாதவற்றை விட்டுவிட கவனம் செலுத்துங்கள். சனி மறுகட்டமைப்பை கொண்டுவருகிறார்.",
+        "உங்களுக்குப் பயன் தராதவற்றை விட்டுவிடுவதில் கவனம் செலுத்துங்கள். சனி வாழ்க்கையை மறுபடி ஒழுங்குபடுத்துகிறார்; நம்பிக்கையோடு இருங்கள்.",
     ),
     "EZHARAI_SANI_PHASE_2": (
         "Strengthen daily routines and physical health. Hanuman or Sani stotra recitation supports resilience.",
-        "தினசரி ஒழுக்கம் மற்றும் உடல்நலத்தை பலப்படுத்துங்கள். ஹனுமான் அல்லது சனி ஸ்தோத்திரம் உதவும்.",
+        "தினசரி ஒழுங்கையும் உடல்நலத்தையும் பலப்படுத்துங்கள். அனுமன் அல்லது சனி ஸ்தோத்திரம் சொல்வது உதவும்.",
     ),
     "EZHARAI_SANI_PHASE_3": (
         "Family and financial matters need patience. Avoid major commitments; focus on consolidation.",
-        "குடும்ப மற்றும் நிதி விஷயங்களில் பொறுமை தேவை. பெரிய கட்டுப்பாடுகளை தவிர்க்கவும்.",
+        "குடும்ப, பண விஷயங்களில் பொறுமை தேவை. பெரிய பொறுப்புகளை ஏற்காமல், இருப்பதை உறுதி செய்வது நல்லது.",
     ),
     "ASHTAMA_SANI": (
         "A period for inner work and health care. Saturn asks for discipline, not fear.",
-        "உள் வேலை மற்றும் உடல்நல பராமரிப்புக்கான காலம். சனி ஒழுக்கத்தை கேட்கிறார், பயத்தை அல்ல.",
+        "மனதைக் கவனிக்கவும் உடல்நலத்தைப் பார்த்துக்கொள்ளவும் வேண்டிய காலம். சனி கேட்பது ஒழுக்கத்தை, பயத்தை அல்ல.",
     ),
     "KANDAKA_SANI": (
         "Saturn in angular position — time to build strong foundations in career and relationships.",
-        "சனி கோணல் நிலையில் — தொழில் மற்றும் உறவுகளில் வலுவான அடித்தளம் அமைக்கும் நேரம்.",
+        "சனி கேந்திரத்தில் இருக்கிறார். தொழிலிலும் உறவுகளிலும் உறுதியான அடித்தளம் அமைக்க வேண்டிய நேரம்.",
     ),
     "ARDHASHTAMA_SANI": (
         "Mid-point of the Saturn cycle — review and course-correct any ongoing commitments.",
-        "சனி சுழற்சியின் நடுப்புள்ளி — நடந்துகொண்டிருக்கும் கடமைகளை மதிப்பாய்வு செய்யுங்கள்.",
+        "சனி சுற்றின் நடுப்பகுதி இது. கையில் இருக்கும் பொறுப்புகளை ஒருமுறை திரும்பிப் பார்த்துச் சரி செய்துகொள்ளுங்கள்.",
     ),
 }
 
 _DEFAULT_REMEDY_EN = "Take time to reflect and prepare. Saturn's energy supports those who act with patience and intention."
-_DEFAULT_REMEDY_TA = "சிந்திக்கவும் தயாரிக்கவும் நேரம் எடுங்கள். சனியின் ஆற்றல் பொறுமையுடன் செயல்படுவோரை ஆதரிக்கிறது."
+_DEFAULT_REMEDY_TA = "யோசிக்கவும் தயாராகவும் நேரம் எடுத்துக்கொள்ளுங்கள். பொறுமையாகச் செயல்படுபவர்களுக்குச் சனி துணை நிற்பார்."
 
 
 @dataclass(frozen=True, slots=True)
@@ -293,7 +291,7 @@ def _body_html(ctx: PeyarchiEmailContext) -> str:
         intro_ta = f"இன்று, {ctx.event_date_str}, உங்கள் ஜாதகத்திற்கு {planet_ta} பெயர்ச்சி நாள்."
     else:
         intro_en = f"{ctx.planet.capitalize()} Peyarchi is in {ctx.days_away} days — on {ctx.event_date_str}."
-        intro_ta = f"{planet_ta} பெயர்ச்சி {ctx.days_away} நாட்களில் — {ctx.event_date_str} அன்று."
+        intro_ta = f"இன்னும் {ctx.days_away} நாட்களில், {ctx.event_date_str} அன்று {planet_ta} பெயர்ச்சி."
 
     return f"""
 <html><body style="font-family:sans-serif;color:#1a1a1a;max-width:600px;margin:auto;padding:24px">

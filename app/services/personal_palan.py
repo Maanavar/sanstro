@@ -53,7 +53,7 @@ from app.services.narrative_engine import format_clock_label
 # v2 (2026-09-23): period layer — dasha/bhukti, Sani cycles, Guru and Rahu.
 # v3 (2026-09-23): presenter transcript (section F).
 # v4 (2026-09-23): lucky colour / number / direction under R9 (section G).
-CONTENT_VERSION = "palan-2026-09-23-v4"
+CONTENT_VERSION = "palan-2026-11-07-v5"
 REVIEW_STATUS = "OWNER_COMMISSIONED_DRAFT"
 
 Polarity = Literal["FAVOURABLE", "MIXED", "CAUTION"]
@@ -198,7 +198,7 @@ _AREA_TEXT: dict[str, dict[Polarity, Bi]] = {
               "Home is cheerful, with good time spent with parents and children."),
         M: Bi("குடும்பத்தில் சிறு கருத்து வேறுபாடுகள் வரலாம்; பொறுமையாகக் கையாண்டால் விரைவில் சரியாகும்.",
               "Small disagreements may arise at home; handled patiently, they pass quickly."),
-        C: Bi("வீட்டில் வார்த்தை மோதல்களைத் தவிர்க்கவும்; பெரியவர்களின் உடல்நலத்தில் கவனம் செலுத்துங்கள்.",
+        C: Bi("வீட்டில் வார்த்தை மோதல் வராமல் பார்த்துக்கொள்வது நல்லது; பெரியவர்களின் உடல்நலத்தில் கவனம் செலுத்துங்கள்.",
               "Avoid sharp words at home, and keep an eye on elders' wellbeing."),
     },
     "LOVE": {
@@ -246,7 +246,7 @@ _AREA_TEXT: dict[str, dict[Polarity, Bi]] = {
               "Friends help at the right moment, and new contacts prove useful."),
         M: Bi("நண்பர்களுடன் பழகும்போது எல்லை தெரிந்து நடந்துகொள்ளுங்கள்; வாக்குறுதிகளை அளவோடு கொடுங்கள்.",
               "Keep sensible limits with friends and promise only what you can give."),
-        C: Bi("பிறர் விஷயங்களில் தலையிடுவதைத் தவிர்க்கவும்; நம்பிக்கைக்குரியவர்களிடம் மட்டும் மனம் திறங்கள்.",
+        C: Bi("பிறர் விஷயங்களில் தலையிடாமல் இருப்பது நல்லது; நம்பிக்கையானவர்களிடம் மட்டும் மனம் திறந்து பேசுங்கள்.",
               "Stay out of others' affairs, and confide only in people you trust."),
     },
     "COMMUNICATION": {
@@ -306,7 +306,7 @@ _ADVICE_CAUTION: dict[str, Bi] = {
                   "Don't step in as referee in other people's quarrels."),
     "COMMUNICATION": Bi("பேச்சில் நிதானம்; கோபத்தில் எதையும் எழுதவோ அனுப்பவோ வேண்டாம்.",
                         "Measured words; send nothing written in anger."),
-    "MIND": Bi("அவசர முடிவுகளைத் தவிர்க்கவும்; மனம் அமைதியான பிறகு தீர்மானியுங்கள்.",
+    "MIND": Bi("அவசர முடிவுகளைத் தவிர்ப்பது நல்லது; மனம் அமைதியான பிறகு தீர்மானியுங்கள்.",
                "Avoid snap decisions; decide once the mind has settled."),
 }
 _ADVICE_OPPORTUNITY: dict[str, Bi] = {
@@ -467,7 +467,7 @@ _SANI_LAYER: dict[str, tuple[frozenset[str], Bi]] = {
     ),
     "JANMA_SANI": (
         frozenset({"CAREER", "HEALTH", "MIND"}),
-        Bi("ஜன்ம சனி காலம் என்பதால் இதில் உழைப்பு அதிகம், பலன் மெதுவாக வரும்; அவசரம் வேண்டாம்.",
+        Bi("ஜென்ம சனி காலம் என்பதால் இதில் உழைப்பு அதிகம், பலன் மெதுவாக வரும்; அவசரம் வேண்டாம்.",
            "This is your Janma Sani season: more effort and slower results here, so don't hurry."),
     ),
     "EZHARAI_SANI_PHASE_3": (
@@ -654,13 +654,13 @@ def _period(p: PeriodInputs) -> PalanPeriod:
     else:
         rule = Bi(f"{antar.ta} உங்கள் லக்னத்திலிருந்து {hp.ta} ஆள்வதால்,", f"{antar.en} rules {hp.en} from your lagna, so")
     today = (
-        Bi("இவற்றுக்கு ஆதரவானது.", "which backs them.")
+        Bi("இது அவற்றுக்கு நல்லது.", "which backs them.")
         if supportive
-        else Bi("இவற்றில் சற்று பொறுமை கேட்கிறது.", "which asks for some patience with them.")
+        else Bi("அதனால் அவற்றில் கொஞ்சம் பொறுமை தேவை.", "which asks for some patience with them.")
     )
     text = Bi(
         f"{maha.ta} தசையில் {antar.ta} புக்தி நடக்கிறது. {rule.ta} அந்த இடம் சார்ந்த விஷயங்கள் இக்காலத்தில் முன்னிலை பெறும். "
-        f"இன்று {antar.ta} உங்கள் ராசியிலிருந்து {p.antar_transit_house}-ஆம் இடத்தில் சஞ்சரிப்பது {today.ta}",
+        f"இன்று {antar.ta} உங்கள் ராசியிலிருந்து {p.antar_transit_house}-ஆம் இடத்தில் சஞ்சரிக்கிறார்; {today.ta}",
         f"You are in {maha.en} dasa, {antar.en} bhukti. {rule.en} those matters come forward this period. "
         f"Today {antar.en} is in house {p.antar_transit_house} from your Moon, {today.en}",
     )
@@ -788,8 +788,8 @@ def _lucky_spoken(lucky: PalanLucky) -> Bi:
 
 _SANI_SPOKEN: dict[str, Bi] = {
     "EZHARAI_SANI_PHASE_1": Bi("ஏழரை சனியின் தொடக்கக் கட்டம்", "the opening phase of Ezharai Sani"),
-    "JANMA_SANI": Bi("ஜன்ம சனி", "Janma Sani"),
-    "EZHARAI_SANI_PHASE_2": Bi("ஜன்ம சனி", "Janma Sani"),
+    "JANMA_SANI": Bi("ஜென்ம சனி", "Janma Sani"),
+    "EZHARAI_SANI_PHASE_2": Bi("ஜென்ம சனி", "Janma Sani"),
     "EZHARAI_SANI_PHASE_3": Bi("ஏழரை சனியின் நிறைவுக் கட்டம்", "the closing phase of Ezharai Sani"),
     "ARDHASHTAMA_SANI": Bi("அர்த்தாஷ்டம சனி", "Ardhashtama Sani"),
     "ASHTAMA_SANI": Bi("அஷ்டம சனி", "Ashtama Sani"),
@@ -827,12 +827,12 @@ def _period_spoken(season: PalanPeriod, dasha_areas: tuple[str, ...]) -> Bi:
     ta = f"தற்போது உங்களுக்கு {maha.ta} தசையில் {antar.ta} புக்தி நடக்கிறது"
     en = f"You are running {antar.en} bhukti in {maha.en} dasa"
     if sani:
-        ta += f"; கூடவே {_and_list([s.ta for s in sani], 'மற்றும்')} நடைபெறுகிறது"
+        ta += f"; கூடவே {', '.join(s.ta for s in sani)} நடக்கிறது"
         en += f", alongside {_and_list([s.en for s in sani], 'and')}"
     ta += "."
     en += "."
     if dasha_areas:
-        ta += f" இக்காலத்தில் {_and_list([_AREA_SPOKEN[a].ta for a in dasha_areas], 'மற்றும்')} சார்ந்த விஷயங்கள் முன்னிலை பெறும்."
+        ta += f" இக்காலத்தில் {', '.join(_AREA_SPOKEN[a].ta for a in dasha_areas)} சார்ந்த விஷயங்கள் முன்னிலை பெறும்."
         en += f" This period brings {_and_list([_AREA_SPOKEN[a].en for a in dasha_areas], 'and')} to the fore."
     return Bi(ta, en)
 

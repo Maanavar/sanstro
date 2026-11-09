@@ -185,8 +185,14 @@ export const DOSHAM_CONTEXT_LABELS: Record<string, Text> = {
     en: "Your 5th house is guarded here (see the protective factors), so the parihara suggested is the lighter one: for the matter of children itself, not for Saturn.",
   },
   children_assessment_incomplete: {
-    ta: "இந்த வாசிப்பு இறுதியானது அல்ல. குழந்தைப்பேறுக்கு மரபில் பார்க்கப்படும் இரண்டு சோதனைகள், சப்தாம்சம் (D7) மற்றும் நடப்பு தசை, இந்தச் செயலியில் இன்னும் வரையறுக்கப்படவில்லை; எனவே இதைத் தற்காலிகமாகக் கருதுங்கள்.",
-    en: "This reading is not final. Two checks the tradition uses for children, the Saptamsa (D7) and the running dasha, are not yet defined in this app, so treat it as provisional.",
+    ta: "இந்தப் பலன் உங்கள் ராசிக் கட்டத்தை மட்டும் வைத்துச் சொல்லப்படுகிறது. குழந்தைப்பேறு பற்றி இறுதியாகச் சொல்லும் முன், ஜோதிடர் சப்தாம்சம் (D7) கட்டத்தையும் நடப்பு தசையையும் பார்ப்பார்; இந்த மதிப்பீட்டில் அந்த இரண்டும் இன்னும் சேர்க்கப்படவில்லை. இதை முதல் பார்வையாக எடுத்துக்கொள்ளுங்கள், இறுதி முடிவாக அல்ல.",
+    en: "This reading comes from your birth chart (Rasi) alone. Before giving a final word on children, an astrologer also reads the Saptamsa (D7) and the dasha you are running; this grade does not include those two yet. Take it as a first reading, not the last word.",
+  },
+  // Replaces children_assessment_incomplete once both checks ran (Q13 step three,
+  // engine_inference under Q18). Same sentences as the backend.
+  children_d7_dasha_unratified: {
+    ta: "கீழே உள்ள சப்தாம்சம் (D7), தசை சோதனைகள் வழக்கமான முறைப்படி செயலியால் கணக்கிடப்பட்டவை. இவை இந்தத் தோஷத்தின் தன்மையையும் அது எப்போது அதிகம் தெரியும் என்பதையும் சொல்கின்றன; ஜோதிடர் இந்த விதிகளை உறுதிசெய்யும் வரை தோஷத்தின் தீவிரத்தை இவை மாற்றுவதில்லை.",
+    en: "The Saptamsa (D7) and dasha checks below follow standard practice, applied by the app. They describe this dosham and say when it is felt most; they do not change its grade until an astrologer confirms these rules.",
   },
   rk_axis_not_repeated_from_moon_venus: {
     ta: "சந்திரனிலிருந்தும் சுக்கிரனிலிருந்தும் எண்ணும்போது ராகு-கேது 1, 2, 7, 8-ஆம் வீடுகளில் இல்லை. அச்சு மீண்டும் வராதது லேசான நிலையைக் காட்டுகிறது.",

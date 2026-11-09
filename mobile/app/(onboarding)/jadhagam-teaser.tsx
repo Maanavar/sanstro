@@ -162,7 +162,7 @@ export default function JadhagamTeaserScreen() {
         {/* Moon sign card */}
         <View style={styles.rasiCard}>
           <Text style={[styles.rasiLabel, isTamil ? TamilType.caption : EnType.caption]}>
-            {isTamil ? "ஜன்ம ராசி (சந்திர ராசி)" : "Birth Rasi (Moon sign)"}
+            {isTamil ? "ஜென்ம ராசி (சந்திர ராசி)" : "Birth Rasi (Moon sign)"}
           </Text>
           <Text style={[styles.rasiValue, isTamil ? TamilType.display : EnType.display]}>
             {isTamil ? rasiNames.ta : rasiNames.en}

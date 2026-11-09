@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from datetime import date
 
 from app.calculations.dasha import SEQUENCE, calculate_vimshottari_timeline
-from app.calculations.display_names import PLANET_TA
+from app.calculations.display_names import PLANET_TA, dasa_stem_ta
 
 TRANSITION_COPY: dict[str, dict[str, dict[str, str]]] = {
     "MAHADASHA": {
@@ -25,7 +25,7 @@ TRANSITION_COPY: dict[str, dict[str, dict[str, str]]] = {
             "en": "Final week of {lord} Mahadasha. Prepare for the transition.",
         },
         "TODAY": {
-            "ta": "இன்று புதிய மகாதசை தொடங்குகிறது — {next_lord} காலம் ஆரம்பம்.",
+            "ta": "இன்று {next_lord} மகாதசை தொடங்குகிறது.",
             "en": "New Mahadasha begins today — {next_lord} period starts.",
         },
     },
@@ -43,7 +43,7 @@ TRANSITION_COPY: dict[str, dict[str, dict[str, str]]] = {
             "en": "Final week of {lord} Antardasha. Prepare for the next phase.",
         },
         "TODAY": {
-            "ta": "இன்று புதிய அந்தர்தசை தொடங்குகிறது — {next_lord} காலம் ஆரம்பம்.",
+            "ta": "இன்று {next_lord} அந்தர்தசை தொடங்குகிறது.",
             "en": "New Antardasha begins today — {next_lord} period starts.",
         },
     },
@@ -99,8 +99,10 @@ def get_dasha_transition_alerts(
                 "90_DAY"
             )
             next_l = _next_lord(ending_lord)
-            lord_ta = PLANET_NAME_TA.get(ending_lord, ending_lord)
-            next_ta = PLANET_NAME_TA.get(next_l, next_l)
+            # Stem form (சுக்கிர மகாதசை). This used to send "ராகு காலம் ஆரம்பம்",
+            # which a Tamil reader takes for the daily Rahu Kalam hour.
+            lord_ta = dasa_stem_ta(ending_lord)
+            next_ta = dasa_stem_ta(next_l)
             tmpl = TRANSITION_COPY[transition_type][urgency]
             copy_ta = tmpl["ta"].format(lord=lord_ta, next_lord=next_ta)
             copy_en = tmpl["en"].format(lord=ending_lord.capitalize(), next_lord=next_l.capitalize())

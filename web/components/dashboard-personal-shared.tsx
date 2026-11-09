@@ -107,7 +107,7 @@ export function ChandrashtamaCard({ lang, chandrashtamaEnds, descriptionTa, desc
             {ownWindowSummary
               ? `${isTa ? "உங்கள் நட்சத்திரம்" : "Your star"}: ${ownWindowSummary}`
               : windowsSummary
-                ? `${isTa ? "ஜன்ம நட்சத்திர நேரங்கள்" : "Janma star windows"}: ${windowsSummary}`
+                ? `${isTa ? "ஜென்ம நட்சத்திர நேரங்கள்" : "Janma star windows"}: ${windowsSummary}`
                 : endLabel}
           </p>
         </div>

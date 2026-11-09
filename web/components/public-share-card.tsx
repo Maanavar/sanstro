@@ -614,7 +614,7 @@ function drawJadhagamCard(
   ctx.font      = "22px system-ui, sans-serif";
   ctx.textAlign = "center";
   ctx.fillText(
-    d.lang === "ta" ? "ஜன்ம கட்டம்" : "Birth Chart",
+    d.lang === "ta" ? "ஜென்ம கட்டம்" : "Birth Chart",
     w / 2, 76,
   );
 

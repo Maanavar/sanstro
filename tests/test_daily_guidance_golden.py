@@ -18,7 +18,8 @@ as integers, labels, bands, flags, names, every sentence of copy around the
 times — is compared exactly. A refactor's exact equivalence is proved
 separately, old and new in one process (docs/MASTER_FIX_LIST.md, A13).
 
-What this cannot see: the masked clock times themselves (window boundaries),
+What this cannot see: the running hora lord (pinned, see `compute`), the
+masked clock times themselves (window boundaries),
 float drift under 0.005, the session-backed paths (goals, context rows, journal
 insight, cache reads), and any language but `ta-en`.
 
@@ -92,18 +93,27 @@ def normalise(value):
 
 
 def compute() -> dict[str, dict]:
+    from unittest.mock import patch
+
     from app.services._chart_build import _chart_response_from_profile
     from app.services.daily_guidance_service import build_daily_guidance_response
 
     out: dict[str, dict] = {}
-    for row in PROFILES:
-        key = row[0]
-        chart = _chart_response_from_profile(
-            _profile(*row), "thirukanitham-2026-v1", chart_id=UUID(int=sum(map(ord, key)) + 1),
-        )
-        for day in DATES:
-            response = build_daily_guidance_response(chart, day, "ta-en", session=None)
-            out[f"{key}@{day.isoformat()}"] = normalise(response.model_dump(mode="json", by_alias=True))
+    # `currentHoraLord` reads the wall clock (`datetime.now()`) and is set only
+    # when the requested date is today, so the case for whichever DATES entry
+    # is "today" moved with the minute the suite ran (CI failed on 2026-11-09
+    # for all four profiles, on that field alone). The matrix pins dates, not
+    # instants, so the field is pinned to its not-today value. Blind spot: the
+    # golden never sees the running hora lord.
+    with patch("app.services.daily_guidance_service._current_hora_lord", return_value=None):
+        for row in PROFILES:
+            key = row[0]
+            chart = _chart_response_from_profile(
+                _profile(*row), "thirukanitham-2026-v1", chart_id=UUID(int=sum(map(ord, key)) + 1),
+            )
+            for day in DATES:
+                response = build_daily_guidance_response(chart, day, "ta-en", session=None)
+                out[f"{key}@{day.isoformat()}"] = normalise(response.model_dump(mode="json", by_alias=True))
     return out
 
 

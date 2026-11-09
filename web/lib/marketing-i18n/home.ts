@@ -110,7 +110,7 @@ export const HOME = {
   today_rasi_label:   s("Your rasi",            "உங்கள் ராசி"),
   today_rasi_prompt:  s(
     "Pick your birth rasi — no account, no birth time.",
-    "உங்கள் ஜன்ம ராசியைத் தேர்வு செய்யுங்கள் — கணக்கு வேண்டாம், பிறந்த நேரமும் வேண்டாம்."
+    "உங்கள் ஜென்ம ராசியைத் தேர்வு செய்யுங்கள் — கணக்கு வேண்டாம், பிறந்த நேரமும் வேண்டாம்."
   ),
   today_rasi_house:   s("Moon is in your %s house today", "இன்று சந்திரன் உங்களுக்கு %s ஆம் இடத்தில்"),
   today_rasi_more:    s("Full rasi palan →",    "முழு ராசிபலன் →"),

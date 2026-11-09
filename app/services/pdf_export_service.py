@@ -170,6 +170,75 @@ def _register_pdf_fonts(lang: str) -> tuple[str, str]:
 def _bitext(value, lang: str) -> str:
     return getattr(value, _normalize_lang(lang), None) or getattr(value, "en", "") or ""
 
+_PAPA_FROM = {
+    "LAGNA": ("லக்னத்திலிருந்து", "From the Lagna"),
+    "MOON": ("சந்திரனிலிருந்து", "From the Moon"),
+    "VENUS": ("சுக்கிரனிலிருந்து", "From Venus"),
+}
+
+
+def _papa_samyam_pdf_lines(papa, lang: str) -> tuple[str, list[str]]:
+    """பாப சாம்யம் for the porutham PDF, worded as
+    `packages/shared/src/papaSamyam.ts` words it for the apps (server-side
+    because the PDF cannot run the shared module; keep the two in step)."""
+    ta = _normalize_lang(lang) == "ta"
+    groom, bride = ("மாப்பிள்ளை", "பெண்") if ta else ("Groom", "Bride")
+    heading = (
+        f"{'பாப சாம்யம்' if ta else 'Papa samyam'}: "
+        f"{groom} {papa.boy.total} · {bride} {papa.girl.total}"
+    )
+    if papa.balanced:
+        verdict = (
+            "சமன்: மாப்பிள்ளையின் பாப கிரக எண்ணிக்கை பெண்ணுடையதற்குக் குறையவில்லை; மரபு இதையே எதிர்பார்க்கிறது."
+            if ta else
+            "Balanced: the groom's malefic count is at least the bride's, which is what traditional practice asks."
+        )
+    else:
+        verdict = (
+            f"{papa.shortfall} குறைகிறது: மரபுப்படி மாப்பிள்ளையின் பாப கிரக எண்ணிக்கை பெண்ணுடையதற்குக் குறையாமல் இருக்க வேண்டும். "
+            "இது பல சோதனைகளில் ஒன்று; அனுபவமிக்க ஜோதிடர் இரு ஜாதகங்களின் மற்ற அம்சங்களுடன் சேர்த்து இதைப் பார்ப்பார்."
+            if ta else
+            f"Short by {papa.shortfall}: traditional practice asks the groom's malefic count to be at least the bride's. "
+            "This is one check among many; an experienced astrologer weighs it with the rest of both charts."
+        )
+    lines = [verdict]
+    for who, side in ((groom, papa.boy), (bride, papa.girl)):
+        parts = []
+        for ref, (from_ta, from_en) in _PAPA_FROM.items():
+            label = from_ta if ta else from_en
+            if ref in side.missing_references:
+                parts.append(f"{label}: {'கணக்கிட முடியவில்லை' if ta else 'could not be read'}")
+                continue
+            rows = [r for r in side.rows if r.reference == ref]
+            detail = ", ".join(
+                f"{planet_ta(r.graha) if ta else planet_en(r.graha)} ({r.house}{'ஆம்' if ta else _ordinal_suffix(r.house)})"
+                for r in rows
+            ) or ("இல்லை" if ta else "none")
+            parts.append(f"{label} ({side.by_reference.get(ref, len(rows))}): {detail}")
+        lines.append(f"{who} {side.total} - " + "; ".join(parts))
+    if papa.direction_assumed:
+        lines.append(
+            "இரு ஜாதகங்களிலும் பாலினம் குறிப்பிடப்படவில்லை; அதனால் நபர் 1 மாப்பிள்ளையாகக் கொள்ளப்பட்டார். இருவரையும் மாற்றினால் இந்தச் சோதனையின் முடிவு மாறும்."
+            if ta else
+            "Neither chart states a gender, so Person 1 was read as the groom. Swapping them changes this check."
+        )
+    lines.append(
+        "பொதுவான முறையில் எண்ணப்பட்டது: லக்னம், சந்திரன், சுக்கிரன் ஆகிய மூன்றிலிருந்தும் 1, 2, 4, 7, 8, 12ஆம் இடங்களில் உள்ள "
+        "சூரியன், செவ்வாய், சனி, ராகு, கேது ஒவ்வொன்றுக்கும் ஒரு புள்ளி. உங்கள் ஜோதிடர் வேறு எடைகளில் கணக்கிடலாம். "
+        "இது பொருத்த மதிப்பெண்ணில் சேர்க்கப்படவில்லை."
+        if ta else
+        "Counted the common way: the Sun, Mars, Saturn, Rahu and Ketu in the 1st, 2nd, 4th, 7th, 8th or 12th house from "
+        "the Lagna, the Moon and Venus, one point each. Your astrologer may weigh them differently. It is not part of the porutham score."
+    )
+    return heading, lines
+
+
+def _ordinal_suffix(n: int) -> str:
+    if 11 <= n % 100 <= 13:
+        return "th"
+    return {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+
+
 def _styles(lang: str = "en"):
     base = getSampleStyleSheet()
     font_name, bold_font_name = _register_pdf_fonts(lang)
@@ -885,6 +954,14 @@ def generate_porutham_pdf(
     if porutham.shashtashtaka is not None and porutham.shashtashtaka.present:
         story.append(Paragraph(_bitext(porutham.shashtashtaka.label, lang), body_style))
         story.append(Paragraph(_bitext(porutham.shashtashtaka.note, lang), small_style))
+    # Plan item 3. The printed sheet is what a family takes to a jothidar, so
+    # it carries the full count, not only the verdict. Report only.
+    papa = getattr(porutham, "papa_samyam", None)
+    if papa is not None:
+        heading, lines = _papa_samyam_pdf_lines(papa, lang)
+        story.append(Paragraph(heading, body_style))
+        for line in lines:
+            story.append(Paragraph(line, small_style))
 
     story.extend(
         [

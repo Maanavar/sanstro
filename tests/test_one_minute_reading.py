@@ -24,6 +24,7 @@ from app.calculations.display_names import (
     PLANET_EN,
     RASI_EN,
     RASI_TA,
+    name_stem_ta,
     planet_en,
 )
 from app.db.session import SessionLocal
@@ -288,7 +289,7 @@ def test_a_married_reader_is_never_told_when_they_will_marry(client, age):
     assert data["pendingQuestion"] is None
     beat = next(b for b in data["beats"] if b["id"] == "your_age_question")
     assert "the question the chart is actually being asked" not in beat["text"]["en"]
-    assert "ஜாதகத்திடம் உண்மையில் கேட்கப்படும் கேள்வி" not in beat["text"]["ta"]
+    assert "முக்கியமான கேள்வி திருமணம்" not in beat["text"]["ta"]
 
 
 def test_a_student_is_read_as_a_student_regardless_of_age(client):
@@ -1003,7 +1004,8 @@ def test_the_tamil_reading_names_the_star_and_rasi_in_tamil(
 
     for field in ("text", "basis"):
         ta = beat[field]["ta"]
-        assert NAKSHATRA_TA[number] in ta, f"{field}.ta lacks the Tamil star: {ta}"
+        # Joined form before நட்சத்திரம் (மூல, அனுஷ): see `name_stem_ta`.
+        assert name_stem_ta(NAKSHATRA_TA[number]) in ta, f"{field}.ta lacks the Tamil star: {ta}"
         assert star_en.group(1) not in ta, f"{field}.ta still carries the English star: {ta}"
         for rasi_name in RASI_EN.values():
             assert rasi_name not in ta, f"{field}.ta still carries an English rasi: {ta}"
@@ -1270,12 +1272,12 @@ def test_an_unconfirmed_birth_time_withholds_the_lagna(client):
     # Tamil sentence necessarily contains லக்னம் — it is the word being withheld
     # — so the discriminator is the refusal verb, not the noun.
     assert "birth time is not confirmed" in unsure["basis"]["en"]
-    assert "பயன்படுத்தப்படவில்லை" in unsure["basis"]["ta"]
+    assert "சேர்க்கப்படவில்லை" in unsure["basis"]["ta"]
 
     assert "lagna" in confirmed["basis"]["en"]
     assert "withheld" not in confirmed["basis"]["en"]
     assert "லக்னம்" in confirmed["basis"]["ta"]
-    assert "பயன்படுத்தப்படவில்லை" not in confirmed["basis"]["ta"]
+    assert "சேர்க்கப்படவில்லை" not in confirmed["basis"]["ta"]
 
     # The prose path, on the register that still has prose to withhold.
     unsure_child = _who_you_are(_read(client, age=8, birth_time_source="unknown"))
@@ -1450,7 +1452,7 @@ def test_an_unconfirmed_time_says_which_half_of_the_reading_actually_moves(clien
     beat = next(b for b in unsure["beats"] if b["id"] == "what_this_rests_on")
     assert unsure["addressedTo"] == "self"
     assert "The strength and the cost named next" in beat["text"]["en"], beat["text"]["en"]
-    assert "அடுத்து வரும் பலமும்" in beat["text"]["ta"], beat["text"]["ta"]
+    assert "அடுத்து சொல்லப்படும் பலமும் சிரமமும்" in beat["text"]["ta"], beat["text"]["ta"]
     # ...and the beat it points at is in fact the next one.
     ids = [b["id"] for b in unsure["beats"]]
     assert ids[ids.index("what_this_rests_on") + 1] == "strength_and_cost", ids
@@ -1547,7 +1549,7 @@ def test_the_connective_between_two_sentences_comes_from_their_meaning():
     # contrast. The two languages were printing opposite claims about the same
     # pair of sentences for as long as the device existed.
     assert reading._CONTRAST != reading._CONTINUATION
-    assert reading._CONTINUATION[0] == "அதே நேரத்தில்:"
+    assert reading._CONTINUATION[0] == "அதோடு,"
     assert "at the same time" in reading._CONTINUATION[1].lower()
 
     # A connective may not collide with the sentence it introduces. ஆனால் is the
@@ -2045,7 +2047,7 @@ def test_the_third_person_signature_openings_only_move_the_verdict():
     for lord, line in reading._SIGNATURE_OPENING_THEM.items():
         base = reading._SIGNATURE_OPENING[lord]
         assert line.en.endswith("{name} is the second kind."), line.en
-        assert line.ta.endswith("{name} இரண்டாவது வகை."), line.ta
+        assert line.ta.endswith("{name} இரண்டாவது ரகம்."), line.ta
         assert line.en.replace("{name} is the second kind.", "") == base.en.replace(
             "You are the second kind.", ""
         )

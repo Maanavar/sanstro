@@ -33,6 +33,22 @@ def planet_ta(graha: str) -> str:
     return PLANET_TA.get(graha, graha)
 
 
+# The almanac form of a graha inside a period name: சுக்கிர தசை, சூரிய புக்தி,
+# சந்திர மகாதசை. Readings used to write `planet_ta(lord) + " காலம்"`, which
+# rendered "ராகு காலம் தொடங்கும்" for a Rahu dasa. ராகு காலம் is the daily
+# inauspicious hour to every Tamil reader (astrologer ruling 2026-10-21 §10:
+# write ராகு தசை). Only the three -ன் names shorten; the rest are unchanged.
+DASA_STEM_TA: dict[str, str] = {
+    **PLANET_TA,
+    "SUN": "சூரிய", "MOON": "சந்திர", "VENUS": "சுக்கிர",
+}
+
+
+def dasa_stem_ta(graha: str) -> str:
+    """Tamil planet name as it stands before தசை / புக்தி / மகாதசை."""
+    return DASA_STEM_TA.get(graha, graha)
+
+
 def planet_en(graha: str) -> str:
     """Plain English display name for a planet enum code."""
     return PLANET_EN.get(graha, graha.title() if graha.isupper() else graha)
@@ -62,13 +78,13 @@ YOGA_NAME_EN: dict[int, str] = {
 # Sani cycle type → short display label (the full advisory sentences live in
 # narrative_engine._SANI_CYCLE_WARN; this is just the name of the cycle).
 SANI_CYCLE_TA: dict[str, str] = {
-    "JANMA_SANI": "ஜன்ம சனி",
+    "JANMA_SANI": "ஜென்ம சனி",
     "ARDHASHTAMA_SANI": "அர்த்தாஷ்டம சனி",
     "ASHTAMA_SANI": "அஷ்டம சனி",
     "KANTAKA_SANI": "கண்டக சனி",
     "KANDAKA_SANI": "கண்டக சனி (ஜென்ம ராசி)",
     "EZHARAI_SANI_PHASE_1": "ஏழரை சனி (தொடக்கம்)",
-    "EZHARAI_SANI_PHASE_2": "ஏழரை சனி (நடுவு — ஜன்ம சனி)",
+    "EZHARAI_SANI_PHASE_2": "ஏழரை சனி (நடுவு — ஜென்ம சனி)",
     "EZHARAI_SANI_PHASE_3": "ஏழரை சனி (முடிவு)",
 }
 
@@ -145,7 +161,7 @@ NAKSHATRA_TA: dict[int, str] = {
     5: "மிருகசீரிடம்", 6: "திருவாதிரை", 7: "புனர்பூசம்", 8: "பூசம்",
     9: "ஆயில்யம்", 10: "மகம்", 11: "பூரம்", 12: "உத்திரம்",
     13: "ஹஸ்தம்", 14: "சித்திரை", 15: "சுவாதி", 16: "விசாகம்",
-    17: "அனுசம்", 18: "கேட்டை", 19: "மூலம்", 20: "பூராடம்",
+    17: "அனுஷம்", 18: "கேட்டை", 19: "மூலம்", 20: "பூராடம்",
     21: "உத்திராடம்", 22: "திருவோணம்", 23: "அவிட்டம்", 24: "சதயம்",
     25: "பூரட்டாதி", 26: "உத்திரட்டாதி", 27: "ரேவதி",
 }
@@ -158,6 +174,60 @@ NAKSHATRA_EN: dict[int, str] = {
 def nakshatra_ta(nakshatra: int | None) -> str | None:
     """Tamil display name for a 1-indexed nakshatra number."""
     return NAKSHATRA_TA.get(nakshatra) if nakshatra is not None else None
+
+
+def name_stem_ta(name: str) -> str:
+    """The joined form a star or sign takes before its noun.
+
+    மூலம் → மூல நட்சத்திரம், ரிஷபம் → ரிஷப ராசி, துலாம் → துலா ராசி. Readings
+    wrote "மூலம் நட்சத்திரத்தில்" and "ரிஷபம் ராசியில்", which a Tamil reader
+    hears as two nouns side by side (owner's review, 2026-11-09). Names that
+    do not end in ம் (ரோகிணி, கன்னி, தனுசு) are already in that form.
+    """
+    return name[:-2] if name.endswith("ம்") else name
+
+
+_GLIDE_V = set("aouAOU") | {"ா", "ு", "ூ", "ொ", "ோ", "ௌ"}
+_GLIDE_Y = set("eiyEIY") | {"ி", "ீ", "ெ", "ே", "ை"}
+
+
+def fix_name_case_endings(text: str, name: str) -> str:
+    """Give a person's name the case ending Tamil gives it.
+
+    Templates write "{name}-இன்" / "{name}-ஐ", which is right after a
+    consonant (Arun-இன்) and wrong after a vowel: Tamil says கவிதாவின்,
+    ரவியின், not "Kavitha-இன்" (owner's review, 2026-11-09). The glide follows
+    the last sound: -வ- after a / o / u, -ய- after e / i / y and their Tamil
+    signs. Run once over finished Tamil text, so every template is covered,
+    including ones written later.
+    """
+    if not name:
+        return text
+    last = name[-1]
+    glide = "வ" if last in _GLIDE_V else "ய" if last in _GLIDE_Y else None
+    if glide is None:
+        return text
+    return (
+        text.replace(f"{name}-இன்", f"{name}-{glide}ின்")
+        .replace(f"{name}-ஐ", f"{name}-{glide}ை")
+    )
+
+
+# Ordinal words for prose ("ஐந்தாம் இடத்தில்"); basis lines keep digits.
+ORDINAL_TA: dict[int, str] = {
+    1: "முதல்", 2: "இரண்டாம்", 3: "மூன்றாம்", 4: "நான்காம்", 5: "ஐந்தாம்", 6: "ஆறாம்",
+    7: "ஏழாம்", 8: "எட்டாம்", 9: "ஒன்பதாம்", 10: "பத்தாம்", 11: "பதினொன்றாம்", 12: "பன்னிரண்டாம்",
+}
+
+
+def house_lord_plain_ta(house: int) -> str:
+    """A house lord named the way a reader follows it: நான்காம் வீட்டின் அதிபதி.
+
+    Readings used the classical title (சுகாதிபதி), which most readers do not
+    know (owner, 2026-11-09). The title stays in `house_lords.house_lord_title`
+    for technical surfaces; the first house is the lagna, so it says so.
+    """
+    return "லக்னத்தின் அதிபதி" if house == 1 else f"{ORDINAL_TA[house]} வீட்டின் அதிபதி"
 
 
 def nakshatra_en(nakshatra: int | None) -> str | None:

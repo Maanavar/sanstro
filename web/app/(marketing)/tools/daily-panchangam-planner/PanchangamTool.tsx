@@ -284,25 +284,31 @@ function SlotStack({ slots, emptyLabel, lang }: { slots: PanchangamTimingSlot[];
         return (
           <div
             key={`${slot.period ?? "slot"}-${slot.name ?? slot.slot}-${slot.start}-${slot.end}-${idx}`}
+            // A wrapping row, not a `1fr auto` grid: the nowrap Tamil time
+            // (~180px) took the auto column whole, the description was left a
+            // word per line beneath it, and on a phone the two overlapped.
             style={{
-              display: "grid",
-              gridTemplateColumns: "minmax(0, 1fr) auto",
+              display: "flex",
+              flexWrap: "wrap",
               alignItems: "center",
-              gap: "10px",
+              justifyContent: "space-between",
+              gap: "4px 10px",
               padding: "7px 9px",
               borderRadius: "8px",
               background: slot.warning ? "var(--cl-rust-tint)" : "var(--cl-sage-tint)",
               border: `1px solid ${slot.warning ? "var(--cl-rust-ring)" : "var(--cl-sage-ring)"}`,
             }}
           >
-            <span style={{ minWidth: 0, color: "var(--cl-muted)", fontSize: "0.72rem", fontWeight: 700, lineHeight: 1.35 }}>
+            <span style={{ flex: "1 1 8rem", minWidth: 0, color: "var(--cl-muted)", fontSize: "0.72rem", fontWeight: 700, lineHeight: 1.35 }}>
               <span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {[period, category].filter(Boolean).join(" · ") || `Slot ${slot.slot}`}
               </span>
               {purpose && <span style={{ display: "block", marginTop: "2px", color: "var(--cl-ink-2)", fontSize: "0.68rem", fontWeight: 600 }}>{purpose}</span>}
             </span>
-            <span style={{ color: "var(--cl-ink)", fontVariantNumeric: "tabular-nums", fontWeight: 700, whiteSpace: "nowrap" }}>
-              {formatClockLabel(slot.start, lang)} - {formatClockLabel(slot.end, lang)}
+            {/* Breaks at the dash only; each clock time stays whole. */}
+            <span style={{ marginLeft: "auto", color: "var(--cl-ink)", fontVariantNumeric: "tabular-nums", fontWeight: 700, textAlign: "right" }}>
+              <span style={{ whiteSpace: "nowrap" }}>{formatClockLabel(slot.start, lang)} -</span>{" "}
+              <span style={{ whiteSpace: "nowrap" }}>{formatClockLabel(slot.end, lang)}</span>
             </span>
           </div>
         );
@@ -612,7 +618,7 @@ export function PanchangamTool() {
                   sub: chandrashtamaWindowSummary
                     ? (en
                         ? `Janma star windows: ${chandrashtamaWindowSummary} · Moon in ${moonRasi}`
-                        : `ஜன்ம நட்சத்திர நேரங்கள்: ${chandrashtamaWindowSummary} · சந்திரன் ${moonRasi}`)
+                        : `ஜென்ம நட்சத்திர நேரங்கள்: ${chandrashtamaWindowSummary} · சந்திரன் ${moonRasi}`)
                     : (en ? `Affected birth sign; Moon in ${moonRasi}` : `பாதிக்கும் பிறப்பு ராசி; சந்திரன் ${moonRasi}`),
                 },
                 { label: en ? "Yoga" : "யோகம்",          value: tYoga(yogaRolled ? data.yoga.nextName : data.yoga.name, lang),      sub: limbSub(yogaRolled, data.yoga.endsAt, tYoga(data.yoga.nextName, lang), yogaRolled ? "" : `${en ? "Yoga" : "யோகம்"} ${data.yoga.number} · `, data.yoga.endsAtIso) },
@@ -736,7 +742,10 @@ export function PanchangamTool() {
 
           {/* Nalla Neram + Gowri Nalla Neram — side-by-side table */}
           <div style={{ background: "var(--cl-surface)", border: "1px solid var(--cl-border)", borderRadius: "14px", overflow: "hidden" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.88rem" }}>
+            {/* Fixed layout keeps the columns at 50%: with auto layout, nowrap
+                content widened the first column and pushed the second out of
+                the overflow:hidden box on a phone. */}
+            <table style={{ width: "100%", tableLayout: "fixed", borderCollapse: "collapse", fontSize: "0.88rem" }}>
               <thead>
                 <tr>
                   {[

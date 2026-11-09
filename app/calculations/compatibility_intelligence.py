@@ -56,7 +56,7 @@ from app.calculations.chart_strength import (
 from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.display_names import planet_en, planet_ta
 from app.calculations.doctrine_options import DEFAULT_DOCTRINE, DoctrineOptions
-from app.calculations.dosha_samyam import compare_marriage_doshams, papa_samyam
+from app.calculations.dosha_samyam import PapaSamyam, compare_marriage_doshams, papa_samyam
 
 logger = logging.getLogger(__name__)
 
@@ -428,6 +428,30 @@ def marriage_samyam_lines(
     return lines_en, lines_ta
 
 
+def papa_samyam_for_snapshots(boy_snap: Any, girl_snap: Any) -> PapaSamyam | None:
+    """Papa samyam read off two chart snapshots, boy first; None if unreadable.
+
+    The one place a snapshot becomes papa-samyam input, shared by the report
+    lines below and the porutham route's `papaSamyam` block, so the two can
+    never count differently.
+    """
+    def chart(snap: Any) -> tuple[dict[str, int], int]:
+        return {p.graha: p.rasi for p in snap.data.planets}, snap.data.lagna.rasi
+
+    try:
+        boy_planets, boy_lagna = chart(boy_snap)
+        girl_planets, girl_lagna = chart(girl_snap)
+    except (AttributeError, KeyError, TypeError):
+        # One check must not be able to take down a whole report. This is NOT
+        # the silent omission F-CI-03 was about: that was a check we never
+        # wrote, whereas this is a chart we could not read, and it is logged
+        # rather than swallowed. If it fires in production the fix is the
+        # snapshot, not this branch.
+        logger.warning("papa samyam skipped: could not read both chart snapshots", exc_info=True)
+        return None
+    return papa_samyam(boy_planets, boy_lagna, girl_planets, girl_lagna)
+
+
 def papa_samyam_lines(
     snap_a: Any, snap_b: Any, sevvai_a_is_boy: bool = True
 ) -> tuple[list[str], list[str], list[str], list[str]]:
@@ -444,26 +468,18 @@ def papa_samyam_lines(
 
     `sevvai_a_is_boy` carries the direction, because papa samyam is not
     symmetric — practice asks the **boy's** papa points to be at least the
-    girl's. Defaults to the caller's own A=boy convention.
+    girl's. Defaults to the caller's own A=boy convention, and
+    `compute_compatibility_intelligence` passes the direction its caller
+    resolved (F-POR-05): before 2026-11-09 it passed nothing, so a report whose
+    signed-in reader was the bride counted this check backwards.
     """
-    def chart(snap: Any) -> tuple[dict[str, int], int]:
-        return {p.graha: p.rasi for p in snap.data.planets}, snap.data.lagna.rasi
-
-    try:
-        a_planets, a_lagna = chart(snap_a)
-        b_planets, b_lagna = chart(snap_b)
-    except (AttributeError, KeyError, TypeError):
-        # One new check must not be able to take down the whole report. This
-        # is NOT the silent omission F-CI-03 was about: that was a check we
-        # never wrote, whereas this is a chart we could not read, and it is
-        # logged rather than swallowed. If it fires in production the fix is
-        # the snapshot, not this branch.
-        logger.warning("papa samyam skipped: could not read both chart snapshots", exc_info=True)
+    result = (
+        papa_samyam_for_snapshots(snap_a, snap_b)
+        if sevvai_a_is_boy
+        else papa_samyam_for_snapshots(snap_b, snap_a)
+    )
+    if result is None:
         return [], [], [], []
-    if sevvai_a_is_boy:
-        result = papa_samyam(a_planets, a_lagna, b_planets, b_lagna)
-    else:
-        result = papa_samyam(b_planets, b_lagna, a_planets, a_lagna)
 
     detail_en = f"(boy {result.boy.total}, girl {result.girl.total})"
     detail_ta = f"(மாப்பிள்ளை {result.boy.total}, பெண் {result.girl.total})"
@@ -1005,7 +1021,11 @@ def compute_compatibility_intelligence(
     person_a_name: str = "Person A",
     person_b_name: str = "Person B",
     doctrine: DoctrineOptions = DEFAULT_DOCTRINE,
+    a_is_boy: bool = True,
 ) -> CompatibilityIntelligenceResult:
+    """`a_is_boy` is the direction the caller resolved (F-POR-05,
+    `synastry_service._assign_bride_groom`). Only the direction-sensitive
+    checks read it; today that is papa samyam."""
     if today_jd is None:
         today_jd = _jd_for_today()
 
@@ -1158,7 +1178,7 @@ def compute_compatibility_intelligence(
     strengths_ta.extend(samyam_ta)
 
     # F-CI-03: papa samyam, which the report used to omit silently.
-    papa_s_en, papa_s_ta, papa_r_en, papa_r_ta = papa_samyam_lines(snap_a, snap_b)
+    papa_s_en, papa_s_ta, papa_r_en, papa_r_ta = papa_samyam_lines(snap_a, snap_b, a_is_boy)
     strengths_en.extend(papa_s_en)
     strengths_ta.extend(papa_s_ta)
     risks_en.extend(papa_r_en)

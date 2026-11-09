@@ -188,3 +188,164 @@ def test_the_lines_reach_a_real_report(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     assert any("Papa samyam" in line for line in result.risks_en)
     assert any("பாப சாம்யம்" in line for line in result.risks_ta)
+
+
+# ── Plan item 3 (2026-11-09): rows, direction, and the porutham payload ────────
+
+def test_every_point_is_a_row_a_jothidar_can_check_by_hand() -> None:
+    planets = _clean() | {"SATURN": 7, "MARS": 8, "MOON": 2}
+    count = papa_count(planets, 1)
+    assert sum(r.points for r in count.rows) == count.total
+    for ref in PAPA_REFERENCES:
+        assert sum(r.points for r in count.rows if r.reference == ref) == count.by_reference[ref]
+    assert all(r.house in PAPA_HOUSES and r.graha in PAPA_GRAHAS for r in count.rows)
+    assert count.missing_references == ()
+
+
+def test_a_missing_reference_is_named_not_silently_dropped() -> None:
+    planets = {k: v for k, v in _clean().items() if k != "MOON"}
+    assert papa_count(planets, 1).missing_references == ("MOON",)
+
+
+def test_removing_ketu_from_the_set_changes_a_ketu_in_the_seventh_count(monkeypatch) -> None:
+    """Negative run (plan item 3): the count must depend on the malefic set."""
+    import app.calculations.dosha_samyam as ds
+
+    planets = _clean() | {"KETU": 7}
+    with_ketu = papa_count(planets, 1).total
+    monkeypatch.setattr(ds, "PAPA_GRAHAS", frozenset({"SUN", "MARS", "SATURN", "RAHU"}))
+    assert ds.papa_count(planets, 1).total == with_ketu - 3
+
+
+def test_the_report_counts_in_the_direction_its_caller_resolved(monkeypatch: pytest.MonkeyPatch) -> None:
+    """F-POR-05 regression, found 2026-11-09. `compute_compatibility_intelligence`
+    used to call `papa_samyam_lines(snap_a, snap_b)` with no direction, so when
+    the service put the bride in slot A the check ran backwards."""
+    import app.calculations.compatibility_intelligence as ci
+    from tests.test_compatibility_intelligence import _stub_strong_layers
+
+    _stub_strong_layers(monkeypatch)
+    monkeypatch.setattr(ci, "papa_samyam_lines", papa_samyam_lines)
+    light, heavy = _clean(), _clean() | {"SATURN": 7, "MARS": 8}
+    porutham = SimpleNamespace(
+        total_score=7, max_score=10, percentage=70.0, label="GOOD",
+        rajju_dosha=False, vedha_dosha=False, nadi_dosha={"has_nadi_dosha": False},
+    )
+
+    def report(a_is_boy: bool):
+        return ci.compute_compatibility_intelligence(
+            snap_a=_snap(light), snap_b=_snap(heavy), porutham_result=porutham,
+            synastry_score=60, a_is_boy=a_is_boy,
+        )
+
+    # A (light) is the groom: he falls short of the heavier bride.
+    assert any("Papa samyam falls short" in line for line in report(True).risks_en)
+    # A (light) is the bride: the heavier groom balances her.
+    as_bride = report(False)
+    assert not any("Papa samyam" in line for line in as_bride.risks_en)
+    assert any("Papa samyam agrees" in line for line in as_bride.strengths_en)
+
+
+def _chart_snap(planets: dict[str, int], *, gender: str | None, lagna: int = 1, nakshatra: int = 1) -> SimpleNamespace:
+    from uuid import uuid4
+
+    rows = [SimpleNamespace(graha=g, rasi=r, nakshatra=nakshatra, pada=1) for g, r in planets.items()]
+    return SimpleNamespace(data=SimpleNamespace(
+        chart_id=uuid4(),
+        planets=rows,
+        lagna=SimpleNamespace(rasi=lagna),
+        birth_profile=SimpleNamespace(gender_for_traditional_rules=gender),
+    ))
+
+
+@pytest.mark.parametrize(
+    ("gender_a", "gender_b", "a_is_groom", "assumed"),
+    [("male", "female", True, False), ("female", "male", False, False), (None, None, True, True)],
+)
+def test_the_porutham_payload_carries_papa_samyam_in_the_resolved_direction(
+    gender_a, gender_b, a_is_groom, assumed
+) -> None:
+    from app.services.synastry_service import compare_chart_snapshots_direct
+
+    light, heavy = _clean(), _clean() | {"SATURN": 7, "MARS": 8}
+    data = compare_chart_snapshots_direct(
+        _chart_snap(light, gender=gender_a, nakshatra=1),
+        _chart_snap(heavy, gender=gender_b, nakshatra=10),
+        compatibility_context="MARRIAGE",
+    ).data
+    papa = data.papa_samyam
+    assert papa is not None and papa.direction_assumed is assumed
+    groom_total, bride_total = (0, 6) if a_is_groom else (6, 0)
+    assert (papa.boy.total, papa.girl.total) == (groom_total, bride_total)
+    assert papa.balanced is (groom_total >= bride_total)
+    wire = data.model_dump(by_alias=True, mode="json")["papaSamyam"]
+    assert wire["method"] == "equal_count" and wire["ratified"] is False
+    assert {"reference", "graha", "house", "points"} == set(wire["girl" if a_is_groom else "boy"]["rows"][0])
+
+
+def test_papa_samyam_never_touches_the_porutham_score() -> None:
+    """Report only: the same couple scores identically whatever papa samyam
+    says, because the composite never reads it."""
+    from app.services.synastry_service import compare_chart_snapshots_direct
+
+    light, heavy = _clean(), _clean() | {"SATURN": 7, "MARS": 8}
+    balanced = compare_chart_snapshots_direct(
+        _chart_snap(heavy, gender="male", nakshatra=1), _chart_snap(light, gender="female", nakshatra=10),
+        compatibility_context="MARRIAGE",
+    ).data
+    short = compare_chart_snapshots_direct(
+        _chart_snap(light, gender="male", nakshatra=1), _chart_snap(heavy, gender="female", nakshatra=10),
+        compatibility_context="MARRIAGE",
+    ).data
+    assert balanced.papa_samyam.balanced and not short.papa_samyam.balanced
+    assert (balanced.total_score, balanced.label) == (short.total_score, short.label)
+
+
+def test_only_the_marriage_context_carries_papa_samyam() -> None:
+    from app.services.synastry_service import compare_chart_snapshots_direct
+
+    for ctx in ("FRIENDSHIP", "BUSINESS", "FAMILY", "GENERAL"):
+        data = compare_chart_snapshots_direct(
+            _chart_snap(_clean(), gender="male"), _chart_snap(_clean(), gender="female", nakshatra=10),
+            compatibility_context=ctx,
+        ).data
+        assert data.papa_samyam is None, ctx
+
+
+def test_balanced_share_on_random_couples_is_a_little_over_half() -> None:
+    """Plan item 3, Distribution. Strict >= with ties balanced: by symmetry a
+    random couple is balanced a little over half the time. Far from that means
+    a bug. Recorded: see the assertion message for the measured share."""
+    import random
+
+    rng = random.Random(11)
+    grahas = ("SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN", "RAHU")
+
+    def chart() -> tuple[dict[str, int], int]:
+        planets = {g: rng.randint(1, 12) for g in grahas}
+        planets["KETU"] = (planets["RAHU"] + 5) % 12 + 1
+        return planets, rng.randint(1, 12)
+
+    n = 10_000
+    balanced = sum(papa_samyam(*chart(), *chart()).balanced for _ in range(n)) / n
+    assert 0.50 <= balanced <= 0.60, balanced
+
+
+def test_the_pdf_prints_every_point_and_the_method_in_both_languages() -> None:
+    """The printed sheet is what a family takes to a jothidar. Its wording is a
+    server-side twin of `packages/shared/src/papaSamyam.ts`; this pins the parts
+    that must not drift: every point, the verdict, and the method note."""
+    from app.schemas.relationships import PapaSamyamData
+    from app.services.pdf_export_service import _papa_samyam_pdf_lines
+
+    light, heavy = _clean(), _clean() | {"SATURN": 7, "MARS": 8}
+    data = PapaSamyamData.from_result(papa_samyam(light, 1, heavy, 1), direction_assumed=True)
+    heading, lines = _papa_samyam_pdf_lines(data, "en")
+    text = " ".join([heading, *lines])
+    assert heading == "Papa samyam: Groom 0 · Bride 6"
+    assert "Short by 6" in text and "Mars (8th), Saturn (7th)" in text
+    assert "not part of the porutham score" in text and "Person 1 was read as the groom" in text
+    heading_ta, lines_ta = _papa_samyam_pdf_lines(data, "ta")
+    text_ta = " ".join([heading_ta, *lines_ta])
+    assert "சனி (7ஆம்)" in text_ta and "பொருத்த மதிப்பெண்ணில் சேர்க்கப்படவில்லை" in text_ta
+    assert not any(word in text_ta for word in ("Saturn", "Mars", "Groom", "Bride", "Lagna"))

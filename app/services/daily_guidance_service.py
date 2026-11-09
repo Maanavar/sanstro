@@ -1949,7 +1949,7 @@ def get_journal_correlations(
                 condition=label,
                 sampleCount=len(moods),
                 avgMood=round(avg, 2),
-                descriptionTa=f"{ta_desc} உங்கள் சராசரி மனோநிலை மதிப்பெண்: {avg:.1f}/10.",
+                descriptionTa=f"{ta_desc} உங்கள் சராசரி மனநிலை மதிப்பெண்: {avg:.1f}/10.",
                 descriptionEn=f"{en_desc}, your average mood rating was {avg:.1f}/10.",
             ))
 
@@ -1962,7 +1962,7 @@ def get_journal_correlations(
             sampleCount=len(chandrashtama_entries),
             avgMood=round(avg_chan, 2),
             descriptionTa=(
-                f"சந்திராஷ்டமம் நாட்களில் உங்கள் சராசரி மனோநிலை: {avg_chan:.1f}/10 "
+                f"சந்திராஷ்டமம் நாட்களில் உங்கள் சராசரி மனநிலை: {avg_chan:.1f}/10 "
                 f"(மற்ற நாட்களில் {avg_non:.1f}/10)."
             ),
             descriptionEn=(

@@ -15,6 +15,8 @@ import {
   careReasonLabel,
   careReasonNote,
   memberCareReason,
+  saniConfirmation,
+  saniCycleGloss,
   saniCycleName,
   saniCycleNote,
   type CareReason,
@@ -427,14 +429,14 @@ function HySaniCard({ lang, sani }: { lang: Lang; sani: SaniCycleData }) {
                   <span style={{ fontSize: "var(--text-xs)", color: "var(--color-text)", lineHeight: 1.45 }}><b>{dt(SANI_CYCLE_CARD.action, lang)}:</b> {detail.action}</span>
                 </>
               ) : (
-                <span style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", lineHeight: 1.45 }}>{cycle.supportiveLabel ?? dt(SANI_CYCLE_CARD.noActive, lang)}</span>
+                <span style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", lineHeight: 1.45 }}>{cycle.isActive && cycle.type ? saniCycleGloss(cycle.type, cycle.supportiveLabel, lang) : dt(SANI_CYCLE_CARD.noActive, lang)}</span>
               )}
             </Card>
           );
         })}
       </div>
-      {sani.confirmationSentence && (
-        <p data-server-prose style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--color-faint)", fontStyle: "italic", lineHeight: 1.5 }}>{sani.confirmationSentence}</p>
+      {sani.saturnRasi && (
+        <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--color-faint)", fontStyle: lang === "ta" ? "normal" : "italic", lineHeight: 1.5 }}>{saniConfirmation(sani, lang)}</p>
       )}
     </Card>
   );
@@ -1166,7 +1168,10 @@ export function DashboardFamilyChartsHybrid({
             <Card className="hy-ring-pulse" style={{ position: "relative", overflow: "hidden", borderColor: "var(--color-border-strong)", borderRadius: "var(--radius-xl)", padding: "var(--space-7) var(--space-7)", display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
               <div style={{ display: "flex", gap: "var(--space-6)", alignItems: "center", flexWrap: "wrap" }}>
                 <NovaScoreDial score={familyScore} size={122} label={lang === "ta" ? "/ 100 · குடும்பம்" : "/ 100 · FAMILY"} />
-                <div style={{ minWidth: 0, flex: 1 }}>
+                {/* A 16rem basis, not `flex: 1` (basis 0): with basis 0 the row's
+                    wrap never fired, and on a phone the summary sat in a ~140px
+                    column beside the dial, one Tamil word per line. */}
+                <div style={{ minWidth: 0, flex: "1 1 16rem" }}>
                   <Kicker color="var(--color-mid)">{lang === "ta" ? "குடும்ப ஒற்றுமை" : "Family harmony"}</Kicker>
                   <div style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-xl)", fontWeight: 600, lineHeight: 1.2, marginTop: "6px", color: "var(--color-text-strong)" }}>
                     {lang === "ta" ? heroText.ta : heroText.en}

@@ -1711,13 +1711,13 @@ export function DashboardCalendarTabNova({
                     </div>
                     {chandraNakshatraWindowSummary && (
                       <div style={{ display: "flex", justifyContent: "space-between", gap: "var(--space-3)", fontSize: "var(--text-sm)" }}>
-                        <span style={{ color: "var(--color-muted)" }}>{lang === "ta" ? "இன்றைய ஜன்ம நட்சத்திர நேரங்கள்" : "Today's Janma Nakshatra Windows"}</span>
+                        <span style={{ color: "var(--color-muted)" }}>{lang === "ta" ? "இன்றைய ஜென்ம நட்சத்திர நேரங்கள்" : "Today's Janma Nakshatra Windows"}</span>
                         <span style={{ color: "var(--color-low)", fontWeight: 600, textAlign: "right", lineHeight: 1.45 }}>{chandraNakshatraWindowSummary}</span>
                       </div>
                     )}
                     <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--color-muted)", lineHeight: 1.55, fontStyle: "italic", borderTop: "1px solid var(--color-low-border)", paddingTop: "8px" }}>
                       {lang === "ta"
-                        ? `சந்திரன் இன்று ${todayMoonNakshatra ? tNakshatra(todayMoonNakshatra, lang) + " நட்சத்திரத்தில் " : ""}${moonRasiName} ராசியில் சஞ்சரிக்கிறது. ${chandraName} ஜன்ம ராசி உடையோருக்கு சந்திராஷ்டமம்.${chandraNakshatraWindowSummary ? ` குறிப்பாக ${chandraNakshatraWindowSummary} நேரத்தில் இருக்கும் ஜன்ம நட்சத்திரங்கள் கவனமாக இருக்கவும்.` : ""}`
+                        ? `சந்திரன் இன்று ${todayMoonNakshatra ? tNakshatra(todayMoonNakshatra, lang) + " நட்சத்திரத்தில் " : ""}${moonRasiName} ராசியில் சஞ்சரிக்கிறது. ${chandraName} ஜென்ம ராசி உடையோருக்கு சந்திராஷ்டமம்.${chandraNakshatraWindowSummary ? ` குறிப்பாக ${chandraNakshatraWindowSummary} நேரத்தில் இருக்கும் ஜென்ம நட்சத்திரங்கள் கவனமாக இருக்கவும்.` : ""}`
                         : `Moon transits ${moonRasiName} today${todayMoonNakshatra ? ` (in ${tNakshatra(todayMoonNakshatra, "en")} nakshatra)` : ""}. Natives born with ${chandraName} as their Janma Rasi are in Chandrashtamam.${chandraNakshatraWindowSummary ? ` Specifically, the Janma Nakshatra windows are ${chandraNakshatraWindowSummary}.` : ""}`}
                     </p>
                   </Card>

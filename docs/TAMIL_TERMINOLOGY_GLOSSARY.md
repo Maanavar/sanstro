@@ -89,6 +89,30 @@ before the number, and the Latin "am"/"pm" is never used:
 and stretches மாலை to 17:59. Adopting it app-wide would override the
 2026-09-17 ruling for every time label, so it has not been done.
 
+## Everyday voice
+
+Owner instruction of 2026-11-07: write as an educated Tamil person speaking to one
+person. The rules and what they changed are in
+`docs/TAMIL_EVERYDAY_VOICE_2026-11-07.md`. Reading sub-period is **புக்தி**, because
+புத்தி also means intellect. Birth star is **ஜென்ம நட்சத்திரம்**. A reading is **பலன்**.
+
+**A period is named with தசை, never காலம்:** சுக்கிர தசை, ராகு புக்தி, சந்திர மகாதசை. Use the
+almanac stem (`dasa_stem_ta`: சூரிய, சந்திர, சுக்கிர; the other six unchanged). "ராகு காலம்" is the
+daily inauspicious hour to every Tamil reader, and readings wrote it for a Rahu dasa until
+2026-11-09 (astrologer ruling 2026-10-21 §10). காலம் alone, meaning "this stretch", is fine.
+Guarded by `tests/test_tamil_everyday_voice.py`.
+
+Owner decisions of 2026-11-09 (sign-off sheet v2, Part B):
+
+- **அனுஷம்** (not அனுசம்) and **ஜென்ம** (not ஜன்ம: ஜென்ம நட்சத்திரம், ஜென்ம ராசி, ஜென்ம சனி). One spelling each, everywhere.
+- **A star or sign before its noun takes the joined form:** மூல நட்சத்திரம், அனுஷ நட்சத்திரம், ரிஷப ராசி,
+  கடக லக்னம், துலா ராசி (`name_stem_ta`). "மூலம் நட்சத்திரத்தில்" reads as two nouns side by side.
+- **A name takes the ending its last sound needs:** Divya-வின், Lakshmi-யின், Arun-இன்; Divya-வை
+  (`fix_name_case_endings`, applied to every finished reading).
+- **House lords in readings are named plainly:** நான்காம் வீட்டின் அதிபதி, not சுகாதிபதி. The classical
+  title stays on technical surfaces. Positions in prose are words: ஐந்தாம் இடத்தில்.
+- Kept: இரண்டாவது **ரகம்**, உங்களுக்குக் **கடினமானது**, **வீடு, குடும்பம்** as a pair.
+
 ## Earlier rulings, recorded elsewhere
 
 - **Panchangam names** follow Tamil almanac forms, not Sanskrit respelled. For

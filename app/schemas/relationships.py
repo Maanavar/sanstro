@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -149,6 +149,75 @@ class EkaNakshatraData(BaseModel):
         )
 
 
+class PapaRowData(BaseModel):
+    """One papa point: `graha` sits in papa `house` counted from `reference`."""
+
+    reference: Literal["LAGNA", "MOON", "VENUS"]
+    graha: str
+    house: int
+    points: int
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class PapaSideData(BaseModel):
+    total: int
+    by_reference: dict[str, int] = Field(alias="byReference")
+    rows: list[PapaRowData]
+    #: References whose own graha was missing: their count is unknown, not 0.
+    missing_references: list[str] = Field(default_factory=list, alias="missingReferences")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class PapaSamyamData(BaseModel):
+    """பாப சாம்யம் (F-CI-03; deferred-checks plan item 3). Language-free.
+
+    **Report only**: deliberately absent from `totalScore`, `label` and every
+    veto, so Mars is never charged here on top of Sevvai. `method` is
+    ``equal_count`` (one point per malefic per reference) and `ratified` is
+    false until the astrologer rules the weight table; a surface says so.
+    `balanced` is the practice condition boy's points >= girl's, so the
+    direction matters, and `directionAssumed` says when it was not read from
+    a stated gender. Sent for the MARRIAGE context only.
+    """
+
+    method: str
+    ratified: bool = False
+    boy: PapaSideData
+    girl: PapaSideData
+    balanced: bool
+    shortfall: int
+    direction_assumed: bool = Field(alias="directionAssumed")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    @classmethod
+    def from_result(cls, result: Any, *, direction_assumed: bool) -> PapaSamyamData:
+        """Engine `PapaSamyam` -> the wire shape, the one place that maps it."""
+        from app.calculations.dosha_samyam import PAPA_METHOD
+
+        def side(count: Any) -> PapaSideData:
+            return PapaSideData(
+                total=count.total,
+                by_reference=dict(count.by_reference),
+                rows=[
+                    PapaRowData(reference=r.reference, graha=r.graha, house=r.house, points=r.points)
+                    for r in count.rows
+                ],
+                missing_references=list(count.missing_references),
+            )
+
+        return cls(
+            method=PAPA_METHOD,
+            boy=side(result.boy),
+            girl=side(result.girl),
+            balanced=result.balanced,
+            shortfall=result.shortfall,
+            direction_assumed=direction_assumed,
+        )
+
+
 class PorutthamData(BaseModel):
     family_vault_id: UUID = Field(alias="familyVaultId")
     member_id: UUID = Field(alias="memberId")
@@ -171,6 +240,8 @@ class PorutthamData(BaseModel):
     shashtashtaka: ShashtashtakaData | None = None
     # F-POR-03 disclosure, optional for the same reason.
     eka_nakshatra: EkaNakshatraData | None = Field(default=None, alias="ekaNakshatra")
+    # Plan item 3: report only, MARRIAGE context only; absent elsewhere.
+    papa_samyam: PapaSamyamData | None = Field(default=None, alias="papaSamyam")
     summary: RelationshipBiText
     compatibility_context: str = Field(default="GENERAL", alias="compatibilityContext")
     context_note: RelationshipBiText | None = Field(default=None, alias="contextNote")
@@ -298,6 +369,8 @@ class DirectPoruthamData(BaseModel):
     shashtashtaka: ShashtashtakaData | None = None
     # F-POR-03 disclosure, optional for the same reason.
     eka_nakshatra: EkaNakshatraData | None = Field(default=None, alias="ekaNakshatra")
+    # Plan item 3: report only, MARRIAGE context only; absent elsewhere.
+    papa_samyam: PapaSamyamData | None = Field(default=None, alias="papaSamyam")
     summary: RelationshipBiText
     compatibility_context: str = Field(default="GENERAL", alias="compatibilityContext")
     context_note: RelationshipBiText | None = Field(default=None, alias="contextNote")

@@ -31,6 +31,7 @@ import {
   doshamResidual,
   mitigatedStandingLabel,
 } from "@vinaadi/shared/doshamReckoning";
+import { progenyCheckView, progenyHeading } from "@vinaadi/shared/progenyChecks";
 
 /**
  * Three groups, not two (DD-17, 2026-10-06). A mitigated dosham used to read
@@ -189,6 +190,7 @@ export default function DoshamScreen() {
     const beforeAfter = doshamBeforeAfterLine(f, docLang);
     const context = doshamContextLines(f, docLang);
     const meaning = doshamMeaning(f, docLang);
+    const progeny = progenyCheckView(f, docLang);
     const bodyType = isTamil ? TamilType.body : EnType.body;
     const captionType = isTamil ? TamilType.caption : EnType.caption;
     return (
@@ -262,6 +264,34 @@ export default function DoshamScreen() {
                 <Text style={[styles.reckonLabel, captionType]}>{isTamil ? "உங்கள் ஜாதகத்தில்" : "In your chart"}</Text>
                 <Text style={[styles.description, bodyType]}>{meaning}</Text>
               </View>
+            ) : null}
+            {/* V1 §18 Q13 step three: D7 and dasa, children's doshams only.
+                Same words as web, from @vinaadi/shared/progenyChecks. */}
+            {progeny ? (
+              <>
+                <View style={styles.reckonBlock}>
+                  <Text style={[styles.reckonLabel, captionType]}>{progenyHeading("d7", docLang)}</Text>
+                  <Text style={[styles.description, bodyType]}>{progeny.d7Finding}</Text>
+                  <Text style={[styles.description, bodyType]}>{progeny.d7Effect}</Text>
+                </View>
+                <View style={styles.reckonBlock}>
+                  <Text style={[styles.reckonLabel, captionType]}>{progenyHeading("dasha", docLang)}</Text>
+                  {progeny.dashaNow ? <Text style={[styles.description, bodyType]}>{progeny.dashaNow}</Text> : null}
+                  {progeny.windows.map((w) => (
+                    <Text key={`${w.period}-${w.dates}`} style={[styles.description, captionType]}>
+                      {w.kind === "AFFLICTION" ? "● " : w.kind === "SUPPORT" ? "○ " : "◐ "}
+                      <Text style={{ fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_600SemiBold" }}>{w.period}</Text>
+                      {`  ${w.dates} · ${w.meaning}${w.isCurrent ? (isTamil ? " (இப்போது)" : " (now)") : ""}`}
+                    </Text>
+                  ))}
+                </View>
+                <View style={styles.reckonBlock}>
+                  <Text style={[styles.reckonLabel, captionType]}>{progenyHeading("precautions", docLang)}</Text>
+                  {progeny.precautions.map((line) => (
+                    <Text key={line} style={[styles.description, captionType]}>{`• ${line}`}</Text>
+                  ))}
+                </View>
+              </>
             ) : null}
             <View style={styles.pariharamBox}>
               <Text style={[styles.pariharamLabel, isTamil ? TamilType.caption : EnType.caption]}>
