@@ -1640,9 +1640,15 @@ def detect_putra_sarpa_dosham(
     # Q14 (V1 §18): no Rahu rule is extended to Ketu by default. applies_to: rahu —
     # Guru + Rahu is YOG-CH-01, a leg. Guru + Ketu (YOG-CH-02, unsourced per the
     # 2026-08-28 ruling) is a watch-note until D6b is ruled: under-declaring a
-    # children's dosham is the safer failure.
-    beside_guru = [p for p in with_guru if p == "RAHU"]
-    guru_ketu_noted = "KETU" in with_guru
+    # children's dosham is the safer failure. `d6b_guru_ketu="leg"` is the
+    # ruling's other branch, built so its effect can be measured before it is
+    # chosen (deferred-checks plan, item 1).
+    if doctrine.d6b_guru_ketu == "leg":
+        beside_guru = list(with_guru)
+        guru_ketu_noted = False
+    else:
+        beside_guru = [p for p in with_guru if p == "RAHU"]
+        guru_ketu_noted = "KETU" in with_guru
     legs = int(bool(beside_lord)) + int(bool(beside_guru))
     declared = bool(in_house)
 

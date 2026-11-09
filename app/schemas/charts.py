@@ -194,6 +194,60 @@ class DoshamAssessment(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class ProgenyD7Check(BaseModel):
+    """Q13 step three, the Saptamsa (D7). Describes and never grades (Q18):
+    `app/calculations/progeny_checks.py`. Language-free; surfaces word it."""
+
+    houses_reliable: bool = Field(alias="housesReliable")
+    margin_minutes: int = Field(alias="marginMinutes")
+    lagna_rasi: int = Field(alias="lagnaRasi")
+    fifth_rasi: int = Field(alias="fifthRasi")
+    fifth_lord: str = Field(alias="fifthLord")
+    fifth_lord_house: int = Field(alias="fifthLordHouse")
+    jupiter_house: int = Field(alias="jupiterHouse")
+    repeated_by: list[str] = Field(default_factory=list, alias="repeatedBy")
+    jupiter_supports: bool = Field(alias="jupiterSupports")
+    fifth_lord_in_dusthana: bool = Field(alias="fifthLordInDusthana")
+    verdict: Literal["REPEATS", "STRAINED", "SUPPORTS", "MIXED", "UNCERTAIN"]
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class ProgenyDashaWindow(BaseModel):
+    lord: str
+    level: Literal["MAHA", "BHUKTI"]
+    maha_lord: str = Field(alias="mahaLord")
+    start: date
+    end: date
+    kind: Literal["AFFLICTION", "SUPPORT", "MIXED"]
+    is_current: bool = Field(alias="isCurrent")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class ProgenyDashaCheck(BaseModel):
+    current_maha: str = Field(alias="currentMaha")
+    current_bhukti: str = Field(alias="currentBhukti")
+    current_kind: Literal["AFFLICTION", "SUPPORT", "MIXED", "NEUTRAL"] = Field(alias="currentKind")
+    afflicting_lords: list[str] = Field(default_factory=list, alias="afflictingLords")
+    supporting_lords: list[str] = Field(default_factory=list, alias="supportingLords")
+    windows: list[ProgenyDashaWindow] = Field(default_factory=list)
+    age_band: Literal["UNDER_18", "CHILDBEARING", "PAST"] = Field(alias="ageBand")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class ProgenyChecks(BaseModel):
+    """D7 and dasa for a formed children's dosham (V1 §18 Q13), at the
+    `engine_inference` tier until ratified: they never move the grade."""
+
+    d7: ProgenyD7Check
+    dasha: ProgenyDashaCheck
+    tier: str = "engine_inference"
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class ChartDoshamInsight(BaseModel):
     name: str
     is_present: bool = Field(alias="isPresent")
@@ -232,6 +286,9 @@ class ChartDoshamInsight(BaseModel):
     #: CHILDREN findings: delay | difficulty | needs_attention; "" elsewhere.
     #: There is no value for denial, by design.
     progeny_outlook: Literal["", "delay", "difficulty", "needs_attention"] = Field(default="", alias="progenyOutlook")
+    #: CHILDREN findings that formed: the D7 and dasa checks. None elsewhere
+    #: and on older cached payloads.
+    progeny_checks: ProgenyChecks | None = Field(default=None, alias="progenyChecks")
 
     model_config = ConfigDict(populate_by_name=True)
 

@@ -442,6 +442,7 @@ def test_feature_flags_round_trip(raw_client):
         "doctrine_o29_rk_guru_counted_once",  # DD-17
         "doctrine_o32_putra_sarpa_thulam_sani",  # owner ruling 2026-10-06
         "doctrine_sevvai_house_set",  # owner ruling 2026-10-30
+        "doctrine_d6b_guru_ketu",  # D6b, not ruled (deferred-checks plan, item 1)
         "doctrine_moon_72_degree_convention",
         "doctrine_show_lakshmi_phaladeepika",
         # Ask Vinaadi rails (admin spec L7): the spend cap, the USD rate and

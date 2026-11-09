@@ -180,6 +180,11 @@ class MuhurtaSlot(BaseModel):
     model_config = {"populate_by_name": True}
 
 
+#: Keys only. Add a key here, in `SAFETY_NOTICES_BY_ACTIVITY`
+#: (`app/services/muhurta_service.py`) and in `packages/shared/src/muhurtaSafety.ts`.
+MuhurtaSafetyNotice = Literal["medical_doctor_first"]
+
+
 class MuhurtaActivityLocation(BaseModel):
     """Coordinates used for the activity-day panchangam, not birth location."""
 
@@ -198,6 +203,11 @@ class MuhurtaResponseData(BaseModel):
     timezone: str = Field(description="IANA timezone the slot times are computed and expressed in")
     activity_location: MuhurtaActivityLocation = Field(alias="activityLocation")
     slots: list[MuhurtaSlot]
+    # Fixed safety lines for the activity, as keys; `packages/shared` words
+    # them. Not a factor: they never touch a score, band or recommendation.
+    # Today only MEDICAL carries one (deferred-checks plan, item 4): timing is
+    # cultural guidance for planned, non-urgent care, and a doctor comes first.
+    safety_notices: list[MuhurtaSafetyNotice] = Field(default_factory=list, alias="safetyNotices")
 
     model_config = {"populate_by_name": True}
 

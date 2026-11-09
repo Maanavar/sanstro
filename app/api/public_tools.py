@@ -835,6 +835,8 @@ class PublicMuhurtaSlot(BaseModel):
 class PublicMuhurtaResponse(BaseModel):
     success: bool = True
     slots: list[PublicMuhurtaSlot]
+    # Same keys as `MuhurtaResponseData.safetyNotices` (plan item 4).
+    safety_notices: list[str] = Field(default_factory=list, alias="safetyNotices")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -1022,7 +1024,7 @@ def public_muhurta(
     """
     from app.calculations.muhurta_engine import Verdict, score_day
     from app.calculations.panchangam import best_gowri_slot
-    from app.services.muhurta_service import normalize_activity
+    from app.services.muhurta_service import normalize_activity, safety_notices_for
     from app.services.panchangam_cache import calculate_daily_panchangam_range
 
     # Same alias resolution as the signed-in picker, so a client key like
@@ -1112,7 +1114,9 @@ def public_muhurta(
         for s, d, time_window, tithi, nakshatra, reason_en, reason_ta, cautions_en, cautions_ta in top
     ]
 
-    return PublicMuhurtaResponse(success=True, slots=slots)
+    return PublicMuhurtaResponse(
+        success=True, slots=slots, safetyNotices=list(safety_notices_for(event_type))
+    )
 
 
 # ── Public Rasi Palan ──────────────────────────────────────────────────────────

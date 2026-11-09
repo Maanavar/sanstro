@@ -361,6 +361,7 @@ def _defaults() -> dict[str, Any]:
         "doctrine_o29_rk_guru_counted_once": True,             # ruled 2026-10-06, DD-17
         "doctrine_o32_putra_sarpa_thulam_sani": "neutralized", # | "ordinary" (owner ruling 2026-10-06)
         "doctrine_sevvai_house_set": "tamil_five",             # | "manglik_five" | "union_six" (ruled 2026-10-30)
+        "doctrine_d6b_guru_ketu": "watch_note",                # | "leg" (D6b, not ruled; plan item 1)
         "doctrine_moon_72_degree_convention": False,           # DD-12 legacy convention
         "doctrine_show_lakshmi_phaladeepika": False,           # DD-02 variant, consumer UI
     }

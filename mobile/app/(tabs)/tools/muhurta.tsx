@@ -24,6 +24,7 @@ import { BannerAdUnit } from "@/components/AdUnit";
 import { getDecisionBrief, type DecisionPriority } from "@/api/decisions";
 import { getMuhurta } from "@/api/tools";
 import type { MuhurtaSlot } from "@vinaadi/shared/types";
+import { muhurtaSafetyNotices } from "@vinaadi/shared/muhurtaSafety";
 import { getPrimaryChartId } from "@/lib/userPrefs";
 import { scoreFillColor } from "@/lib/score";
 
@@ -204,6 +205,8 @@ export default function MuhurtaScreen() {
   }
 
   const slots = muhurta.data?.data?.slots ?? [];
+  // Plan item 4: fixed safety lines (MEDICAL), worded in @vinaadi/shared.
+  const safetyLines = muhurtaSafetyNotices(muhurta.data?.data?.safetyNotices, isTamil ? "ta" : "en");
   const brief = decision.data?.data;
   const isSearching = submittedMode === "quick" ? muhurta.isLoading : decision.isLoading;
   const isError = submittedMode === "quick" ? muhurta.isError : decision.isError;
@@ -325,7 +328,11 @@ export default function MuhurtaScreen() {
           ) : submittedMode === "decision" && brief ? (
             <DecisionResult brief={brief} />
           ) : (
-            slots.map((slot, i) => (
+            <>
+            {safetyLines.map((line) => (
+              <Text key={line} style={[styles.resultCount, isTamil ? TamilType.bodySmall : EnType.bodySmall]}>{line}</Text>
+            ))}
+            {slots.map((slot, i) => (
               <View key={`${slot.date}-${slot.timeStart}-${i}`} style={styles.slotCard}>
                 <View style={styles.slotLeft}>
                   <Text style={styles.slotDate}>{slot.tamilDate ? (isTamil ? slot.tamilDate.ta : slot.tamilDate.en) : slot.date}</Text>
@@ -347,7 +354,8 @@ export default function MuhurtaScreen() {
                   </View>
                 )}
               </View>
-            ))
+            ))}
+            </>
           )}
 
           <BannerAdUnit />

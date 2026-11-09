@@ -12,6 +12,7 @@ import { CompatibilityIntelligencePanel } from "./compatibility-intelligence-pan
 import { Card } from "./ui/card";
 import { Kicker } from "./ui/kicker";
 import { EkaNakshatraNoteCard, ShashtashtakaNoteCard } from "./shashtashtaka-note";
+import { PapaSamyamCard } from "./papa-samyam-card";
 import { compareSynastry, compareCharts } from "@vinaadi/shared/api/relationships";
 import type { Lang } from "@/lib/i18n";
 import type { DirectSynastryData } from "@vinaadi/shared/api/relationships";
@@ -631,6 +632,8 @@ export function SynastryPanel({
                   <EkaNakshatraNoteCard note={porutham.ekaNakshatra} lang={lang} />
                   {/* F-POR-02: a disclosure beside the verdict, never part of it. */}
                   <ShashtashtakaNoteCard note={porutham.shashtashtaka} lang={lang} />
+                  {/* Plan item 3: report only; present for MARRIAGE only. */}
+                  <PapaSamyamCard data={porutham.papaSamyam} lang={lang} />
 
                   <div style={{ display: "flex", justifyContent: "flex-start" }}>
                     <button

@@ -47,6 +47,7 @@ from app.schemas.relationships import (
     KutaResult,
     NadiDoshaData,
     NavamsaCompatibility,
+    PapaSamyamData,
     PersonAstroIdentity,
     PorutthamData,
     PorutthamResponse,
@@ -736,6 +737,28 @@ def _eka_nakshatra_data(note: Any) -> EkaNakshatraData | None:
     return EkaNakshatraData.from_note(note) if note is not None else None
 
 
+def _papa_samyam_data(
+    snap_a: Any, snap_b: Any, a_is_boy: bool, direction_assumed: bool, compatibility_context: str
+) -> PapaSamyamData | None:
+    """Plan item 3: பாப சாம்யம் on the porutham payload, MARRIAGE only.
+
+    Samyam is a marriage concept (dosha_samyam module docstring), so a
+    friendship or business reading carries no block rather than a meaningless
+    one. Counted through `papa_samyam_for_snapshots`, the same reader the
+    compatibility report's lines use, in the direction `_assign_bride_groom`
+    resolved. Report only: nothing here feeds the score or the label.
+    """
+    if compatibility_context != "MARRIAGE":
+        return None
+    from app.calculations.compatibility_intelligence import papa_samyam_for_snapshots
+
+    boy, girl = (snap_a, snap_b) if a_is_boy else (snap_b, snap_a)
+    result = papa_samyam_for_snapshots(boy, girl)
+    if result is None:
+        return None
+    return PapaSamyamData.from_result(result, direction_assumed=direction_assumed)
+
+
 def _shashtashtaka_data(note: Any) -> ShashtashtakaData:
     """Engine `ShashtashtakaNote` -> the wire shape.
 
@@ -810,6 +833,9 @@ def compare_chart_snapshots_direct(
         nadi_dosha=NadiDoshaData(**shaped["nadi_dosha"]),
         shashtashtaka=_shashtashtaka_data(shaped["shashtashtaka"]),
         eka_nakshatra=_eka_nakshatra_data(shaped["eka_nakshatra"]),
+        papa_samyam=_papa_samyam_data(
+            snap_a, snap_b, boy_moon is moon_a, direction_assumed, compatibility_context
+        ),
         summary=shaped["summary"],
         compatibility_context=compatibility_context,
         context_note=RelationshipBiText(ta=note_ta, en=note_en),
@@ -858,6 +884,9 @@ def build_compatibility_intelligence_from_snapshots(
         person_b_name=name_b,
         # The same live doctrine the chart's own dosham card reads (AAU-05).
         doctrine=current_doctrine_options(),
+        # F-POR-05: the direction resolved above, for papa samyam. Passed
+        # nothing before 2026-11-09, so a bride in slot A was read as the boy.
+        a_is_boy=boy_moon is moon_a,
     )
 
     nadi = porutham_result.nadi_dosha
@@ -1097,6 +1126,9 @@ def get_porutham_for_member(
         nadi_dosha=NadiDoshaData(**shaped["nadi_dosha"]),
         shashtashtaka=_shashtashtaka_data(shaped["shashtashtaka"]),
         eka_nakshatra=_eka_nakshatra_data(shaped["eka_nakshatra"]),
+        papa_samyam=_papa_samyam_data(
+            owner_snap, member_snap, boy_moon is owner_moon, direction_assumed, compatibility_context
+        ),
         summary=shaped["summary"],
         compatibility_context=compatibility_context,
         context_note=RelationshipBiText(ta=note_ta, en=note_en),

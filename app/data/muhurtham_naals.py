@@ -239,6 +239,26 @@ def has_sourced_sheet(year: int) -> bool:
     return year in MUHURTHAM_NAALS_BY_YEAR
 
 
+#: Deferred-checks plan, item 9. The sheet for year Y+1 is due once the
+#: almanac is out (the 2028 one around 15 Sep 2027). From 1 October the build
+#: warns that next year has no sheet; from 1 December it fails. Until a sheet
+#: exists the reader still gets the quiet NO_SHEET line, never a fault.
+SHEET_WARN_FROM: tuple[int, int] = (10, 1)
+SHEET_FAIL_FROM: tuple[int, int] = (12, 1)
+
+
+def sheet_deadline_status(today: date, years: frozenset[int] | set[int] | None = None) -> str:
+    """Next year's sheet status as of `today`: "ok", "warn" or "fail"."""
+    have = set(MUHURTHAM_NAALS_BY_YEAR) if years is None else set(years)
+    if today.year + 1 in have:
+        return "ok"
+    if (today.month, today.day) >= SHEET_FAIL_FROM:
+        return "fail"
+    if (today.month, today.day) >= SHEET_WARN_FROM:
+        return "warn"
+    return "ok"
+
+
 def muhurtham_naal_on(day: date) -> MuhurthamNaal | None:
     """The curated entry for this exact day, or None.
 

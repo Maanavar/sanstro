@@ -279,6 +279,19 @@ _ACTIVITY_ALIASES: dict[str, str] = {
 }
 
 
+#: Fixed safety lines per activity (deferred-checks plan, item 4). Not a
+#: ruling and not a factor: whatever the star tables eventually say, a medical
+#: muhurta must never suggest delaying urgent care or prescribed treatment, so
+#: every MEDICAL response carries this key, on every route.
+SAFETY_NOTICES_BY_ACTIVITY: dict[str, tuple[str, ...]] = {
+    "MEDICAL": ("medical_doctor_first",),
+}
+
+
+def safety_notices_for(activity: str) -> tuple[str, ...]:
+    return SAFETY_NOTICES_BY_ACTIVITY.get(normalize_activity(activity), ())
+
+
 def normalize_activity(activity: str) -> str:
     """Uppercase an incoming activity key and resolve any client-side alias."""
     key = str(activity or "").strip().upper()
@@ -1810,6 +1823,7 @@ def find_best_muhurta_slots(
                 source=location_source,
             ),
             slots=slots,
+            safetyNotices=list(safety_notices_for(activity)),
         ),
         meta=ResponseMeta(
             calculationVersion="1.0",

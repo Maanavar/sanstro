@@ -20,6 +20,7 @@ import { Card } from "./ui";
 import { Field, FieldShell, Input } from "./ui/field";
 import { Segmented } from "./ui/segmented";
 import { ModalShell } from "./modal-shell";
+import { MuhurtaSafetyNotice } from "./muhurta-safety-notice";
 import { GlossaryTerm } from "./glossary-term";
 import type { GlossaryKey } from "@/lib/glossary";
 import type { NaalCouple, WeddingRole } from "@/lib/muhurtham-naal";
@@ -833,6 +834,9 @@ export function NovaMuhurtaPicker({ lang, chartId, DayDrawer, initialActivity, i
   const [groupByTamilMonth, setGroupByTamilMonth] = useState(false);
   const [checkDate, setCheckDate] = useState(initialDateFrom ?? today);
   const [assessment, setAssessment] = useState<MuhurtaSlot | null>(null);
+  // Plan item 4: the date check keeps only its slot, so its response's
+  // safety keys are held beside it.
+  const [assessmentNotices, setAssessmentNotices] = useState<string[]>([]);
   const [assessmentLocation, setAssessmentLocation] = useState<PanchangamOverlayLocation | null>(null);
   const [checkingDate, setCheckingDate] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -1025,6 +1029,7 @@ export function NovaMuhurtaPicker({ lang, chartId, DayDrawer, initialActivity, i
       );
       const json = await apiFetchJson<ApiEnvelope<MuhurtaResponseData>>(`/api/v1/charts/${chartId}/muhurta?${params}`);
       setAssessment(json.data.slots[0] ?? null);
+      setAssessmentNotices(json.data.safetyNotices ?? []);
       setAssessmentLocation(json.data.activityLocation);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "";
@@ -1375,6 +1380,12 @@ export function NovaMuhurtaPicker({ lang, chartId, DayDrawer, initialActivity, i
           {checkingDate ? `${t("muhurta_searching", lang)} ${checkDateElapsed}s` : t("muhurta_check_date", lang)}
         </button>
       </div>
+
+      {/* Plan item 4: fixed safety lines (MEDICAL), from whichever result is on screen. */}
+      <MuhurtaSafetyNotice
+        keys={Array.from(new Set([...(assessment ? assessmentNotices : []), ...(result?.safetyNotices ?? [])]))}
+        lang={lang}
+      />
 
       {assessment && (
         <Card compact style={{ marginBottom: "14px", borderColor: assessment.recommended ? "var(--color-border)" : "var(--color-low)" }}>

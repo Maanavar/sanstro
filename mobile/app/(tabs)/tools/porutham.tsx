@@ -9,6 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { NAKSHATRA_LIST, poruthamTone, rasiDisplayName, type EkaNakshatraNote, type ShashtashtakaNote } from "@vinaadi/shared";
 import { nakshatraPadaGroups } from "@vinaadi/shared/nakshatraRasi";
+import { papaNotCheckedNote } from "@vinaadi/shared/papaSamyam";
 import { C } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
 import { TamilType, EnType } from "@/theme/typography";
@@ -301,6 +302,12 @@ export default function PoruthamScreen() {
                     : "Madhyama — a middling result on this porutham. Acceptable, but not the strongest grade. It counts as a soft pass, not a failure."}
                 </Text>
               ) : null}
+              {/* Plan item 3: this screen has only the two birth stars, and
+                  papa samyam needs both full charts. Said, not left out: a
+                  missing check reads as a clean one (F-CI-03). */}
+              <Text style={[styles.kutaGloss, { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
+                {papaNotCheckedNote(isTamil ? "ta" : "en")}
+              </Text>
             </>
           ) : null}
         </BottomSheetScrollView>

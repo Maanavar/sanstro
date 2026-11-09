@@ -26,6 +26,7 @@ import { DashboardLearnArticleModal } from "./dashboard-learn-article-modal";
 import { Card } from "./ui/card";
 import { Kicker } from "./ui/kicker";
 import { EkaNakshatraNoteCard, ShashtashtakaNoteCard } from "./shashtashtaka-note";
+import { PapaSamyamCard } from "./papa-samyam-card";
 
 /**
  * Nova rebuild of PoruthamPanel (see docs/DASHBOARD_UI_REVAMP_PLAN.md §6.12,
@@ -132,9 +133,12 @@ function kutaGoverns(kuta: KutaResult) {
 // Cross-check doshams — all four are computed by the same chart-calculate
 // pass that produces `chart.doshams` (app/calculations/yogas.py calls all
 // four detect_* functions together), so no new backend work is needed here.
-// "Dasa sandhi" and "Papasamyam" were dropped: grep-confirmed neither concept
-// exists anywhere in app/calculations, so those two cards were permanent
-// "not yet available" stubs — replaced with doshams that actually compute.
+// Papasamyam is NOT one of these: it compares the two charts, so it arrives
+// on the porutham payload (`porutham.papaSamyam`, MARRIAGE only) and renders
+// as its own card after the ten poruthams. An earlier comment here said no
+// Papasamyam calculation existed; that was wrong from F-CI-03 on
+// (`app/calculations/dosha_samyam.py`). Dasa sandhi is still not built for any
+// reader (engine only, `app/calculations/dasa_sandhi.py`, awaiting a ruling).
 // KALATHRA_DOSHAM (7th-lord affliction, category "MARRIAGE") is the closest
 // existing calculation to what's colloquially called "Mangalya dosham" —
 // there's no separately-named Mangalya calculation in this codebase, so it's
@@ -748,6 +752,10 @@ export function NovaPoruthamPanel({
               </p>
             </div>
           </div>
+
+          {/* பாப சாம்யம் — after the ten poruthams, never among them: report
+              only, not in the score. Absent outside the MARRIAGE context. */}
+          <PapaSamyamCard data={porutham.papaSamyam} lang={lang} />
 
           {/* Side-by-side charts — kept from Classic as real confirmation of the underlying calculation, not shown in the mockup's own captured state */}
           <div className="nova-grid-2">

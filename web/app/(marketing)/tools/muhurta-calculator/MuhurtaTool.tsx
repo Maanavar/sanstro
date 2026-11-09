@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { getPersonalizedMuhurta } from "@vinaadi/shared/api";
+import { muhurtaSafetyNotices } from "@vinaadi/shared/muhurtaSafety";
 import { getApiError, readErrorMessage } from "@/lib/api";
 import { useLang } from "@/components/lang-toggle";
 import { PlaceCombobox, type CityEntry } from "@/components/place-combobox";
@@ -321,6 +322,7 @@ export function MuhurtaTool() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [slots, setSlots] = useState<MuhurtaSlot[] | null>(null);
+  const [safetyNotices, setSafetyNotices] = useState<string[]>([]);
 
   const isWedding = eventType === WEDDING_EVENT;
   const couple = isWedding && checkBoth;
@@ -331,6 +333,7 @@ export function MuhurtaTool() {
     setLoading(true);
     setError(null);
     setSlots(null);
+    setSafetyNotices([]);
     const toBirth = (person: PersonDraft) => ({
       birthDateLocal: person.date,
       birthTimeLocal: `${person.time}:00`,
@@ -356,6 +359,7 @@ export function MuhurtaTool() {
         place: city.name,
       });
       setSlots(response.data.slots as unknown as MuhurtaSlot[]);
+      setSafetyNotices(response.data.safetyNotices ?? []);
     } catch (err) {
       // The backend's own message, not a blanket "network error". With two
       // birth blocks on screen a 422 names which chart failed ("Groom: …"), and
@@ -573,6 +577,12 @@ export function MuhurtaTool() {
 
       {slots !== null && (
         <div style={{ marginTop: "28px" }}>
+          {/* Plan item 4: fixed safety lines (MEDICAL), shown even when no slot is found. */}
+          {muhurtaSafetyNotices(safetyNotices, lang === "en" ? "en" : "ta").map((line) => (
+            <p key={line} role="note" style={{ margin: "0 0 16px", padding: "10px 14px", borderRadius: "8px", border: "1px solid var(--cl-border-2)", background: "var(--cl-bg-2)", fontSize: "0.85rem", lineHeight: 1.6, color: "var(--cl-ink-2)" }}>
+              {line}
+            </p>
+          ))}
           {slots.length === 0 ? (
             <p style={{ color: "var(--cl-ink-2)", fontSize: "0.9rem", textAlign: "center" }}>
               {lang === "en"

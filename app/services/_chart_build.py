@@ -9,6 +9,7 @@ from uuid import UUID, uuid4
 
 from app.calculations.astro import (
     degree_in_rasi,
+    julian_day_to_utc_datetime,
     local_datetime_to_utc,
     nakshatra_from_degree,
     navamsa_rasi_from_degree,
@@ -34,6 +35,11 @@ from app.calculations.equal_bhava import compute_equal_bhava
 from app.calculations.functional_nature import get_functional_nature
 from app.calculations.functional_status import owned_houses
 from app.calculations.panchangam import NAKSHATRA_NAMES
+from app.calculations.progeny_checks import (
+    BIRTH_TIME_TOLERANCE_MINUTES,
+    CHILDREN_DOSHAMS,
+    check_progeny,
+)
 from app.calculations.transits import RASI_NAMES, is_cazimi, is_combust
 from app.calculations.yoga_activation import activation_tier, key_planets_for, yoga_activation_score
 from app.calculations.yoga_effects import yoga_effect
@@ -54,9 +60,13 @@ from app.schemas.charts import (
     LagnaPosition,
     PlanetPosition,
     PlanetScoreTerm,
+    ProgenyD7Check,
+    ProgenyDashaCheck,
+    ProgenyDashaWindow,
     ResponseMeta,
     YogaPeakWindow,
 )
+from app.schemas.charts import ProgenyChecks as ProgenyChecksModel
 from app.services._chart_planets import (
     _NATAL_GRAHAS,
     _aspect_counts,
@@ -533,6 +543,10 @@ def _build_yoga_dosham_insights(
     gender: str | None = None,
     d9_lagna_rasi: int | None = None,
     equal_bhava_map: dict[str, int] | None = None,
+    lagna_longitude: float | None = None,
+    birth_time_confidence_minutes: int = 0,
+    birth_latitude: float | None = None,
+    birth_longitude: float | None = None,
 ) -> tuple[list[ChartYogaInsight], list[ChartDoshamInsight], list[ChartNakshatraCaution]]:
     planet_map: dict[str, int] = {planet.graha: planet.rasi for planet in planets}
     timeline = _current_timeline(
@@ -645,6 +659,80 @@ def _build_yoga_dosham_insights(
         )
 
     yoga_models = [_yoga_model(item) for item in yogas]
+
+    # V1 §18 Q13, step three: D7 and dasa for a formed children's dosham.
+    # engine_inference (Q18): describes and times, never grades. Skipped
+    # without the lagna degree, which the D7 lagna needs.
+    as_of = datetime.now(tz=UTC).date()
+    birth_date = julian_day_to_utc_datetime(birth_jd).date()
+    longitudes = {p.graha: p.absolute_longitude for p in planets}
+
+    def _lagna_bracket() -> tuple[float, float] | None:
+        # Plan item 0: the D7 birth-time guard reads the real lagna at birth
+        # time -/+ the tolerance. Computed only here, for a formed children's
+        # dosham, so other charts pay nothing for it.
+        if birth_latitude is None or birth_longitude is None:
+            return None
+        step = BIRTH_TIME_TOLERANCE_MINUTES / 1440.0
+        return (
+            calculate_lagna_degree(birth_jd - step, birth_latitude, birth_longitude),
+            calculate_lagna_degree(birth_jd + step, birth_latitude, birth_longitude),
+        )
+
+    def _progeny(item) -> ProgenyChecksModel | None:
+        if not item.is_present or lagna_longitude is None or item.name not in CHILDREN_DOSHAMS:
+            return None
+        checks = check_progeny(
+            item.name, item.conditions_met,
+            lagna_rasi=lagna_rasi, lagna_longitude=lagna_longitude,
+            longitudes=longitudes, mahadashas=timeline.mahadashas,
+            birth_date=birth_date, as_of=as_of,
+            birth_time_confidence_minutes=birth_time_confidence_minutes,
+            lagna_bracket=_lagna_bracket(),
+        )
+        if checks is None:
+            return None
+        return ProgenyChecksModel(
+            d7=ProgenyD7Check(
+                housesReliable=checks.d7.houses_reliable,
+                marginMinutes=checks.d7.margin_minutes,
+                lagnaRasi=checks.d7.lagna_rasi,
+                fifthRasi=checks.d7.fifth_rasi,
+                fifthLord=checks.d7.fifth_lord,
+                fifthLordHouse=checks.d7.fifth_lord_house,
+                jupiterHouse=checks.d7.jupiter_house,
+                repeatedBy=list(checks.d7.repeated_by),
+                jupiterSupports=checks.d7.jupiter_supports,
+                fifthLordInDusthana=checks.d7.fifth_lord_in_dusthana,
+                verdict=checks.d7.verdict,
+            ),
+            dasha=ProgenyDashaCheck(
+                currentMaha=checks.dasha.current_maha,
+                currentBhukti=checks.dasha.current_bhukti,
+                currentKind=checks.dasha.current_kind,
+                afflictingLords=list(checks.dasha.afflicting_lords),
+                supportingLords=list(checks.dasha.supporting_lords),
+                windows=[
+                    ProgenyDashaWindow(
+                        lord=w.lord, level=w.level, mahaLord=w.maha_lord,
+                        start=w.start, end=w.end, kind=w.kind, isCurrent=w.is_current,
+                    )
+                    for w in checks.dasha.windows
+                ],
+                ageBand=checks.dasha.age_band,
+            ),
+            tier=checks.tier,
+        )
+
+    def _context_notes(item, progeny: ProgenyChecksModel | None) -> list[str]:
+        # With both checks run, "not yet read" is no longer true; the note
+        # says instead that they are the app's reading, not yet ratified.
+        notes = list(item.context_notes)
+        if progeny is not None and "children_assessment_incomplete" in notes:
+            notes[notes.index("children_assessment_incomplete")] = "children_d7_dasha_unratified"
+        return notes
+
+    progeny_by_name = {item.name: _progeny(item) for item in doshams}
     dosham_models = [
         ChartDoshamInsight(
             name=item.name,
@@ -669,7 +757,7 @@ def _build_yoga_dosham_insights(
             variantEn=item.variant_en,
             formationStrength=item.formation_strength,
             residual=item.residual,
-            contextNotes=list(item.context_notes),
+            contextNotes=_context_notes(item, progeny_by_name.get(item.name)),
             referenceHouses=[
                 DoshamReferenceHouse(
                     reference=row.reference, referenceRasi=row.reference_rasi,
@@ -688,6 +776,7 @@ def _build_yoga_dosham_insights(
                 complete=item.assessment_complete,
             ),
             progenyOutlook=item.progeny_outlook,
+            progenyChecks=progeny_by_name.get(item.name),
         )
         for item in doshams
     ]
@@ -900,6 +989,10 @@ def _chart_response_from_profile(profile: Any, calculation_version: str, chart_i
         gender=_value(profile, "gender_for_traditional_rules"),
         d9_lagna_rasi=navamsa_rasi_from_degree(lagna_degree),
         equal_bhava_map=equal_bhava_map,
+        lagna_longitude=float(lagna_degree),
+        birth_time_confidence_minutes=int(_value(profile, "birth_time_confidence_minutes", 0) or 0),
+        birth_latitude=float(_value(profile, "birth_latitude")),
+        birth_longitude=float(_value(profile, "birth_longitude")),
     )
     public_planet_positions = _public_planets(planet_positions)
     planet_longitudes = {p.graha: p.absolute_longitude for p in public_planet_positions}
@@ -1173,6 +1266,10 @@ def _chart_response_from_record(chart: Chart) -> ChartCalculateResponse:
         gender=_value(birth_profile, "gender_for_traditional_rules"),
         d9_lagna_rasi=d9_lagna_rasi_val,
         equal_bhava_map=equal_bhava_map,
+        lagna_longitude=float(chart.lagna_longitude),
+        birth_time_confidence_minutes=int(_value(birth_profile, "birth_time_confidence_minutes", 0) or 0),
+        birth_latitude=float(birth_profile.birth_latitude),
+        birth_longitude=float(birth_profile.birth_longitude),
     )
     public_planet_positions = _public_planets(planet_positions)
     planet_longitudes = {p.graha: p.absolute_longitude for p in public_planet_positions}

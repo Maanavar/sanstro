@@ -178,6 +178,12 @@ class DoctrineOptions:
     #: "union_six" (both, the engine's set until this ruling) are documented
     #: alternatives. Lineage text for the default still owed by the astrologer.
     sevvai_house_set: str = "tamil_five"
+    #: D6b / Q14 — Guru + Ketu with Jupiter linked to the 5th, in Putra Sarpa.
+    #: "watch_note" (default, today's behaviour: a note, never a leg) or "leg"
+    #: (Ketu counts beside Guru exactly as Rahu does). Not ruled: the
+    #: astrologer picks (deferred-checks plan, item 1). A half-leg option is
+    #: not offered: it needs a grade scale finer than WEAK/PARTIAL/STRONG.
+    d6b_guru_ketu: str = "watch_note"
     #: DD-12 legacy: Moon benefic only beyond 72° of elongation. Off by default.
     moon_72_degree_convention: bool = False
     #: DD-02 — show the Phaladeepika Lakshmi variant in the consumer UI. Off.
@@ -201,6 +207,7 @@ _STRING_CHOICES: dict[str, frozenset[str]] = {
     "o28_rk_second_house_support": frozenset({"dignity", "strong_or_benefic", "off"}),
     "o32_putra_sarpa_thulam_sani": frozenset({"neutralized", "ordinary"}),
     "sevvai_house_set": frozenset({"tamil_five", "manglik_five", "union_six"}),
+    "d6b_guru_ketu": frozenset({"watch_note", "leg"}),
 }
 
 

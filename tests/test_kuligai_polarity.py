@@ -123,3 +123,18 @@ def test_activity_lookup_is_case_and_whitespace_insensitive():
     directly by other callers and must not depend on that."""
     assert polarity_for("  gold ") is KuligaiPolarity.FAVOURABLE
     assert polarity_for("marriage") is KuligaiPolarity.ADVERSE
+
+
+def test_every_activity_the_api_accepts_has_a_ruled_polarity():
+    """Deferred-checks plan, item 8. The sourced set above is not the whole
+    picker: JOB_START, EXAM, TRAVEL, MEDICAL, SPIRITUAL, PURCHASE and
+    INVESTMENT are accepted without a sourced star table. Every accepted
+    activity must resolve to a ruled polarity, so the service's "no ruling for
+    this activity has been recorded yet" line stays unreachable. Owner ruling
+    2026-11-09: the favourable case stays named and unscored."""
+    from app.api.public_tools import _PUBLIC_MUHURTA_ACTIVITIES
+    from app.services.muhurta_service import MUHURTA_ACTIVITIES
+
+    accepted = set(MUHURTA_ACTIVITIES) | set(_PUBLIC_MUHURTA_ACTIVITIES)
+    unruled = sorted(a for a in accepted if polarity_for(a) is KuligaiPolarity.UNSPECIFIED)
+    assert unruled == [], unruled

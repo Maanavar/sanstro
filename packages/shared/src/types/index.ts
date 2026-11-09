@@ -255,7 +255,15 @@ export interface MuhurtaResponseData {
   timezone: string;
   activityLocation: MuhurtaActivityLocation;
   slots: MuhurtaSlot[];
+  /**
+   * Fixed safety lines for the activity, as keys (plan item 4). Never a factor.
+   * Word them with `muhurtaSafetyNotices` from `@vinaadi/shared/muhurtaSafety`.
+   * Optional so a payload from before 2026-11-09 still type-checks.
+   */
+  safetyNotices?: MuhurtaSafetyNoticeKey[];
 }
+
+export type MuhurtaSafetyNoticeKey = "medical_doctor_first";
 
 export interface ApiEnvelope<T> {
   success: boolean;
@@ -474,6 +482,59 @@ export interface ChartDoshamInsight {
   assessment?: DoshamAssessment | null;
   /** CHILDREN findings only. There is no value for denial, by design. */
   progenyOutlook?: ProgenyOutlook;
+  /**
+   * V1 §18 Q13 step three, for a formed children's dosham: the Saptamsa (D7)
+   * and the dasa. engine_inference (Q18): describes and times, never grades.
+   * Word it through `@vinaadi/shared/progenyChecks`. Absent on older payloads.
+   */
+  progenyChecks?: ProgenyChecks | null;
+}
+
+export type ProgenyD7Verdict = "REPEATS" | "STRAINED" | "SUPPORTS" | "MIXED" | "UNCERTAIN";
+export type ProgenyWindowKind = "AFFLICTION" | "SUPPORT" | "MIXED";
+
+export interface ProgenyD7Check {
+  /** False when the birth time cannot carry the D7 lagna; verdict is then UNCERTAIN. */
+  housesReliable: boolean;
+  /** Approximate minutes of birth time to the nearest D7 lagna boundary. */
+  marginMinutes: number;
+  lagnaRasi: number;
+  fifthRasi: number;
+  fifthLord: string;
+  fifthLordHouse: number;
+  jupiterHouse: number;
+  /** This dosham's afflictors in the D7 5th or with the D7 5th lord. */
+  repeatedBy: string[];
+  jupiterSupports: boolean;
+  fifthLordInDusthana: boolean;
+  verdict: ProgenyD7Verdict;
+}
+
+export interface ProgenyDashaWindow {
+  lord: string;
+  level: "MAHA" | "BHUKTI";
+  mahaLord: string;
+  /** ISO dates. */
+  start: string;
+  end: string;
+  kind: ProgenyWindowKind;
+  isCurrent: boolean;
+}
+
+export interface ProgenyDashaCheck {
+  currentMaha: string;
+  currentBhukti: string;
+  currentKind: ProgenyWindowKind | "NEUTRAL";
+  afflictingLords: string[];
+  supportingLords: string[];
+  windows: ProgenyDashaWindow[];
+  ageBand: "UNDER_18" | "CHILDBEARING" | "PAST";
+}
+
+export interface ProgenyChecks {
+  d7: ProgenyD7Check;
+  dasha: ProgenyDashaCheck;
+  tier: string;
 }
 
 export type ProgenyOutlook = "" | "delay" | "difficulty" | "needs_attention";
@@ -1918,6 +1979,40 @@ export interface EkaNakshatraNote {
   note: BiText;
 }
 
+/** One papa point: `graha` in papa `house` counted from `reference`. */
+export interface PapaRow {
+  reference: "LAGNA" | "MOON" | "VENUS";
+  graha: string;
+  house: number;
+  points: number;
+}
+
+export interface PapaSide {
+  total: number;
+  byReference: Record<string, number>;
+  rows: PapaRow[];
+  /** References whose own graha was missing: unknown, not zero. */
+  missingReferences?: string[];
+}
+
+/**
+ * பாப சாம்யம் (deferred-checks plan, item 3). **Report only**: never part of
+ * `totalScore`, `label` or a veto. `ratified` is false and `method` is
+ * "equal_count" until the astrologer rules the weights. Sent for the MARRIAGE
+ * context of the two chart-based porutham routes only. Word it through
+ * `papaSamyamView` in `@vinaadi/shared/papaSamyam`.
+ */
+export interface PapaSamyamData {
+  method: string;
+  ratified: boolean;
+  boy: PapaSide;
+  girl: PapaSide;
+  /** boy's points >= girl's, the practice condition. */
+  balanced: boolean;
+  shortfall: number;
+  directionAssumed: boolean;
+}
+
 export interface PorutthamData {
   familyVaultId: string; memberId: string;
   boyNakshatra: number; boyNakshatraName: string;
@@ -1926,6 +2021,7 @@ export interface PorutthamData {
   rajjuDosha: boolean; vedhaDosha: boolean; summary: BiText;
   shashtashtaka?: ShashtashtakaNote | null;
   ekaNakshatra?: EkaNakshatraNote | null;
+  papaSamyam?: PapaSamyamData | null;
   compatibilityContext: string; contextNote: BiText | null;
 }
 
@@ -1937,6 +2033,7 @@ export interface DirectPoruthamData {
   rajjuDosha: boolean; vedhaDosha: boolean; summary: BiText;
   shashtashtaka?: ShashtashtakaNote | null;
   ekaNakshatra?: EkaNakshatraNote | null;
+  papaSamyam?: PapaSamyamData | null;
   compatibilityContext: string; contextNote: BiText | null;
 }
 
