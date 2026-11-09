@@ -50,7 +50,7 @@ _PEYARCHI_OUTLOOK: dict[str, dict[int, dict[str, str]]] = {
         12: {"ta": "வெளிநாடு, ஆன்மீகம், செலவு அதிகமாகலாம்.", "en": "Possible travel, spirituality, and increased expenses."},
     },
     "SATURN": {
-        1:  {"ta": "ஜன்ம சனி — மாற்றமும் முதிர்ச்சியும் தரும் காலம்; எச்சரிக்கையுடன் முன்னேறவும்.", "en": "Sade Sati peak (1st) — major life changes; proceed with discipline and perspective."},
+        1:  {"ta": "ஜென்ம சனி — மாற்றமும் முதிர்ச்சியும் தரும் காலம்; எச்சரிக்கையுடன் முன்னேறவும்.", "en": "Sade Sati peak (1st) — major life changes; proceed with discipline and perspective."},
         2:  {"ta": "ஏழரை சனி (முடிவு) — நிதியில் கட்டுப்பாடு தேவை; மெதுவாக நிலைநிறுத்தம் நடக்கும்.", "en": "Sade Sati ending (2nd) — financial caution is advised; consolidation improves over time."},
         3:  {"ta": "மூன்றாம் சனி — முயற்சிக்கு பலன், தைரியம் மற்றும் முன்னேற்றம்.", "en": "3rd Saturn — effort gets rewarded; courage and execution improve."},
         4:  {"ta": "அர்த்தாஷ்டம சனி — வீடு, மனஅமைதி, குடும்ப பொறுப்புகளில் அழுத்தம் இருக்கலாம்.", "en": "Ardhashtama phase (4th) — domestic and emotional pressure; stay grounded."},

@@ -4813,6 +4813,14 @@ details.cl-pub-faq-item > .cl-pub-faq-item__a {
 .as-profile__main {
   align-items: flex-end;
   justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+/* The large sigil left the title ~49px at 375px: Tamil broke mid-word
+   ("திர / ம்"), English ran off the card. Below 10rem the title wraps under it. */
+.as-profile__main > :not(:first-child) {
+  flex: 1 1 10rem;
+  min-width: 0;
 }
 
 .as-profile__title,

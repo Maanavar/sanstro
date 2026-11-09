@@ -357,7 +357,9 @@ export function DashboardLifeAreasTabNova({
     { key: "scores", label: lang === "ta" ? "கண்ணோட்டம்" : "Overview" },
     { key: "predictions", label: t("predictions_tab_label", lang) },
     { key: "chances", label: lang === "ta" ? "வாய்ப்புகள் & எச்சரிக்கைகள்" : "Chances & Cautions" },
-    { key: "yogas", label: `${t("yogas_title", lang)} & ${t("doshams_title", lang)}` },
+    // Tamil readers know யோகம் / தோஷம் from the almanac; the long glossed
+    // titles ("ஜாதக அமைப்புகள் (யோகங்கள்) & …") wrapped the whole sub-nav.
+    { key: "yogas", label: lang === "ta" ? "யோகங்கள் & தோஷங்கள்" : `${t("yogas_title", lang)} & ${t("doshams_title", lang)}` },
     { key: "remedies", label: t("remedies_title", lang) },
     { key: "report", label: lang === "ta" ? "முழு அறிக்கை" : "Full report" },
   ];
@@ -412,14 +414,19 @@ export function DashboardLifeAreasTabNova({
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
 
       {/* ===== Header ===== */}
+      {/* Two rows (2026-11-09): title + member pills, then the sub-nav on its
+          own full-width row. With the sub-nav in the right-hand column, the
+          Tamil title (twice the English width) always pushed that column onto
+          its own line, floating right with an empty gap beside the subtitle. */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "var(--space-5)", flexWrap: "wrap" }}>
-        <div>
+        <div style={{ flex: "1 1 320px", minWidth: 0 }}>
           <Kicker as="p" style={{ margin: 0 }}>
             {t("tab_life_areas", lang)}{currentAge !== null ? ` · ${lang === "ta" ? "வயது" : "Age"} ${currentAge}` : ""}
           </Kicker>
           <h1 style={{ margin: "6px 0 8px", fontFamily: "var(--font-display)", fontSize: "var(--display-md)", fontWeight: 600, lineHeight: 1.15, color: "var(--color-text-strong)" }}>
             {lang === "ta" ? "நீங்கள் எங்கே நிற்கிறீர்கள்," : "Where you stand,"}{" "}
-            <em style={{ fontStyle: "italic", color: "var(--color-accent-strong)" }}>{lang === "ta" ? "துறை வாரியாக." : "area by area."}</em>
+            <em style={{ fontStyle: lang === "ta" ? "normal" : "italic", color: "var(--color-accent-strong)" }}>{lang === "ta" ? "துறை வாரியாக." : "area by area."}</em>
           </h1>
           <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.55, maxWidth: "520px" }}>
             {lang === "ta"
@@ -428,30 +435,30 @@ export function DashboardLifeAreasTabNova({
           </p>
         </div>
 
-        {/* Capped at the row: unconstrained, this column took the sub-nav's full
-            width and held the page at 1324px (Tamil) / 835px (English) on a
-            375px phone, so the Segmented's own `max-width: 100%` never bound. */}
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "var(--space-3)", minWidth: 0, maxWidth: "100%" }}>
-          {/* Member switcher — kit <Pill> (audit B-7): one toggle chip, touch-safe. */}
-          <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap", justifyContent: "flex-end" }}>
-            <Pill active={selectedMemberId === null} onClick={() => onSelectMember(null)}>
-              {birthDisplayName || (lang === "ta" ? "நீங்கள்" : "You")}
+        {/* Member switcher — kit <Pill> (audit B-7): one toggle chip, touch-safe. */}
+        <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap", justifyContent: "flex-end", minWidth: 0, maxWidth: "100%" }}>
+          <Pill active={selectedMemberId === null} onClick={() => onSelectMember(null)}>
+            {birthDisplayName || (lang === "ta" ? "நீங்கள்" : "You")}
+          </Pill>
+          {memberCharts.map((mc) => (
+            <Pill key={mc.memberId} active={selectedMemberId === mc.memberId} onClick={() => onSelectMember(mc.memberId)}>
+              {mc.displayName}
             </Pill>
-            {memberCharts.map((mc) => (
-              <Pill key={mc.memberId} active={selectedMemberId === mc.memberId} onClick={() => onSelectMember(mc.memberId)}>
-                {mc.displayName}
-              </Pill>
-            ))}
-          </div>
-          {/* Sub-nav — the 7th hand-rolled pattern replaced by the one <Segmented>
-              (audit A-1/B-7): tablist semantics + arrow-key nav + 44px touch. */}
-          <Segmented<SubTab>
-            ariaLabel={lang === "ta" ? "வாழ்க்கைத் துறை பார்வைகள்" : "Life-area views"}
-            value={subTab}
-            onChange={setSubTab}
-            options={SUB_TABS.map(({ key, label }) => ({ key, label }))}
-          />
+          ))}
         </div>
+      </div>
+      {/* Sub-nav — the 7th hand-rolled pattern replaced by the one <Segmented>
+          (audit A-1/B-7): tablist semantics + arrow-key nav + 44px touch.
+          minWidth 0 keeps the Segmented's own `max-width: 100%` binding on a
+          375px phone (it held the page at 1324px Tamil / 835px English once). */}
+      <div style={{ minWidth: 0, maxWidth: "100%" }}>
+        <Segmented<SubTab>
+          ariaLabel={lang === "ta" ? "வாழ்க்கைத் துறை பார்வைகள்" : "Life-area views"}
+          value={subTab}
+          onChange={setSubTab}
+          options={SUB_TABS.map(({ key, label }) => ({ key, label }))}
+        />
+      </div>
       </div>
 
       <ViewSwap viewKey={subTab}>
@@ -531,7 +538,7 @@ export function DashboardLifeAreasTabNova({
                 <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-3)", flexWrap: "wrap" }}>
                   {/* audit B-1: tier name is a real section heading, not a styled
                       div — screen readers get a document outline on this page. */}
-                  <h2 style={{ margin: 0, fontSize: "var(--text-xs)", letterSpacing: "0.12em", textTransform: "uppercase", color: tier.color, fontWeight: 700 }}>{tier.label}</h2>
+                  <h2 style={{ margin: 0, fontSize: lang === "ta" ? "var(--text-sm)" : "var(--text-xs)", letterSpacing: lang === "ta" ? 0 : "0.12em", textTransform: lang === "ta" ? "none" : "uppercase", color: tier.color, fontWeight: 700 }}>{tier.label}</h2>
                   <span style={{ fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>{tier.blurb}</span>
                 </div>
                 <div className="nova-grid-4">

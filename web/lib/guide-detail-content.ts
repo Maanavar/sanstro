@@ -1920,7 +1920,7 @@ export const TEMPLE_DETAILS: Record<string, GuideDetail> = {
       {
         heading: b("What it is", "என்ன என்பது"),
         body: [
-          b("Keezhaperumpallam is the Navagraha sthalam for Ketu, the south lunar node. Ketu signifies detachment, moksha, sharp intuition, past-life skill and separation — energies that can feel confusing until their spiritual lesson is understood.", "கீழப்பெரும்பள்ளம் தெற்கு சந்திப்பு புள்ளியான கேதுவுக்குரிய நவகிரக ஸ்தலம். கேது பற்றின்மை, மோட்சம், கூர்மையான உள்ளுணர்வு, பூர்வஜன்ம திறன், பிரிவு ஆகியவற்றைக் குறிக்கிறார் — அதன் ஆன்ம பாடம் புரியும் வரை குழப்பமாக உணரக்கூடிய சக்திகள்."),
+          b("Keezhaperumpallam is the Navagraha sthalam for Ketu, the south lunar node. Ketu signifies detachment, moksha, sharp intuition, past-life skill and separation — energies that can feel confusing until their spiritual lesson is understood.", "கீழப்பெரும்பள்ளம் தெற்கு சந்திப்பு புள்ளியான கேதுவுக்குரிய நவகிரக ஸ்தலம். கேது பற்றின்மை, மோட்சம், கூர்மையான உள்ளுணர்வு, பூர்வஜென்ம திறன், பிரிவு ஆகியவற்றைக் குறிக்கிறார் — அதன் ஆன்ம பாடம் புரியும் வரை குழப்பமாக உணரக்கூடிய சக்திகள்."),
         ],
       },
       {

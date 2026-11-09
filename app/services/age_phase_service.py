@@ -433,7 +433,7 @@ def get_age_based_remedies(
         ta.append("சனிக்கிழமைகளில் நவகிரக பூஜை மற்றும் வெள்ளிக்கிழமைகளில் விளக்கேற்றுவது நிலைத்தன்மையை ஆதரிக்கிறது.")
     elif current_age < 55:
         en.append("Regular temple visits on the nakshatra of your birth star maintains alignment.")
-        ta.append("உங்கள் ஜன்ம நட்சத்திர நாளில் வழக்கமான கோயில் வருகை சரியான தாளத்தை பராமரிக்கிறது.")
+        ta.append("உங்கள் ஜென்ம நட்சத்திர நாளில் வழக்கமான கோயில் வருகை சரியான தாளத்தை பராமரிக்கிறது.")
     else:
         en.append("Ancestral puja (pitru tharpanam) on Amavasai maintains family karmic balance.")
         ta.append("அமாவாசையில் பித்ரு தர்ப்பணம் குடும்ப கர்ம சமநிலையை பராமரிக்கிறது.")

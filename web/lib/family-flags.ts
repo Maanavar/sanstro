@@ -1,6 +1,8 @@
 import { dt, s, type BiStr } from "./dashboard-i18n";
+import { rasiDisplayName } from "./chart-utils";
 import { getScoreBand } from "./format";
 import type { Lang } from "./i18n";
+import type { SaniCycleData } from "./types";
 import { verdictPhrase } from "./verdict-lexicon";
 
 /**
@@ -44,7 +46,7 @@ const SANI_CYCLE_RANK = [
  *  backend already ships these names, so a chip must never invent a second one
  *  ("Sade Sati" for ஏழரை சனி) for the same cycle. */
 const SANI_CYCLE_NAME: Record<string, BiStr> = {
-  JANMA_SANI: s("Janma Sani", "ஜன்ம சனி"),
+  JANMA_SANI: s("Janma Sani", "ஜென்ம சனி"),
   EZHARAI_SANI_PHASE_1: s("Ezharai Sani · opening", "ஏழரை சனி · தொடக்கம்"),
   EZHARAI_SANI_PHASE_2: s("Ezharai Sani · middle", "ஏழரை சனி · நடுவு"),
   EZHARAI_SANI_PHASE_3: s("Ezharai Sani · closing", "ஏழரை சனி · முடிவு"),
@@ -65,6 +67,63 @@ export function saniCycleName(tag: string, lang: Lang): string {
   const known = SANI_CYCLE_NAME[tag];
   if (known) return dt(known, lang);
   return tag.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/** Tamil for the one-line gloss the server attaches to a Moon-based Saturn
+ *  cycle (`app/calculations/transits.py::classify_sani_cycle`, English only).
+ *  Keyed by the cycle tag, never by matching the English text. */
+const SANI_CYCLE_GLOSS_TA: Record<string, string> = {
+  EZHARAI_SANI_PHASE_1: "ஏழரை சனியின் தொடக்கம்: கட்டுப்பாடு, செலவு, மனதைச் சீர்செய்யும் காலம்",
+  JANMA_SANI: "ஏழரை சனியின் நடுப்பகுதி: வாழ்க்கை பெரிதாக மாறும்; மனவலிமை கூடும்",
+  EZHARAI_SANI_PHASE_3: "ஏழரை சனியின் முடிவு: பணத்தில் கவனம், இருப்பதை உறுதிப்படுத்தும் காலம்",
+  ARDHASHTAMA_SANI: "வீடு, மன நிம்மதி ஆகியவற்றைச் சீர்செய்யும் காலம்",
+  ASHTAMA_SANI: "ஆழ்ந்த மாற்றம், ஓய்வு, மீண்டு வரும் காலம்",
+};
+
+/** The gloss under a Saturn-cycle name. English keeps the server's line;
+ *  Tamil reads the table above and falls back to the cycle's own name, so an
+ *  English sentence never lands on a Tamil screen. */
+export function saniCycleGloss(
+  tag: string | null | undefined,
+  serverLabel: string | null | undefined,
+  lang: Lang,
+): string {
+  if (lang === "en") return serverLabel ?? (tag ? saniCycleName(tag, lang) : "");
+  if (!tag) return "";
+  return SANI_CYCLE_GLOSS_TA[tag] ?? saniCycleName(tag, lang);
+}
+
+function englishOrdinal(n: number): string {
+  const mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 13) return `${n}th`;
+  const suffix = n % 10 === 1 ? "st" : n % 10 === 2 ? "nd" : n % 10 === 3 ? "rd" : "th";
+  return `${n}${suffix}`;
+}
+
+/**
+ * Where Saturn stands from the Janma Rasi, and which cycle that makes.
+ * Rebuilt from the structured fields rather than shown as the server's
+ * `confirmationSentence`, which is English-only and prints the rasi codes
+ * (MEENAM, DHANUSU) the display boundary forbids.
+ */
+export function saniConfirmation(sani: SaniCycleData, lang: Lang): string {
+  const saturn = rasiDisplayName(sani.saturnRasi, lang);
+  const janma = rasiDisplayName(sani.janmaRasi, lang);
+  const n = sani.positionFromMoon;
+  const cycle = sani.moonBasedCycle;
+  const active = cycle.isActive && cycle.type ? cycle.type : null;
+  if (lang === "ta") {
+    const where = `சனி ஜென்ம ராசியிலிருந்து ${n}ஆம் இடத்தில் இருக்கிறார் (${janma} → ${saturn}).`;
+    if (active === "ARDHASHTAMA_SANI") return `${where} இது அர்த்தாஷ்டம சனி; ஏழரை சனி அல்ல.`;
+    if (active === "JANMA_SANI") return `${where} இது ஜென்ம சனி, ஏழரை சனியின் நடுப்பகுதி.`;
+    if (active) return `${where} இது ${saniCycleName(active, lang)}.`;
+    return `${where} இப்போது சனியின் அழுத்தக் காலம் எதுவும் நடக்கவில்லை.`;
+  }
+  const where = `Saturn is in ${saturn}, ${englishOrdinal(n)} from the ${janma} Moon.`;
+  if (active === "ARDHASHTAMA_SANI") return `${where} This is Ardhashtama Sani, not Ezharai Sani.`;
+  if (active === "JANMA_SANI") return `${where} This is Janma Sani, the middle of Ezharai Sani.`;
+  if (active) return `${where} This is ${saniCycleName(active, lang)}.`;
+  return `${where} No named Saturn-pressure cycle is active.`;
 }
 
 const SANI_CONTEXT_NOTE = s(

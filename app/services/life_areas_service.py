@@ -897,9 +897,9 @@ class _NarrativeBundle:
 
 
 _SANI_TYPE_LABEL_TA = {
-    "JANMA_SANI":           "ஜன்ம சனி",
+    "JANMA_SANI":           "ஜென்ம சனி",
     "EZHARAI_SANI_PHASE_1": "ஏழரை சனி (தொடக்கம்)",
-    "EZHARAI_SANI_PHASE_2": "ஏழரை சனி (நடுவு — ஜன்ம சனி)",
+    "EZHARAI_SANI_PHASE_2": "ஏழரை சனி (நடுவு — ஜென்ம சனி)",
     "EZHARAI_SANI_PHASE_3": "ஏழரை சனி (முடிவு)",
     "ARDHASHTAMA_SANI":     "அர்த்தாஷ்டம சனி",
     "ASHTAMA_SANI":         "அஷ்டம சனி",

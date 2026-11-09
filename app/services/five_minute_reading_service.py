@@ -113,7 +113,14 @@ from app.calculations.astro import (
 )
 from app.calculations.chart_strength import SIGN_LORD
 from app.calculations.dasha import VimshottariTimeline
-from app.calculations.display_names import planet_en, planet_ta
+from app.calculations.display_names import (
+    ORDINAL_TA,
+    dasa_stem_ta,
+    house_lord_plain_ta,
+    planet_en,
+    planet_ta,
+    rasi_ta,
+)
 from app.calculations.ephemeris import saturn_longitude_at_jd
 from app.calculations.house_lords import (
     house_lord_title,
@@ -167,6 +174,7 @@ from app.services.one_minute_reading_service import (
     _voice,  # noqa: PLC2701 (internal use)
     _word_count,  # noqa: PLC2701 (internal use)
     forward_beat_names_mahadasha_handover,
+    with_name_case_endings,
 )
 
 CALC_VERSION = "five-minute-reading-v1.0-2026"
@@ -436,11 +444,11 @@ _PERIOD_THEME: dict[str, tuple[str, str]] = {
     "MOON": ("மாற்றம்", "change"),
     "MARS": ("வேகம்", "momentum"),
     "MERCURY": ("கற்றல்", "learning"),
-    "JUPITER": ("விரிவாக்கம்", "expansion"),
+    "JUPITER": ("வளர்ச்சி", "expansion"),
     "VENUS": ("சமநிலை", "balance"),
-    "SATURN": ("சகிப்புத்தன்மை", "endurance"),
+    "SATURN": ("பொறுமை", "endurance"),
     "RAHU": ("தேடல்", "reaching"),
-    "KETU": ("விடுதல்", "letting go"),
+    "KETU": ("விட்டுவிடுதல்", "letting go"),
 }
 
 # Added 2026-08-11, in response to an astrologer review of the module's own
@@ -488,7 +496,7 @@ _BHUKTI_FLAVOR: dict[str, tuple[str, str]] = {
         "opens room to grow that the rest of the stretch may not offer",
     ),
     "VENUS": (
-        "மற்றபடி கேட்பதற்குள் ஓர் எளிதான பகுதியைக் கொண்டுவருகிறது",
+        "இந்தத் தசைக்குள் கொஞ்சம் எளிதான ஒரு காலத்தைத் தருகிறது",
         "brings an easier patch inside whatever the stretch is otherwise asking for",
     ),
     "SATURN": (
@@ -496,7 +504,7 @@ _BHUKTI_FLAVOR: dict[str, tuple[str, str]] = {
         "adds extra weight and slower going, even inside a lighter stretch",
     ),
     "RAHU": (
-        "புதிதாக ஏதோ ஒன்றை நோக்கிய நிலையற்ற ஈர்ப்பைச் சேர்க்கிறது",
+        "புதிய விஷயங்கள் மீது திடீர் ஈர்ப்பைக் கொண்டுவரலாம், ஆனால் அந்த ஈர்ப்பு நீடிக்காமலும் போகலாம்",
         "adds an unsettled pull toward something new",
     ),
     "KETU": (
@@ -528,14 +536,14 @@ _BHUKTI_FLAVOR: dict[str, tuple[str, str]] = {
 # out of the way. Each entry is a bare locative phrase with its own comma, and
 # the sentence after it stands on its own.
 _TOPIC_LENS: dict[str, tuple[str, str]] = {
-    "CHILD_GROWTH": ("வளர்ச்சியில்,", "In how they're growing,"),
-    "TEEN": ("உங்களை நிலைப்படுத்துவதில்,", "In how you're finding your footing,"),
-    "EDUCATION": ("நீங்கள் கற்கும் விதத்தில்,", "In how you learn,"),
-    "MARRIAGE": ("நீங்கள் தேர்ந்தெடுக்கும் விதத்தில்,", "In who and how you choose,"),
-    "MARRIED_LIFE": ("வீடு மற்றும் குடும்பத்தில்,", "In home and family,"),
-    "CAREER": ("வேலையில்,", "At work,"),
-    "ELDER": ("உடல்நலம் மற்றும் நீங்கள் ஒப்படைப்பதில்,", "In health and what you hand on,"),
-    "STEADYING": ("இப்போது உங்களை நிலைநிறுத்துவதில்,", "In what steadies you now,"),
+    "CHILD_GROWTH": ("வளர்ச்சி விஷயத்தில்,", "In how they're growing,"),
+    "TEEN": ("உங்கள் வளர்ச்சி விஷயத்தில்,", "In how you're finding your footing,"),
+    "EDUCATION": ("படிப்பு விஷயத்தில்,", "In how you learn,"),
+    "MARRIAGE": ("வாழ்க்கைத் துணை விஷயத்தில்,", "In who and how you choose,"),
+    "MARRIED_LIFE": ("வீடு, குடும்ப விஷயத்தில்,", "In home and family,"),
+    "CAREER": ("வேலை விஷயத்தில்,", "At work,"),
+    "ELDER": ("உடல்நலத்திலும், அடுத்தவர்களுக்கு நீங்கள் ஒப்படைப்பதிலும்,", "In health and what you hand on,"),
+    "STEADYING": ("இப்போது உங்களுக்கு நிம்மதி தரும் விஷயங்களில்,", "In what steadies you now,"),
 }
 
 # Added 2026-08-11 (see _TABLE_PROVENANCE's own note above). A compressed
@@ -545,15 +553,15 @@ _TOPIC_LENS: dict[str, tuple[str, str]] = {
 # Beat 4's opening clause, and — before this table existed — Beat 7's own
 # friction clause). One per graha, same size class as `_PERIOD_THEME`.
 _SHADOW_ESSENCE: dict[str, tuple[str, str]] = {
-    "SUN": ("நம்பாத நிலைப்பாட்டைத் தொடர்ந்து காப்பாற்றுதல்", "defending a position you no longer believe"),
-    "MOON": ("சூழலின் மனநிலையை உங்களுக்குள் விட்டுவிடுதல்", "letting the room's mood become yours"),
-    "MARS": ("தயாராகும் முன்பே ஒரு முடிவை வலுக்கட்டாயமாக வரவழைத்தல்", "forcing a decision before it's ready"),
-    "MERCURY": ("இரு பக்கமும் வாதிட்டு எதுவும் வெல்லாமல் போகச் செய்தல்", "arguing both sides until neither wins"),
-    "JUPITER": ("மறுக்கத் தெரியாமை", "not knowing how to say no"),
-    "VENUS": ("எதிர்ப்பைச் சொல்லாமல் உள்ளுக்குள் விழுங்குதல்", "swallowing an objection instead of raising it"),
-    "SATURN": ("வராத ஒரு உறுதிக்காகக் காத்திருத்தல்", "waiting for a certainty that never comes"),
-    "RAHU": ("அடுத்ததற்காக முடிக்காமல் விட்டுவிடுதல்", "leaving things unfinished for what's next"),
-    "KETU": ("தேவைப்படும் தருணத்திலேயே விலகிவிடுதல்", "withdrawing right when staying was needed"),
+    "SUN": ("நம்பிக்கை போன பிறகும் சொன்னதை விடாமல் இருப்பது", "defending a position you no longer believe"),
+    "MOON": ("சுற்றி இருப்பவர்களின் மனநிலையை உங்கள் மனநிலையாக்கிக்கொள்வது", "letting the room's mood become yours"),
+    "MARS": ("நேரம் வரும் முன்பே முடிவை அவசரப்படுத்துவது", "forcing a decision before it's ready"),
+    "MERCURY": ("இரு பக்கமும் பேசிப் பேசி எதையும் முடிவு செய்யாமல் விடுவது", "arguing both sides until neither wins"),
+    "JUPITER": ("'முடியாது' என்று சொல்லத் தெரியாதது", "not knowing how to say no"),
+    "VENUS": ("மறுப்பைச் சொல்லாமல் மனதுக்குள் விழுங்குவது", "swallowing an objection instead of raising it"),
+    "SATURN": ("வராத ஒரு உறுதிக்காகக் காத்திருப்பது", "waiting for a certainty that never comes"),
+    "RAHU": ("அடுத்ததைத் தேடிப் பாதியில் விடுவது", "leaving things unfinished for what's next"),
+    "KETU": ("தேவைப்படும் நேரத்தில் ஒதுங்கிவிடுவது", "withdrawing right when staying was needed"),
 }
 
 # ── The dated window (§7, added 2026-08-11) ──────────────────────────────────
@@ -602,14 +610,14 @@ _GOCHARA_SANI: dict[int, tuple[str, str]] = {
         "on its own",
     ),
     4: (
-        "இது வீட்டையும் உள்ளுக்குள்ளான நிம்மதியையும் சோதிக்கிறது; நீங்கள் நிற்கும் தளமே "
-        "பரிசோதிக்கப்படுகிறது",
+        "இது வீடு, வாகனம், மன நிம்மதி ஆகியவற்றில் கூடுதல் பொறுப்பையோ அழுத்தத்தையோ "
+        "கொண்டுவரலாம்",
         "it presses on home and on your inner quiet; the ground you stand on is what is being "
         "tested",
     ),
     5: (
-        "இது உங்கள் தீர்ப்பையும், நீங்கள் உருவாக்குவதையும், பிள்ளைகள் சார்ந்ததையும் சோதிக்கிறது; "
-        "இந்தக் காலத்தில் சூதாட்டம் பொருந்தாது",
+        "முடிவெடுப்பது, புதிய முயற்சிகள், பிள்ளைகள் தொடர்பான விஷயங்களில் கூடுதல் கவனம் "
+        "தேவைப்படும்; இந்தக் காலத்தில் சூதாட்டம் போன்ற ஆபத்தான காரியங்கள் வேண்டாம்",
         "it presses on your judgment, on what you make, and on anything to do with children; this "
         "is not a stretch that rewards a gamble",
     ),
@@ -714,20 +722,20 @@ _TOPIC_HOUSE: dict[str, int] = {
 # clause moves between readers where a table lookup would not.
 _LORD_STRENGTH_NOTE: dict[str, tuple[str, str]] = {
     "STRONG": (
-        "அது அங்கே வலுவாக இருக்கிறது — அதனால் வாழ்க்கையின் இந்தப் பகுதி அழுத்தத்தில் தானாகவே "
-        "தாங்கிக்கொள்கிறது",
+        "அங்கே அது நல்ல பலத்துடன் இருக்கிறது. அதனால் நெருக்கடியான நேரத்திலும் இந்த விஷயம் "
+        "தானாகவே தாங்கி நிற்கும",
         "it is strong there, so this side of your life tends to hold under pressure without being "
         "rescued",
     ),
     "MODERATE": (
-        "அது அங்கே நடுத்தரமாக இருக்கிறது — இந்தப் பகுதி முயற்சிக்குப் பதில் தருகிறது, ஆனால் தானாக "
-        "நடப்பதில்லை",
+        "அங்கே அது நடுத்தர பலத்துடன் இருக்கிறது. அதனால் இந்த விஷயத்தில் முயற்சி செய்தால் பலன் "
+        "கிடைக்கும்; தானாக எல்லாம் நடந்துவிடாது",
         "it is moderate there — this side of your life answers to effort, but it does not run "
         "itself",
     ),
     "WEAK": (
-        "அது அங்கே பலவீனமாக இருக்கிறது — அதனால்தான் இந்தப் பகுதிக்கு எப்போதும் கூடுதல் கவனம் "
-        "தேவைப்பட்டிருக்கிறது",
+        "அங்கே அது பலம் குறைந்து இருக்கிறது. அதனால்தான் இந்த விஷயத்துக்கு எப்போதும் கூடுதல் "
+        "கவனம் தேவைப்பட்டிருக்கிறது",
         "it is not strong there, which is why this side of your life has always needed more "
         "deliberate attention than it looks like it should",
     ),
@@ -737,7 +745,7 @@ _LORD_STRENGTH_NOTE: dict[str, tuple[str, str]] = {
 # Fixed, topic-invariant connectives — never counted toward the reviewable
 # vocabulary cap, same treatment as beat 4's `_WORK_CONNECTIVE`/
 # `_RELATIONSHIPS_CONNECTIVE` below.
-_FRICTION_CONNECTIVE: tuple[str, str] = ("இது சிக்கலாக மாறும் இடம்:", "Where it runs into friction:")
+_FRICTION_CONNECTIVE: tuple[str, str] = ("சிக்கல் வருவது:", "Where it runs into friction:")
 _GUIDANCE_CONNECTIVE: tuple[str, str] = ("உதவக்கூடியது:", "One thing that might help:")
 # The universal facet-5 fallback (§2.5's "single ... fallback clause"),
 # deliberately used for EVERY topic rather than `action` verbatim. `action`
@@ -761,7 +769,7 @@ _GUIDANCE_CONNECTIVE: tuple[str, str] = ("உதவக்கூடியது:"
 # noun — so this frame splices no case ending onto the table entry, the
 # discipline `_BHUKTI_FLAVOR`'s own comment sets out.
 _GUIDANCE_FALLBACK: tuple[str, str] = (
-    "{area} பற்றி ஒரு திறந்த கேள்வியை, நீங்கள் உண்மையில் நம்பும் ஒருவரிடம் கொண்டு செல்லுங்கள்.",
+    "{area} பற்றி மனதில் இருக்கும் ஒரு கேள்வியை, நீங்கள் உண்மையிலேயே நம்பும் ஒருவரிடம் கேட்டுப் பாருங்கள்.",
     "take one open question about {area} to the next person whose judgment you actually trust.",
 )
 
@@ -780,8 +788,8 @@ _GUIDANCE_FALLBACK: tuple[str, str] = (
 # transfer to their twins.
 _SHADOW_ESSENCE_THEM: dict[str, tuple[str, str]] = {
     **_SHADOW_ESSENCE,
-    "SUN": ("தான் நம்பாத நிலைப்பாட்டைத் தொடர்ந்து காப்பாற்றுதல்", "defending a position they no longer believe"),
-    "MOON": ("சூழலின் மனநிலையைத் தனக்குள் விட்டுவிடுதல்", "letting the room's mood become theirs"),
+    "SUN": ("நம்பிக்கை போன பிறகும் சொன்னதைத் தான் விடாமல் இருப்பது", "defending a position they no longer believe"),
+    "MOON": ("சுற்றி இருப்பவர்களின் மனநிலையைத் தன் மனநிலையாக்கிக்கொள்வது", "letting the room's mood become theirs"),
 }
 
 _BHUKTI_FLAVOR_THEM: dict[str, tuple[str, str]] = {
@@ -807,14 +815,14 @@ _GOCHARA_SANI_THEM: dict[int, tuple[str, str]] = {
         "repay care in this stretch",
     ),
     4: (
-        "இது வீட்டையும் உள்ளுக்குள்ளான நிம்மதியையும் சோதிக்கிறது; அவர் நிற்கும் தளமே "
-        "பரிசோதிக்கப்படுகிறது",
+        "இது வீடு, வாகனம், மன நிம்மதி ஆகியவற்றில் கூடுதல் பொறுப்பையோ அழுத்தத்தையோ "
+        "கொண்டுவரலாம்",
         "it presses on home and on their inner quiet; the ground they stand on is what is being "
         "tested",
     ),
     5: (
-        "இது அவரது தீர்ப்பையும், அவர் உருவாக்குவதையும், பிள்ளைகள் சார்ந்ததையும் சோதிக்கிறது; "
-        "இந்தக் காலத்தில் சூதாட்டம் பொருந்தாது",
+        "முடிவெடுப்பது, புதிய முயற்சிகள், பிள்ளைகள் தொடர்பான விஷயங்களில் கூடுதல் கவனம் "
+        "தேவைப்படும்; இந்தக் காலத்தில் சூதாட்டம் போன்ற ஆபத்தான காரியங்கள் வேண்டாம்",
         "it presses on their judgment, on what they make, and on anything to do with children; "
         "this is not a stretch that rewards a gamble",
     ),
@@ -838,20 +846,20 @@ _GOCHARA_SANI_THEM: dict[int, tuple[str, str]] = {
 
 _LORD_STRENGTH_NOTE_THEM: dict[str, tuple[str, str]] = {
     "STRONG": (
-        "அது அங்கே வலுவாக இருக்கிறது — அதனால் அவரது வாழ்க்கையின் இந்தப் பகுதி அழுத்தத்தில் "
-        "தானாகவே தாங்கிக்கொள்கிறது",
+        "அங்கே அது நல்ல பலத்துடன் இருக்கிறது. அதனால் நெருக்கடியான நேரத்திலும் இந்த விஷயம் "
+        "தானாகவே தாங்கி நிற்கும",
         "it is strong there, so this side of their life tends to hold under pressure without "
         "being rescued",
     ),
     "MODERATE": (
-        "அது அங்கே நடுத்தரமாக இருக்கிறது — அவரது வாழ்க்கையின் இந்தப் பகுதி முயற்சிக்குப் பதில் "
-        "தருகிறது, ஆனால் தானாக நடப்பதில்லை",
+        "அங்கே அது நடுத்தர பலத்துடன் இருக்கிறது. அதனால் இந்த விஷயத்தில் முயற்சி செய்தால் பலன் "
+        "கிடைக்கும்; தானாக எல்லாம் நடந்துவிடாது",
         "it is moderate there — this side of their life answers to effort, but it does not run "
         "itself",
     ),
     "WEAK": (
-        "அது அங்கே பலவீனமாக இருக்கிறது — அதனால்தான் அவரது வாழ்க்கையின் இந்தப் பகுதிக்கு எப்போதும் "
-        "கூடுதல் கவனம் தேவைப்பட்டிருக்கிறது",
+        "அங்கே அது பலம் குறைந்து இருக்கிறது. அதனால்தான் இந்த விஷயத்துக்கு எப்போதும் கூடுதல் "
+        "கவனம் தேவைப்பட்டிருக்கிறது",
         "it is not strong there, which is why this side of their life has always needed more "
         "deliberate attention than it looks like it should",
     ),
@@ -859,11 +867,11 @@ _LORD_STRENGTH_NOTE_THEM: dict[str, tuple[str, str]] = {
 
 _TOPIC_LENS_THEM: dict[str, tuple[str, str]] = {
     **_TOPIC_LENS,
-    "TEEN": ("தன்னை நிலைப்படுத்துவதில்,", "In how they're finding their footing,"),
-    "EDUCATION": ("அவர் கற்கும் விதத்தில்,", "In how they learn,"),
-    "MARRIAGE": ("அவர் தேர்ந்தெடுக்கும் விதத்தில்,", "In who and how they choose,"),
-    "ELDER": ("உடல்நலம் மற்றும் அவர் ஒப்படைப்பதில்,", "In health and what they hand on,"),
-    "STEADYING": ("இப்போது அவரை நிலைநிறுத்துவதில்,", "In what steadies them now,"),
+    "TEEN": ("அவருடைய வளர்ச்சி விஷயத்தில்,", "In how they're finding their footing,"),
+    "EDUCATION": ("அவருடைய படிப்பு விஷயத்தில்,", "In how they learn,"),
+    "MARRIAGE": ("அவருடைய வாழ்க்கைத் துணை விஷயத்தில்,", "In who and how they choose,"),
+    "ELDER": ("உடல்நலத்திலும், அடுத்தவர்களுக்கு அவர் ஒப்படைப்பதிலும்,", "In health and what they hand on,"),
+    "STEADYING": ("இப்போது அவருக்கு நிம்மதி தரும் விஷயங்களில்,", "In what steadies them now,"),
 }
 
 # The tension beat's two tables. `_LAGNA_FACE`'s Tamil entries each end on the
@@ -871,23 +879,23 @@ _TOPIC_LENS_THEM: dict[str, tuple[str, str]] = {
 # name "you". `_MOON_MIND` describes the manas impersonally ("a mind that…") and
 # only rasi 3's English reaches for "your".
 _LAGNA_FACE_THEM: dict[int, tuple[str, str]] = {
-    1: ("ஏற்கனவே நகர்ந்துகொண்டிருப்பவராகத் தெரிகிறார்", "already in motion"),
-    2: ("அவசரமற்றவராகத் தெரிகிறார்; அதை உறுதி என்று படிக்கிறார்கள்",
+    1: ("ஏற்கனவே செயலில் இறங்கிவிட்டவராகத் தெரிவார்", "already in motion"),
+    2: ("அவசரப்படாதவராகத் தெரிவார்; அதையே உறுதி என்று நினைத்துக்கொள்வார்கள்",
         "unhurried, and people read that as certainty"),
-    3: ("விரைவானவராகவும் பேச எளியவராகவும் தெரிகிறார்", "quick, and easy to talk to"),
-    4: ("யாரை அருகில் விடுவது என்பதில் கவனமானவராகத் தெரிகிறார்", "careful about who gets close"),
-    5: ("கேட்காமலேயே பொறுப்பில் இருப்பவராகத் தெரிகிறார்", "as someone in charge, asked or not"),
-    6: ("நுணுக்கமானவராக — சில நேரம் திருத்துபவராக — தெரிகிறார்", "exact, and sometimes correcting"),
-    7: ("அவரது கருத்து தெரிவதற்கு முன்பே இணக்கமானவராகத் தெரிகிறார்",
+    3: ("சுறுசுறுப்பானவராகவும் எளிதில் பேசக்கூடியவராகவும் தெரிவார்", "quick, and easy to talk to"),
+    4: ("யாரையும் உடனே நெருங்க விடாதவராகத் தெரிவார்", "careful about who gets close"),
+    5: ("கேட்காமலேயே பொறுப்பை எடுத்துக்கொள்பவராகத் தெரிவார்", "as someone in charge, asked or not"),
+    6: ("நுணுக்கமானவராகவும், சில நேரம் திருத்திச் சொல்பவராகவும் தெரிவார்", "exact, and sometimes correcting"),
+    7: ("அவருடைய கருத்து தெரியும் வரை எல்லோரோடும் ஒத்துப்போகிறவராகத் தெரிவார்",
         "agreeable long before anyone meets their opinion"),
-    8: ("படிக்க முடியாதவராகத் தெரிகிறார்; ஆழம் இருக்கும் என்று எண்ணுகிறார்கள்",
+    8: ("எளிதில் புரிந்துகொள்ள முடியாதவராகத் தெரிவார்; உள்ளே ஆழம் இருக்கும் என்று நினைப்பார்கள்",
         "hard to read, and people assume depth"),
-    9: ("வெளிப்படையானவராகத் தெரிகிறார்; நேரடித்தன்மை நம்பிக்கையாகப் படுகிறது",
+    9: ("வெளிப்படையானவராகத் தெரிவார்; நேரடியாகப் பேசுவதைத் தன்னம்பிக்கை என்று நினைப்பார்கள்",
         "open, and people read directness as confidence"),
-    10: ("தன் வயதை விட மூத்தவராகத் தெரிகிறார்", "serious, and older than they are"),
-    11: ("கூட்டத்திற்குள் இருந்தாலும் சற்று தனித்தவராகத் தெரிகிறார்",
+    10: ("தன் வயதை விட முதிர்ச்சியானவராகத் தெரிவார்", "serious, and older than they are"),
+    11: ("கூட்டத்தில் இருந்தாலும் கொஞ்சம் தனித்தவராகத் தெரிவார்",
          "slightly apart, even from inside the group"),
-    12: ("உண்மையில் இருப்பதை விட மென்மையானவராகத் தெரிகிறார்", "softer than they are"),
+    12: ("உண்மையில் இருப்பதை விட மென்மையானவராகத் தெரிவார்", "softer than they are"),
 }
 
 _MOON_MIND_THEM: dict[int, tuple[str, str]] = {
@@ -899,18 +907,17 @@ _MOON_MIND_THEM: dict[int, tuple[str, str]] = {
 # with "people" as the subject, the `_LAGNA_FACE` entries that close on "than
 # they are" read as being about the people. Every entry completes either verb.
 _TENSION_FRAME_THEM: tuple[str, str] = (
-    "லக்னத்தால் {name} {face}. உள்ளே இயங்குவதோ — {mind}.",
+    "லக்னத்தின்படி, மற்றவர்களின் பார்வையில் {name} {face}. உள்ளுக்குள் அவர் மனம் {mind}.",
     "{name} comes across {face}. What is actually running underneath is {mind}.",
 )
 _TENSION_CLOSE_THEM: tuple[str, str] = (
-    "மற்றவர்கள் அவரைப் படிக்கும் விதத்திற்கும், அவர் உண்மையில் முடிவெடுக்கும் விதத்திற்கும் "
-    "இடையிலான இந்த இடைவெளிதான், அவருக்குத் தன்னுடனேயே ஏற்படும் உராய்வின் பெரும்பகுதி.",
+    "மற்றவர்கள் அவரைப் பார்க்கும் விதமும், அவர் உண்மையில் முடிவெடுக்கும் விதமும் ஒன்றாக இருப்பதில்லை. அவருக்குள் வரும் பல குழப்பங்களுக்கு இந்த இடைவெளிதான் காரணம்.",
     "That gap — between how they are read and how they actually decide — is where most of the "
     "friction they have with themselves comes from.",
 )
-_ASKS_CONNECTIVE_THEM: tuple[str, str] = ("இந்தக் காலம் அவரிடம் கேட்பது:", "What this period asks of them:")
+_ASKS_CONNECTIVE_THEM: tuple[str, str] = ("இந்தக் காலத்தில் அவருக்குத் தேவைப்படுவது:", "What this period asks of them:")
 _GUIDANCE_FALLBACK_THEM: tuple[str, str] = (
-    "{area} பற்றி ஒரு திறந்த கேள்வியை, அவர் உண்மையில் நம்பும் ஒருவரிடம் கொண்டு செல்வது.",
+    "{area} பற்றி மனதில் இருக்கும் ஒரு கேள்வியை, அவர் உண்மையிலேயே நம்பும் ஒருவரிடம் கேட்டுப் பார்ப்பது.",
     "taking one open question about {area} to the next person whose judgment they actually trust.",
 )
 
@@ -922,40 +929,40 @@ _GUIDANCE_FALLBACK_THEM: tuple[str, str] = (
 # clause the caller only capitalises and closes.
 _CHILD_PERIOD_TEXTURE: dict[str, tuple[str, str]] = {
     "SUN": (
-        "இந்தக் காலத்தில் அவர் கவனிக்கப்பட விரும்புவார் — பொறுப்பும் பாராட்டும் அவரை வளர்க்கும்",
+        "இந்தக் காலத்தில் மற்றவர்கள் தன்னைக் கவனிக்க வேண்டும் என்று அவர் விரும்புவார்; பொறுப்பும் பாராட்டும் அவரை வளர்க்கும்",
         "this is a stretch where they want to be seen, and responsibility and recognition help "
         "them grow",
     ),
     "MOON": (
-        "இந்தக் காலத்தில் மனநிலையும் வீட்டின் சூழலும் அதிகம் தெரியும்; சீரான நாட்கள் அவரை நிலைப்படுத்தும்",
+        "இந்தக் காலத்தில் மனநிலையும் வீட்டுச் சூழலும் அவரை அதிகம் பாதிக்கும்; தினமும் ஒரே மாதிரியான நாட்கள் அவரை நிதானப்படுத்தும்",
         "in this stretch mood and the feel of home count for more, and regular days steady them",
     ),
     "MARS": (
-        "இந்தக் காலம் சக்தியும் வேகமும் நிறைந்தது; அந்தச் சக்திக்குச் செல்லும் இடம் இருந்தால் நன்றாக நடக்கும்",
+        "சுறுசுறுப்பும் வேகமும் நிறைந்த காலம் இது; அந்தச் சக்திக்கு ஒரு வழி இருந்தால் நன்றாக நடக்கும்",
         "this stretch runs on energy and speed, and it goes well when that energy has somewhere to go",
     ),
     "MERCURY": (
-        "இந்தக் காலம் பேச்சு, கேள்விகள், கற்றலுக்குப் பலன் தரும்",
+        "பேசுவதும், கேள்வி கேட்பதும், கற்றுக்கொள்வதும் இந்தக் காலத்தில் நல்ல பலன் தரும்",
         "this stretch rewards talking, questions and learning",
     ),
     "JUPITER": (
-        "இந்தக் காலம் விரிவடைகிறது — கற்றலும், ஆசிரியர்களும், மூத்தவர்களின் வழிகாட்டலும் உதவும்",
+        "இது வளரும் காலம்; படிப்பும், ஆசிரியர்களும், பெரியவர்களின் வழிகாட்டலும் உதவும்",
         "this stretch widens things — learning, teachers and the guidance of older people tend to help",
     ),
     "VENUS": (
-        "இந்தக் காலம் இதமானது — நட்பும், கலையும், அழகானவற்றின் மீதான ரசனையும் எளிதாக வளரும்",
+        "இது இதமான காலம்; நட்பும், கலையும், அழகானவற்றின் மேல் ரசனையும் எளிதாக வளரும்",
         "this is a gentle stretch, where friendships, art and a feel for beautiful things come easily",
     ),
     "SATURN": (
-        "இந்தக் காலம் மெதுவாக நகரும்; பொறுமையாகக் கட்டியெழுப்புவது நீடிக்கும்",
+        "இந்தக் காலம் மெதுவாகத்தான் நகரும்; பொறுமையாகக் கட்டுவது நிலைக்கும்",
         "this stretch moves slowly, and what is built patiently in it lasts",
     ),
     "RAHU": (
-        "இந்தக் காலம் புதியதன் மீதும் வழக்கத்திற்கு மாறானதன் மீதும் அவரது ஆர்வத்தைத் தூண்டும்",
+        "புதியதன் மேலும் வித்தியாசமானவற்றின் மேலும் அவருக்கு ஆர்வம் கூடும் காலம் இது",
         "this stretch pulls their interest toward whatever is new and unusual",
     ),
     "KETU": (
-        "இந்தக் காலம் உள்முகமானது; தனியாக இருக்கும் நேரத்திலும் அவர் வளர்கிறார்",
+        "இது அமைதியான காலம்; தனியாக இருக்கும் நேரத்திலும் அவர் வளர்கிறார்",
         "this stretch turns inward, and they grow in their quiet time too",
     ),
 }
@@ -999,23 +1006,25 @@ def _beat_core_nature_extended(
     if addressed_to == "client_with_guardian":
         ta = f"உங்கள் உண்மையான பலம் {voice.gift[0]}."
         en = f"Your real strength is {voice.gift[1]}."
-        basis_ta = f"வலிமையான கிரகம் {planet_ta(strongest)} — பலம் இதிலிருந்தே"
+        basis_ta = f"வலிமையான கிரகம் {planet_ta(strongest)}; பலம் இதிலிருந்தே வருகிறது"
         basis_en = f"Strongest graha {planet_en(strongest)} — the gift, from it"
     else:
         if addressed_to == "other":
             given = _first_name(display_name)
             whose_ta, whose_en, costs_en = f"{given}-இன்", f"{given}'s", "costs them"
+            hard_ta = "அவருக்குக்"
         else:
             whose_ta, whose_en, costs_en = "உங்கள்", "Your", "costs you"
+            hard_ta = "உங்களுக்குக்"
         ta = (
             f"{whose_ta} உண்மையான பலம் {voice.gift[0]}. "
-            f"விலை என்பது {voice.shadow[0]} — {voice.mechanism[0]}."
+            f"{hard_ta} கடினமானது {voice.shadow[0]}. {voice.mechanism[0]}."
         )
         en = (
             f"{whose_en} real strength is {voice.gift[1]}. "
             f"Where it {costs_en} is {voice.shadow[1]} — {voice.mechanism[1]}."
         )
-        basis_ta = f"வலிமையான கிரகம் {planet_ta(strongest)} — பலமும், விலையும், அதன் வழிமுறையும் இதிலிருந்தே"
+        basis_ta = f"வலிமையான கிரகம் {planet_ta(strongest)}; பலமும், சிரமமும், அதற்கான காரணமும் இதிலிருந்தே வருகின்றன"
         basis_en = f"Strongest graha {planet_en(strongest)} — the gift, its cost, and the mechanism between them"
 
     return OneMinuteBeat(
@@ -1032,9 +1041,9 @@ def _beat_core_nature_extended(
 # `domain_flex` by construction (§0.3's invariant), so there is no
 # contrast/continuation choice to make — a fixed light connective naming which
 # domain each clause belongs to is honest and sufficient.
-_WORK_CONNECTIVE: tuple[str, str] = ("வேலையில், இது இப்படித் தெரியலாம்:", "At work, that can look like")
+_WORK_CONNECTIVE: tuple[str, str] = ("வேலையில் இது இப்படித் தெரியலாம்:", "At work, that can look like")
 _RELATIONSHIPS_CONNECTIVE: tuple[str, str] = (
-    "உறவுகளில், இது இப்படித் தெரியலாம்:",
+    "உறவுகளில் இது இப்படித் தெரியலாம்:",
     "In relationships, it can look like",
 )
 
@@ -1074,7 +1083,7 @@ def _beat_repeating_pattern(*, strongest: str, addressed_to: str = "self") -> On
         id="repeating_pattern",
         text=OneMinuteText(ta=ta, en=en),
         basis=OneMinuteText(
-            ta=f"{planet_ta(strongest)} — ஒரே இயல்பு, வேலையிலும் உறவிலும் மீண்டும் தெரிகிறது",
+            ta=f"{planet_ta(strongest)}; ஒரே இயல்பு, வேலையிலும் உறவிலும் தெரிகிறது",
             en=f"{planet_en(strongest)} — the same trait, showing up twice",
         ),
     )
@@ -1086,7 +1095,7 @@ def _beat_repeating_pattern(*, strongest: str, addressed_to: str = "self") -> On
 # that the frame supplies the attribution so twelve strings do not each have to
 # repeat which of the two nouns they belong to. This is that frame.
 _TENSION_FRAME: tuple[str, str] = (
-    "லக்னத்தால் {face}. உள்ளே இயங்குவதோ — {mind}.",
+    "லக்னத்தின்படி, மற்றவர்களின் பார்வையில் நீங்கள் {face}. உள்ளுக்குள் உங்கள் மனம் {mind}.",
     "People meet you {face}. What is actually running underneath is {mind}.",
 )
 # The claim the beat closes on, and it is carefully NOT "these two contradict
@@ -1100,8 +1109,7 @@ _TENSION_FRAME: tuple[str, str] = (
 # the first impression, the Moon is the manas. The gap between them is
 # structural, so naming the gap is safe where naming a conflict would not be.
 _TENSION_CLOSE: tuple[str, str] = (
-    "மற்றவர்கள் உங்களைப் படிக்கும் விதத்திற்கும், நீங்கள் உண்மையில் முடிவெடுக்கும் விதத்திற்கும் "
-    "இடையிலான இந்த இடைவெளிதான், உங்களுக்கு உங்களுடனேயே ஏற்படும் உராய்வின் பெரும்பகுதி.",
+    "மற்றவர்கள் உங்களைப் பார்க்கும் விதமும், நீங்கள் உண்மையில் முடிவெடுக்கும் விதமும் ஒன்றாக இருப்பதில்லை. உங்களுக்குள் வரும் பல குழப்பங்களுக்கு இந்த இடைவெளிதான் காரணம்.",
     "That gap — between how you are read and how you actually decide — is where most of the "
     "friction you have with yourself comes from.",
 )
@@ -1152,7 +1160,7 @@ def _beat_the_tension(
             en=f"{frame[1].format(face=face_en, mind=mind_en, name=name)} {close[1]}",
         ),
         basis=OneMinuteText(
-            ta=f"லக்னம் ராசி {lagna_rasi} (வெளித்தோற்றம்); சந்திரன் ராசி {moon_rasi} (மனம்)",
+            ta=f"லக்னம் {rasi_ta(lagna_rasi)} (வெளித்தோற்றம்); சந்திர ராசி {rasi_ta(moon_rasi)} (மனம்)",
             en=f"Lagna rasi {lagna_rasi} — how you are met; Moon rasi {moon_rasi} — the manas",
         ),
     )
@@ -1194,7 +1202,7 @@ def _beat_last_period_extended(
 # Fixed, topic/graha-invariant connective for Beat 6's new clause — see
 # _FRICTION_CONNECTIVE's own comment on why fixed connectives are not counted
 # toward the reviewable vocabulary cap.
-_ASKS_CONNECTIVE: tuple[str, str] = ("இந்தக் காலம் கேட்பது:", "What this period asks of you:")
+_ASKS_CONNECTIVE: tuple[str, str] = ("இந்தக் காலத்தில் உங்களுக்குத் தேவைப்படுவது:", "What this period asks of you:")
 
 
 def _beat_this_period_extended(
@@ -1285,9 +1293,19 @@ def _beat_this_period_extended(
     bhukti_ta = bhukti_en = ""
     if has_bhukti_clause:
         flavor_ta, flavor_en = (_BHUKTI_FLAVOR_THEM if them else _BHUKTI_FLAVOR)[antar_lord]
+        # `_beat_right_now` names this bhukti itself when the turn it opens on
+        # IS this bhukti's start (same test as there). Naming it a second time
+        # two sentences later read as the reading starting over.
+        already_named = (
+            hinge is not None and hinge[1] == "antar" and antar.start_date.year == hinge[0]
+        )
         bhukti_ta = (
-            f" இப்போதைய {planet_ta(antar_lord)} பகுதி — {_month_year(antar.end_date, 'ta')} வரை — "
-            f"{flavor_ta}."
+            f" இந்தப் புக்தி {_month_year(antar.end_date, 'ta')} வரை நடக்கும்; அது {flavor_ta}."
+            if already_named
+            else (
+                f" {_month_year(antar.end_date, 'ta')} வரை நடக்கும் {dasa_stem_ta(antar_lord)} புக்தி "
+                f"{flavor_ta}."
+            )
         )
         bhukti_en = (
             f" Its current {planet_en(antar_lord)} phase, which runs to "
@@ -1354,12 +1372,12 @@ def _beat_window_ahead(
     ).date()
 
     phase = _SANI_PHASE_NAME.get(house)
-    phase_ta = f" — {phase[0]}" if phase else ""
+    phase_ta = f" ({phase[0]})" if phase else ""
     phase_en = f" — {phase[1]}" if phase else ""
 
     ta = (
-        f"இப்போது சனி {from_ta} {house}ஆம் இடத்தில் நகர்கிறார்{phase_ta}. "
-        f"{_cap(texture_ta)}. {_month_year(egress, 'ta')} அளவில் அது இடம் மாறுகிறது."
+        f"இப்போது சனி {from_ta} {ORDINAL_TA[house]} இடத்தில் இருக்கிறார்{phase_ta}. "
+        f"{_cap(texture_ta)}. {_month_year(egress, 'ta')} வாக்கில் சனி அடுத்த ராசிக்கு மாறுவார்."
     )
     en = (
         f"Saturn is currently transiting the {_ordinal_en(house)} {from_en}{phase_en}. "
@@ -1371,7 +1389,7 @@ def _beat_window_ahead(
         text=OneMinuteText(ta=ta, en=en),
         basis=OneMinuteText(
             ta=(
-                f"கோச்சார சனி ராசி {saturn_rasi}; ஜென்ம ராசி {moon_rasi}; "
+                f"கோச்சார சனி ராசி {rasi_ta(saturn_rasi)}; ஜென்ம ராசி {rasi_ta(moon_rasi)}; "
                 f"ராசியிலிருந்து {house}ஆம் இடம்; இடம் மாறுவது {egress.isoformat()}"
             ),
             en=(
@@ -1482,7 +1500,7 @@ def _beat_topic_in_full(
     lens_ta, lens_en = (_TOPIC_LENS_THEM if them else _TOPIC_LENS)[topic]
     area_ta, area_en = _AREA_NOUN[_TOPIC_AREA[topic]]
 
-    next_change = timeline.current_antardasha.end_date
+    next_change = timeline.current_mahadasha.end_date  # see one_minute._OUTLOOK_SLOW
     outlook_ta, outlook_en = _outlook(
         topic,
         timeline.current_mahadasha.lord,
@@ -1506,8 +1524,8 @@ def _beat_topic_in_full(
         whose_ta = f"{given}-இன்" if them else "உங்கள்"
         whose_en, where_en = (f"{given}'s", "their") if them else ("your", "your")
         house_ta = (
-            f"{lens_ta} {whose_ta} {title_ta} {planet_ta(lord)}, அவர் {record.house_from_lagna}ஆம் "
-            f"வீட்டில் அமர்ந்திருக்கிறார் — {sig_ta}. {note_ta}."
+            f"{lens_ta} {whose_ta} {house_lord_plain_ta(house)} {planet_ta(lord)}. அந்தக் கிரகம் "
+            f"{ORDINAL_TA[record.house_from_lagna]} வீட்டில் இருக்கிறது; அந்த வீடு {sig_ta} ஆகியவற்றைக் குறிக்கும். {note_ta}."
         )
         house_en = (
             f"{lens_en} {whose_en} {title_en} is {planet_en(lord)}, and it sits in {where_en} "
@@ -1566,7 +1584,7 @@ def _beat_topic_in_full(
         # lists an input the prose was not built from is the same broken
         # promise `_beat_who_you_are` removed the Moon's rasi over — made to
         # the one reader who cared enough to open it.
-        basis_friction_ta = f"; உராய்வுக் குறிப்பு வலிமையான {planet_ta(strongest)}-லிருந்து"
+        basis_friction_ta = f"; சிக்கல் பற்றிய குறிப்புக்கு அடிப்படை வலிமையான கிரகம் {planet_ta(strongest)}"
         basis_friction_en = f"; friction clause from the strongest graha, {planet_en(strongest)}"
 
     # THE ELDER REFUSAL TRAVELS WITH THE ELDER TOPIC, and it did not until
@@ -1610,7 +1628,7 @@ def _beat_topic_in_full(
         id="topic_in_full",
         text=OneMinuteText(ta=ta, en=en),
         basis=OneMinuteText(
-            ta=f"கவனப் பகுதி {_TOPIC_AREA[topic]}{basis_house_ta}{basis_friction_ta}",
+            ta=f"கவனப் பகுதி {_AREA_NOUN[_TOPIC_AREA[topic]][0]}{basis_house_ta}{basis_friction_ta}",
             en=f"Focus area {_TOPIC_AREA[topic]}{basis_house_en}{basis_friction_en}",
         ),
     )
@@ -1650,8 +1668,8 @@ def _beat_one_thing_keyed(
     if addressed_to == "other":
         given = _first_name(display_name)
         ta = (
-            f"{given}-க்கு ஒரு செயல் — இது இன்றைய நாளை ஒட்டியது அல்ல, அவர் இருக்கும் "
-            f"{planet_ta(lord)} காலத்தை ஒட்டியது: {_VOICE_THEM[lord].action[0]}."
+            f"இன்று மட்டும் அல்ல, இந்த {dasa_stem_ta(lord)} தசை முழுவதும் "
+            f"{given}-க்கு உதவக்கூடிய ஒன்று: {_VOICE_THEM[lord].action[0]}."
         )
         en = (
             f"One thing for {given}, and it is keyed to the {planet_en(lord)} period they are in "
@@ -1659,8 +1677,8 @@ def _beat_one_thing_keyed(
         )
     else:
         ta = (
-            f"ஒரு செயல் — இது இன்றைய நாளை ஒட்டியது அல்ல, நீங்கள் இருக்கும் "
-            f"{planet_ta(lord)} காலத்தை ஒட்டியது: {_VOICE[lord].action[0]}."
+            f"இன்று மட்டும் அல்ல, இந்த {dasa_stem_ta(lord)} தசை முழுவதும் "
+            f"செய்யக்கூடிய ஒன்று: {_VOICE[lord].action[0]}."
         )
         en = (
             f"One thing, and it is keyed to the {planet_en(lord)} period you are in rather "
@@ -1670,7 +1688,7 @@ def _beat_one_thing_keyed(
         id="one_thing",
         text=OneMinuteText(ta=ta, en=en),
         basis=OneMinuteText(
-            ta=f"நடப்பு {planet_ta(lord)} மகாதசையை அடிப்படையாகக் கொண்டது",
+            ta=f"நடப்பு {dasa_stem_ta(lord)} மகாதசையை அடிப்படையாகக் கொண்டது",
             en=f"Anchored on the running {planet_en(lord)} mahadasha",
         ),
     )
@@ -1712,14 +1730,14 @@ def _beat_child_period(
     until_ta = "" if has_bhukti_clause else f", {maha.end_date.year} வரை"
     until_en = "" if has_bhukti_clause else f", and it runs to {maha.end_date.year}"
     ta = (
-        f"{given} இப்போது {planet_ta(maha.lord)} காலத்தில் இருக்கிறார்{until_ta}. "
+        f"{given} இப்போது {dasa_stem_ta(maha.lord)} தசையில் இருக்கிறார்{until_ta}. "
         f"{_cap(texture_ta)}."
     )
     en = f"{given} is in a {planet_en(maha.lord)} period now{until_en}. {_cap(texture_en)}."
     if has_bhukti_clause:
         flavor_ta, flavor_en = _BHUKTI_FLAVOR_THEM[antar.lord]
         ta += (
-            f" இப்போதைய {planet_ta(antar.lord)} பகுதி — {_month_year(antar.end_date, 'ta')} வரை — "
+            f" {_month_year(antar.end_date, 'ta')} வரை நடக்கும் {dasa_stem_ta(antar.lord)} புக்தி "
             f"{flavor_ta}."
         )
         en += (
@@ -1731,7 +1749,7 @@ def _beat_child_period(
         text=OneMinuteText(ta=ta, en=en),
         basis=OneMinuteText(
             ta=(
-                f"{planet_ta(maha.lord)} மகாதசை / {planet_ta(antar.lord)} புத்தி "
+                f"{dasa_stem_ta(maha.lord)} மகாதசை / {dasa_stem_ta(antar.lord)} புக்தி "
                 f"({antar.start_date.isoformat()} – {antar.end_date.isoformat()})"
             ),
             en=(
@@ -1775,8 +1793,8 @@ def _beat_topic_house_for_a_child(
         id="topic_in_full",
         text=OneMinuteText(
             ta=(
-                f"{lens_ta} {given}-இன் {title_ta} {planet_ta(lord)}, அவர் "
-                f"{record.house_from_lagna}ஆம் வீட்டில் அமர்ந்திருக்கிறார். {note_ta}."
+                f"{lens_ta} {given}-இன் {house_lord_plain_ta(house)} {planet_ta(lord)}. அந்தக் கிரகம் "
+                f"{ORDINAL_TA[record.house_from_lagna]} வீட்டில் இருக்கிறது. {note_ta}."
             ),
             en=(
                 f"{lens_en} {given}'s {title_en} is {planet_en(lord)}, and it sits in their "
@@ -1785,7 +1803,7 @@ def _beat_topic_house_for_a_child(
         ),
         basis=OneMinuteText(
             ta=(
-                f"கவனப் பகுதி {_TOPIC_AREA[topic]}; {house}ஆம் வீடு, அதிபதி {planet_ta(lord)} "
+                f"கவனப் பகுதி {_AREA_NOUN[_TOPIC_AREA[topic]][0]}; {house}ஆம் வீடு, அதிபதி {planet_ta(lord)} "
                 f"{record.house_from_lagna}-ல், வலிமை {record.strength_score}/100"
             ),
             en=(
@@ -2049,6 +2067,7 @@ def build_five_minute_reading(context: ChartContext) -> FiveMinuteReadingRespons
                 about=_first_name(name) if register == "other" else None,
             )
 
+    beats = with_name_case_endings(beats, _first_name(context.profile.display_name))
     return FiveMinuteReadingResponse(
         data=FiveMinuteReadingData(
             chart_id=context.chart_id,

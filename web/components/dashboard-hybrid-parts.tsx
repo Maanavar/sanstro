@@ -2000,7 +2000,12 @@ export function HyLifeAreaForecast({ lang, areas, age, onOpenLifeAreas, compact 
     (horizon === "s6" ? a.score6mo : a.score12mo) ?? a.score;
 
   return (
-    <Card style={{ display: "block", overflow: "hidden", padding: 0 }}>
+    // Scrolls sideways rather than clipping: an `fr` track never shrinks below
+    // its longest word, so on a 375px phone the Tamil grid ran 96px past the
+    // card and `overflow: hidden` cut off the Guidance column. The min-content
+    // wrapper changes nothing where the columns already fit (English).
+    <Card style={{ display: "block", overflowX: "auto", padding: 0 }}>
+      <div style={{ minWidth: "min-content" }}>
       <div style={{ display: "grid", gridTemplateColumns: cols, columnGap: "var(--space-3)", padding: "var(--space-3) var(--space-5)", background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", borderBottom: "1px solid var(--color-border)", fontSize: "var(--text-xs)", letterSpacing: "0.1em", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase" }}>
         <span>{lang === "ta" ? "வாழ்க்கைத் துறை" : "Life area"}</span>
         <span>{lang === "ta" ? "தற்போது" : "Current"}</span>
@@ -2026,6 +2031,7 @@ export function HyLifeAreaForecast({ lang, areas, age, onOpenLifeAreas, compact 
           </div>
         ))
       )}
+      </div>
       {/* Two distinct intents, deliberately not conflated:
           — primary, inline: show the remaining rows in place (keeps context);
           — secondary: leave for the deep per-area analysis on the Life Areas tab. */}

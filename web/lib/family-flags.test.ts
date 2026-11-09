@@ -4,9 +4,12 @@ import {
   activeSaniCycles,
   careReasonLabel,
   memberCareReason,
+  saniConfirmation,
+  saniCycleGloss,
   saniCycleName,
   saniCycleNote,
 } from "./family-flags";
+import type { SaniCycleData } from "./types";
 import { verdictPhrase } from "./verdict-lexicon";
 
 describe("memberCareReason", () => {
@@ -72,5 +75,40 @@ describe("Saturn cycle chips", () => {
     expect(saniCycleNote(["ASHTAMA_SANI"], "en")).toBe(
       "A long Saturn cycle — background context for months or years, not a verdict on today.",
     );
+  });
+});
+
+describe("Saturn sentence on Tamil screens (2026-11-09)", () => {
+  // Synthetic: Saturn in Meenam, Moon in Dhanusu (4th, Ardhashtama). The
+  // server's own confirmationSentence is English with rasi codes; the helper
+  // must never pass it through.
+  const sani: SaniCycleData = {
+    saturnRasi: "MEENAM",
+    janmaRasi: "DHANUSU",
+    lagnaRasi: "MESHAM",
+    positionFromMoon: 4,
+    positionFromLagna: 12,
+    moonBasedCycle: { type: "ARDHASHTAMA_SANI", isActive: true, supportiveLabel: "Home and inner stability refinement cycle" },
+    lagnaBasedCycle: { type: null, isActive: false, supportiveLabel: null },
+    confirmationSentence: "Saturn is in MEENAM, which is 4th from DHANUSU Moon. This is Ardhashtama Sani, not Ezharai Sani.",
+  };
+
+  it("builds the Tamil sentence with no Latin letters", () => {
+    const ta = saniConfirmation(sani, "ta");
+    expect(ta).not.toMatch(/[A-Za-z]/);
+    expect(ta).toContain("4ஆம் இடத்தில்");
+    expect(ta).toContain("அர்த்தாஷ்டம சனி");
+  });
+
+  it("writes rasi names, not codes, in English", () => {
+    const en = saniConfirmation(sani, "en");
+    expect(en).not.toMatch(/MEENAM|DHANUSU/);
+    expect(en).toContain("4th");
+  });
+
+  it("glosses the cycle in Tamil and keeps the server line in English", () => {
+    expect(saniCycleGloss("ARDHASHTAMA_SANI", sani.moonBasedCycle.supportiveLabel, "ta")).not.toMatch(/[A-Za-z]/);
+    expect(saniCycleGloss("ARDHASHTAMA_SANI", sani.moonBasedCycle.supportiveLabel, "en")).toBe("Home and inner stability refinement cycle");
+    expect(saniCycleGloss("KANTAKA_SANI", null, "ta")).toBe("கண்டக சனி");
   });
 });

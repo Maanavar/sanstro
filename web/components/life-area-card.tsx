@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { dt, LIFE_FOCUS } from "@/lib/dashboard-i18n";
 import { getScoreBand } from "@/lib/format";
 import { WarningGlyph } from "./icons";
-import { t, tLang } from "@/lib/i18n";
+import { t, tLang, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { LifeAreaData } from "@/lib/types";
 import { readingPhrase, readingTone } from "@/lib/reasoning";
@@ -79,6 +79,31 @@ const FACTOR_LABELS: Record<string, { ta: string; en: string }> = {
   shubha_kartari_protects_house: { en: "Shubha kartari — benefics protect this house", ta: "சுப கர்த்தரி — இரு பக்கமும் சுப கிரகங்கள்" },
 };
 
+// Strength tags the server sends on the card's chips (life_areas_service
+// `primary_house_strength` / `karaka_status`). Raw enums, never display text:
+// unmapped tags fall back to the tag itself so a new one stays visible.
+const STRENGTH_LABELS: Record<string, { ta: string; en: string }> = {
+  STRONG: { en: "Strong", ta: "வலிமை" },
+  MODERATE: { en: "Moderate", ta: "நடுத்தரம்" },
+  NEUTRAL: { en: "Neutral", ta: "நடுநிலை" },
+  WEAK: { en: "Weak", ta: "பலவீனம்" },
+  UNKNOWN: { en: "Unknown", ta: "தெரியவில்லை" },
+  "N/A": { en: "N/A", ta: "பொருந்தாது" },
+  NOT_APPLICABLE_FOR_AGE: { en: "Not for this age", ta: "இந்த வயதுக்கு இல்லை" },
+};
+
+function strengthLabel(tag: string | null | undefined, lang: Lang): string {
+  if (!tag) return "—";
+  const entry = STRENGTH_LABELS[tag];
+  return entry ? entry[lang] : tag;
+}
+
+const TREND_LABELS: Record<"UP" | "DOWN" | "FLAT", { ta: string; en: string }> = {
+  UP: { en: "Up", ta: "ஏற்றம்" },
+  DOWN: { en: "Down", ta: "இறக்கம்" },
+  FLAT: { en: "Flat", ta: "சீராக" },
+};
+
 function humaniseFactorKey(key: string, lang: Lang): string {
   const base = FACTOR_LABELS[key];
   if (base) return lang === "ta" ? base.ta : base.en;
@@ -103,7 +128,7 @@ function humaniseFactorKey(key: string, lang: Lang): string {
         : suffix === "aspects_house"
         ? (lang === "ta" ? "இந்த வீட்டின் மீது பார்வை" : "aspects this house")
         : suffix.replaceAll("_", " ");
-    return `${planet}: ${suffixLabel}`;
+    return `${tPlanetLord(planet, lang)}: ${suffixLabel}`;
   }
   return key.replaceAll("_", " ");
 }
@@ -117,7 +142,8 @@ export function LifeAreaCard({ area, lang, ageRelevant, onOpenDetail, isLifeFocu
       : scoreBand.tone === "low" ? "var(--color-score-low)"
         : "var(--color-score-mid)";
 
-  const trendLabel = area.trend === "UP" ? "UP" : area.trend === "DOWN" ? "DOWN" : "FLAT";
+  const trendKey = area.trend === "UP" ? "UP" : area.trend === "DOWN" ? "DOWN" : "FLAT";
+  const trendLabel = TREND_LABELS[trendKey][lang];
   const trendColor = area.trend === "UP" ? "var(--color-score-high)" : area.trend === "DOWN" ? "var(--color-score-low)" : "var(--color-score-mid)";
 
   return (
@@ -138,7 +164,7 @@ export function LifeAreaCard({ area, lang, ageRelevant, onOpenDetail, isLifeFocu
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "var(--space-2_5)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "var(--space-1_5)", flexWrap: "wrap" }}>
-          <p className="cd-kicker--inline" style={{ letterSpacing: "0.1em" }}>
+          <p className="cd-kicker--inline" style={lang === "ta" ? undefined : { letterSpacing: "0.1em" }}>
             {tLang(area.label, lang)}
           </p>
           {area.isGoalFocus && (
@@ -195,7 +221,7 @@ export function LifeAreaCard({ area, lang, ageRelevant, onOpenDetail, isLifeFocu
             </span>
           )}
         </div>
-        <span style={{ fontSize: "0.625rem", fontWeight: 700, color: trendColor, letterSpacing: "0.06em" }}>{trendLabel}</span>
+        <span style={{ fontSize: "0.625rem", fontWeight: 700, color: trendColor, letterSpacing: lang === "ta" ? 0 : "0.06em", textTransform: lang === "ta" ? "none" : "uppercase", whiteSpace: "nowrap" }}>{trendLabel}</span>
       </div>
 
       <p style={{ margin: "0 0 var(--space-2_5)", fontFamily: "var(--font-display)", fontSize: "3.6rem", fontWeight: 500, lineHeight: 1, color: "var(--color-text-strong)", letterSpacing: "-0.03em" }}>
@@ -223,15 +249,15 @@ export function LifeAreaCard({ area, lang, ageRelevant, onOpenDetail, isLifeFocu
         <span style={{ fontSize: "0.75rem", color: "var(--color-faint)" }}>
           {t("life_area_karaka", lang)} · {lang === "ta" ? "கிரகம்" : "planet"}
         </span>
-        <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--color-muted)" }}>{area.driver?.planet ?? "—"}</span>
+        <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--color-muted)" }}>{area.driver?.planet ? tPlanetLord(area.driver.planet, lang) : "—"}</span>
       </div>
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-1_5)", marginTop: "var(--space-2_5)" }}>
         <span style={{ fontSize: "0.625rem", border: "1px solid var(--color-border)", borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2)", color: "var(--color-muted)" }}>
-          {lang === "ta" ? "முக்கிய வீடு" : "Primary house"}: {area.primaryHouseStrength}
+          {lang === "ta" ? "முக்கிய வீடு" : "Primary house"}: {strengthLabel(area.primaryHouseStrength, lang)}
         </span>
         <span style={{ fontSize: "0.625rem", border: "1px solid var(--color-border)", borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2)", color: "var(--color-muted)" }}>
-          {lang === "ta" ? "காரக நிலை" : "Karaka"}: {area.karakaStatus}
+          {lang === "ta" ? "காரக நிலை" : "Karaka"}: {strengthLabel(area.karakaStatus, lang)}
         </span>
         <span style={{ fontSize: "0.625rem", border: "1px solid var(--color-border)", borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2)", color: area.dashaActivation ? "var(--color-score-high)" : "var(--color-faint)" }}>
           {area.dashaActivation ? (lang === "ta" ? "தசை செயல்பாடு" : "Dasha active") : (lang === "ta" ? "தசை நடுநிலை" : "Dasha neutral")}
@@ -245,7 +271,7 @@ export function LifeAreaCard({ area, lang, ageRelevant, onOpenDetail, isLifeFocu
           "because ... therefore ..." reading for LOW-confidence areas, it
           replaces the flat factor list below. */}
       {area.causalChain && (
-        <p style={{ margin: "var(--space-2_5) 0 0", fontSize: "0.75rem", color: "var(--color-muted)", lineHeight: 1.55, fontStyle: "italic" }}>
+        <p style={{ margin: "var(--space-2_5) 0 0", fontSize: "0.75rem", color: "var(--color-muted)", lineHeight: 1.55, fontStyle: lang === "ta" ? "normal" : "italic" }}>
           {tLang(area.causalChain, lang)}
         </p>
       )}
@@ -266,7 +292,7 @@ export function LifeAreaCard({ area, lang, ageRelevant, onOpenDetail, isLifeFocu
       )}
 
       <div style={{ marginTop: "var(--space-2_5)", padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-sm)", border: "1px solid var(--color-border)", background: "var(--color-surface-soft)" }}>
-        <p className="cd-kicker" style={{ margin: "0 0 var(--space-0_5)", letterSpacing: "0.08em" }}>
+        <p className="cd-kicker" style={{ margin: "0 0 var(--space-0_5)", ...(lang === "ta" ? null : { letterSpacing: "0.08em" }) }}>
           {lang === "ta" ? "அடுத்த 30 நாட்கள்" : "Next 30 days"}
         </p>
         <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-text)", lineHeight: 1.45 }}>{tLang(area.next30DayOutlook, lang)}</p>
@@ -283,7 +309,7 @@ export function LifeAreaCard({ area, lang, ageRelevant, onOpenDetail, isLifeFocu
 
       {area.remedy && (
         <div style={{ marginTop: "var(--space-2_5)", padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-sm)", background: "var(--chart-d1-lagna-bg)", border: "1px solid rgba(184,90,44,0.25)" }}>
-          <p className="cd-kicker" style={{ margin: "0 0 var(--space-0_5)", color: "var(--color-mid-text)", letterSpacing: "0.08em" }}>
+          <p className="cd-kicker" style={{ margin: "0 0 var(--space-0_5)", color: "var(--color-mid-text)", ...(lang === "ta" ? null : { letterSpacing: "0.08em" }) }}>
             {t(area.remedyKind === "MAINTAIN" ? "remedy_label_maintain" : "remedy_label", lang)}
           </p>
           <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-text)", lineHeight: 1.45 }}>{tLang(area.remedy, lang)}</p>

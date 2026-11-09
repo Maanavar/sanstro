@@ -89,13 +89,10 @@ const PHRASE_REPLACEMENTS = [
 ];
 
 const TAMIL_ASTRO_REPLACEMENTS: Array<[string, string]> = [
-  ["ஜன்ம ஜாதகம்", "பிறப்பு ஜாதகம்"],
-  ["ஜன்ம நட்சத்திரம்", "பிறப்பு நட்சத்திரம்"],
-  ["ஜன்ம சந்திர ராசி", "பிறப்பு சந்திர ராசி"],
-  ["ஜன்ம ராசி", "பிறப்பு ராசி"],
-  ["ஜன்ம விவரங்கள்", "பிறப்பு விவரங்கள்"],
-  ["ஜன்ம விவரம்", "பிறப்பு விவரம்"],
-  ["ஜன்ம", "பிறப்பு"],
+  // One spelling, ஜென்ம (owner, 2026-11-09). This used to turn every ஜன்ம into
+  // பிறப்பு, so the web showed "பிறப்பு சனி" for ஜன்ம சனி and contradicted the
+  // glossary's ஜென்ம நட்சத்திரம். Sources are swept; this catches strays.
+  ["ஜன்ம", "ஜென்ம"],
   // The transit term is கோச்சாரம் (reviewer ruling 2026-10-01, reversing the
   // earlier கோசாரம் → கிரகநகர்வு rewrite). The prefix form keeps every
   // inflection intact: கோசார ஆதரவு → கோச்சார ஆதரவு, கோசாரத்தில் → கோச்சாரத்தில்.

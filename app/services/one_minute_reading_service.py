@@ -68,7 +68,10 @@ permanently-closed content gate of exactly the kind
 docs/DASHBOARD_PRODUCT_DECISIONS_2026-08-02.md is about.
 
 The Tamil below is PENDING NATIVE-TAMIL REVIEW (same posture as
-nakshatra_content.NAKSHATRA_LENS, which ships live under the same marker).
+nakshatra_content.NAKSHATRA_LENS, which ships live under the same marker). It
+was rewritten into everyday Tamil on 2026-11-07 under owner delegation
+(docs/TAMIL_EVERYDAY_VOICE_2026-11-07.md). That is not a native pass, so the
+marker stands until the owner signs a table off.
 Two subsets have since passed and are exempted in place: `_AREA_NOUN` (5
 strings, 2026-08-12) and the eighteen `action` entries across `_VOICE` and
 `_CHILD_VOICE` (2026-08-12). The remaining strings are still pending.
@@ -101,7 +104,15 @@ from app.calculations.dasha import (
     _build_subperiods,
     calculate_vimshottari_timeline,
 )
-from app.calculations.display_names import nakshatra_ta, planet_en, planet_ta, rasi_ta
+from app.calculations.display_names import (
+    dasa_stem_ta,
+    fix_name_case_endings,
+    name_stem_ta,
+    nakshatra_ta,
+    planet_en,
+    planet_ta,
+    rasi_ta,
+)
 from app.core.age_gate import (
     compute_age,
     is_married_settled,
@@ -331,6 +342,12 @@ _MONTH_TA: dict[int, str] = {
 # sentence one, which costs us the whole reading. On anything else we open on
 # the Moon's nakshatra, which is stable across a much wider time error.
 _RELIABLE_TIME_SOURCES: frozenset[str] = frozenset({"BIRTH_CERTIFICATE", "HOSPITAL_RECORD", "FAMILY_RECORD"})
+# The disclosure line printed the stored code ("BIRTH_CERTIFICATE") inside Tamil prose.
+_TIME_SOURCE_TA: dict[str, str] = {
+    "BIRTH_CERTIFICATE": "பிறப்புச் சான்றிதழ்",
+    "HOSPITAL_RECORD": "மருத்துவமனைப் பதிவு",
+    "FAMILY_RECORD": "குடும்பப் பதிவு",
+}
 _LAGNA_TIME_TOLERANCE_MINUTES = 30
 
 # How much of the ten-year window the OUTGOING mahadasha must have held before
@@ -476,8 +493,8 @@ class _Line:
 # The English has no such collision ("And yet" against "though"), so this was
 # visible only by reading the Tamil, and only after the transition engine made
 # a contrast connective exist at all.
-_CONTRAST: tuple[str, str] = ("மறுபுறம்:", "And yet:")
-_CONTINUATION: tuple[str, str] = ("அதே நேரத்தில்:", "At the same time,")
+_CONTRAST: tuple[str, str] = ("இன்னொரு பக்கம்,", "And yet:")
+_CONTINUATION: tuple[str, str] = ("அதோடு,", "At the same time,")
 _NO_TRANSITION: tuple[str, str] = ("", "")
 
 
@@ -661,19 +678,18 @@ class _Voice:
 _VOICE: dict[str, _Voice] = {
     "SUN": _Voice(
         nature=_Line(
-            "நீங்கள் பொறுப்பேற்கும் இயல்பு கொண்டவர்; அதை மற்றவர்கள் உடனே உணர்கிறார்கள் — ஆனால் "
-            "கருத்து வேறுபாட்டை வெளியே காட்டுவதை விட உள்ளுக்குள் அதிகம் உணர்கிறீர்கள்.",
+            "நீங்கள் இயல்பாகவே பொறுப்பை எடுத்துக்கொள்பவர்; அதை மற்றவர்கள் உடனே புரிந்துகொள்வார்கள். ஆனால் யாராவது உங்களோடு மாறுபட்டால், வெளியே காட்டுவதை விட உள்ளுக்குள் அதிகம் வருத்தப்படுவீர்கள்.",
             "You carry yourself as someone in charge and people read that quickly — though you take "
             "disagreement more personally than you let on.",
             # Taking charge in front of people.
             Orientation.OUTWARD,
         ),
         gift=(
-            "கேட்காமலேயே மற்றவர்கள் உங்களிடம் ஒப்படைக்கும் பொறுப்பு",
+            "நீங்கள் கேட்காமலேயே மற்றவர்கள் உங்களிடம் தரும் பொறுப்பு",
             "the authority people hand you without being asked",
         ),
         shadow=(
-            "தவறு என்று வெளிப்பட நேரும் தருணம் — நீங்கள் நம்பாத நிலைப்பாட்டையும் தொடர்ந்து காப்பாற்றுகிறீர்கள்",
+            "செய்தது தவறு என்று ஒப்புக்கொள்வது; உங்களுக்கே நம்பிக்கை போன பிறகும், சொன்னதை விடாமல் பிடித்துக்கொள்கிறீர்கள்",
             "being seen to be wrong; you defend a position past the point you believe it",
         ),
         # REWRITTEN 2026-08-11 with the beat-3 ordering fix. The previous
@@ -683,8 +699,7 @@ _VOICE: dict[str, _Voice] = {
         # job is the bridge: it has to start from the gift's own noun and
         # land on the shadow. See _beat_core_nature_extended's docstring.
         mechanism=(
-            "ஏனெனில் அந்தப் பொறுப்பு உங்கள் உறுதியின் மீதுதான் வந்தது; அதனால் நீங்கள் காட்டும் "
-            "எந்தச் சந்தேகமும் அந்தப் பொறுப்பு நழுவுவது போலப் படுகிறது",
+            "காரணம், அந்தப் பொறுப்பு உங்கள் உறுதியைப் பார்த்துத்தான் வந்தது; அதனால் கொஞ்சம் சந்தேகம் காட்டினாலும், அது கைநழுவிப் போவது போலத் தோன்றுகிறது",
             "because that authority arrived on the strength of your certainty, so any doubt you show "
             "feels like the authority itself slipping",
         ),
@@ -693,28 +708,26 @@ _VOICE: dict[str, _Voice] = {
         # refusing to back down once a stance is threatened.
         domain_flex={
             "WORK": (
-                "கூட்டத்தில் எடுத்த முடிவை, எல்லோரும் அதைக் கடந்து சென்ற பிறகும் பிடித்துக்கொள்வது — "
-                "பின்வாங்குவது தோல்வியாகத் தெரியும் என்பதால்",
+                "கூட்டத்தில் எடுத்த முடிவை, எல்லோரும் அடுத்த விஷயத்துக்குப் போன பிறகும் விடாமல் இருப்பது; பின்வாங்கினால் தோற்றது போல ஆகிவிடும் என்ற எண்ணம்தான் காரணம்",
                 "holding onto a decision in a meeting long after the room has moved past it, because "
                 "backing down there would look like losing",
             ),
             "RELATIONSHIPS": (
-                "நீங்கள்தான் தவறு செய்தீர்கள் என்று தெரிந்த பிறகும், முதலில் மன்னிப்புக் கேட்க மறுப்பது",
+                "தவறு உங்கள் பக்கம்தான் என்று தெரிந்த பிறகும், முதலில் மன்னிப்புக் கேட்க மனம் வராதது",
                 "refusing to say sorry first, even once you know you were the one who was wrong",
             ),
         },
         life_lesson=(
-            "தன்னை நிரூபிப்பதும் தானாக மாறுவதும் ஒன்றல்ல என்பதை வாழ்க்கை உங்களுக்குத் "
-            "திரும்பத் திரும்பச் சொல்கிறது.",
+            "தன்னை நிரூபிப்பது வேறு, தானாக வாழ்வது வேறு. வாழ்க்கை இதை உங்களுக்கு மீண்டும் மீண்டும் உணர்த்துகிறது.",
             "Life keeps reminding you that proving yourself and becoming yourself are not the "
             "same thing.",
         ),
         past_texture=(
-            "அது உங்களை மற்றவர்கள் முன்னால் நிறுத்தியது — நீங்கள் விரும்பினாலும் விரும்பாவிட்டாலும்",
+            "நீங்கள் விரும்பினாலும் விரும்பாவிட்டாலும், அந்த ஆண்டுகள் உங்களை எல்லோர் முன்னாலும் நிறுத்தின",
             "it put you in front of people, whether or not you wanted to be there",
         ),
         now_texture=(
-            "இது நீங்கள் தெரியும் காலம்; பாதுகாப்பான பங்கை விட வெளிப்படையான பொறுப்பை எடுத்துக்கொள்ளுங்கள்",
+            "இது எல்லோர் கண்ணிலும் நீங்கள் படும் காலம்; பாதுகாப்பான இடத்தில் ஒதுங்காமல், வெளியே தெரியும் பொறுப்பை ஏற்பது நல்லது",
             "this is the stretch where you are seen; take the visible role rather than the safe one",
         ),
         action=(
@@ -723,30 +736,28 @@ _VOICE: dict[str, _Voice] = {
             "put your name on your work — this period converts visibility, not effort alone",
         ),
         asks=(
-            "மற்றவர்கள் முன் நிலைத்திருக்கும் நம்பிக்கை, முடிவு உறுதி செய்யப்படுவதற்கு முன்பே",
+            "முடிவு எப்படி வரும் என்று தெரியாதபோதும், மற்றவர்கள் முன் தளராமல் நிற்பது",
             "steady confidence in front of people, even before the outcome is certain",
         ),
     ),
     "MOON": _Voice(
         nature=_Line(
-            "யாரும் பேசுவதற்கு முன்பே சூழலை நீங்கள் புரிந்துகொள்கிறீர்கள்; அதனால் மற்றவர்கள் தங்கள் "
-            "கவலைகளை உங்களிடம் கொண்டு வருகிறார்கள் — ஆனால் பிறரின் மனநிலை தேவைக்கும் அதிக நேரம் "
-            "உங்களுடன் தங்கிவிடுகிறது.",
+            "யாரும் பேசுவதற்கு முன்பே அங்கே என்ன நிலைமை என்று உணர்ந்துவிடுவீர்கள்; அதனால்தான் மற்றவர்கள் தங்கள் கவலைகளை உங்களிடம் சொல்கிறார்கள். ஆனால் அவர்களுடைய மனநிலை நீண்ட நேரம் உங்களுக்குள் தங்கிவிடுகிறது.",
             "You read a room before anyone speaks, and people bring you their troubles — though other "
             "people's moods stay with you longer than they should.",
             # Receiving and absorbing, not projecting. The room acts on them.
             Orientation.INWARD,
         ),
         gift=(
-            "மற்றவர்களுக்கு என்ன தேவை என்பதை அவர்கள் சொல்வதற்கு முன்பே அறிதல்",
+            "மற்றவர்களுக்கு என்ன தேவை என்பதை அவர்கள் சொல்லும் முன்பே புரிந்துகொள்வது",
             "reading what people need before they say it",
         ),
         shadow=(
-            "அழுத்தத்தில் நிலைத்திருத்தல் — உங்கள் மனநிலை சூழலின் மனநிலையைப் பின்தொடர்கிறது",
+            "அழுத்தமான நேரத்தில் நிதானமாக இருப்பது; சுற்றி இருப்பவர்களின் மனநிலை உங்களையும் மாற்றிவிடுகிறது",
             "steadiness under pressure; your mood follows the room's more than you would like",
         ),
         mechanism=(
-            "ஏனெனில் ஒரு சூழலை உங்களால் படிக்க முடியும் அதே திறந்த தன்மைதான், அதன் மனநிலையை உங்களுக்குள் இறங்க விடுகிறது",
+            "காரணம், மற்றவர்களைப் புரிந்துகொள்ள உதவும் அதே மென்மையான மனம்தான், அவர்களுடைய மனநிலையையும் உங்களுக்குள் இழுத்துக்கொள்கிறது",
             "because the same openness that lets you read a room is what lets its mood settle into you",
         ),
         # §2.2. Both entries are `shadow` ("steadiness under pressure; your mood
@@ -754,25 +765,24 @@ _VOICE: dict[str, _Voice] = {
         # ambient mood that was never actually yours.
         domain_flex={
             "WORK": (
-                "பதற்றமான கூட்டத்தின் மனநிலையை, அது முடிந்த நீண்ட நேரத்திற்குப் பிறகும் வீட்டிற்குக் கொண்டு செல்வது",
+                "பதற்றமான ஒரு கூட்டத்தின் தாக்கத்தை, அது முடிந்த பிறகும் வீடு வரை கொண்டு வருவது",
                 "carrying a tense meeting's mood home with you long after the meeting itself is over",
             ),
             "RELATIONSHIPS": (
-                "துணையின் மோசமான நாளை, யாரும் அதை முடிவு செய்யாமலேயே உங்கள் சொந்த நாளாக ஏற்றுக்கொள்வது",
+                "துணைக்கு மோசமான நாள் என்றால், அது உங்களுக்கும் மோசமான நாளாகிவிடுவது",
                 "taking on a partner's bad day as if it were your own, without either of you deciding that",
             ),
         },
         life_lesson=(
-            "எல்லாவற்றையும் சுமக்காமலேயே அக்கறை காட்ட முடியும் என்பதை வாழ்க்கை உங்களுக்குத் "
-            "திரும்பத் திரும்பக் கற்பிக்கிறது.",
+            "எல்லாவற்றையும் சுமக்காமலும் அக்கறையோடு இருக்கலாம். வாழ்க்கை இதை உங்களுக்கு மீண்டும் மீண்டும் உணர்த்துகிறது.",
             "Life keeps asking you to care without carrying all of it.",
         ),
         past_texture=(
-            "அது அடிக்கடி நகர்ந்தது — இடம், மனநிலை, மனிதர்கள் — அதற்குள் நிலையாக இருக்கும்படி கேட்டது",
+            "அந்த ஆண்டுகளில் வீட்டுச் சூழல், மனநிலை, சுற்றியிருந்த மனிதர்கள் எனப் பல விஷயங்கள் அடிக்கடி மாறிக்கொண்டிருந்தன; அதற்கு நடுவிலும் நீங்கள் நிதானமாக இருக்க வேண்டியிருந்தது",
             "it moved often — homes, moods, people — and asked you to stay steady inside all of it",
         ),
         now_texture=(
-            "இந்தக் காலம் மனிதர்கள் மற்றும் மனநிலையின் மீது நடக்கிறது; உங்கள் சொந்த தாளத்தைக் காத்தால் நன்றாக நடக்கும்",
+            "இந்தக் காலத்தில் மனிதர்களும் மனநிலையும்தான் எல்லாவற்றையும் தீர்மானிக்கும்; உங்கள் இயல்பான வேகத்தை விடாவிட்டால் நன்றாக நடக்கும்",
             "this stretch runs on people and mood; keep your own rhythm and it goes well",
         ),
         # "hydration" was cut 2026-08-11. Sleep is Chandra's own significator —
@@ -797,28 +807,27 @@ _VOICE: dict[str, _Voice] = {
         # concrete, rather than restating the rhythm `now_texture` already
         # asked for.
         asks=(
-            "சூழல் அமைதியாகும் வரை காத்திராத ஒரு நிலைத்தன்மை",
+            "சுற்றி அமைதியாகும் வரை காத்திருக்காத மன நிதானம்",
             "a steadiness that doesn't wait for the room to settle first",
         ),
     ),
     "MARS": _Voice(
         nature=_Line(
-            "முதலில் செயல்படுபவர், விரைவாக முடிவெடுப்பவர் — உங்களைச் சுற்றி வேலைகள் நடப்பதற்குக் "
-            "காரணமே அதுதான். ஆனால் கடைசித் தகவல் வருவதற்கு முன்பே முடிவெடுத்துவிடுகிறீர்கள்.",
+            "நீங்கள் முதலில் செயலில் இறங்குபவர், விரைவாக முடிவெடுப்பவர்; உங்களைச் சுற்றி வேலைகள் நடப்பதற்குக் காரணமே அதுதான். ஆனால் எல்லா விவரமும் கைக்கு வரும் முன்பே முடிவெடுத்துவிடுகிறீர்கள்.",
             "You move first and decide fast, which is why things around you actually get done — though "
             "you commit before the last fact is in.",
             Orientation.OUTWARD,
         ),
         gift=(
-            "மற்றவர்கள் இன்னும் விவாதித்துக்கொண்டிருக்கும்போது செயல்படுதல்",
+            "மற்றவர்கள் பேசிக்கொண்டிருக்கும்போதே செயலில் இறங்குவது",
             "acting while other people are still discussing",
         ),
         shadow=(
-            "பொறுமை — தானாகவே வந்திருக்கக்கூடிய முடிவை நீங்கள் வலுக்கட்டாயமாக வரவழைக்கிறீர்கள்",
+            "பொறுமை; தானாக வரக்கூடிய முடிவையும் அவசரப்படுத்திவிடுகிறீர்கள்",
             "patience; you force a decision that would have come to you on its own",
         ),
         mechanism=(
-            "ஏனெனில் மற்றவர்களுக்கு முன்பே உங்களை நகர்த்தும் அதே உந்துதல்தான், ஒரு முடிவு தானாக வர அனுமதிக்காமல் தடுக்கிறது",
+            "காரணம், எல்லோருக்கும் முன்னால் உங்களை ஓட வைக்கும் அதே வேகம்தான், ஒரு முடிவு தானாக வரும் வரை காத்திருக்க விடுவதில்லை",
             "because the same push that gets you moving before anyone else decides is what won't let a decision arrive on its own",
         ),
         # §2.2. Both entries are `shadow` ("patience; you force a decision that
@@ -826,58 +835,55 @@ _VOICE: dict[str, _Voice] = {
         # before it was actually ready.
         domain_flex={
             "WORK": (
-                "எண்கள் முழுமையாக வருவதற்கு முன்பே ஒரு திட்டத்தை முடிவுக்குத் தள்ளுவது — காத்திருப்பது "
-                "இடத்தை இழப்பது போலத் தோன்றும்",
+                "கணக்குகள் முழுமையாக வரும் முன்பே ஒரு திட்டத்தை முடிவுக்குத் தள்ளுவது; காத்திருந்தால் வாய்ப்பு போய்விடும் என்று தோன்றுவதுதான் காரணம்",
                 "pushing a project to a decision before the numbers are actually in, because waiting "
                 "feels like losing ground",
             ),
             "RELATIONSHIPS": (
-                "மறுபக்கத்தினர் தன் எண்ணத்தை முடிவு செய்வதற்கு முன்பே, உரையாடலை ஒரு முடிவுக்குக் கொண்டுவர வலியுறுத்துவது",
+                "எதிரில் இருப்பவர் யோசித்து முடிக்கும் முன்பே, பேச்சுக்கு ஒரு முடிவு கேட்டு நிற்பது",
                 "forcing a conversation to a conclusion before the other person has finished working out "
                 "what they think",
             ),
         },
         life_lesson=(
-            "ஒவ்வொரு போரும் உங்கள் பலத்திற்குத் தகுதியானது அல்ல என்பதை வாழ்க்கை உங்களுக்குத் "
-            "திரும்பத் திரும்பக் கற்பிக்கிறது.",
+            "எல்லாச் சண்டையிலும் உங்கள் பலத்தைச் செலவழிக்க வேண்டியதில்லை. வாழ்க்கை இதை உங்களுக்கு மீண்டும் மீண்டும் உணர்த்துகிறது.",
             "Life keeps teaching you that not every battle deserves your strength.",
         ),
         past_texture=(
-            "அது செயலுக்குப் பலன் தந்தது, தயக்கத்திற்குத் தண்டனை தந்தது — உங்களைக் களைப்படையவும் வைத்தது",
+            "அந்த ஆண்டுகள் செயலுக்குப் பலன் தந்தன, தயக்கத்துக்கு இடம் தரவில்லை; உங்களைக் களைப்படையவும் வைத்தன",
             "it rewarded action and punished hesitation, and it left you tired",
         ),
         now_texture=(
-            "இந்தக் காலம் முதலில் நகர்பவருக்குப் பலன் தரும்; ஆபத்து என்பது தவறான இலக்கில் சக்தியைச் செலவிடுவது",
+            "இந்தக் காலத்தில் முதலில் செயலில் இறங்குபவருக்கே பலன் கிடைக்கும்; தவறான இடத்தில் சக்தியைச் செலவழிப்பதுதான் ஒரே ஆபத்து",
             "this stretch rewards moving first; the risk is spending the energy on the wrong target",
         ),
         action=(
-            "ஒன்றை மட்டும் தேர்ந்தெடுத்து முன்னெடுங்கள்; மற்ற மூன்றைத் தள்ளுவதை நிறுத்துங்கள்",
-            "pick one thing to push, and stop pushing the other three",
+            "ஒன்றை மட்டும் தேர்ந்தெடுத்து முன்னெடுங்கள்; மற்றவற்றை இப்போதைக்கு ஒதுக்கிவையுங்கள்",
+            "pick one thing to push, and set the rest aside for now",
         ),
         asks=(
-            "நகர்வதற்கு முன்பே தேர்ந்தெடுக்கப்பட்ட ஒரு இலக்கு, நகர்ந்தபடி தேடும் ஒன்றல்ல",
+            "இறங்கிய பிறகு தேடாமல், இறங்கும் முன்பே முடிவு செய்த ஒரு இலக்கு",
             "a target chosen before you move, not one found while you're already moving",
         ),
     ),
     "MERCURY": _Voice(
         nature=_Line(
-            "வார்த்தைகளில் சிந்திப்பவர்; எந்தச் சூழலையும் பேச்சால் கடந்துவிடுவீர்கள் — ஆனால் ஏற்கனவே "
-            "சரியாக எடுத்த முடிவை மீண்டும் யோசித்து மாற்றிக்கொள்கிறீர்கள்.",
+            "நீங்கள் எதையும் வார்த்தைகளில் யோசிப்பவர்; எந்த இடத்திலும் பேசியே சமாளித்துவிடுவீர்கள். ஆனால் சரியாக எடுத்த முடிவையும் மறுபடி மறுபடி யோசித்து மாற்றிவிடுகிறீர்கள்.",
             "You think in words and can talk your way through most rooms — though you often reason "
             "yourself out of a decision you had already got right.",
             # Talking their way through rooms is done AT people.
             Orientation.OUTWARD,
         ),
         gift=(
-            "சிக்கலான ஒன்றை எளிமையாக விளக்குதல்",
+            "கடினமான ஒன்றையும் எளிமையாகப் புரிய வைப்பது",
             "explaining a complicated thing simply",
         ),
         shadow=(
-            "முடிவெடுத்தல் — இரு பக்கத்தையும் நன்றாக வாதிடுவதால் எதுவும் வெல்வதில்லை",
+            "முடிவெடுப்பது; இரண்டு பக்கத்திலும் இருக்கும் நியாயத்தைப் புரிந்துகொள்வதால், ஒரு முடிவுக்கு வருவதில் தாமதம் ஏற்படுகிறது",
             "deciding; you can argue both sides so well that neither one wins",
         ),
         mechanism=(
-            "ஏனெனில் ஒன்றை விளக்கும் அளவுக்குத் தெளிவாகப் புரிந்துகொள்வது, அதன் ஒவ்வொரு பக்கத்தையும் அதே தெளிவுடன் காண வைக்கிறது",
+            "காரணம், ஒன்றை விளக்கும் அளவுக்குத் தெளிவாகப் பார்க்கும்போது, அதன் எல்லாப் பக்கமும் அதே தெளிவுடன் தெரிந்துவிடுகிறது",
             "because seeing a thing clearly enough to explain it means seeing every side of it just as clearly",
         ),
         # §2.2. Both entries are `shadow` ("deciding; you can argue both sides so
@@ -885,11 +891,11 @@ _VOICE: dict[str, _Voice] = {
         # that no side wins.
         domain_flex={
             "WORK": (
-                "ஒரு முடிவைச் சுற்றிச் சுற்றிப் பேசி, கூட்டமே எந்த முடிவும் இல்லாமல் முடிந்துவிடுவது",
+                "ஒரே முடிவைச் சுற்றிச் சுற்றிப் பேசி, கூட்டம் எந்த முடிவும் இல்லாமல் முடிவது",
                 "talking a decision in circles until the meeting ends with no decision at all",
             ),
             "RELATIONSHIPS": (
-                "ஒரு கருத்து வேறுபாட்டில் துணையின் பக்கத்தை மிக நன்றாக வாதிட்டு, உங்கள் சொந்தக் கருத்தையே மறந்துவிடுவது",
+                "துணையோடு கருத்து வேறுபாடு வரும்போது, அவர் பக்க நியாயத்தைப் பேசிப் பேசி உங்கள் கருத்தையே மறந்துவிடுவது",
                 "arguing your partner's side of a disagreement so well that you lose track of your own",
             ),
         },
@@ -898,17 +904,16 @@ _VOICE: dict[str, _Voice] = {
         # was "understanding more is not the same as deciding better", which
         # closed on the shadow's own noun and left the complaint unanswered.
         life_lesson=(
-            "எல்லாவற்றையும் இன்னும் நன்றாக விளக்குவதன் மூலம் தீர்த்துவிட முடியாது என்பதை "
-            "வாழ்க்கை உங்களுக்குத் திரும்பத் திரும்பக் காட்டுகிறது.",
+            "எல்லாவற்றையும் இன்னும் நன்றாக விளக்கித் தீர்த்துவிட முடியாது. வாழ்க்கை இதை உங்களுக்கு மீண்டும் மீண்டும் காட்டுகிறது.",
             "Life keeps showing you that not everything is settled by explaining it better.",
         ),
         past_texture=(
-            "அது பேச்சு, கற்றல், ஆவணங்கள் நிறைந்த காலம் — நுணுக்கங்களைச் சரியாகச் செய்ததில் வெற்றி வந்தது",
+            "அந்த ஆண்டுகளில் பேச்சும் படிப்பும் ஆவணங்களும் நிறைந்திருந்தன; சின்னச் சின்ன விவரங்களைச் சரியாகச் செய்ததால்தான் வெற்றி வந்தது",
             "it was a stretch of talking, learning and paperwork, where the wins came from getting the "
             "details right",
         ),
         now_texture=(
-            "இந்தக் காலம் வார்த்தை, கற்றல், தெளிவான ஆவணங்களுக்குப் பலன் தரும் — உழைப்புக்கு மட்டும் அல்ல",
+            "இந்தக் காலத்தில் உழைப்பை விட, பேச்சும் படிப்பும் தெளிவான ஆவணங்களும்தான் அதிகப் பலன் தரும்",
             "this stretch pays for words, learning and clear paperwork more than for effort alone",
         ),
         action=(
@@ -916,25 +921,24 @@ _VOICE: dict[str, _Voice] = {
             "write it down before you agree to it; in this period the small details are what matter",
         ),
         asks=(
-            "இரு பக்கமும் வாதிட்ட பிறகும் மாறாமல் நிற்கும் ஒரு முடிவு",
+            "இரு பக்கமும் யோசித்த பிறகும் மாறாமல் நிற்கும் ஒரு முடிவு",
             "a decision that stays decided, even after you've argued both sides of it",
         ),
     ),
     "JUPITER": _Voice(
         nature=_Line(
-            "தீர்ப்புக்காக மக்கள் உங்களிடம் வருகிறார்கள்; நீங்கள் தாராளமாகக் கொடுக்கிறீர்கள் — ஆனால் "
-            "ஒருவரால் தாங்கக்கூடியதை விட அதிகமாக வாக்குறுதி அளிக்கிறீர்கள்.",
+            "ஆலோசனைக்காக மக்கள் உங்களைத் தேடி வருவார்கள்; நீங்களும் மனம் திறந்து சொல்வீர்கள். ஆனால் ஒருவரால் செய்ய முடிவதை விட அதிகமாக வாக்குக் கொடுத்துவிடுகிறீர்கள்.",
             "People come to you for judgment and you give it generously — though you promise more than "
             "one person can reasonably carry.",
             # Giving outward, and over-giving. Guru faces the room.
             Orientation.OUTWARD,
         ),
         gift=(
-            "மற்றவர்கள் நம்பிச் செயல்படும் அளவுக்கான தீர்ப்பு",
+            "மற்றவர்கள் நம்பிச் செயல்படும் அளவுக்கு நல்ல ஆலோசனை சொல்லும் திறன்",
             "judgment people trust enough to act on",
         ),
         shadow=(
-            "மறுத்துச் சொல்வது — அதனால் உங்கள் சம்மதம் பல இடங்களில் மெலிந்துவிடுகிறது",
+            "முடியாது என்று சொல்வது; அதனால் உங்கள் நேரமும் கவனமும் பல இடங்களுக்குச் சிதறுகிறது",
             "saying no, so your yes gets spread thin",
         ),
         # REWRITTEN 2026-08-11 with the beat-3 ordering fix, and this was the
@@ -945,8 +949,7 @@ _VOICE: dict[str, _Voice] = {
         # noun (the judgment people come for) and land on `shadow` (the yes
         # that will not close). See _beat_core_nature_extended's docstring.
         mechanism=(
-            "ஏனெனில் மற்றவர்கள் தேடி வரும் அதே தீர்ப்புதான், ஒவ்வொரு முறையும் பதில் சம்மதமாக "
-            "இருக்க வேண்டிய ஒரு காரணத்தையும் கண்டுபிடித்துவிடுகிறது",
+            "காரணம், மற்றவர்கள் தேடி வரும் அதே அறிவுதான், சரி என்று சொல்வதற்கு ஒவ்வொரு முறையும் ஒரு காரணத்தையும் கண்டுபிடித்துவிடுகிறது",
             "because the judgment people come to you for is the same judgment that keeps finding a "
             "reason the answer should be yes",
         ),
@@ -955,28 +958,26 @@ _VOICE: dict[str, _Voice] = {
         # easily.
         domain_flex={
             "WORK": (
-                "ஏற்கனவே இருக்கும் திட்டங்களே பாதிக்கப்படும் நிலையிலும், இன்னும் ஒரு திட்டத்தை ஏற்றுக்கொள்வது",
+                "கையில் இருக்கும் வேலைகளே பாதிக்கப்படும்போதும், இன்னொரு வேலையை ஏற்றுக்கொள்வது",
                 "agreeing to take on one more project when the ones you already have are the ones "
                 "suffering",
             ),
             "RELATIONSHIPS": (
-                "உங்களைச் சுற்றி இருப்பவர்களின் தேவைகளுக்கெல்லாம் சம்மதித்து, உங்களுக்கு மிக நெருக்கமானவருக்கு எதுவும் "
-                "மிச்சம் வைக்காதது",
+                "சுற்றி இருக்கும் எல்லோருக்கும் சரி சொல்லிவிட்டு, உங்களுக்கு மிக நெருக்கமானவருக்கு நேரம் இல்லாமல் போவது",
                 "saying yes to what everyone around you needs, until there is nothing left over for the "
                 "person closest to you",
             ),
         },
         life_lesson=(
-            "வரம்பின்றி அல்ல, விவேகத்துடன் கொடுக்கும்படி வாழ்க்கை உங்களைத் திரும்பத் "
-            "திரும்பக் கேட்கிறது.",
+            "அளவில்லாமல் அல்ல, யோசித்துக் கொடுப்பதுதான் நல்லது. வாழ்க்கை இதை உங்களுக்கு மீண்டும் மீண்டும் உணர்த்துகிறது.",
             "Life keeps asking you to give wisely rather than endlessly.",
         ),
         past_texture=(
-            "அது கதவுகளைத் திறந்தது, உங்கள் வட்டத்தை விரிவாக்கியது — நீங்கள் உள்ளே நுழைந்த அளவுக்கு",
+            "அந்த ஆண்டுகள் புதிய கதவுகளைத் திறந்தன, உங்கள் வட்டத்தையும் பெரிதாக்கின; நீங்கள் எவ்வளவு முன்வந்தீர்களோ அவ்வளவு கிடைத்தது",
             "it opened doors and widened your circle, to the extent that you walked through them",
         ),
         now_texture=(
-            "இந்தக் காலம் விரிவடைகிறது — கற்பித்தல், பிள்ளைகள், உங்களை விட மூத்தவர்களின் உதவி கிடைக்கும்",
+            "இது வளர்ச்சிக்கான காலம்; கல்வி, பிள்ளைகள், பெரியவர்களின் உதவி போன்றவை சாதகமாக அமையலாம்",
             "this stretch widens things — teaching, children, and people senior to you tend to help",
         ),
         action=(
@@ -985,14 +986,13 @@ _VOICE: dict[str, _Voice] = {
             "say yes to teaching someone; here it returns more than it costs",
         ),
         asks=(
-            "மிச்சமிருக்கும் சம்மதம் அர்த்தமுள்ளதாக இருக்க, ஒரு தெளிவான மறுப்பு",
+            "மற்ற சம்மதங்களுக்கு மதிப்பு இருக்க, தெளிவாகச் சொல்லும் ஒரு 'முடியாது'",
             "one clear no, so the rest of your yes still means something",
         ),
     ),
     "VENUS": _Voice(
         nature=_Line(
-            "சூழலையும் மனிதர்களையும் இதமாக வைத்திருப்பவர்; திறமை மட்டும் திறக்காத கதவுகளை அது "
-            "திறக்கும் — ஆனால் தெளிவைக் கொடுக்கும் அந்த ஒரு உரையாடலைத் தவிர்க்கிறீர்கள்.",
+            "நீங்கள் மனிதர்களை இதமாக உணர வைப்பவர்; திறமையால் மட்டும் திறக்காத கதவுகள் கூட இதனால் திறக்கும். ஆனால் மனம் விட்டுப் பேசித் தீர்க்க வேண்டிய அந்த ஒரு பேச்சை மட்டும் தவிர்த்துவிடுகிறீர்கள்.",
             "You make things pleasant and people comfortable, and that opens doors ability alone would "
             "not — though you avoid the one conversation that would clear the air.",
             # Acting ON the room to keep it pleasant, even where the cost is
@@ -1001,15 +1001,15 @@ _VOICE: dict[str, _Voice] = {
             Orientation.OUTWARD,
         ),
         gift=(
-            "மனிதர்களிடம் காட்டும் பொறுமையும், அது ஈட்டித் தரும் நல்லெண்ணமும்",
+            "மனிதர்களிடம் காட்டும் பொறுமையும், அதனால் கிடைக்கும் நல்ல பெயரும்",
             "patience with people, and the goodwill it earns",
         ),
         shadow=(
-            "நேரடி மோதல் — எதிர்த்துச் சொல்வதை விட உள்ளுக்குள் தாங்கிக்கொள்கிறீர்கள், அது சேர்ந்துகொண்டே வரும்",
+            "நேரடியாக மறுப்புச் சொல்வது; மனதில் இருப்பதைச் சொல்லாமல் வைத்துக்கொள்கிறீர்கள், அப்படிச் சேரும் வருத்தம் நாளடைவில் பெரிதாகிறது",
             "confrontation; you tend to absorb rather than object, and it accumulates",
         ),
         mechanism=(
-            "ஏனெனில் மற்றவர்களின் நல்லெண்ணத்தை ஈட்டித்தரும் அதே பொறுமைதான், நீங்கள் சொல்ல வேண்டிய எதிர்ப்பையும் விழுங்கிவிடுகிறது",
+            "காரணம், நல்ல பெயரைத் தரும் அதே பொறுமைதான், நீங்கள் சொல்ல வேண்டிய மறுப்பையும் விழுங்கச் செய்கிறது",
             "because the patience that earns people's goodwill is the same instinct that swallows the objection you should have raised",
         ),
         # §2.2. Both entries are `shadow` ("confrontation; you tend to absorb
@@ -1017,26 +1017,25 @@ _VOICE: dict[str, _Voice] = {
         # objection instead of raising it.
         domain_flex={
             "WORK": (
-                "உண்மையில் உடன்படாத ஒரு முடிவுக்குக் கூட்டத்தில் தலையசைத்து, பிறகு அதை யாரிடமும் எடுத்துச் சொல்லாதது",
+                "பிடிக்காத ஒரு முடிவுக்குக்கூடக் கூட்டத்தில் தலையசைத்துவிட்டு, பிறகு அதைப் பற்றி யாரிடமும் பேசாமல் இருப்பது",
                 "agreeing with a decision in the room that you actually disagree with, and raising it "
                 "with no one afterwards",
             ),
             "RELATIONSHIPS": (
-                "ஒரு சிறிய வருத்தத்தைச் சொல்லாமல் விட்டுவிட்டு, அது அமைதியாகப் பலவாகச் சேர்ந்துவிடுவது",
+                "சின்ன வருத்தத்தைச் சொல்லாமல் விட்டு, அது மெல்ல மெல்லப் பெரிதாவது",
                 "letting a small hurt go unsaid until it has quietly become several",
             ),
         },
         life_lesson=(
-            "மௌனத்தால் வாங்கிய அமைதி நீடிப்பதில்லை என்பதை வாழ்க்கை உங்களுக்குத் திரும்பத் "
-            "திரும்ப நினைவூட்டுகிறது.",
+            "பேசாமல் இருந்து வாங்கிய அமைதி நீடிக்காது. வாழ்க்கை இதை உங்களுக்கு மீண்டும் மீண்டும் நினைவூட்டுகிறது.",
             "Life keeps reminding you that peace bought with silence does not hold.",
         ),
         past_texture=(
-            "அது பொறுமைக்கு வசதியைத் திருப்பித் தந்தது, அதை மிகைப்படுத்தாமல் அனுபவிக்கும்படி கேட்டது",
+            "அந்த ஆண்டுகளில் உங்கள் பொறுமைக்குப் பலனாகப் பல வசதிகள் கிடைத்தன; அவற்றைச் சரியாகப் பயன்படுத்த வேண்டிய பொறுப்பும் கூடவே வந்தது",
             "it repaid patience with comfort, and asked you to enjoy it without over-spending it",
         ),
         now_texture=(
-            "இது தாராளமான காலம் — உறவுகள், வசதி, பணம் இப்போது எளிதாக நகர்கின்றன",
+            "உறவுகளும் வசதிகளும் பணமும் எளிதாகக் கைகூடக்கூடிய காலம் இது",
             "this is a generous stretch — relationships, comfort and money move more easily now",
         ),
         # Reworded 2026-08-12 (owner review, spec §7.4): the first draft said
@@ -1052,14 +1051,13 @@ _VOICE: dict[str, _Voice] = {
             "start what matters gently, and finish the conversation you have been avoiding",
         ),
         asks=(
-            "மென்மையாக்குவதை விட, நடத்த வேண்டிய அந்த ஒரு உரையாடல்",
+            "சமாளித்து மூடாமல், நேரடியாகப் பேசி முடிக்க வேண்டிய அந்த ஒரு பேச்சு",
             "the conversation you'd rather smooth over than actually have",
         ),
     ),
     "SATURN": _Voice(
         nature=_Line(
-            "தொடங்கியதை முடிப்பவர்; முதலில் இருப்பதை விட உறுதியாக இருப்பதையே விரும்புவீர்கள் — ஆனால் "
-            "ஒரு வழிமுறையை ஏற்ற பிறகு, அது பலன் தராத நிலையிலும் விட்டு விலகுவது கடினம்.",
+            "நீங்கள் தொடங்கியதை முடிப்பவர்; உடனடியாகக் கிடைப்பதைவிட, நிலையாகக் கிடைப்பதையே விரும்புவீர்கள். ஆனால் ஒரு வழியைப் பிடித்துவிட்டால், அது பலன் தராதபோதும் விடுவது கடினம்.",
             "You finish what you start and would rather be sure than first — though once committed "
             "to a way of working, you find it hard to let go.",
             # Sureness before speed, holding rather than reaching. Sani works
@@ -1067,15 +1065,15 @@ _VOICE: dict[str, _Voice] = {
             Orientation.INWARD,
         ),
         gift=(
-            "வேகமானவர்களைத் தோற்கடிக்கும் பிரச்சினைகளை விடத் தாக்குப்பிடித்தல்",
+            "வேகமாக ஓடுபவர்கள் கைவிடும் பிரச்சினைகளையும் தாக்குப்பிடித்துக் கடப்பது",
             "outlasting problems that defeat faster people",
         ),
         shadow=(
-            "தொடங்குவது — வராத ஒரு உறுதிக்காகக் காத்திருக்கிறீர்கள்",
+            "தொடங்குவது; எப்போதும் வராத ஒரு உறுதிக்காகக் காத்திருக்கிறீர்கள்",
             "starting; you wait for a certainty that does not arrive",
         ),
         mechanism=(
-            "ஏனெனில் உறுதியாகும் வரை நகராத அதே குணம்தான், மற்றவர்களை விட உங்களைத் தாக்குப்பிடிக்க வைக்கிறது, அது பயனற்றுப் போன பிறகும் உங்களை நிறுத்தி வைக்கிறது",
+            "காரணம், உறுதியாகத் தெரியும் வரை நகராத அதே குணம்தான் உங்களை எல்லோரையும் விட நீண்ட நாள் தாக்குப்பிடிக்க வைக்கிறது; அது பயன் தராத பிறகும் உங்களை அங்கேயே நிறுத்தி வைக்கிறது",
             "because the same refusal to move before you're sure is what lets you outlast everyone else, and what keeps you standing still after it stops helping",
         ),
         # §2.2. Both entries are `shadow` ("starting; you wait for a certainty
@@ -1083,13 +1081,12 @@ _VOICE: dict[str, _Voice] = {
         # a certainty that never comes.
         domain_flex={
             "WORK": (
-                "ஒரு திட்டமுன்மொழிவை முழுமையாகும் வரை தாமதப்படுத்துவது — கவனம் குறைவானவர் தன்னுடையதை முன்பே "
-                "சமர்ப்பித்துவிடுவார்",
+                "ஒரு திட்டத்தை முழுமையாக்கும் வரை கையிலேயே வைத்திருப்பது; அதற்குள் கவனம் குறைந்த ஒருவர் தன்னுடையதைக் கொடுத்துவிடுவார்",
                 "sitting on a proposal until it is airtight, while someone less careful ships theirs "
                 "first",
             ),
             "RELATIONSHIPS": (
-                "முக்கியமானதைச் சொல்ல சரியான தருணத்திற்காகக் காத்திருந்து, அந்தத் தருணமே அமைதியாகக் கடந்துவிடுவது",
+                "முக்கியமானதைச் சொல்ல சரியான நேரத்துக்குக் காத்திருந்து, அந்த நேரமே போய்விடுவது",
                 "waiting for the right moment to say what matters, until the moment has quietly passed",
             ),
         },
@@ -1101,8 +1098,7 @@ _VOICE: dict[str, _Voice] = {
         # of the delay is the waiting. Cf. the KETU soft-spot defect, which was
         # this same failure one facet earlier.
         life_lesson=(
-            "உறுதி வரும்வரை காத்திருப்பதன் விலை, உறுதியின்றித் தொடங்குவதை விட அதிகம் "
-            "என்பதை வாழ்க்கை உங்களுக்குக் கற்பிக்கிறது.",
+            "உறுதி வரும் வரை காத்திருப்பதன் இழப்பு, உறுதி இல்லாமல் தொடங்குவதை விட அதிகம். வாழ்க்கை இதை உங்களுக்கு மீண்டும் மீண்டும் உணர்த்துகிறது.",
             "Life keeps teaching you that waiting for certainty costs more than starting "
             "without it.",
         ),
@@ -1114,11 +1110,11 @@ _VOICE: dict[str, _Voice] = {
         # did inside it, it has left the rule and started inventing a
         # biography. The replacement stays on the period, where the rule is.
         past_texture=(
-            "அது பலனை விடப் பொறுமையையே அதிகம் கேட்டது; அங்கே எதுவும் அவசரத்திற்கு இணங்கவில்லை",
+            "அந்த ஆண்டுகள் பலனை விடப் பொறுமையையே அதிகம் கேட்டன; அவசரப்பட்டு எதுவும் நடக்கவில்லை",
             "it asked for endurance more than it offered reward, and nothing in it yielded to haste",
         ),
         now_texture=(
-            "இந்தக் காலம் தாமதமாகத் தரும், ஆனால் தரும் — அவசரப்பட்டு செய்வதை விட இப்போது கட்டுவது நீடிக்கும்",
+            "இந்தக் காலத்தில் பலன் தாமதமாக வரும், ஆனால் நிச்சயம் வரும்; அவசரப்பட்டுச் செய்வதை விட இப்போது கட்டுவதே நிலைக்கும்",
             "this stretch pays late, but it does pay; what you build now outlasts what you rush",
         ),
         # Reworded 2026-08-12 (owner review, spec §7.4): the first draft said
@@ -1133,28 +1129,27 @@ _VOICE: dict[str, _Voice] = {
             "keep one small commitment every day; this period rewards what you sustain",
         ),
         asks=(
-            "தயாராக உணரும் முன்பே எடுக்கப்படும் ஒரு தொடக்கம்",
+            "தயாராகிவிட்டோம் என்று தோன்றும் முன்பே செய்யும் ஒரு தொடக்கம்",
             "a start made before you feel ready for it, not after",
         ),
     ),
     "RAHU": _Voice(
         nature=_Line(
-            "உங்களுக்குக் கொடுக்கப்பட்ட இடத்தை விட அதிகம் வேண்டும் என்பவர்; மற்றவர் காணாத வழிகளைக் "
-            "கண்டுபிடிப்பீர்கள் — ஆனால் சென்றடைந்ததை அனுபவிக்க நிற்பதே இல்லை.",
+            "நீங்கள் கிடைத்ததை விட அதிகம் வேண்டும் என்று நினைப்பவர்; மற்றவர்கள் பார்க்காத வழிகளைக் கண்டுபிடிப்பீர்கள். ஆனால் போய்ச் சேர்ந்ததை அனுபவிக்க நிற்பதே இல்லை.",
             "You want more than the room you were given and you find routes other people do not see — "
             "though you rarely stop long enough to enjoy arriving.",
             Orientation.OUTWARD,
         ),
         gift=(
-            "மற்றவர்கள் சுவரைக் காணும் இடத்தில் ஒரு வழியைக் காணுதல்",
+            "மற்றவர்கள் சுவரைப் பார்க்கும் இடத்தில் ஒரு வழியைப் பார்ப்பது",
             "seeing an opening where other people see a wall",
         ),
         shadow=(
-            "முடிப்பது — நடப்பதை விட அடுத்தது எப்போதும் சுவாரஸ்யமாக இருக்கிறது",
+            "முடிப்பது; கையில் இருப்பதை விட அடுத்தது எப்போதும் சுவாரஸ்யமாகத் தெரிகிறது",
             "finishing; the next thing is always more interesting than the current one",
         ),
         mechanism=(
-            "ஏனெனில் மற்றவர்கள் காணாத வழியை உங்களுக்குக் காட்டும் அதே பசி, நீங்கள் ஏற்கனவே இருக்கும் வழியை முடிந்துவிட்டதாக உணர வைக்கிறது",
+            "காரணம், மற்றவர்கள் பார்க்காத வழியைக் காட்டும் அதே ஆசைதான், நீங்கள் போய்க்கொண்டிருக்கும் வழி முடிந்துவிட்டது போலவும் உணர வைக்கிறது",
             "because the same hunger that shows you the opening no one else sees is what makes the one you're already in feel finished before it is",
         ),
         # §2.2. Both entries are `shadow` ("finishing; the next thing is always
@@ -1162,26 +1157,25 @@ _VOICE: dict[str, _Voice] = {
         # next arriving before the current thing is actually closed out.
         domain_flex={
             "WORK": (
-                "தற்போதைய திட்டம் முழுமையாக முடிவதற்கு முன்பே அடுத்த திட்டத்தைத் தொடங்கிவிடுவது",
+                "கையில் இருக்கும் வேலை முடியும் முன்பே அடுத்த வேலையைத் தொடங்கிவிடுவது",
                 "starting the next project before the current one is actually closed out",
             ),
             "RELATIONSHIPS": (
-                "ஏற்கனவே இருக்கும் உறவில் முழுமையாக நிலைபெறுவதற்கு முன்பே, புதிதாக ஒன்றின் ஈர்ப்பை உணர்வது",
+                "இருக்கும் உறவில் முழுமையாகப் பொருந்தும் முன்பே, புதிதாக ஒன்றின் மேல் மனம் போவது",
                 "feeling the pull of what's new before you have finished settling into what you already "
                 "have",
             ),
         },
         life_lesson=(
-            "அடுத்ததாக நீங்கள் தேடுவது உண்மையில் நீங்கள் விரும்பியதுதானா என்று வாழ்க்கை "
-            "திரும்பத் திரும்பக் கேட்கிறது.",
+            "அடுத்ததாகத் தேடுவது உண்மையில் உங்களுக்கு வேண்டியதுதானா? வாழ்க்கை இதை உங்களிடம் மீண்டும் மீண்டும் கேட்கிறது.",
             "Life keeps asking whether the next thing is the one you actually wanted.",
         ),
         past_texture=(
-            "அது வழக்கத்திற்கு மாறான திருப்பங்கள் நிறைந்தது — நீங்கள் சென்ற பாதை திட்டமிட்டது அல்ல",
+            "அந்த ஆண்டுகள் எதிர்பாராத திருப்பங்கள் நிறைந்தவை; நீங்கள் திட்டமிட்ட பாதையில் அவை போகவில்லை",
             "it was a stretch of unusual turns — the route you took was not the one you planned",
         ),
         now_texture=(
-            "இந்தக் காலம் வழக்கத்திற்கு மாறான வழிகளைத் தருகிறது; தோன்றியதால் அல்ல, தேர்ந்தெடுத்து எடுங்கள்",
+            "இந்தக் காலத்தில் வழக்கத்துக்கு மாறான புதிய வாய்ப்புகள் வரலாம்; புதிதாக இருக்கிறது என்பதற்காக மட்டும் ஒன்றைத் தேர்ந்தெடுக்காமல், நன்றாக யோசித்துத் தேர்வு செய்வது நல்லது",
             "this stretch offers unconventional routes; take them deliberately, not because they appeared",
         ),
         action=(
@@ -1189,24 +1183,23 @@ _VOICE: dict[str, _Voice] = {
             "choose the route deliberately; do not take one just because it appeared",
         ),
         asks=(
-            "சென்றடைய முடியும் அளவுக்கு நீண்ட நேரம் பிடித்திருக்கப்படும் ஒரு இலக்கு",
+            "போய்ச் சேரும் வரை கைவிடாத ஒரு இலக்கு",
             "one destination held onto long enough to actually arrive",
         ),
     ),
     "KETU": _Voice(
         nature=_Line(
-            "எதையும் விரைவில் ஊடுருவிப் பார்ப்பவர்; எளிதில் வியப்படைவதில்லை — ஆனால் கேட்டே "
-            "தெரிந்துகொள்ளக்கூடிய ஒன்றிலிருந்தும் விலகிவிடுகிறீர்கள்.",
+            "நீங்கள் எதையும் விரைவில் புரிந்துகொள்பவர்; எளிதில் எதற்கும் மயங்குவதில்லை. ஆனால் ஒரு கேள்வி கேட்டாலே தெளிவாகிவிடும் விஷயத்தைக்கூடக் கேட்காமல் விட்டுவிடுவீர்கள்.",
             "You see through things quickly and are not easily impressed — though you withdraw from "
             "what you could simply have asked about.",
             Orientation.INWARD,
         ),
         gift=(
-            "உண்மையில் முக்கியமானது எது என்பதை நேராக அடைதல்",
+            "உண்மையில் முக்கியமானதை நேராகப் பிடிப்பது",
             "cutting straight to what actually matters",
         ),
         shadow=(
-            "தங்கியிருப்பது — சூழலுக்குத் தேவை அதுவாக இருக்கும்போதும் விலகிவிடுகிறீர்கள்",
+            "கூடவே இருப்பது; தேவைப்படும் நேரத்திலும் ஒதுங்கிவிடுகிறீர்கள்",
             # The English used to stop at "...is what the situation needs", which
             # dropped the verb its own Tamil carries (விலகிவிடுகிறீர்கள் — "you
             # withdraw"). Rendered into the frame it read "Where it costs you is
@@ -1217,7 +1210,7 @@ _VOICE: dict[str, _Voice] = {
             "staying — you withdraw at the times when staying is what the situation needs",
         ),
         mechanism=(
-            "ஏனெனில் முக்கியமற்றதைத் தாண்டிச் செல்லும் அதே உள்ளுணர்வுதான், ஒரு விஷயத்திற்கு உங்களை இன்னும் தேவைப்படும்போதே உங்களை விலக்கிச் செல்கிறது",
+            "காரணம், தேவையில்லாததைத் தாண்டிப் போகும் அதே உள்ளுணர்வுதான், ஒரு விஷயம் முடியும் முன்பே உங்களை விலக்கி அழைத்துச் செல்கிறது",
             "because the same instinct that cuts past what doesn't matter is what pulls you away before a thing is finished needing you",
         ),
         # §2.2. Both entries are `shadow` ("staying — you withdraw at the times
@@ -1225,26 +1218,25 @@ _VOICE: dict[str, _Voice] = {
         # right when staying was what was needed.
         domain_flex={
             "WORK": (
-                "ஒரு திட்டத்திற்கு உங்கள் இருப்பு மிகவும் தேவைப்படும் தருணத்திலேயே, அமைதியாக விலகிவிடுவது",
+                "ஒரு வேலைக்கு நீங்கள் மிகவும் தேவைப்படும் நேரத்தில் அமைதியாக ஒதுங்கிவிடுவது",
                 "going quiet on a project right when it most needs you to stay in the room",
             ),
             "RELATIONSHIPS": (
-                "ஒரு உரையாடல் கடினமாக மாறும் தருணத்திலேயே, அதில் தொடர்வதற்குப் பதிலாகப் பின்வாங்குவது",
+                "பேச்சு கடினமாகும் நேரத்தில், தொடர்ந்து பேசாமல் பின்வாங்கிவிடுவது",
                 "pulling back from a conversation the moment it turns difficult, instead of staying in "
                 "it",
             ),
         },
         life_lesson=(
-            "இன்னும் உங்கள் கவனத்திற்குத் தகுதியானதை விட்டு விலகாதீர்கள் என்பதை வாழ்க்கை "
-            "உங்களுக்குத் திரும்பத் திரும்ப நினைவூட்டுகிறது.",
+            "இன்னும் உங்கள் கவனம் தேவைப்படும் ஒன்றை விட்டுப் போக வேண்டாம். வாழ்க்கை இதை உங்களுக்கு மீண்டும் மீண்டும் நினைவூட்டுகிறது.",
             "Life keeps reminding you not to leave what still deserves your attention.",
         ),
         past_texture=(
-            "அது அமைதியாகப் பலவற்றை முடித்து வைத்தது; சேர்ப்பதை விட விட்டுவிடும்படி கேட்டது",
+            "அந்த ஆண்டுகள் அமைதியாகப் பலவற்றை முடித்து வைத்தன; சேர்ப்பதை விட விட்டுவிடவே கேட்டன",
             "it quietly closed things off, and asked you to let go more than to acquire",
         ),
         now_texture=(
-            "இந்தக் காலம் திறப்பதை விட முடிக்கிறது — அது இழப்பு அல்ல; தொடங்குவதை விட முடியுங்கள்",
+            "இந்தக் காலத்தில் புதிய தொடக்கங்களை விட முடிவுகளே அதிகம் வரும்; அது இழப்பு அல்ல, தொடங்குவதை விட முடிப்பதில் கவனம் செலுத்துவது நல்லது",
             "this stretch closes more than it opens, which is not a loss; finish things rather than "
             "start them",
         ),
@@ -1253,7 +1245,7 @@ _VOICE: dict[str, _Voice] = {
             "close one long-open thing rather than starting a new one",
         ),
         asks=(
-            "உங்கள் சொந்த ஆர்வமே அமைதியானதற்குப் பிறகும், அந்த இடத்தில் நீங்கள் இருப்பது",
+            "ஆர்வம் குறைந்த பிறகும், அங்கேயே தொடர்ந்து இருப்பது",
             "staying present in something after your own interest in it has already gone quiet",
         ),
     ),
@@ -1291,230 +1283,214 @@ _VOICE: dict[str, _Voice] = {
 _VOICE_THEM: dict[str, _Voice] = {
     "SUN": _Voice(
         nature=_Line(
-            "{name} பொறுப்பேற்கும் இயல்பு கொண்டவர்; அதை மற்றவர்கள் உடனே உணர்கிறார்கள் — ஆனால் "
-            "கருத்து வேறுபாட்டை வெளியே காட்டுவதை விட உள்ளுக்குள் அதிகம் உணர்கிறார்.",
+            "{name} இயல்பாகவே பொறுப்பை எடுத்துக்கொள்பவர்; அதை மற்றவர்கள் உடனே புரிந்துகொள்வார்கள். ஆனால் யாராவது அவரோடு மாறுபட்டால், வெளியே காட்டுவதை விட உள்ளுக்குள் அதிகம் வருத்தப்படுவார்.",
             "{name} comes across as someone in charge, and people read that quickly — though they "
             "take disagreement more personally than they let on.",
             Orientation.OUTWARD,
         ),
         gift=(
-            "கேட்காமலேயே மற்றவர்கள் அவரிடம் ஒப்படைக்கும் பொறுப்பு",
+            "அவர் கேட்காமலேயே மற்றவர்கள் அவரிடம் தரும் பொறுப்பு",
             "the authority people hand them without being asked",
         ),
         shadow=(
-            "தவறு என்று வெளிப்பட நேரும் தருணம் — தான் நம்பாத நிலைப்பாட்டையும் தொடர்ந்து காப்பாற்றுகிறார்",
+            "செய்தது தவறு என்று ஒப்புக்கொள்வது; தனக்கே நம்பிக்கை போன பிறகும், சொன்னதை விடாமல் பிடித்துக்கொள்கிறார்",
             "being seen to be wrong; they defend a position past the point they believe it",
         ),
         mechanism=(
-            "ஏனெனில் அந்தப் பொறுப்பு அவரது உறுதியின் மீதுதான் வந்தது; அதனால் அவர் காட்டும் "
-            "எந்தச் சந்தேகமும் அந்தப் பொறுப்பு நழுவுவது போலப் படுகிறது",
+            "காரணம், அந்தப் பொறுப்பு அவருடைய உறுதியைப் பார்த்துத்தான் வந்தது; அதனால் கொஞ்சம் சந்தேகம் காட்டினாலும், அது கைநழுவிப் போவது போல அவருக்குத் தோன்றுகிறது",
             "because that authority arrived on the strength of their certainty, so any doubt they "
             "show feels like the authority itself slipping",
         ),
         domain_flex={
             "WORK": (
-                "கூட்டத்தில் எடுத்த முடிவை, எல்லோரும் அதைக் கடந்து சென்ற பிறகும் பிடித்துக்கொள்வது — "
-                "பின்வாங்குவது தோல்வியாகத் தெரியும் என்பதால்",
+                "கூட்டத்தில் எடுத்த முடிவை, எல்லோரும் அடுத்த விஷயத்துக்குப் போன பிறகும் விடாமல் இருப்பது; பின்வாங்கினால் தோற்றது போல ஆகிவிடும் என்ற எண்ணம்தான் காரணம்",
                 "holding onto a decision in a meeting long after the room has moved past it, because "
                 "backing down there would look like losing",
             ),
             "RELATIONSHIPS": (
-                "தான்தான் தவறு செய்தவர் என்று தெரிந்த பிறகும், முதலில் மன்னிப்புக் கேட்க மறுப்பது",
+                "தவறு தன் பக்கம்தான் என்று தெரிந்த பிறகும், முதலில் மன்னிப்புக் கேட்க மனம் வராதது",
                 "refusing to say sorry first, even once they know they were the one who was wrong",
             ),
         },
         life_lesson=(
-            "தன்னை நிரூபிப்பதும் தானாக மாறுவதும் ஒன்றல்ல என்பதை வாழ்க்கை அவருக்குத் "
-            "திரும்பத் திரும்பச் சொல்கிறது.",
+            "தன்னை நிரூபிப்பது வேறு, தானாக வாழ்வது வேறு. வாழ்க்கை இதை அவருக்கு மீண்டும் மீண்டும் உணர்த்துகிறது.",
             "Life keeps reminding them that proving themselves and becoming themselves are not "
             "the same thing.",
         ),
         past_texture=(
-            "அது அவரை மற்றவர்கள் முன்னால் நிறுத்தியது — அவர் விரும்பினாலும் விரும்பாவிட்டாலும்",
+            "அவர் விரும்பினாலும் விரும்பாவிட்டாலும், அந்த ஆண்டுகள் அவரை எல்லோர் முன்னாலும் நிறுத்தின",
             "it put them in front of people, whether or not they wanted to be there",
         ),
         now_texture=(
-            "இது அவர் கவனிக்கப்படும் காலம்; பாதுகாப்பான பங்கை விட வெளிப்படையான பொறுப்பே அவருக்குப் பலன் தரும்",
+            "இது எல்லோர் கண்ணிலும் அவர் படும் காலம்; பாதுகாப்பான இடத்தில் ஒதுங்குவதை விட, வெளியே தெரியும் பொறுப்பே அவருக்குப் பலன் தரும்",
             "this is the stretch where they are seen; the visible role serves them better than the safe one",
         ),
         action=(
-            "தான் செய்யும் வேலைக்குத் தன் பெயர் இருக்கச் செய்வது — இந்தக் காலத்தில் உழைப்பை விட "
-            "அது தெரிவதுதான் பலன் தரும்",
+            "தன் வேலைக்குத் தன் பெயர் தெரியும்படி செய்வது; இந்தக் காலத்தில் உழைப்போடு அது வெளியே தெரிவதும்தான் பலன் தரும்",
             "putting their name on their work — this period converts visibility, not effort alone",
         ),
         asks=(
-            "மற்றவர்கள் முன் நிலைத்திருக்கும் நம்பிக்கை, முடிவு உறுதி செய்யப்படுவதற்கு முன்பே",
+            "முடிவு எப்படி வரும் என்று தெரியாதபோதும், மற்றவர்கள் முன் தளராமல் நிற்பது",
             "steady confidence in front of people, even before the outcome is certain",
         ),
     ),
     "MOON": _Voice(
         nature=_Line(
-            "யாரும் பேசுவதற்கு முன்பே {name} சூழலைப் புரிந்துகொள்கிறார்; அதனால் மற்றவர்கள் தங்கள் "
-            "கவலைகளை அவரிடம் கொண்டு வருகிறார்கள் — ஆனால் பிறரின் மனநிலை தேவைக்கும் அதிக நேரம் "
-            "அவருடன் தங்கிவிடுகிறது.",
+            "யாரும் பேசுவதற்கு முன்பே அங்கே என்ன நிலைமை என்று {name} உணர்ந்துவிடுவார்; அதனால்தான் மற்றவர்கள் தங்கள் கவலைகளை அவரிடம் சொல்கிறார்கள். ஆனால் அவர்களுடைய மனநிலை நீண்ட நேரம் அவருக்குள் தங்கிவிடுகிறது.",
             "{name} reads a room before anyone speaks, and people bring them their troubles — though "
             "other people's moods stay with them longer than they should.",
             Orientation.INWARD,
         ),
         gift=(
-            "மற்றவர்களுக்கு என்ன தேவை என்பதை அவர்கள் சொல்வதற்கு முன்பே அறிதல்",
+            "மற்றவர்களுக்கு என்ன தேவை என்பதை அவர்கள் சொல்லும் முன்பே புரிந்துகொள்வது",
             "reading what people need before they say it",
         ),
         shadow=(
-            "அழுத்தத்தில் நிலைத்திருத்தல் — அவரது மனநிலை சூழலின் மனநிலையைப் பின்தொடர்கிறது",
+            "அழுத்தமான நேரத்தில் நிதானமாக இருப்பது; சுற்றி இருப்பவர்களின் மனநிலை அவரையும் மாற்றிவிடுகிறது",
             "steadiness under pressure; their mood follows the room's more than they would like",
         ),
         mechanism=(
-            "ஏனெனில் ஒரு சூழலை அவரால் படிக்க முடியும் அதே திறந்த தன்மைதான், அதன் மனநிலையை அவருக்குள் இறங்க விடுகிறது",
+            "காரணம், மற்றவர்களைப் புரிந்துகொள்ள உதவும் அதே மென்மையான மனம்தான், அவர்களுடைய மனநிலையையும் அவருக்குள் இழுத்துக்கொள்கிறது",
             "because the same openness that lets them read a room is what lets its mood settle into them",
         ),
         domain_flex={
             "WORK": (
-                "பதற்றமான கூட்டத்தின் மனநிலையை, அது முடிந்த நீண்ட நேரத்திற்குப் பிறகும் வீட்டிற்குக் கொண்டு செல்வது",
+                "பதற்றமான ஒரு கூட்டத்தின் தாக்கத்தை, அது முடிந்த பிறகும் வீடு வரை கொண்டு வருவது",
                 "carrying a tense meeting's mood home long after the meeting itself is over",
             ),
             "RELATIONSHIPS": (
-                "துணையின் மோசமான நாளை, யாரும் அதை முடிவு செய்யாமலேயே தன் சொந்த நாளாக ஏற்றுக்கொள்வது",
+                "துணைக்கு மோசமான நாள் என்றால், அது அவருக்கும் மோசமான நாளாகிவிடுவது",
                 "taking on a partner's bad day as if it were their own, without either of them deciding that",
             ),
         },
         life_lesson=(
-            "எல்லாவற்றையும் சுமக்காமலேயே அக்கறை காட்ட முடியும் என்பதை வாழ்க்கை அவருக்குத் "
-            "திரும்பத் திரும்பக் கற்பிக்கிறது.",
+            "எல்லாவற்றையும் சுமக்காமலும் அக்கறையோடு இருக்கலாம். வாழ்க்கை இதை அவருக்கு மீண்டும் மீண்டும் உணர்த்துகிறது.",
             "Life keeps asking them to care without carrying all of it.",
         ),
         past_texture=(
-            "அது அடிக்கடி நகர்ந்தது — இடம், மனநிலை, மனிதர்கள் — அதற்குள் நிலையாக இருக்கும்படி அவரைக் கேட்டது",
+            "அந்த ஆண்டுகளில் வீட்டுச் சூழல், மனநிலை, சுற்றியிருந்த மனிதர்கள் எனப் பல விஷயங்கள் அடிக்கடி மாறிக்கொண்டிருந்தன; அதற்கு நடுவிலும் அவர் நிதானமாக இருக்க வேண்டியிருந்தது",
             "it moved often — homes, moods, people — and asked them to stay steady inside all of it",
         ),
         now_texture=(
-            "இந்தக் காலம் மனிதர்களையும் மனநிலையையும் சுற்றியே நகர்கிறது; தன் சொந்தத் தாளத்தை அவர் "
-            "காத்துக்கொண்டால் நன்றாக நடக்கும்",
+            "இந்தக் காலத்தில் மனிதர்களும் மனநிலையும்தான் எல்லாவற்றையும் தீர்மானிக்கும்; தன் இயல்பான வேகத்தை அவர் விடாவிட்டால் நன்றாக நடக்கும்",
             "this stretch runs on people and mood; if they keep their own rhythm it goes well",
         ),
         action=(
-            "தூக்கத்தையும் தினசரி நேரங்களையும் சீராக வைத்துக்கொள்வது — இந்தக் காலத்தில் அவரது "
-            "நிலைத்தன்மையே எல்லாவற்றுக்கும் அடிப்படை",
+            "தூக்கத்தையும் தினசரி நேரங்களையும் சீராக வைத்துக்கொள்வது; இந்தக் காலத்தில் அவருடைய நிதானமே எல்லாவற்றுக்கும் அடிப்படை",
             "protecting their sleep and the rhythm of their days; this period runs on their steadiness",
         ),
         asks=(
-            "சூழல் அமைதியாகும் வரை காத்திராத ஒரு நிலைத்தன்மை",
+            "சுற்றி அமைதியாகும் வரை காத்திருக்காத மன நிதானம்",
             "a steadiness that doesn't wait for the room to settle first",
         ),
     ),
     "MARS": _Voice(
         nature=_Line(
-            "{name} முதலில் செயல்படுபவர், விரைவாக முடிவெடுப்பவர் — அவரைச் சுற்றி வேலைகள் நடப்பதற்குக் "
-            "காரணமே அதுதான். ஆனால் கடைசித் தகவல் வருவதற்கு முன்பே முடிவெடுத்துவிடுகிறார்.",
+            "{name} முதலில் செயலில் இறங்குபவர், விரைவாக முடிவெடுப்பவர்; அவரைச் சுற்றி வேலைகள் நடப்பதற்குக் காரணமே அதுதான். ஆனால் எல்லா விவரமும் கைக்கு வரும் முன்பே முடிவெடுத்துவிடுகிறார்.",
             "{name} moves first and decides fast, which is why things around them actually get done — "
             "though they commit before the last fact is in.",
             Orientation.OUTWARD,
         ),
         gift=(
-            "மற்றவர்கள் இன்னும் விவாதித்துக்கொண்டிருக்கும்போது செயல்படுதல்",
+            "மற்றவர்கள் பேசிக்கொண்டிருக்கும்போதே செயலில் இறங்குவது",
             "acting while other people are still discussing",
         ),
         shadow=(
-            "பொறுமை — தானாகவே வந்திருக்கக்கூடிய முடிவை அவர் வலுக்கட்டாயமாக வரவழைக்கிறார்",
+            "பொறுமை; தானாக வரக்கூடிய முடிவையும் அவசரப்படுத்திவிடுகிறார்",
             "patience; they force a decision that would have come to them on its own",
         ),
         mechanism=(
-            "ஏனெனில் மற்றவர்களுக்கு முன்பே அவரை நகர்த்தும் அதே உந்துதல்தான், ஒரு முடிவு தானாக வர அனுமதிக்காமல் தடுக்கிறது",
+            "காரணம், எல்லோருக்கும் முன்னால் அவரை ஓட வைக்கும் அதே வேகம்தான், ஒரு முடிவு தானாக வரும் வரை காத்திருக்க விடுவதில்லை",
             "because the same push that gets them moving before anyone else decides is what won't let "
             "a decision arrive on its own",
         ),
         domain_flex={
             "WORK": (
-                "எண்கள் முழுமையாக வருவதற்கு முன்பே ஒரு திட்டத்தை முடிவுக்குத் தள்ளுவது — காத்திருப்பது "
-                "இடத்தை இழப்பது போலத் தோன்றும்",
+                "கணக்குகள் முழுமையாக வரும் முன்பே ஒரு திட்டத்தை முடிவுக்குத் தள்ளுவது; காத்திருந்தால் வாய்ப்பு போய்விடும் என்று தோன்றுவதுதான் காரணம்",
                 "pushing a project to a decision before the numbers are actually in, because waiting "
                 "feels like losing ground",
             ),
             "RELATIONSHIPS": (
-                "மறுபக்கத்தினர் தன் எண்ணத்தை முடிவு செய்வதற்கு முன்பே, உரையாடலை ஒரு முடிவுக்குக் கொண்டுவர வலியுறுத்துவது",
+                "எதிரில் இருப்பவர் யோசித்து முடிக்கும் முன்பே, பேச்சுக்கு ஒரு முடிவு கேட்டு நிற்பது",
                 "forcing a conversation to a conclusion before the other person has finished working out "
                 "what they think",
             ),
         },
         life_lesson=(
-            "ஒவ்வொரு போரும் தன் பலத்திற்குத் தகுதியானது அல்ல என்பதை வாழ்க்கை அவருக்குத் "
-            "திரும்பத் திரும்பக் கற்பிக்கிறது.",
+            "எல்லாச் சண்டையிலும் தன் பலத்தைச் செலவழிக்க வேண்டியதில்லை. வாழ்க்கை இதை அவருக்கு மீண்டும் மீண்டும் உணர்த்துகிறது.",
             "Life keeps teaching them that not every battle deserves their strength.",
         ),
         past_texture=(
-            "அது செயலுக்குப் பலன் தந்தது, தயக்கத்திற்குத் தண்டனை தந்தது — அவரைக் களைப்படையவும் வைத்தது",
+            "அந்த ஆண்டுகள் செயலுக்குப் பலன் தந்தன, தயக்கத்துக்கு இடம் தரவில்லை; அவரைக் களைப்படையவும் வைத்தன",
             "it rewarded action and punished hesitation, and it left them tired",
         ),
         now_texture=(
-            "இந்தக் காலம் முதலில் நகர்பவருக்குப் பலன் தரும்; ஆபத்து என்பது தவறான இலக்கில் சக்தியைச் செலவிடுவது",
+            "இந்தக் காலத்தில் முதலில் செயலில் இறங்குபவருக்கே பலன் கிடைக்கும்; தவறான இடத்தில் சக்தியைச் செலவழிப்பதுதான் ஒரே ஆபத்து",
             "this stretch rewards moving first; the risk is spending the energy on the wrong target",
         ),
         action=(
-            "ஒன்றை மட்டும் தேர்ந்தெடுத்து முன்னெடுப்பது; மற்ற மூன்றையும் தள்ளுவதை நிறுத்துவது",
-            "picking one thing to push, and letting the other three go",
+            "ஒன்றை மட்டும் தேர்ந்தெடுத்து முன்னெடுப்பது; மற்றவற்றை இப்போதைக்கு ஒதுக்கிவைப்பது",
+            "picking one thing to push, and setting the rest aside for now",
         ),
         asks=(
-            "நகர்வதற்கு முன்பே தேர்ந்தெடுக்கப்பட்ட ஒரு இலக்கு, நகர்ந்தபடி தேடும் ஒன்றல்ல",
+            "இறங்கிய பிறகு தேடாமல், இறங்கும் முன்பே முடிவு செய்த ஒரு இலக்கு",
             "a target chosen before they move, not one found while they're already moving",
         ),
     ),
     "MERCURY": _Voice(
         nature=_Line(
-            "{name} வார்த்தைகளில் சிந்திப்பவர்; எந்தச் சூழலையும் பேச்சால் கடந்துவிடுவார் — ஆனால் "
-            "ஏற்கனவே சரியாக எடுத்த முடிவை மீண்டும் யோசித்து மாற்றிக்கொள்கிறார்.",
+            "{name} எதையும் வார்த்தைகளில் யோசிப்பவர்; எந்த இடத்திலும் பேசியே சமாளித்துவிடுவார். ஆனால் சரியாக எடுத்த முடிவையும் மறுபடி மறுபடி யோசித்து மாற்றிவிடுகிறார்.",
             "{name} thinks in words and can talk their way through most rooms — though they often "
             "reason themselves out of a decision they had already got right.",
             Orientation.OUTWARD,
         ),
         gift=(
-            "சிக்கலான ஒன்றை எளிமையாக விளக்குதல்",
+            "கடினமான ஒன்றையும் எளிமையாகப் புரிய வைப்பது",
             "explaining a complicated thing simply",
         ),
         shadow=(
-            "முடிவெடுத்தல் — இரு பக்கத்தையும் அவர் நன்றாக வாதிடுவதால் எதுவும் வெல்வதில்லை",
+            "முடிவெடுப்பது; இரண்டு பக்கத்திலும் இருக்கும் நியாயத்தைப் புரிந்துகொள்வதால், ஒரு முடிவுக்கு வருவதில் அவருக்குத் தாமதம் ஏற்படுகிறது",
             "deciding; they can argue both sides so well that neither one wins",
         ),
         mechanism=(
-            "ஏனெனில் ஒன்றை விளக்கும் அளவுக்குத் தெளிவாகப் புரிந்துகொள்வது, அதன் ஒவ்வொரு பக்கத்தையும் அதே தெளிவுடன் காண வைக்கிறது",
+            "காரணம், ஒன்றை விளக்கும் அளவுக்குத் தெளிவாகப் பார்க்கும்போது, அதன் எல்லாப் பக்கமும் அதே தெளிவுடன் தெரிந்துவிடுகிறது",
             "because seeing a thing clearly enough to explain it means seeing every side of it just as clearly",
         ),
         domain_flex={
             "WORK": (
-                "ஒரு முடிவைச் சுற்றிச் சுற்றிப் பேசி, கூட்டமே எந்த முடிவும் இல்லாமல் முடிந்துவிடுவது",
+                "ஒரே முடிவைச் சுற்றிச் சுற்றிப் பேசி, கூட்டம் எந்த முடிவும் இல்லாமல் முடிவது",
                 "talking a decision in circles until the meeting ends with no decision at all",
             ),
             "RELATIONSHIPS": (
-                "ஒரு கருத்து வேறுபாட்டில் துணையின் பக்கத்தை மிக நன்றாக வாதிட்டு, தன் சொந்தக் கருத்தையே மறந்துவிடுவது",
+                "துணையோடு கருத்து வேறுபாடு வரும்போது, துணையின் பக்க நியாயத்தைப் பேசிப் பேசி தன் கருத்தையே மறந்துவிடுவது",
                 "arguing a partner's side of a disagreement so well that they lose track of their own",
             ),
         },
         life_lesson=(
-            "எல்லாவற்றையும் இன்னும் நன்றாக விளக்குவதன் மூலம் தீர்த்துவிட முடியாது என்பதை "
-            "வாழ்க்கை அவருக்குத் திரும்பத் திரும்பக் காட்டுகிறது.",
+            "எல்லாவற்றையும் இன்னும் நன்றாக விளக்கித் தீர்த்துவிட முடியாது. வாழ்க்கை இதை அவருக்கு மீண்டும் மீண்டும் காட்டுகிறது.",
             "Life keeps showing them that not everything is settled by explaining it better.",
         ),
         past_texture=(
-            "அது பேச்சு, கற்றல், ஆவணங்கள் நிறைந்த காலம் — நுணுக்கங்களைச் சரியாகச் செய்ததில் வெற்றி வந்தது",
+            "அந்த ஆண்டுகளில் பேச்சும் படிப்பும் ஆவணங்களும் நிறைந்திருந்தன; சின்னச் சின்ன விவரங்களைச் சரியாகச் செய்ததால்தான் வெற்றி வந்தது",
             "it was a stretch of talking, learning and paperwork, where the wins came from getting the "
             "details right",
         ),
         now_texture=(
-            "இந்தக் காலம் வார்த்தை, கற்றல், தெளிவான ஆவணங்களுக்குப் பலன் தரும் — உழைப்புக்கு மட்டும் அல்ல",
+            "இந்தக் காலத்தில் உழைப்பை விட, பேச்சும் படிப்பும் தெளிவான ஆவணங்களும்தான் அதிகப் பலன் தரும்",
             "this stretch pays for words, learning and clear paperwork more than for effort alone",
         ),
         action=(
-            "எதற்கும் ஒப்புக்கொள்வதற்கு முன் எழுதி வைப்பது — இந்தக் காலத்தில் சிறிய விவரங்கள்தான் முக்கியமாகின்றன",
+            "எதற்கும் ஒப்புக்கொள்ளும் முன் எழுதி வைப்பது; இந்தக் காலத்தில் சின்ன விவரங்கள்தான் முக்கியம்",
             "writing it down before agreeing to it; in this period the small details are what matter",
         ),
         asks=(
-            "இரு பக்கமும் வாதிட்ட பிறகும் மாறாமல் நிற்கும் ஒரு முடிவு",
+            "இரு பக்கமும் யோசித்த பிறகும் மாறாமல் நிற்கும் ஒரு முடிவு",
             "a decision that stays decided, even after they've argued both sides of it",
         ),
     ),
     "JUPITER": _Voice(
         nature=_Line(
-            "{name} மக்கள் தீர்ப்புக்காகத் தேடி வரும் ஒருவர்; அவர் தாராளமாகக் கொடுக்கிறார் — ஆனால் "
-            "ஒருவரால் தாங்கக்கூடியதை விட அதிகமாக வாக்குறுதி அளிக்கிறார்.",
+            "ஆலோசனைக்காக மக்கள் {name}-ஐத் தேடி வருவார்கள்; அவரும் மனம் திறந்து சொல்வார். ஆனால் ஒருவரால் செய்ய முடிவதை விட அதிகமாக வாக்குக் கொடுத்துவிடுகிறார்.",
             # Named twice on purpose: with "people" in the sentence, a "they"
             # here could be read as the people rather than as the person.
             "People come to {name} for judgment, and it is given generously — though {name} "
@@ -1522,277 +1498,259 @@ _VOICE_THEM: dict[str, _Voice] = {
             Orientation.OUTWARD,
         ),
         gift=(
-            "மற்றவர்கள் நம்பிச் செயல்படும் அளவுக்கான தீர்ப்பு",
+            "மற்றவர்கள் நம்பிச் செயல்படும் அளவுக்கு நல்ல ஆலோசனை சொல்லும் திறன்",
             "judgment people trust enough to act on",
         ),
         shadow=(
-            "மறுத்துச் சொல்வது — அதனால் அவரது சம்மதம் பல இடங்களில் மெலிந்துவிடுகிறது",
+            "முடியாது என்று சொல்வது; அதனால் அவருடைய நேரமும் கவனமும் பல இடங்களுக்குச் சிதறுகிறது",
             "saying no, so their yes gets spread thin",
         ),
         mechanism=(
-            "ஏனெனில் மற்றவர்கள் தேடி வரும் அதே தீர்ப்புதான், ஒவ்வொரு முறையும் பதில் சம்மதமாக "
-            "இருக்க வேண்டிய ஒரு காரணத்தையும் கண்டுபிடித்துவிடுகிறது",
+            "காரணம், மற்றவர்கள் தேடி வரும் அதே அறிவுதான், சரி என்று சொல்வதற்கு ஒவ்வொரு முறையும் ஒரு காரணத்தையும் கண்டுபிடித்துவிடுகிறது",
             "because the judgment people come to them for is the same judgment that keeps finding a "
             "reason the answer should be yes",
         ),
         domain_flex={
             "WORK": (
-                "ஏற்கனவே இருக்கும் திட்டங்களே பாதிக்கப்படும் நிலையிலும், இன்னும் ஒரு திட்டத்தை ஏற்றுக்கொள்வது",
+                "கையில் இருக்கும் வேலைகளே பாதிக்கப்படும்போதும், இன்னொரு வேலையை ஏற்றுக்கொள்வது",
                 "agreeing to take on one more project when the ones they already have are the ones "
                 "suffering",
             ),
             "RELATIONSHIPS": (
-                "தன்னைச் சுற்றி இருப்பவர்களின் தேவைகளுக்கெல்லாம் சம்மதித்து, தனக்கு மிக நெருக்கமானவருக்கு "
-                "எதுவும் மிச்சம் வைக்காதது",
+                "சுற்றி இருக்கும் எல்லோருக்கும் சரி சொல்லிவிட்டு, தனக்கு மிக நெருக்கமானவருக்கு நேரம் இல்லாமல் போவது",
                 "saying yes to what everyone around them needs, until there is nothing left over for the "
                 "person closest to them",
             ),
         },
         life_lesson=(
-            "வரம்பின்றி அல்ல, விவேகத்துடன் கொடுக்கும்படி வாழ்க்கை அவரைத் திரும்பத் "
-            "திரும்பக் கேட்கிறது.",
+            "அளவில்லாமல் அல்ல, யோசித்துக் கொடுப்பதுதான் நல்லது. வாழ்க்கை இதை அவருக்கு மீண்டும் மீண்டும் உணர்த்துகிறது.",
             "Life keeps asking them to give wisely rather than endlessly.",
         ),
         past_texture=(
-            "அது கதவுகளைத் திறந்தது, அவரது வட்டத்தை விரிவாக்கியது — அவர் உள்ளே நுழைந்த அளவுக்கு",
+            "அந்த ஆண்டுகள் புதிய கதவுகளைத் திறந்தன, அவருடைய வட்டத்தையும் பெரிதாக்கின; அவர் எவ்வளவு முன்வந்தாரோ அவ்வளவு கிடைத்தது",
             "it opened doors and widened their circle, to the extent that they walked through them",
         ),
         now_texture=(
-            "இந்தக் காலம் விரிவடைகிறது — கற்பித்தல், பிள்ளைகள், அவரை விட மூத்தவர்களின் உதவி கிடைக்கும்",
+            "இது வளர்ச்சிக்கான காலம்; கல்வி, பிள்ளைகள், பெரியவர்களின் உதவி போன்றவை சாதகமாக அமையலாம்",
             "this stretch widens things — teaching, children, and people senior to them tend to help",
         ),
         action=(
-            "யாருக்காவது ஒன்றைக் கற்றுக் கொடுப்பது — அது எடுக்கும் நேரத்தை விட அதிகமாகவே "
-            "திரும்பக் கிடைக்கும்",
+            "யாருக்காவது ஒன்றைக் கற்றுக் கொடுப்பது; அதற்கு ஆகும் நேரத்தை விட அதிகமாகவே திரும்பக் கிடைக்கும்",
             "saying yes to teaching someone; here it returns more than it costs",
         ),
         asks=(
-            "மிச்சமிருக்கும் சம்மதம் அர்த்தமுள்ளதாக இருக்க, ஒரு தெளிவான மறுப்பு",
+            "மற்ற சம்மதங்களுக்கு மதிப்பு இருக்க, தெளிவாகச் சொல்லும் ஒரு 'முடியாது'",
             "one clear no, so the rest of their yes still means something",
         ),
     ),
     "VENUS": _Voice(
         nature=_Line(
-            "{name} சூழலையும் மனிதர்களையும் இதமாக வைத்திருப்பவர்; திறமை மட்டும் திறக்காத கதவுகளை அது "
-            "திறக்கும் — ஆனால் தெளிவைக் கொடுக்கும் அந்த ஒரு உரையாடலைத் தவிர்க்கிறார்.",
+            "{name} மனிதர்களை இதமாக உணர வைப்பவர்; திறமையால் மட்டும் திறக்காத கதவுகள் கூட இதனால் திறக்கும். ஆனால் மனம் விட்டுப் பேசித் தீர்க்க வேண்டிய அந்த ஒரு பேச்சை மட்டும் தவிர்த்துவிடுகிறார்.",
             "{name} makes things pleasant and people comfortable, and that opens doors ability alone "
             "would not — though they avoid the one conversation that would clear the air.",
             Orientation.OUTWARD,
         ),
         gift=(
-            "மனிதர்களிடம் காட்டும் பொறுமையும், அது ஈட்டித் தரும் நல்லெண்ணமும்",
+            "மனிதர்களிடம் காட்டும் பொறுமையும், அதனால் கிடைக்கும் நல்ல பெயரும்",
             "patience with people, and the goodwill it earns",
         ),
         shadow=(
-            "நேரடி மோதல் — எதிர்த்துச் சொல்வதை விட உள்ளுக்குள் தாங்கிக்கொள்கிறார், அது சேர்ந்துகொண்டே வரும்",
+            "நேரடியாக மறுப்புச் சொல்வது; மனதில் இருப்பதைச் சொல்லாமல் வைத்துக்கொள்கிறார், அப்படிச் சேரும் வருத்தம் நாளடைவில் பெரிதாகிறது",
             "confrontation; they tend to absorb rather than object, and it accumulates",
         ),
         mechanism=(
-            "ஏனெனில் மற்றவர்களின் நல்லெண்ணத்தை ஈட்டித்தரும் அதே பொறுமைதான், அவர் சொல்ல வேண்டிய எதிர்ப்பையும் விழுங்கிவிடுகிறது",
+            "காரணம், நல்ல பெயரைத் தரும் அதே பொறுமைதான், அவர் சொல்ல வேண்டிய மறுப்பையும் விழுங்கச் செய்கிறது",
             "because the patience that earns people's goodwill is the same instinct that swallows the "
             "objection they should have raised",
         ),
         domain_flex={
             "WORK": (
-                "உண்மையில் உடன்படாத ஒரு முடிவுக்குக் கூட்டத்தில் தலையசைத்து, பிறகு அதை யாரிடமும் எடுத்துச் சொல்லாதது",
+                "பிடிக்காத ஒரு முடிவுக்குக்கூடக் கூட்டத்தில் தலையசைத்துவிட்டு, பிறகு அதைப் பற்றி யாரிடமும் பேசாமல் இருப்பது",
                 "agreeing with a decision in the room that they actually disagree with, and raising it "
                 "with no one afterwards",
             ),
             "RELATIONSHIPS": (
-                "ஒரு சிறிய வருத்தத்தைச் சொல்லாமல் விட்டுவிட்டு, அது அமைதியாகப் பலவாகச் சேர்ந்துவிடுவது",
+                "சின்ன வருத்தத்தைச் சொல்லாமல் விட்டு, அது மெல்ல மெல்லப் பெரிதாவது",
                 "letting a small hurt go unsaid until it has quietly become several",
             ),
         },
         life_lesson=(
-            "மௌனத்தால் வாங்கிய அமைதி நீடிப்பதில்லை என்பதை வாழ்க்கை அவருக்குத் திரும்பத் "
-            "திரும்ப நினைவூட்டுகிறது.",
+            "பேசாமல் இருந்து வாங்கிய அமைதி நீடிக்காது. வாழ்க்கை இதை அவருக்கு மீண்டும் மீண்டும் நினைவூட்டுகிறது.",
             "Life keeps reminding them that peace bought with silence does not hold.",
         ),
         past_texture=(
-            "அது பொறுமைக்கு வசதியைத் திருப்பித் தந்தது, அதை மிகைப்படுத்தாமல் அனுபவிக்கும்படி அவரைக் கேட்டது",
+            "அந்த ஆண்டுகளில் அவருடைய பொறுமைக்குப் பலனாகப் பல வசதிகள் கிடைத்தன; அவற்றைச் சரியாகப் பயன்படுத்த வேண்டிய பொறுப்பும் கூடவே வந்தது",
             "it repaid patience with comfort, and asked them to enjoy it without over-spending it",
         ),
         now_texture=(
-            "இது தாராளமான காலம் — உறவுகள், வசதி, பணம் இப்போது எளிதாக நகர்கின்றன",
+            "உறவுகளும் வசதிகளும் பணமும் எளிதாகக் கைகூடக்கூடிய காலம் இது",
             "this is a generous stretch — relationships, comfort and money move more easily now",
         ),
         action=(
-            "முக்கியமானதை நிதானமாகத் தொடங்குவது; தவிர்த்துவரும் அந்த உரையாடலை முடிப்பது",
+            "முக்கியமானதை நிதானமாகத் தொடங்குவது; தவிர்த்து வரும் அந்தப் பேச்சைப் பேசி முடிப்பது",
             "starting what matters gently, and finishing the conversation they have been avoiding",
         ),
         asks=(
-            "மென்மையாக்குவதை விட, நடத்த வேண்டிய அந்த ஒரு உரையாடல்",
+            "சமாளித்து மூடாமல், நேரடியாகப் பேசி முடிக்க வேண்டிய அந்த ஒரு பேச்சு",
             "the conversation they'd rather smooth over than actually have",
         ),
     ),
     "SATURN": _Voice(
         nature=_Line(
-            "{name} தொடங்கியதை முடிப்பவர்; முதலில் இருப்பதை விட உறுதியாக இருப்பதையே விரும்புவார் — "
-            "ஆனால் ஒரு வழிமுறையை ஏற்ற பிறகு, அது பலன் தராத நிலையிலும் அதை விட்டு விலகுவது அவருக்குக் கடினம்.",
+            "{name} தொடங்கியதை முடிப்பவர்; உடனடியாகக் கிடைப்பதைவிட, நிலையாகக் கிடைப்பதையே விரும்புவார். ஆனால் ஒரு வழியைப் பிடித்துவிட்டால், அது பலன் தராதபோதும் விடுவது அவருக்குக் கடினம்.",
             "{name} finishes what they start and would rather be sure than first — though once "
             "committed to a way of working, they find it hard to let go.",
             Orientation.INWARD,
         ),
         gift=(
-            "வேகமானவர்களைத் தோற்கடிக்கும் பிரச்சினைகளை விடத் தாக்குப்பிடித்தல்",
+            "வேகமாக ஓடுபவர்கள் கைவிடும் பிரச்சினைகளையும் தாக்குப்பிடித்துக் கடப்பது",
             "outlasting problems that defeat faster people",
         ),
         shadow=(
-            "தொடங்குவது — வராத ஒரு உறுதிக்காக அவர் காத்திருக்கிறார்",
+            "தொடங்குவது; எப்போதும் வராத ஒரு உறுதிக்காகக் காத்திருக்கிறார்",
             "starting; they wait for a certainty that does not arrive",
         ),
         mechanism=(
-            "ஏனெனில் உறுதியாகும் வரை நகராத அதே குணம்தான், மற்றவர்களை விட அவரைத் தாக்குப்பிடிக்க வைக்கிறது, "
-            "அது பயனற்றுப் போன பிறகும் அவரை நிறுத்தி வைக்கிறது",
+            "காரணம், உறுதியாகத் தெரியும் வரை நகராத அதே குணம்தான் அவரை எல்லோரையும் விட நீண்ட நாள் தாக்குப்பிடிக்க வைக்கிறது; அது பயன் தராத பிறகும் அவரை அங்கேயே நிறுத்தி வைக்கிறது",
             "because the same refusal to move before they're sure is what lets them outlast everyone "
             "else, and what keeps them standing still after it stops helping",
         ),
         domain_flex={
             "WORK": (
-                "ஒரு திட்டமுன்மொழிவை முழுமையாகும் வரை தாமதப்படுத்துவது — கவனம் குறைவானவர் தன்னுடையதை முன்பே "
-                "சமர்ப்பித்துவிடுவார்",
+                "ஒரு திட்டத்தை முழுமையாக்கும் வரை கையிலேயே வைத்திருப்பது; அதற்குள் கவனம் குறைந்த ஒருவர் தன்னுடையதைக் கொடுத்துவிடுவார்",
                 "sitting on a proposal until it is airtight, while someone less careful ships theirs "
                 "first",
             ),
             "RELATIONSHIPS": (
-                "முக்கியமானதைச் சொல்ல சரியான தருணத்திற்காகக் காத்திருந்து, அந்தத் தருணமே அமைதியாகக் கடந்துவிடுவது",
+                "முக்கியமானதைச் சொல்ல சரியான நேரத்துக்குக் காத்திருந்து, அந்த நேரமே போய்விடுவது",
                 "waiting for the right moment to say what matters, until the moment has quietly passed",
             ),
         },
         life_lesson=(
-            "உறுதி வரும்வரை காத்திருப்பதன் விலை, உறுதியின்றித் தொடங்குவதை விட அதிகம் "
-            "என்பதை வாழ்க்கை அவருக்குக் கற்பிக்கிறது.",
+            "உறுதி வரும் வரை காத்திருப்பதன் இழப்பு, உறுதி இல்லாமல் தொடங்குவதை விட அதிகம். வாழ்க்கை இதை அவருக்கு மீண்டும் மீண்டும் உணர்த்துகிறது.",
             "Life keeps teaching them that waiting for certainty costs more than starting "
             "without it.",
         ),
         past_texture=(
-            "அது பலனை விடப் பொறுமையையே அதிகம் கேட்டது; அங்கே எதுவும் அவசரத்திற்கு இணங்கவில்லை",
+            "அந்த ஆண்டுகள் பலனை விடப் பொறுமையையே அதிகம் கேட்டன; அவசரப்பட்டு எதுவும் நடக்கவில்லை",
             "it asked for endurance more than it offered reward, and nothing in it yielded to haste",
         ),
         now_texture=(
-            "இந்தக் காலம் தாமதமாகத் தரும், ஆனால் தரும் — அவசரப்பட்டுச் செய்வதை விட இப்போது அவர் கட்டுவது நீடிக்கும்",
+            "இந்தக் காலத்தில் பலன் தாமதமாக வரும், ஆனால் நிச்சயம் வரும்; அவசரப்பட்டுச் செய்வதை விட இப்போது அவர் கட்டுவதே நிலைக்கும்",
             "this stretch pays late, but it does pay; what they build now outlasts what they rush",
         ),
         action=(
-            "ஒரு சிறிய உறுதிமொழியை தினமும் காப்பாற்றுவது — இந்தக் காலத்தில் தொடர்ந்து செய்யக்கூடிய "
-            "செயல்களுக்கே அதிக மதிப்பு கிடைக்கும்",
+            "ஒரு சின்ன உறுதிமொழியைத் தினமும் காப்பாற்றுவது; இந்தக் காலத்தில் தொடர்ந்து செய்வதற்கே அதிக மதிப்பு",
             "keeping one small commitment every day; this period rewards what they sustain",
         ),
         asks=(
-            "தயாராக உணரும் முன்பே எடுக்கப்படும் ஒரு தொடக்கம்",
+            "தயாராகிவிட்டோம் என்று தோன்றும் முன்பே செய்யும் ஒரு தொடக்கம்",
             "a start made before they feel ready for it, not after",
         ),
     ),
     "RAHU": _Voice(
         nature=_Line(
-            "{name} தனக்குக் கொடுக்கப்பட்ட இடத்தை விட அதிகம் வேண்டும் என்பவர்; மற்றவர் காணாத வழிகளைக் "
-            "கண்டுபிடிப்பார் — ஆனால் சென்றடைந்ததை அனுபவிக்க நிற்பதே இல்லை.",
+            "{name} கிடைத்ததை விட அதிகம் வேண்டும் என்று நினைப்பவர்; மற்றவர்கள் பார்க்காத வழிகளைக் கண்டுபிடிப்பார். ஆனால் போய்ச் சேர்ந்ததை அனுபவிக்க நிற்பதே இல்லை.",
             "{name} wants more than the room they were given and finds routes other people do not see — "
             "though they rarely stop long enough to enjoy arriving.",
             Orientation.OUTWARD,
         ),
         gift=(
-            "மற்றவர்கள் சுவரைக் காணும் இடத்தில் ஒரு வழியைக் காணுதல்",
+            "மற்றவர்கள் சுவரைப் பார்க்கும் இடத்தில் ஒரு வழியைப் பார்ப்பது",
             "seeing an opening where other people see a wall",
         ),
         shadow=(
-            "முடிப்பது — நடப்பதை விட அடுத்தது எப்போதும் சுவாரஸ்யமாக இருக்கிறது",
+            "முடிப்பது; கையில் இருப்பதை விட அடுத்தது எப்போதும் சுவாரஸ்யமாகத் தெரிகிறது",
             "finishing; the next thing is always more interesting than the current one",
         ),
         mechanism=(
-            "ஏனெனில் மற்றவர்கள் காணாத வழியை அவருக்குக் காட்டும் அதே பசி, அவர் ஏற்கனவே இருக்கும் வழியை "
-            "முடிந்துவிட்டதாக உணர வைக்கிறது",
+            "காரணம், மற்றவர்கள் பார்க்காத வழியைக் காட்டும் அதே ஆசைதான், அவர் போய்க்கொண்டிருக்கும் வழி முடிந்துவிட்டது போலவும் உணர வைக்கிறது",
             "because the same hunger that shows them the opening no one else sees is what makes the "
             "one they're already in feel finished before it is",
         ),
         domain_flex={
             "WORK": (
-                "தற்போதைய திட்டம் முழுமையாக முடிவதற்கு முன்பே அடுத்த திட்டத்தைத் தொடங்கிவிடுவது",
+                "கையில் இருக்கும் வேலை முடியும் முன்பே அடுத்த வேலையைத் தொடங்கிவிடுவது",
                 "starting the next project before the current one is actually closed out",
             ),
             "RELATIONSHIPS": (
-                "ஏற்கனவே இருக்கும் உறவில் முழுமையாக நிலைபெறுவதற்கு முன்பே, புதிதாக ஒன்றின் ஈர்ப்பை உணர்வது",
+                "இருக்கும் உறவில் முழுமையாகப் பொருந்தும் முன்பே, புதிதாக ஒன்றின் மேல் மனம் போவது",
                 "feeling the pull of what's new before they have finished settling into what they "
                 "already have",
             ),
         },
         life_lesson=(
-            "அடுத்ததாக அவர் தேடுவது உண்மையில் அவர் விரும்பியதுதானா என்று வாழ்க்கை "
-            "திரும்பத் திரும்பக் கேட்கிறது.",
+            "அடுத்ததாகத் தேடுவது உண்மையில் அவருக்கு வேண்டியதுதானா? வாழ்க்கை இதை அவரிடம் மீண்டும் மீண்டும் கேட்கிறது.",
             "Life keeps asking whether the next thing is the one they actually wanted.",
         ),
         past_texture=(
-            "அது வழக்கத்திற்கு மாறான திருப்பங்கள் நிறைந்தது — அவர் சென்ற பாதை திட்டமிட்டது அல்ல",
+            "அந்த ஆண்டுகள் எதிர்பாராத திருப்பங்கள் நிறைந்தவை; அவர் திட்டமிட்ட பாதையில் அவை போகவில்லை",
             "it was a stretch of unusual turns — the route they took was not the one they planned",
         ),
         now_texture=(
-            "இந்தக் காலம் வழக்கத்திற்கு மாறான வழிகளைத் தருகிறது; தோன்றியதால் அல்ல, தேர்ந்தெடுத்தே "
-            "அவற்றை எடுப்பது நல்லது",
+            "இந்தக் காலத்தில் வழக்கத்துக்கு மாறான புதிய வாய்ப்புகள் வரலாம்; புதிதாக இருக்கிறது என்பதற்காக மட்டும் ஒன்றைத் தேர்ந்தெடுக்காமல், நன்றாக யோசித்துத் தேர்வு செய்வது அவருக்கு நல்லது",
             "this stretch offers unconventional routes; they are worth taking deliberately, not "
             "because they appeared",
         ),
         action=(
-            "எந்த வழி என்பதைத் தெரிந்தே தேர்ந்தெடுப்பது — கண்முன் வந்தது என்பதற்காக மட்டும் அல்ல",
+            "எந்த வழி என்பதைத் தெரிந்தே தேர்ந்தெடுப்பது; கண்முன் வந்தது என்பதற்காக மட்டும் அல்ல",
             "choosing the route deliberately, not taking one just because it appeared",
         ),
         asks=(
-            "சென்றடைய முடியும் அளவுக்கு நீண்ட நேரம் பிடித்திருக்கப்படும் ஒரு இலக்கு",
+            "போய்ச் சேரும் வரை கைவிடாத ஒரு இலக்கு",
             "one destination held onto long enough to actually arrive",
         ),
     ),
     "KETU": _Voice(
         nature=_Line(
-            "{name} எதையும் விரைவில் ஊடுருவிப் பார்ப்பவர்; எளிதில் வியப்படைவதில்லை — ஆனால் கேட்டே "
-            "தெரிந்துகொள்ளக்கூடிய ஒன்றிலிருந்தும் விலகிவிடுகிறார்.",
+            "{name} எதையும் விரைவில் புரிந்துகொள்பவர்; எளிதில் எதற்கும் மயங்குவதில்லை. ஆனால் ஒரு கேள்வி கேட்டாலே தெளிவாகிவிடும் விஷயத்தைக்கூடக் கேட்காமல் விட்டுவிடுவார்.",
             "{name} sees through things quickly and is not easily impressed — though they withdraw "
             "from what they could simply have asked about.",
             Orientation.INWARD,
         ),
         gift=(
-            "உண்மையில் முக்கியமானது எது என்பதை நேராக அடைதல்",
+            "உண்மையில் முக்கியமானதை நேராகப் பிடிப்பது",
             "cutting straight to what actually matters",
         ),
         shadow=(
-            "தங்கியிருப்பது — சூழலுக்குத் தேவை அதுவாக இருக்கும்போதும் விலகிவிடுகிறார்",
+            "கூடவே இருப்பது; தேவைப்படும் நேரத்திலும் ஒதுங்கிவிடுகிறார்",
             "staying — they withdraw at the times when staying is what the situation needs",
         ),
         mechanism=(
-            "ஏனெனில் முக்கியமற்றதைத் தாண்டிச் செல்லும் அதே உள்ளுணர்வுதான், ஒரு விஷயத்திற்கு அவர் இன்னும் "
-            "தேவைப்படும்போதே அவரை விலக்கிச் செல்கிறது",
+            "காரணம், தேவையில்லாததைத் தாண்டிப் போகும் அதே உள்ளுணர்வுதான், ஒரு விஷயம் முடியும் முன்பே அவரை விலக்கி அழைத்துச் செல்கிறது",
             "because the same instinct that cuts past what doesn't matter is what pulls them away "
             "before a thing is finished needing them",
         ),
         domain_flex={
             "WORK": (
-                "ஒரு திட்டத்திற்கு அவரது இருப்பு மிகவும் தேவைப்படும் தருணத்திலேயே, அமைதியாக விலகிவிடுவது",
+                "ஒரு வேலைக்கு அவர் மிகவும் தேவைப்படும் நேரத்தில் அமைதியாக ஒதுங்கிவிடுவது",
                 "going quiet on a project right when it most needs them to stay in the room",
             ),
             "RELATIONSHIPS": (
-                "ஒரு உரையாடல் கடினமாக மாறும் தருணத்திலேயே, அதில் தொடர்வதற்குப் பதிலாகப் பின்வாங்குவது",
+                "பேச்சு கடினமாகும் நேரத்தில், தொடர்ந்து பேசாமல் பின்வாங்கிவிடுவது",
                 "pulling back from a conversation the moment it turns difficult, instead of staying in "
                 "it",
             ),
         },
         life_lesson=(
-            "இன்னும் கவனத்திற்குத் தகுதியானதை விட்டு விலகக் கூடாது என்பதை வாழ்க்கை அவருக்குத் "
-            "திரும்பத் திரும்ப நினைவூட்டுகிறது.",
+            "இன்னும் கவனம் தேவைப்படும் ஒன்றை விட்டுப் போகக் கூடாது. வாழ்க்கை இதை அவருக்கு மீண்டும் மீண்டும் நினைவூட்டுகிறது.",
             "Life keeps reminding them not to leave what still deserves their attention.",
         ),
         past_texture=(
-            "அது அமைதியாகப் பலவற்றை முடித்து வைத்தது; சேர்ப்பதை விட விட்டுவிடும்படி அவரைக் கேட்டது",
+            "அந்த ஆண்டுகள் அமைதியாகப் பலவற்றை முடித்து வைத்தன; சேர்ப்பதை விட விட்டுவிடவே கேட்டன",
             "it quietly closed things off, and asked them to let go more than to acquire",
         ),
         now_texture=(
-            "இந்தக் காலம் திறப்பதை விட முடிக்கிறது — அது இழப்பு அல்ல; தொடங்குவதை விட முடிப்பதே அவருக்கு நல்லது",
+            "இந்தக் காலத்தில் புதிய தொடக்கங்களை விட முடிவுகளே அதிகம் வரும்; அது இழப்பு அல்ல, தொடங்குவதை விட முடிப்பதே அவருக்கு நல்லது",
             "this stretch closes more than it opens, which is not a loss; finishing things serves them "
             "better than starting them",
         ),
         action=(
-            "நீண்ட நாட்களாக இழுத்துக்கொண்டிருக்கும் ஒன்றை முடிப்பது; புதிதாக ஒன்றைத் தொடங்காமல் இருப்பது",
+            "நீண்ட நாளாக இழுத்துக்கொண்டிருக்கும் ஒன்றை முடிப்பது; புதிதாக ஒன்றைத் தொடங்காமல் இருப்பது",
             "closing one long-open thing rather than starting a new one",
         ),
         asks=(
-            "தன் சொந்த ஆர்வமே அமைதியானதற்குப் பிறகும், அந்த இடத்தில் அவர் இருப்பது",
+            "ஆர்வம் குறைந்த பிறகும், அங்கேயே தொடர்ந்து இருப்பது",
             "staying present in something after their own interest in it has already gone quiet",
         ),
     ),
@@ -1831,39 +1789,34 @@ def _voice(lord: str, addressed_to: str) -> _Voice:
 #                 signature and not printed unconditionally.
 _SIGNATURE_OPENING: dict[str, _Line] = {
     "SUN": _Line(
-        "சிலர் கவனிக்கப்படாத இடத்தில் சிறப்பாகச் செயல்படுவார்கள். சிலர் பார்க்கப்படும்போதுதான் "
-        "முழுமையாகத் தங்களாக இருப்பார்கள். நீங்கள் இரண்டாவது வகை.",
+        "சிலர் யாரும் பார்க்காத இடத்தில் நன்றாக வேலை செய்வார்கள். சிலர் நாலு பேர் பார்க்கும்போதுதான் தங்கள் முழுத் திறமையையும் காட்டுவார்கள். நீங்கள் இரண்டாவது ரகம்.",
         "Some people do their best work out of sight. Others are only fully themselves when they "
         "are being watched. You are the second kind.",
         # Needs to be seen. The most outward line in the table.
         Orientation.OUTWARD,
     ),
     "MOON": _Line(
-        "சிலர் திட்டங்களை வைத்து வாழ்க்கையைக் கடப்பார்கள். சிலர் சூழலை உணர்ந்து கடப்பார்கள் — "
-        "சொல்லப்படுவதற்கு முன்பே மாற்றத்தை உணர்பவர்கள். நீங்கள் இரண்டாவது வகை.",
+        "சிலர் திட்டம் போட்டு வாழ்க்கையை நடத்துவார்கள். சிலர் சூழ்நிலையை உணர்ந்து நடத்துவார்கள்; யாரும் சொல்லும் முன்பே மாற்றத்தைப் புரிந்துகொள்வார்கள். நீங்கள் இரண்டாவது ரகம்.",
         "Some people move through life on plans. Others move on atmosphere — reading a room, "
         "feeling a shift before it is announced. You are the second kind.",
         # Sensing rather than acting; the room reaches them first.
         Orientation.INWARD,
     ),
     "MARS": _Line(
-        "சிலர் சரியான தருணத்திற்குக் காத்திருப்பார்கள். சிலர் அதை உருவாக்கிவிட்டு விளைவுகளைச் "
-        "சமாளிப்பார்கள். நீங்கள் இரண்டாவது வகை.",
+        "சிலர் சரியான நேரத்துக்குக் காத்திருப்பார்கள். சிலர் அந்த நேரத்தைத் தாங்களே உருவாக்கிவிட்டு, வருவதைப் பிறகு சமாளிப்பார்கள். நீங்கள் இரண்டாவது ரகம்.",
         "Some people wait for the right moment. Others create it and deal with the consequences "
         "afterwards. You are the second kind.",
         Orientation.OUTWARD,
     ),
     "MERCURY": _Line(
-        "சிலர் தங்கள் இருப்பால் மற்றவர்களை நம்பவைப்பார்கள். சிலர் விளக்கத்தால் நம்பவைப்பார்கள். "
-        "நீங்கள் இரண்டாவது வகை.",
+        "சிலர் நின்றாலே போதும், மற்றவர்கள் நம்பிவிடுவார்கள். சிலர் விளக்கிச் சொல்லித்தான் நம்ப வைப்பார்கள். நீங்கள் இரண்டாவது ரகம்.",
         "Some people convince others by sheer presence. Others convince by explaining. You are the "
         "second kind.",
         # Convincing is done to somebody.
         Orientation.OUTWARD,
     ),
     "JUPITER": _Line(
-        "சிலர் ஒவ்வொரு கதவையும் தள்ளித் திறக்க வேண்டியிருக்கும். சிலருக்குக் கதவுகள் திறக்கும் — "
-        "எளிதாக வந்ததை மதிக்காமல் விடுவதுதான் அவர்களின் ஆபத்து. நீங்கள் இரண்டாவது வகை.",
+        "சிலர் ஒவ்வொரு கதவையும் தள்ளித்தான் திறக்க வேண்டியிருக்கும். சிலருக்குக் கதவுகள் தானாகத் திறக்கும்; எளிதாகக் கிடைத்ததை மதிக்காமல் விடுவதுதான் அவர்களுக்கு ஆபத்து. நீங்கள் இரண்டாவது ரகம்.",
         "Some people force every door. Others find doors tend to open — and their real risk is not "
         "valuing what came easily. You are the second kind.",
         # A judgement call worth recording: doors OPENING is something the world
@@ -1874,30 +1827,26 @@ _SIGNATURE_OPENING: dict[str, _Line] = {
         Orientation.OUTWARD,
     ),
     "VENUS": _Line(
-        "சிலர் தாங்கள் விரும்புவதை அழுத்தத்தால் அடைவார்கள். சிலர், மற்றவர்கள் கொடுக்க "
-        "விரும்புவதால் அடைவார்கள். நீங்கள் இரண்டாவது வகை.",
+        "சிலர் போராடித்தான் வேண்டியதை அடைவார்கள். சிலருக்கு மற்றவர்களே மனம் உவந்து தருவார்கள். நீங்கள் இரண்டாவது ரகம்.",
         "Some people get what they want by pushing for it. Others get it because people want to "
         "give it to them. You are the second kind.",
         Orientation.OUTWARD,
     ),
     "SATURN": _Line(
-        "சிலருக்கு வாய்ப்புகள் தானாக வந்து சேரும். சிலர் ஒவ்வொரு வாய்ப்பையும் போராடி வெல்ல "
-        "வேண்டியிருக்கும். நீங்கள் இரண்டாவது வகை.",
+        "சிலருக்கு வாய்ப்புகள் தானாக வந்து சேரும். சிலர் ஒவ்வொரு வாய்ப்பையும் போராடித்தான் பெற வேண்டியிருக்கும். நீங்கள் இரண்டாவது ரகம்.",
         "Some people find that opportunities arrive on their own. Others have to win each one. You "
         "are the second kind.",
         # Winning each one is endurance turned on the self, not display.
         Orientation.INWARD,
     ),
     "RAHU": _Line(
-        "சிலர் தங்களுக்குக் கிடைத்த வாழ்க்கைக்குள் நிறைவாக இருப்பார்கள். சிலர் அதன் எல்லையைத் "
-        "தாண்டியே கை நீட்டிக்கொண்டிருப்பார்கள். நீங்கள் இரண்டாவது வகை.",
+        "சிலர் கிடைத்த வாழ்க்கையில் நிறைவாக இருப்பார்கள். சிலர் எப்போதும் அதன் எல்லையைத் தாண்டிக் கை நீட்டிக்கொண்டே இருப்பார்கள். நீங்கள் இரண்டாவது ரகம்.",
         "Some people are content inside the life they were handed. Others spend it reaching past "
         "the edge of it. You are the second kind.",
         Orientation.OUTWARD,
     ),
     "KETU": _Line(
-        "சிலருக்கு அறைக்குள் இருப்பது அவசியம். சிலருக்கு சற்று வெளியே நின்றால்தான் அது தெளிவாகத் "
-        "தெரியும். நீங்கள் இரண்டாவது வகை.",
+        "சிலருக்கு எல்லாவற்றுக்கும் நடுவில் இருக்க வேண்டும். சிலருக்குக் கொஞ்சம் தள்ளி நின்றால்தான் எல்லாம் தெளிவாகத் தெரியும். நீங்கள் இரண்டாவது ரகம்.",
         "Some people need to be in the room. Others see it more clearly from just outside it. You "
         "are the second kind.",
         # Standing outside the room is the definition of the inward pole.
@@ -1912,8 +1861,8 @@ _SIGNATURE_OPENING: dict[str, _Line] = {
 # first two sentences, and the derivation refuses any entry that does not end
 # on the exact verdict it replaces: a pronoun rewrite run over free prose is
 # what produced "they carry yourself", and this is deliberately not that.
-_SECOND_KIND: tuple[str, str] = ("நீங்கள் இரண்டாவது வகை.", "You are the second kind.")
-_SECOND_KIND_THEM: tuple[str, str] = ("{name} இரண்டாவது வகை.", "{name} is the second kind.")
+_SECOND_KIND: tuple[str, str] = ("நீங்கள் இரண்டாவது ரகம்.", "You are the second kind.")
+_SECOND_KIND_THEM: tuple[str, str] = ("{name} இரண்டாவது ரகம்.", "{name} is the second kind.")
 
 
 def _opening_about_them(line: _Line) -> _Line:
@@ -1960,31 +1909,31 @@ _SIGNATURE_OPENING_THEM: dict[str, _Line] = {
 # manas. So this table describes the MIND — never the life, never the outcome —
 # which is also what keeps it inside the teen register's content rule.
 _MOON_MIND: dict[int, tuple[str, str]] = {
-    1: ("முடிவெடுத்து முடிக்கும் முன்பே தொடங்கிவிடும்",
+    1: ("முடிவெடுத்து முடிக்கும் முன்பே வேலையில் இறங்கிவிடும்",
         "a mind that starts before it has finished deciding"),
-    2: ("மெதுவாக நிலைபெறும்; பிறகு அசையாது",
+    2: ("மெதுவாகத்தான் நிலைக்கு வரும்; வந்தால் அசையாது",
         "a mind slow to settle and then immovable"),
     3: ("சூழ்நிலையை விட வேகமாக ஓடும்",
         "a mind that runs ahead of your circumstances"),
-    4: ("உணர்ந்த அனைத்தையும் வைத்திருக்கும்",
+    4: ("உணர்ந்த எல்லாவற்றையும் நினைவில் வைத்திருக்கும்",
         "a mind that keeps everything it has felt"),
-    5: ("நடைமுறையாகப் பார்ப்பதற்கு முன் தன்னைச் சார்ந்ததாகப் பார்க்கும்",
+    5: ("முதலில் தன்னோடு பொருத்தும்; பிறகே நடைமுறையைப் பார்க்கும்",
         "a mind that takes things personally first, practically second"),
-    6: ("முழுமையைக் காண்பதற்கு முன் குறையைக் காணும்",
+    6: ("முழுமையைப் பார்க்கும் முன்பே குறையைப் பார்க்கும்",
         "a mind that sees the flaw before the whole"),
-    7: ("பதில் தெரிந்த பிறகும் நிறுத்தி நிறுத்திப் பார்க்கும்",
+    7: ("பதில் தெரிந்த பிறகும் எடை போட்டுக்கொண்டே இருக்கும்",
         "a mind still weighing after the answer is obvious"),
     # Moon is debilitated here and the copy carries that without naming it: the
     # holding-on IS the neecha, read as disposition rather than as a verdict.
-    8: ("விடாமல் பிடிக்கும்; நினைத்ததை விட ஆழமாகச் செல்லும்",
+    8: ("பிடித்ததை எளிதில் விடாது; நினைப்பதைவிட ஆழமாக யோசிக்கும்",
         "a mind that grips, and goes deeper than intended"),
-    9: ("பதிலை மட்டுமல்ல, அதன் பின்னுள்ள நெறியையும் தேடும்",
+    9: ("பதிலோடு நிற்காமல், பின்னால் உள்ள காரணத்தையும் தேடும்",
         "a mind that wants the principle behind the answer"),
-    10: ("லாபத்தைக் கணக்கிடும் முன் விலையைக் கணக்கிடும்",
+    10: ("லாபத்தைப் பார்க்கும் முன்பே செலவைக் கணக்கிடும்",
          "a mind that counts the cost before the gain"),
-    11: ("சற்று விலகி நின்று கவனிக்கும்",
+    11: ("கொஞ்சம் தள்ளி நின்று கவனிக்கும்",
          "a mind that stands a little apart and watches"),
-    12: ("இருக்கும் இடத்தின் உணர்வை உள்வாங்கும்",
+    12: ("இருக்கும் இடத்தின் உணர்வை அப்படியே உள்வாங்கும்",
          "a mind that absorbs whatever room it is in"),
 }
 
@@ -1998,29 +1947,29 @@ _MOON_MIND: dict[int, tuple[str, str]] = {
 # which of the two nouns they belong to, and the first one written without it
 # would silently attach the outer impression to the Moon clause beside it.
 _LAGNA_FACE: dict[int, tuple[str, str]] = {
-    1: ("ஏற்கனவே நகர்ந்துகொண்டிருப்பவராகத் தெரிகிறீர்கள்",
+    1: ("ஏற்கனவே செயலில் இறங்கிவிட்டவராகத் தெரிவீர்கள்",
         "already in motion"),
-    2: ("அவசரமற்றவராகத் தெரிகிறீர்கள்; அதை உறுதி என்று படிக்கிறார்கள்",
+    2: ("அவசரப்படாதவராகத் தெரிவீர்கள்; அதையே உறுதி என்று நினைத்துக்கொள்வார்கள்",
         "unhurried, and they read that as certainty"),
-    3: ("விரைவானவராகவும் பேச எளியவராகவும் தெரிகிறீர்கள்",
+    3: ("சுறுசுறுப்பானவராகவும் எளிதில் பேசக்கூடியவராகவும் தெரிவீர்கள்",
         "quick, and easy to talk to"),
-    4: ("யாரை அருகில் விடுவது என்பதில் கவனமானவராகத் தெரிகிறீர்கள்",
+    4: ("யாரையும் உடனே நெருங்க விடாதவராகத் தெரிவீர்கள்",
         "careful about who gets close"),
-    5: ("கேட்காமலேயே பொறுப்பில் இருப்பவராகத் தெரிகிறீர்கள்",
+    5: ("கேட்காமலேயே பொறுப்பை எடுத்துக்கொள்பவராகத் தெரிவீர்கள்",
         "as someone in charge, asked or not"),
-    6: ("நுணுக்கமானவராக — சில நேரம் திருத்துபவராக — தெரிகிறீர்கள்",
+    6: ("நுணுக்கமானவராகவும், சில நேரம் திருத்திச் சொல்பவராகவும் தெரிவீர்கள்",
         "exact, and sometimes correcting"),
-    7: ("உங்கள் கருத்து தெரிவதற்கு முன்பே இணக்கமானவராகத் தெரிகிறீர்கள்",
+    7: ("உங்கள் கருத்து தெரியும் வரை எல்லோரோடும் ஒத்துப்போகிறவராகத் தெரிவீர்கள்",
         "agreeable long before they meet your opinion"),
-    8: ("படிக்க முடியாதவராகத் தெரிகிறீர்கள்; ஆழம் இருக்கும் என்று எண்ணுகிறார்கள்",
+    8: ("எளிதில் புரிந்துகொள்ள முடியாதவராகத் தெரிவீர்கள்; உள்ளே ஆழம் இருக்கும் என்று நினைப்பார்கள்",
         "hard to read, and they assume depth"),
-    9: ("வெளிப்படையானவராகத் தெரிகிறீர்கள்; நேரடித்தன்மை நம்பிக்கையாகப் படுகிறது",
+    9: ("வெளிப்படையானவராகத் தெரிவீர்கள்; நேரடியாகப் பேசுவதைத் தன்னம்பிக்கை என்று நினைப்பார்கள்",
         "open, and they read directness as confidence"),
-    10: ("உங்கள் வயதை விட மூத்தவராகத் தெரிகிறீர்கள்",
+    10: ("உங்கள் வயதை விட முதிர்ச்சியானவராகத் தெரிவீர்கள்",
          "serious, and older than you are"),
-    11: ("கூட்டத்திற்குள் இருந்தாலும் சற்று தனித்தவராகத் தெரிகிறீர்கள்",
+    11: ("கூட்டத்தில் இருந்தாலும் கொஞ்சம் தனித்தவராகத் தெரிவீர்கள்",
          "slightly apart, even from inside the group"),
-    12: ("நீங்கள் இருப்பதை விட மென்மையானவராகத் தெரிகிறீர்கள்",
+    12: ("உண்மையில் இருப்பதை விட மென்மையானவராகத் தெரிவீர்கள்",
          "softer than you are"),
 }
 
@@ -2103,9 +2052,7 @@ _VALIDATION: tuple[str, str] = (
 # the copy does not care which.
 _FALSIFIABILITY: dict[tuple[str, bool], tuple[str, str]] = {
     ("self", True): (
-        "இது உங்களைப் பற்றியதாக இல்லை என்று தோன்றினால் — சிறிதளவும் அல்ல, உண்மையிலேயே இல்லை "
-        "என்றால் — தொடர்வதற்கு முன் பிறந்த தேதியையும் நேரத்தையும் சரிபாருங்கள். இருபது "
-        "நிமிடங்கள் லக்னத்தை மாற்றிவிடும்.",
+        "இது உங்களுக்குக் கொஞ்சம் கூடப் பொருந்தவில்லை என்றால், மேலே படிக்கும் முன் பிறந்த தேதியையும் நேரத்தையும் ஒருமுறை சரிபாருங்கள். லக்னம் மாறும் நேரத்துக்கு அருகில் பிறந்திருந்தால், பிறந்த நேரத்தில் இருபது நிமிட வித்தியாசம் இருந்தால்கூட லக்னம் மாறிவிடக்கூடும்.",
         "If that does not sound like you — not partly, genuinely not — check the birth date and "
         "time before reading on. Twenty minutes can move the rising sign.",
     ),
@@ -2120,16 +2067,12 @@ _FALSIFIABILITY: dict[tuple[str, bool], tuple[str, str]] = {
     # is now narrowed to what actually holds without a lagna, and
     # `_LAGNA_STRENGTH_CAVEAT` says what does not.
     ("self", False): (
-        "பிறந்த நேரம் உறுதிப்படுத்தப்படவில்லை; அதனால் இந்த வாசிப்பு லக்னத்தை விட்டுவிடுகிறது — "
-        "இருபது நிமிடங்கள் அதை மாற்றிவிடும். உங்கள் நட்சத்திரமும் இங்குள்ள காலக் "
-        "கணக்குகளும் அதைச் சாராமல் நிற்கின்றன.",
+        "பிறந்த நேரம் உறுதியாகத் தெரியாததால், இந்தப் பலனில் லக்னம் சேர்க்கப்படவில்லை. லக்னம் மாறும் நேரத்துக்கு அருகில் பிறந்திருந்தால், பிறந்த நேரத்தில் இருபது நிமிட வித்தியாசம் இருந்தால்கூட அது மாறிவிடக்கூடும். உங்கள் நட்சத்திரமும் தசை, புக்திக் கணக்குகளும் லக்னத்தைச் சார்ந்தவை அல்ல.",
         "The birth time is not confirmed, so this reading leaves the rising sign out — twenty "
         "minutes can move it. Your star and every date here stand without it.",
     ),
     ("third_person", True): (
-        "இது {name}-ஐப் பற்றியதாக இல்லை என்று தோன்றினால் — சிறிதளவும் அல்ல, உண்மையிலேயே இல்லை "
-        "என்றால் — தொடர்வதற்கு முன் பிறந்த தேதியையும் நேரத்தையும் சரிபாருங்கள். இருபது "
-        "நிமிடங்கள் லக்னத்தை மாற்றிவிடும்.",
+        "இது {name}-க்குக் கொஞ்சம் கூடப் பொருந்தவில்லை என்றால், மேலே படிக்கும் முன் பிறந்த தேதியையும் நேரத்தையும் ஒருமுறை சரிபாருங்கள். லக்னம் மாறும் நேரத்துக்கு அருகில் பிறந்திருந்தால், பிறந்த நேரத்தில் இருபது நிமிட வித்தியாசம் இருந்தால்கூட லக்னம் மாறிவிடக்கூடும்.",
         "If that does not sound like {name} — not partly, genuinely not — check the birth date "
         "and time before reading on. Twenty minutes can move the rising sign.",
     ),
@@ -2141,9 +2084,7 @@ _FALSIFIABILITY: dict[tuple[str, bool], tuple[str, str]] = {
     # began carrying the full reading — signature opening and strength beat
     # included — and it takes the narrowed form below instead.
     ("third_person", False): (
-        "{name}-இன் பிறந்த நேரம் உறுதிப்படுத்தப்படவில்லை; அதனால் இந்த வாசிப்பு லக்னத்தை "
-        "விட்டுவிடுகிறது — இருபது நிமிடங்கள் அதை மாற்றிவிடும். அவரின் நட்சத்திரத்தை அது "
-        "மாற்றுவதில்லை; மீதி அதன் மீதுதான் நிற்கிறது.",
+        "{name}-இன் பிறந்த நேரம் உறுதியாகத் தெரியாததால், இந்தப் பலனில் லக்னம் சேர்க்கப்படவில்லை. லக்னம் மாறும் நேரத்துக்கு அருகில் பிறந்திருந்தால், பிறந்த நேரத்தில் இருபது நிமிட வித்தியாசம் இருந்தால்கூட அது மாறிவிடக்கூடும். அவருடைய நட்சத்திரம் அதனால் மாறாது; மற்றவை அதை வைத்தே சொல்லப்படுகின்றன.",
         "{name}'s birth time is not confirmed, so this reading leaves the rising sign out — "
         "twenty minutes can move it. It does not move their star, which the rest is built on.",
     ),
@@ -2153,9 +2094,7 @@ _FALSIFIABILITY: dict[tuple[str, bool], tuple[str, str]] = {
     # which takes the lagna — so "the rest is built on the star" would be false
     # here. `_LAGNA_STRENGTH_CAVEAT` follows it, as it does on the self path.
     ("third_person_adult", False): (
-        "{name}-இன் பிறந்த நேரம் உறுதிப்படுத்தப்படவில்லை; அதனால் இந்த வாசிப்பு லக்னத்தை "
-        "விட்டுவிடுகிறது — இருபது நிமிடங்கள் அதை மாற்றிவிடும். அவரது நட்சத்திரமும் இங்குள்ள "
-        "காலக் கணக்குகளும் அதைச் சாராமல் நிற்கின்றன.",
+        "{name}-இன் பிறந்த நேரம் உறுதியாகத் தெரியாததால், இந்தப் பலனில் லக்னம் சேர்க்கப்படவில்லை. லக்னம் மாறும் நேரத்துக்கு அருகில் பிறந்திருந்தால், பிறந்த நேரத்தில் இருபது நிமிட வித்தியாசம் இருந்தால்கூட அது மாறிவிடக்கூடும். அவருடைய நட்சத்திரமும் தசை, புக்திக் கணக்குகளும் லக்னத்தைச் சார்ந்தவை அல்ல.",
         "{name}'s birth time is not confirmed, so this reading leaves the rising sign out — "
         "twenty minutes can move it. Their star and every date here stand without it.",
     ),
@@ -2181,8 +2120,7 @@ _FALSIFIABILITY: dict[tuple[str, bool], tuple[str, str]] = {
 # them is both plainer and more actionable. "Named next" is exact — on the self
 # path `strength_and_cost` is always the beat immediately after this one.
 _LAGNA_STRENGTH_CAVEAT: tuple[str, str] = (
-    "அடுத்து வரும் பலமும் அதன் விலையும் லக்னத்தைச் சார்ந்தவை; அவற்றை மட்டும் சற்று "
-    "தளர்வாக எடுத்துக்கொள்ளுங்கள்.",
+    "ஆனால் அடுத்து சொல்லப்படும் பலமும் சிரமமும் லக்னத்தைச் சார்ந்தவை; அவற்றை மட்டும் கொஞ்சம் தளர்வாக எடுத்துக்கொள்ளுங்கள்.",
     "The strength and the cost named next do rest on it, so hold those more lightly.",
 )
 
@@ -2242,14 +2180,14 @@ _LAGNA_STRENGTH_CAVEAT: tuple[str, str] = (
 # putting the reader to work on it rather than releasing them from it. The
 # claim's strength is unchanged; what changes is who is holding it afterwards.
 _PAST_INVITATION: tuple[str, str] = (
-    "அது உங்களுக்கு எங்கே, எப்படித் தெரிந்தது?",
+    "இது உங்கள் வாழ்க்கையில் எங்கே, எப்படித் தெரிந்தது?",
     "Where did that show up for you?",
 )
 # The `other` register's form. Still a question handed to the person reading —
 # they are the one who has watched this relative's decade — but phrased about
 # the relative, so the reading never switches person mid-beat.
 _PAST_INVITATION_THEM: tuple[str, str] = (
-    "அது {name}-இடம் எங்கே, எப்படித் தெரிந்தது?",
+    "இது {name}-இன் வாழ்க்கையில் எங்கே, எப்படித் தெரிந்தது?",
     "Where did that show up for {name}?",
 )
 
@@ -2279,11 +2217,11 @@ _PAST_INVITATION_THEM: tuple[str, str] = (
 # The gap in this shape of fix is always the table, never the guard.
 _MINOR_NOW_TEXTURE: dict[str, tuple[str, str]] = {
     "JUPITER": (
-        "இந்தக் காலம் விரிவடைகிறது — கற்றல், ஆசிரியர்கள், உங்களை விட மூத்தவர்களின் உதவி கிடைக்கும்",
+        "இது வளரும் காலம்; படிப்பும் ஆசிரியர்களும், பெரியவர்களின் உதவியும் கைகொடுக்கும்",
         "this stretch widens things — learning, teachers, and people older than you tend to help",
     ),
     "VENUS": (
-        "இது எளிதான காலம் — நட்பு, கலை, ரசனை சார்ந்தவை இப்போது எளிதாக நகர்கின்றன",
+        "இது எளிதான காலம்; நட்பும் கலையும் ரசனையும் இப்போது எளிதாக அமையும்",
         "this is an easier stretch — friendships, art and anything with taste in it move more "
         "easily now",
     ),
@@ -2437,9 +2375,7 @@ class _ChildVoice:
 _CHILD_VOICE: dict[str, _ChildVoice] = {
     "SUN": _ChildVoice(
         note=(
-            "{name} சீக்கிரமே தன்னை மற்றவர்கள் மதிக்க வேண்டும் என்று விரும்புவார்; பொறுப்பு "
-            "கொடுத்தால் சிறப்பாகச் செய்வார் — ஆனால் மற்றவர்கள் முன்னிலையில் திருத்தப்படுவது "
-            "எதிர்பார்ப்பதை விட ஆழமாகப் பாதிக்கும்.",
+            "{name} சின்ன வயதிலேயே தன்னை மற்றவர்கள் மதிக்க வேண்டும் என்று விரும்புவார்; பொறுப்பு கொடுத்தால் சிறப்பாகச் செய்வார். ஆனால் எல்லோர் முன்னிலையிலும் திருத்தினால், நீங்கள் நினைப்பதை விட அதிகமாக மனம் வருந்துவார்.",
             "{name} will want to be taken seriously early and does better with responsibility than "
             "without it — though being corrected in front of others lands harder than you would expect.",
         ),
@@ -2450,8 +2386,7 @@ _CHILD_VOICE: dict[str, _ChildVoice] = {
     ),
     "MOON": _ChildVoice(
         note=(
-            "யாரும் விளக்குவதற்கு முன்பே {name} வீட்டின் மனநிலையை உணர்ந்துகொள்வார் — அது ஒரு "
-            "வரம்; அதனாலேயே ஒரு கலக்கமான வாரம் மற்ற எல்லோரையும் விட முதலில் அவரிடம் தெரியும்.",
+            "வீட்டில் என்ன சூழல் என்பதை யாரும் சொல்லாமலே {name} உணர்ந்துகொள்வார். இது ஒரு வரம்; அதனால்தான் வீட்டில் சின்னக் கலக்கம் வந்தால்கூட, அது எல்லோருக்கும் முன்பே அவருக்குத் தெரிந்துவிடும்.",
             "{name} picks up the mood of a room before anyone explains it — a real gift, and the "
             "reason an unsettled week shows up in them before it shows in anyone else.",
         ),
@@ -2463,8 +2398,7 @@ _CHILD_VOICE: dict[str, _ChildVoice] = {
     ),
     "MARS": _ChildVoice(
         note=(
-            "{name} முதலில் செயல்பட்டு பிறகு கேட்பார்; அந்தச் சக்தியை அடக்குவதை விட வழிநடத்துவதே "
-            "சரி — ஒரு அறிவுரைக்காகக் காத்திருக்கும் பொறுமைதான் பயிற்சி தேவைப்படும் இடம்.",
+            "{name} முதலில் செய்துவிட்டுப் பிறகுதான் கேட்பார்; அந்தத் துடிப்பை அடக்காமல் நல்ல வழியில் திருப்புவதே சரி. சொன்ன பிறகு செய்யும் பொறுமைக்குத்தான் பழக்கம் தேவை.",
             "{name} moves first and asks later, which is energy worth steering rather than damping — "
             "the patience to wait for an instruction is what will need practice.",
         ),
@@ -2480,16 +2414,15 @@ _CHILD_VOICE: dict[str, _ChildVoice] = {
         # license — the discharge has to be daily. Which activity it is, the
         # chart does not know, and this table will not pretend to.
         action=(
-            "அந்தச் சக்திக்குத் தினமும் உடல் உழைப்பில் ஒரு வடிகால் கொடுங்கள் — "
-            "எது என்பதை விட தினமும் என்பதே முக்கியம்",
+            "தினமும் ஓடவும் விளையாடவும் நேரம் ஒதுக்குங்கள். எந்த விளையாட்டு என்பதைவிட, "
+            "தினமும் விளையாடுவதுதான் முக்கியம்",
             "give the energy a physical outlet every day — the daily part matters "
             "more than which one",
         ),
     ),
     "MERCURY": _ChildVoice(
         note=(
-            "{name} பேசிப் பேசியே கற்பார், வாதிடுவதிலேயே ஒரு சுவை காண்பார் — ஒரு சிந்தனையை "
-            "முடிப்பது, மூன்றைத் தொடங்குவதல்ல, வளர்க்க வேண்டிய திறன்.",
+            "{name} பேசிப் பேசியே கற்றுக்கொள்வார்; வாதம் செய்வதே அவருக்கு ஒரு சுவை. மூன்று விஷயங்களைத் தொடங்காமல், ஒன்றை முழுமையாகச் சொல்லி முடிக்கப் பழக வேண்டும்.",
             "{name} learns by talking and will argue for the pleasure of it — the skill to build is "
             "finishing one thought rather than starting three.",
         ),
@@ -2500,8 +2433,7 @@ _CHILD_VOICE: dict[str, _ChildVoice] = {
     ),
     "JUPITER": _ChildVoice(
         note=(
-            "{name} நியாயத்தை முக்கியமாக எடுத்துக்கொள்வார்; ஒரு விதி சமமாகப் பயன்படுத்தப்படாதபோது "
-            "உடனே கவனிப்பார் — கொடுப்பது எளிது, நண்பரிடம் மறுத்துச் சொல்வது அல்ல.",
+            "{name} நியாயத்தை மிகவும் முக்கியமாகப் பார்ப்பார்; ஒரு விதி எல்லோருக்கும் சமமாக இல்லை என்றால் உடனே கவனிப்பார். கொடுப்பது அவருக்கு எளிது; நண்பரிடம் முடியாது என்று சொல்வதுதான் கடினம்.",
             "{name} takes fairness seriously and notices when a rule is applied unevenly — generosity "
             "comes easily; saying no to a friend does not.",
         ),
@@ -2512,8 +2444,7 @@ _CHILD_VOICE: dict[str, _ChildVoice] = {
     ),
     "VENUS": _ChildVoice(
         note=(
-            "தன்னைச் சுற்றியுள்ளவர்கள் நிம்மதியாக இருக்க வேண்டும் என்பதற்காக {name} சிக்கல்களை "
-            "மென்மையாக மறைத்துவிடுவார் — அதனால் ஒரு வருத்தம் நன்றாக மறைந்திருக்கக்கூடும்.",
+            "சுற்றி இருப்பவர்கள் நிம்மதியாக இருக்க வேண்டும் என்று {name} சிக்கல்களை மறைத்துவிடுவார்; அதனால் அவருடைய வருத்தம் வெளியே தெரியாமலே இருக்கலாம்.",
             "{name} wants the people around them at ease and will smooth trouble over to get it — "
             "which means an upset can stay well hidden.",
         ),
@@ -2524,9 +2455,7 @@ _CHILD_VOICE: dict[str, _ChildVoice] = {
     ),
     "SATURN": _ChildVoice(
         note=(
-            "{name} தொடங்குவதில் மெதுவாக இருப்பார், தொடங்கிய பிறகு நிலையாக இருப்பார்; ஆரம்ப "
-            "ஆண்டுகள் அவசரமில்லாமல் தெரிந்து பின்னர் உறுதிப்படும். வேகத்திற்காக அழுத்துவது "
-            "காத்திருப்பதை விட விலை அதிகம்.",
+            "{name} தொடங்குவதில் மெதுவாக இருப்பார், தொடங்கிய பிறகு நிலையாக இருப்பார். ஆரம்ப ஆண்டுகள் அவசரமில்லாமல் போய், பிறகு உறுதிப்படும். வேகமாகச் செய் என்று அழுத்தினால், காத்திருப்பதை விட இழப்புதான் அதிகம்.",
             "{name} is slower to start and steadier once started; the early years can look unhurried "
             "and then hold. Pushing for speed costs more here than waiting does.",
         ),
@@ -2537,8 +2466,7 @@ _CHILD_VOICE: dict[str, _ChildVoice] = {
     ),
     "RAHU": _ChildVoice(
         note=(
-            "எட்டாத தூரத்தில் இருப்பதன் மீதே {name}க்கு ஈர்ப்பு; அதை அடைய வழக்கத்திற்கு மாறான "
-            "வழியைக் கண்டுபிடிப்பார் — ஆர்வம் சூடாக இருக்கும், அதை ஒன்றிலேயே நிலைநிறுத்துவதே வேலை.",
+            "கைக்கு எட்டாததன் மேல்தான் {name}-க்கு ஈர்ப்பு; அதை அடைய வழக்கத்துக்கு மாறான வழியைக் கண்டுபிடிப்பார். ஆர்வம் அதிகமாக இருக்கும்; அதை ஒரே விஷயத்தில் நிறுத்துவதுதான் வேலை.",
             "{name} is drawn to whatever is just out of reach and will find an unusual route to it — "
             "the interest runs hot, and holding it to one thing is the work.",
         ),
@@ -2555,8 +2483,7 @@ _CHILD_VOICE: dict[str, _ChildVoice] = {
     ),
     "KETU": _ChildVoice(
         note=(
-            "{name} தன்னிறைவானவர்; கலந்துகொள்வதை விடக் கவனிப்பது அதிகம் — தனியாக இருப்பதில் "
-            "சங்கடமில்லை, ஆனால் தேவைப்படும்போதும் உதவி கேட்பது தாமதமாகும்.",
+            "{name} தனக்குத்தானே போதுமானவர்; கலந்துகொள்வதை விடக் கவனிப்பதே அதிகம். தனியாக இருப்பது அவருக்குச் சிரமம் இல்லை; ஆனால் உதவி தேவைப்பட்டாலும் கேட்கத் தாமதமாகும்.",
             "{name} is self-contained and observes more than they join in — comfortable alone, and "
             "slower to ask for help than they need to be.",
         ),
@@ -2651,8 +2578,8 @@ def _marital_status_pending_question(
     if about:
         prompt = OneMinuteText(
             ta=(
-                "இதற்குப் பதில் கிடைக்கும் வரை இந்த வாசிப்பின் ஒரு பகுதி நிறுத்தி "
-                f"வைக்கப்பட்டுள்ளது — இவற்றில் எது இப்போது {about}-க்குப் பொருந்தும்?"
+                "இதற்குப் பதில் கிடைத்த பிறகுதான் இந்தப் பலனின் ஒரு பகுதியைச் சொல்ல "
+                f"முடியும். இவற்றில் எது இப்போது {about}-க்குப் பொருந்தும்?"
             ),
             en=(
                 "One part of this reading is held back until this is answered — "
@@ -2662,8 +2589,7 @@ def _marital_status_pending_question(
     else:
         prompt = OneMinuteText(
             ta=(
-                "இதற்குப் பதில் கிடைக்கும் வரை இந்த வாசிப்பின் ஒரு பகுதி நிறுத்தி "
-                "வைக்கப்பட்டுள்ளது — இவற்றில் எது இப்போது உங்களுக்குப் பொருந்தும்?"
+                "இதற்குப் பதில் கிடைத்த பிறகுதான் இந்தப் பலனின் ஒரு பகுதியைச் சொல்ல முடியும். இவற்றில் எது இப்போது உங்களுக்குப் பொருந்தும்?"
             ),
             en=(
                 "One part of this reading is held back until this is answered — "
@@ -2725,8 +2651,7 @@ def _marital_status_pending_question(
 # life anyway ("the work of your remaining years"). We take the refusal and
 # leave the framing.
 _LONGEVITY_REFUSAL: tuple[str, str] = (
-    "இந்த வாசிப்பு ஆயுளைக் கணிப்பதில்லை. ஜாதகம் அதைப் பற்றி மௌனமாக இருப்பதால் அல்ல — "
-    "அந்தப் பதில், மிச்சமிருக்கும் காலத்தை ஒருவர் எப்படிக் கழிக்கிறார் என்பதையே மாற்றிவிடும்.",
+    "ஆயுளைப் பற்றி இங்கே சொல்வதில்லை. ஜாதகத்தில் அதற்கு விடை இல்லை என்பதால் அல்ல; அதைத் தெரிந்துகொண்டால், மீதி வாழ்க்கையை ஒருவர் வாழும் விதமே மாறிவிடும்.",
     "This reading does not read length of life. Not because the chart is silent on it — because "
     "that answer changes how a person spends the years they have.",
 )
@@ -2761,11 +2686,13 @@ _LONGEVITY_REFUSAL: tuple[str, str] = (
 _AREA_NOUN: dict[str, tuple[str, str]] = {
     "EDUCATION": ("கற்றல்", "learning"),
     "RELATIONSHIPS": ("உறவுகள்", "relationships"),
-    "FAMILY_HARMONY": ("வீடும் குடும்பமும்", "home and family"),
+    "FAMILY_HARMONY": ("வீடு, குடும்பம்", "home and family"),
     "CAREER": ("வேலை", "work"),
     "HEALTH": ("உடல்நலம்", "health"),
 }
-# NATIVE-TAMIL REVIEW PASSED 2026-08-12 — owner sign-off, all five entries.
+# NATIVE-TAMIL REVIEW PASSED 2026-08-12 — owner sign-off, all five entries. The
+# FAMILY_HARMONY Tamil changed on 2026-11-07 under owner delegation (not re-reviewed):
+# "வீடும் குடும்பமும்" cannot take the பற்றி / விஷயத்தில் frames the others can.
 # This is a PER-TABLE exemption from the module-level PENDING marker in the
 # docstring above, which still stands for the rest of this module's Tamil.
 # The Tamil puts `{area}` in bare TOPIC position and carries the case on a
@@ -2774,16 +2701,22 @@ _AREA_NOUN: dict[str, tuple[str, str]] = {
 # entries: the caller concatenates whole words and never splices a case ending
 # onto a bare noun, so one table of nouns can serve every frame that needs them.
 _OUTLOOK_SUPPORTIVE = (
-    "{area} — நடப்பு {planet} காலம் இதற்கு ஆதரவாக இருக்கிறது.",
+    "{area} தொடர்பான விஷயங்களில், இப்போது நடக்கும் {planet} தசை துணையாக இருக்கிறது.",
     "On {area}, the {planet} period running now is supportive.",
 )
 # The neutral case says nothing, and it was appearing in most readings — a
 # sentence that costs thirteen words to report an absence of signal. Silence is
 # the honest rendering of "no signal", and the words buy the grievance instead.
 _OUTLOOK_MIXED = ("", "")
+# {date} is where the MAHADASHA ends, because the score is the mahadasha
+# lord's. It used to be the current bhukti's end, which promised a child's
+# parent "easier after June 2027" while the slow Mars dasa ran on to 2028 —
+# and the five-minute beat beside it called that same bhukti the easy part.
+# It names when this stretch ends, not that the next one is easier: nothing
+# here has scored the next lord.
 _OUTLOOK_SLOW = (
-    "{area} — நடப்புக் காலம் இங்கே பொறுமையைக் கேட்கிறது; {date} க்குப் பிறகு நிலை தளர்கிறது.",
-    "On {area}, the current period asks for patience; conditions ease after {date}.",
+    "இப்போது நடக்கும் {planet} தசையில் {area} விஷயத்தில் பொறுமை தேவை; இந்தத் தசை {date} வரை நடக்கும்.",
+    "On {area}, the current period asks for patience; it runs until {date}.",
 )
 
 
@@ -2947,11 +2880,13 @@ def _beat_who_you_are(
     # number this table has no row for is a bug, but an empty noun in the
     # opening sentence is a worse way to report it than a legible wrong one.
     star = _proper(nakshatra_name)
-    star_ta = nakshatra_ta(nakshatra) or star
+    # Joined forms (மூல நட்சத்திரம், ரிஷப ராசி): every Tamil use below sits
+    # directly before நட்சத்திரம் / ராசி / லக்னம். See `name_stem_ta`.
+    star_ta = name_stem_ta(nakshatra_ta(nakshatra) or star)
     moon_rasi_display = _proper(moon_rasi_name)
-    moon_rasi_ta_display = rasi_ta(moon_rasi) or moon_rasi_display
+    moon_rasi_ta_display = name_stem_ta(rasi_ta(moon_rasi) or moon_rasi_display)
     lagna_rasi_display = _proper(lagna_rasi_name)
-    lagna_rasi_ta_display = rasi_ta(lagna_rasi) or lagna_rasi_display
+    lagna_rasi_ta_display = name_stem_ta(rasi_ta(lagna_rasi) or lagna_rasi_display)
 
     # THE OPENING NAMES ONE PLACEMENT, AND IT IS THE ONE THE READING READS FROM.
     #
@@ -3097,7 +3032,7 @@ def _beat_who_you_are(
         basis_ta += f"; {lagna_rasi_ta_display} லக்னம்"
         basis_en += f"; {lagna_rasi_display} lagna"
     else:
-        basis_ta += "; பிறந்த நேரம் உறுதிப்படுத்தப்படாததால் லக்னம் இங்கே பயன்படுத்தப்படவில்லை"
+        basis_ta += "; பிறந்த நேரம் உறுதியாகத் தெரியாததால் இங்கே லக்னம் சேர்க்கப்படவில்லை"
         basis_en += "; lagna withheld — birth time is not confirmed"
 
     return OneMinuteBeat(
@@ -3154,7 +3089,7 @@ def _beat_what_this_rests_on(
         id="what_this_rests_on",
         text=OneMinuteText(ta=ta.format(name=given), en=en.format(name=given)),
         basis=OneMinuteText(
-            ta=f"பிறந்த நேரத்தின் ஆதாரம்: {source}",
+            ta=f"பிறந்த நேரத்தின் ஆதாரம்: {_TIME_SOURCE_TA.get(source, 'தெரியவில்லை')}",
             en=f"Birth time source: {source}",
         ),
     )
@@ -3221,17 +3156,17 @@ def _beat_strength_and_cost(
 
     if addressed_to == "other":
         given = _first_name(display_name)
-        ta = f"{given}-இன் உண்மையான பலம் {voice.gift[0]}. விலை என்பது {voice.shadow[0]}."
+        ta = f"{given}-இன் உண்மையான பலம் {voice.gift[0]}. அவருக்குக் கடினமானது {voice.shadow[0]}."
         en = f"{given}'s real strength is {voice.gift[1]}. Where it costs them is {voice.shadow[1]}."
     else:
-        ta = f"உங்கள் உண்மையான பலம் {voice.gift[0]}. விலை என்பது {voice.shadow[0]}."
+        ta = f"உங்கள் உண்மையான பலம் {voice.gift[0]}. உங்களுக்குக் கடினமானது {voice.shadow[0]}."
         en = f"Your real strength is {voice.gift[1]}. Where it costs you is {voice.shadow[1]}."
 
     return OneMinuteBeat(
         id="strength_and_cost",
         text=OneMinuteText(ta=ta, en=en),
         basis=OneMinuteText(
-            ta=f"வலிமையான கிரகம் {planet_ta(strongest)} — பலமும் விலையும் இதிலிருந்தே",
+            ta=f"வலிமையான கிரகம் {planet_ta(strongest)}; பலமும் சிரமமும் இதிலிருந்தே வருகின்றன",
             en=f"Strongest graha {planet_en(strongest)} — both the gift and its cost from it",
         ),
     )
@@ -3297,7 +3232,7 @@ def _beat_what_life_keeps_teaching(*, strongest: str) -> OneMinuteBeat:
             en=_VOICE[strongest].life_lesson[1],
         ),
         basis=OneMinuteText(
-            ta=f"வலிமையான கிரகம் {planet_ta(strongest)} — அதன் விலை கற்பிப்பது",
+            ta=f"வலிமையான கிரகம் {planet_ta(strongest)}; அதன் சிரமம் உணர்த்துவது",
             en=f"Strongest graha {planet_en(strongest)} — what its shadow keeps teaching",
         ),
     )
@@ -3369,7 +3304,10 @@ def _beat_last_ten_years(
             return ("", "")
         theme_ta, theme_en = theme_table[lord]
         texture_ta, texture_en = _voice(lord, addressed_to).past_texture
-        prefix_ta = "" if theme_ta in texture_ta else f"{theme_ta}: "
+        # Tamil drops the label (owner, 2026-11-09): "சமநிலை: அந்த ஆண்டுகளில்…" read
+        # as an editor's tag left on a finished sentence, and the texture after it
+        # already says what the label would. English keeps its prefix.
+        prefix_ta = ""
         prefix_en = (
             ""
             if theme_en.lower() in texture_en.lower()
@@ -3422,8 +3360,8 @@ def _beat_last_ten_years(
             whom_ta = f"{given}-க்கு" if them else "உங்களுக்கு"
             whom_en = f"{given} was" if them else "you were"
             ta = (
-                f"{span_start.year} முதல் {hinge_year} வரை {whom_ta} {planet_ta(previous.lord)} "
-                f"காலம் நடந்தது. {_cap(f'{prefix_ta}{voice.past_texture[0]}')}. {invitation[0]}"
+                f"{span_start.year} முதல் {hinge_year} வரை {whom_ta} {dasa_stem_ta(previous.lord)} "
+                f"தசை நடந்தது. {_cap(f'{prefix_ta}{voice.past_texture[0]}')}. {invitation[0]}"
             )
             en = (
                 f"From {span_start.year} to {hinge_year} {whom_en} under "
@@ -3436,7 +3374,7 @@ def _beat_last_ten_years(
                     text=OneMinuteText(ta=ta, en=en),
                     basis=OneMinuteText(
                         ta=(
-                            f"{planet_ta(previous.lord)} மகாதசை "
+                            f"{dasa_stem_ta(previous.lord)} மகாதசை "
                             f"{previous.start_date.year}–{previous.end_date.year}"
                         ),
                         en=(
@@ -3472,15 +3410,15 @@ def _beat_last_ten_years(
         # end would put ten words between the hinge and its pick-up.
         prefix_ta, prefix_en = _theme_prefix(maha.lord)
         inside_ta = (
-            f"{given} {planet_ta(maha.lord)} காலத்திற்குள்ளேயே இருக்கிறார்"
+            f"{given} {dasa_stem_ta(maha.lord)} தசையிலேயே இருக்கிறார்"
             if them
-            else f"நீங்கள் {planet_ta(maha.lord)} காலத்திற்குள்ளேயே இருக்கிறீர்கள்"
+            else f"நீங்கள் {dasa_stem_ta(maha.lord)} தசையிலேயே இருக்கிறீர்கள்"
         )
         inside_en = f"{given} has" if them else "you have"
         ta = (
             f"{span_year} முதல் இதுவரை {inside_ta}. "
             f"{_cap(f'{prefix_ta}{voice.past_texture[0]}')}. {invitation[0]} "
-            f"அதற்குள் {hinge_year}-ல் ஒரு திருப்பம் வந்தது."
+            f"இடையில் {hinge_year}-ல் ஒரு திருப்பம் வந்தது."
         )
         en = (
             f"From {span_year} until now {inside_en} been inside one long "
@@ -3493,8 +3431,8 @@ def _beat_last_ten_years(
                 text=OneMinuteText(ta=ta, en=en),
                 basis=OneMinuteText(
                     ta=(
-                        f"{planet_ta(maha.lord)} மகாதசை {maha.start_date.year}–{maha.end_date.year}; "
-                        f"{planet_ta(recent.lord)} புத்தி {recent.start_date.year}"
+                        f"{dasa_stem_ta(maha.lord)} மகாதசை {maha.start_date.year}–{maha.end_date.year}; "
+                        f"{dasa_stem_ta(recent.lord)} புக்தி {recent.start_date.year}"
                     ),
                     en=(
                         f"{planet_en(maha.lord)} mahadasha {maha.start_date.year}-{maha.end_date.year}; "
@@ -3509,7 +3447,7 @@ def _beat_last_ten_years(
     prefix_ta, prefix_en = _theme_prefix(maha.lord)
     whom_ta = f"{given}-க்கு " if them else ""
     ta = (
-        f"{window_start.year} முதல் இதுவரை {whom_ta}{planet_ta(maha.lord)} காலமே தொடர்ந்திருக்கிறது. "
+        f"{window_start.year} முதல் இதுவரை {whom_ta}{dasa_stem_ta(maha.lord)} தசையே நடக்கிறது. "
         f"{_cap(f'{prefix_ta}{voice.past_texture[0]}')}. {invitation[0]}"
     )
     en = (
@@ -3522,7 +3460,7 @@ def _beat_last_ten_years(
             id="last_ten_years",
             text=OneMinuteText(ta=ta, en=en),
             basis=OneMinuteText(
-                ta=f"{planet_ta(maha.lord)} மகாதசை {maha.start_date.year}–{maha.end_date.year}",
+                ta=f"{dasa_stem_ta(maha.lord)} மகாதசை {maha.start_date.year}–{maha.end_date.year}",
                 en=f"{planet_en(maha.lord)} mahadasha {maha.start_date.year}-{maha.end_date.year}",
             ),
         ),
@@ -3582,24 +3520,36 @@ def _beat_right_now(
         # this is a suppression rather than a fourth pair of strings.
         hinge_ta = hinge_en = ""
         if name_maha_end:
-            ta_lead = f"இப்போது உங்களுக்கு {planet_ta(maha.lord)} காலம், {maha.end_date.year} வரை."
+            ta_lead = f"இப்போது உங்களுக்கு {dasa_stem_ta(maha.lord)} தசை; இது {maha.end_date.year} வரை நடக்கும்."
             en_lead = (
                 f"You are in a {planet_en(maha.lord)} period now, "
                 f"and it runs to {maha.end_date.year}."
             )
         else:
-            ta_lead = f"இப்போது உங்களுக்கு {planet_ta(maha.lord)} காலம்."
+            ta_lead = f"இப்போது உங்களுக்கு {dasa_stem_ta(maha.lord)} தசை."
             en_lead = f"You are in a {planet_en(maha.lord)} period now."
     elif hinge[1] == "maha":
         hinge_ta = f"{hinge[0]}-ல் அது மாறியது. "
         hinge_en = f"That changed in {hinge[0]}. "
-        ta_lead = f"இப்போது உங்களுக்கு {planet_ta(maha.lord)} காலம்."
+        ta_lead = f"இப்போது உங்களுக்கு {dasa_stem_ta(maha.lord)} தசை."
         en_lead = f"You are in a {planet_en(maha.lord)} period now."
     else:
-        hinge_ta = f"{hinge[0]} முதல் அதன் தன்மை மாறியிருக்கிறது. "
         hinge_en = f"Since {hinge[0]} the tone inside it has shifted. "
-        ta_lead = f"{planet_ta(maha.lord)} காலம் தொடர்கிறது."
         en_lead = f"You are still under {planet_en(maha.lord)}."
+        if antar.start_date.year == hinge[0]:
+            # Say WHAT changed. "Since 2025 the tone has shifted" announced a
+            # turn and then described the unchanged mahadasha, so the reader was
+            # never told the turn was a new bhukti. Tamil only: புக்தி is a
+            # household word, while the English body may not say "bhukti".
+            hinge_ta = (
+                f"{_month_year(antar.start_date, 'ta')} முதல் {dasa_stem_ta(maha.lord)} தசைக்குள் "
+                f"{dasa_stem_ta(antar.lord)} புக்தி நடக்கிறது; இதனால் நடக்கும் விஷயங்களின் போக்கில் "
+                f"கொஞ்சம் மாற்றம் வந்திருக்கிறது. "
+            )
+            ta_lead = f"ஆனாலும் இது {dasa_stem_ta(maha.lord)} தசைதான்."
+        else:
+            hinge_ta = f"{hinge[0]} முதல் இந்தக் காலத்தின் தன்மை மாறியிருக்கிறது. "
+            ta_lead = f"{dasa_stem_ta(maha.lord)} தசை தொடர்கிறது."
 
     if addressed_to == "other":
         # Same three leads, about them. Written out rather than substituted
@@ -3607,9 +3557,9 @@ def _beat_right_now(
         given = _first_name(display_name)
         if hinge is None:
             ta_lead = (
-                f"இப்போது {given}-க்கு {planet_ta(maha.lord)} காலம், {maha.end_date.year} வரை."
+                f"இப்போது {given}-க்கு {dasa_stem_ta(maha.lord)} தசை; இது {maha.end_date.year} வரை நடக்கும்."
                 if name_maha_end
-                else f"இப்போது {given}-க்கு {planet_ta(maha.lord)} காலம்."
+                else f"இப்போது {given}-க்கு {dasa_stem_ta(maha.lord)} தசை."
             )
             en_lead = (
                 f"{given} is in a {planet_en(maha.lord)} period now, "
@@ -3618,7 +3568,7 @@ def _beat_right_now(
                 else f"{given} is in a {planet_en(maha.lord)} period now."
             )
         elif hinge[1] == "maha":
-            ta_lead = f"இப்போது {given}-க்கு {planet_ta(maha.lord)} காலம்."
+            ta_lead = f"இப்போது {given}-க்கு {dasa_stem_ta(maha.lord)} தசை."
             en_lead = f"{given} is in a {planet_en(maha.lord)} period now."
         else:
             en_lead = f"{given} is still under {planet_en(maha.lord)}."
@@ -3631,7 +3581,7 @@ def _beat_right_now(
         text=OneMinuteText(ta=ta, en=en),
         basis=OneMinuteText(
             ta=(
-                f"{planet_ta(maha.lord)} மகாதசை / {planet_ta(antar.lord)} புத்தி "
+                f"{dasa_stem_ta(maha.lord)} மகாதசை / {dasa_stem_ta(antar.lord)} புக்தி "
                 f"({antar.start_date.isoformat()} – {antar.end_date.isoformat()})"
             ),
             en=(
@@ -3721,13 +3671,13 @@ def _outlook(topic: str, maha_lord: str, lang_date: tuple[str, str]) -> tuple[st
     area_ta, area_en = _AREA_NOUN[area]
     if score >= 65:
         return (
-            _OUTLOOK_SUPPORTIVE[0].format(area=area_ta, planet=planet_ta(maha_lord)),
+            _OUTLOOK_SUPPORTIVE[0].format(area=area_ta, planet=dasa_stem_ta(maha_lord)),
             _OUTLOOK_SUPPORTIVE[1].format(area=area_en, planet=planet_en(maha_lord)),
         )
     if score >= 50:
         return _OUTLOOK_MIXED
     return (
-        _OUTLOOK_SLOW[0].format(area=area_ta, date=lang_date[0]),
+        _OUTLOOK_SLOW[0].format(area=area_ta, planet=dasa_stem_ta(maha_lord), date=lang_date[0]),
         _OUTLOOK_SLOW[1].format(area=area_en, date=lang_date[1]),
     )
 
@@ -3747,7 +3697,7 @@ def _beat_age_question(
     # register-specific and ignore this.
     them = addressed_to == "other"
     given = _first_name(display_name)
-    next_change = timeline.current_antardasha.end_date
+    next_change = timeline.current_mahadasha.end_date  # see _OUTLOOK_SLOW
     outlook_ta, outlook_en = _outlook(
         topic,
         timeline.current_mahadasha.lord,
@@ -3762,9 +3712,9 @@ def _beat_age_question(
         # reading that put those words in front of a parent at all. A negation
         # is not a safe way to keep a topic out of a minor's chart.
         ta = (
-            f"இந்த வயதில் ஜாதகம் சொல்வது {display_name} எப்படிக் கற்கிறார், எது அவரை "
-            f"நிலைப்படுத்துகிறது, சுற்றியுள்ள வீடு எவ்வளவு அமைதியாக இருக்கிறது என்பதைத்தான். "
-            f"பிற்காலத்தில் வருவதை எல்லாம் வடிவமைப்பவை இவைதான். {outlook_ta}"
+            f"இந்த வயதில் ஜாதகம் பேசுவது {display_name} எப்படிக் கற்றுக்கொள்கிறார், எது அவருக்கு "
+            f"மனநிம்மதி தருகிறது, வீட்டில் எவ்வளவு அமைதி இருக்கிறது என்பதைப் பற்றித்தான். "
+            f"பிற்காலத்தில் வரும் எல்லாவற்றுக்கும் அடித்தளம் இவைதான். {outlook_ta}"
         )
         en = (
             f"At this age the chart is about how {display_name} learns, what settles them, and how "
@@ -3777,8 +3727,8 @@ def _beat_age_question(
         # Tamil teenagers and wrong in a way that stings for the one it misses.
         # What the chart is weighted toward is a claim about the chart.
         ta = (
-            f"{age} வயதில், ஜாதகத்தின் கவனம் நீங்கள் கற்பதன் மீதும், உங்களை நிலைப்படுத்துவதன் "
-            f"மீதும் இருக்கிறது — அடுத்து வருவதை இவை இரண்டுமே தீர்மானிக்கின்றன. {outlook_ta}"
+            f"{age} வயதில், ஜாதகம் அதிகம் பேசுவது நீங்கள் கற்றுக்கொள்வதைப் பற்றியும், உங்களுக்கு நிம்மதி "
+            f"தருவதைப் பற்றியும்தான். அடுத்து என்ன வரும் என்பதை இவை இரண்டும்தான் தீர்மானிக்கும். {outlook_ta}"
         )
         en = (
             f"At {age}, the chart's weight is on what you are learning and what steadies you — "
@@ -3786,9 +3736,9 @@ def _beat_age_question(
         )
     elif topic == TOPIC_EDUCATION and them:
         ta = (
-            f"{given} படித்துக்கொண்டிருப்பதால், அவரது ஜாதகத்தில் இப்போது முக்கியமான பகுதி கற்றல்தான் — "
-            f"இந்தக் காலத்தில் அவர் முடிப்பதே அடுத்து எதை நோக்கிச் செல்ல முடியும் என்பதை "
-            f"நிர்ணயிக்கும். {outlook_ta}"
+            f"{given} படித்துக்கொண்டிருப்பதால், இப்போது அவருடைய ஜாதகத்தில் முக்கியமானது படிப்புதான். "
+            f"இந்தக் காலத்தில் அவர் படித்து முடிப்பதே, அடுத்து அவர் எதை அடைய முடியும் என்பதைத் "
+            f"தீர்மானிக்கும். {outlook_ta}"
         )
         en = (
             f"{given} is studying, so the part of the chart that matters most right now is learning: "
@@ -3796,8 +3746,8 @@ def _beat_age_question(
         )
     elif topic == TOPIC_EDUCATION:
         ta = (
-            "நீங்கள் படித்துக்கொண்டிருப்பதால், ஜாதகத்தில் இப்போது முக்கியமான பகுதி கற்றல்தான் — இந்தக் "
-            f"காலத்தில் நீங்கள் முடிப்பதே அடுத்து எதை நோக்கிச் செல்ல முடியும் என்பதை நிர்ணயிக்கும். {outlook_ta}"
+            "நீங்கள் படித்துக்கொண்டிருப்பதால், இப்போது ஜாதகத்தில் முக்கியமானது படிப்புதான். இந்தக் "
+            f"காலத்தில் நீங்கள் படித்து முடிப்பதே, அடுத்து எதை அடைய முடியும் என்பதைத் தீர்மானிக்கும். {outlook_ta}"
         )
         en = (
             "You are studying, so the part of the chart that matters most right now is learning: what "
@@ -3805,8 +3755,8 @@ def _beat_age_question(
         )
     elif topic == TOPIC_MARRIAGE and them:
         ta = (
-            f"{age} வயதில், {given}-இன் ஜாதகத்திடம் உண்மையில் கேட்கப்படும் கேள்வி திருமணம்தான் — "
-            f"நேரம் மட்டும் அல்ல, யாருடன் என்பதும் சேர்த்து. {outlook_ta}"
+            f"{age} வயதில், {given}-இன் ஜாதகத்தில் முக்கியமான கேள்வி திருமணம்தான்; "
+            f"எப்போது என்பது மட்டும் அல்ல, யாருடன் என்பதும் சேர்த்து. {outlook_ta}"
         )
         en = (
             f"At {age}, marriage is the question {given}'s chart is actually being asked — not only "
@@ -3814,7 +3764,7 @@ def _beat_age_question(
         )
     elif topic == TOPIC_MARRIAGE:
         ta = (
-            f"{age} வயதில், திருமணம்தான் ஜாதகத்திடம் உண்மையில் கேட்கப்படும் கேள்வி — நேரம் மட்டும் அல்ல, "
+            f"{age} வயதில், ஜாதகத்தில் முக்கியமான கேள்வி திருமணம்தான்; எப்போது என்பது மட்டும் அல்ல, "
             f"யாருடன் என்பதும் சேர்த்து. {outlook_ta}"
         )
         en = (
@@ -3844,17 +3794,16 @@ def _beat_age_question(
         # for, every other topic branch here already names it, and it costs the
         # same number of words.
         ta = (
-            f"{given + ' ' if them else ''}திருமணமானவர், {age} வயதில் இருப்பவர் என்பதால், "
-            f"ஜாதகத்தின் கவனம் இப்போது வீடு மற்றும் குடும்பத்தின் மீதே இருக்கிறது. {outlook_ta}"
+            f"{given if them else 'நீங்கள்'} திருமணமானவர், {age} வயதானவர்; அதனால் இந்தப் பலன் "
+            f"இப்போது வீடு, குடும்பம் பற்றியே அதிகம் பேசுகிறது. {outlook_ta}"
         )
-        whose_chart = f"{given}'s chart" if them else "the chart"
         en = (
-            f"Married, and at {age} — so the weight of {whose_chart} sits on home "
+            f"Married, and at {age} — so this reading turns mostly to home "
             f"and family. {outlook_en}"
         )
     elif topic == TOPIC_STEADYING and them:
         ta = (
-            f"{age} வயதில், {given}-ஐ நிலைப்படுத்துவதன் மீதே ஜாதகத்தின் கவனம் இருக்கிறது — வீடு, "
+            f"{age} வயதில், {given}-க்கு நிம்மதி தரும் விஷயங்களைப் பற்றியே ஜாதகம் அதிகம் பேசுகிறது: வீடு, "
             f"உடல்நலம், அருகில் இருப்பவர்கள். {outlook_ta}"
         )
         en = (
@@ -3868,7 +3817,7 @@ def _beat_age_question(
         # it is a verdict against them. Nothing here names the loss either: the
         # reader told us their status, they do not need it read back.
         ta = (
-            f"{age} வயதில், உங்களை நிலைப்படுத்துவதன் மீதே ஜாதகத்தின் கவனம் இருக்கிறது — வீடு, "
+            f"{age} வயதில், உங்களுக்கு நிம்மதி தரும் விஷயங்களைப் பற்றியே ஜாதகம் அதிகம் பேசுகிறது: வீடு, "
             f"உடல்நலம், அருகில் இருப்பவர்கள். {outlook_ta}"
         )
         en = (
@@ -3877,8 +3826,8 @@ def _beat_age_question(
         )
     elif topic == TOPIC_CAREER:
         ta = (
-            f"{age} வயதில், ஜாதகத்தின் கவனம் வேலை மற்றும் வருமானத்தின் மீது இருக்கிறது — இப்போது "
-            f"{given if them else 'நீங்கள்'} உறுதிப்படுத்துவதே அடுத்த காலம் பெருக்கிக் கொடுப்பது. "
+            f"{age} வயதில், ஜாதகம் அதிகம் பேசுவது வேலை, வருமானம் பற்றித்தான். இப்போது "
+            f"{given if them else 'நீங்கள்'} உறுதி செய்வதைத்தான் அடுத்த காலம் பெருக்கித் தரும். "
             f"{outlook_ta}"
         )
         en = (
@@ -3902,8 +3851,8 @@ def _beat_age_question(
         ta = " ".join(
             part
             for part in (
-                "இந்தக் காலத்தில் ஜாதகத்தின் கவனம் உடல்நலத்தின் மீதும், "
-                f"{given if them else 'நீங்கள்'} ஒப்படைப்பதன் மீதும் நகர்கிறது.",
+                "இந்தக் காலத்தில் ஜாதகம் உடல்நலத்தைப் பற்றியும், "
+                f"{given if them else 'நீங்கள்'} அடுத்தவர்களுக்கு ஒப்படைப்பதைப் பற்றியும் பேசுகிறது.",
                 outlook_ta,
                 _LONGEVITY_REFUSAL[0],
             )
@@ -3926,8 +3875,8 @@ def _beat_age_question(
         text=OneMinuteText(ta=ta.strip(), en=en.strip()),
         basis=OneMinuteText(
             ta=(
-                f"வயது {age}; கவனப் பகுதி {_TOPIC_AREA[topic]}; "
-                f"{planet_ta(timeline.current_mahadasha.lord)} தசை-பகுதி ஒத்திசைவு"
+                f"வயது {age}; கவனப் பகுதி {_AREA_NOUN[_TOPIC_AREA[topic]][0]}; "
+                f"{dasa_stem_ta(timeline.current_mahadasha.lord)} தசைக்கும் இந்தப் பகுதிக்கும் உள்ள பொருத்தம்"
             ),
             en=(
                 f"Age {age}; focus area {_TOPIC_AREA[topic]}; "
@@ -4008,9 +3957,9 @@ def _beat_next_ten_years(
             # as the sentence correcting itself mid-stream. One clause, one
             # throughline: current lord, until when, then the next lord.
             ta = (
-                f"{planet_ta(current.lord)} காலம் {_month_year(nxt.start_date, 'ta')} வரை "
-                f"தொடர்கிறது; அதன் பிறகு அது {planet_ta(nxt.lord)} காலத்திற்கு "
-                f"மாறுகிறது — {texture[0]}."
+                f"{dasa_stem_ta(current.lord)} தசை {_month_year(nxt.start_date, 'ta')} வரை "
+                f"நடக்கும்; அதன் பிறகு {dasa_stem_ta(nxt.lord)} தசை தொடங்கும். "
+                f"{_cap(texture[0])}."
             )
             en = (
                 f"{planet_en(current.lord)} remains the main influence until "
@@ -4019,14 +3968,14 @@ def _beat_next_ten_years(
             )
         else:
             ta = (
-                f"{_month_year(nxt.start_date, 'ta')} முதல் {whom_ta} {planet_ta(nxt.lord)} காலம் "
+                f"{_month_year(nxt.start_date, 'ta')} முதல் {whom_ta} {dasa_stem_ta(nxt.lord)} தசை "
                 f"தொடங்குகிறது. {_cap(texture[0])}."
             )
             en = (
                 f"From {_month_year(nxt.start_date, 'en')}, {planet_en(nxt.lord)} takes over. "
                 f"{_cap(texture[1])}."
             )
-        basis_ta = f"{planet_ta(nxt.lord)} மகாதசை {nxt.start_date.isoformat()} முதல்"
+        basis_ta = f"{dasa_stem_ta(nxt.lord)} மகாதசை {nxt.start_date.isoformat()} முதல்"
         basis_en = f"{planet_en(nxt.lord)} mahadasha from {nxt.start_date.isoformat()}"
     else:
         maha = timeline.current_mahadasha
@@ -4049,16 +3998,16 @@ def _beat_next_ten_years(
         # own texture is not repeated for the same reason as the branch above:
         # beat 4 already spent it.
         ta = (
-            f"இந்தப் பத்தாண்டு முழுவதும் {planet_ta(maha.lord)} காலமே தொடர்கிறது; "
-            f"{_month_year(nxt.start_date, 'ta')} முதல் அதற்குள் {planet_ta(nxt.lord)} "
-            f"பகுதி வர, {texture[0]}."
+            f"அடுத்த பத்து ஆண்டுகளும் {dasa_stem_ta(maha.lord)} தசையே நடக்கும். "
+            f"{_month_year(nxt.start_date, 'ta')}-ல் இந்தத் தசைக்குள் {dasa_stem_ta(nxt.lord)} "
+            f"புக்தி தொடங்கும். {_cap(texture[0])}."
         )
         en = (
             f"The decade ahead stays under {planet_en(maha.lord)} throughout; from "
             f"{_month_year(nxt.start_date, 'en')} the emphasis inside it shifts toward "
             f"{planet_en(nxt.lord)}, when {texture[1]}."
         )
-        basis_ta = f"{planet_ta(nxt.lord)} புத்தி {nxt.start_date.isoformat()} முதல்"
+        basis_ta = f"{dasa_stem_ta(nxt.lord)} புக்தி {nxt.start_date.isoformat()} முதல்"
         basis_en = f"{planet_en(nxt.lord)} antardasha from {nxt.start_date.isoformat()}"
 
     return OneMinuteBeat(
@@ -4086,28 +4035,30 @@ def _beat_years_ahead_for_a_child(
     if upcoming:
         nxt = upcoming[0]
         ta = (
-            f"{maha.end_date.year} வரை {display_name}க்கு {planet_ta(maha.lord)} காலம்; "
-            f"{_month_year(nxt.start_date, 'ta')} முதல் {planet_ta(nxt.lord)} காலம் தொடங்கும். "
-            f"பள்ளிப் படிப்பின் திசை பெரும்பாலும் அந்த மாற்றத்தைச் சுற்றியே தெளிவாகும்."
+            # The month, not just the year: "2028 வரை … மே 2028 முதல்" made the
+            # reader do the arithmetic to find the two clauses name one moment.
+            f"{_month_year(nxt.start_date, 'ta')} வரை {display_name}-க்கு {dasa_stem_ta(maha.lord)} "
+            f"தசை நடக்கும்; அதன் பிறகு {dasa_stem_ta(nxt.lord)} தசை தொடங்கும். "
+            f"படிப்பில் எந்தப் பக்கம் ஆர்வம் அதிகம் என்பது அந்தத் தசை மாற்றத்தின்போது இன்னும் தெளிவாகலாம்."
         )
         en = (
             f"{display_name} is in a {planet_en(maha.lord)} period until {maha.end_date.year}, and "
             f"{planet_en(nxt.lord)} begins in {_month_year(nxt.start_date, 'en')}. The direction of "
-            f"their schooling usually becomes clear around that change."
+            f"their schooling may become clearer around that change."
         )
-        basis_ta = f"{planet_ta(nxt.lord)} மகாதசை {nxt.start_date.isoformat()} முதல்"
+        basis_ta = f"{dasa_stem_ta(nxt.lord)} மகாதசை {nxt.start_date.isoformat()} முதல்"
         basis_en = f"{planet_en(nxt.lord)} mahadasha from {nxt.start_date.isoformat()}"
     else:
         ta = (
-            f"{maha.end_date.year} வரை {display_name}க்கு {planet_ta(maha.lord)} காலமே தொடர்கிறது — "
-            f"பள்ளிப் பருவம் முழுவதும் ஒரே தன்மையுடன் நகரும் என்பது இதன் பொருள்."
+            f"{maha.end_date.year} வரை {display_name}-க்கு {dasa_stem_ta(maha.lord)} தசையே நடக்கும். "
+            f"அதனால் பள்ளிப் பருவம் முழுவதும் ஒரே மாதிரி போகும்."
         )
         en = (
             f"{display_name} stays in one {planet_en(maha.lord)} period through "
             f"{maha.end_date.year}, which means the school years run with a single, consistent "
             f"character rather than in stages."
         )
-        basis_ta = f"{planet_ta(maha.lord)} மகாதசை {maha.end_date.isoformat()} வரை"
+        basis_ta = f"{dasa_stem_ta(maha.lord)} மகாதசை {maha.end_date.isoformat()} வரை"
         basis_en = f"{planet_en(maha.lord)} mahadasha through {maha.end_date.isoformat()}"
 
     return OneMinuteBeat(
@@ -4125,7 +4076,7 @@ def _beat_one_thing(
         # About them, not an instruction to the relative reading it: the
         # `_VOICE_THEM` action is a gerund that completes "One thing for X:".
         given = _first_name(display_name)
-        ta = f"{given}-க்கு ஒரு செயல்: {_VOICE_THEM[lord].action[0]}."
+        ta = f"{given}-க்கு உதவக்கூடிய ஒன்று: {_VOICE_THEM[lord].action[0]}."
         en = f"One thing for {given}: {_VOICE_THEM[lord].action[1]}."
     elif addressed_to == "parent":
         # An instruction aimed at a child has no valid recipient — the parent is
@@ -4143,13 +4094,13 @@ def _beat_one_thing(
         ta = f"{lead_ta} {_VOICE[lord].action[0]}."
         en = f"{lead_en} {_VOICE[lord].action[1]}."
     else:
-        ta = f"ஒரு செயல்: {_VOICE[lord].action[0]}."
+        ta = f"செய்யக்கூடிய ஒன்று: {_VOICE[lord].action[0]}."
         en = f"One thing: {_VOICE[lord].action[1]}."
     return OneMinuteBeat(
         id="one_thing",
         text=OneMinuteText(ta=ta, en=en),
         basis=OneMinuteText(
-            ta=f"நடப்பு {planet_ta(lord)} மகாதசையை அடிப்படையாகக் கொண்டது",
+            ta=f"நடப்பு {dasa_stem_ta(lord)} மகாதசையை அடிப்படையாகக் கொண்டது",
             en=f"Anchored on the running {planet_en(lord)} mahadasha",
         ),
     )
@@ -4377,6 +4328,17 @@ def build_chart_context(
     )
 
 
+def with_name_case_endings(beats: list[OneMinuteBeat], first_name: str) -> list[OneMinuteBeat]:
+    """Tamil case endings on the person's name, fixed after assembly. See
+    `fix_name_case_endings`; the five-minute builder calls this too."""
+    return [
+        beat.model_copy(
+            update={"text": OneMinuteText(ta=fix_name_case_endings(beat.text.ta, first_name), en=beat.text.en)}
+        )
+        for beat in beats
+    ]
+
+
 def build_one_minute_reading(context: ChartContext) -> OneMinuteReadingResponse:
     chart_id = context.chart_id
     profile = context.profile
@@ -4572,6 +4534,7 @@ def build_one_minute_reading(context: ChartContext) -> OneMinuteReadingResponse:
             about=_first_name(profile.display_name) if addressed_to == "other" else None,
         )
 
+    beats = with_name_case_endings(beats, _first_name(profile.display_name))
     run_safety_pass(*[beat.text for beat in beats], source="one_minute_reading")
 
     return OneMinuteReadingResponse(

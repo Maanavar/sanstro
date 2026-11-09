@@ -286,7 +286,7 @@ export default function ReportsScreen() {
               <Text style={[styles.cardText, isTamil ? TamilType.caption : EnType.caption]}>
                 {L(
                   "You have used this month's allowance. More reports are bought on the web.",
-                  "இந்த மாதத்தின் அளவை நீங்கள் பயன்படுத்திவிட்டீர்கள். கூடுதல் அறிக்கைகள் இணையதளத்தில் வாங்கப்படும்.",
+                  "இந்த மாதத்துக்கான அறிக்கைகளைப் பெற்றுவிட்டீர்கள். கூடுதல் அறிக்கைகள் இணையதளத்தில் வாங்கப்படும்.",
                 )}
               </Text>
             )}

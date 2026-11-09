@@ -1378,6 +1378,24 @@
   color: var(--color-accent-strong);
 }
 
+/* Tamil, one-row topbar (above 1024px). The five Tamil tabs need 689px
+   against English's 410px, and flex shrink is weighted by size, so the tabs
+   gave up more room than the Ask pill: 79px short at 1280, 29px at 1440, and
+   "வாழ்க்கை பகுதி" sat cut under the scroll chevron. The tabs drop 4px of
+   padding a side, and up to 1439px the Ask pill is capped (its hint already
+   ellipsises). A cap, not flex-shrink: the pill lives in .cd-topbar__right, a
+   different flex container, so its shrink factor never competed with the tabs. */
+@media (min-width: 1025px) {
+  [data-ui="nova"][lang="ta"] .cd-topnav .cd-tab {
+    padding: 0 var(--space-2);
+  }
+}
+@media (min-width: 1025px) and (max-width: 1439px) {
+  [data-ui="nova"][lang="ta"] .cd-ask-search {
+    flex-basis: 150px;
+  }
+}
+
 /* The tabs are stretched to the topbar's full height inside .cd-topnav__scroll,
    and that strip's `overflow-x: auto` forces overflow-y to auto too — so the
    global :focus-visible ring (2px, offset 2px) has its top and bottom edges
@@ -2386,6 +2404,11 @@
   flex-direction: column;
   align-items: stretch;
   gap: var(--space-3);
+  /* A flex item's min-width defaults to its content, so the view switch's
+     full width (509px in Tamil) pushed the page sideways on a 375px phone.
+     At 0 the switch keeps max-width:100% and scrolls inside itself. */
+  min-width: 0;
+  max-width: 100%;
 }
 [data-ui="nova"] .cd-shell .nova-cal-engraving { display: none; }
 [data-ui="nova"] .cd-shell .nova-cal-engraving * { vector-effect: non-scaling-stroke; }
@@ -4272,6 +4295,20 @@
   line-height: 1.3;
 }
 [data-ui="nova"] .cd-shell .ui-kicker--muted { color: var(--color-muted); }
+/* Tamil eyebrows: caps tracking pulls Tamil letter clusters apart, and
+   uppercase does nothing to Tamil script. Same rule as .hy-switcher__label.
+   The 10px .cd-kicker size is also too small for Tamil, so it steps up. */
+[data-ui="nova"] .cd-shell .ui-kicker:lang(ta),
+[data-ui="nova"] .cd-shell .cd-kicker:lang(ta),
+[data-ui="nova"] .cd-shell .cd-kicker--inline:lang(ta) {
+  letter-spacing: 0;
+  text-transform: none;
+}
+[data-ui="nova"] .cd-shell .cd-kicker:lang(ta),
+[data-ui="nova"] .cd-shell .cd-kicker--inline:lang(ta) { font-size: var(--text-xs); }
+/* No Tamil face ships an italic, so the browser slants the glyphs; that is
+   harder to read, not emphasis. Emphasis in Tamil stays upright. */
+[data-ui="nova"] .cd-shell :is(em, i):lang(ta) { font-style: normal; }
 [data-ui="nova"] .cd-shell .ui-section-header {
   display: flex;
   align-items: baseline;
@@ -5776,6 +5813,11 @@ button.ui-chip { cursor: pointer; }
   line-height: 1.2;
   color: var(--color-text-strong);
   font-variant-numeric: tabular-nums;
+}
+/* Clock ranges break at the dash only (ClockRangeParts). The tile used to be
+   nowrap inside an overflow:hidden card, which cut a Tamil range mid-number:
+   "காலை 10:26 – காலை 11:5" (measured 2026-11-09 at 375 and 1280px). */
+.nova-range-part {
   white-space: nowrap;
 }
 
@@ -5895,13 +5937,14 @@ button.ui-chip { cursor: pointer; }
 }
 .nova-hero-timing__times {
   margin-left: auto;
+  min-width: 0;
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
   align-items: baseline;
   color: var(--color-muted);
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+  text-align: right;
 }
 .nova-hero-timing__times > span:not(:last-child)::after {
   content: " \00b7 ";

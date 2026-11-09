@@ -63,7 +63,7 @@ export default async function FamilyPlanningPage() {
             </div>
             <div className="cl-hero-figure">
               <p className="cl-hero-figure__label">{lang === "en" ? "Family Today · Sample" : "இன்று குடும்பம் · மாதிரி"}</p>
-              <p className="cl-hero-figure__title">{lang === "en" ? "Best combined window: 11:53 am - 12:41 pm" : "சிறந்த கூட்டு நேரம்: 11:53 am - 12:41 pm"}</p>
+              <p className="cl-hero-figure__title">{lang === "en" ? "Best combined window: 11:53 am - 12:41 pm" : "சிறந்த கூட்டு நேரம்: காலை 11:53 – மதியம் 12:41"}</p>
               <FamilyOrbitVisual />
               <div className="cl-hero-figure__art" style={{ flexDirection: "column", gap: "10px", width: "100%" }}>
                 {FAMILY_MEMBERS.map((m) => (

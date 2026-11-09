@@ -798,7 +798,7 @@ def eval_accident_care(r: _Reader) -> Signals:
         s.support("jupiter_shield", "குரு பார்வை — பாதுகாப்பு கவசம்.",
                   "Jupiter's aspect offers a protective shield.")
     if r.c.sade_sati_active or r.dasha_touches({"MARS", "RAHU", "SATURN"}):
-        s.window = BiText("செவ்வாய்/ராகு/சனி காலம் — வாகனம்/உழைப்பில் கூடுதல் கவனம்.",
+        s.window = BiText("செவ்வாய்/ராகு/சனி தசை — வாகனம்/உழைப்பில் கூடுதல் கவனம்.",
                           "During this Mars/Rahu/Saturn phase, add care while driving or lifting.")
     s.help("வாகனம், இயந்திரம், சாகச செயல்களில் வழக்கமான பாதுகாப்பை கடைப்பிடிக்கவும்.",
            "Keep normal safety habits with vehicles, machinery, and adventure.")
@@ -899,7 +899,7 @@ def eval_severe_loss(r: _Reader) -> Signals:
         s.support("jupiter_cushions", "குரு பார்வை 8ல் — பாதுகாப்பு.",
                   "Jupiter's aspect on the 8th cushions and protects.")
     if r.dasha_touches({"SATURN", "RAHU", "KETU"}):
-        s.window = BiText("சனி/ராகு/கேது காலம் — முன்னெச்சரிக்கை (சேமிப்பு/காப்பீடு).",
+        s.window = BiText("சனி/ராகு/கேது தசை — முன்னெச்சரிக்கை (சேமிப்பு/காப்பீடு).",
                           "During this Saturn/Rahu/Ketu phase, lean on foresight — reserves and insurance.")
     s.help("காப்பீடு, அவசர சேமிப்பு, அதிக கடன் தவிர்ப்பு — இவையே இதன் நோக்கம்.",
            "Insurance, an emergency fund, and avoiding over-leverage — that's the whole point.")

@@ -5,7 +5,7 @@ import { LocalizedLink as Link } from "@/components/localized-link";
 import { Check, Minus, AlertTriangle, ArrowRight } from "lucide-react";
 
 import { apiFetchJson, readErrorMessage, toQuery } from "@/lib/api";
-import { formatClockLabel, getScoreBand } from "@/lib/format";
+import { formatClockLabel, getScoreBand, getScoreVerdictFromGuidance } from "@/lib/format";
 import { t, tLang, tNakshatra, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { rasiDisplayName, rasiLabel, RASI_LORDS } from "@/lib/chart-utils";
@@ -43,7 +43,7 @@ import { NovaSelect } from "./nova-select";
 import { Chip, Metric, Surface } from "./dashboard-ui";
 import { Card, Kicker } from "./ui";
 import { Field, FieldShell, Input } from "./ui/field";
-import { saniCycleName } from "@/lib/family-flags";
+import { saniConfirmation, saniCycleGloss, saniCycleName } from "@/lib/family-flags";
 
 /**
  * Deep Dive completeness follow-up (see docs/DASHBOARD_UI_REVAMP_PLAN.md §7/§8) —
@@ -231,7 +231,11 @@ export function NovaGuidanceCard({
 }) {
   const bestWindow = personalDailyGuidance?.bestWindows[0] ?? null;
   const avoidWindow = personalDailyGuidance?.cautionWindows[0] ?? null;
-  const personalScoreBand = personalDailyGuidance ? getScoreBand(personalDailyGuidance.score) : null;
+  // The chip word comes from the engine's label tag (BALANCED, CAUTION…) via
+  // the shared verdict lexicon; the bare tag used to render in Tamil mode too.
+  const personalVerdict = personalDailyGuidance
+    ? getScoreVerdictFromGuidance(personalDailyGuidance.label, personalDailyGuidance.score, lang)
+    : null;
 
   return (
         <Surface
@@ -247,8 +251,8 @@ export function NovaGuidanceCard({
               <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--color-text-strong)" }}>
                 {personalDailyGuidance.score}/100
               </span>
-              <Chip tone={personalScoreBand?.tone === "high" ? "success" : personalScoreBand?.tone === "low" ? "warning" : "neutral"}>
-                {personalDailyGuidance.label}
+              <Chip tone={personalVerdict?.tone === "high" ? "success" : personalVerdict?.tone === "low" ? "warning" : "neutral"}>
+                {personalVerdict?.verdict}
               </Chip>
             </>
           ) : null}
@@ -268,8 +272,10 @@ export function NovaGuidanceCard({
                 </div>
               )}
               <div className="surface__headline">
-                <span>{`${personalDailyGuidance.score}/100 – ${getScoreBand(personalDailyGuidance.score).label}`}</span>
-                <Chip tone={personalScoreBand?.tone === "high" ? "success" : personalScoreBand?.tone === "low" ? "warning" : "neutral"}>{personalDailyGuidance.label}</Chip>
+                {/* The English-only band word ("steady") is gone: the chip
+                    beside it already says the same thing in the reader's language. */}
+                <span>{`${personalDailyGuidance.score}/100`}</span>
+                <Chip tone={personalVerdict?.tone === "high" ? "success" : personalVerdict?.tone === "low" ? "warning" : "neutral"}>{personalVerdict?.verdict}</Chip>
               </div>
               <p className="surface__text">{tLang(personalDailyGuidance.text, lang)}</p>
               {personalDailyGuidance.currentHoraLord && (
@@ -398,11 +404,11 @@ export function NovaGocharCard({
                   <Metric
                     label={t("label_chandrashtamam", lang)}
                     value={t("label_not_today", lang)}
-                    hint={personalSani.confirmationSentence}
+                    hint={saniConfirmation(personalSani, lang)}
                     tone="rest"
                   />
                 )}
-                {personalSani.moonBasedCycle.isActive && <Metric label={t("label_sani_cycle", lang)} value={saniCycleName(personalSani.moonBasedCycle.type ?? "", lang)} hint={personalSani.moonBasedCycle.supportiveLabel ?? ""} tone="low" />}
+                {personalSani.moonBasedCycle.isActive && <Metric label={t("label_sani_cycle", lang)} value={saniCycleName(personalSani.moonBasedCycle.type ?? "", lang)} hint={saniCycleGloss(personalSani.moonBasedCycle.type, personalSani.moonBasedCycle.supportiveLabel, lang)} tone="low" />}
               </div>
               <div className="surface__textBlock">
                 <p className="surface__subhead">{t("label_gochar_pos", lang)}</p>

@@ -23,7 +23,7 @@ function chandrashtamaRasi(birthRasiNum: number) {
 // tools, and do not count the 8th in nakshatras (that is Tarabalam's Mitra tara,
 // a favourable position). Owner ruling 2026-10-21.
 const HOUSE_LABELS: Record<number, { favourable: boolean; ta: string; en: string }> = {
-  1:  { favourable: true,  ta: "ஜன்ம ராசியில் சந்திரன் — சாதகம்: மன நிம்மதி, உடல் நலம்.", en: "Moon in your janma rasi — favourable: ease of mind and good health." },
+  1:  { favourable: true,  ta: "ஜென்ம ராசியில் சந்திரன் — சாதகம்: மன நிம்மதி, உடல் நலம்.", en: "Moon in your janma rasi — favourable: ease of mind and good health." },
   2:  { favourable: false, ta: "2ஆம் இடம் — பாதகம்: செலவுகள்; பண விஷயங்களில் கவனம் தேவை.", en: "2nd — adverse: expenses; go carefully with money." },
   3:  { favourable: true,  ta: "3ஆம் இடம் — சாதகம்: முயற்சிகள் வெற்றி பெறும்; சிறு பயணங்களுக்கு நல்லது.", en: "3rd — favourable: effort succeeds; good for short travel." },
   4:  { favourable: false, ta: "4ஆம் இடம் — பாதகம்: வீட்டிலும் மனதிலும் சஞ்சலம்; பெரிய முடிவுகளைத் தள்ளிவைக்கவும்.", en: "4th — adverse: unease at home and in the mind; defer big decisions." },
@@ -61,7 +61,7 @@ export default function ChandrashtamaPage() {
             </h1>
             <p className="cl-pub-lead" style={{ maxWidth: "52ch" }}>
               {ta
-                ? "உங்கள் ஜன்ம ராசியிலிருந்து 8ஆம் ராசி கண்டறியுங்கள் — சந்திரன் அங்கு வரும்போது எச்சரிக்கையாக இருக்க வேண்டும்."
+                ? "உங்கள் ஜென்ம ராசியிலிருந்து 8ஆம் ராசி கண்டறியுங்கள் — சந்திரன் அங்கு வரும்போது எச்சரிக்கையாக இருக்க வேண்டும்."
                 : "Find the 8th rasi from your birth Moon sign — that is your Chandrashtama period when the Moon transits there."}
             </p>
           </div>
@@ -73,7 +73,7 @@ export default function ChandrashtamaPage() {
 
             {/* Rasi picker */}
             <p style={{ fontWeight: 700, marginBottom: "12px" }}>
-              {ta ? "உங்கள் ஜன்ம ராசியை (மாத ராசி) தேர்ந்தெடுக்கவும்:" : "Select your Janma Rasi (birth Moon sign):"}
+              {ta ? "உங்கள் ஜென்ம ராசியை (மாத ராசி) தேர்ந்தெடுக்கவும்:" : "Select your Janma Rasi (birth Moon sign):"}
             </p>
             <div style={{
               display: "grid",
@@ -134,7 +134,7 @@ export default function ChandrashtamaPage() {
                   <div>
                     <div style={{ fontSize: "0.75rem", opacity: 0.65, marginBottom: "4px" }}>
                       {ta
-                        ? `${ta ? birthRasi.name.ta : birthRasi.name.en} ஜன்ம ராசிக்கு சந்திராஷ்டம ராசி`
+                        ? `${ta ? birthRasi.name.ta : birthRasi.name.en} ஜென்ம ராசிக்கு சந்திராஷ்டம ராசி`
                         : `Chandrashtama rasi for ${birthRasi.name.en} janma rasi`}
                     </div>
                     <div style={{ fontSize: "1.5rem", fontWeight: 700 }}>
@@ -158,7 +158,7 @@ export default function ChandrashtamaPage() {
                 {/* Moon house table */}
                 <div style={{ padding: "0 24px 20px", background: "var(--color-surface)", borderTop: "1px solid var(--color-border)" }}>
                   <p style={{ fontWeight: 600, fontSize: "0.88rem", marginBottom: "4px", marginTop: "16px" }}>
-                    {ta ? "சந்திர கோச்சாரம் — ஜன்ம ராசியிலிருந்து 12 இடங்களின் பலன்:" : "Chandra gochara — the Moon's result in each sign from your janma rasi:"}
+                    {ta ? "சந்திர கோச்சாரம் — ஜென்ம ராசியிலிருந்து 12 இடங்களின் பலன்:" : "Chandra gochara — the Moon's result in each sign from your janma rasi:"}
                   </p>
                   <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", margin: "0 0 10px" }}>
                     {ta
@@ -218,7 +218,7 @@ export default function ChandrashtamaPage() {
               </p>
               <p style={{ color: "var(--text-secondary)", fontSize: "0.82rem", margin: "0 0 16px" }}>
                 {ta
-                  ? "விநாடியில் பிறப்பு விவரங்களை ஒருமுறை கொடுங்கள் — உங்கள் ஜன்ம ராசியைத் தானாகக் கணக்கிட்டு, தினமும் சந்திராஷ்டம எச்சரிக்கையைக் காட்டும்."
+                  ? "விநாடியில் பிறப்பு விவரங்களை ஒருமுறை கொடுங்கள் — உங்கள் ஜென்ம ராசியைத் தானாகக் கணக்கிட்டு, தினமும் சந்திராஷ்டம எச்சரிக்கையைக் காட்டும்."
                   : "Enter your birth details once and Vinaadi auto-calculates your Janma Rasi and shows Chandrashtama warnings in your daily feed."}
               </p>
               <Link
