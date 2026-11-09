@@ -107,8 +107,8 @@ from app.calculations.dasha import (
 from app.calculations.display_names import (
     dasa_stem_ta,
     fix_name_case_endings,
-    name_stem_ta,
     nakshatra_ta,
+    name_stem_ta,
     planet_en,
     planet_ta,
     rasi_ta,
