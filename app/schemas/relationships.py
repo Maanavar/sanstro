@@ -575,7 +575,9 @@ class CompatibilityIntelligenceData(BaseModel):
     person_b_identity: PersonAstroIdentity = Field(alias="personBIdentity")
 
     # Layer 1: Porutham
-    porutham_score: int = Field(alias="poruthamScore")
+    # Float: porutham totals come in halves since the Madhyama bands (FAA-34).
+    # This was `int`, and every pair with a Madhyama kuta failed validation (500).
+    porutham_score: float = Field(alias="poruthamScore")
     porutham_max: int = Field(alias="poruthamMax")
     porutham_percentage: float = Field(alias="poruthamPercentage")
     porutham_label: str = Field(alias="poruthamLabel")

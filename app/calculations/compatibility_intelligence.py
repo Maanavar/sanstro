@@ -233,7 +233,7 @@ class CompatibilityIntelligenceResult:
     person_b_name: str
 
     # Layer 1 — traditional porutham (raw values from compute_porutham)
-    porutham_score: int
+    porutham_score: float  # halves, from PorutthamResult.total_score
     porutham_max: int
     porutham_percentage: float
     porutham_label: str

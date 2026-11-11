@@ -1148,7 +1148,7 @@ def generate_compatibility_intelligence_pdf(
     story.extend([Spacer(1, 0.3 * cm), Paragraph(_label("porutham_level", lang), heading_style)])
     story.append(
         Paragraph(
-            f"Score: {report.porutham_score}/{report.porutham_max} ({round(report.porutham_percentage)}%) - {_verdict('porutham', report.porutham_label, lang)}",
+            f"Score: {report.porutham_score:g}/{report.porutham_max} ({round(report.porutham_percentage)}%) - {_verdict('porutham', report.porutham_label, lang)}",
             body_style,
         )
     )
