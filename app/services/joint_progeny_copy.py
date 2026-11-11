@@ -205,9 +205,9 @@ _JOINT_EN = {
         "NEITHER": "In neither chart does a malefic sit in the 5th outside its own sign.",
     },
     "FIFTH_LORD": {
-        "BOTH": "In both charts the 5th lord is marked challenging, by its own placement or by a malefic with it. Read the two together with your astrologer.",
-        "ONE": "In one chart the 5th lord is marked challenging; in the other it is not.",
-        "NEITHER": "In neither chart is the 5th lord marked challenging.",
+        "BOTH": "In both charts the 5th lord's own placement is marked challenging. Read the two together with your astrologer.",
+        "ONE": "In one chart the 5th lord's own placement is marked challenging; in the other it is not.",
+        "NEITHER": "In neither chart is the 5th lord's own placement marked challenging.",
     },
     "JUPITER": {
         "BOTH": "In both charts Jupiter is marked challenging, by its own placement or by a malefic with it. Read the two together with your astrologer.",
@@ -222,9 +222,9 @@ _JOINT_TA = {
         "NEITHER": "இரண்டு ஜாதகங்களிலும் 5ஆம் இடத்தில் சொந்த ராசி அல்லாத பாவக் கிரகம் இல்லை.",
     },
     "FIFTH_LORD": {
-        "BOTH": "இரண்டு ஜாதகங்களிலும் 5ஆம் அதிபதி சவால் எனக் குறிக்கப்பட்டுள்ளது: அதன் நிலையாலோ, உடன் உள்ள பாவக் கிரகத்தாலோ. இரண்டையும் சேர்த்து ஜோதிடரிடம் பார்க்கவும்.",
-        "ONE": "ஒரு ஜாதகத்தில் 5ஆம் அதிபதி சவால் எனக் குறிக்கப்பட்டுள்ளது; மற்றதில் இல்லை.",
-        "NEITHER": "இரண்டு ஜாதகங்களிலும் 5ஆம் அதிபதி சவால் எனக் குறிக்கப்படவில்லை.",
+        "BOTH": "இரண்டு ஜாதகங்களிலும் 5ஆம் அதிபதியின் நிலை சவால் எனக் குறிக்கப்பட்டுள்ளது. இரண்டையும் சேர்த்து ஜோதிடரிடம் பார்க்கவும்.",
+        "ONE": "ஒரு ஜாதகத்தில் 5ஆம் அதிபதியின் நிலை சவால் எனக் குறிக்கப்பட்டுள்ளது; மற்றதில் இல்லை.",
+        "NEITHER": "இரண்டு ஜாதகங்களிலும் 5ஆம் அதிபதியின் நிலை சவால் எனக் குறிக்கப்படவில்லை.",
     },
     "JUPITER": {
         "BOTH": "இரண்டு ஜாதகங்களிலும் குரு சவால் எனக் குறிக்கப்பட்டுள்ளார்: அவரது நிலையாலோ, உடன் உள்ள பாவக் கிரகத்தாலோ. இரண்டையும் சேர்த்து ஜோதிடரிடம் பார்க்கவும்.",

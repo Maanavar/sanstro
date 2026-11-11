@@ -234,16 +234,17 @@ existing modules, not a new table per item.
 - **Joint layer: occupation and conjunction, never an aspect.** Measured on 2,000 synthetic
   couples (real sky 1994–2000, random lagna, seed 32; a scratch run, not a ratification):
 
-  | Joint line | BOTH, with aspects | BOTH, as built |
-  |---|---|---|
-  | 5th house (a malefic in it, outside its own sign) | 62.7% | 10.5% |
-  | 5th lord (marked challenging) | 78.7% | **38.8%** |
-  | Guru (marked challenging) | 29.1% | 29.1% |
+  | Joint line | BOTH, with aspects | BOTH, occupation + conjunction | BOTH, as built |
+  |---|---|---|---|
+  | 5th house (a malefic in it, outside its own sign) | 62.7% | 10.5% | 10.5% |
+  | 5th lord (marked challenging) | 78.7% | 38.8% | **6.4%** (the lord's own placement only) |
+  | Guru (marked challenging) | 29.1% | 29.1% | 29.1% |
 
   Mars, Saturn, the nodes and the Sun between them aspect almost every sign, so the
-  aspect version said "both" for most couples. The as-built basis is the Santhana Thadai
-  trigger surface. The aspect lines are still listed as factors. **The 5th-lord line is
-  still above the ~30% noise line (OWNER-Q-D3, §0.8).**
+  aspect version said "both" for most couples. The house line uses the Santhana Thadai
+  trigger surface. The 5th-lord line reads the lord's own placement only (OWNER-Q-D3,
+  ruled 2026-11-12): a malefic joined to the lord is still listed as a challenging line.
+  The aspect lines are still listed as factors.
 - **Timing.** The window lords are the rulings' list (never the 2nd or 7th lords), and the
   windows are true intersections of the two partners' bhuktis. The horizon is 5 years; the
   engine also takes 10 (`horizon_years`), but no API parameter exposes it yet. On the same
@@ -279,14 +280,28 @@ existing modules, not a new table per item.
 
 ### 0.8 Open after FAA-32 (owner)
 
-- **OWNER-Q-D3.** The FAA-32 5th-lord joint line says "both" for 38.8% of synthetic couples.
-  Keep it as a neutral pattern (as built: all three patterns are always shown), narrow it
-  (e.g. the lord's own condition only, without conjunctions), or drop that line.
-- **OWNER-Q-D4 (FAA-30, live).** FAA-30's joint line counts aspects. On the same population it
-  says "Both charts show malefic influence on the 8th. Read the two together with your
-  astrologer." for **90.8%** of couples, and sets `maleficInfluence` on 95.8% of charts. As a
-  description it is close to constant. Proposal: the FAA-32 basis (occupation, conjunction,
-  the lord's own condition). Not changed on this branch, because it changes a merged surface.
+- **OWNER-Q-D3: ruled 2026-11-12.** The 5th-lord line reads the lord's own placement only.
+  "Both" went from 38.8% to 6.4%. Built.
+- **OWNER-Q-D4 (FAA-30, live): still open.** FAA-30's joint line counts aspects. It says "Both
+  charts show malefic influence on the 8th. Read the two together with your astrologer." for
+  **90.8%** of couples, and sets `maleficInfluence` on 95.8% of charts. The owner approved the
+  FAA-32 basis on 2026-11-12. Measured first, it is not enough, because FAA-30 reads two 8ths
+  (lagna and Moon) and the flag is set if either qualifies (2,000 couples, seed 30):
+
+  | FAA-30 joint basis | BOTH | Per chart |
+  |---|---|---|
+  | Live (aspects included) | 90.8% | 95.8% |
+  | Both references: occupant, joined to the lord, or the lord debilitated/combust | 81.0% | 90.7% |
+  | Lagna only, the same three | 52.7% | 72.4% |
+  | Both references: occupant or the lord's condition | 39.3% | 62.9% |
+  | Lagna only: occupant or the lord's condition | 16.8% | 40.9% |
+  | Split line: a malefic in the lagna's 8th | 11.3% | 34.2% |
+  | Split line: the lagna's 8th lord debilitated or combust | 2.1% | 12.6% |
+
+  Only the lagna-side and split variants get under the ~30% line. A split changes the wire
+  shape (`joint` becomes a list, as in FAA-32). The lagna side is also where Phaladeepika 11.1
+  is checked; the Moon side may be the translator's gloss. **Not built: waiting for the
+  owner's choice.** The approved fix was not shipped because it misses its own goal.
 
 Rules that bind every item below (already on record, not re-opened here):
 

@@ -380,7 +380,9 @@ def one_chart(chart: ProgenyChart, gender: str | None) -> ProgenyReading:
         d7_note=d7_note,
         timing_lords=timing_lords(chart, ninth),
         fifth_house_challenged=any(f.target == "HOUSE" and f.bearing == "CHALLENGING" for f in lagna5),
-        fifth_lord_challenged=any(f.target == "LORD" and f.bearing == "CHALLENGING" for f in lagna5),
+        # OWNER-Q-D3 (2026-11-12): the lord's own condition only. With a
+        # malefic joined to it too, "both" read 38.8% of synthetic couples.
+        fifth_lord_challenged=any(f.kind == "LORD" and f.bearing == "CHALLENGING" for f in lagna5),
         jupiter_challenged=any(f.target == "KARAKA" and f.bearing == "CHALLENGING" for f in lagna5),
     )
 

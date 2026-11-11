@@ -142,6 +142,19 @@ def test_the_joint_layer_ignores_aspects():
     assert one_chart(BASE, "male").fifth_house_challenged is True  # Saturn in the 5th
 
 
+def test_the_fifth_lord_line_reads_the_lords_own_placement_only():
+    """OWNER-Q-D3 (2026-11-12): with a malefic joined to the lord counted too,
+    "both" read 38.8% of synthetic couples; on the lord's own placement, 6.4%."""
+    # Mars joins the 5th lord, Sun, in Makara (10th house: a kendra, so the
+    # lord's own placement is supportive).
+    joined = one_chart(replace(BASE, planet_rasi={**BASE.planet_rasi, "MARS": 10}), "male")
+    (conj,) = _f(joined, "INFLUENCE", "LAGNA", "MARS", "LORD")
+    assert conj.via == "CONJUNCT" and conj.bearing == "CHALLENGING"
+    assert joined.fifth_lord_challenged is False
+    # Sun in Thula (7th, debilitated, a kendra): context. Sun in Kanni (6th): challenging.
+    assert one_chart(replace(BASE, planet_rasi={**BASE.planet_rasi, "SUN": 6}), "male").fifth_lord_challenged is True
+
+
 def test_windows_are_true_intersections():
     s = TimingSpan
     a = (s(date(2027, 1, 1), date(2027, 3, 1), "JUPITER", "SATURN"), s(date(2027, 4, 1), date(2027, 6, 1), "SUN", "SATURN"))

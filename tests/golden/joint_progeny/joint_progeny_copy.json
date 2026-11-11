@@ -3365,37 +3365,37 @@
    "key": "FIFTH_LORD",
    "pattern": "BOTH",
    "lang": "en",
-   "line": "In both charts the 5th lord is marked challenging, by its own placement or by a malefic with it. Read the two together with your astrologer."
+   "line": "In both charts the 5th lord's own placement is marked challenging. Read the two together with your astrologer."
   },
   {
    "key": "FIFTH_LORD",
    "pattern": "BOTH",
    "lang": "ta",
-   "line": "இரண்டு ஜாதகங்களிலும் 5ஆம் அதிபதி சவால் எனக் குறிக்கப்பட்டுள்ளது: அதன் நிலையாலோ, உடன் உள்ள பாவக் கிரகத்தாலோ. இரண்டையும் சேர்த்து ஜோதிடரிடம் பார்க்கவும்."
+   "line": "இரண்டு ஜாதகங்களிலும் 5ஆம் அதிபதியின் நிலை சவால் எனக் குறிக்கப்பட்டுள்ளது. இரண்டையும் சேர்த்து ஜோதிடரிடம் பார்க்கவும்."
   },
   {
    "key": "FIFTH_LORD",
    "pattern": "ONE",
    "lang": "en",
-   "line": "In one chart the 5th lord is marked challenging; in the other it is not."
+   "line": "In one chart the 5th lord's own placement is marked challenging; in the other it is not."
   },
   {
    "key": "FIFTH_LORD",
    "pattern": "ONE",
    "lang": "ta",
-   "line": "ஒரு ஜாதகத்தில் 5ஆம் அதிபதி சவால் எனக் குறிக்கப்பட்டுள்ளது; மற்றதில் இல்லை."
+   "line": "ஒரு ஜாதகத்தில் 5ஆம் அதிபதியின் நிலை சவால் எனக் குறிக்கப்பட்டுள்ளது; மற்றதில் இல்லை."
   },
   {
    "key": "FIFTH_LORD",
    "pattern": "NEITHER",
    "lang": "en",
-   "line": "In neither chart is the 5th lord marked challenging."
+   "line": "In neither chart is the 5th lord's own placement marked challenging."
   },
   {
    "key": "FIFTH_LORD",
    "pattern": "NEITHER",
    "lang": "ta",
-   "line": "இரண்டு ஜாதகங்களிலும் 5ஆம் அதிபதி சவால் எனக் குறிக்கப்படவில்லை."
+   "line": "இரண்டு ஜாதகங்களிலும் 5ஆம் அதிபதியின் நிலை சவால் எனக் குறிக்கப்படவில்லை."
   },
   {
    "key": "JUPITER",
