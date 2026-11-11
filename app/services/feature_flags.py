@@ -56,6 +56,14 @@ def _defaults() -> dict[str, Any]:
         "enable_payments_checkout": True,
         # Guest (unsigned) chart and porutham tools on /public.
         "enable_guest_charts": True,
+        # Birth-time rectification: recommend a time and write it back.
+        # OFF since FAA-02 (docs/FULL_ASTRO_ACCURACY_AUDIT_2026-11-10.md): the
+        # score matched a lagna RASI number against an event's HOUSE list and
+        # never read the event date, so it carried no astrological evidence.
+        # Off = events are still captured and validated, but no candidate is
+        # ranked or recommended and /rectify/apply refuses with 409. Turn back
+        # on only once the multi-event replacement (FAA-02 step 2) is built.
+        "rectification_recommendation_enabled": False,
         # New accounts (password and Google). Existing users still sign in.
         "enable_signups": True,
         # ── Ask Vinaadi rails (spec L7). ────────────────────────────────────

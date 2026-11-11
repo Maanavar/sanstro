@@ -33,8 +33,11 @@ class CandidateWindow(BaseModel):
 class RectificationResultData(BaseModel):
     birth_profile_id: UUID = Field(alias="birthProfileId")
     candidates: list[CandidateWindow]
-    recommended_time: str = Field(alias="recommendedTime")
+    # None while the recommendation is withdrawn (FAA-02 step 1).
+    recommended_time: str | None = Field(alias="recommendedTime")
+    recommendation_withdrawn: bool = Field(default=False, alias="recommendationWithdrawn")
     confidence_note: str = Field(alias="confidenceNote")
+    confidence_note_ta: str | None = Field(default=None, alias="confidenceNoteTa")
     disclaimer: str
 
     model_config = ConfigDict(populate_by_name=True)

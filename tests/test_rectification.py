@@ -1,5 +1,78 @@
-"""Tests for P1-F rectification assistant."""
+"""Tests for P1-F rectification assistant.
+
+The legacy score is withdrawn behind `rectification_recommendation_enabled`
+(FAA-02 step 1, docs/FULL_ASTRO_ACCURACY_AUDIT_2026-11-10.md). The tests below
+the withdrawal block exercise the legacy machinery with the flag turned ON, so
+it stays working until step 2 replaces it.
+"""
 from __future__ import annotations
+
+import pytest
+
+from app.services import feature_flags
+
+
+@pytest.fixture(autouse=True)
+def _legacy_recommendation_on(request):
+    # Tests named test_withdrawn_* run on the shipped default (flag OFF).
+    if request.node.name.startswith("test_withdrawn_"):
+        feature_flags.reset_flag("rectification_recommendation_enabled")
+        yield
+        return
+    feature_flags.set_flag("rectification_recommendation_enabled", True)
+    yield
+    feature_flags.reset_flag("rectification_recommendation_enabled")
+
+
+# ── FAA-02 step 1: withdrawn by default ──────────────────────────────────────
+# Gate verified 2026-11-11: with the two `if not recommendation_enabled()`
+# guards removed from rectification_service, the ranks-nothing and apply-refuses
+# tests fail (the 422 test passes either way by design: it pins that event
+# validation survives the withdrawal). BLIND SPOT: they
+# prove the default-off path only; a persisted admin override that turns the
+# flag on would bring the legacy score back.
+
+def test_recommendation_flag_defaults_off():
+    feature_flags.reset_flag("rectification_recommendation_enabled")
+    assert feature_flags.get_flag("rectification_recommendation_enabled") is False
+
+
+def test_withdrawn_estimate_ranks_and_recommends_nothing(client):
+    profile_id = _create_test_profile(client)
+    resp = client.post(
+        f"/api/v1/birth-profiles/{profile_id}/rectify",
+        json={"events": [
+            {"eventType": "MARRIAGE", "eventYear": 2015},
+            {"eventType": "RELOCATION", "eventYear": 2018},
+        ]},
+    )
+    assert resp.status_code == 200, resp.text
+    data = resp.json()["data"]
+    assert data["recommendationWithdrawn"] is True
+    assert data["recommendedTime"] is None
+    assert data["candidates"] == []
+    assert data["confidenceNoteTa"]
+    # Never call a candidate "your correct birth time" (FAA-02 acceptance).
+    for text in (data["confidenceNote"], data["disclaimer"]):
+        assert "correct birth time" not in text.lower()
+
+
+def test_withdrawn_estimate_still_validates_events(client):
+    profile_id = _create_test_profile(client)
+    resp = client.post(f"/api/v1/birth-profiles/{profile_id}/rectify", json={"events": []})
+    assert resp.status_code == 422
+
+
+def test_withdrawn_apply_refuses_and_writes_nothing(client):
+    profile_id = _create_test_profile(client)
+    before = client.get(f"/api/v1/birth-profiles/{profile_id}").json()["data"]
+    resp = client.patch(
+        f"/api/v1/birth-profiles/{profile_id}/rectify/apply",
+        json={"selectedTime": "06:30"},
+    )
+    assert resp.status_code == 409, resp.text
+    after = client.get(f"/api/v1/birth-profiles/{profile_id}").json()["data"]
+    assert after.get("birthTimeLocal") == before.get("birthTimeLocal")
 
 # ── Unit tests ────────────────────────────────────────────────────────────────
 
