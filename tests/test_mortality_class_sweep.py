@@ -86,6 +86,7 @@ _ALLOWED: dict[str, str] = {
     # appears only inside the list being asserted against, never in output.
     "web/lib/cross-chart-copy.test.ts": "banned-word list asserting absence (FAA-33 copy)",
     "web/lib/eighth-house-copy.test.ts": "banned-word list asserting absence (FAA-30 copy)",
+    "web/lib/joint-progeny-copy.test.ts": "banned-word list asserting absence (FAA-32 copy)",
     "web/lib/marketing-copy-parity.test.ts": "banned-word regex asserting absence (marketing copy)",
 }
 

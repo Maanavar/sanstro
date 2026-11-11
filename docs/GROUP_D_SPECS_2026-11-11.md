@@ -1,6 +1,6 @@
 # Group D — build specifications (FAA-02 step 2, FAA-30, FAA-31, FAA-32, FAA-33)
 
-Status: **rulings received 2026-11-11 (see §0); FAA-33 built (§0.5) and FAA-30 built (§0.6); FAA-32, -31, -02 not built.** The sections D1–D5
+Status: **rulings received 2026-11-11 (see §0); FAA-33 built (§0.5), FAA-30 built (§0.6), FAA-32 built (§0.7, branch `feat/faa32-joint-progeny`); FAA-31, -02 not built.** The sections D1–D5
 below are the original draft and stay as written; where §0 changes them, §0 governs.
 Parent: `docs/FULL_ASTRO_ACCURACY_AUDIT_2026-11-10.md`
 (the audit text for each item is the requirement; this file is the "how").
@@ -206,6 +206,87 @@ existing modules, not a new table per item.
   own-house check, the dosham link, the create copy or the edit copy each fail a test. Blind
   spot: the gates prove the wiring and the "no score" boundary. They do not prove the malefic
   list or the protection lines; those are the rulings.
+
+### 0.7 FAA-32 built (2026-11-11, branch `feat/faa32-joint-progeny`)
+
+- **Engine.** `app/calculations/joint_progeny.py`, pure. It reuses FAA-30's classes, dignity,
+  lordship (MARAKA removed) and placement ids; `mangalya_sthana` now exposes them as
+  `graha_nature` / `dignity_of` / `lordship_of` / `nth_rasi`, with no change in behaviour.
+  Per chart:
+  - the 5th from the lagna: occupants, lord, aspects on the house, aspects and conjunctions on the lord;
+  - Guru as karaka, and the malefics joined to it;
+  - the 5th from Guru and its lord (`BPHS_7_42`, `classical_rule`);
+  - the 5th from the Moon and its lord (`engine_inference`);
+  - the 9th, its lord and occupants: for a stated bride as `PHALADEEPIKA_11_1` (`classical_rule`,
+    with its own-house exception); for a stated groom as context only; with no stated gender,
+    not read, and the reading says so;
+  - D7 lines, gated by `progeny_checks.check_d7(...).houses_reliable` (the existing rule).
+- **Bearing, not grade.** Each factor carries `bearing`: SUPPORTIVE, CHALLENGING or CONTEXT.
+  Those are spec D3 layer 4's two lists. The surfaces mark each line and never add them up.
+- **Engine conventions, not rulings** (an astrologer should check these):
+  - a lord's or the karaka's bearing: debilitated, combust or in 6/8/12 is challenging;
+    exalted, own sign, kendra or trikona is supportive; both or neither is context;
+  - a malefic in its own house is context except in the bride's 9th, because the verse's
+    exception was checked only for that reading;
+  - "bhuktis" (spec D3) is read at antardasa level; a timing lord's mahadasa alone does not
+    open a window;
+  - no dates are listed when either partner is under 18 or 50 and over (`progeny_checks` bands).
+- **Joint layer: occupation and conjunction, never an aspect.** Measured on 2,000 synthetic
+  couples (real sky 1994–2000, random lagna, seed 32; a scratch run, not a ratification):
+
+  | Joint line | BOTH, with aspects | BOTH, as built |
+  |---|---|---|
+  | 5th house (a malefic in it, outside its own sign) | 62.7% | 10.5% |
+  | 5th lord (marked challenging) | 78.7% | **38.8%** |
+  | Guru (marked challenging) | 29.1% | 29.1% |
+
+  Mars, Saturn, the nodes and the Sun between them aspect almost every sign, so the
+  aspect version said "both" for most couples. The as-built basis is the Santhana Thadai
+  trigger surface. The aspect lines are still listed as factors. **The 5th-lord line is
+  still above the ~30% noise line (OWNER-Q-D3, §0.8).**
+- **Timing.** The window lords are the rulings' list (never the 2nd or 7th lords), and the
+  windows are true intersections of the two partners' bhuktis. The horizon is 5 years; the
+  engine also takes 10 (`horizon_years`), but no API parameter exposes it yet. On the same
+  population:
+
+  | Horizon | Couples with a window | Windows per couple | Share of the horizon covered |
+  |---|---|---|---|
+  | 5 years | 79.8% | median 1, max 8 | median 19.7% |
+  | 10 years | 95.1% | median 3, max 11 | median 22.0% |
+
+  These are dates for the astrologer, not a flag, so prevalence is reported, not gated.
+- **Wire.** `jointProgeny` on CI (optional in `packages/shared`, None in the schema). It carries
+  numbers and graha keys only. CI only: mobile reads no CI route, and no new endpoint was added.
+- **Surfaces.** A web card after the 8th house (`compatibility-intelligence-panel.tsx`) and the
+  same section on the CI PDF. Copy is in `web/lib/joint-progeny-copy.ts`, mirrored in
+  `app/services/joint_progeny_copy.py`. Both are pinned by
+  `tests/golden/joint_progeny/joint_progeny_copy.json` (138 lines, regenerated with
+  `WRITE_GOLDEN=1` from the web test). English says "Jupiter", as `tPlanetLord` does. The Tamil
+  is Claude's draft and has not been native-reviewed.
+- **Gates.**
+  - `tests/test_faa32_joint_progeny.py`;
+  - the CI production-path test (the same chart as bride and groom: identical 5th-house
+    lines, only the 9th differs, and only the bride's 9th lord times);
+  - the direct-pair API and PDF tests (no gender, no 9th);
+  - `web/lib/joint-progeny-copy.test.ts` (golden file, denial and grading words).
+  - Mutation run: 10 of 10 caught. The mutations: the joint layer counting aspects; the
+    bride's own-house exception dropped; a groom's 9th lord timing; the dosham link dropped;
+    touching spans opening a window; D7 lines kept on an unreliable lagna; no age gate; the PDF
+    copy drifting from the web; CI not attaching FAA-32; the PDF section removed.
+  - Blind spot: the gates prove the wiring, the references and the no-score boundary. They do
+    not prove the bearing conventions or the timing-lord list; those are the rulings and the
+    conventions above.
+
+### 0.8 Open after FAA-32 (owner)
+
+- **OWNER-Q-D3.** The FAA-32 5th-lord joint line says "both" for 38.8% of synthetic couples.
+  Keep it as a neutral pattern (as built: all three patterns are always shown), narrow it
+  (e.g. the lord's own condition only, without conjunctions), or drop that line.
+- **OWNER-Q-D4 (FAA-30, live).** FAA-30's joint line counts aspects. On the same population it
+  says "Both charts show malefic influence on the 8th. Read the two together with your
+  astrologer." for **90.8%** of couples, and sets `maleficInfluence` on 95.8% of charts. As a
+  description it is close to constant. Proposal: the FAA-32 basis (occupation, conjunction,
+  the lord's own condition). Not changed on this branch, because it changes a merged surface.
 
 Rules that bind every item below (already on record, not re-opened here):
 
