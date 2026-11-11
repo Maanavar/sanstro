@@ -8,7 +8,7 @@ import type { PoruthamShareViewData } from "@vinaadi/shared/api/porutham-shares"
 import type { KutaGrade } from "@vinaadi/shared";
 import { backendUrl } from "@/lib/backend-url";
 import { tNakshatra } from "@/lib/i18n";
-import { EkaNakshatraNoteCard, ShashtashtakaNoteCard } from "@/components/shashtashtaka-note";
+import { EkaNakshatraNoteCard, NadiSecondaryNote, ShashtashtakaNoteCard } from "@/components/shashtashtaka-note";
 
 async function fetchShare(token: string): Promise<PoruthamShareViewData | null> {
   try {
@@ -136,17 +136,18 @@ export default async function PoruthamSharePage({ params }: Props) {
                 <p style={{ margin: "4px 0 0", fontSize: "0.82rem", color: "var(--cl-muted)" }}>
                   {data.label} · {data.percentage.toFixed(0)}%
                 </p>
-                {(data.rajjuDosha || data.vedhaDosha || data.nadiDosha.hasNadiDosha) && (
+                {(data.rajjuDosha || data.vedhaDosha) && (
                   <div style={{ marginTop: "10px", display: "flex", gap: "6px", flexWrap: "wrap" }}>
                     {data.rajjuDosha && <span style={{ fontSize: "0.65rem", fontWeight: 700, padding: "4px 10px", borderRadius: "6px", background: "rgba(248,113,113,0.12)", color: "#e5484d", border: "1px solid rgba(248,113,113,0.3)" }}>⚠ Rajju Dosha</span>}
                     {data.vedhaDosha && <span style={{ fontSize: "0.65rem", fontWeight: 700, padding: "4px 10px", borderRadius: "6px", background: "rgba(248,113,113,0.12)", color: "#e5484d", border: "1px solid rgba(248,113,113,0.3)" }}>⚠ Vedha Dosha</span>}
-                    {data.nadiDosha.hasNadiDosha && <span style={{ fontSize: "0.65rem", fontWeight: 700, padding: "4px 10px", borderRadius: "6px", background: "rgba(248,113,113,0.12)", color: "#e5484d", border: "1px solid rgba(248,113,113,0.3)" }}>⚠ Nadi Dosha</span>}
                   </div>
                 )}
                 {/* F-POR-03: same-star note, qualifying the Rajju result above it. */}
                 <EkaNakshatraNoteCard note={data.ekaNakshatra} lang="en" />
                 {/* F-POR-02: a disclosure beside the verdict, never part of it. */}
                 <ShashtashtakaNoteCard note={data.shashtashtaka} lang="en" />
+                {/* Nadi: a secondary note, not a badge (2026-11-11). */}
+                <NadiSecondaryNote nadi={data.nadiDosha} lang="en" />
               </div>
               <div style={{ flex: 1, minWidth: "240px" }}>
                 <p style={{ margin: 0, fontSize: "0.92rem", color: "var(--cl-ink)", lineHeight: 1.6 }}>

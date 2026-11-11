@@ -7,7 +7,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
-import { NAKSHATRA_LIST, poruthamTone, rasiDisplayName, type EkaNakshatraNote, type ShashtashtakaNote } from "@vinaadi/shared";
+import { NAKSHATRA_LIST, poruthamTone, rasiDisplayName, type ClassicalExceptionNote, type EkaNakshatraNote, type ShashtashtakaNote } from "@vinaadi/shared";
 import { nakshatraPadaGroups } from "@vinaadi/shared/nakshatraRasi";
 import { papaNotCheckedNote } from "@vinaadi/shared/papaSamyam";
 import { C } from "@/theme/colors";
@@ -106,7 +106,7 @@ function PadaGroupPicker({ nakshatra, value, onChange, lang }: {
  * note (F-POR-03) has the same shape and renders through this card too.
  */
 function ShashtashtakaNoteCard({ note, isTamil }: {
-  note: ShashtashtakaNote | EkaNakshatraNote | null | undefined;
+  note: ShashtashtakaNote | EkaNakshatraNote | ClassicalExceptionNote | null | undefined;
   isTamil: boolean;
 }) {
   if (!note?.present) return null;
@@ -267,6 +267,7 @@ export default function PoruthamScreen() {
               {/* Beside the verdict, never part of it — same place as the web calculator.
                   F-POR-03 first: it qualifies the Rajju result in the summary above. */}
               <ShashtashtakaNoteCard note={result.ekaNakshatra} isTamil={isTamil} />
+              <ShashtashtakaNoteCard note={result.classicalException} isTamil={isTamil} />
               <ShashtashtakaNoteCard note={result.shashtashtaka} isTamil={isTamil} />
 
               {result.kutas.map((k) => (

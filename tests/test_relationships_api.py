@@ -214,6 +214,60 @@ def test_relationship_compatibility_intelligence_includes_astro_identity(
         assert identity["lagnaRasiName"]
 
 
+def test_compatibility_intelligence_reads_the_8th_by_stated_gender(
+    client,
+    family_vault_payload_factory,
+    family_member_payload_factory,
+):
+    """FAA-30 through the production assembler. The factory gives both people
+    the same synthetic birth data, so the two readings must list the same
+    placements and differ only in role and tier: the bride's lagna reading
+    cites Phaladeepika 11.1, the groom's never does."""
+    vault = client.post("/api/v1/family-vaults", json=family_vault_payload_factory())
+    vid = vault.json()["data"]["familyVaultId"]
+    me = family_member_payload_factory(display_name="Synthetic Groom", relationship_to_owner="self")
+    other = family_member_payload_factory(display_name="Synthetic Bride")
+    assert client.post(f"/api/v1/family-vaults/{vid}/members", json={**me, "genderForTraditionalRules": "male"}).status_code == 200
+    made = client.post(f"/api/v1/family-vaults/{vid}/members", json={**other, "genderForTraditionalRules": "female"})
+    assert made.status_code == 200
+    body = client.get(
+        f"/api/v1/relationships/{made.json()['data']['familyMemberId']}/compatibility-intelligence",
+        params={"familyVaultId": vid},
+    ).json()["data"]
+
+    eh = body["eighthHouse"]
+    readings = {eh["personA"]["role"]: eh["personA"], eh["personB"]["role"]: eh["personB"]}
+    assert set(readings) == {"BRIDE", "GROOM_8TH"}
+    bride, groom = readings["BRIDE"], readings["GROOM_8TH"]
+    assert bride["mangalyaReference"] == groom["mangalyaReference"] == "BOTH"
+
+    def placements(r):
+        return sorted((f["kind"], f["reference"], f["graha"], f["target"], f["via"], f["placementId"]) for f in r["factors"])
+
+    assert placements(bride) == placements(groom) != []
+    assert any(f["rule"] == "PHALADEEPIKA_11_1" for f in bride["factors"])
+    assert all(f["tier"] == "engine_inference" for f in groom["factors"])
+    assert eh["joint"] in {"BOTH", "NEITHER"}  # the same chart twice
+    for f in bride["factors"] + groom["factors"]:
+        assert not any(k.endswith("Name") for k in f) and "MARAKA" not in f["lordship"]
+    # A Sevvai the 8th-house reading links to the dosham is one the report shows.
+    if any("SEVVAI_DOSHAM" in f["alsoCountedIn"] for f in bride["factors"]):
+        assert body["sevvaiA"]["hasDosham"] or body["sevvaiB"]["hasDosham"]
+
+    # The same couple's PDF carries the section, with mangalya named once (the bride).
+    from tests._pdf_readable import count_streams, pdf_readable_text
+
+    pdf = client.get(
+        f"/api/v1/relationships/{made.json()['data']['familyMemberId']}/compatibility-intelligence/pdf",
+        params={"familyVaultId": vid},
+    )
+    assert pdf.status_code == 200
+    text, inflated = pdf_readable_text(pdf.content)
+    assert inflated == count_streams(pdf.content)
+    assert "The 8th house" in text and "8th-house factors" in text
+    assert text.count("Mangalya sthana") == 1
+
+
 def test_relationship_compatibility_intelligence_pdf_endpoint_returns_pdf(
     client,
     family_vault_payload_factory,
@@ -309,6 +363,22 @@ def test_compatibility_intelligence_direct_pair_needs_no_family_vault(client):
         assert 1 <= identity["nakshatra"] <= 27
         assert 1 <= identity["lagnaRasi"] <= 12
 
+    # FAA-33 reaches the wire from the one production assembler, both directions,
+    # numbers only, and agrees with the identity block it sits beside.
+    rows = body["crossChart"]
+    assert len(rows) == 14
+    assert {r["direction"] for r in rows} == {"A_TO_B", "B_TO_A"}
+    (lagna_ab,) = [r for r in rows if r["direction"] == "A_TO_B" and r["key"] == "LAGNA"]
+    a_lagna, b_lagna = body["personAIdentity"]["lagnaRasi"], body["personBIdentity"]["lagnaRasi"]
+    assert lagna_ab["rasi"] == a_lagna
+    assert lagna_ab["houseFromLagna"] == (a_lagna - b_lagna) % 12 + 1
+    assert all(r["tier"] == "engine_inference" and not any(k.endswith("Name") for k in r) for r in rows)
+
+    # FAA-30: hand-entered people state no gender, so nothing is applied.
+    eh = body["eighthHouse"]
+    assert eh["personA"]["role"] == eh["personB"]["role"] == "NOT_APPLIED"
+    assert eh["personA"]["factors"] == [] and eh["joint"] == "NOT_APPLIED"
+
 
 def test_compatibility_intelligence_carries_the_shashtashtaka_note(client):
     """F-POR-02 reached the Compatibility Intelligence *schema* and stopped
@@ -356,3 +426,22 @@ def test_compatibility_intelligence_direct_pair_pdf_returns_pdf(client):
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("application/pdf")
     assert response.content[:4] == b"%PDF"
+
+    # FAA-33 card reaches the PDF. The probe must prove it read every page
+    # first: the card sits on page 2, which the probe used to skip.
+    from tests._pdf_readable import count_streams, pdf_readable_text
+
+    text, inflated = pdf_readable_text(response.content)
+    assert inflated == count_streams(response.content) > 1
+    assert "Compatibility Intelligence" in text
+    assert "Chart-to-chart observations" in text
+    assert "points in" in text  # a direction label, so at least one group rendered
+
+    # The Tamil PDF renders the Tamil card copy (glyph-encoded, so only "it
+    # builds" is checkable here; the words are pinned by the copy golden file).
+    ta = client.post(
+        "/api/v1/relationships/compatibility-intelligence/direct/pdf?lang=ta",
+        json={"personA": _HAND_ENTERED_A, "personB": _HAND_ENTERED_B},
+    )
+    assert ta.status_code == 200 and ta.content[:4] == b"%PDF"
+    assert len(ta.content) > len(response.content) // 2

@@ -24,8 +24,12 @@ export interface RectificationCandidate {
 export interface RectificationResultData {
   birthProfileId: string;
   candidates: RectificationCandidate[];
-  recommendedTime: string;
+  /** null while the recommendation is withdrawn (FAA-02 step 1). */
+  recommendedTime: string | null;
+  /** true: no candidate is ranked and /rectify/apply answers 409. */
+  recommendationWithdrawn: boolean;
   confidenceNote: string;
+  confidenceNoteTa?: string | null;
   disclaimer: string;
 }
 

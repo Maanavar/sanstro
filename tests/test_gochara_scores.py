@@ -70,6 +70,8 @@ def test_favourable_is_above_neutral_and_adverse_below(planet: str) -> None:
         score = gochara_house_score(planet, house)
         if is_favourable_gochara(planet, house):
             assert score > NEUTRAL
+        elif (planet, house) == ("RAHU", 10):
+            assert score == NEUTRAL  # D3, ai_review_2026_11_10: MIXED
         else:
             assert score < NEUTRAL
 
@@ -131,11 +133,12 @@ def test_the_two_modules_list_the_same_favourable_houses() -> None:
 
 # ── AAU-09: the node words follow the node numbers ─────────────────────────
 
-def test_aau09_rahu_tenth_is_favourable_and_ketu_tenth_is_not() -> None:
+def test_rahu_tenth_is_neutral_and_ketu_tenth_is_adverse() -> None:
     """The audit's cell: Rahu in the 10th scored 38 while the palan sentence
-    and the peyarchi report called it supportive. Ruled favourable for Rahu,
-    not for Ketu."""
-    assert gochara_house_score("RAHU", 10) > NEUTRAL
+    and the peyarchi report called it supportive. AAU-09 ruled it
+    favourable; D3 (2026-11-10, `ai_review_2026_11_10`) makes it MIXED, scored
+    neutral, until the Vasan table is checked. Ketu's 10th stays adverse."""
+    assert gochara_house_score("RAHU", 10) == NEUTRAL
     assert gochara_house_score("KETU", 10) < NEUTRAL
 
 

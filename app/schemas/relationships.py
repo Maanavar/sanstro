@@ -149,6 +149,42 @@ class EkaNakshatraData(BaseModel):
         )
 
 
+class ClassicalExceptionData(BaseModel):
+    """Kalaprakasika p.76 general exception, evaluated separately (2026-11-11).
+
+    A disclosure beside the result: it never changes a kuta, the total, the
+    label or the Rajju/Vedha veto. `faults` are the failed kutas it speaks to;
+    `conditionsMet` which of its conditions hold. `pendingVerification` stays
+    true until the Sanskrit settles whether the conditions are alternatives.
+    """
+
+    present: bool
+    applicable: bool
+    faults: list[str] = []
+    conditions_met: list[str] = Field(default_factory=list, alias="conditionsMet")
+    source: str
+    pending_verification: bool = Field(default=True, alias="pendingVerification")
+    label: RelationshipBiText
+    note: RelationshipBiText
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    @classmethod
+    def from_note(cls, note: Any) -> ClassicalExceptionData | None:
+        if note is None:
+            return None
+        return cls(
+            present=note.present,
+            applicable=note.applicable,
+            faults=list(note.faults),
+            conditions_met=list(note.conditions_met),
+            source=note.source,
+            pending_verification=note.pending_verification,
+            label=RelationshipBiText(ta=note.label_ta, en=note.label_en),
+            note=RelationshipBiText(ta=note.note_ta, en=note.note_en),
+        )
+
+
 class PapaRowData(BaseModel):
     """One papa point: `graha` sits in papa `house` counted from `reference`."""
 
@@ -240,6 +276,8 @@ class PorutthamData(BaseModel):
     shashtashtaka: ShashtashtakaData | None = None
     # F-POR-03 disclosure, optional for the same reason.
     eka_nakshatra: EkaNakshatraData | None = Field(default=None, alias="ekaNakshatra")
+    # Kalaprakasika p.76 exception, shown separately; never alters the result.
+    classical_exception: ClassicalExceptionData | None = Field(default=None, alias="classicalException")
     # Plan item 3: report only, MARRIAGE context only; absent elsewhere.
     papa_samyam: PapaSamyamData | None = Field(default=None, alias="papaSamyam")
     summary: RelationshipBiText
@@ -369,6 +407,8 @@ class DirectPoruthamData(BaseModel):
     shashtashtaka: ShashtashtakaData | None = None
     # F-POR-03 disclosure, optional for the same reason.
     eka_nakshatra: EkaNakshatraData | None = Field(default=None, alias="ekaNakshatra")
+    # Kalaprakasika p.76 exception, shown separately; never alters the result.
+    classical_exception: ClassicalExceptionData | None = Field(default=None, alias="classicalException")
     # Plan item 3: report only, MARRIAGE context only; absent elsewhere.
     papa_samyam: PapaSamyamData | None = Field(default=None, alias="papaSamyam")
     summary: RelationshipBiText
@@ -528,6 +568,92 @@ class CompatibilityScoreBreakdown(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class CrossChartObservationData(BaseModel):
+    """FAA-33 row. Numbers and graha keys only; surfaces render the names.
+    Exactly one of houseFromLagna / houseFromMoon is set per row."""
+
+    direction: Literal["A_TO_B", "B_TO_A"]
+    key: Literal["SEVENTH_LORD", "LAGNA", "MOON", "VENUS", "JUPITER"]
+    graha: str | None = None
+    rasi: int
+    house_from_lagna: int | None = Field(default=None, alias="houseFromLagna")
+    house_from_moon: int | None = Field(default=None, alias="houseFromMoon")
+    status: Literal["SUPPORT", "NEUTRAL", "NOTE"]
+    tier: Literal["engine_inference"] = "engine_inference"
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class EighthHouseFactorData(BaseModel):
+    """FAA-30 factor. Numbers and keys only; surfaces word it. `placementId` is
+    shared with other findings that read the same placement (`alsoCountedIn`)."""
+
+    kind: Literal["OCCUPANT", "LORD", "INFLUENCE", "PROTECTION", "D9_LORD", "D9_OCCUPANT"]
+    reference: Literal["LAGNA", "MOON", "D9_LAGNA"]
+    graha: str
+    rasi: int
+    house: int
+    nature: Literal["MALEFIC", "BENEFIC"]
+    condition: Literal["PAKSHA", "ASSOCIATION"] | None = None
+    dignity: Literal["EXALTED", "OWN", "DEBILITATED", "NEUTRAL"]
+    combust: bool = False
+    lordship: list[str] = Field(default_factory=list)
+    own_house: bool = Field(default=False, alias="ownHouse")
+    via: Literal["IN", "CONJUNCT", "ASPECT"]
+    target: Literal["HOUSE", "LORD"]
+    placement_id: str = Field(alias="placementId")
+    also_counted_in: list[str] = Field(default_factory=list, alias="alsoCountedIn")
+    rule: str
+    tier: Literal["classical_rule", "engine_inference"]
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class EighthHouseReadingData(BaseModel):
+    """FAA-30, one chart. BRIDE = mangalya sthana; GROOM_8TH = "8th-house
+    factors" (never mangalya); NOT_APPLIED = gender not stated, no factors."""
+
+    role: Literal["BRIDE", "GROOM_8TH", "NOT_APPLIED"]
+    mangalya_reference: Literal["BOTH"] | None = Field(default=None, alias="mangalyaReference")
+    eighth_from_lagna: int | None = Field(default=None, alias="eighthFromLagna")
+    eighth_from_moon: int | None = Field(default=None, alias="eighthFromMoon")
+    factors: list[EighthHouseFactorData] = Field(default_factory=list)
+    d9_note: Literal["D9_LAGNA_UNRELIABLE", "D9_UNAVAILABLE"] | None = Field(default=None, alias="d9Note")
+    malefic_influence: bool = Field(default=False, alias="maleficInfluence")
+    tier: Literal["engine_inference"] = "engine_inference"
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    @classmethod
+    def from_reading(cls, r: Any) -> EighthHouseReadingData:
+        return cls(
+            role=r.role, mangalya_reference=r.mangalya_reference,
+            eighth_from_lagna=r.eighth_from_lagna, eighth_from_moon=r.eighth_from_moon,
+            factors=[
+                EighthHouseFactorData(
+                    kind=f.kind, reference=f.reference, graha=f.graha, rasi=f.rasi, house=f.house,
+                    nature=f.nature, condition=f.condition, dignity=f.dignity, combust=f.combust,
+                    lordship=list(f.lordship), own_house=f.own_house, via=f.via, target=f.target,
+                    placement_id=f.placement_id, also_counted_in=list(f.also_counted_in),
+                    rule=f.rule, tier=f.tier,
+                )
+                for f in r.factors
+            ],
+            d9_note=r.d9_note, malefic_influence=r.malefic_influence,
+        )
+
+
+class EighthHouseCoupleData(BaseModel):
+    """FAA-30 on CI: each chart, plus the joint pattern (shown beside the
+    samyam layers, never merged into them)."""
+
+    person_a: EighthHouseReadingData = Field(alias="personA")
+    person_b: EighthHouseReadingData = Field(alias="personB")
+    joint: Literal["BOTH", "ONE", "NEITHER", "NOT_APPLIED"]
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class CompatibilityIntelligenceData(BaseModel):
     person_a_name: str = Field(alias="personAName")
     person_b_name: str = Field(alias="personBName")
@@ -535,7 +661,9 @@ class CompatibilityIntelligenceData(BaseModel):
     person_b_identity: PersonAstroIdentity = Field(alias="personBIdentity")
 
     # Layer 1: Porutham
-    porutham_score: int = Field(alias="poruthamScore")
+    # Float: porutham totals come in halves since the Madhyama bands (FAA-34).
+    # This was `int`, and every pair with a Madhyama kuta failed validation (500).
+    porutham_score: float = Field(alias="poruthamScore")
     porutham_max: int = Field(alias="poruthamMax")
     porutham_percentage: float = Field(alias="poruthamPercentage")
     porutham_label: str = Field(alias="poruthamLabel")
@@ -548,6 +676,8 @@ class CompatibilityIntelligenceData(BaseModel):
     shashtashtaka: ShashtashtakaData | None = None
     # F-POR-03 disclosure, optional for the same reason.
     eka_nakshatra: EkaNakshatraData | None = Field(default=None, alias="ekaNakshatra")
+    # Kalaprakasika p.76 exception, shown separately; never alters the result.
+    classical_exception: ClassicalExceptionData | None = Field(default=None, alias="classicalException")
 
     # Layer 2+3: Chart strength
     chart_a_strength: ChartMarriageStrength = Field(alias="chartAStrength")
@@ -578,6 +708,10 @@ class CompatibilityIntelligenceData(BaseModel):
     risks_en: list[str] = Field(default_factory=list, alias="risksEn")
     risks_ta: list[str] = Field(default_factory=list, alias="risksTa")
     summary: RelationshipBiText
+    # FAA-33. Default empty so a payload produced before it existed validates.
+    cross_chart: list[CrossChartObservationData] = Field(default_factory=list, alias="crossChart")
+    # FAA-30. None on a payload produced before it existed.
+    eighth_house: EighthHouseCoupleData | None = Field(default=None, alias="eighthHouse")
 
     model_config = ConfigDict(populate_by_name=True)
 

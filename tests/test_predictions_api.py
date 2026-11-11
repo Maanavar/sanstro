@@ -79,6 +79,43 @@ def test_career_prediction_uses_employment_to_derive_student_life_stage(client, 
     assert any("student life-stage" in item["en"].lower() for item in data["challenges"])
 
 
+def test_marriage_prediction_carries_the_8th_house_by_stated_gender(client, birth_profile_payload_factory):
+    """FAA-30 on the single-chart reading. The gender is stated at creation,
+    which before 2026-11-11 was silently dropped (create_birth_profile_record)."""
+    params = {"asOf": "2026-05-24"}
+    roles = {}
+    # One account holds one profile, so the gender is stated at creation and
+    # then changed through the update path (which recalculates the chart).
+    payload = _prediction_birth_profile_payload(birth_profile_payload_factory, birth_date_local="1994-02-10")
+    payload["genderForTraditionalRules"] = "female"
+    created = client.post("/api/v1/birth-profiles", json=payload)
+    assert created.status_code == 200, created.text
+    profile_id = created.json()["data"]["birthProfileId"]
+    for gender in ("female", "male", "not_specified"):
+        if gender != "female":
+            patched = client.patch(f"/api/v1/birth-profiles/{profile_id}", json={"genderForTraditionalRules": gender})
+            assert patched.status_code == 200, patched.text
+        chart_id = client.post(
+            "/api/v1/charts/calculate",
+            json={"birthProfileId": profile_id, "forceRecalculate": False},
+        ).json()["data"]["chartId"]
+        data = client.get(f"/api/v1/charts/{chart_id}/predictions/marriage", params=params).json()["data"]
+        eh = data["eighthHouse"]
+        roles[gender] = eh["role"]
+        assert all(not any(k.endswith("Name") for k in f) for f in eh["factors"])
+        # Beside the reading, never inside it: no factor key of the score stage names it.
+        assert not any("eighth" in f["key"].lower() or "mangalya" in f["key"].lower() for f in data["astrologicalFactors"])
+    assert roles == {"female": "BRIDE", "male": "GROOM_8TH", "not_specified": "NOT_APPLIED"}
+
+    # A minor's marriage reading is gated; no 8th-house reading rides on it.
+    assert client.patch(
+        f"/api/v1/birth-profiles/{profile_id}", json={"genderForTraditionalRules": "female", "birthDateLocal": "2012-06-01"}
+    ).status_code == 200
+    chart_id = client.post("/api/v1/charts/calculate", json={"birthProfileId": profile_id}).json()["data"]["chartId"]
+    data = client.get(f"/api/v1/charts/{chart_id}/predictions/marriage", params=params).json()["data"]
+    assert data["eighthHouse"] is None
+
+
 def test_marriage_prediction_reflects_marital_status_for_married_profile(client, birth_profile_payload_factory):
     chart_id = _create_chart(
         client,

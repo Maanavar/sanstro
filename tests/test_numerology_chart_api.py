@@ -668,11 +668,11 @@ def test_compatibility_layers_numbers_over_the_poruthams(client, enabled: None) 
     assert body["combinedScore"] == pytest.approx(
         max(0.0, min(100.0, astrology["percentage"] + body["adjustment"])), abs=0.05
     )
+    # Nadi is a secondary note and does not flag a match (2026-11-11).
     flagged = (
         astrology["label"] == "CAUTION"
         or astrology["rajjuDosha"]
         or astrology["vedhaDosha"]
-        or astrology["nadiDosha"]
     )
     if flagged:
         assert body["adjustment"] <= 0, (

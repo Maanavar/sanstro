@@ -50,6 +50,7 @@ from app.schemas.panchangam import (
     PanchangamMonthlyResponse,
 )
 from app.schemas.relationships import (
+    ClassicalExceptionData,
     DirectPoruthamData,
     EkaNakshatraData,
     KutaResult,
@@ -384,6 +385,7 @@ def public_porutham(payload: PublicPoruthamRequest, request: Request) -> PublicP
         vedha_dosha=result.vedha_dosha,
         nadi_dosha=nadi_data,
         eka_nakshatra=EkaNakshatraData.from_note(result.eka_nakshatra),
+        classical_exception=ClassicalExceptionData.from_note(result.classical_exception),
         summary=RelationshipBiText(ta=result.summary_ta, en=result.summary_en),
         compatibility_context=payload.compatibility_context,
         context_note=None,
@@ -434,6 +436,7 @@ class PublicPoruthamStarData(BaseModel):
     shashtashtaka: ShashtashtakaData | None = None
     # F-POR-03 disclosure; optional for the same reason.
     eka_nakshatra: EkaNakshatraData | None = Field(default=None, alias="ekaNakshatra")
+    classical_exception: ClassicalExceptionData | None = Field(default=None, alias="classicalException")
     summary: RelationshipBiText
     compatibility_context: str = Field(default="MARRIAGE", alias="compatibilityContext")
 
@@ -551,6 +554,7 @@ def _compute_star_porutham(
         # pada_known is not passed: this route's padas are "which half" markers
         # or a default, so the note reports the padas as unknown.
         eka_nakshatra=EkaNakshatraData.from_note(result.eka_nakshatra),
+        classical_exception=ClassicalExceptionData.from_note(result.classical_exception),
         summary=RelationshipBiText(ta=result.summary_ta, en=result.summary_en),
         compatibility_context=compatibility_context,
     )

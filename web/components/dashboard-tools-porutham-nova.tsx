@@ -565,6 +565,7 @@ export function NovaPoruthamPanel({
                 )}
                 {/* F-POR-03: same-star note, qualifying the Rajju result above it. */}
                 <EkaNakshatraNoteCard note={porutham.ekaNakshatra} lang={lang} />
+                <EkaNakshatraNoteCard note={porutham.classicalException} lang={lang} />
                 {/* F-POR-02: a disclosure beside the verdict, never part of it. */}
                 <ShashtashtakaNoteCard note={porutham.shashtashtaka} lang={lang} />
               </div>

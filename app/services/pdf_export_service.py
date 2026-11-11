@@ -69,6 +69,7 @@ from app.calculations.yoga_display import (
 )
 from app.constants.astrology import SIGN_LORD
 from app.models import BirthProfile, Chart
+from app.services import cross_chart_copy, eighth_house_copy
 from app.services.chart_service import load_persisted_chart_response
 from app.services.dasha_service import get_chart_dasha
 from app.services.location_service import resolve_effective_daily_location
@@ -92,6 +93,18 @@ _LABELS = {
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+#: Nadi is a secondary note (owner ruling 2026-11-11). Same text as the web
+#: `NADI_SECONDARY_LEAD` in web/components/shashtashtaka-note.tsx.
+_NADI_SECONDARY_LEAD_EN = (
+    "Nadi (additional note). Nadi is not one of the Tamil ten poruthams and does not "
+    "change the score or the result above."
+)
+_NADI_SECONDARY_LEAD_TA = (
+    "நாடி (கூடுதல் குறிப்பு). நாடி தமிழ்ப் பத்துப் பொருத்தங்களில் சேராது; மேலே உள்ள "
+    "மதிப்பெண்ணையும் முடிவையும் இது மாற்றாது."
+)
+
 
 def _normalize_lang(lang: str | None) -> str:
     return "ta" if lang == "ta" else "en"
@@ -1136,7 +1149,7 @@ def generate_compatibility_intelligence_pdf(
     story.extend([Spacer(1, 0.3 * cm), Paragraph(_label("porutham_level", lang), heading_style)])
     story.append(
         Paragraph(
-            f"Score: {report.porutham_score}/{report.porutham_max} ({round(report.porutham_percentage)}%) - {_verdict('porutham', report.porutham_label, lang)}",
+            f"Score: {report.porutham_score:g}/{report.porutham_max} ({round(report.porutham_percentage)}%) - {_verdict('porutham', report.porutham_label, lang)}",
             body_style,
         )
     )
@@ -1144,13 +1157,6 @@ def generate_compatibility_intelligence_pdf(
         story.append(Paragraph(_label("warning_rajju", lang), body_style))
     if report.vedha_dosha:
         story.append(Paragraph(_label("warning_vedha", lang), body_style))
-    if report.nadi_dosha.has_nadi_dosha:
-        story.append(Paragraph(f"Warning: Nadi dosha present - {report.nadi_dosha.severity}.", body_style))
-    if report.nadi_dosha.cancellations:
-        # Shown independently of has_nadi_dosha — a full Classical Exception
-        # cancellation (A-9 v2) clears has_nadi_dosha but the reason it was
-        # cleared is still worth surfacing.
-        story.append(Paragraph(f"Nadi Dosha notes: {', '.join(report.nadi_dosha.cancellations)}", body_style))
     # F-POR-03 — see the porutham sheet above.
     if report.eka_nakshatra is not None and report.eka_nakshatra.present:
         story.append(Paragraph(_bitext(report.eka_nakshatra.label, lang), body_style))
@@ -1159,6 +1165,14 @@ def generate_compatibility_intelligence_pdf(
     if report.shashtashtaka is not None and report.shashtashtaka.present:
         story.append(Paragraph(_bitext(report.shashtashtaka.label, lang), body_style))
         story.append(Paragraph(_bitext(report.shashtashtaka.note, lang), caption_style))
+    # Nadi: a SECONDARY note after the Tamil findings, never a "Warning" line
+    # beside Rajju/Vedhai (owner ruling 2026-11-11: not one of the Tamil ten).
+    # Same lead-in as web `NADI_SECONDARY_LEAD`; the body is the reviewed note.
+    if report.nadi_dosha.has_nadi_dosha:
+        ta = _normalize_lang(lang) == "ta"
+        lead = _NADI_SECONDARY_LEAD_TA if ta else _NADI_SECONDARY_LEAD_EN
+        body = report.nadi_dosha.note_ta if ta else report.nadi_dosha.note_en
+        story.append(Paragraph(f"{lead} {body}", caption_style))
     porutham_rows = [["Kuta", "Score", "Max", "Label"]]
     for kuta in report.porutham_kutas:
         porutham_rows.append([kuta.name, str(kuta.score), str(kuta.max_score), kuta.label])
@@ -1202,6 +1216,36 @@ def generate_compatibility_intelligence_pdf(
     story.append(Paragraph(f"{report.person_a_name}: {getattr(report.sevvai_a, f'note_{note_lang}')}", body_style))
     story.append(Paragraph(f"{report.person_b_name}: {getattr(report.sevvai_b, f'note_{note_lang}')}", body_style))
 
+    # FAA-30: the 8th house. Not a level: no points. Same copy as the web card
+    # (pinned by tests/golden/eighth_house/eighth_house_copy.json).
+    if report.eighth_house is not None:
+        eh = report.eighth_house
+        story.extend([
+            Spacer(1, 0.3 * cm),
+            Paragraph(eighth_house_copy.HEADING[note_lang], heading_style),
+            Paragraph(eighth_house_copy.INTRO[note_lang], caption_style),
+        ])
+        for name, reading in ((report.person_a_name, eh.person_a), (report.person_b_name, eh.person_b)):
+            story.append(Paragraph(f"{name}: {eighth_house_copy.title(reading.role, note_lang)}", subheading_style))
+            if reading.role == "NOT_APPLIED":
+                story.append(Paragraph(eighth_house_copy.not_applied(note_lang), caption_style))
+                continue
+            for ref in ("LAGNA", "MOON", "D9_LAGNA"):
+                rows = [f for f in reading.factors if f.reference == ref]
+                if not rows:
+                    continue
+                story.append(Paragraph(eighth_house_copy.group_label(ref, note_lang), body_style))
+                for f in rows:
+                    text = eighth_house_copy.line(f, note_lang)
+                    also = eighth_house_copy.also_counted(f, note_lang)
+                    story.append(Paragraph(f"- {text}" + (f" {also}" if also else ""), body_style))
+            note = eighth_house_copy.d9_note(reading.d9_note, note_lang)
+            if note:
+                story.append(Paragraph(note, caption_style))
+        joint = eighth_house_copy.joint(eh.joint, note_lang)
+        if joint:
+            story.append(Paragraph(joint, body_style))
+
     story.extend([Spacer(1, 0.3 * cm), Paragraph(_label("dasha_level", lang), heading_style)])
     story.append(
         Paragraph(
@@ -1235,6 +1279,29 @@ def generate_compatibility_intelligence_pdf(
             body_style,
         )
     )
+
+    # FAA-33: chart-to-chart observations. Not a level: no points. Same copy as
+    # the web card (pinned by tests/golden/cross_chart/cross_chart_copy.json).
+    if report.cross_chart:
+        story.extend([
+            Spacer(1, 0.3 * cm),
+            Paragraph(cross_chart_copy.HEADING[note_lang], heading_style),
+            Paragraph(cross_chart_copy.INTRO[note_lang], caption_style),
+        ])
+        for direction, src, dst in (
+            ("A_TO_B", report.person_a_name, report.person_b_name),
+            ("B_TO_A", report.person_b_name, report.person_a_name),
+        ):
+            rows = [o for o in report.cross_chart if o.direction == direction and cross_chart_copy.row_visible(o)]
+            if not rows:
+                continue
+            # Words, not an arrow glyph: Helvetica has no U+2192.
+            story.append(Paragraph(cross_chart_copy.direction_label(src, dst, note_lang), subheading_style))
+            for o in rows:
+                story.append(Paragraph(
+                    f"- {cross_chart_copy.line(o, src, dst, note_lang)} {cross_chart_copy.badge(o, note_lang)}",
+                    body_style,
+                ))
 
     story.extend([
         Spacer(1, 0.35 * cm),

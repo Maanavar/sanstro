@@ -868,9 +868,11 @@ def test_monthly_builder_exposes_sunrise_based_tamil_muhurtham_days():
     assert june_7.is_tamil_muhurtham_day is True
     assert june_18.is_tamil_muhurtham_day is True
     # The engine's broad/strict subha check now reads the sunrise-governing tithi &
-    # nakshatra (issue #9): 2026-06-07 has Avittam (a subha nakshatra) at sunrise, so
-    # the broad check passes; 2026-06-18 has a Rikta tithi (4th) at sunrise, so it fails.
-    assert june_7.is_subha_muhurtham is True
+    # nakshatra (issue #9). 2026-06-07 has Avittam (a subha nakshatra) at sunrise,
+    # but Sunday + Avittam is மரணயோகம், which blocks the badge since D1
+    # (`ai_review_2026_11_10`, panchangam cache v51); 2026-06-18 has a Rikta tithi
+    # (4th) at sunrise, so it fails.
+    assert june_7.is_subha_muhurtham is False
     assert june_7.is_subha_muhurtham_strict is False
     assert june_18.is_subha_muhurtham is False
 

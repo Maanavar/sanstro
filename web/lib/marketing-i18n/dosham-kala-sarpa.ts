@@ -11,8 +11,8 @@ export const DOSHAM_KALA_SARPA = {
   ),
   what_h2:   s("What Kala Sarpa dosham means", "கால சர்ப்ப தோஷம் என்றால் என்ன"),
   what_body: s(
-    "When all seven classical planets — Suryan (Sun), Chandran (Moon), Chevvai (Mars), Budhan (Mercury), Guru (Jupiter), Sukran (Venus), Sani (Saturn) — fall on one side of the Rahu-Ketu axis, this is Kala Sarpa. 'Kala' means time, fate, and the force of Yama; 'Sarpa' is the serpent. The planetary life-force is enclosed within the serpent's body — a concentrated karmic pressure asking a person to earn their rise through sustained effort. It is not a rare configuration, and its effect ranges from mild to intense depending on the type and planetary strengths within the enclosure.",
-    "ஏழு கிரகங்களும் — சூரியன், சந்திரன், செவ்வாய், புதன், குரு, சுக்கிரன், சனி — ராகு-கேது அச்சின் ஒரு பக்கத்தில் இருக்கும்போது கால சர்ப்பம் என்று அழைக்கப்படுகிறது. 'கால' என்றால் நேரம், விதி, யமனின் சக்தி; 'சர்ப்பம்' சர்ப்பம். கோள் ஆற்றல் சர்ப்பத்தின் உடலுக்குள் அடைபட்டுள்ளது — ஒருவர் உயர்வை எளிதாகப் பெறாமல் உழைத்துப் பெற வேண்டும் என்று கேட்கும் செறிவான கர்ம அழுத்தம். இது அரிய அமைப்பல்ல; அச்சு வகையும் அடைப்பிலுள்ள கிரக பலமும் தீவிரத்தை மாற்றுகின்றன."
+    "When all seven classical planets — Suryan (Sun), Chandran (Moon), Chevvai (Mars), Budhan (Mercury), Guru (Jupiter), Sukran (Venus), Sani (Saturn) — fall on one side of the Rahu-Ketu axis, this is Kala Sarpa. 'Kala' means time, fate, and the force of Yama; 'Sarpa' is the serpent. The planetary life-force is enclosed within the serpent's body — a concentrated karmic pressure asking a person to earn their rise through sustained effort. It is not a rare configuration.",
+    "ஏழு கிரகங்களும் — சூரியன், சந்திரன், செவ்வாய், புதன், குரு, சுக்கிரன், சனி — ராகு-கேது அச்சின் ஒரு பக்கத்தில் இருக்கும்போது கால சர்ப்பம் என்று அழைக்கப்படுகிறது. 'கால' என்றால் நேரம், விதி, யமனின் சக்தி; 'சர்ப்பம்' சர்ப்பம். கோள் ஆற்றல் சர்ப்பத்தின் உடலுக்குள் அடைபட்டுள்ளது — ஒருவர் உயர்வை எளிதாகப் பெறாமல் உழைத்துப் பெற வேண்டும் என்று கேட்கும் செறிவான கர்ம அழுத்தம். இது அரிய அமைப்பல்ல."
   ),
   calc_h2:   s("How Kala Sarpa dosham is identified", "கால சர்ப்ப தோஷம் எப்படி கண்டறியப்படுகிறது"),
   calc_body: s(
@@ -78,8 +78,8 @@ export const DOSHAM_KALA_SARPA = {
     {
       h: s("3 — Identify which life areas are affected by the type", "3 — வகையால் எந்த வாழ்க்கைத் துறைகள் பாதிக்கப்படுகின்றன என்று அறியுங்கள்"),
       b: s(
-        "The type changes the focus: Rahu in 1st or 7th affects personality or marriage; in 2nd or 8th, family wealth and hidden matters; in 4th or 10th, home and career; in 5th or 11th, children and gains; in 9th or 3rd, dharma and courage. Mahapadma (Rahu 6th) is traditionally considered the mildest and often partially self-cancelling.",
-        "வகை கவனத்தை மாற்றுகிறது: ராகு 1 அல்லது 7-ல் ஆளுமை அல்லது திருமணத்தை பாதிக்கும்; 2 அல்லது 8-ல் குடும்ப செல்வம் மற்றும் மறைந்த விஷயங்கள்; 4 அல்லது 10-ல் இல்லம் மற்றும் தொழில்; 5 அல்லது 11-ல் குழந்தை மற்றும் லாபம்; 9 அல்லது 3-ல் தர்மம் மற்றும் தைரியம். மஹாபத்ம (ராகு 6-ல்) பாரம்பரியமாக மிகவும் மிதமானதாக கருதப்படுகிறது."
+        "The type changes the focus: Rahu in 1st or 7th affects personality or marriage; in 2nd or 8th, family wealth and hidden matters; in 4th or 10th, home and career; in 5th or 11th, children and gains; in 9th or 3rd, dharma and courage. The type names the life area; Vinaadi does not grade one type as milder than another.",
+        "வகை கவனத்தை மாற்றுகிறது: ராகு 1 அல்லது 7-ல் ஆளுமை அல்லது திருமணத்தை பாதிக்கும்; 2 அல்லது 8-ல் குடும்ப செல்வம் மற்றும் மறைந்த விஷயங்கள்; 4 அல்லது 10-ல் இல்லம் மற்றும் தொழில்; 5 அல்லது 11-ல் குழந்தை மற்றும் லாபம்; 9 அல்லது 3-ல் தர்மம் மற்றும் தைரியம். வகை வாழ்க்கைத் துறையைக் காட்டுகிறது; ஒரு வகையை மற்றதைவிட மிதமானது என்று விநாடி தரம் பிரிப்பதில்லை."
       ),
     },
     {
@@ -99,8 +99,8 @@ export const DOSHAM_KALA_SARPA = {
   ],
   cancel_h2:  s("When the dosham is softened", "தோஷம் மென்மையாகும் நிலைகள்"),
   cancel_body: s(
-    "The dosham is technically broken if even one planet sits outside the Rahu-Ketu arc. Mahapadma (Rahu in 6th, Ketu in 12th) is considered the mildest and often partially self-cancelling. Sheshanaga (Rahu in 12th, Ketu in 6th) is treated as potentially auspicious by some classical authorities. A strong Lagna lord inside the arc counteracts the enclosure. Jupiter's strength anywhere in the chart is the most reliable softener regardless of type. As life advances and the person earns their rise through the tests the chart sets, the dosham naturally loses its grip — this is the traditional teaching.",
-    "ஒரு கிரகமாவது ராகு-கேது வட்டவாயத்திற்கு வெளியே இருந்தால் தோஷம் தொழில்நுட்ப ரீதியாக உடைகிறது. மஹாபத்ம (ராகு 6-ல், கேது 12-ல்) மிகவும் மிதமானதாக கருதப்படுகிறது; பெரும்பாலும் பகுதியாக தனியாக ரத்தாகும். சேஷநாக (ராகு 12-ல், கேது 6-ல்) சில சாஸ்திர அதிகாரிகளால் சுபமானதாக கருதப்படுகிறது. வட்டவாயத்துக்குள் வலிமையான லக்னாதிபதி அடைப்பு சக்தியை சமன் செய்கிறது. அச்சு வகையைப் பொருட்படுத்தாமல் ஜாதகத்தில் எங்கேயும் குருவின் வலிமை மிகவும் நம்பகமான மென்மையாக்கி."
+    "The dosham is technically broken if even one planet sits outside the Rahu-Ketu arc. Vinaadi reports every Kala Sarpa it finds at the same level. It does not grade it by type or by planetary strength, because no printed source for the twelve types and their effects has been checked yet. Some traditions consider Mahapadma (Rahu in 6th, Ketu in 12th) milder and Sheshanaga (Rahu in 12th, Ketu in 6th) even auspicious; those readings are not applied here. As life advances and the person earns their rise through the tests the chart sets, the dosham naturally loses its grip — this is the traditional teaching.",
+    "ஒரு கிரகமாவது ராகு-கேது வட்டவாயத்திற்கு வெளியே இருந்தால் தோஷம் தொழில்நுட்ப ரீதியாக உடைகிறது. விநாடி கண்டறியும் ஒவ்வொரு கால சர்ப்பத்தையும் ஒரே நிலையில் காட்டுகிறது. பன்னிரண்டு வகைகளுக்கும் அவற்றின் பலன்களுக்கும் அச்சிட்ட மூல நூல் இன்னும் சரிபார்க்கப்படாததால், வகையை வைத்தோ கிரக பலத்தை வைத்தோ தரம் பிரிப்பதில்லை. சில மரபுகள் மஹாபத்மத்தை (ராகு 6-ல், கேது 12-ல்) மிதமானதாகவும், சேஷநாகத்தை (ராகு 12-ல், கேது 6-ல்) சுபமானதாகவும் கொள்கின்றன; அந்த வாசிப்புகள் இங்கே பயன்படுத்தப்படவில்லை."
   ),
   pariharam_h2:   s("Pariharam — opening the enclosure", "பரிகாரம் — அடைப்பை திறத்தல்"),
   pariharam_body: s(

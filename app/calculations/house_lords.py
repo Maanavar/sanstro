@@ -64,8 +64,19 @@ _HOUSE_META: dict[int, _HouseMeta] = {
     9:  _HouseMeta("பாக்கியாதிபதி", "Bhagya lord (9th)", "அதிர்ஷ்டம், தர்மம், தந்தை", "fortune, dharma, father"),
     10: _HouseMeta("கர்மாதிபதி", "Karma lord (10th)", "தொழில், அந்தஸ்து, செயல்", "career, status, action"),
     11: _HouseMeta("லாபாதிபதி", "Labha lord (11th)", "லாபம், வருமானம், ஆசைகள்", "gains, income, aspirations"),
-    12: _HouseMeta("வியயாதிபதி", "Vyaya lord (12th)", "செலவு, வெளிநாடு, மோட்சம்", "expenses, foreign, liberation"),
+    12: _HouseMeta(
+        "வியயாதிபதி",
+        "Vyaya lord (12th)",
+        "செலவு, தூக்கம், வெளியூர் அல்லது வெளிநாட்டு வாசம், தானம், மோட்சம்",
+        "expenses, sleep, living away from home, charity, liberation",
+    ),
 }
+# 12th widened on the 2026-11-09 astrologer review (Q10): "expenses, foreign,
+# liberation" read as a promise of going abroad. Sleep, living away from one's
+# birthplace and charity are standard 12th-house significations. The review's
+# "படுக்கைச் சுகம்" (bed pleasures) was left out: classically it is sayana
+# sukha, which carries a sexual sense this one-line plain-reader summary should
+# not. docs/ASTROLOGER_REVIEW_RESPONSE_2026-11-09.md records the call.
 
 _BAND_TA = {"STRONG": "வலுவானது", "MODERATE": "நடுத்தரம்", "WEAK": "பலவீனம்"}
 

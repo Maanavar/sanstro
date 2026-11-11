@@ -48,7 +48,7 @@ const FAQ_JSONLD = {
       name: "What is indraiya rasipalan (இன்றைய ராசிபலன்)?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Indraiya rasipalan means 'today's rasi prediction' in Tamil. It is a daily horoscope based on the Moon's position in the zodiac. The Moon moves through a new rasi roughly every 2.5 days, and its house position from your natal Moon sign (janma rasi) determines the energy and guidance for the day.",
+        text: "Indraiya rasipalan means 'today's rasi prediction' in Tamil. It is a daily horoscope based on the Moon's position in the zodiac. The Moon moves through a new rasi roughly every 2¼ days, and its house position from your natal Moon sign (janma rasi) determines the energy and guidance for the day.",
       },
     },
     {
@@ -56,7 +56,7 @@ const FAQ_JSONLD = {
       name: "How is Tamil rasipalan different from sun-sign horoscopes?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Tamil Jyothidam rasipalan is based on your janma rasi — the rasi where the Moon was at birth — not the Sun. The daily palan is calculated from the Moon's transit position each day, making it much more dynamic (changes every 2.5 days) compared to sun-sign horoscopes which change monthly.",
+        text: "Tamil Jyothidam rasipalan is based on your janma rasi — the rasi where the Moon was at birth — not the Sun. The daily palan is calculated from the Moon's transit position each day, making it much more dynamic (changes every 2¼ days) compared to sun-sign horoscopes which change monthly.",
       },
     },
     {
@@ -64,7 +64,7 @@ const FAQ_JSONLD = {
       name: "What is Chandrashtamam and which rasi has it today?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Chandrashtamam occurs when the transiting Moon is in the 8th rasi from your janma rasi. It lasts approximately 2.5 days. During Chandrashtamam, Tamil astrology recommends avoiding new ventures, surgeries, important decisions, and risky investments. Use Vinaadi's free rasipalan tool to find out which rasi is affected today.",
+        text: "Chandrashtamam occurs when the transiting Moon is in the 8th rasi from your janma rasi. It lasts approximately 2¼ days. During Chandrashtamam, Tamil astrology recommends avoiding new ventures, surgeries, important decisions, and risky investments. Use Vinaadi's free rasipalan tool to find out which rasi is affected today.",
       },
     },
     {

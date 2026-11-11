@@ -139,7 +139,8 @@ def test_sevvai_strong_formation_with_two_minor_factors_is_reduced_not_cancelled
     assert result.formation_strength == "PARTIAL"
     assert result.strength == "WEAK"
     assert result.residual == "MILD"
-    assert result.context_notes == ()
+    # C3 (ai_review_2026_11_10): a mild grade says it is common.
+    assert result.context_notes == ("sevvai_mild_is_common",)
     assert {r.reference: r.houses for r in result.reference_houses} == {"LAGNA": (2,), "MOON": (7,), "VENUS": (11,)}
 
 
@@ -221,7 +222,13 @@ def test_putra_sarpa_protection_lowers_one_grade_and_never_cancels() -> None:
     # V1 §18 Q11-Q12 (superseding DD-17's cancellation here). Mesham lagna: Rahu
     # in Simmam (the 5th) declares; Ketu beside the 5th lord (Sun, Kumbam) is one
     # leg, so it forms PARTIAL; Guru in Kadagam (a kendra) lowers it to WEAK.
-    result = detect_putra_sarpa_dosham({"SUN": 11, "RAHU": 5, "KETU": 11, "JUPITER": 4}, 1, {"SUN": 30})
+    from app.calculations.doctrine_options import DoctrineOptions
+
+    result = detect_putra_sarpa_dosham(
+        {"SUN": 11, "RAHU": 5, "KETU": 11, "JUPITER": 4}, 1, {"SUN": 30},
+        # The §18 Q12 kendra stand-in, behind its switch since 2026-11-10 (§19, B7).
+        doctrine=DoctrineOptions(children_protection_definition="stand_in"),
+    )
     assert result.is_present is True and result.is_cancelled is False
     assert result.formation_strength == "PARTIAL"
     assert result.strength == "WEAK"

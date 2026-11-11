@@ -495,7 +495,7 @@ _CARDS: dict[int, NakshatraCard] = {
     12: NakshatraCard(
         number=12, nameTa="உத்திரம்", nameEn="Uthiram",
         deityTa="ஆர்யமன்", deityEn="Aryaman (god of patronage and nobility)",
-        symbolTa="கட்டில் / கட்டிலின் பின்கால்கள்", symbolEn="Bed / Back legs of a cot",
+        symbolTa="கட்டிலின் பின்கால்கள்", symbolEn="Back legs of a cot",
         rulingPlanet="SUN",
         profile=NakshatraBiText(
             ta="உத்திரம் நட்சத்திரத்தில் பிறந்தவர்களுக்குக் கடமை உணர்வும் நியாய உணர்வும் அதிகம். நம்பகமானவர்கள்; உறுதியான கொள்கைகளை உடையவர்கள்.",
@@ -552,7 +552,7 @@ _CARDS: dict[int, NakshatraCard] = {
     15: NakshatraCard(
         number=15, nameTa="சுவாதி", nameEn="Swathi",
         deityTa="வாயு", deityEn="Vayu (wind god)",
-        symbolTa="காற்றில் அசையும் இளந்தளிர்", symbolEn="Young sprout swaying in wind",
+        symbolTa="காற்றில் அசையும் இளந்தளிர் / பவளம்", symbolEn="Young sprout swaying in wind / Coral",
         rulingPlanet="RAHU",
         profile=NakshatraBiText(
             ta="சுவாதி நட்சத்திரத்தில் பிறந்தவர்கள் சுதந்திரமாக யோசிப்பவர்கள்; எதையும் நடுநிலையோடு பார்ப்பவர்கள். சிக்கல்களை வளைந்து கொடுத்துக் கடக்கத் தெரிந்தவர்கள்.",
@@ -609,7 +609,7 @@ _CARDS: dict[int, NakshatraCard] = {
     18: NakshatraCard(
         number=18, nameTa="கேட்டை", nameEn="Kettai",
         deityTa="இந்திரன்", deityEn="Indra (king of the gods)",
-        symbolTa="காதணி / குடை", symbolEn="Earring / Umbrella",
+        symbolTa="காதணி (குண்டலம்) / குடை", symbolEn="Earring / Umbrella",
         rulingPlanet="MERCURY",
         profile=NakshatraBiText(
             ta="கேட்டை நட்சத்திரத்தில் பிறந்தவர்கள் தலைமை தாங்கும் திறனும் ஆழ்ந்த பொறுப்புணர்வும் உடையவர்கள். கடுமையான உழைப்பாளிகள்; உயர்ந்த இடத்தை அடைய விரும்புபவர்கள்.",
@@ -628,7 +628,7 @@ _CARDS: dict[int, NakshatraCard] = {
     19: NakshatraCard(
         number=19, nameTa="மூலம்", nameEn="Moolam",
         deityTa="நிர்ருதி", deityEn="Nirriti (goddess of dissolution)",
-        symbolTa="வேர்க்கட்டு / சிங்கத்தின் வால்", symbolEn="Bundle of roots / Lion's tail",
+        symbolTa="வேர்கள் சேர்ந்த கொத்து / அங்குசம்", symbolEn="Bunch of roots tied together / Elephant goad",
         rulingPlanet="KETU",
         profile=NakshatraBiText(
             ta="மூலம் நட்சத்திரத்தில் பிறந்தவர்கள் ஆராய்ந்து பார்ப்பவர்கள்; தத்துவ நாட்டம் உடையவர்கள். எதற்கும் அடிப்படைக் காரணத்தையும் ஆழமான உண்மையையும் தேடுவார்கள்.",
@@ -647,7 +647,7 @@ _CARDS: dict[int, NakshatraCard] = {
     20: NakshatraCard(
         number=20, nameTa="பூராடம்", nameEn="Pooradam",
         deityTa="ஜலம் (வருணன்)", deityEn="Apas / Varuna (water deity)",
-        symbolTa="யானைத் தந்தம் / மயில் தோகை", symbolEn="Elephant tusk / Peacock feather",
+        symbolTa="யானைத் தந்தம் / முறம்", symbolEn="Elephant tusk / Winnowing fan",  # F6, ai_review_2026_11_10
         rulingPlanet="VENUS",
         profile=NakshatraBiText(
             ta="பூராடம் நட்சத்திரத்தில் பிறந்தவர்கள் குறையாத ஊக்கமும், வெற்றி வரும் என்ற ஆழ்ந்த நம்பிக்கையும் உடையவர்கள். நியாயம் என்று நம்புவதற்காகப் போராடுவார்கள்.",
@@ -704,7 +704,7 @@ _CARDS: dict[int, NakshatraCard] = {
     23: NakshatraCard(
         number=23, nameTa="அவிட்டம்", nameEn="Avittam",
         deityTa="அஷ்ட வசுக்கள்", deityEn="Ashta Vasus (eight elemental gods)",
-        symbolTa="மத்தளம்", symbolEn="Drum",
+        symbolTa="மத்தளம் / புல்லாங்குழல்", symbolEn="Drum / Flute",
         rulingPlanet="MARS",
         profile=NakshatraBiText(
             ta="அவிட்டம் நட்சத்திரத்தில் பிறந்தவர்கள் எல்லோரோடும் பழகுபவர்கள்; ஆற்றல் மிக்கவர்கள். இலக்கை அடைவதில் எந்தச் சமரசமும் செய்யாத உறுதி உடையவர்கள்.",

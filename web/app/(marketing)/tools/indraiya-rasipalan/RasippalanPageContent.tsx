@@ -11,12 +11,12 @@ const RASIPALAN_CONCEPTS = [
     ta: { title: "ராசிபலன் எவ்வாறு செயல்படுகிறது?", body: "ஒவ்வொரு நாளும் சந்திரன் 12 ராசிகளில் ஒன்றில் இருக்கும். உங்கள் பிறப்பு ராசியிலிருந்து சந்திரன் எந்த இடத்தில் உள்ளது என்பதே அன்றைய சக்தியை நிர்ணயிக்கிறது. 11ஆம் இடம் சாதகமானது; 8ஆம் இடம் சந்திராஷ்டமம் — கவனமாக இருக்க வேண்டிய காலம்." },
   },
   {
-    en: { title: "What is Chandrashtamam?", body: "Chandrashtamam occurs when the Moon is in the 8th rasi from your natal Moon sign. It lasts roughly 2.5 days. Classical Tamil astrology recommends avoiding new ventures, surgeries, and major financial decisions during this period." },
-    ta: { title: "சந்திராஷ்டமம் என்றால் என்ன?", body: "சந்திரன் உங்கள் பிறப்பு ராசியிலிருந்து 8ஆம் ராசியில் இருக்கும்போது சந்திராஷ்டமம் நிகழ்கிறது. இது சுமார் 2.5 நாட்கள் நீடிக்கும். இந்த காலத்தில் புதிய தொடக்கங்கள், அறுவை சிகிச்சை, முக்கிய பண முடிவுகளைத் தவிர்ப்பது நல்லது." },
+    en: { title: "What is Chandrashtamam?", body: "Chandrashtamam occurs when the Moon is in the 8th rasi from your natal Moon sign. It lasts roughly 2¼ days. Classical Tamil astrology recommends avoiding new ventures, surgeries, and major financial decisions during this period." },
+    ta: { title: "சந்திராஷ்டமம் என்றால் என்ன?", body: "சந்திரன் உங்கள் பிறப்பு ராசியிலிருந்து 8ஆம் ராசியில் இருக்கும்போது சந்திராஷ்டமம் நிகழ்கிறது. இது சுமார் இரண்டே கால் நாட்கள் நீடிக்கும். இந்த காலத்தில் புதிய தொடக்கங்கள், அறுவை சிகிச்சை, முக்கிய பண முடிவுகளைத் தவிர்ப்பது நல்லது." },
   },
   {
-    en: { title: "How often does the Moon change rasi?", body: "The Moon moves to a new rasi approximately every 2.5 days, completing the full zodiac in about 27–28 days. This is why daily rasipalan changes frequently, unlike sun-sign horoscopes which shift monthly." },
-    ta: { title: "சந்திரன் எவ்வளவு அடிக்கடி ராசி மாறுகிறது?", body: "சந்திரன் சுமார் 2.5 நாட்களுக்கு ஒருமுறை புதிய ராசியில் நுழைகிறது; 27–28 நாட்களில் முழு ராசி சக்கரத்தையும் முடிக்கிறது. இதனால் தினசரி ராசிபலன் அடிக்கடி மாறுகிறது." },
+    en: { title: "How often does the Moon change rasi?", body: "The Moon moves to a new rasi approximately every 2¼ days, completing the full zodiac in about 27–28 days. This is why daily rasipalan changes frequently, unlike sun-sign horoscopes which shift monthly." },
+    ta: { title: "சந்திரன் எவ்வளவு அடிக்கடி ராசி மாறுகிறது?", body: "சந்திரன் சுமார் இரண்டே கால் நாட்களுக்கு ஒருமுறை புதிய ராசியில் நுழைகிறது; 27–28 நாட்களில் முழு ராசி சக்கரத்தையும் முடிக்கிறது. இதனால் தினசரி ராசிபலன் அடிக்கடி மாறுகிறது." },
   },
   {
     en: { title: "Thirukanitham accuracy", body: "Vinaadi uses Thirukanitham (Swiss Ephemeris–based) calculations for the Moon's precise longitude. This is more accurate than Vakya almanac values, especially for dates far from the almanac's base epoch." },

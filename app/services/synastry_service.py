@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     from app.calculations.porutham import KutaResult as CalcKutaResult
 
 from app.calculations.astro import NAKSHATRA_NAMES, utc_datetime_to_julian_day
+from app.calculations.display_names import planet_en, planet_ta
 from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.porutham import compute_porutham
 from app.calculations.transits import angular_distance
@@ -34,14 +35,18 @@ from app.models import BirthProfile, Chart, FamilyMember, FamilyVault, Relations
 from app.schemas.dasha import ResponseMeta
 from app.schemas.relationships import (
     ChartMarriageStrength,
+    ClassicalExceptionData,
     CompatibilityIntelligenceData,
     CompatibilityIntelligenceResponse,
     CompatibilityScoreBreakdown,
+    CrossChartObservationData,
     DashaHarmony,
     DirectPoruthamData,
     DirectPoruthamResponse,
     DirectSynastryData,
     DirectSynastryResponse,
+    EighthHouseCoupleData,
+    EighthHouseReadingData,
     EkaNakshatraData,
     EmotionalCompatibility,
     KutaResult,
@@ -441,19 +446,23 @@ def check_transit_activation(
     chart_b_snapshot: Any,
     transit_bodies: dict[str, Any],
 ) -> list[_TransitSynastryHit]:
+    # (code, natal planet, whose chart). A is the vault owner, B the member
+    # (get_relationship_alerts); FAA-23 names them by role, never "A"/"B".
     targets = [
-        ("A_VENUS", _planet(chart_a_snapshot, "VENUS").absolute_longitude),
-        ("B_VENUS", _planet(chart_b_snapshot, "VENUS").absolute_longitude),
-        ("A_MOON", _planet(chart_a_snapshot, "MOON").absolute_longitude),
-        ("B_MOON", _planet(chart_b_snapshot, "MOON").absolute_longitude),
+        ("A_VENUS", "VENUS", "A", _planet(chart_a_snapshot, "VENUS").absolute_longitude),
+        ("B_VENUS", "VENUS", "B", _planet(chart_b_snapshot, "VENUS").absolute_longitude),
+        ("A_MOON", "MOON", "A", _planet(chart_a_snapshot, "MOON").absolute_longitude),
+        ("B_MOON", "MOON", "B", _planet(chart_b_snapshot, "MOON").absolute_longitude),
     ]
+    whose_en = {"A": "your", "B": "your family member's"}
+    whose_ta = {"A": "உங்கள்", "B": "உங்கள் குடும்ப உறுப்பினரின்"}
 
     hits: list[_TransitSynastryHit] = []
     for planet in _TRANSIT_ALERT_PLANETS:
         body = transit_bodies.get(planet)
         if body is None:
             continue
-        for target_name, target_deg in targets:
+        for target_name, natal, side, target_deg in targets:
             if not _transit_point_hits(body.absolute_longitude, target_deg):
                 continue
             hits.append(
@@ -461,12 +470,13 @@ def check_transit_activation(
                     trigger_planet=planet,
                     trigger_type=f"transit_conjunct_{target_name.lower()}",
                     message_en=(
-                        f"{planet} is closely activating {target_name.replace('_', ' ')}. "
-                        f"Traditionally this is associated with a relationship-sensitive day for mindful communication."
+                        f"Transiting {planet_en(planet)} is close to {whose_en[side]} natal {planet_en(natal)}. "
+                        "Tradition reads this as a relationship-sensitive day: speak gently and listen well."
                     ),
                     message_ta=(
-                        f"{planet} {target_name.replace('_', ' ')} point-ai nerukkamaaga activate seigiradhu. "
-                        f"Idhu traditionally uravu-kuritha naalaaga karudappadugiradhu; amaidiyana pesudhal mukkiyam."
+                        f"கோச்சார {planet_ta(planet)}, {whose_ta[side]} ஜாதகத்தில் {planet_ta(natal)} "
+                        "நின்ற இடத்துக்கு மிக அருகில் வருகிறது. உறவில் மென்மை தேவைப்படும் நாளாக மரபு இதைக் "
+                        "கருதுகிறது; அமைதியாகப் பேசுவது நல்லது."
                     ),
                 )
             )
@@ -603,8 +613,9 @@ _CONTEXT_TITLE_EN: dict[str, str] = {
 
 _CONTEXT_NOTE: dict[str, dict[str, str]] = {
     "MARRIAGE": {
-        "ta": "திருமண பொருத்தம்: ஸ்தீர கூடம் (நிலைத்த தன்மை) மற்றும் ரஜ்ஜு தோஷம் முக்கியம்.",
-        "en": "Marriage context: Sthira kuta (stability) and Rajju dosha are most significant.",
+        # FAA-22: "Sthira kuta" is not a porutham; name the real ones.
+        "ta": "திருமணப் பொருத்தம்: பத்துப் பொருத்தங்களும் பார்க்கப்படுகின்றன; ரஜ்ஜுவும் வேதையும் மிக முக்கியம்.",
+        "en": "Marriage context: all ten poruthams are read; Rajju and Vedha are the most significant.",
     },
     "FRIENDSHIP": {
         "ta": "நட்பு பொருத்தம்: தினம், கணம், ராசி, கிரக மைத்திரி, வேதை ஆகிய சமிக்ஞைகள் மதிப்பிடப்படுகின்றன.",
@@ -659,14 +670,28 @@ class ContextualizedPorutham(TypedDict):
     nadi_dosha: dict[str, object]
     shashtashtaka: ShashtashtakaNote
     eka_nakshatra: EkaNakshatraNote | None
+    classical_exception: Any
     summary: RelationshipBiText
 
 
-def _contextualize_porutham_result(result, compatibility_context: str) -> ContextualizedPorutham:
+def _contextualize_porutham_result(
+    result, compatibility_context: str, *, reverse_result=None,
+) -> ContextualizedPorutham:
+    """Select and score the kutas a context reads.
+
+    FAA-21: Dinam, Mahendra, Sthree Deergham and Rasi count girl -> boy. In a
+    friendship, business, family or general reading nobody is the bride, so
+    with `reverse_result` (the same pair, roles swapped) each kuta keeps the
+    LOWER of its two readings: it counts as matching only if it matches both
+    ways round. Swapping A and B then changes no verdict.
+    """
     allowed = set(_CONTEXT_KUTA_MASK.get(compatibility_context, _CONTEXT_KUTA_MASK["GENERAL"]))
     selected = [k for k in result.kutas if k.name in allowed]
     if not selected:
         selected = list(result.kutas)
+    if reverse_result is not None and compatibility_context != "MARRIAGE":
+        back = {k.name: k for k in reverse_result.kutas}
+        selected = [min(k, back.get(k.name, k), key=lambda kk: kk.score) for k in selected]
 
     total_score = sum(k.score for k in selected)
     max_score = sum(k.max_score for k in selected)
@@ -728,6 +753,9 @@ def _contextualize_porutham_result(result, compatibility_context: str) -> Contex
         "eka_nakshatra": (
             result.eka_nakshatra if any(k.name == "Rajju" for k in selected) else None
         ),
+        # Kalaprakasika p.76 speaks to Rajju/Vedha/Ganam/Rasi together: shown
+        # only in the marriage reading, where all ten kutas are read.
+        "classical_exception": result.classical_exception if compatibility_context == "MARRIAGE" else None,
         "summary": summary,
     }
 
@@ -800,7 +828,19 @@ def compare_chart_snapshots_direct(
         pada_known=True,
         nadi_parihara_mode=get_flag("nadi_parihara_mode"),
     )
-    shaped = _contextualize_porutham_result(result, compatibility_context)
+    # FAA-21: outside marriage there is no bride and groom, so the
+    # directional kutas are read both ways (see `_contextualize_porutham_result`).
+    reverse = None if compatibility_context == "MARRIAGE" else compute_porutham(
+        boy_nakshatra=girl_moon.nakshatra,
+        girl_nakshatra=boy_moon.nakshatra,
+        boy_rasi=girl_moon.rasi,
+        girl_rasi=boy_moon.rasi,
+        boy_pada=girl_moon.pada,
+        girl_pada=boy_moon.pada,
+        pada_known=True,
+        nadi_parihara_mode=get_flag("nadi_parihara_mode"),
+    )
+    shaped = _contextualize_porutham_result(result, compatibility_context, reverse_result=reverse)
 
     kutas = [
         KutaResult(name=k.name, name_ta=k.name_ta, score=k.score, max_score=k.max_score,
@@ -810,7 +850,7 @@ def compare_chart_snapshots_direct(
 
     _note_raw = _CONTEXT_NOTE.get(compatibility_context, _CONTEXT_NOTE["GENERAL"])
     note_en, note_ta = _note_raw["en"], _note_raw["ta"]
-    if direction_assumed:
+    if direction_assumed and compatibility_context == "MARRIAGE":  # FAA-21
         # F-POR-05: Dinam, Mahendra, Sthree Deergham and Rasi all count
         # girl -> boy, so an assumed direction changes the answer. Say which
         # way round it was read rather than presenting a guess as a finding.
@@ -833,6 +873,7 @@ def compare_chart_snapshots_direct(
         nadi_dosha=NadiDoshaData(**shaped["nadi_dosha"]),
         shashtashtaka=_shashtashtaka_data(shaped["shashtashtaka"]),
         eka_nakshatra=_eka_nakshatra_data(shaped["eka_nakshatra"]),
+        classical_exception=ClassicalExceptionData.from_note(shaped["classical_exception"]),
         papa_samyam=_papa_samyam_data(
             snap_a, snap_b, boy_moon is moon_a, direction_assumed, compatibility_context
         ),
@@ -972,6 +1013,7 @@ def build_compatibility_intelligence_from_snapshots(
         # derivation, in `shashtashtaka_relation`.
         shashtashtaka=_shashtashtaka_data(porutham_result.shashtashtaka),
         eka_nakshatra=_eka_nakshatra_data(porutham_result.eka_nakshatra),
+        classical_exception=ClassicalExceptionData.from_note(porutham_result.classical_exception),
         chart_a_strength=_cms_schema(ci.chart_a_strength),
         chart_b_strength=_cms_schema(ci.chart_b_strength),
         navamsa=NavamsaCompatibility(
@@ -1024,6 +1066,23 @@ def build_compatibility_intelligence_from_snapshots(
         risks_en=ci.risks_en,
         risks_ta=ci.risks_ta,
         summary=RelationshipBiText(ta=ci.summary_ta, en=ci.summary_en),
+        cross_chart=[
+            CrossChartObservationData(
+                direction=o.direction, key=o.key, graha=o.graha, rasi=o.rasi,
+                house_from_lagna=o.house_from_lagna, house_from_moon=o.house_from_moon,
+                status=o.status, tier=o.tier,
+            )
+            for o in ci.cross_chart
+        ],
+        eighth_house=(
+            EighthHouseCoupleData(
+                person_a=EighthHouseReadingData.from_reading(ci.mangalya_a),
+                person_b=EighthHouseReadingData.from_reading(ci.mangalya_b),
+                joint=ci.mangalya_joint,
+            )
+            if ci.mangalya_a is not None and ci.mangalya_b is not None
+            else None
+        ),
     )
     return CompatibilityIntelligenceResponse(data=data, meta=_meta())
 
@@ -1088,7 +1147,19 @@ def get_porutham_for_member(
         pada_known=True,
         nadi_parihara_mode=get_flag("nadi_parihara_mode"),
     )
-    shaped = _contextualize_porutham_result(result, compatibility_context)
+    # FAA-21: outside marriage there is no bride and groom, so the
+    # directional kutas are read both ways (see `_contextualize_porutham_result`).
+    reverse = None if compatibility_context == "MARRIAGE" else compute_porutham(
+        boy_nakshatra=girl_moon.nakshatra,
+        girl_nakshatra=boy_moon.nakshatra,
+        boy_rasi=girl_moon.rasi,
+        girl_rasi=boy_moon.rasi,
+        boy_pada=girl_moon.pada,
+        girl_pada=boy_moon.pada,
+        pada_known=True,
+        nadi_parihara_mode=get_flag("nadi_parihara_mode"),
+    )
+    shaped = _contextualize_porutham_result(result, compatibility_context, reverse_result=reverse)
 
     kutas = [
         KutaResult(
@@ -1105,7 +1176,7 @@ def get_porutham_for_member(
 
     _note_raw = _CONTEXT_NOTE.get(compatibility_context, _CONTEXT_NOTE["GENERAL"])
     note_en, note_ta = _note_raw["en"], _note_raw["ta"]
-    if direction_assumed:
+    if direction_assumed and compatibility_context == "MARRIAGE":  # FAA-21
         # F-POR-05, same disclosure as the direct-snapshot path above.
         note_en = f"{note_en} {_ASSUMED_DIRECTION_EN}"
         note_ta = f"{note_ta} {_ASSUMED_DIRECTION_TA}"
@@ -1126,6 +1197,7 @@ def get_porutham_for_member(
         nadi_dosha=NadiDoshaData(**shaped["nadi_dosha"]),
         shashtashtaka=_shashtashtaka_data(shaped["shashtashtaka"]),
         eka_nakshatra=_eka_nakshatra_data(shaped["eka_nakshatra"]),
+        classical_exception=ClassicalExceptionData.from_note(shaped["classical_exception"]),
         papa_samyam=_papa_samyam_data(
             owner_snap, member_snap, boy_moon is owner_moon, direction_assumed, compatibility_context
         ),

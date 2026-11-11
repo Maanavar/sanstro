@@ -69,6 +69,10 @@ const MARKER_LABELS: Record<string, { ta: string; en: string }> = {
   tamil_sevvai_exception_cancer_leo: { ta: "கடகம்/சிம்ம லக்னத்திற்கான பாரம்பரிய விதிவிலக்கு — தோஷம் வலுவாகக் குறைகிறது, ஆனால் முழுமையாக நீங்குவதில்லை", en: "The traditional exception for Kadagam/Simmam lagna applies — the dosham is strongly reduced, not erased" },
   mars_lagna_lord_mitigation:       { ta: "செவ்வாய் லக்னாதிபதி — லக்னாதிபதி விதியால் தோஷம் குறைகிறது", en: "Mars rules your Lagna — lagna-lord rule reduces dosham" },
   house_sign_nivarthi:              { ta: "செவ்வாயின் ராசி இந்த வீட்டிற்கான நிவர்த்தி ராசி — தோஷம் குறைகிறது", en: "Mars occupies the nivarthi rasi for that house — dosham is reduced" },
+  // ai_review_2026_11_10 (DOCTRINE §19, C2, C4).
+  d7_supports_fifth:                { ta: "சப்தாம்சத்தில் (D7) 5-ஆம் வீடு தூய்மை, அதிபதி நல்ல இடத்தில், குரு ஆதரவு — தீவிரம் ஒரு படி குறைகிறது", en: "In the Saptamsa (D7) the 5th is clean, its lord well placed and Jupiter supports it — one grade lighter" },
+  mars_in_simha_kumbha:             { ta: "செவ்வாய் சிம்மம் அல்லது கும்பத்தில் — எல்லா தோஷ வீடுகளுக்கும் நிவர்த்தி ராசி, தோஷம் குறைகிறது", en: "Mars is in Simmam or Kumbam — a nivarthi sign for every dosha house; the dosham is reduced" },
+  strong_guru_on_mars:              { ta: "வலுவான குரு செவ்வாயுடன் சேர்ந்தோ பார்த்தோ இருக்கிறார் — நிவர்த்தி", en: "A strong Jupiter joins or aspects Mars — nivarthi" },
   jupiter_aspect_on_mars:           { ta: "குரு செவ்வாயை பார்க்கிறார் — நலமான தோஷ குறைப்பு", en: "Jupiter aspects Mars — a strong protective influence" },
   jupiter_conjunct_mars:            { ta: "குரு செவ்வாயுடன் சேர்ந்திருக்கிறார் — தோஷம் குறைகிறது, நீங்குவதில்லை", en: "Jupiter is conjunct Mars in the same house — the dosham is reduced, not cancelled" },
   benefic_association_mars:         { ta: "சுபக்கிரகம் செவ்வாயுடன் இணைந்துள்ளது — தோஷம் மெலிகிறது", en: "A benefic planet is with Mars — dosham is weakened" },
@@ -546,6 +550,14 @@ const MARKER_PATTERNS: { re: RegExp; label: (m: RegExpMatchArray, lang: Lang) =>
     label: (m, lang) => ({
       ta: `புத்திர காரகனான குரு கேந்திரத்தில் (உங்கள் ${m[1]}-ஆம் வீடு) உள்ளது; பாதுகாப்பு தருகிறது`,
       en: `Jupiter, the karaka for children, stands in a kendra (your ${ordinal(Number(m[1]))} house) and protects`,
+    }),
+  },
+  // ai_review_2026_11_10 (DOCTRINE §19, B7): a Jupiter that guards by its link to the 5th.
+  {
+    re: /^jupiter_guards_fifth_from_house_(\d+)$/,
+    label: (m, lang) => ({
+      ta: `புத்திர காரகனான குரு உங்கள் ${m[1]}-ஆம் வீட்டிலிருந்து 5-ஆம் வீட்டுடன் தொடர்புகொண்டு, பாதிப்பின்றி இருக்கிறார்; பாதுகாப்பு தருகிறார்`,
+      en: `Jupiter, the karaka for children, in your ${ordinal(Number(m[1]))} house, is linked to the 5th and unafflicted, and protects`,
     }),
   },
   // Marana Karaka Sthana: these printed raw ("mercury in marana karaka sthana")
@@ -1146,7 +1158,7 @@ export const YOGA_REMEDIES: Record<string, { ta: string; en: string }> = {
   KALASARPA: {
     ta: "திருநாகேஸ்வரம் அல்லது காளஹஸ்தியில் கால சர்ப்ப தோஷ பரிகாரம், நாக வழிபாடு, ஆடி மற்றும் கார்த்திகை மாதங்களில் சர்ப்ப சாந்தி, ஆண்டு தோறும் ஒரு முறை ஆன்மீக பூஜை.",
     en: "Kala Sarpa Dosha parihara at Thirunageswaram or Kalahasti, Naga worship, Sarpa Shanti in Aadi and Karthigai months, annual spiritual puja.",
-  },
+  },
   // Owner ruling 2026-10-30 (DOCTRINE_DECISIONS_V1 §18, Q8): Guru Chandala is its own
   // finding with Guru's parihara — never the naga route Putra Sarpa used to
   // send it to. Same for the Ketu variant's card.
@@ -1273,8 +1285,9 @@ export const DOSHAM_REMEDIES: Record<string, { ta: string; en: string }> = {
   },
   PUTRA_SARPA_DOSHAM: {
     // Medical guidance is said once, under "How to reduce impact".
-    ta: "திருநாகேஸ்வரம் வழிபாடு, நாக பிரதிஷ்டை பரிகாரம்.",
-    en: "Worship at Thirunageswaram and Naga pratishtha parihara.",
+    // B2 (ai_review_2026_11_10, DOCTRINE §19): Kalahasti added beside Thirunageswaram.
+    ta: "திருநாகேஸ்வரம் அல்லது காளஹஸ்தி வழிபாடு, நாக பிரதிஷ்டை பரிகாரம்.",
+    en: "Worship at Thirunageswaram or Kalahasti, and Naga pratishtha parihara.",
   },
   // AAU-12: Saturn's parihara, never the naga route above.
   SANTHANA_THADAI: {
@@ -1294,13 +1307,15 @@ export const DOSHAM_REMEDIES: Record<string, { ta: string; en: string }> = {
  * the single remedy line and is split out, not new.
  */
 export const DOSHAM_OBJECTIVE_PARIHARA: Record<string, { ta: string; en: string }> = {
+  // B2 (ai_review_2026_11_10, DOCTRINE §19): Thirukarukavur (Garbharakshambigai)
+  // and the Sashti viratham added on the hope side, for both findings.
   PUTRA_SARPA_DOSHAM: {
-    ta: "சந்தான கோபால மந்திரம், மன்னார்குடி வழிபாடு, வியாழக்கிழமை குரு வழிபாடு.",
-    en: "The Santana Gopala mantra, worship at Mannargudi, and Thursday Jupiter worship.",
+    ta: "சந்தான கோபால மந்திரம், மன்னார்குடி வழிபாடு, திருக்கருகாவூர் கர்ப்பரட்சாம்பிகை வழிபாடு, சஷ்டி விரதம், வியாழக்கிழமை குரு வழிபாடு.",
+    en: "The Santana Gopala mantra, worship at Mannargudi, worship of Garbharakshambigai at Thirukarukavur, the Sashti viratham, and Thursday Jupiter worship.",
   },
   SANTHANA_THADAI: {
-    ta: "சந்தான கோபால மந்திரம்.",
-    en: "The Santana Gopala mantra.",
+    ta: "சந்தான கோபால மந்திரம், திருக்கருகாவூர் கர்ப்பரட்சாம்பிகை வழிபாடு, சஷ்டி விரதம்.",
+    en: "The Santana Gopala mantra, worship of Garbharakshambigai at Thirukarukavur, and the Sashti viratham.",
   },
 };
 

@@ -26,7 +26,7 @@ _SCORES = dict.fromkeys(_PLANETS, 50)
 
 
 def _detect(mode: str):
-    return detect_putra_sarpa_dosham(_PLANETS, 1, _SCORES, doctrine=DoctrineOptions(d6b_guru_ketu=mode))
+    return detect_putra_sarpa_dosham(_PLANETS, 1, _SCORES, doctrine=DoctrineOptions(d6b_guru_ketu=mode, ps_node_alone="mild"))
 
 
 def test_the_default_is_todays_watch_note() -> None:
@@ -50,7 +50,7 @@ def test_leg_counts_ketu_beside_guru_and_drops_the_note() -> None:
 def test_rahu_beside_guru_is_a_leg_under_both_settings() -> None:
     swapped = {**_PLANETS, "RAHU": 11, "KETU": 5}
     for mode in ("watch_note", "leg"):
-        r = detect_putra_sarpa_dosham(swapped, 1, _SCORES, doctrine=DoctrineOptions(d6b_guru_ketu=mode))
+        r = detect_putra_sarpa_dosham(swapped, 1, _SCORES, doctrine=DoctrineOptions(d6b_guru_ketu=mode, ps_node_alone="mild"))
         assert "jupiter_joined_by_rahu" in r.conditions_met, mode
 
 

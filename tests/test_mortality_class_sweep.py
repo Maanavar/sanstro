@@ -51,10 +51,12 @@ _SKIP_DIRS = frozenset({
 
 #: file -> why its mortality-word hits are admissible.
 #:
-#: Exactly two admissible kinds:
+#: Exactly three admissible kinds:
 #:   1. "widowed" as a MARITAL STATUS the user selects about themselves. A person
 #:      describing their own life is not the engine predicting a death.
 #:   2. Preserved SOURCE TEXT inside a provenance record that is never rendered.
+#:   3. A BANNED-WORD LIST: the module defining the set, or a test asserting the
+#:      words are absent from rendered copy. Nothing in it reaches a user.
 #:
 #: A new file appearing here fails `test_the_allowlist_has_no_stale_entries`'s
 #: sibling below, which is the point: adding a death assertion should cost an
@@ -80,6 +82,11 @@ _ALLOWED: dict[str, str] = {
     ),
     # The banned set itself.
     "app/services/narrative_engine.py": "defines the banned phrases",
+    # Tests that assert the banned words are ABSENT from rendered copy; the word
+    # appears only inside the list being asserted against, never in output.
+    "web/lib/cross-chart-copy.test.ts": "banned-word list asserting absence (FAA-33 copy)",
+    "web/lib/eighth-house-copy.test.ts": "banned-word list asserting absence (FAA-30 copy)",
+    "web/lib/marketing-copy-parity.test.ts": "banned-word regex asserting absence (marketing copy)",
 }
 
 

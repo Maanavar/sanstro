@@ -175,7 +175,8 @@ export default function RectificationScreen() {
     try {
       const response = await estimateBirthTime(birthProfileId, events);
       setResult(response.data);
-      setSelectedTime(response.data.recommendedTime);
+      // null while the recommendation is withdrawn (FAA-02 step 1).
+      setSelectedTime(response.data.recommendedTime ?? "");
       setStep("results");
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (err) {
@@ -329,7 +330,27 @@ export default function RectificationScreen() {
           </>
         )}
 
-        {birthProfileId && step === "results" && result && (
+        {birthProfileId && step === "results" && result && result.recommendationWithdrawn && (
+          // FAA-02 step 1: the old score carried no evidence, so the server
+          // ranks nothing and refuses /apply. Show why; offer no time.
+          <View style={styles.resultSummary}>
+            <Text style={styles.resultKicker}>{isTamil ? "தற்போது நிறுத்தப்பட்டுள்ளது" : "Paused for now"}</Text>
+            <Text style={[styles.resultNote, isTamil ? TamilType.bodySmall : EnType.bodySmall]}>
+              {isTamil && result.confidenceNoteTa ? result.confidenceNoteTa : result.confidenceNote}
+            </Text>
+            <TouchableOpacity
+              style={styles.secondaryBtn}
+              onPress={() => {
+                setStep("events");
+                setError(null);
+              }}
+            >
+              <Text style={styles.secondaryBtnText}>{isTamil ? "பின் செல்" : "Back"}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {birthProfileId && step === "results" && result && !result.recommendationWithdrawn && (
           <>
             <View style={styles.resultSummary}>
               <Text style={styles.resultKicker}>Recommended</Text>

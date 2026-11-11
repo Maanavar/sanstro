@@ -47,6 +47,9 @@ def _muhurta_snapshot(tithi_number: int) -> SimpleNamespace:
         nakshatra_number=4,
         nakshatra_pada=1,
         yoga_name="SIDDHA",
+        # FAA-07 reads the karana (generic Vishti caution). A real snapshot
+        # always carries it; Bava is not Vishti, so the tithi delta is unchanged.
+        karana_name="BAVA",
         weekday="MONDAY",
         is_subha_muhurtham=False,
         abhijit_restricted=True,

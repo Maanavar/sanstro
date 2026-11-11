@@ -83,18 +83,17 @@ class ChartCompatibility:
 
 
 def has_astrological_caution(porutham: DirectPoruthamData) -> bool:
-    """Whether the poruthams flagged this match, in any of the four ways.
+    """Whether the Tamil poruthams flagged this match, in any of three ways.
 
-    Nadi dosha is included even though it does not force a ``CAUTION`` label on
-    its own — it is a caution in every practitioner's reading of the word, and
-    the clamp exists so numerology cannot brighten a flagged match. Reading only
-    ``label == "CAUTION"`` would let a Nadi-dosha pair collect a positive nudge.
+    Nadi is NOT one of them (owner ruling 2026-11-11). Nadi is a North Indian
+    Ashtakoota check, not one of the Tamil ten, and is shown only as a secondary
+    note that moves no number. It used to count here, so a shared Nadi alone took
+    away a positive numerology nudge, even on a match the Tamil ten passed.
     """
     return bool(
         porutham.label == "CAUTION"
         or porutham.rajju_dosha
         or porutham.vedha_dosha
-        or porutham.nadi_dosha.has_nadi_dosha
     )
 
 

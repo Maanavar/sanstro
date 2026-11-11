@@ -38,16 +38,6 @@ const VARGA_OPTIONS = [
 
 type VargaKey = typeof VARGA_OPTIONS[number]["key"];
 
-function navamsaRasiFromDegree(absLongitude: number): number {
-  const sign = Math.floor(absLongitude / 30) + 1;
-  const degreeInSign = ((absLongitude % 30) + 30) % 30;
-  const pada = Math.floor(degreeInSign / (30 / 9));
-  const movable = new Set([1, 4, 7, 10]);
-  const fixed = new Set([2, 5, 8, 11]);
-  const start = movable.has(sign) ? sign : fixed.has(sign) ? ((sign + 7 - 1) % 12) + 1 : ((sign + 3 - 1) % 12) + 1;
-  return ((start + pada - 1) % 12) + 1;
-}
-
 function vargaRasiForPlanet(chart: ChartCalculateResponseData, graha: string, view: VargaKey): number | null {
   if (view === "D1") return chart.planets.find((p) => p.graha === graha)?.rasi ?? null;
   if (view === "D9") return chart.vargas?.D9?.[graha] ?? chart.planets.find((p) => p.graha === graha)?.d9Rasi ?? null;
@@ -56,7 +46,8 @@ function vargaRasiForPlanet(chart: ChartCalculateResponseData, graha: string, vi
 
 function lagnaForVarga(chart: ChartCalculateResponseData, view: VargaKey): number | null {
   if (view === "D1") return chart.lagna.rasi;
-  if (view === "D9") return navamsaRasiFromDegree(chart.lagna.absoluteLongitude);
+  // Server-computed (FAA-01): a client copy put fixed/dual lagnas one sign off.
+  if (view === "D9") return chart.lagna.d9Rasi ?? null;
   return null;
 }
 

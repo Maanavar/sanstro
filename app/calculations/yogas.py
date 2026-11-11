@@ -424,12 +424,17 @@ def detect_yogas_and_doshams(
             lagna_rasi,
             planet_scores=planet_scores,
             doctrine=doctrine,
+            combust_planets=combust_planets,
+            d9_rasi_map=d9_rasi_map,
+            longitudes=longitudes_in,
         ),
         detect_santhana_thadai(
             planets_rasi,
             lagna_rasi,
             planet_scores=planet_scores,
             doctrine=doctrine,
+            combust_planets=combust_planets,
+            d9_rasi_map=d9_rasi_map,
         ),
         detect_marana_karaka_sthana(
             planets,

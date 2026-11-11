@@ -19,10 +19,11 @@ antardasha span instead of claiming the whole calendar year.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
+from functools import lru_cache
 from typing import Literal
 
-from app.calculations.astro import utc_datetime_to_julian_day
+from app.calculations.astro import julian_day_to_utc_datetime, utc_datetime_to_julian_day
 from app.calculations.chart_strength import SIGN_LORD
 from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.dasha_activation import assess_dasha_activation
@@ -92,6 +93,32 @@ def _year_anchor(year: int, today: date) -> tuple[date, float]:
     return anchor_date, utc_datetime_to_julian_day(anchor)
 
 
+#: FAA-18: a fast planet holds a sign for weeks (Venus ~23+ days, the Sun ~30),
+#: so a 5-day step over the window cannot miss a stint in the house.
+_FAST_PLANET_STEP_DAYS = 5
+
+
+@lru_cache(maxsize=8192)
+def _rasi_on(planet: str, day: date) -> int:
+    noon = datetime(day.year, day.month, day.day, 12, 0, tzinfo=UTC)
+    return calculate_sidereal_planets(utc_datetime_to_julian_day(noon)).bodies[planet].rasi
+
+
+def _fast_planet_in_house_during(planet: str, house_rasi: int, start: date, end: date) -> bool:
+    """Whether `planet` is in `house_rasi` on any day of [start, end] (FAA-18).
+
+    The window used to be judged on one day a year (today, or 1 July), so a
+    Venus that spends ~25 days in the 7th either credited a whole antardasha
+    window or none, by the luck of that one date.
+    """
+    day = start
+    while day <= end:
+        if _rasi_on(planet, day) == house_rasi:
+            return True
+        day += timedelta(days=_FAST_PLANET_STEP_DAYS)
+    return _rasi_on(planet, end) == house_rasi
+
+
 def _window_span(year: int, anchor_date: date, timeline) -> tuple[date, date]:
     """Clamp the window to the qualifying antardasha within the year.
 
@@ -143,6 +170,20 @@ def _double_transit_adjustment(
     return 0, []
 
 
+#: D10 (`ai_review_2026_11_10`, DOCTRINE §19): no marriage window below the legal
+#: age. India: 18 for women, 21 for men. `ChartData` carries no gender, so the
+#: higher age applies to everyone: a window is never shown below either.
+MARRIAGE_LEGAL_AGE = 21
+
+
+def _legal_age_date(birth_jd: float) -> date:
+    born = julian_day_to_utc_datetime(birth_jd).date()
+    try:
+        return born.replace(year=born.year + MARRIAGE_LEGAL_AGE)
+    except ValueError:  # 29 Feb
+        return date(born.year + MARRIAGE_LEGAL_AGE, 3, 1)
+
+
 def find_marriage_windows(
     chart: ChartData,
     from_year: int,
@@ -154,6 +195,7 @@ def find_marriage_windows(
     natal_rasis = _natal_planet_rasis(chart)
     natal_lord_rasi = natal_rasis.get(seventh_lord, chart.lagna_rasi)
     today = date.today()
+    legal_from = _legal_age_date(chart.birth_jd)
 
     for year in range(from_year, to_year + 1):
         anchor_date, anchor_jd = _year_anchor(year, today)
@@ -172,7 +214,11 @@ def find_marriage_windows(
         jupiter_rasi = transit.bodies["JUPITER"].rasi
         venus_rasi = transit.bodies["VENUS"].rasi
         jupiter_support = seventh_house_rasi in get_jupiter_aspects(jupiter_rasi) or jupiter_rasi == seventh_house_rasi
-        venus_support = venus_rasi == seventh_house_rasi
+        # FAA-18: Venus over the window, not on the anchor day.
+        span_start, span_end = _window_span(year, anchor_date, timeline)
+        venus_support = venus_rasi == seventh_house_rasi or _fast_planet_in_house_during(
+            "VENUS", seventh_house_rasi, span_start, span_end
+        )
         transit_support = jupiter_support or venus_support
 
         if not (activation.activated and transit_support):
@@ -204,6 +250,9 @@ def find_marriage_windows(
         reasons.extend(dt_reasons)
 
         start_date, end_date = _window_span(year, anchor_date, timeline)
+        if end_date < legal_from:
+            continue
+        start_date = max(start_date, legal_from)
         windows.append(
             EventWindow(
                 event="MARRIAGE",
@@ -258,7 +307,11 @@ def find_career_windows(
             tenth_house_rasi in get_jupiter_aspects(jupiter_rasi)
             or jupiter_rasi == tenth_house_rasi
         )
-        sun_support = sun_rasi == tenth_house_rasi
+        # FAA-18: the Sun over the window, not on the anchor day.
+        span_start, span_end = _window_span(year, anchor_date, timeline)
+        sun_support = sun_rasi == tenth_house_rasi or _fast_planet_in_house_during(
+            "SUN", tenth_house_rasi, span_start, span_end
+        )
         transit_support = jupiter_support or sun_support
 
         if not (activation.activated and transit_support):

@@ -25,6 +25,7 @@ from app.calculations.panchangam import (
     _compute_subha_muhurtham_strict,
     _tithi_number_at_jd,
     day_quality_for,
+    nishita_interval_jd,
 )
 from app.calculations.tamil_calendar import (
     TAMIL_MONTHS,
@@ -311,10 +312,38 @@ def _observance_instants(snapshot) -> ObservanceInstants:
             )
             values["days_until_pournami_day"] = (pournami_day - snapshot.date_local).days
         if snapshot.nishita_tithi_number == 29:
-            local_midnight = datetime.combine(snapshot.date_local, datetime.min.time(), tzinfo=snapshot.sunrise.tzinfo)
+            # The previous night's nishita centre: midpoint of the previous
+            # sunset -> this sunrise (FAA-26; was this date's civil 00:00).
+            previous_sunset = set_after(rise_after(sunrise_jd - 1.2))
             values["previous_nishita_tithi_number"] = _tithi_number_at_jd(
-                utc_datetime_to_julian_day(local_midnight.astimezone(UTC))
+                sum(nishita_interval_jd(previous_sunset, sunrise_jd)) / 2
             )
+        # FAA-26: Chaturdashi "during nishita" is overlap with the interval. A
+        # tithi outlasts the 48-min interval, so it overlaps iff it holds the
+        # interval's start or end. Only a Dwadasi..Chaturdashi sunrise can
+        # reach tonight's nishita with a Krishna Chaturdashi.
+        if snapshot.tithi_number in (27, 28, 29):
+            def touches(night_start: float, night_end: float) -> bool:
+                a, b = nishita_interval_jd(night_start, night_end)
+                return 29 in (_tithi_number_at_jd(a), _tithi_number_at_jd(b))
+
+            def whole(night_start: float, night_end: float) -> bool:
+                # The tithi outlasts the interval, so it covers it iff it
+                # holds both ends.
+                a, b = nishita_interval_jd(night_start, night_end)
+                return _tithi_number_at_jd(a) == 29 and _tithi_number_at_jd(b) == 29
+
+            tonight_rise = rise_after(sunset_jd)
+            last_sunset = set_after(rise_after(sunrise_jd - 1.2))
+            values["nishita_touches_k_chaturdashi"] = touches(sunset_jd, tonight_rise)
+            values["previous_nishita_touches_k_chaturdashi"] = touches(last_sunset, sunrise_jd)
+            # FAA-26 two-night rule: only needed when a night touches.
+            if values["nishita_touches_k_chaturdashi"]:
+                values["nishita_k_chaturdashi_full"] = whole(sunset_jd, tonight_rise)
+                next_sunset = set_after(tonight_rise)
+                values["next_nishita_k_chaturdashi_full"] = whole(next_sunset, rise_after(next_sunset))
+            if values["previous_nishita_touches_k_chaturdashi"]:
+                values["previous_nishita_k_chaturdashi_full"] = whole(last_sunset, sunrise_jd)
     except Exception as exc:
         logger.warning("Observance instants failed for %s: %s", snapshot.date_local, exc)
     return ObservanceInstants(**values)

@@ -98,32 +98,55 @@ def test_sun_rasi_day_bounds_no_crossing_midsign() -> None:
 # --------------------------------------------------------------------------- #
 # Grahana (eclipse) birth
 # --------------------------------------------------------------------------- #
-def test_grahana_solar_eclipse() -> None:
-    # New Moon (Sun~Moon) sitting on Rahu -> solar eclipse.
-    present, kind, node = bc.detect_grahana_birth(50.0, 51.0, 52.0)
-    assert present is True
-    assert kind == "SOLAR"
-    assert node == 1  # near Rahu
+# FAA-24: the geometric syzygy/node test is gone. Eclipse fixtures against Swiss
+# Ephemeris live in tests/test_faa_group_a.py; here only the flag/copy shape.
+def _eclipse(kind: str = "SOLAR", magnitude: str = "TOTAL", visible: bool = True):
+    from app.calculations.ephemeris import EclipseAtBirth
+
+    return EclipseAtBirth(
+        kind=kind, magnitude=magnitude, begin_jd=1.0, max_jd=1.5, end_jd=2.0,
+        visible_at_place=visible, near_node=1,
+    )
 
 
-def test_grahana_lunar_eclipse() -> None:
-    # Full Moon: Sun at 50°, Moon at 230° (opposite), Moon on Rahu at 231°.
-    present, kind, node = bc.detect_grahana_birth(50.0, 230.0, 231.0)
-    assert present is True
-    assert kind == "LUNAR"
+def test_geometric_grahana_detector_removed() -> None:
+    assert not hasattr(bc, "detect_grahana_birth")
+    assert not hasattr(bc, "SOLAR_SYZYGY_ORB")
 
 
-def test_grahana_absent_when_luminaries_off_node() -> None:
-    # New Moon but nowhere near the nodal axis.
-    present, kind, _ = bc.detect_grahana_birth(50.0, 51.0, 200.0)
-    assert present is False
-    assert kind is None
+def _grahana(**kw):
+    flags = bc.detect_birth_conditions(
+        planet_longitudes={"SUN": 50.0, "MOON": 51.0, "RAHU": 52.0},
+        tithi_number=15, sun_rasi_day_start=2, sun_rasi_day_end=2,
+        eclipse=_eclipse(**kw),
+    )
+    return next(f for f in flags if f.code == "GRAHANA_BIRTH")
 
 
-def test_grahana_absent_when_not_syzygy() -> None:
-    # Sun on Rahu but Moon at quadrature -> no eclipse.
-    present, _, _ = bc.detect_grahana_birth(50.0, 140.0, 51.0)
-    assert present is False
+def test_grahana_copy_never_says_near() -> None:
+    for kind in ("SOLAR", "LUNAR"):
+        for visible in (True, False):
+            f = _grahana(kind=kind, visible=visible)
+            assert "very near" not in f.description_en
+            assert "அருகில்" not in f.description_ta
+
+
+def test_grahana_covered_claim_only_when_visible() -> None:
+    assert "covering" in _grahana(kind="SOLAR", visible=True).description_en
+    hidden = _grahana(kind="SOLAR", visible=False)
+    assert "covering" not in hidden.description_en and "covered" not in hidden.description_en
+    assert "not visible" in hidden.description_en
+    lunar_hidden = _grahana(kind="LUNAR", visible=False)
+    assert "shadow" not in lunar_hidden.description_en.split(".")[0]
+    assert lunar_hidden.detail["visible_at_place"] is False
+
+
+def test_no_eclipse_no_flag() -> None:
+    flags = bc.detect_birth_conditions(
+        planet_longitudes={"SUN": 50.0, "MOON": 51.0, "RAHU": 52.0},
+        tithi_number=30, sun_rasi_day_start=2, sun_rasi_day_end=2,
+    )
+    assert "GRAHANA_BIRTH" not in {f.code for f in flags}
 
 
 # --------------------------------------------------------------------------- #
@@ -172,6 +195,7 @@ def test_detect_birth_conditions_rolls_up_present_only() -> None:
         sun_rasi_day_start=1,
         sun_rasi_day_end=2,
         cazimi_planets=["MERCURY"],
+        eclipse=_eclipse(),
     )
     codes = {f.code for f in flags}
     assert "CAZIMI" in codes
@@ -296,6 +320,7 @@ def test_penalties_derive_from_real_detection_single_source() -> None:
         sun_rasi_day_start=1,
         sun_rasi_day_end=2,
         cazimi_planets=["MERCURY"],
+        eclipse=_eclipse(),
     )
     # AAU-19: the ingress day is now the precision note, which costs nothing;
     # the Sankranti +5 on the Sun returns only with the gated Alert B.

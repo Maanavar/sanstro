@@ -35,6 +35,33 @@ from app.schemas.rectification import (
     RectificationResultData,
 )
 
+# ── FAA-02 step 1: recommendation withdrawn ─────────────────────────────────
+# docs/FULL_ASTRO_ACCURACY_AUDIT_2026-11-10.md FAA-02. Kept behind the
+# `rectification_recommendation_enabled` flag (default OFF) until the
+# multi-event replacement (step 2) exists. The copy never names a time.
+WITHDRAWN_NOTE_EN = (
+    "Your life events are noted. Birth-time estimation is paused while we rebuild "
+    "it to test each event against the dasa and transits running on its date. "
+    "No time is suggested, and your chart has not been changed."
+)
+WITHDRAWN_NOTE_TA = (
+    "உங்கள் வாழ்க்கை நிகழ்வுகள் குறிக்கப்பட்டன. ஒவ்வொரு நிகழ்வையும் அதன் தேதியில் "
+    "நடந்த தசை, கோச்சாரத்துடன் ஒப்பிடும்படி பிறந்த நேரக் கணிப்பைத் திருத்தி அமைக்கிறோம்; "
+    "அதுவரை இது நிறுத்தப்பட்டுள்ளது. எந்த நேரமும் பரிந்துரைக்கப்படவில்லை; உங்கள் ஜாதகம் "
+    "மாற்றப்படவில்லை."
+)
+WITHDRAWN_DISCLAIMER_EN = (
+    "A birth time cannot be proved from a dasa match alone. The rebuilt tool will "
+    "need several dated events and will say when the evidence is not enough."
+)
+
+
+def recommendation_enabled() -> bool:
+    from app.services.feature_flags import get_flag
+
+    return bool(get_flag("rectification_recommendation_enabled"))
+
+
 # ── House significations per event type ──────────────────────────────────────
 # Maps each event to the house numbers that, if Lagna-active at the event year,
 # corroborate this event type.  "Lagna-active" = the Lagna rasi at the candidate
@@ -122,6 +149,21 @@ def estimate_birth_time(
     if not events:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="At least one life event is required.")
 
+    if not recommendation_enabled():
+        # FAA-02 step 1: the score below carries no astrological evidence (it
+        # compares a lagna RASI number with an event's HOUSE list and never reads
+        # the event date), so it may neither rank nor recommend a time. Events
+        # are still accepted and validated above; nothing is written.
+        return RectificationResultData(
+            birthProfileId=birth_profile_id,
+            candidates=[],
+            recommendedTime=None,
+            recommendationWithdrawn=True,
+            confidenceNote=WITHDRAWN_NOTE_EN,
+            confidenceNoteTa=WITHDRAWN_NOTE_TA,
+            disclaimer=WITHDRAWN_DISCLAIMER_EN,
+        )
+
     candidates = _build_candidate_lagna(
         profile.birth_date_local,
         float(profile.birth_latitude),
@@ -198,6 +240,14 @@ def apply_rectified_time(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Birth profile not found.")
     if profile.owner_user_id != owner_user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
+
+    if not recommendation_enabled():
+        # FAA-02 step 1: no time may be written back from the withdrawn score.
+        # 409 after the ownership checks, so a stranger still learns nothing.
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Birth-time rectification is paused while its method is rebuilt.",
+        )
 
     try:
         parsed = datetime.strptime(selected_time_str, "%H:%M").time()

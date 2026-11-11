@@ -1,0 +1,2309 @@
+{
+ "_note": "Generated from web/lib/cross-chart-copy.ts. web/lib/cross-chart-copy.test.ts and tests/test_faa33_cross_chart.py (the PDF copy) must both reproduce every line. Regenerate only when the web copy changes on purpose.",
+ "cases": [
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "SUPPORT",
+    "key": "SEVENTH_LORD",
+    "graha": "MOON",
+    "rasi": 1,
+    "houseFromLagna": 1,
+    "houseFromMoon": null
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's 7th lord Moon (in Mesham) falls in the 1st house from Bala's lagna.",
+   "badge": "Personal closeness (favourable)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "SUPPORT",
+    "key": "SEVENTH_LORD",
+    "graha": "MOON",
+    "rasi": 1,
+    "houseFromLagna": 1,
+    "houseFromMoon": null
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் 7ஆம் அதிபதி சந்திரன் (மேஷம்), Bala ஜாதகத்தில் லக்னத்திலிருந்து 1ஆம் இடத்தில் வருகிறது.",
+   "badge": "நெருக்கம், தனிப்பட்ட இணைப்பு (சாதகம்)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "SUPPORT",
+    "key": "SEVENTH_LORD",
+    "graha": "MOON",
+    "rasi": 2,
+    "houseFromLagna": null,
+    "houseFromMoon": 1
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's 7th lord Moon (in Rishabam) falls in the 1st house from Bala's Moon sign.",
+   "badge": "Personal closeness (favourable)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "SUPPORT",
+    "key": "SEVENTH_LORD",
+    "graha": "MOON",
+    "rasi": 2,
+    "houseFromLagna": null,
+    "houseFromMoon": 1
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் 7ஆம் அதிபதி சந்திரன் (ரிஷபம்), Bala ஜாதகத்தில் ராசியிலிருந்து 1ஆம் இடத்தில் வருகிறது.",
+   "badge": "நெருக்கம், தனிப்பட்ட இணைப்பு (சாதகம்)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "SUPPORT",
+    "key": "LAGNA",
+    "graha": null,
+    "rasi": 5,
+    "houseFromLagna": 1,
+    "houseFromMoon": null
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's lagna, Simmam, is the 1st house from Bala's lagna.",
+   "badge": "Personal closeness (favourable)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "SUPPORT",
+    "key": "LAGNA",
+    "graha": null,
+    "rasi": 5,
+    "houseFromLagna": 1,
+    "houseFromMoon": null
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் லக்னம் சிம்மம், Bala ஜாதகத்தில் லக்னத்திலிருந்து 1ஆம் இடம்.",
+   "badge": "நெருக்கம், தனிப்பட்ட இணைப்பு (சாதகம்)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "SUPPORT",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 8,
+    "houseFromLagna": 1,
+    "houseFromMoon": null
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's Moon sign, Viruchigam, is the 1st from Bala's lagna.",
+   "badge": "Personal closeness (favourable)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "SUPPORT",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 8,
+    "houseFromLagna": 1,
+    "houseFromMoon": null
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் ராசி விருச்சிகம், Bala ஜாதகத்தில் லக்னத்திலிருந்து 1ஆம் இடம்.",
+   "badge": "நெருக்கம், தனிப்பட்ட இணைப்பு (சாதகம்)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "SUPPORT",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 10,
+    "houseFromLagna": null,
+    "houseFromMoon": 1
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's Moon sign, Magaram, is the 1st from Bala's Moon sign.",
+   "badge": "Personal closeness (favourable)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "SUPPORT",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 10,
+    "houseFromLagna": null,
+    "houseFromMoon": 1
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் ராசி மகரம், Bala ஜாதகத்தில் ராசியிலிருந்து 1ஆம் இடம்.",
+   "badge": "நெருக்கம், தனிப்பட்ட இணைப்பு (சாதகம்)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NEUTRAL",
+    "key": "SEVENTH_LORD",
+    "graha": "MARS",
+    "rasi": 2,
+    "houseFromLagna": 2,
+    "houseFromMoon": null
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's 7th lord Mars (in Rishabam) falls in the 2nd house from Bala's lagna.",
+   "badge": "Family and speech (neutral)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NEUTRAL",
+    "key": "SEVENTH_LORD",
+    "graha": "MARS",
+    "rasi": 2,
+    "houseFromLagna": 2,
+    "houseFromMoon": null
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் 7ஆம் அதிபதி செவ்வாய் (ரிஷபம்), Bala ஜாதகத்தில் லக்னத்திலிருந்து 2ஆம் இடத்தில் வருகிறது.",
+   "badge": "குடும்பம், பேச்சு (பொது)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NEUTRAL",
+    "key": "SEVENTH_LORD",
+    "graha": "MARS",
+    "rasi": 3,
+    "houseFromLagna": null,
+    "houseFromMoon": 2
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's 7th lord Mars (in Mithunam) falls in the 2nd house from Bala's Moon sign.",
+   "badge": "Family and speech (neutral)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NEUTRAL",
+    "key": "SEVENTH_LORD",
+    "graha": "MARS",
+    "rasi": 3,
+    "houseFromLagna": null,
+    "houseFromMoon": 2
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் 7ஆம் அதிபதி செவ்வாய் (மிதுனம்), Bala ஜாதகத்தில் ராசியிலிருந்து 2ஆம் இடத்தில் வருகிறது.",
+   "badge": "குடும்பம், பேச்சு (பொது)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NEUTRAL",
+    "key": "LAGNA",
+    "graha": null,
+    "rasi": 6,
+    "houseFromLagna": 2,
+    "houseFromMoon": null
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's lagna, Kanni, is the 2nd house from Bala's lagna.",
+   "badge": "Family and speech (neutral)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NEUTRAL",
+    "key": "LAGNA",
+    "graha": null,
+    "rasi": 6,
+    "houseFromLagna": 2,
+    "houseFromMoon": null
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் லக்னம் கன்னி, Bala ஜாதகத்தில் லக்னத்திலிருந்து 2ஆம் இடம்.",
+   "badge": "குடும்பம், பேச்சு (பொது)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NEUTRAL",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 9,
+    "houseFromLagna": 2,
+    "houseFromMoon": null
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's Moon sign, Dhanusu, is the 2nd from Bala's lagna.",
+   "badge": "Family and speech (neutral)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NEUTRAL",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 9,
+    "houseFromLagna": 2,
+    "houseFromMoon": null
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் ராசி தனுசு, Bala ஜாதகத்தில் லக்னத்திலிருந்து 2ஆம் இடம்.",
+   "badge": "குடும்பம், பேச்சு (பொது)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NEUTRAL",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 11,
+    "houseFromLagna": null,
+    "houseFromMoon": 2
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's Moon sign, Kumbam, is the 2nd from Bala's Moon sign.",
+   "badge": "Family and speech (neutral)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NEUTRAL",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 11,
+    "houseFromLagna": null,
+    "houseFromMoon": 2
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் ராசி கும்பம், Bala ஜாதகத்தில் ராசியிலிருந்து 2ஆம் இடம்.",
+   "badge": "குடும்பம், பேச்சு (பொது)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NEUTRAL",
+    "key": "SEVENTH_LORD",
+    "graha": "MERCURY",
+    "rasi": 3,
+    "houseFromLagna": 3,
+    "houseFromMoon": null
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's 7th lord Mercury (in Mithunam) falls in the 3rd house from Bala's lagna.",
+   "badge": "Effort and courage (neutral)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NEUTRAL",
+    "key": "SEVENTH_LORD",
+    "graha": "MERCURY",
+    "rasi": 3,
+    "houseFromLagna": 3,
+    "houseFromMoon": null
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் 7ஆம் அதிபதி புதன் (மிதுனம்), Bala ஜாதகத்தில் லக்னத்திலிருந்து 3ஆம் இடத்தில் வருகிறது.",
+   "badge": "முயற்சி, தைரியம் (பொது)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NEUTRAL",
+    "key": "SEVENTH_LORD",
+    "graha": "MERCURY",
+    "rasi": 4,
+    "houseFromLagna": null,
+    "houseFromMoon": 3
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's 7th lord Mercury (in Kadagam) falls in the 3rd house from Bala's Moon sign.",
+   "badge": "Effort and courage (neutral)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NEUTRAL",
+    "key": "SEVENTH_LORD",
+    "graha": "MERCURY",
+    "rasi": 4,
+    "houseFromLagna": null,
+    "houseFromMoon": 3
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் 7ஆம் அதிபதி புதன் (கடகம்), Bala ஜாதகத்தில் ராசியிலிருந்து 3ஆம் இடத்தில் வருகிறது.",
+   "badge": "முயற்சி, தைரியம் (பொது)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NEUTRAL",
+    "key": "LAGNA",
+    "graha": null,
+    "rasi": 7,
+    "houseFromLagna": 3,
+    "houseFromMoon": null
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's lagna, Thulam, is the 3rd house from Bala's lagna.",
+   "badge": "Effort and courage (neutral)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NEUTRAL",
+    "key": "LAGNA",
+    "graha": null,
+    "rasi": 7,
+    "houseFromLagna": 3,
+    "houseFromMoon": null
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் லக்னம் துலாம், Bala ஜாதகத்தில் லக்னத்திலிருந்து 3ஆம் இடம்.",
+   "badge": "முயற்சி, தைரியம் (பொது)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NEUTRAL",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 10,
+    "houseFromLagna": 3,
+    "houseFromMoon": null
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's Moon sign, Magaram, is the 3rd from Bala's lagna.",
+   "badge": "Effort and courage (neutral)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NEUTRAL",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 10,
+    "houseFromLagna": 3,
+    "houseFromMoon": null
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் ராசி மகரம், Bala ஜாதகத்தில் லக்னத்திலிருந்து 3ஆம் இடம்.",
+   "badge": "முயற்சி, தைரியம் (பொது)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NEUTRAL",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 12,
+    "houseFromLagna": null,
+    "houseFromMoon": 3
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's Moon sign, Meenam, is the 3rd from Bala's Moon sign.",
+   "badge": "Effort and courage (neutral)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NEUTRAL",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 12,
+    "houseFromLagna": null,
+    "houseFromMoon": 3
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் ராசி மீனம், Bala ஜாதகத்தில் ராசியிலிருந்து 3ஆம் இடம்.",
+   "badge": "முயற்சி, தைரியம் (பொது)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NEUTRAL",
+    "key": "SEVENTH_LORD",
+    "graha": "JUPITER",
+    "rasi": 4,
+    "houseFromLagna": 4,
+    "houseFromMoon": null
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's 7th lord Jupiter (in Kadagam) falls in the 4th house from Bala's lagna.",
+   "badge": "Home and peace of mind (neutral)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NEUTRAL",
+    "key": "SEVENTH_LORD",
+    "graha": "JUPITER",
+    "rasi": 4,
+    "houseFromLagna": 4,
+    "houseFromMoon": null
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் 7ஆம் அதிபதி குரு (கடகம்), Bala ஜாதகத்தில் லக்னத்திலிருந்து 4ஆம் இடத்தில் வருகிறது.",
+   "badge": "வீடு, மன நிம்மதி (பொது)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NEUTRAL",
+    "key": "SEVENTH_LORD",
+    "graha": "JUPITER",
+    "rasi": 5,
+    "houseFromLagna": null,
+    "houseFromMoon": 4
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's 7th lord Jupiter (in Simmam) falls in the 4th house from Bala's Moon sign.",
+   "badge": "Home and peace of mind (neutral)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NEUTRAL",
+    "key": "SEVENTH_LORD",
+    "graha": "JUPITER",
+    "rasi": 5,
+    "houseFromLagna": null,
+    "houseFromMoon": 4
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் 7ஆம் அதிபதி குரு (சிம்மம்), Bala ஜாதகத்தில் ராசியிலிருந்து 4ஆம் இடத்தில் வருகிறது.",
+   "badge": "வீடு, மன நிம்மதி (பொது)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NEUTRAL",
+    "key": "LAGNA",
+    "graha": null,
+    "rasi": 8,
+    "houseFromLagna": 4,
+    "houseFromMoon": null
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's lagna, Viruchigam, is the 4th house from Bala's lagna.",
+   "badge": "Home and peace of mind (neutral)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NEUTRAL",
+    "key": "LAGNA",
+    "graha": null,
+    "rasi": 8,
+    "houseFromLagna": 4,
+    "houseFromMoon": null
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் லக்னம் விருச்சிகம், Bala ஜாதகத்தில் லக்னத்திலிருந்து 4ஆம் இடம்.",
+   "badge": "வீடு, மன நிம்மதி (பொது)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NEUTRAL",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 11,
+    "houseFromLagna": 4,
+    "houseFromMoon": null
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's Moon sign, Kumbam, is the 4th from Bala's lagna.",
+   "badge": "Home and peace of mind (neutral)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NEUTRAL",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 11,
+    "houseFromLagna": 4,
+    "houseFromMoon": null
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் ராசி கும்பம், Bala ஜாதகத்தில் லக்னத்திலிருந்து 4ஆம் இடம்.",
+   "badge": "வீடு, மன நிம்மதி (பொது)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NEUTRAL",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 1,
+    "houseFromLagna": null,
+    "houseFromMoon": 4
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's Moon sign, Mesham, is the 4th from Bala's Moon sign.",
+   "badge": "Home and peace of mind (neutral)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NEUTRAL",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 1,
+    "houseFromLagna": null,
+    "houseFromMoon": 4
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் ராசி மேஷம், Bala ஜாதகத்தில் ராசியிலிருந்து 4ஆம் இடம்.",
+   "badge": "வீடு, மன நிம்மதி (பொது)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "SUPPORT",
+    "key": "SEVENTH_LORD",
+    "graha": "VENUS",
+    "rasi": 5,
+    "houseFromLagna": 5,
+    "houseFromMoon": null
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's 7th lord Venus (in Simmam) falls in the 5th house from Bala's lagna.",
+   "badge": "Affection (favourable)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "SUPPORT",
+    "key": "SEVENTH_LORD",
+    "graha": "VENUS",
+    "rasi": 5,
+    "houseFromLagna": 5,
+    "houseFromMoon": null
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் 7ஆம் அதிபதி சுக்கிரன் (சிம்மம்), Bala ஜாதகத்தில் லக்னத்திலிருந்து 5ஆம் இடத்தில் வருகிறது.",
+   "badge": "அன்பு, பாசம் (சாதகம்)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "SUPPORT",
+    "key": "SEVENTH_LORD",
+    "graha": "VENUS",
+    "rasi": 6,
+    "houseFromLagna": null,
+    "houseFromMoon": 5
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's 7th lord Venus (in Kanni) falls in the 5th house from Bala's Moon sign.",
+   "badge": "Affection (favourable)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "SUPPORT",
+    "key": "SEVENTH_LORD",
+    "graha": "VENUS",
+    "rasi": 6,
+    "houseFromLagna": null,
+    "houseFromMoon": 5
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் 7ஆம் அதிபதி சுக்கிரன் (கன்னி), Bala ஜாதகத்தில் ராசியிலிருந்து 5ஆம் இடத்தில் வருகிறது.",
+   "badge": "அன்பு, பாசம் (சாதகம்)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "SUPPORT",
+    "key": "LAGNA",
+    "graha": null,
+    "rasi": 9,
+    "houseFromLagna": 5,
+    "houseFromMoon": null
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's lagna, Dhanusu, is the 5th house from Bala's lagna.",
+   "badge": "Affection (favourable)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "SUPPORT",
+    "key": "LAGNA",
+    "graha": null,
+    "rasi": 9,
+    "houseFromLagna": 5,
+    "houseFromMoon": null
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் லக்னம் தனுசு, Bala ஜாதகத்தில் லக்னத்திலிருந்து 5ஆம் இடம்.",
+   "badge": "அன்பு, பாசம் (சாதகம்)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "SUPPORT",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 12,
+    "houseFromLagna": 5,
+    "houseFromMoon": null
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's Moon sign, Meenam, is the 5th from Bala's lagna.",
+   "badge": "Affection (favourable)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "SUPPORT",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 12,
+    "houseFromLagna": 5,
+    "houseFromMoon": null
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் ராசி மீனம், Bala ஜாதகத்தில் லக்னத்திலிருந்து 5ஆம் இடம்.",
+   "badge": "அன்பு, பாசம் (சாதகம்)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "SUPPORT",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 2,
+    "houseFromLagna": null,
+    "houseFromMoon": 5
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's Moon sign, Rishabam, is the 5th from Bala's Moon sign.",
+   "badge": "Affection (favourable)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "SUPPORT",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 2,
+    "houseFromLagna": null,
+    "houseFromMoon": 5
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் ராசி ரிஷபம், Bala ஜாதகத்தில் ராசியிலிருந்து 5ஆம் இடம்.",
+   "badge": "அன்பு, பாசம் (சாதகம்)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NOTE",
+    "key": "SEVENTH_LORD",
+    "graha": "SATURN",
+    "rasi": 6,
+    "houseFromLagna": 6,
+    "houseFromMoon": null
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's 7th lord Saturn (in Kanni) falls in the 6th house from Bala's lagna.",
+   "badge": "Differences to work through (ask your astrologer about this)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NOTE",
+    "key": "SEVENTH_LORD",
+    "graha": "SATURN",
+    "rasi": 6,
+    "houseFromLagna": 6,
+    "houseFromMoon": null
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் 7ஆம் அதிபதி சனி (கன்னி), Bala ஜாதகத்தில் லக்னத்திலிருந்து 6ஆம் இடத்தில் வருகிறது.",
+   "badge": "சரிசெய்ய வேண்டிய கருத்து வேறுபாடுகள் (ஜோதிடரிடம் கேட்கவும்)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NOTE",
+    "key": "SEVENTH_LORD",
+    "graha": "SATURN",
+    "rasi": 7,
+    "houseFromLagna": null,
+    "houseFromMoon": 6
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's 7th lord Saturn (in Thulam) falls in the 6th house from Bala's Moon sign.",
+   "badge": "Differences to work through (ask your astrologer about this)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NOTE",
+    "key": "SEVENTH_LORD",
+    "graha": "SATURN",
+    "rasi": 7,
+    "houseFromLagna": null,
+    "houseFromMoon": 6
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் 7ஆம் அதிபதி சனி (துலாம்), Bala ஜாதகத்தில் ராசியிலிருந்து 6ஆம் இடத்தில் வருகிறது.",
+   "badge": "சரிசெய்ய வேண்டிய கருத்து வேறுபாடுகள் (ஜோதிடரிடம் கேட்கவும்)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NOTE",
+    "key": "LAGNA",
+    "graha": null,
+    "rasi": 10,
+    "houseFromLagna": 6,
+    "houseFromMoon": null
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's lagna, Magaram, is the 6th house from Bala's lagna.",
+   "badge": "Differences to work through (ask your astrologer about this)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NOTE",
+    "key": "LAGNA",
+    "graha": null,
+    "rasi": 10,
+    "houseFromLagna": 6,
+    "houseFromMoon": null
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் லக்னம் மகரம், Bala ஜாதகத்தில் லக்னத்திலிருந்து 6ஆம் இடம்.",
+   "badge": "சரிசெய்ய வேண்டிய கருத்து வேறுபாடுகள் (ஜோதிடரிடம் கேட்கவும்)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NOTE",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 1,
+    "houseFromLagna": 6,
+    "houseFromMoon": null
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's Moon sign, Mesham, is the 6th from Bala's lagna.",
+   "badge": "Differences to work through (ask your astrologer about this)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NOTE",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 1,
+    "houseFromLagna": 6,
+    "houseFromMoon": null
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் ராசி மேஷம், Bala ஜாதகத்தில் லக்னத்திலிருந்து 6ஆம் இடம்.",
+   "badge": "சரிசெய்ய வேண்டிய கருத்து வேறுபாடுகள் (ஜோதிடரிடம் கேட்கவும்)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NOTE",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 3,
+    "houseFromLagna": null,
+    "houseFromMoon": 6
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's Moon sign, Mithunam, is the 6th from Bala's Moon sign.",
+   "badge": "Differences to work through (ask your astrologer about this)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NOTE",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 3,
+    "houseFromLagna": null,
+    "houseFromMoon": 6
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் ராசி மிதுனம், Bala ஜாதகத்தில் ராசியிலிருந்து 6ஆம் இடம்.",
+   "badge": "சரிசெய்ய வேண்டிய கருத்து வேறுபாடுகள் (ஜோதிடரிடம் கேட்கவும்)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "SUPPORT",
+    "key": "SEVENTH_LORD",
+    "graha": "SUN",
+    "rasi": 7,
+    "houseFromLagna": 7,
+    "houseFromMoon": null
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's 7th lord Sun (in Thulam) falls in the 7th house from Bala's lagna.",
+   "badge": "Partnership (favourable)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "SUPPORT",
+    "key": "SEVENTH_LORD",
+    "graha": "SUN",
+    "rasi": 7,
+    "houseFromLagna": 7,
+    "houseFromMoon": null
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் 7ஆம் அதிபதி சூரியன் (துலாம்), Bala ஜாதகத்தில் லக்னத்திலிருந்து 7ஆம் இடத்தில் வருகிறது.",
+   "badge": "இல்லறத் துணை (சாதகம்)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "SUPPORT",
+    "key": "SEVENTH_LORD",
+    "graha": "SUN",
+    "rasi": 8,
+    "houseFromLagna": null,
+    "houseFromMoon": 7
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's 7th lord Sun (in Viruchigam) falls in the 7th house from Bala's Moon sign.",
+   "badge": "Partnership (favourable)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "SUPPORT",
+    "key": "SEVENTH_LORD",
+    "graha": "SUN",
+    "rasi": 8,
+    "houseFromLagna": null,
+    "houseFromMoon": 7
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் 7ஆம் அதிபதி சூரியன் (விருச்சிகம்), Bala ஜாதகத்தில் ராசியிலிருந்து 7ஆம் இடத்தில் வருகிறது.",
+   "badge": "இல்லறத் துணை (சாதகம்)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "SUPPORT",
+    "key": "LAGNA",
+    "graha": null,
+    "rasi": 11,
+    "houseFromLagna": 7,
+    "houseFromMoon": null
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's lagna, Kumbam, is the 7th house from Bala's lagna.",
+   "badge": "Partnership (favourable)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "SUPPORT",
+    "key": "LAGNA",
+    "graha": null,
+    "rasi": 11,
+    "houseFromLagna": 7,
+    "houseFromMoon": null
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் லக்னம் கும்பம், Bala ஜாதகத்தில் லக்னத்திலிருந்து 7ஆம் இடம்.",
+   "badge": "இல்லறத் துணை (சாதகம்)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "SUPPORT",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 2,
+    "houseFromLagna": 7,
+    "houseFromMoon": null
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's Moon sign, Rishabam, is the 7th from Bala's lagna.",
+   "badge": "Partnership (favourable)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "SUPPORT",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 2,
+    "houseFromLagna": 7,
+    "houseFromMoon": null
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் ராசி ரிஷபம், Bala ஜாதகத்தில் லக்னத்திலிருந்து 7ஆம் இடம்.",
+   "badge": "இல்லறத் துணை (சாதகம்)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "SUPPORT",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 4,
+    "houseFromLagna": null,
+    "houseFromMoon": 7
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's Moon sign, Kadagam, is the 7th from Bala's Moon sign.",
+   "badge": "Partnership (favourable)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "SUPPORT",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 4,
+    "houseFromLagna": null,
+    "houseFromMoon": 7
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் ராசி கடகம், Bala ஜாதகத்தில் ராசியிலிருந்து 7ஆம் இடம்.",
+   "badge": "இல்லறத் துணை (சாதகம்)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NOTE",
+    "key": "SEVENTH_LORD",
+    "graha": "MOON",
+    "rasi": 8,
+    "houseFromLagna": 8,
+    "houseFromMoon": null
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's 7th lord Moon (in Viruchigam) falls in the 8th house from Bala's lagna.",
+   "badge": "Sudden changes (ask your astrologer about this)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NOTE",
+    "key": "SEVENTH_LORD",
+    "graha": "MOON",
+    "rasi": 8,
+    "houseFromLagna": 8,
+    "houseFromMoon": null
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் 7ஆம் அதிபதி சந்திரன் (விருச்சிகம்), Bala ஜாதகத்தில் லக்னத்திலிருந்து 8ஆம் இடத்தில் வருகிறது.",
+   "badge": "எதிர்பாராத மாற்றங்கள் (ஜோதிடரிடம் கேட்கவும்)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NOTE",
+    "key": "SEVENTH_LORD",
+    "graha": "MOON",
+    "rasi": 9,
+    "houseFromLagna": null,
+    "houseFromMoon": 8
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's 7th lord Moon (in Dhanusu) falls in the 8th house from Bala's Moon sign.",
+   "badge": "Sudden changes (ask your astrologer about this)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NOTE",
+    "key": "SEVENTH_LORD",
+    "graha": "MOON",
+    "rasi": 9,
+    "houseFromLagna": null,
+    "houseFromMoon": 8
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் 7ஆம் அதிபதி சந்திரன் (தனுசு), Bala ஜாதகத்தில் ராசியிலிருந்து 8ஆம் இடத்தில் வருகிறது.",
+   "badge": "எதிர்பாராத மாற்றங்கள் (ஜோதிடரிடம் கேட்கவும்)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NOTE",
+    "key": "LAGNA",
+    "graha": null,
+    "rasi": 12,
+    "houseFromLagna": 8,
+    "houseFromMoon": null
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's lagna, Meenam, is the 8th house from Bala's lagna.",
+   "badge": "Sudden changes (ask your astrologer about this)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NOTE",
+    "key": "LAGNA",
+    "graha": null,
+    "rasi": 12,
+    "houseFromLagna": 8,
+    "houseFromMoon": null
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் லக்னம் மீனம், Bala ஜாதகத்தில் லக்னத்திலிருந்து 8ஆம் இடம்.",
+   "badge": "எதிர்பாராத மாற்றங்கள் (ஜோதிடரிடம் கேட்கவும்)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NOTE",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 3,
+    "houseFromLagna": 8,
+    "houseFromMoon": null
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's Moon sign, Mithunam, is the 8th from Bala's lagna.",
+   "badge": "Sudden changes (ask your astrologer about this)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NOTE",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 3,
+    "houseFromLagna": 8,
+    "houseFromMoon": null
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் ராசி மிதுனம், Bala ஜாதகத்தில் லக்னத்திலிருந்து 8ஆம் இடம்.",
+   "badge": "எதிர்பாராத மாற்றங்கள் (ஜோதிடரிடம் கேட்கவும்)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NOTE",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 5,
+    "houseFromLagna": null,
+    "houseFromMoon": 8
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's Moon sign, Simmam, is the 8th from Bala's Moon sign.",
+   "badge": "Sudden changes (ask your astrologer about this)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NOTE",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 5,
+    "houseFromLagna": null,
+    "houseFromMoon": 8
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் ராசி சிம்மம், Bala ஜாதகத்தில் ராசியிலிருந்து 8ஆம் இடம்.",
+   "badge": "எதிர்பாராத மாற்றங்கள் (ஜோதிடரிடம் கேட்கவும்)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "SUPPORT",
+    "key": "SEVENTH_LORD",
+    "graha": "MARS",
+    "rasi": 9,
+    "houseFromLagna": 9,
+    "houseFromMoon": null
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's 7th lord Mars (in Dhanusu) falls in the 9th house from Bala's lagna.",
+   "badge": "Fortune and shared values (favourable)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "SUPPORT",
+    "key": "SEVENTH_LORD",
+    "graha": "MARS",
+    "rasi": 9,
+    "houseFromLagna": 9,
+    "houseFromMoon": null
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் 7ஆம் அதிபதி செவ்வாய் (தனுசு), Bala ஜாதகத்தில் லக்னத்திலிருந்து 9ஆம் இடத்தில் வருகிறது.",
+   "badge": "பாக்கியம், தர்மம் (சாதகம்)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "SUPPORT",
+    "key": "SEVENTH_LORD",
+    "graha": "MARS",
+    "rasi": 10,
+    "houseFromLagna": null,
+    "houseFromMoon": 9
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's 7th lord Mars (in Magaram) falls in the 9th house from Bala's Moon sign.",
+   "badge": "Fortune and shared values (favourable)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "SUPPORT",
+    "key": "SEVENTH_LORD",
+    "graha": "MARS",
+    "rasi": 10,
+    "houseFromLagna": null,
+    "houseFromMoon": 9
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் 7ஆம் அதிபதி செவ்வாய் (மகரம்), Bala ஜாதகத்தில் ராசியிலிருந்து 9ஆம் இடத்தில் வருகிறது.",
+   "badge": "பாக்கியம், தர்மம் (சாதகம்)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "SUPPORT",
+    "key": "LAGNA",
+    "graha": null,
+    "rasi": 1,
+    "houseFromLagna": 9,
+    "houseFromMoon": null
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's lagna, Mesham, is the 9th house from Bala's lagna.",
+   "badge": "Fortune and shared values (favourable)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "SUPPORT",
+    "key": "LAGNA",
+    "graha": null,
+    "rasi": 1,
+    "houseFromLagna": 9,
+    "houseFromMoon": null
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் லக்னம் மேஷம், Bala ஜாதகத்தில் லக்னத்திலிருந்து 9ஆம் இடம்.",
+   "badge": "பாக்கியம், தர்மம் (சாதகம்)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "SUPPORT",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 4,
+    "houseFromLagna": 9,
+    "houseFromMoon": null
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's Moon sign, Kadagam, is the 9th from Bala's lagna.",
+   "badge": "Fortune and shared values (favourable)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "SUPPORT",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 4,
+    "houseFromLagna": 9,
+    "houseFromMoon": null
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் ராசி கடகம், Bala ஜாதகத்தில் லக்னத்திலிருந்து 9ஆம் இடம்.",
+   "badge": "பாக்கியம், தர்மம் (சாதகம்)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "SUPPORT",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 6,
+    "houseFromLagna": null,
+    "houseFromMoon": 9
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's Moon sign, Kanni, is the 9th from Bala's Moon sign.",
+   "badge": "Fortune and shared values (favourable)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "SUPPORT",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 6,
+    "houseFromLagna": null,
+    "houseFromMoon": 9
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் ராசி கன்னி, Bala ஜாதகத்தில் ராசியிலிருந்து 9ஆம் இடம்.",
+   "badge": "பாக்கியம், தர்மம் (சாதகம்)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NEUTRAL",
+    "key": "SEVENTH_LORD",
+    "graha": "MERCURY",
+    "rasi": 10,
+    "houseFromLagna": 10,
+    "houseFromMoon": null
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's 7th lord Mercury (in Magaram) falls in the 10th house from Bala's lagna.",
+   "badge": "Work and standing (neutral)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NEUTRAL",
+    "key": "SEVENTH_LORD",
+    "graha": "MERCURY",
+    "rasi": 10,
+    "houseFromLagna": 10,
+    "houseFromMoon": null
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் 7ஆம் அதிபதி புதன் (மகரம்), Bala ஜாதகத்தில் லக்னத்திலிருந்து 10ஆம் இடத்தில் வருகிறது.",
+   "badge": "தொழில், மதிப்பு (பொது)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NEUTRAL",
+    "key": "SEVENTH_LORD",
+    "graha": "MERCURY",
+    "rasi": 11,
+    "houseFromLagna": null,
+    "houseFromMoon": 10
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's 7th lord Mercury (in Kumbam) falls in the 10th house from Bala's Moon sign.",
+   "badge": "Work and standing (neutral)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NEUTRAL",
+    "key": "SEVENTH_LORD",
+    "graha": "MERCURY",
+    "rasi": 11,
+    "houseFromLagna": null,
+    "houseFromMoon": 10
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் 7ஆம் அதிபதி புதன் (கும்பம்), Bala ஜாதகத்தில் ராசியிலிருந்து 10ஆம் இடத்தில் வருகிறது.",
+   "badge": "தொழில், மதிப்பு (பொது)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NEUTRAL",
+    "key": "LAGNA",
+    "graha": null,
+    "rasi": 2,
+    "houseFromLagna": 10,
+    "houseFromMoon": null
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's lagna, Rishabam, is the 10th house from Bala's lagna.",
+   "badge": "Work and standing (neutral)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NEUTRAL",
+    "key": "LAGNA",
+    "graha": null,
+    "rasi": 2,
+    "houseFromLagna": 10,
+    "houseFromMoon": null
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் லக்னம் ரிஷபம், Bala ஜாதகத்தில் லக்னத்திலிருந்து 10ஆம் இடம்.",
+   "badge": "தொழில், மதிப்பு (பொது)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NEUTRAL",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 5,
+    "houseFromLagna": 10,
+    "houseFromMoon": null
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's Moon sign, Simmam, is the 10th from Bala's lagna.",
+   "badge": "Work and standing (neutral)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NEUTRAL",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 5,
+    "houseFromLagna": 10,
+    "houseFromMoon": null
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் ராசி சிம்மம், Bala ஜாதகத்தில் லக்னத்திலிருந்து 10ஆம் இடம்.",
+   "badge": "தொழில், மதிப்பு (பொது)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NEUTRAL",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 7,
+    "houseFromLagna": null,
+    "houseFromMoon": 10
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's Moon sign, Thulam, is the 10th from Bala's Moon sign.",
+   "badge": "Work and standing (neutral)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NEUTRAL",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 7,
+    "houseFromLagna": null,
+    "houseFromMoon": 10
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் ராசி துலாம், Bala ஜாதகத்தில் ராசியிலிருந்து 10ஆம் இடம்.",
+   "badge": "தொழில், மதிப்பு (பொது)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NOTE",
+    "key": "SEVENTH_LORD",
+    "graha": "JUPITER",
+    "rasi": 11,
+    "houseFromLagna": 11,
+    "houseFromMoon": null
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's 7th lord Jupiter (in Kumbam) falls in the 11th house from Bala's lagna.",
+   "badge": "Gains and fulfilment (favourable)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NOTE",
+    "key": "SEVENTH_LORD",
+    "graha": "JUPITER",
+    "rasi": 11,
+    "houseFromLagna": 11,
+    "houseFromMoon": null
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் 7ஆம் அதிபதி குரு (கும்பம்), Bala ஜாதகத்தில் லக்னத்திலிருந்து 11ஆம் இடத்தில் வருகிறது.",
+   "badge": "லாபம், நிறைவு (சாதகம்)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NOTE",
+    "key": "SEVENTH_LORD",
+    "graha": "JUPITER",
+    "rasi": 12,
+    "houseFromLagna": null,
+    "houseFromMoon": 11
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's 7th lord Jupiter (in Meenam) falls in the 11th house from Bala's Moon sign.",
+   "badge": "Gains and fulfilment (favourable)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NOTE",
+    "key": "SEVENTH_LORD",
+    "graha": "JUPITER",
+    "rasi": 12,
+    "houseFromLagna": null,
+    "houseFromMoon": 11
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் 7ஆம் அதிபதி குரு (மீனம்), Bala ஜாதகத்தில் ராசியிலிருந்து 11ஆம் இடத்தில் வருகிறது.",
+   "badge": "லாபம், நிறைவு (சாதகம்)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NOTE",
+    "key": "LAGNA",
+    "graha": null,
+    "rasi": 3,
+    "houseFromLagna": 11,
+    "houseFromMoon": null
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's lagna, Mithunam, is the 11th house from Bala's lagna.",
+   "badge": "Gains and fulfilment (favourable)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NOTE",
+    "key": "LAGNA",
+    "graha": null,
+    "rasi": 3,
+    "houseFromLagna": 11,
+    "houseFromMoon": null
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் லக்னம் மிதுனம், Bala ஜாதகத்தில் லக்னத்திலிருந்து 11ஆம் இடம்.",
+   "badge": "லாபம், நிறைவு (சாதகம்)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NOTE",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 6,
+    "houseFromLagna": 11,
+    "houseFromMoon": null
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's Moon sign, Kanni, is the 11th from Bala's lagna.",
+   "badge": "Gains and fulfilment (favourable)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NOTE",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 6,
+    "houseFromLagna": 11,
+    "houseFromMoon": null
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் ராசி கன்னி, Bala ஜாதகத்தில் லக்னத்திலிருந்து 11ஆம் இடம்.",
+   "badge": "லாபம், நிறைவு (சாதகம்)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NOTE",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 8,
+    "houseFromLagna": null,
+    "houseFromMoon": 11
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's Moon sign, Viruchigam, is the 11th from Bala's Moon sign.",
+   "badge": "Gains and fulfilment (favourable)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NOTE",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 8,
+    "houseFromLagna": null,
+    "houseFromMoon": 11
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் ராசி விருச்சிகம், Bala ஜாதகத்தில் ராசியிலிருந்து 11ஆம் இடம்.",
+   "badge": "லாபம், நிறைவு (சாதகம்)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NOTE",
+    "key": "SEVENTH_LORD",
+    "graha": "VENUS",
+    "rasi": 12,
+    "houseFromLagna": 12,
+    "houseFromMoon": null
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's 7th lord Venus (in Meenam) falls in the 12th house from Bala's lagna.",
+   "badge": "Expenses and distance (ask your astrologer about this)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NOTE",
+    "key": "SEVENTH_LORD",
+    "graha": "VENUS",
+    "rasi": 12,
+    "houseFromLagna": 12,
+    "houseFromMoon": null
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் 7ஆம் அதிபதி சுக்கிரன் (மீனம்), Bala ஜாதகத்தில் லக்னத்திலிருந்து 12ஆம் இடத்தில் வருகிறது.",
+   "badge": "செலவு, விலகல் (ஜோதிடரிடம் கேட்கவும்)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NOTE",
+    "key": "SEVENTH_LORD",
+    "graha": "VENUS",
+    "rasi": 1,
+    "houseFromLagna": null,
+    "houseFromMoon": 12
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's 7th lord Venus (in Mesham) falls in the 12th house from Bala's Moon sign.",
+   "badge": "Expenses and distance (ask your astrologer about this)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NOTE",
+    "key": "SEVENTH_LORD",
+    "graha": "VENUS",
+    "rasi": 1,
+    "houseFromLagna": null,
+    "houseFromMoon": 12
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் 7ஆம் அதிபதி சுக்கிரன் (மேஷம்), Bala ஜாதகத்தில் ராசியிலிருந்து 12ஆம் இடத்தில் வருகிறது.",
+   "badge": "செலவு, விலகல் (ஜோதிடரிடம் கேட்கவும்)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NOTE",
+    "key": "LAGNA",
+    "graha": null,
+    "rasi": 4,
+    "houseFromLagna": 12,
+    "houseFromMoon": null
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's lagna, Kadagam, is the 12th house from Bala's lagna.",
+   "badge": "Expenses and distance (ask your astrologer about this)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NOTE",
+    "key": "LAGNA",
+    "graha": null,
+    "rasi": 4,
+    "houseFromLagna": 12,
+    "houseFromMoon": null
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் லக்னம் கடகம், Bala ஜாதகத்தில் லக்னத்திலிருந்து 12ஆம் இடம்.",
+   "badge": "செலவு, விலகல் (ஜோதிடரிடம் கேட்கவும்)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NOTE",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 7,
+    "houseFromLagna": 12,
+    "houseFromMoon": null
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's Moon sign, Thulam, is the 12th from Bala's lagna.",
+   "badge": "Expenses and distance (ask your astrologer about this)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NOTE",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 7,
+    "houseFromLagna": 12,
+    "houseFromMoon": null
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் ராசி துலாம், Bala ஜாதகத்தில் லக்னத்திலிருந்து 12ஆம் இடம்.",
+   "badge": "செலவு, விலகல் (ஜோதிடரிடம் கேட்கவும்)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NOTE",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 9,
+    "houseFromLagna": null,
+    "houseFromMoon": 12
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's Moon sign, Dhanusu, is the 12th from Bala's Moon sign.",
+   "badge": "Expenses and distance (ask your astrologer about this)"
+  },
+  {
+   "row": {
+    "direction": "A_TO_B",
+    "tier": "engine_inference",
+    "status": "NOTE",
+    "key": "MOON",
+    "graha": "MOON",
+    "rasi": 9,
+    "houseFromLagna": null,
+    "houseFromMoon": 12
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் ராசி தனுசு, Bala ஜாதகத்தில் ராசியிலிருந்து 12ஆம் இடம்.",
+   "badge": "செலவு, விலகல் (ஜோதிடரிடம் கேட்கவும்)"
+  },
+  {
+   "row": {
+    "direction": "B_TO_A",
+    "tier": "engine_inference",
+    "key": "VENUS",
+    "graha": "VENUS",
+    "rasi": 4,
+    "houseFromLagna": 7,
+    "houseFromMoon": null,
+    "status": "SUPPORT"
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's Venus (in Kadagam) falls on Bala's 7th house.",
+   "badge": "Partnership (favourable)"
+  },
+  {
+   "row": {
+    "direction": "B_TO_A",
+    "tier": "engine_inference",
+    "key": "VENUS",
+    "graha": "VENUS",
+    "rasi": 4,
+    "houseFromLagna": 7,
+    "houseFromMoon": null,
+    "status": "SUPPORT"
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் சுக்கிரன் (கடகம்), Bala ஜாதகத்தின் 7ஆம் இடத்தில் வருகிறது.",
+   "badge": "இல்லறத் துணை (சாதகம்)"
+  },
+  {
+   "row": {
+    "direction": "B_TO_A",
+    "tier": "engine_inference",
+    "key": "VENUS",
+    "graha": "VENUS",
+    "rasi": 4,
+    "houseFromLagna": 1,
+    "houseFromMoon": null,
+    "status": "NEUTRAL"
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": false,
+   "line": "Asha's Venus (in Kadagam) falls on Bala's 7th house.",
+   "badge": "Personal closeness (neutral)"
+  },
+  {
+   "row": {
+    "direction": "B_TO_A",
+    "tier": "engine_inference",
+    "key": "VENUS",
+    "graha": "VENUS",
+    "rasi": 4,
+    "houseFromLagna": 1,
+    "houseFromMoon": null,
+    "status": "NEUTRAL"
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": false,
+   "line": "Asha ஜாதகத்தின் சுக்கிரன் (கடகம்), Bala ஜாதகத்தின் 7ஆம் இடத்தில் வருகிறது.",
+   "badge": "நெருக்கம், தனிப்பட்ட இணைப்பு (பொது)"
+  },
+  {
+   "row": {
+    "direction": "B_TO_A",
+    "tier": "engine_inference",
+    "key": "JUPITER",
+    "graha": "JUPITER",
+    "rasi": 4,
+    "houseFromLagna": 7,
+    "houseFromMoon": null,
+    "status": "SUPPORT"
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha's Jupiter (in Kadagam) falls on Bala's 7th house.",
+   "badge": "Partnership (favourable)"
+  },
+  {
+   "row": {
+    "direction": "B_TO_A",
+    "tier": "engine_inference",
+    "key": "JUPITER",
+    "graha": "JUPITER",
+    "rasi": 4,
+    "houseFromLagna": 7,
+    "houseFromMoon": null,
+    "status": "SUPPORT"
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": true,
+   "line": "Asha ஜாதகத்தின் குரு (கடகம்), Bala ஜாதகத்தின் 7ஆம் இடத்தில் வருகிறது.",
+   "badge": "இல்லறத் துணை (சாதகம்)"
+  },
+  {
+   "row": {
+    "direction": "B_TO_A",
+    "tier": "engine_inference",
+    "key": "JUPITER",
+    "graha": "JUPITER",
+    "rasi": 4,
+    "houseFromLagna": 1,
+    "houseFromMoon": null,
+    "status": "NEUTRAL"
+   },
+   "lang": "en",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": false,
+   "line": "Asha's Jupiter (in Kadagam) falls on Bala's 7th house.",
+   "badge": "Personal closeness (neutral)"
+  },
+  {
+   "row": {
+    "direction": "B_TO_A",
+    "tier": "engine_inference",
+    "key": "JUPITER",
+    "graha": "JUPITER",
+    "rasi": 4,
+    "houseFromLagna": 1,
+    "houseFromMoon": null,
+    "status": "NEUTRAL"
+   },
+   "lang": "ta",
+   "src": "Asha",
+   "dst": "Bala",
+   "visible": false,
+   "line": "Asha ஜாதகத்தின் குரு (கடகம்), Bala ஜாதகத்தின் 7ஆம் இடத்தில் வருகிறது.",
+   "badge": "நெருக்கம், தனிப்பட்ட இணைப்பு (பொது)"
+  }
+ ]
+}

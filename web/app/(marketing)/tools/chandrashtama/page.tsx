@@ -150,8 +150,8 @@ export default function ChandrashtamaPage() {
                   </p>
                   <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "0.85rem", lineHeight: 1.65 }}>
                     {ta
-                      ? `சந்திரன் ${ta ? chandraRasi.name.ta : chandraRasi.name.en} ராசியில் நுழையும்போது (சுமார் 2.5 நாட்கள்), உங்களுக்கு சந்திராஷ்டம காலம். புதிய தொடக்கங்கள், அறுவை சிகிச்சைகள், முக்கிய பண முடிவுகளைத் தவிர்க்கவும். விநாடி உங்கள் டாஷ்போர்டில் இந்தக் காலங்களைத் தினமும் காட்டும்.`
-                      : `When the Moon transits ${chandraRasi.name.en} (roughly 2.5 days every ~27 days), that is your Chandrashtama period. Classical Tamil astrology recommends avoiding new ventures, surgeries, and major financial decisions during this window. Vinaadi shows you these periods automatically in your daily dashboard.`}
+                      ? `சந்திரன் ${ta ? chandraRasi.name.ta : chandraRasi.name.en} ராசியில் நுழையும்போது (சுமார் இரண்டே கால் நாட்கள்), உங்களுக்கு சந்திராஷ்டம காலம். புதிய தொடக்கங்கள், அறுவை சிகிச்சைகள், முக்கிய பண முடிவுகளைத் தவிர்க்கவும். விநாடி உங்கள் டாஷ்போர்டில் இந்தக் காலங்களைத் தினமும் காட்டும்.`
+                      : `When the Moon transits ${chandraRasi.name.en} (roughly 2¼ days every ~27 days), that is your Chandrashtama period. Classical Tamil astrology recommends avoiding new ventures, surgeries, and major financial decisions during this window. Vinaadi shows you these periods automatically in your daily dashboard.`}
                   </p>
                 </div>
 

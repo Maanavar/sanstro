@@ -143,7 +143,7 @@ def test_sunrise_is_the_boundary(place, d):
     """One minute after sunrise is that civil day; one minute before is the day before."""
     noon = _sig(d, time(12, 0), place)
     assert noon["tamil_day_local"] == d.isoformat()
-    sunrise = datetime.strptime(str(noon["sunrise_time"]), "%I:%M:%S %p").time()
+    sunrise = datetime.strptime(str(noon["sunrise_time"]), "%H:%M:%S").time()
     sunrise_dt = datetime.combine(d, sunrise)
     after = (sunrise_dt + timedelta(minutes=1)).time()
     before = (sunrise_dt - timedelta(minutes=1)).time()
@@ -166,7 +166,7 @@ def test_a_pre_sunrise_birth_counts_naazhigai_from_the_previous_sunrise():
 def test_naazhigai_is_counted_from_full_seconds():
     d = date(1995, 1, 10)
     noon = _sig(d, time(12, 0))
-    sunrise = datetime.combine(d, datetime.strptime(str(noon["sunrise_time"]), "%I:%M:%S %p").time())
+    sunrise = datetime.combine(d, datetime.strptime(str(noon["sunrise_time"]), "%H:%M:%S").time())
     # Birth times are whole minutes, and sunrise is not, so the sunrise's own
     # seconds count: a vinaadi is 24 s, and dropping up to 59 s of sunrise (as
     # the old client count did) moves the answer by up to 2 vinaadi. The
@@ -200,5 +200,5 @@ def test_the_signature_carries_year_ayanam_and_ruthu_from_the_tamil_day():
     before, after = _sig(date(1995, 4, 14), time(3, 0)), _sig(date(1995, 4, 14), time(6, 30))
     assert before["tamil_year_en"] == "Bhava" and after["tamil_year_en"] == "Yuva"
     assert before["tamil_year_number"] == 8 and after["tamil_year_number"] == 9
-    assert (before["ruthu_en"], after["ruthu_en"]) == ("Pinpani", "Ilavenil")
+    assert (before["ruthu_en"], after["ruthu_en"]) == ("Pinpani (Shishira)", "Ilavenil (Vasanta)")
     assert before["ayanam_en"] == after["ayanam_en"] == "Uttarayanam"

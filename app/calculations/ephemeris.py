@@ -608,3 +608,156 @@ def saturn_longitude_at_jd(jd: float) -> float:
         set_lahiri_ayanamsa()
         longitude, _speed, _warning = _calc_ut(jd, PLANET_IDS["SATURN"])
     return normalize_longitude(longitude)
+
+
+# --------------------------------------------------------------------------- #
+# Eclipses (FAA-24)
+# --------------------------------------------------------------------------- #
+# docs/FULL_ASTRO_ACCURACY_AUDIT_2026-11-10.md FAA-24. Grahana Janma used to be
+# inferred from geometry alone (a Sun-Moon syzygy within 13 deg of the mean node,
+# ~26 h either side), which flags births a day from an eclipse and births at
+# syzygies where no eclipse happened at all. This asks Swiss Ephemeris whether
+# an eclipse ACTUALLY occurred, and whether the birth instant lies inside it.
+#
+# Values are the Swiss Ephemeris C header (swephexp.h); they are identical in
+# both bindings, so they are spelled once here rather than imported twice.
+_SE_ECL_TOTAL = 4
+_SE_ECL_ANNULAR = 8
+_SE_ECL_PARTIAL = 16
+_SE_ECL_ANNULAR_TOTAL = 32  # hybrid
+_SE_ECL_PENUMBRAL = 64
+_SE_TRUE_NODE = 11
+_SE_FLG_SWIEPH = 2
+
+EclipseKind = Literal["SOLAR", "LUNAR"]
+EclipseMagnitude = Literal["TOTAL", "ANNULAR", "HYBRID", "PARTIAL"]
+
+
+@dataclass(frozen=True, slots=True)
+class EclipseAtBirth:
+    """An eclipse in progress at the birth instant.
+
+    ``begin_jd``/``end_jd`` bound the eclipse itself: for a solar eclipse the
+    global span (first to last contact anywhere on Earth); for a lunar eclipse
+    the UMBRAL span (partial phase). ``visible_at_place`` is whether the
+    eclipsed body was above the horizon and actually eclipsed at the birthplace
+    at the birth instant; copy may say "covered"/"visible" only when it is True.
+    ``near_node`` is +1 Rahu / -1 Ketu by the TRUE node (eclipse geometry), even
+    though charts use the mean node (Doctrine §2).
+    """
+
+    kind: EclipseKind
+    magnitude: EclipseMagnitude
+    begin_jd: float
+    max_jd: float
+    end_jd: float
+    visible_at_place: bool
+    near_node: int
+
+
+def _magnitude_from_flag(retflag: int) -> EclipseMagnitude | None:
+    if retflag & _SE_ECL_ANNULAR_TOTAL:
+        return "HYBRID"
+    if retflag & _SE_ECL_TOTAL:
+        return "TOTAL"
+    if retflag & _SE_ECL_ANNULAR:
+        return "ANNULAR"
+    if retflag & _SE_ECL_PARTIAL:
+        return "PARTIAL"
+    return None  # penumbral-only, or nothing
+
+
+if not _HAS_MODULE_API:  # pragma: no cover - ffi leg
+    from ctypes import POINTER, c_char_p, c_int32
+
+    _LIB = _SWISS.lib
+    for _name, _args in {
+        "swe_sol_eclipse_when_glob": [c_double, c_int32, c_int32, POINTER(c_double), c_int32, c_char_p],
+        "swe_lun_eclipse_when": [c_double, c_int32, c_int32, POINTER(c_double), c_int32, c_char_p],
+        "swe_sol_eclipse_how": [c_double, c_int32, POINTER(c_double), POINTER(c_double), c_char_p],
+        "swe_lun_eclipse_how": [c_double, c_int32, POINTER(c_double), POINTER(c_double), c_char_p],
+    }.items():
+        _fn = getattr(_LIB, _name)
+        _fn.argtypes = _args
+        _fn.restype = c_int32
+
+
+def _eclipse_when(solar: bool, jd_start: float) -> tuple[int, tuple[float, ...]]:
+    if _HAS_MODULE_API:
+        fn = swe_module.sol_eclipse_when_glob if solar else swe_module.lun_eclipse_when
+        retflag, tret = fn(jd_start, _SE_FLG_SWIEPH, 0, False)
+        return int(retflag), tuple(float(x) for x in tret)
+    tret_buf = (c_double * 10)()
+    serr = create_string_buffer(256)
+    fn = _LIB.swe_sol_eclipse_when_glob if solar else _LIB.swe_lun_eclipse_when
+    retflag = fn(jd_start, _SE_FLG_SWIEPH, 0, tret_buf, 0, serr)
+    return int(retflag), tuple(float(x) for x in tret_buf)
+
+
+def _eclipse_how(solar: bool, jd_ut: float, latitude: float, longitude: float) -> tuple[int, tuple[float, ...]]:
+    if _HAS_MODULE_API:
+        fn = swe_module.sol_eclipse_how if solar else swe_module.lun_eclipse_how
+        retflag, attr = fn(jd_ut, (longitude, latitude, 0.0), _SE_FLG_SWIEPH)
+        return int(retflag), tuple(float(x) for x in attr)
+    geopos = (c_double * 3)(longitude, latitude, 0.0)
+    attr_buf = (c_double * 20)()
+    serr = create_string_buffer(256)
+    fn = _LIB.swe_sol_eclipse_how if solar else _LIB.swe_lun_eclipse_how
+    retflag = fn(jd_ut, _SE_FLG_SWIEPH, geopos, attr_buf, serr)
+    return int(retflag), tuple(float(x) for x in attr_buf)
+
+
+def _tropical_longitude(jd_ut: float, body: int) -> float:
+    if _HAS_MODULE_API:
+        xx, _ = swe_module.calc_ut(jd_ut, body, _SE_FLG_SWIEPH)
+        return normalize_longitude(float(xx[0]))
+    xx = (c_double * 6)()
+    serr = create_string_buffer(256)
+    _SWISS.swe_calc_ut(jd_ut, body, _SE_FLG_SWIEPH, xx, serr)
+    return normalize_longitude(float(xx[0]))
+
+
+def _near_node(jd_ut: float, body: int) -> int:
+    body_lon = _tropical_longitude(jd_ut, body)
+    rahu = _tropical_longitude(jd_ut, _SE_TRUE_NODE)
+    to_rahu = abs((body_lon - rahu + 180.0) % 360.0 - 180.0)
+    return 1 if to_rahu <= 90.0 else -1
+
+
+@lru_cache(maxsize=2048)
+def eclipse_at_birth(jd_ut: float, latitude: float, longitude: float) -> EclipseAtBirth | None:
+    """The solar or lunar eclipse in progress at ``jd_ut``, else None.
+
+    Searches forward from a day before the instant: no eclipse phase lasts a
+    day, so the first eclipse whose maximum follows ``jd_ut - 1`` is the only
+    one that can contain it. Penumbral-only lunar eclipses are NOT returned:
+    nothing is shadowed by the umbra, and Tamil almanacs do not observe them as
+    a grahanam (no sutak/tarpanam). A solar eclipse counts when the birth falls
+    inside its global span, wherever on Earth it was visible.
+    """
+    with _SWISS_LOCK:
+        for solar in (True, False):
+            retflag, tret = _eclipse_when(solar, jd_ut - 1.0)
+            magnitude = _magnitude_from_flag(retflag)
+            if magnitude is None:
+                continue
+            # tret: 0 max; solar 2/3 = global begin/end; lunar 2/3 = partial
+            # (umbral) begin/end.
+            begin, end = tret[2], tret[3]
+            if not (begin > 0 and end > 0 and begin <= jd_ut <= end):
+                continue
+            how_flag, attr = _eclipse_how(solar, jd_ut, latitude, longitude)
+            # attr[0]: solar = fraction of the Sun's diameter covered; lunar =
+            # umbral magnitude. attr[6]: apparent altitude of the eclipsed body.
+            visible = bool(how_flag) and attr[0] > 0.0 and attr[6] > 0.0
+            body = PLANET_IDS["SUN"] if solar else PLANET_IDS["MOON"]
+            return EclipseAtBirth(
+                kind="SOLAR" if solar else "LUNAR",
+                magnitude=magnitude,
+                begin_jd=begin,
+                max_jd=tret[0],
+                end_jd=end,
+                visible_at_place=visible,
+                near_node=_near_node(tret[0], body),
+            )
+    return None

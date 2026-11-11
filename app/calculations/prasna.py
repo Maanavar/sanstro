@@ -44,6 +44,27 @@ def _moon_applying_to_karaka(moon_longitude: float, karaka_longitude: float) -> 
     return 0.0 < sep <= 180.0
 
 
+def _karaka_placement(karaka: str, karaka_house: int) -> tuple[bool, str, int]:
+    """(is_positive, indicator line, rank) for a karaka's house from the
+    Prasna Lagna. Rank orders placements best-first (0 = kendra/trikona)."""
+    if karaka_house in {1, 4, 5, 7, 9, 10}:
+        return True, f"{karaka} in kendra/trikona from Prasna Lagna", 0
+    if karaka_house in {3, 6, 11}:
+        return True, f"{karaka} in upachaya house (results with effort/time)", 1
+    if karaka_house == 2:
+        # FAA-19: the 2nd is a maraka sthana, not a dusthana. Same weight as
+        # before (one negative); only the label was wrong.
+        return False, f"{karaka} in the 2nd house (a maraka sthana) from Prasna Lagna", 2
+    return False, f"{karaka} in dusthana from Prasna Lagna", 3
+
+
+def _stated_gender(gender: str | None) -> str | None:
+    """FAA-16 policy (docs/FAA_DECISIONS_2026-11-11.md §2): only an explicit
+    "female" / "male" is stated; anything else is unknown. Never inferred."""
+    g = (gender or "").strip().lower()
+    return g if g in {"female", "male"} else None
+
+
 def cast_prasna_chart(
     question_datetime_local: datetime,
     timezone_name: str,
@@ -51,7 +72,10 @@ def cast_prasna_chart(
     longitude: float,
     question_area: str = "GENERAL",
     ayanamsa_type: str = "LAHIRI",
+    querent_gender: str | None = None,
 ) -> dict:
+    """``querent_gender`` is the querent's stated ``gender_for_traditional_rules``
+    and is read only for a MARRIAGE question (FAA-16)."""
     _ = ayanamsa_type
     area_key = (question_area or "GENERAL").upper()
     area = _PRASNA_QUESTION_AREAS.get(area_key, _PRASNA_QUESTION_AREAS["GENERAL"])
@@ -71,20 +95,37 @@ def cast_prasna_chart(
     moon_rasi = moon.rasi
     moon_nakshatra = nakshatra_from_degree(moon.absolute_longitude)
 
+    def house_of(graha: str) -> int:
+        return house_from_reference(prasna_lagna_rasi, transit.bodies[graha].rasi)
+
+    # FAA-16: a marriage question reads the spouse karaka for the querent's
+    # STATED gender — Guru for a woman, Sukran for a man — and notes the other
+    # as the secondary significator. Gender unknown: both are equal (a Vinaadi
+    # policy, as in marriage_service's gate), so the better-placed one is read
+    # and the other noted. The verdict is counted from the primary alone, as
+    # it always was; the secondary line says it is not counted.
     karaka = area["karaka"]
+    secondary_karaka: str | None = None
+    gender = _stated_gender(querent_gender) if area_key == "MARRIAGE" else None
+    if area_key == "MARRIAGE":
+        if gender == "female":
+            karaka, secondary_karaka = "JUPITER", "VENUS"
+        elif gender == "male":
+            karaka, secondary_karaka = "VENUS", "JUPITER"
+        else:
+            # Tie keeps Venus first: the karaka this question read before FAA-16.
+            karaka, secondary_karaka = sorted(
+                ("VENUS", "JUPITER"), key=lambda g: _karaka_placement(g, house_of(g))[2]
+            )
     karaka_body = transit.bodies[karaka]
     karaka_rasi = karaka_body.rasi
-    karaka_house = house_from_reference(prasna_lagna_rasi, karaka_rasi)
+    karaka_house = house_of(karaka)
 
     positive: list[str] = []
     negative: list[str] = []
 
-    if karaka_house in {1, 4, 5, 7, 9, 10}:
-        positive.append(f"{karaka} in kendra/trikona from Prasna Lagna")
-    elif karaka_house in {3, 6, 11}:
-        positive.append(f"{karaka} in upachaya house (results with effort/time)")
-    else:
-        negative.append(f"{karaka} in dusthana from Prasna Lagna")
+    is_positive, line, _rank = _karaka_placement(karaka, karaka_house)
+    (positive if is_positive else negative).append(line)
 
     if _moon_applying_to_karaka(moon.absolute_longitude, karaka_body.absolute_longitude):
         positive.append("Moon applying toward karaka (Itthasala-type support)")
@@ -127,6 +168,29 @@ def cast_prasna_chart(
         payload["outlook_ta"] = "பலன் தாமதமாக கிடைக்கும்."
         payload["outlook_en"] = "Result is likely with delay."
     payload["outlook"] = outlook
+
+    # Appended AFTER the verdict so it cannot move it (see FAA-16 note above).
+    payload["secondary_karaka"] = secondary_karaka
+    payload["querent_gender"] = gender
+    if secondary_karaka is not None:
+        role = "secondary spouse significator" if gender else "the other marriage significator"
+        sec_positive, sec_line, _ = _karaka_placement(secondary_karaka, house_of(secondary_karaka))
+        (positive if sec_positive else negative).append(f"{sec_line} ({role}; noted, not counted)")
+        if gender is None:
+            # A disclosure, not a challenge: it rides on the verdict text
+            # (bilingual), never in the negative list the outlook counts.
+            for key in ("outlook_ta", "outlook_en"):
+                text = str(payload[key])
+                payload[key] = text if text.endswith(".") else text + "."
+            payload["outlook_ta"] = str(payload["outlook_ta"]) + (
+                " பாலினம் குறிப்பிடப்படாததால் குருவும் சுக்கிரனும் சமமாகப் பார்க்கப்பட்டு, "
+                "நன்றாக அமைந்த கிரகம் எடுத்துக்கொள்ளப்பட்டது."
+            )
+            payload["outlook_en"] = str(payload["outlook_en"]) + (
+                " Gender is not given, so Guru and Venus are read equally and the better-placed "
+                "one is used (a Vinaadi policy, not a traditional rule)."
+            )
+
     payload["moon_nakshatra_name"] = NAKSHATRA_NAMES[moon_nakshatra - 1]
     payload["prasna_lagna_name"] = RASI_NAMES[prasna_lagna_rasi]
     return payload

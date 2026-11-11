@@ -81,7 +81,11 @@ def mahadashas():
     return birth.date(), timeline.mahadashas
 
 
-def test_dasha_windows_are_the_afflictor_and_supporter_periods_only(mahadashas) -> None:
+def test_dasha_windows_are_the_afflictor_and_supporter_periods_only(mahadashas, monkeypatch) -> None:
+    # The 11-09 periods, behind their switch since B5 (2026-11-10, ai_review_2026_11_10).
+    from app.calculations import progeny_checks
+
+    monkeypatch.setattr(progeny_checks, "DASA_PERIODS", "q13")
     birth, periods = mahadashas
     as_of = date(2026, 11, 9)
     check = check_dasha(
@@ -156,9 +160,11 @@ def _position(graha: str, rasi: int, degree: float = 15.0):
 def _insights(lagna_longitude: float | None):
     from app.services._chart_build import _build_yoga_dosham_insights
 
-    # Mesham lagna; Ketu in Simmam, the 5th, declares Putra Sarpa (synthetic).
+    # Mesham lagna; Ketu in Simmam, the 5th, with Rahu beside the 5th lord (the
+    # Sun) as a whole leg, declares Putra Sarpa (synthetic). Since 2026-11-10 a
+    # node alone is a note, not a dosham (DOCTRINE §19, B1).
     planets = [
-        _position("SUN", 9), _position("MOON", 2), _position("MARS", 1),
+        _position("SUN", 11), _position("MOON", 2), _position("MARS", 1),
         _position("MERCURY", 9), _position("JUPITER", 5, 13.0), _position("VENUS", 10),
         _position("SATURN", 11), _position("RAHU", 11), _position("KETU", 5, 20.0),
     ]
@@ -170,7 +176,12 @@ def _insights(lagna_longitude: float | None):
 
 
 @pytest.mark.no_db
-def test_assembler_attaches_checks_and_leaves_every_grade_field_alone() -> None:
+def test_assembler_attaches_checks_and_leaves_every_grade_field_alone(monkeypatch) -> None:
+    # Q18 behaviour, behind its switch since B3 (2026-11-10, ai_review_2026_11_10):
+    # a SUPPORTS verdict now lowers the grade one step (tests/test_ai_review_2026_11_10.py).
+    from app.calculations import progeny_checks
+
+    monkeypatch.setattr(progeny_checks, "D7_LOWERS_A_SUPPORTED_GRADE", False)
     without = _insights(None)
     with_checks = _insights(LAGNA)
     assert without.is_present and with_checks.is_present
@@ -190,10 +201,10 @@ def test_assembler_attaches_checks_and_leaves_every_grade_field_alone() -> None:
     assert wire["progenyChecks"]["tier"] == "engine_inference"
 
 
-def test_birth_time_guard_withholds_about_one_chart_in_four() -> None:
+def test_birth_time_guard_withholds_more_than_half_at_five_minutes() -> None:
     """Plan item 0, measured. A D7 part is 30/7 deg, about 17 minutes of rising
-    time; a 2-minute margin each side withholds about 4/17 = 23.3% of uniformly
-    spread lagnas. The first build's 5-minute margin withheld about 58%."""
+    time; the 5-minute margin each side (B4, 2026-11-10) withholds about
+    10/17 = 58% of uniformly spread lagnas. At 2 minutes it was about 23%."""
     import random
 
     from app.calculations.progeny_checks import D7_MARGIN_MINUTES, _d7_margin_minutes
@@ -201,39 +212,40 @@ def test_birth_time_guard_withholds_about_one_chart_in_four() -> None:
     rng = random.Random(7)
     n = 100_000
     share = sum(_d7_margin_minutes(rng.uniform(0, 360)) < D7_MARGIN_MINUTES for _ in range(n)) / n
-    assert 0.21 <= share <= 0.26, share
+    assert 0.55 <= share <= 0.62, share
 
 
 # ── Plan item 0, review 2026-11-09: the guard from the real ephemeris ───────────
 
 def test_a_bracket_that_crosses_a_d7_boundary_withholds_the_verdict() -> None:
     boundary = 30.0 / 7.0 * 4  # Mesham, end of part 4 (D7 Katakam)
-    # Lagna 0.3 deg before the boundary, rising 0.25 deg/min: +2 min crosses it.
+    # Lagna 0.3 deg before the boundary; the +/-5 min bracket spans 1.0 deg
+    # (0.1 deg/min) and crosses it.
     d7 = check_d7(_longitudes(KETU=133.0), boundary - 0.3, ("KETU",), lagna_bracket=(boundary - 0.8, boundary + 0.2))
     assert not d7.houses_reliable and d7.verdict == "UNCERTAIN"
-    assert d7.margin_minutes == 1  # 0.3 deg at 0.25 deg/min = 1.2 min
+    assert d7.margin_minutes == 3  # 0.3 deg at 0.1 deg/min
 
 
 def test_the_bracket_uses_this_charts_rising_rate_not_the_average() -> None:
     """0.4 deg from a boundary. The 4 min/deg average calls that 1.6 min and
-    withholds; a slow-rising sign (0.1 deg/min) is 4 minutes away and stable."""
+    withholds; a slow-rising sign (0.04 deg/min) is 10 minutes away and stable."""
     boundary = 30.0 / 7.0 * 4  # part 4: D7 Katakam, so Ketu at 133 deg is in the D7 5th
     lagna = boundary - 0.4
     averaged = check_d7(_longitudes(KETU=133.0), lagna, ("KETU",))
     assert averaged.verdict == "UNCERTAIN"
     slow = check_d7(_longitudes(KETU=133.0), lagna, ("KETU",), lagna_bracket=(lagna - 0.2, lagna + 0.2))
     assert slow.houses_reliable and slow.verdict == "REPEATS"
-    assert slow.margin_minutes == 4
-    # And the reverse, a fast-rising sign the average wrongly trusts: 0.6 deg
-    # from a boundary is 2.4 min by the average, but at 0.4 deg/min it is 1.5.
-    fast_lagna = boundary - 0.6
+    assert slow.margin_minutes == 10
+    # And the reverse, a fast-rising sign the average wrongly trusts: 1.5 deg
+    # from a boundary is 6 min by the average, but at 0.4 deg/min it is 3.75.
+    fast_lagna = boundary - 1.5
     assert check_d7(_longitudes(KETU=133.0), fast_lagna, ("KETU",)).houses_reliable
-    fast = check_d7(_longitudes(KETU=133.0), fast_lagna, ("KETU",), lagna_bracket=(fast_lagna - 0.8, fast_lagna + 0.8))
+    fast = check_d7(_longitudes(KETU=133.0), fast_lagna, ("KETU",), lagna_bracket=(fast_lagna - 2.0, fast_lagna + 2.0))
     assert not fast.houses_reliable
 
 
 def test_a_loose_birth_time_withholds_even_with_a_stable_bracket() -> None:
-    d7 = check_d7(_longitudes(), LAGNA, ("KETU",), birth_time_confidence_minutes=5, lagna_bracket=(LAGNA - 0.5, LAGNA + 0.5))
+    d7 = check_d7(_longitudes(), LAGNA, ("KETU",), birth_time_confidence_minutes=10, lagna_bracket=(LAGNA - 0.5, LAGNA + 0.5))
     assert d7.verdict == "UNCERTAIN"
 
 
@@ -263,12 +275,12 @@ def _guard_sweep(n: int, tolerance_minutes: float, seed: int = 3) -> dict[str, f
 
 def test_birth_time_guard_share_from_the_ephemeris() -> None:
     """Plan item 0, re-measured on real birth moments. The lagna crosses
-    12 x 7 = 84 D7 boundaries a sidereal day (~1436 min), so a +/-2 minute
-    window catches one about 84 x 4 / 1436 = 23.4% of the time at any
-    latitude. Measured 2026-11-09: see the assertion message.
+    12 x 7 = 84 D7 boundaries a sidereal day (~1436 min), so a +/-5 minute
+    window (B4, 2026-11-10) catches one about 84 x 10 / 1436 = 58.5% of the
+    time at any latitude. Measured 2026-11-09: see the assertion message.
     Blind spot: it measures the guard's rate, not whether the astrologer
-    agrees 2 minutes is the right tolerance (that is the ruling owed)."""
-    shares = _guard_sweep(6000, 2.0)
-    assert 0.21 <= shares["all"] <= 0.26, shares
+    agrees 5 minutes is the right tolerance (an AI answer, DOCTRINE §19)."""
+    shares = _guard_sweep(6000, 5.0)
+    assert 0.55 <= shares["all"] <= 0.62, shares
     for band in ("0-20N", "20-40N", "40-56N"):
-        assert 0.19 <= shares[band] <= 0.28, shares
+        assert 0.52 <= shares[band] <= 0.65, shares

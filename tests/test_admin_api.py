@@ -443,6 +443,11 @@ def test_feature_flags_round_trip(raw_client):
         "doctrine_o32_putra_sarpa_thulam_sani",  # owner ruling 2026-10-06
         "doctrine_sevvai_house_set",  # owner ruling 2026-10-30
         "doctrine_d6b_guru_ketu",  # D6b, not ruled (deferred-checks plan, item 1)
+        "doctrine_ps_node_alone",  # ai_review_2026_11_10 (DOCTRINE §19, B1)
+        "doctrine_children_protection_definition",  # §19, B6/B7
+        "doctrine_node_beside_full_weight_orb",  # §19, B9
+        "doctrine_sevvai_simha_kumbha_nivarthi",  # §19, C2
+        "doctrine_sevvai_strong_guru",  # §19, C4
         "doctrine_moon_72_degree_convention",
         "doctrine_show_lakshmi_phaladeepika",
         # Ask Vinaadi rails (admin spec L7): the spend cap, the USD rate and
@@ -453,6 +458,9 @@ def test_feature_flags_round_trip(raw_client):
         "ask_daily_limit_trial",
         "ask_daily_limit_beta",
         "ask_daily_limit_premium",
+        # FAA-02 step 1 (2026-11-11): the single-event rectification
+        # recommendation is withdrawn behind this switch, default off.
+        "rectification_recommendation_enabled",
     } == names
 
     set_response = raw_client.patch(

@@ -3,9 +3,13 @@
 **Date:** 2026-11-07. **For:** the owner, who asked for Vinaadi to read like a real
 person speaking everyday Tamil, and gave full ownership of the copy.
 
-**Status: rewritten, not native-reviewed.** Claude wrote this copy and is not a native
-speaker. No `NATIVE-TAMIL REVIEW PASSED` marker was added, and every existing
-`PENDING` marker stays until the owner signs a table off.
+**Status: voice approved by owner (Senthil), 2026-11-09, on sign-off sheet v6.1**
+(`TAMIL_SIGNOFF_SHEET_V6_2026-11-09.md`, all 36 lines). This approves the *voice* as shown in
+three sample readings. It is not a native-speaker review of any table, and it does not cover the
+astrology, which is still with the astrologer (`ASTROLOGER_QUESTIONS_2026-11-09.md`). No
+`NATIVE-TAMIL REVIEW PASSED` marker was added, and every existing `PENDING` marker stays until the
+owner signs that table off. The remaining surfaces follow the order under "Not done yet", with a
+short sheet per batch.
 
 ## The voice
 

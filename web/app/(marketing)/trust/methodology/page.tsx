@@ -144,8 +144,8 @@ export default async function MethodologyPage() {
 
                 <h2 id="porutham">{lang === "en" ? "Porutham (marriage compatibility)" : "பொருத்தம் (திருமண பொருத்தம்)"}</h2>
                 <p>{lang === "en"
-                  ? "Vinaadi calculates the traditional 10 Porutham system used in Tamil marriage matching — Dinam, Ganam, Mahendram, Stree Deergham, Yoni, Rajju, Vedha, Rasi, Rasiyathipathi, and Nadi — each computed from the birth star and rasi. Rajju dosha and Sevvai dosham are assessed using the Thirukanitham standard."
-                  : "தமிழ் திருமணப் பொருத்தத்தில் பயன்படும் பாரம்பரிய பத்து பொருத்தங்களையும் விநாடி கணக்கிடுகிறது: தினம், கணம், மகேந்திரம், ஸ்திரீ தீர்க்கம், யோனி, ரஜ்ஜு, வேதை, ராசி, ராசியதிபதி, நாடி. இவை அனைத்தும் பிறப்பு நட்சத்திரம், ராசி ஆகியவற்றின் அடிப்படையில் கணக்கிடப்படுகின்றன. ரஜ்ஜு குறைவும் செவ்வாய் தோஷமும் திருக்கணிதத் தரநிலையிலேயே மதிப்பிடப்படுகின்றன."}</p>
+                  ? "Vinaadi calculates the traditional 10 Porutham system used in Tamil marriage matching — Dinam, Ganam, Mahendram, Stree Deergham, Yoni, Rajju, Vedha, Rasi, Rasiyathipathi, and Vasya — each computed from the birth star and rasi. Rajju dosha and Sevvai dosham are assessed using the Thirukanitham standard. Nadi, a North Indian check, is not one of the ten; it is shown only as a side note and does not change the score."
+                  : "தமிழ் திருமணப் பொருத்தத்தில் பயன்படும் பாரம்பரிய பத்து பொருத்தங்களையும் விநாடி கணக்கிடுகிறது: தினம், கணம், மகேந்திரம், ஸ்திரீ தீர்க்கம், யோனி, ரஜ்ஜு, வேதை, ராசி, ராசியாதிபதி, வசியம். இவை அனைத்தும் பிறப்பு நட்சத்திரம், ராசி ஆகியவற்றின் அடிப்படையில் கணக்கிடப்படுகின்றன. ரஜ்ஜு குறைவும் செவ்வாய் தோஷமும் திருக்கணிதத் தரநிலையிலேயே மதிப்பிடப்படுகின்றன. நாடி வட இந்திய முறையைச் சேர்ந்தது; பத்தில் சேராது, கூடுதல் குறிப்பாக மட்டும் காட்டப்படும், மதிப்பெண்ணை மாற்றாது."}</p>
 
                 <h2 id="jadhagam">{lang === "en" ? "Birth chart (Jadhagam)" : "பிறப்பு ஜாதகம்"}</h2>
                 <p>{lang === "en"

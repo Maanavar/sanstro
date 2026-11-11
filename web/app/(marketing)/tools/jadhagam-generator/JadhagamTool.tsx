@@ -21,6 +21,7 @@ import { GuestPrivacyNote } from "@/components/guest-privacy-note";
 import { JadhagamShareButton } from "@/components/public-share-card";
 import { tKarana, tNakshatra, tPlanetLord, tTithi, tYoga } from "@/lib/i18n";
 import { nakshatraLordShort } from "@vinaadi/shared/nakshatraLord";
+import { formatClockLabel } from "@/lib/format";
 import {
   PADA_SYLLABLES_TA,
   PADA_SYLLABLE_TOTAL_ROWS,
@@ -476,7 +477,7 @@ function PrintableJadhagamSheet({
               : {sig.tithi_paksha ? pakshaTa(sig.tithi_paksha) : "—"}{sig.tithi ? `/${tTithi(sig.tithi, "ta")}` : ""}
             </td>
             <td style={hdrSt}>சூரிய உதயம்</td>
-            <td style={cellSt}>: {sig.sunrise_time || "—"}</td>
+            <td style={cellSt}>: {sig.sunrise_time ? formatClockLabel(sig.sunrise_time, "ta") : "—"}</td>
           </tr>
           <tr>
             <td style={hdrSt}>யோகம்-காரணம்</td>
@@ -484,7 +485,7 @@ function PrintableJadhagamSheet({
               : {sig.yogam ? tYoga(sig.yogam, "ta") : "—"}{sig.karanam ? `/${tKarana(sig.karanam, "ta")}` : ""}
             </td>
             <td style={hdrSt}>சூரிய அஸ்தமனம்</td>
-            <td style={cellSt}>: {sig.sunset_time || "—"}</td>
+            <td style={cellSt}>: {sig.sunset_time ? formatClockLabel(sig.sunset_time, "ta") : "—"}</td>
           </tr>
           <tr>
             <td style={hdrSt}>தமிழ் மாதம்/தேதி</td>

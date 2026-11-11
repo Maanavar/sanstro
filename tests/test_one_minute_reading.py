@@ -599,7 +599,11 @@ def test_a_family_members_unconfirmed_time_does_not_claim_the_rest_stands_on_the
     rests_on = next(b for b in data["beats"] if b["id"] == "what_this_rests_on")["text"]["en"]
 
     assert "which the rest is built on" not in rests_on, rests_on
-    assert "Their star and every date here stand without it." in rests_on, rests_on
+    # Since 2026-11-09 the closing says what the birth time does to the dates
+    # (review Q12): "every date here stands without it" was true of the lagna
+    # and false of the dates, which move with the Moon.
+    assert "every date here stand" not in rests_on, rests_on
+    assert "moves the dasa dates" in rests_on or "every dasa date here" in rests_on, rests_on
     assert "hold those more lightly" in rests_on, rests_on
 
 
@@ -809,13 +813,31 @@ def test_no_period_read_to_a_teenager_names_a_life_they_do_not_have():
     fix — Guru is putra-karaka and Sukra is kalatra-karaka, and the adult
     readings are where that belongs.
     """
+    # Since 2026-11-09 the Jupiter/Venus texture depends on the chart's lordship
+    # (`PROMISSORY_LORDS`). Walk both outcomes: no lagna (conditioned clause)
+    # and a lagna where the lord is the lagna lord, so the minor override is
+    # actually reached — Dhanu for Jupiter, Thulam for Venus.
+    from types import SimpleNamespace
+
+    def _standing_where_promise_holds(lord: str):
+        lagna = {"JUPITER": 9, "VENUS": 7}.get(lord, 1)
+        return reading.LordStanding.from_chart(
+            lagna, [SimpleNamespace(graha=lord, rasi=lagna, is_combust=False)]
+        )
+
     proved_the_override_does_work = 0
     for lord in reading._VOICE:
-        teen_ta, teen_en = reading._now_texture(lord, "client_with_guardian")
-        for token in _ADULT_TOKENS_EN:
-            assert token not in teen_en.lower(), f"{lord} tells a teenager about '{token}': {teen_en}"
-        for token in _ADULT_TOKENS_TA:
-            assert token not in teen_ta, f"{lord} tells a teenager about '{token}': {teen_ta}"
+        for standing in (None, _standing_where_promise_holds(lord)):
+            teen_ta, teen_en = reading._now_texture(lord, "client_with_guardian", standing)
+            for token in _ADULT_TOKENS_EN:
+                assert token not in teen_en.lower(), f"{lord} tells a teenager about '{token}': {teen_en}"
+            for token in _ADULT_TOKENS_TA:
+                assert token not in teen_ta, f"{lord} tells a teenager about '{token}': {teen_ta}"
+        if lord in reading._MINOR_NOW_TEXTURE:
+            assert (
+                reading._now_texture(lord, "client_with_guardian", _standing_where_promise_holds(lord))
+                == reading._MINOR_NOW_TEXTURE[lord]
+            )
 
         adult_en = reading._VOICE[lord].now_texture[1].lower()
         if any(token in adult_en for token in _ADULT_TOKENS_EN):
@@ -1452,7 +1474,7 @@ def test_an_unconfirmed_time_says_which_half_of_the_reading_actually_moves(clien
     beat = next(b for b in unsure["beats"] if b["id"] == "what_this_rests_on")
     assert unsure["addressedTo"] == "self"
     assert "The strength and the cost named next" in beat["text"]["en"], beat["text"]["en"]
-    assert "அடுத்து சொல்லப்படும் பலமும் சிரமமும்" in beat["text"]["ta"], beat["text"]["ta"]
+    assert "அடுத்து வரும் பலம், சவால்கள் பற்றிய குறிப்புகள்" in beat["text"]["ta"], beat["text"]["ta"]
     # ...and the beat it points at is in fact the next one.
     ids = [b["id"] for b in unsure["beats"]]
     assert ids[ids.index("what_this_rests_on") + 1] == "strength_and_cost", ids
@@ -1472,11 +1494,16 @@ def test_an_unconfirmed_time_says_which_half_of_the_reading_actually_moves(clien
     assert "strength_and_cost" not in [b["id"] for b in teen["beats"]]
     assert "named next" not in teen_beat["text"]["en"], teen_beat["text"]["en"]
 
-    # And the third-person registers KEEP the strong claim, because for them it
-    # is true: neither emits the signature opening nor the strength beat.
+    # The parent register used to keep "which the rest is built on", true of the
+    # strength beat (it has none) and false of the dates. Since 2026-11-09
+    # (review Q12) its closing states the dasa-date sensitivity instead, and it
+    # still carries no strength caveat.
     child = _read(client, age=8, birth_time_source="APPROXIMATE")
     child_beat = next(b for b in child["beats"] if b["id"] == "what_this_rests_on")
-    assert "which the rest is built on" in child_beat["text"]["en"]
+    child_en = child_beat["text"]["en"]
+    assert "which the rest is built on" not in child_en, child_en
+    assert "moves the dasa dates" in child_en or "every dasa date here" in child_en, child_en
+    assert "named next" not in child_en, child_en
 
 
 @pytest.mark.parametrize("age,marital_status", [(25, None), (33, "married"), (45, "widowed")])

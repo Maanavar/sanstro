@@ -32,7 +32,14 @@ from app.calculations._yoga_helpers import (
 )
 from app.calculations.aspects import aspects_house, effective_natural_class
 from app.calculations.astro import house_from_reference
-from app.calculations.chart_strength import DEBILITATION_RASI, EXALTATION_RASI, OWN_SIGN_RASI, SIGN_LORD
+from app.calculations.chart_strength import (
+    DEBILITATION_RASI,
+    EXALTATION_RASI,
+    OWN_SIGN_RASI,
+    REL_FRIEND,
+    SIGN_LORD,
+    natural_relationship,
+)
 from app.calculations.display_names import planet_en, planet_ta, rasi_en, rasi_ta
 from app.calculations.doctrine_options import DEFAULT_DOCTRINE, LONGITUDE_EPSILON, DoctrineOptions
 from app.calculations.neecha_bhanga import evaluate_neecha_bhanga
@@ -292,6 +299,17 @@ def detect_sevvai_dosham(
                 cancellation_factors.append("house_sign_nivarthi")
             mitigation_score += 1
 
+    # C2 (`ai_review_2026_11_10`, DOCTRINE §19): Mars in Simmam or Kumbam is a
+    # nivarthi sign for every Sevvai house. It reduces, like the table's rows.
+    # Overturns §18 Q6's "no floating Simmam and Kumbam exemption".
+    if (
+        doctrine.sevvai_simha_kumbha_nivarthi
+        and mars_rasi in _SEVVAI_SIMHA_KUMBHA
+        and any(house_num in sevvai_houses for house_num in house_hits.values())
+    ):
+        cancellation_factors.append("mars_in_simha_kumbha")
+        mitigation_score += 1
+
     jupiter_rasi = _planet_rasi(planets, "JUPITER")
     if aspects_house("JUPITER", jupiter_rasi, mars_rasi):
         cancellation_factors.append("jupiter_aspect_on_mars")
@@ -302,6 +320,19 @@ def detect_sevvai_dosham(
         # this is not one of them.
         cancellation_factors.append("jupiter_conjunct_mars")
         mitigation_score += 1
+
+    # C4 (`ai_review_2026_11_10`): a strong Guru joining or aspecting Mars is
+    # நிவர்த்தி. One chart: the lowest grade, with a note. Two charts: no
+    # mismatch. Overturns §8's two-cancellations rule and O-18 for this case;
+    # `sevvai_strong_guru="reduces"` restores them (the factors above only).
+    strong_guru_nivarthi = (
+        doctrine.sevvai_strong_guru == "nivarthi"
+        and "JUPITER" in planets
+        and (jupiter_rasi == mars_rasi or aspects_house("JUPITER", jupiter_rasi, mars_rasi))
+        and _guru_is_strong(jupiter_rasi, combust_planets)
+    )
+    if strong_guru_nivarthi:
+        cancellation_factors.append("strong_guru_on_mars")
 
     for benefic in SEVVAI_BENEFIC_REDUCERS - {"JUPITER"}:
         if benefic in planets and _planet_rasi(planets, benefic) == mars_rasi:
@@ -404,7 +435,7 @@ def detect_sevvai_dosham(
     is_present = lagna_hit and not exempt_lagna
     # §8: only a two-chart reading can cancel; one or more reduction factors
     # is "present, reduced", one grade lower. (Q8 had required two.)
-    is_cancelled = is_present and two_chart_reading and major_cancellation
+    is_cancelled = is_present and two_chart_reading and (major_cancellation or strong_guru_nivarthi)
     reduced = softened_by_exception or mitigation_score >= 1
     grades = ("WEAK", "PARTIAL", "STRONG")
     # The AAU-13 tier is the base grade. As before, reductions take it one grade
@@ -412,7 +443,7 @@ def detect_sevvai_dosham(
     # lifts it one grade up. DD-17: the formation grade is the tier with its
     # aggravations, before any mitigation softens it.
     formation_strength = grades[min(2, corroborators + aggravation_count)] if is_present else ""
-    if not is_present or is_cancelled:
+    if not is_present or is_cancelled or strong_guru_nivarthi:
         strength = "WEAK"
     else:
         rank = max(0, corroborators - (1 if reduced else 0))
@@ -447,6 +478,12 @@ def detect_sevvai_dosham(
     # does, approved in both languages. Attached without counting (DD-17).
     if "mars_debilitated_in_dosha_house" in cancellation_factors:
         context_notes_list.append("sevvai_mars_debility_modifies")
+    if is_present and strong_guru_nivarthi and not is_cancelled:
+        context_notes_list.append("sevvai_strong_guru_nivarthi")
+    # C3 (`ai_review_2026_11_10`): five houses of twelve is about 42% of charts,
+    # so a mild grade says it is common.
+    if is_present and not is_cancelled and strength == "WEAK":
+        context_notes_list.append("sevvai_mild_is_common")
     # Owner ruling 2026-10-30 (V1 §18, B): where Ruchaka forms on the same Mars,
     # both verdicts stand at full weight (O-18: strength never cancels) and the
     # card says why, so a reader never sees two unexplained opposite verdicts.
@@ -908,7 +945,14 @@ def detect_pitru_dosham(
     active_lords: Iterable[str] | None = None,
 ) -> DoshamResult:
     active = set(active_lords or ())
-    missing_data = [planet for planet in ("SUN", "SATURN", "RAHU", "KETU", "JUPITER") if planet not in planets]
+    # FAA-27: the 9th lord is read below, so it is required data too. It used to
+    # sit outside this guard, and a chart missing it (e.g. Mercury for a Rishabam
+    # lagna) raised instead of returning INCOMPLETE_DATA.
+    ninth_lord = _house_lord(lagna_rasi, 9)
+    required: tuple[str, ...] = ("SUN", "SATURN", "RAHU", "KETU", "JUPITER")
+    if ninth_lord not in required:
+        required = (*required, ninth_lord)
+    missing_data = [planet for planet in required if planet not in planets]
     if missing_data:
         what_ta, what_en, why_ta, why_en, how_ta, how_en = _build_dosham_explanations(
             "PITRU_DOSHAM",
@@ -928,8 +972,8 @@ def detect_pitru_dosham(
             cancellation_factors=[],
             missing_data=missing_data,
             dasha_activated=False,
-            description_ta="பித்ரு தோஷம் பகுப்பாய்விற்கு சூரியன், சனி, ராகு, கேது, குரு நிலைகள் தேவை.",
-            description_en="Pitru dosham analysis needs Sun, Saturn, Rahu, Ketu, and Jupiter placements.",
+            description_ta="பித்ரு தோஷம் பகுப்பாய்விற்கு சூரியன், சனி, ராகு, கேது, குரு, 9ஆம் அதிபதி நிலைகள் தேவை.",
+            description_en="Pitru dosham analysis needs Sun, Saturn, Rahu, Ketu, Jupiter and 9th-lord placements.",
             explanation_what_ta=what_ta,
             explanation_what_en=what_en,
             explanation_why_ta=why_ta,
@@ -943,7 +987,6 @@ def detect_pitru_dosham(
     rahu_rasi = _planet_rasi(planets, "RAHU")
     ketu_rasi = _planet_rasi(planets, "KETU")
     jupiter_rasi = _planet_rasi(planets, "JUPITER")
-    ninth_lord = _house_lord(lagna_rasi, 9)
     ninth_lord_rasi = _planet_rasi(planets, ninth_lord)
 
     ninth_house_rasi = ((lagna_rasi + 9 - 2) % 12) + 1
@@ -1541,6 +1584,7 @@ def _putra_sarpa_meaning(
     beside_guru: list[str],
     lord_strong: bool,
     jupiter_house: int | None,
+    jupiter_by_link: bool = False,
 ) -> tuple[str, str]:
     """The chart's own reading (DD-17 "In your chart"), Tamil and English.
 
@@ -1569,7 +1613,10 @@ def _putra_sarpa_meaning(
         # planet on both sides — say so rather than naming it twice.
         guard_ta.append("அந்த அதிபதி வலுவாக இருப்பது" if beside_lord else f"அதன் அதிபதி {lord_ta} வலுவாக இருப்பது")
         guard_en.append("the strength of that lord" if beside_lord else f"the strength of its own lord, {lord_en}")
-    if jupiter_house is not None:
+    if jupiter_house is not None and jupiter_by_link:
+        guard_ta.append(f"புத்திர காரகனான குரு உங்கள் {jupiter_house}-ஆம் வீட்டிலிருந்து 5-ஆம் வீட்டுடன் தொடர்புகொண்டிருப்பது")
+        guard_en.append(f"Jupiter, the karaka for children, in your {_ordinal_en(jupiter_house)} house and linked to the 5th")
+    elif jupiter_house is not None:
         guard_ta.append(f"புத்திர காரகனான குரு உங்கள் {jupiter_house}-ஆம் வீட்டில் (கேந்திரம்) இருப்பது")
         guard_en.append(f"Jupiter, the karaka for children, in your {_ordinal_en(jupiter_house)} house (a kendra)")
 
@@ -1593,12 +1640,126 @@ def _putra_sarpa_meaning(
     )
 
 
+# C2 (`ai_review_2026_11_10`): Simmam and Kumbam, nivarthi for every Sevvai house.
+_SEVVAI_SIMHA_KUMBHA = frozenset({5, 11})
+
+
+def _guru_is_strong(jupiter_rasi: int, combust_planets: Collection[str]) -> bool:
+    """C4 (`ai_review_2026_11_10`): own, exaltation or friendly sign; not
+    combust; not debilitated."""
+    if jupiter_rasi == DEBILITATION_RASI["JUPITER"] or "JUPITER" in combust_planets:
+        return False
+    return (
+        jupiter_rasi in OWN_SIGN_RASI["JUPITER"]
+        or jupiter_rasi == EXALTATION_RASI["JUPITER"]
+        or natural_relationship("JUPITER", SIGN_LORD[jupiter_rasi]) == REL_FRIEND
+    )
+
+
+# ── Children's doshams: what protects the 5th, and what "beside" weighs ──────
+#
+# `ai_review_2026_11_10` (DOCTRINE_DECISIONS_V1 §19; B6, B7, B9 of
+# docs/ASTROLOGER_MASTER_SHEET_RESPONSE_2026-11-10.md). The §18 Q12 stand-ins
+# (a score of 65; Jupiter in a kendra) stay behind
+# `children_protection_definition="stand_in"`. A protection that cannot be
+# proven (no navamsa map) lowers nothing: the fail-safe is the unreduced grade.
+
+
+def _children_fifth_lord_strong(
+    fifth_lord: str,
+    planets: Mapping[str, int],
+    lagna_rasi: int,
+    planet_scores: Mapping[str, int],
+    *,
+    afflictors: Collection[str],
+    combust_planets: Collection[str],
+    d9_rasi_map: Mapping[str, int] | None,
+    doctrine: DoctrineOptions,
+) -> bool:
+    if doctrine.children_protection_definition == "stand_in":
+        return planet_scores.get(fifth_lord, 50) >= 65
+    rasi = planets.get(fifth_lord)
+    if rasi is None or d9_rasi_map is None:
+        return False
+    if house_from_reference(lagna_rasi, rasi) not in KENDRA_HOUSES | TRIKONA_HOUSES:
+        return False
+    dignified = (
+        rasi in OWN_SIGN_RASI.get(fifth_lord, frozenset())
+        or rasi == EXALTATION_RASI.get(fifth_lord)
+        or natural_relationship(fifth_lord, SIGN_LORD[rasi]) == REL_FRIEND
+    )
+    if not dignified or fifth_lord in combust_planets:
+        return False
+    if d9_rasi_map.get(fifth_lord) == DEBILITATION_RASI.get(fifth_lord):
+        return False
+    # Joined by the dosham's own planet: affliction wins, no lowering.
+    return not any(p != fifth_lord and planets.get(p) == rasi for p in afflictors)
+
+
+def _children_protecting_jupiter_house(
+    planets: Mapping[str, int],
+    lagna_rasi: int,
+    fifth_house_rasi: int,
+    fifth_lord: str,
+    *,
+    doctrine: DoctrineOptions,
+) -> int | None:
+    """The house of a Jupiter that protects the 5th, or None."""
+    jupiter = planets.get("JUPITER")
+    if jupiter is None:
+        return None
+    house = house_from_reference(lagna_rasi, jupiter)
+    if doctrine.children_protection_definition == "stand_in":
+        return house if house in KENDRA_HOUSES else None
+    lord_rasi = planets.get(fifth_lord)
+    linked = (
+        fifth_lord == "JUPITER"
+        or jupiter == fifth_house_rasi
+        or aspects_house("JUPITER", jupiter, fifth_house_rasi)
+        or (lord_rasi is not None and (jupiter == lord_rasi or aspects_house("JUPITER", jupiter, lord_rasi)))
+    )
+    afflicted = jupiter == DEBILITATION_RASI["JUPITER"] or any(
+        planets.get(p) == jupiter for p in ("RAHU", "KETU", "SATURN", "MARS")
+    )
+    if not linked or afflicted:
+        return None
+    # காரகோ பாவ நாசாய: the karaka in its own house protects only when dignified.
+    if jupiter == fifth_house_rasi and not (
+        jupiter in OWN_SIGN_RASI["JUPITER"] or jupiter == EXALTATION_RASI["JUPITER"]
+    ):
+        return None
+    return house
+
+
+def _jupiter_guard_marker(house: int, doctrine: DoctrineOptions) -> str:
+    if doctrine.children_protection_definition == "stand_in":
+        return f"jupiter_in_kendra_house_{house}"
+    return f"jupiter_guards_fifth_from_house_{house}"
+
+
+def _beside_weight(
+    node: str, other: str, longitudes: Mapping[str, float] | None, doctrine: DoctrineOptions
+) -> float:
+    """A node already in `other`'s sign: a full leg within the orb, half beyond.
+
+    Without longitudes the same sign carries a full leg, as before 2026-11-10.
+    """
+    orb = doctrine.node_beside_full_weight_orb
+    if orb <= 0 or not longitudes or node not in longitudes or other not in longitudes:
+        return 1.0
+    distance = abs((longitudes[node] - longitudes[other] + 180.0) % 360.0 - 180.0)
+    return 1.0 if distance <= orb + LONGITUDE_EPSILON else 0.5
+
+
 def detect_putra_sarpa_dosham(
     planets: dict[str, int],
     lagna_rasi: int,
     planet_scores: dict[str, int],
     *,
     doctrine: DoctrineOptions = DEFAULT_DOCTRINE,
+    combust_planets: Collection[str] = (),
+    d9_rasi_map: Mapping[str, int] | None = None,
+    longitudes: Mapping[str, float] | None = None,
 ) -> DoshamResult:
     """புத்ர சர்ப்ப தோஷம். Owner ruling 2026-10-30 (DOCTRINE_DECISIONS_V1 §18, Q7-Q9): the
     Sevvai grammar, anchored on the 5th house.
@@ -1613,9 +1774,16 @@ def detect_putra_sarpa_dosham(
         legs, no node in the 5th     watch-note only; no dosham, no parihara
 
     A weak D7 is not a leg: no text defines it, so it would be an engine
-    inference (Q11, ruling C). A protecting Jupiter (in a kendra, not itself
-    joined by a node) or a strong 5th lord lowers the grade by one and never
-    cancels. Nodes only (AAU-12); Saturn is `detect_santhana_thadai`.
+    inference (Q11, ruling C). A protecting Jupiter or a strong 5th lord lowers
+    the grade by one and never cancels. Nodes only (AAU-12); Saturn is
+    `detect_santhana_thadai`.
+
+    `ai_review_2026_11_10` (DOCTRINE §19), each behind its own option:
+    B1 `ps_node_alone`: the node alone, with no whole leg, is a கவனம் note
+    (`putra_sarpa_node_alone_watch`), not a mild dosham. B9
+    `node_beside_full_weight_orb`: a leg beyond 10° weighs half, and the grade
+    counts whole legs. B6/B7 `children_protection_definition`: see
+    `_children_fifth_lord_strong` and `_children_protecting_jupiter_house`.
     """
     nodes = _PUTRA_SARPA_AFFLICTORS
     fifth_lord = _house_lord(lagna_rasi, 5)
@@ -1649,8 +1817,16 @@ def detect_putra_sarpa_dosham(
     else:
         beside_guru = [p for p in with_guru if p == "RAHU"]
         guru_ketu_noted = "KETU" in with_guru
-    legs = int(bool(beside_lord)) + int(bool(beside_guru))
-    declared = bool(in_house)
+    # B9 (`ai_review_2026_11_10`): a leg beyond the orb weighs half. The grade
+    # takes whole legs, so one wide leg alone does not raise it.
+    lord_weight = max((_beside_weight(p, fifth_lord, longitudes, doctrine) for p in beside_lord), default=0.0)
+    guru_weight = max((_beside_weight(p, "JUPITER", longitudes, doctrine) for p in beside_guru), default=0.0)
+    legs = int(lord_weight + guru_weight)
+    any_leg = bool(beside_lord or beside_guru)
+    # B1 (`ai_review_2026_11_10`): a node alone in the 5th is a கவனம் note,
+    # not a dosham; "dosham" is said from confirmed upward.
+    node_alone_watch = bool(in_house) and legs == 0 and doctrine.ps_node_alone == "watch"
+    declared = bool(in_house) and not node_alone_watch
 
     conditions_met: list[str] = (
         [f"fifth_house_has_{p.lower()}" for p in in_house]
@@ -1658,18 +1834,20 @@ def detect_putra_sarpa_dosham(
         + [f"jupiter_joined_by_{p.lower()}" for p in beside_guru]
     )
 
-    lord_strong = planet_scores.get(fifth_lord, 50) >= 65
-    jupiter_house = house_from_reference(lagna_rasi, jupiter_rasi) if jupiter_rasi is not None else None
-    # Q12 (V1 §18): both protections are `engine_inference`, pending_definition.
-    # The kendra test is a positional stand-in for a relational question
-    # (strength, relevance to the 5th, affliction); it stays at its shipped
-    # behaviour so no live grade rises, and is not to be frozen.
-    protecting_jupiter_house = jupiter_house if jupiter_house in KENDRA_HOUSES else None
+    lord_strong = _children_fifth_lord_strong(
+        fifth_lord, planets, lagna_rasi, planet_scores,
+        afflictors=nodes, combust_planets=combust_planets, d9_rasi_map=d9_rasi_map, doctrine=doctrine,
+    )
+    # Q12 (V1 §18) stand-ins, replaced by B6/B7 unless
+    # `children_protection_definition="stand_in"`.
+    protecting_jupiter_house = _children_protecting_jupiter_house(
+        planets, lagna_rasi, fifth_house_rasi, fifth_lord, doctrine=doctrine,
+    )
     reducers: list[str] = []
     if declared and lord_strong:
         reducers.append(f"fifth_lord_{fifth_lord.lower()}_strong")
     if declared and protecting_jupiter_house is not None:
-        reducers.append(f"jupiter_in_kendra_house_{protecting_jupiter_house}")
+        reducers.append(_jupiter_guard_marker(protecting_jupiter_house, doctrine))
 
     grades = ("WEAK", "PARTIAL", "STRONG")
     formation_strength = grades[min(2, legs)] if declared else ""
@@ -1687,9 +1865,11 @@ def detect_putra_sarpa_dosham(
         formation_strength=formation_strength,
         narrow_margin=False,
     )
-    watch_only = not declared and (legs > 0 or guru_ketu_noted)
+    watch_only = not declared and (any_leg or guru_ketu_noted or node_alone_watch)
     notes: list[str] = []
-    if watch_only:
+    if node_alone_watch:
+        notes.append("putra_sarpa_node_alone_watch")
+    elif watch_only:
         notes.append("putra_sarpa_watch_only")
     if guru_ketu_noted:
         notes.append("putra_sarpa_guru_ketu_noted")
@@ -1714,6 +1894,7 @@ def detect_putra_sarpa_dosham(
         beside_guru=beside_guru,
         lord_strong=lord_strong,
         jupiter_house=protecting_jupiter_house,
+        jupiter_by_link=doctrine.children_protection_definition != "stand_in",
     ) if declared else ("", "")
     return DoshamResult(
         name="PUTRA_SARPA_DOSHAM",
@@ -1754,6 +1935,8 @@ def detect_santhana_thadai(
     planet_scores: dict[str, int],
     *,
     doctrine: DoctrineOptions = DEFAULT_DOCTRINE,
+    combust_planets: Collection[str] = (),
+    d9_rasi_map: Mapping[str, int] | None = None,
 ) -> DoshamResult:
     """புத்திர தடை (Santhana Thadai): Saturn in the 5th or beside its lord.
 
@@ -1769,6 +1952,8 @@ def detect_santhana_thadai(
         name="SANTHANA_THADAI",
         afflictors=_SANTHANA_THADAI_AFFLICTORS,
         doctrine=doctrine,
+        combust_planets=combust_planets,
+        d9_rasi_map=d9_rasi_map,
         description_ta="புத்திர தடை — 5-ஆம் வீட்டில் அல்லது அதன் அதிபதியுடன் சனி இருப்பதால் குழந்தைப்பேறில் தாமதம்.",
         description_en="Santhana Thadai — delay around children, from Saturn in the 5th house or beside its lord.",
     )
@@ -1784,6 +1969,8 @@ def _detect_fifth_house_affliction(
     doctrine: DoctrineOptions,
     description_ta: str,
     description_en: str,
+    combust_planets: Collection[str] = (),
+    d9_rasi_map: Mapping[str, int] | None = None,
 ) -> DoshamResult:
     fifth_lord = _house_lord(lagna_rasi, 5)
     fifth_rasi = planets.get(fifth_lord, lagna_rasi)
@@ -1826,9 +2013,14 @@ def _detect_fifth_house_affliction(
         + [f"fifth_lord_{fifth_lord.lower()}_joined_by_{p.lower()}" for p in beside_lord]
         + [f"jupiter_joined_by_{p.lower()}" for p in beside_guru]
     )
-    lord_strong = planet_scores.get(fifth_lord, 50) >= 65
-    jupiter_house = house_from_reference(lagna_rasi, planets["JUPITER"]) if "JUPITER" in planets else None
-    jupiter_kendra_house = jupiter_house if jupiter_house in KENDRA_HOUSES else None
+    # B6/B7 (`ai_review_2026_11_10`), or the §18 Q12 stand-ins.
+    lord_strong = _children_fifth_lord_strong(
+        fifth_lord, planets, lagna_rasi, planet_scores,
+        afflictors=afflictors, combust_planets=combust_planets, d9_rasi_map=d9_rasi_map, doctrine=doctrine,
+    )
+    jupiter_kendra_house = _children_protecting_jupiter_house(
+        planets, lagna_rasi, fifth_house_rasi, fifth_lord, doctrine=doctrine,
+    )
     # Each marker names its planet or house, so the card can say *which* lord
     # is strong and *where* Jupiter stands (was `strong_fifth_lord` /
     # `jupiter_kendra`; their labels stay in the web panel for older payloads).
@@ -1838,7 +2030,7 @@ def _detect_fifth_house_affliction(
     if present and lord_strong:
         cancellation.append(f"fifth_lord_{fifth_lord.lower()}_strong")
     if present and jupiter_kendra_house is not None:
-        cancellation.append(f"jupiter_in_kendra_house_{jupiter_kendra_house}")
+        cancellation.append(_jupiter_guard_marker(jupiter_kendra_house, doctrine))
     # O-32 neutralized and nothing else formed it: "formation detected,
     # neutralized" — the placement and its reason, with is_present False.
     neutralized = sani_neutralized and not present
@@ -1888,6 +2080,7 @@ def _detect_fifth_house_affliction(
         beside_guru=beside_guru,
         lord_strong=lord_strong,
         jupiter_house=jupiter_kendra_house,
+        jupiter_by_link=doctrine.children_protection_definition != "stand_in",
     ) if present else ("", "")
     if neutralized:
         why_ta = (

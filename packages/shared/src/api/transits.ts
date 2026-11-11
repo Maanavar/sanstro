@@ -49,7 +49,9 @@ export const ASHTAMA_SANI_FROM_MOON: readonly number[] = [8];
 // Rahu / Ketu (AAU-09, ruled 2026-10-29): the standard Tamil panchangam table.
 // Rahu favours 3/6/10/11, Ketu 3/6/11; every other house needs care. The nodes
 // sit 180° apart and are graded separately, never as one "node" set.
-export const RAHU_SUPPORTIVE_FROM_MOON: readonly number[] = [3, 6, 10, 11];
+// D3 (ai_review_2026_11_10, DOCTRINE §19): Rahu 3/6/11; the 10th is MIXED.
+export const RAHU_SUPPORTIVE_FROM_MOON: readonly number[] = [3, 6, 11];
+export const RAHU_MIXED_FROM_MOON: readonly number[] = [10];
 export const RAHU_NEEDS_CARE_FROM_MOON: readonly number[] = [1, 2, 4, 5, 7, 8, 9, 12];
 export const KETU_SUPPORTIVE_FROM_MOON: readonly number[] = [3, 6, 11];
 export const KETU_NEEDS_CARE_FROM_MOON: readonly number[] = [1, 2, 4, 5, 7, 8, 9, 10, 12];
@@ -69,7 +71,8 @@ export function gocharaGrade(planet: string, houseFromMoon: number): GocharaGrad
     return SANI_SUPPORTIVE_FROM_MOON.includes(houseFromMoon) ? "SUPPORTIVE" : "NEEDS_CARE";
   }
   if (key === "RAHU") {
-    return RAHU_SUPPORTIVE_FROM_MOON.includes(houseFromMoon) ? "SUPPORTIVE" : "NEEDS_CARE";
+    if (RAHU_SUPPORTIVE_FROM_MOON.includes(houseFromMoon)) return "SUPPORTIVE";
+    return RAHU_MIXED_FROM_MOON.includes(houseFromMoon) ? "MIXED" : "NEEDS_CARE";
   }
   if (key === "KETU") {
     return KETU_SUPPORTIVE_FROM_MOON.includes(houseFromMoon) ? "SUPPORTIVE" : "NEEDS_CARE";

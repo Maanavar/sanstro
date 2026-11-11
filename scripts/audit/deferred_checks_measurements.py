@@ -166,6 +166,16 @@ def sandhi(n: int = 10_000, seed: int = 7) -> None:
                       for a, b, w in couples)
             cells.append(pct(hit, n))
         print(f"  {horizon} y       {cells[0]}     {cells[1]}")
+    # OWNER-Q-D1 (spec §0.4): the primary measure is the change-point gap,
+    # < 6 months "close", 6-12 months "near". A couple's band is its closest pair.
+    print("  OWNER-Q-D1 bands (change-point gap)")
+    print("  horizon   < 6 mo     6-12 mo    either")
+    for horizon in (5, 10):
+        lt6 = lt12 = 0
+        for a, b, w in couples:
+            lt6 += couple_transitions_within(a, b, from_jd=w, horizon_years=horizon, tolerance_days=months_to_days(6)).flagged
+            lt12 += couple_transitions_within(a, b, from_jd=w, horizon_years=horizon, tolerance_days=months_to_days(12)).flagged
+        print(f"  {horizon:2} y      {pct(lt6, n)}     {pct(lt12 - lt6, n)}     {pct(lt12, n)}")
     print("  Window rule: the two partners' sandhi windows overlap inside the horizon")
     print("  horizon   " + "   ".join(f"{o:13}" for o in SANDHI_OPTIONS))
     for horizon in (5, 7):

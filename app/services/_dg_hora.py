@@ -34,8 +34,9 @@ _HORA_LORD_NAME: dict[str, tuple[str, str]] = {
 }
 
 # A recommendation shorter than this is not actionable — you cannot start and
-# finish anything inside a 6-minute slice, and an intersection grid of 62-minute
-# horas against 93-minute kalas throws off slivers at every other boundary. Also
+# finish anything inside a 6-minute slice, and an intersection grid of 60-minute
+# horas (EC-RULING-03) against daylight/8 kalas (about 80-100 minutes) throws off
+# slivers at most boundaries. Also
 # the floor for *reporting* a collision: a 3-minute clip is not worth a warning.
 _MIN_ACTIONABLE_MINUTES = 15
 
@@ -151,10 +152,32 @@ def _supportive_sets(
     return set(), supportive
 
 
+def _day_horas(panchangam) -> list[tuple[str, datetime, datetime]]:
+    """The horas that run between sunrise and sunset, as (lord, start, end)
+    with the last one clipped at sunset.
+
+    The horai are equal 60-minute slots from sunrise (EC-RULING-03), so
+    "the first twelve" is the first twelve CLOCK hours, not the day: daylight
+    runs about 11–13 h in Tamil Nadu. Twelve slots dropped the 13th hora on a
+    long day and, on a short one, offered the 12th as a day window when it
+    ended after dark. Daytime is sunrise→sunset, read from the snapshot.
+
+    A snapshot with no ``sunset`` (a test double) keeps the old twelve.
+    """
+    sunset = getattr(panchangam, "sunset", None)
+    if not isinstance(sunset, datetime):
+        return [(entry.lord, entry.start, entry.end) for entry in panchangam.hora[:12]]
+    return [
+        (entry.lord, entry.start, min(entry.end, sunset))
+        for entry in panchangam.hora
+        if entry.start < sunset
+    ]
+
+
 def _day_gowri_kalas(panchangam) -> list:
     """The eight sunrise→sunset Gowri kalas, or [] when the snapshot predates
     them. Night kalas are excluded: the hora side of this intersection is
-    `panchangam.hora[:12]`, which is the daytime half."""
+    `_day_horas`, which is sunrise→sunset too."""
     slots = getattr(panchangam, "gowri_panchangam", None) or []
     return [
         slot for slot in slots
@@ -203,11 +226,15 @@ def _perfect_windows(
     to consult only two of them:
 
       * Gowri kalas — daylight/8, each named good or bad by the weekday table
-      * horas       — daylight/12, each ruled by a graha that is personal,
+      * horas       — the panchangam's equal 60-minute horai from sunrise
+                      (EC-RULING-03; FAA-41), those between sunrise
+                      and sunset (`_day_horas`),
+                      each ruled by a graha that is personal,
                       benefic, or malefic *for this chart*
       * the three kalams — Rahu Kalam, Yamagandam, Kuligai
 
-    62 and 93 minutes share no boundary but sunrise, so the grids interleave and
+    A 60-minute hora and a daylight/8 kala rarely share a boundary after
+    sunrise, so the grids interleave and
     a whole hora is almost never uniformly good. Recommending one wholesale is
     how the hero came to headline 1:27–2:29 pm as "good for important tasks"
     while the panchangam page marked 1:58 pm onward as Rogam — the same app
@@ -238,15 +265,15 @@ def _perfect_windows(
     windows: list[tuple[tuple, DailyGuidanceWindow]] = []
     conflicts: list[tuple[tuple, DailyGuidanceWindowConflict]] = []
 
-    for entry in panchangam.hora[:12]:
-        lord = _normalize_graha_name(_money_hora_name(entry.lord))
+    for hora_lord, hora_start, hora_end in _day_horas(panchangam):
+        lord = _normalize_graha_name(_money_hora_name(hora_lord))
         is_personal = lord in priority_lords
         is_supportive = lord in supportive_lords
         is_malefic = lord in _MALEFIC_HORA_LORDS
 
         for kala in kalas:
-            start = max(entry.start, kala.start)
-            end = min(entry.end, kala.end)
+            start = max(hora_start, kala.start)
+            end = min(hora_end, kala.end)
             if _minutes(start, end) < _MIN_ACTIONABLE_MINUTES:
                 continue
 
@@ -394,15 +421,19 @@ def _best_hours(
     def _clear(start: datetime, end: datetime) -> bool:
         return not any(_intervals_overlap(start, end, bs, be) for bs, be in bad)
 
-    for entry in panchangam.hora[:12]:
-        lord = _normalize_graha_name(_money_hora_name(entry.lord))
-        if lord in supportive_lords and _clear(entry.start, entry.end):
+    for hora_lord, hora_start, hora_end in _day_horas(panchangam):
+        lord = _normalize_graha_name(_money_hora_name(hora_lord))
+        # A hora clipped at sunset to a sliver is not a window (same floor
+        # as the intersection path).
+        if _minutes(hora_start, hora_end) < _MIN_ACTIONABLE_MINUTES:
+            continue
+        if lord in supportive_lords and _clear(hora_start, hora_end):
             tag = "PERSONAL_HORA" if lord in priority_lords else "HORA"
             windows.append(
                 DailyGuidanceWindow(
                     type=f"{lord}_{tag}",
-                    start=_hm(entry.start),
-                    end=_hm(entry.end),
+                    start=_hm(hora_start),
+                    end=_hm(hora_end),
                     horaLord=lord,
                     isPersonal=lord in priority_lords,
                 )

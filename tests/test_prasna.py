@@ -10,6 +10,7 @@ def test_cast_prasna_chart_returns_required_fields():
         latitude=13.0827,
         longitude=80.2707,
         question_area="MARRIAGE",
+        querent_gender="male",  # FAA-16: the karaka follows stated gender
     )
     assert 1 <= out["prasna_lagna_rasi"] <= 12
     assert 1 <= out["moon_rasi"] <= 12

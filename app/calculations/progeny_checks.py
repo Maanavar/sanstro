@@ -18,10 +18,11 @@ so they sit at the `engine_inference` tier. The rule for that tier is that they
 
 * The D7 lagna moves one sign for every 4.29° of the rising degree, roughly
   every 17 minutes of birth time. The D7 house checks are marked unreliable when
-  the stated birth-time uncertainty is over 2 minutes (the same cut-off as
-  `vargaReliability`), or when birth time +/-2 minutes would give a different
-  D7 lagna. Since 2026-11-09 that second test uses the real ephemeris: the
-  caller passes the lagna at birth time -2 and +2 minutes (`lagna_bracket`),
+  the stated birth-time uncertainty is over N minutes, or when birth time +/-N
+  minutes would give a different D7 lagna (N = `BIRTH_TIME_TOLERANCE_MINUTES`,
+  5 since 2026-11-10; it was 2, the `vargaReliability` cut-off). Since
+  2026-11-09 that second test uses the real ephemeris: the caller passes the
+  lagna at birth time -N and +N minutes (`lagna_bracket`),
   which is exact for the place and the sign. The rising rate varies roughly
   3-6 min/deg with sign and latitude, so the old "4 minutes a degree" average
   marked fast-rising charts reliable when two minutes could still move them.
@@ -51,14 +52,34 @@ D7_SPAN_DEG = 30.0 / 7.0
 #: An average, so the margin it gives is approximate, and is said to be.
 MINUTES_PER_LAGNA_DEGREE = 4.0
 #: Under this many minutes from a D7 boundary, the D7 lagna is time-sensitive.
-#: Equal to the birth-time tolerance below: a time good to +/-2 minutes cannot
-#: move a lagna that is more than 2 minutes from a boundary. (Was 5, which on a
-#: ~17-minute part withheld the verdict on about 10/17 = 58% of charts; at 2 it
-#: is about 4/17 = 23%. See docs/DEFERRED_ASTROLOGY_CHECKS_BUILD_PLAN, item 0.)
-D7_MARGIN_MINUTES = 2.0
-#: Over this many minutes of stated uncertainty, D7 houses are not reliable
-#: (the cut-off `_varga_reliability` uses for every high varga).
-BIRTH_TIME_TOLERANCE_MINUTES = 2
+#: Equal to the birth-time tolerance below: a time good to +/-N minutes cannot
+#: move a lagna that is more than N minutes from a boundary.
+#:
+#: **5 since 2026-11-10** (B4, `ai_review_2026_11_10`, DOCTRINE §19: "recorded
+#: birth times are rarely good to 2"). On a ~17-minute part that withholds the
+#: D7 verdict on about 10/17 = 58% of charts; at 2 it was about 4/17 = 23%
+#: (docs/DEFERRED_ASTROLOGY_CHECKS_BUILD_PLAN, item 0). The D7 changes no
+#: grade, so withholding more often only says less. Set both back to 2 to revert.
+D7_MARGIN_MINUTES = 5.0
+#: Over this many minutes of stated uncertainty, D7 houses are not reliable.
+#: (`_varga_reliability` keeps its own 2-minute cut-off for the other vargas.)
+BIRTH_TIME_TOLERANCE_MINUTES = 5
+#: B3 (`ai_review_2026_11_10`, DOCTRINE §19): "the D7 confirms; it never
+#: declares". A SUPPORTS verdict (the D7 5th clean, its lord out of 6/8/12,
+#: Jupiter supporting it free of the nodes) lowers a formed dosham one grade.
+#: REPEATS and STRAINED block that lowering and never raise; MIXED and
+#: UNCERTAIN do nothing. False restores Q18: the D7 describes, never grades.
+D7_LOWERS_A_SUPPORTED_GRADE = True
+_GRADES = ("WEAK", "PARTIAL", "STRONG")
+
+
+def d7_lowered_strength(strength: str, verdict: str) -> str | None:
+    """The strength after the D7, or None when the D7 does not move it."""
+    if not D7_LOWERS_A_SUPPORTED_GRADE or verdict != "SUPPORTS" or strength not in _GRADES[1:]:
+        return None
+    return _GRADES[_GRADES.index(strength) - 1]
+
+
 #: How far ahead the dasa windows look, and how many are returned.
 HORIZON_YEARS = 20
 MAX_WINDOWS = 6
@@ -234,13 +255,40 @@ def check_d7(
     )
 
 
+#: B5 (`ai_review_2026_11_10`, DOCTRINE §19). "ai_review": the periods that
+#: bring the dosham into effect are the afflictor's (the node in the 5th, or
+#: Saturn for thadai), any planet joined to it in the 5th, and the 5th lord;
+#: Jupiter alone is supportive. The bhukti is enough, and the dasa times the
+#: dosham, never grades it. "q13" restores 11-09: the afflictor felt, Jupiter
+#: and the 5th lord supportive.
+DASA_PERIODS = "ai_review"
+
+
+def _felt_lords(
+    lagna_rasi: int, afflictors: tuple[str, ...], planet_rasis: Mapping[str, int] | None
+) -> tuple[str, ...]:
+    if DASA_PERIODS != "ai_review":
+        return afflictors
+    fifth_rasi = ((lagna_rasi + 5 - 2) % 12) + 1
+    lords = list(afflictors)
+    if planet_rasis:
+        in_fifth = {planet_rasis.get(p) for p in afflictors} & {fifth_rasi}
+        lords += [p for p, r in planet_rasis.items() if in_fifth and r == fifth_rasi and p in _GRAHAS]
+    lords.append(SIGN_LORD[fifth_rasi])
+    return tuple(dict.fromkeys(lords))
+
+
+_GRAHAS = frozenset({"SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN", "RAHU", "KETU"})
+
+
 def _supporting_lords(lagna_rasi: int, afflictors: tuple[str, ...], conditions_met: Iterable[str]) -> tuple[str, ...]:
     """Jupiter and the 5th lord, unless the dosham itself joins a node or
     Saturn to them: a planet carrying the afflictor gives mixed results."""
     fifth_lord = SIGN_LORD[((lagna_rasi + 5 - 2) % 12) + 1]
     joined = " ".join(conditions_met)
     lords: list[str] = []
-    for planet in ("JUPITER", fifth_lord):
+    candidates = ("JUPITER",) if DASA_PERIODS == "ai_review" else ("JUPITER", fifth_lord)
+    for planet in candidates:
         if planet in afflictors or planet in lords:
             continue
         if planet == "JUPITER" and "jupiter_joined_by_" in joined:
@@ -271,9 +319,11 @@ def check_dasha(
     conditions_met: Iterable[str],
     birth_date: date,
     as_of: date,
+    planet_rasis: Mapping[str, int] | None = None,
 ) -> DashaCheck:
     conditions = tuple(conditions_met)
     supporting = _supporting_lords(lagna_rasi, afflictors, conditions)
+    afflictors = _felt_lords(lagna_rasi, afflictors, planet_rasis)
     horizon = date(as_of.year + HORIZON_YEARS, as_of.month, min(as_of.day, 28))
     age = as_of.year - birth_date.year - ((as_of.month, as_of.day) < (birth_date.month, birth_date.day))
     age_band = "UNDER_18" if age < 18 else ("PAST" if age >= CHILDBEARING_AGE_LIMIT else "CHILDBEARING")
@@ -349,5 +399,6 @@ def check_progeny(
     dasha = check_dasha(
         mahadashas, lagna_rasi=lagna_rasi, afflictors=afflictors,
         conditions_met=conditions, birth_date=birth_date, as_of=as_of,
+        planet_rasis={p: int(lon // 30) % 12 + 1 for p, lon in longitudes.items()},
     )
     return ProgenyChecks(d7=d7, dasha=dasha)

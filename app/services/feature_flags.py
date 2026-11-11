@@ -56,6 +56,14 @@ def _defaults() -> dict[str, Any]:
         "enable_payments_checkout": True,
         # Guest (unsigned) chart and porutham tools on /public.
         "enable_guest_charts": True,
+        # Birth-time rectification: recommend a time and write it back.
+        # OFF since FAA-02 (docs/FULL_ASTRO_ACCURACY_AUDIT_2026-11-10.md): the
+        # score matched a lagna RASI number against an event's HOUSE list and
+        # never read the event date, so it carried no astrological evidence.
+        # Off = events are still captured and validated, but no candidate is
+        # ranked or recommended and /rectify/apply refuses with 409. Turn back
+        # on only once the multi-event replacement (FAA-02 step 2) is built.
+        "rectification_recommendation_enabled": False,
         # New accounts (password and Google). Existing users still sign in.
         "enable_signups": True,
         # ── Ask Vinaadi rails (spec L7). ────────────────────────────────────
@@ -362,6 +370,12 @@ def _defaults() -> dict[str, Any]:
         "doctrine_o32_putra_sarpa_thulam_sani": "neutralized", # | "ordinary" (owner ruling 2026-10-06)
         "doctrine_sevvai_house_set": "tamil_five",             # | "manglik_five" | "union_six" (ruled 2026-10-30)
         "doctrine_d6b_guru_ketu": "watch_note",                # | "leg" (D6b, not ruled; plan item 1)
+        # ai_review_2026_11_10 (DOCTRINE §19): B1, B6/B7, B9.
+        "doctrine_ps_node_alone": "watch",                     # | "mild" (§18 Q11)
+        "doctrine_children_protection_definition": "ai_review",  # | "stand_in" (§18 Q12)
+        "doctrine_node_beside_full_weight_orb": 10.0,          # 0 = same sign, full weight
+        "doctrine_sevvai_simha_kumbha_nivarthi": True,         # C2; False = §18 Q6
+        "doctrine_sevvai_strong_guru": "nivarthi",             # C4; | "reduces" (§8)
         "doctrine_moon_72_degree_convention": False,           # DD-12 legacy convention
         "doctrine_show_lakshmi_phaladeepika": False,           # DD-02 variant, consumer UI
     }

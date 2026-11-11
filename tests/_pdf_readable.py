@@ -61,19 +61,37 @@ def pdf_readable_text(blob: bytes) -> tuple[str, int]:
             inflated += 1
         except zlib.error:
             pass
-        index = end
+        # Past the whole keyword. `index = end` made the next find(b"stream")
+        # match the "stream" inside this "endstream", which paired the next
+        # real stream's data with garbage and skipped EVERY SECOND STREAM: on
+        # a two-page report only page 1 was ever examined (found 2026-11-11).
+        index = end + len(b"endstream")
     return "\n".join(parts), inflated
 
 
-def assert_probe_works(readable: str, inflated: int) -> None:
+def count_streams(blob: bytes) -> int:
+    """How many `stream ... endstream` objects the file holds, independently of
+    the scan above, so a caller can prove the probe read all of them."""
+    return blob.count(b"endstream")
+
+
+def assert_probe_works(readable: str, inflated: int, blob: bytes | None = None) -> None:
     """Fail unless the probe actually read the document.
 
-    Without this, every leak assertion built on it is vacuous.
+    Without this, every leak assertion built on it is vacuous. Pass `blob` to
+    also require that EVERY stream was inflated: `inflated > 0` alone passed
+    while the scan skipped every second stream (one page of two).
     """
     assert inflated > 0, (
         "the PDF probe inflated no streams, so it examined nothing -- "
         "any 'no leak' result from it is meaningless"
     )
+    if blob is not None:
+        total = count_streams(blob)
+        assert inflated == total, (
+            f"the PDF probe inflated {inflated} of {total} streams; the rest of "
+            "the document was never examined"
+        )
     missing = [n for n in _SELF_CHECK_NEEDLES if n not in readable]
     assert not missing, (
         f"the PDF probe could not find {missing!r}, which every report carries; "

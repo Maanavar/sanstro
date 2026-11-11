@@ -197,4 +197,6 @@ def build_shadbala_response(session: Session, chart_id: UUID) -> dict:
         "birthTimeKnown": birth_clock_hours is not None,
         "planets": planets_payload,
         "strongestFirst": ranking,
+        # FAA-08: kalaComponents.hora is the classical unequal hora.
+        "horaSystem": "CLASSICAL_UNEQUAL_DAY_NIGHT_TWELFTHS",
     }

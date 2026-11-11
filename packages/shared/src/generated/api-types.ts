@@ -585,6 +585,7 @@ export interface ShadbalaData {
   birthTimeKnown: boolean;
   planets: ShadbalaPlanet[];
   strongestFirst: string[];
+  horaSystem: string;
 }
 
 export interface ShadbalaPlanet {

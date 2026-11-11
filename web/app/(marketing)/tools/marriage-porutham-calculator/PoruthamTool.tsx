@@ -3,7 +3,7 @@
 import { LocalizedLink as Link } from "@/components/localized-link";
 import { useEffect, useState } from "react";
 import { useLang } from "@/components/lang-toggle";
-import { EkaNakshatraNoteCard, ShashtashtakaNoteCard } from "@/components/shashtashtaka-note";
+import { EkaNakshatraNoteCard, NadiSecondaryNote, ShashtashtakaNoteCard } from "@/components/shashtashtaka-note";
 import { romanNakshathiramName } from "@/lib/tamil-astro";
 import { readErrorMessage } from "@/lib/api";
 import { verdictPhrase } from "@/lib/verdict-lexicon";
@@ -56,7 +56,8 @@ const GANA_NAMES = ["தேவ", "மனுஷ்ய", "ராக்ஷஸ"];
 const GANA_NAMES_EN = ["Deva", "Manushya", "Rakshasa"];
 
 // Yoni: 0=Horse … 13=Lion
-const YONI = [0,1,2,3,3,4,5,2,5,6,6,7,8,9,8,9,10,10,4,11,12,11,13,0,13,7,1];
+// Uthiradam (index 20) is Cow per Kalaprakasika p.73 (owner ruling 2026-11-11), as on the server.
+const YONI = [0,1,2,3,3,4,5,2,5,6,6,7,8,9,8,9,10,10,4,11,7,11,13,0,13,7,1];
 const YONI_NAMES_TA = ["குதிரை","யானை","ஆடு","பாம்பு","நாய்","பூனை","எலி","பசு","எருமை","புலி","மான்","குரங்கு","கீரி","சிங்கம்"];
 const YONI_NAMES_EN = ["Horse","Elephant","Goat","Serpent","Dog","Cat","Rat","Cow","Buffalo","Tiger","Deer","Monkey","Mongoose","Lion"];
 
@@ -341,12 +342,12 @@ export function PoruthamTool() {
                             ? "2px solid var(--cl-sage)"
                             : criticalFail
                             ? "2px solid var(--cl-caution)"
-                            : c.nadiCaution
-                            ? "1px solid var(--cl-accent)"
                             : "1px solid var(--cl-border)",
                           background: scoreBg(c.totalScore, criticalFail),
                         }}>
-                        {(criticalFail || c.nadiCaution) && (
+                        {/* Nadi is a secondary note (2026-11-11): no ⚠ or
+                            border for it, only a muted word under the score. */}
+                        {criticalFail && (
                           <div style={{ position: "absolute", top: 2, left: 6, fontSize: 11 }}>⚠</div>
                         )}
                         <div style={{ position: "absolute", top: 4, right: 6, fontSize: 15, fontWeight: 800, color: scoreColor(c.totalScore, criticalFail) }}>
@@ -359,8 +360,8 @@ export function PoruthamTool() {
                           {c.totalScore}/10 · {verdictLabel(c.label, criticalFail, ta)}
                         </div>
                         {c.nadiCaution && !criticalFail && (
-                          <div style={{ fontSize: 9, color: "var(--cl-accent)", fontWeight: 600, marginTop: 2 }}>
-                            {ta ? "நாடி கவனம்" : "Nadi caution"}
+                          <div style={{ fontSize: 9, color: "var(--cl-muted)", marginTop: 2 }}>
+                            {ta ? "நாடி குறிப்பு" : "Nadi note"}
                           </div>
                         )}
                       </button>
@@ -449,6 +450,7 @@ export function PoruthamTool() {
 
                   {/* F-POR-03: same-star note, qualifying the Rajju result above it. */}
                   <EkaNakshatraNoteCard note={detailData.ekaNakshatra} lang={ta ? "ta" : "en"} />
+                  <EkaNakshatraNoteCard note={detailData.classicalException} lang={ta ? "ta" : "en"} />
                   {/* F-POR-02: a disclosure beside the verdict, never part of it. */}
                   <ShashtashtakaNoteCard note={detailData.shashtashtaka} lang={ta ? "ta" : "en"} />
                   {/* Plan item 3: a stars-only tool cannot count papa samyam,
@@ -457,12 +459,10 @@ export function PoruthamTool() {
                     {papaNotCheckedNote(ta ? "ta" : "en")}
                   </p>
 
+                  {/* Nadi: a secondary note, not one of the Tamil ten (2026-11-11). */}
                   {detailData.nadiDosha.hasNadiDosha && (
-                    <div style={{ background: "var(--cl-bg-2)", border: "1px solid var(--cl-border-2)", borderLeft: "4px solid var(--cl-accent)", borderRadius: "8px", padding: "10px 14px", marginBottom: "14px", fontSize: "12px", color: "var(--cl-ink-2)", lineHeight: 1.6 }}>
-                      <div style={{ fontWeight: 700, marginBottom: 4, color: "var(--cl-accent)" }}>
-                        {ta ? "நாடி தோஷம்" : "Nadi Dosha"}
-                      </div>
-                      {ta ? detailData.nadiDosha.noteTa : detailData.nadiDosha.noteEn}
+                    <div style={{ marginBottom: "14px" }}>
+                      <NadiSecondaryNote nadi={detailData.nadiDosha} lang={ta ? "ta" : "en"} />
                     </div>
                   )}
 
@@ -629,15 +629,13 @@ export function PoruthamTool() {
                               ...BASE_STAR_BTN,
                               border: criticalFail
                                 ? "2px solid var(--cl-caution)"
-                                : c.nadiCaution
-                                ? "1px solid var(--cl-accent)"
                                 : "1px solid var(--cl-border)",
                               background: scoreBg(c.totalScore, criticalFail),
                               display: "flex", justifyContent: "space-between", alignItems: "center", textAlign: "left", padding: "8px 10px",
                             }}>
                             <div>
                               <div style={{ fontWeight: 600, color: criticalFail ? "var(--cl-caution)" : "var(--cl-ink)", fontSize: 12 }}>
-                                {(criticalFail || c.nadiCaution) && "⚠ "}♂ {ta ? NAKSHATRAS[id].ta : starNameEn(id)}
+                                {criticalFail && "⚠ "}♂ {ta ? NAKSHATRAS[id].ta : starNameEn(id)}
                               </div>
                               {criticalFail && (
                                 <div style={{ fontSize: 9, color: "var(--cl-caution)", marginTop: 2 }}>
@@ -645,8 +643,8 @@ export function PoruthamTool() {
                                 </div>
                               )}
                               {c.nadiCaution && !criticalFail && (
-                                <div style={{ fontSize: 9, color: "var(--cl-accent)", marginTop: 2 }}>
-                                  {ta ? "நாடி கவனம்" : "Nadi caution"}
+                                <div style={{ fontSize: 9, color: "var(--cl-muted)", marginTop: 2 }}>
+                                  {ta ? "நாடி குறிப்பு" : "Nadi note"}
                                 </div>
                               )}
                             </div>

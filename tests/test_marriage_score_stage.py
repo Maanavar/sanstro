@@ -69,8 +69,11 @@ def _score(payload: svc.MarriageAssessmentInput, *, gate=None, married=False) ->
 def test_plain_score_has_named_outputs() -> None:
     result = _score(_payload())
 
-    # 57 since AAU-14 removed the age term (+6 at age 30).
-    assert result.score == 57
+    # 57 since AAU-14 removed the age term (+6 at age 30). 71 since 2026-11-11:
+    # FAA-19 (7th lord Venus in the 2nd now 0, was -8: +8) and FAA-16 (gender
+    # not given: Venus own sign at weight 0.75 = +8, was +10: -2; Guru own sign
+    # in Dhanus at 0.75 = +8).
+    assert result.score == 71
     assert result.dasha_support == "WEAK"
     assert result.transit_support == "WEAK"
     assert [factor.key for factor in result.factors] == [
@@ -78,6 +81,8 @@ def test_plain_score_has_named_outputs() -> None:
         "seventh_house_occupancy",
         "seventh_lord_placement",
         "venus_strength",
+        "jupiter_strength",
+        "gender_not_given",
         "second_lord_family_support",
     ]
 

@@ -108,6 +108,12 @@ class MarriageAssessmentInput:
     # is the same two as an unordered set, which cannot say which is which.
     maha_lord: str | None = None
     antar_lord: str | None = None
+    #: End of the running antardasha (FAA-17): the reading's timing window.
+    antar_end: date | None = None
+    #: FAA-16: the profile's STATED gender for traditional rules ("female" /
+    #: "male"); anything else, or None, is unknown. Never inferred.
+    gender: str | None = None
+    jupiter_combust: bool = False
 
 
 _PARENTAL_RELATIONSHIPS: frozenset[str] = frozenset({"parent", "grandparent"})
@@ -137,24 +143,76 @@ def _missing_data_gate() -> GateResult:
     )
 
 
+# ── FAA-16: spouse karaka by stated gender (owner ruling 2026-11-11) ─────────
+# docs/FAA_DECISIONS_2026-11-11.md §FAA-16 holds the written gender policy.
+# Bride: Guru is the husband significator (primary), Sukran the marital one.
+# Groom: Sukran is the wife significator (primary), Guru the general one.
+# Unknown / not given / any other value: both are read equally — a Vinaadi
+# product policy, not a traditional rule — and the reading says so. Gender is
+# only ever the explicit field; it is never inferred from a name or relation.
+# Owner ruling 2026-11-11: role words are neutral ("primary / secondary spouse
+# significator"), never "husband" / "wife", so the copy assumes no pairing.
+_ROLE_PRIMARY = ("முதன்மை வாழ்க்கைத் துணை காரகன்", "primary spouse significator")
+_ROLE_SECONDARY = ("இரண்டாம் நிலை வாழ்க்கைத் துணை காரகன்", "secondary spouse significator")
+_ROLE_EQUAL = ("திருமணக் காரகன்", "marriage significator")
+_PRIMARY_WEIGHT, _SECONDARY_WEIGHT, _EQUAL_WEIGHT = 1.0, 0.5, 0.75
+
+
+def stated_gender(payload: MarriageAssessmentInput) -> str | None:
+    g = (payload.gender or "").strip().lower()
+    return g if g in {"female", "male"} else None
+
+
+def _spouse_karakas(payload: MarriageAssessmentInput) -> list[tuple[str, float]]:
+    """(graha, weight), primary first. Unknown gender: Venus and Guru equally."""
+    gender = stated_gender(payload)
+    if gender == "female":
+        return [("JUPITER", _PRIMARY_WEIGHT), ("VENUS", _SECONDARY_WEIGHT)]
+    if gender == "male":
+        return [("VENUS", _PRIMARY_WEIGHT), ("JUPITER", _SECONDARY_WEIGHT)]
+    return [("VENUS", _EQUAL_WEIGHT), ("JUPITER", _EQUAL_WEIGHT)]
+
+
+def _karaka_combust(payload: MarriageAssessmentInput, graha: str) -> bool:
+    return payload.venus_combust if graha == "VENUS" else payload.jupiter_combust if graha == "JUPITER" else False
+
+
+_DIGNITY_ORDER = ("COMBUST", "DEBILITATED", "NEUTRAL", "OWN", "EXALTED")
+
+
 def _missing_scored_placements(payload: MarriageAssessmentInput) -> list[str]:
     """Grahas the scoring stage reads by name that ``planets_rasi`` lacks."""
-    needed = ("VENUS", house_lord_for_lagna(payload.lagna_rasi, 7), house_lord_for_lagna(payload.lagna_rasi, 2))
+    needed = ("VENUS", "JUPITER", house_lord_for_lagna(payload.lagna_rasi, 7), house_lord_for_lagna(payload.lagna_rasi, 2))
     return sorted({graha for graha in needed if graha not in payload.planets_rasi})
 
 
 def _marriage_promise_gate(payload: MarriageAssessmentInput) -> GateResult:
     """D1 promise gate for marriage timing (plan §Phase 1 step 4).
 
-    Bhava = 7th house; karaka = Venus; varga = D9 (per _AREA_ROUTING).
+    Bhava = 7th house; varga = D9 (per _AREA_ROUTING). Karaka (FAA-16): the
+    primary spouse karaka for the stated gender (bride Guru, groom Venus);
+    with gender unknown, the stronger of the two, so the gate never rests on
+    the one planet the tradition would not read first.
     Falls back to a NEUTRAL varga dignity when D9 data is unavailable so
     missing data can never manufacture a BLOCKED reading (D3).
     """
     seventh_lord = house_lord_for_lagna(payload.lagna_rasi, 7)
     seventh_lord_rasi = payload.planets_rasi.get(seventh_lord)
-    venus_rasi = payload.planets_rasi.get("VENUS")
-    if seventh_lord_rasi is None or venus_rasi is None:
+    karakas = _spouse_karakas(payload)
+    if seventh_lord_rasi is None or any(payload.planets_rasi.get(g) is None for g, _w in karakas):
         return _missing_data_gate()
+    d9 = payload.d9_rasi_by_planet or {}
+
+    def dignity(graha: str) -> tuple[str, str]:
+        return (
+            _dignity_label(graha, payload.planets_rasi.get(graha), combust=_karaka_combust(payload, graha)),
+            _dignity_label(graha, d9.get(graha)),
+        )
+
+    if stated_gender(payload) is None:
+        karaka = max((g for g, _w in karakas), key=lambda g: _DIGNITY_ORDER.index(dignity(g)[0]))
+    else:
+        karaka = karakas[0][0]
     seventh_lord_house = house_from_reference(payload.lagna_rasi, seventh_lord_rasi)
     # Beyond debilitation/combustion, two or more natural malefics on the
     # 7th lord (conjunction or classical drishti) count as fatal affliction
@@ -164,19 +222,19 @@ def _marriage_promise_gate(payload: MarriageAssessmentInput) -> GateResult:
         lagna_rasi=payload.lagna_rasi,
         bhava_house=7,
         planet_rasis=payload.planets_rasi,
-        karaka="VENUS",
+        karaka=karaka,
     )
     lord_afflicted = (
         seventh_lord_rasi == DEBILITATION_RASI.get(seventh_lord)
-        or (seventh_lord == "VENUS" and payload.venus_combust)
+        or _karaka_combust(payload, seventh_lord)
         or len(affliction.lord_afflicted_by) >= 2
     )
-    d9 = payload.d9_rasi_by_planet or {}
+    d1, varga = dignity(karaka)
     return assess_promise(
         bhava_lord_house=seventh_lord_house,
         bhava_lord_afflicted=lord_afflicted,
-        karaka_dignity_d1=_dignity_label("VENUS", venus_rasi, combust=payload.venus_combust),
-        karaka_dignity_varga=_dignity_label("VENUS", d9.get("VENUS")),
+        karaka_dignity_d1=d1,
+        karaka_dignity_varga=varga,
         karaka_available=True,
     )
 
@@ -476,9 +534,48 @@ def _score_marriage_prediction(
                 ),
             )
         )
+    elif seventh_lord_house == 2:
+        # FAA-19 (owner ruling 2026-11-11): the 2nd is a maraka sthana, not a
+        # dusthana, and placement alone never gives a negative verdict. 0; a
+        # maraka note only when the lord is also weak (debilitated).
+        weak = seventh_lord_rasi == DEBILITATION_RASI.get(seventh_lord)
+        factors.append(
+            AstroFactor(
+                key="seventh_lord_placement",
+                status="NEUTRAL",
+                detail=BiText(
+                    ta=(
+                        "7ம் அதிபதி 2ம் வீட்டில் (மாரக ஸ்தானம்), நீசமாக உள்ளது; அதன் தசையில் கூடுதல் கவனம் தேவை."
+                        if weak else
+                        "7ம் அதிபதி 2ம் வீட்டில் (குடும்ப ஸ்தானம்); இந்த இடம் மட்டும் எந்த முடிவையும் தராது."
+                    ),
+                    en=(
+                        "7th lord in the 2nd (a maraka sthana) and debilitated: its dasha deserves extra care."
+                        if weak else
+                        "7th lord in the 2nd (the house of family): this placement alone decides nothing."
+                    ),
+                ),
+            )
+        )
+    elif seventh_lord_house == 3:
+        # FAA-19: the 3rd is a mild upachaya / papa house: -3.
+        score -= 3
+        factors.append(
+            AstroFactor(
+                key="seventh_lord_placement",
+                status="CAUTION",
+                detail=BiText(
+                    ta="7ம் அதிபதி 3ம் வீட்டில்; இந்த இடம் மதிப்பெண்ணில் சற்றுக் குறைவாகக் கணக்கிடப்படுகிறது.",
+                    en="7th lord in the 3rd: this placement is scored a little lower.",
+                ),
+            )
+        )
     else:
         score -= 8
-        challenges.append(BiText("7ம் அதிபதி கஷ்ட வீட்டில்.", "7th lord is in a challenging house."))
+        challenges.append(BiText(
+            "7ம் அதிபதி மறைவு ஸ்தானத்தில் (6, 8 அல்லது 12ம் வீடு).",
+            "7th lord is in a dusthana (the 6th, 8th or 12th house).",
+        ))
         factors.append(
             AstroFactor(
                 key="seventh_lord_placement",
@@ -544,28 +641,58 @@ def _score_marriage_prediction(
             f"{afflicted_target_en} is under malefic aspect ({', '.join(planet_en(p) for p in afflictors)}).",
         ))
 
-    venus_support = 0
-    if venus_rasi in OWN_SIGN_RASI["VENUS"] or venus_rasi == EXALTATION_RASI["VENUS"]:
-        venus_support += 10
-    if venus_rasi == DEBILITATION_RASI["VENUS"]:
-        venus_support -= 8
-    if payload.venus_combust:
-        venus_support -= 6
-    score += venus_support
-    factors.append(
-        AstroFactor(
-            key="venus_strength",
-            status="SUPPORT" if venus_support >= 0 else "CAUTION",
-            detail=BiText(
-                ta="சுக்கிரன் நிலை திருமண சுட்டியை பாதிக்கிறது.",
-                en="Venus condition influences marriage indications.",
-            ),
+    # FAA-16: both spouse karakas are read, with their roles; neither is
+    # dropped. Primary weight 1.0, secondary 0.5; gender unknown, 0.75 each.
+    # Venus keeps the `venus_strength` key; Guru's line is `jupiter_strength`.
+    gender = stated_gender(payload)
+    for index, (graha, weight) in enumerate(_spouse_karakas(payload)):
+        rasi = payload.planets_rasi[graha]
+        raw = 0
+        if rasi in OWN_SIGN_RASI[graha] or rasi == EXALTATION_RASI[graha]:
+            raw += 10
+        if rasi == DEBILITATION_RASI[graha]:
+            raw -= 8
+        if _karaka_combust(payload, graha):
+            raw -= 6
+        support = round(raw * weight)
+        score += support
+        name_ta, name_en = planet_ta(graha), planet_en(graha)
+        if gender is None:
+            role_ta, role_en = _ROLE_EQUAL
+        else:
+            role_ta, role_en = _ROLE_PRIMARY if index == 0 else _ROLE_SECONDARY
+        factors.append(
+            AstroFactor(
+                key="venus_strength" if graha == "VENUS" else "jupiter_strength",
+                # FAA-20: three-way. Neutral stays neutral.
+                status="SUPPORT" if support > 0 else ("NEUTRAL" if support == 0 else "CAUTION"),
+                detail=BiText(
+                    ta=f"{name_ta} ({role_ta}) நிலை திருமண சுட்டியை பாதிக்கிறது.",
+                    en=f"{name_en} ({role_en}) condition influences marriage indications.",
+                ),
+            )
         )
-    )
-    if venus_support >= 0:
-        supports.append(BiText("சுக்கிரன் ஆதரவு உள்ளது.", "Venus offers support."))
-    else:
-        challenges.append(BiText("சுக்கிரன் பலம் குறைவு.", "Venus strength is reduced."))
+        if support > 0:
+            supports.append(BiText(f"{name_ta} ({role_ta}) ஆதரவு உள்ளது.", f"{name_en} ({role_en}) offers support."))
+        elif support < 0:
+            challenges.append(BiText(f"{name_ta} ({role_ta}) பலம் குறைவு.", f"{name_en} ({role_en}) strength is reduced."))
+    if gender is None:
+        factors.append(AstroFactor(
+            key="gender_not_given",
+            status="INFO",
+            detail=BiText(
+                ta=(
+                    "பாலினம் குறிப்பிடப்படவில்லை; அதனால் பாலினத்தைச் சார்ந்த பாரம்பரிய வாசிப்புகள் "
+                    "(முதன்மை வாழ்க்கைத் துணை காரகன், மாங்கல்ய ஸ்தானம், மணமகளுக்கான குரு கோச்சாரம்) பயன்படுத்தப்படவில்லை. "
+                    "குருவும் சுக்கிரனும் சமமாகப் பார்க்கப்படுகின்றன; 7ஆம் வீடு, அதன் அதிபதி, நவாம்சம் ஆகியவையும் பார்க்கப்படுகின்றன."
+                ),
+                en=(
+                    "Gender is not given, so the gender-specific traditional readings (the primary spouse "
+                    "significator, mangalya sthana, Guru's transit for a bride) are not applied. Guru and "
+                    "Venus are read equally, with the 7th house, its lord and the navamsa."
+                ),
+            ),
+        ))
 
     second_lord_house = house_from_reference(payload.lagna_rasi, second_lord_rasi)
     if second_lord_house in {1, 2, 4, 5, 7, 9, 10, 11}:
@@ -885,8 +1012,9 @@ def assess_marriage_prediction(
             ],
             dasha_support="PARTIAL",
             transit_support="PARTIAL",
-            timing_window_start=payload.as_of,
-            timing_window_end=date(payload.as_of.year, 12, 31),
+            # FAA-17: an applicability gate names no timing window.
+            timing_window_start=None,
+            timing_window_end=None,
             confidence="LOW",
             challenges=[],
             supports=[BiText(
@@ -912,8 +1040,9 @@ def assess_marriage_prediction(
             ],
             dasha_support="PARTIAL",
             transit_support="PARTIAL",
-            timing_window_start=payload.as_of,
-            timing_window_end=date(payload.as_of.year, 12, 31),
+            # FAA-17: an applicability gate names no timing window.
+            timing_window_start=None,
+            timing_window_end=None,
             confidence="LOW",
             challenges=[BiText("இப்போதைய வாழ்க்கை முடிவுகளுக்கு இந்த பகுதியை பயன்படுத்த வேண்டாம்.", "Do not use this section for current-life decisions.")],
             supports=[BiText("ஆரோக்கியம், பாசம், பாதுகாப்பான வளர்ச்சி வழக்கங்கள் ஆகியவற்றில் கவனம் செலுத்தவும்.", "Focus on health, bonding, and safe growth routines.")],
@@ -945,8 +1074,9 @@ def assess_marriage_prediction(
             ],
             dasha_support="PARTIAL",
             transit_support="PARTIAL",
-            timing_window_start=payload.as_of,
-            timing_window_end=date(payload.as_of.year, 12, 31),
+            # FAA-17: an applicability gate names no timing window.
+            timing_window_start=None,
+            timing_window_end=None,
             confidence="LOW",
             challenges=[],
             supports=[BiText(
@@ -1000,8 +1130,10 @@ def assess_marriage_prediction(
         astrological_factors=scored.factors,
         dasha_support=scored.dasha_support,
         transit_support=scored.transit_support,
-        timing_window_start=payload.as_of,
-        timing_window_end=date(payload.as_of.year, 12, 31),
+        # FAA-17: the running antardasha, not "today to 31 December" on every
+        # chart. Without its end date there is no window.
+        timing_window_start=payload.as_of if payload.antar_end else None,
+        timing_window_end=payload.antar_end,
         confidence=narration.confidence,
         challenges=scored.challenges,
         supports=scored.supports,

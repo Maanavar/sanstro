@@ -50,7 +50,7 @@ export const DOSHAM_KALATHRA = {
       items: [
         s("Family pressure around marriage timeline — particularly felt when the expected age passes without a settled match.", "திருமண காலக்கெடு குறித்த குடும்ப அழுத்தம் — குறிப்பாக எதிர்பார்க்கப்பட்ட வயது நிலைப்பட்ட பொருத்தமின்றி கடந்துவிடும்போது உணரப்படுகிறது."),
         s("Unconventional matches that the family takes time to accept — what seems unusual often turns out to be the right fit.", "குடும்பம் ஏற்கவும் நேரம் ஆகும் மரபுக்கு மாறான பொருத்தங்கள் — அசாதாரணமாகத் தோன்றுவது பெரும்பாலும் சரியான பொருத்தமாக மாறுகிறது."),
-        s("Health of the spouse may need extra attention — the 7th house in some classical readings also relates to the partner's longevity and vitality.", "துணையின் ஆரோக்கியம் கூடுதல் கவனிப்பு தேவைப்படலாம் — சில சாஸ்திர வாசிப்புகளில் 7-ஆம் பாவம் துணையின் ஆயுள் மற்றும் உயிரோட்டத்துடன் தொடர்புடையது."),
+        s("The partner's health may need extra attention; some classical readings link the 7th house to the partner's vitality.", "துணையின் உடல்நலத்தில் கூடுதல் கவனம் தேவைப்படலாம்; சில சாஸ்திர வாசிப்புகளில் 7-ஆம் பாவம் துணையின் உடல் வலிமையுடன் தொடர்புடையது."),
         s("Multiple relationships or a long search before the right match — in tradition this is addressed through pariharam and proper porutham before finalising, not after.", "சரியான பொருத்தம் வருவதற்கு முன்பு பல உறவுகள் அல்லது நீண்ட தேடல் — மரபில் இது முடிவு செய்வதற்கு முன்பு பரிகாரம் மற்றும் சரியான பொருத்தம் மூலம் தீர்க்கப்படுகிறது, பின்னர் அல்ல."),
       ],
     },

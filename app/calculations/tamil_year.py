@@ -69,6 +69,20 @@ RUTHU_CYCLE: tuple[tuple[str, str, str, tuple[int, int]], ...] = (
     ("MUTHUVENIL", "முதுவேனில்", "Muthuvenil", (2, 3)),  # Aani, Aadi
 )
 
+#: D11 (`ai_review_2026_11_10`, DOCTRINE §19): the Sanskrit ruthu printed beside
+#: the Tamil one, as almanacs do. By the solar month (sauramana), so each pairs
+#: one to one: Ilavenil (Chithirai, Vaikasi) is Vasanta, and so on.
+RUTHU_SANSKRIT: dict[str, tuple[str, str]] = {
+    "KAAR": ("வர்ஷ ருது", "Varsha"),
+    "KOODHIR": ("சரத் ருது", "Sharad"),
+    "MUNPANI": ("ஹேமந்த ருது", "Hemanta"),
+    "PINPANI": ("சிசிர ருது", "Shishira"),
+    "ILAVENIL": ("வசந்த ருது", "Vasanta"),
+    "MUTHUVENIL": ("க்ரீஷ்ம ருது", "Grishma"),
+}
+#: False prints the Tamil ruthu alone (before 2026-11-10).
+SHOW_SANSKRIT_RUTHU = True
+
 
 @dataclass(frozen=True, slots=True)
 class TamilYearInfo:
@@ -99,6 +113,9 @@ def tamil_year_info(tamil_day: date, timezone_name: str, latitude: float, longit
     year_ta, year_en = SAMVATSARA_NAMES[number - 1]
     ayanam = "UTTARAYANAM" if month_index in _UTTARAYANAM_MONTHS else "DAKSHINAYANAM"
     ruthu, ruthu_ta, ruthu_en, _ = next(r for r in RUTHU_CYCLE if month_index in r[3])
+    if SHOW_SANSKRIT_RUTHU:
+        sanskrit_ta, sanskrit_en = RUTHU_SANSKRIT[ruthu]
+        ruthu_ta, ruthu_en = f"{ruthu_ta} ({sanskrit_ta})", f"{ruthu_en} ({sanskrit_en})"
     return TamilYearInfo(
         year_number=number,
         year_ta=year_ta,

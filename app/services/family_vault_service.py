@@ -1643,6 +1643,9 @@ def update_family_member(
         "birth_date_local", "birth_time_local", "birth_place", "birth_latitude",
         "birth_longitude", "birth_timezone", "current_place", "current_latitude",
         "current_longitude", "current_timezone", "marital_status", "employment_type",
+        # The member's stated gender belongs on the profile the chart reads; it
+        # was set on the member only, so readings never saw it (2026-11-11).
+        "gender_for_traditional_rules",
     }
     profile_updates = {
         field: value

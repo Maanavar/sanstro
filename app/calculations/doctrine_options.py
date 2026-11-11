@@ -184,6 +184,34 @@ class DoctrineOptions:
     #: astrologer picks (deferred-checks plan, item 1). A half-leg option is
     #: not offered: it needs a grade scale finer than WEAK/PARTIAL/STRONG.
     d6b_guru_ketu: str = "watch_note"
+    #: `ai_review_2026_11_10` (DOCTRINE §19, B1). A node alone in the 5th, with
+    #: no leg, is one chart in six. "watch" (default): a கவனம் note, no dosham
+    #: and no parihara; "dosham" is said only from confirmed upward. "mild"
+    #: restores §18 Q11 (alone = a mild dosham with the full parihara).
+    ps_node_alone: str = "watch"
+    #: `ai_review_2026_11_10` (B6, B7). What protects the 5th in the children's
+    #: doshams. "ai_review" (default): a strong 5th lord is in a kendra or
+    #: trikona, in its own, exaltation or friendly sign, not combust, not
+    #: debilitated in the navamsa, and not joined by the dosham's own planet;
+    #: a protecting Jupiter is linked to the 5th house or its lord and free of
+    #: affliction (no node, not debilitated, no Saturn or Mars with it), and in
+    #: the 5th itself protects only in its own or exaltation sign. "stand_in"
+    #: restores §18 Q12 (score >= 65; Jupiter in a kendra).
+    children_protection_definition: str = "ai_review"
+    #: `ai_review_2026_11_10` (B9). A node "beside" a planet: the same sign
+    #: forms it; within this many degrees it carries a full leg, beyond it half.
+    #: 0 restores same-sign-full-weight (before 2026-11-10). The answer calls
+    #: this working convention, not a verse.
+    node_beside_full_weight_orb: float = 10.0
+    #: `ai_review_2026_11_10` (C2). Mars in Simmam or Kumbam is a nivarthi sign
+    #: for every Sevvai house (it reduces, like the table's rows). False
+    #: restores §18 Q6: no floating Simmam/Kumbam exemption.
+    sevvai_simha_kumbha_nivarthi: bool = True
+    #: `ai_review_2026_11_10` (C4). A strong Guru (own, exaltation or friendly
+    #: sign; not combust; not debilitated) joining or aspecting Mars:
+    #: "nivarthi" (default): one chart shows the lowest grade with a note, a
+    #: two-chart reading cancels. "reduces" restores §8 (one reduction only).
+    sevvai_strong_guru: str = "nivarthi"
     #: DD-12 legacy: Moon benefic only beyond 72° of elongation. Off by default.
     moon_72_degree_convention: bool = False
     #: DD-02 — show the Phaladeepika Lakshmi variant in the consumer UI. Off.
@@ -208,6 +236,9 @@ _STRING_CHOICES: dict[str, frozenset[str]] = {
     "o32_putra_sarpa_thulam_sani": frozenset({"neutralized", "ordinary"}),
     "sevvai_house_set": frozenset({"tamil_five", "manglik_five", "union_six"}),
     "d6b_guru_ketu": frozenset({"watch_note", "leg"}),
+    "ps_node_alone": frozenset({"watch", "mild"}),
+    "children_protection_definition": frozenset({"ai_review", "stand_in"}),
+    "sevvai_strong_guru": frozenset({"nivarthi", "reduces"}),
 }
 
 
@@ -223,6 +254,8 @@ def validated(options: DoctrineOptions) -> DoctrineOptions:
             raise ValueError(f"{field_name}={value!r}; expected one of {sorted(choices)}")
     if not 0 <= options.o8_lagna_lord_threshold <= 100:
         raise ValueError(f"o8_lagna_lord_threshold={options.o8_lagna_lord_threshold} is outside 0-100")
+    if not 0 <= options.node_beside_full_weight_orb <= 30:
+        raise ValueError(f"node_beside_full_weight_orb={options.node_beside_full_weight_orb} is outside 0-30")
     if not 1 <= options.o13_nb_raja_min_points <= 3:
         raise ValueError(f"o13_nb_raja_min_points={options.o13_nb_raja_min_points} is outside 1-3")
     for field_name in ("o2_rahu_favourable_rasis", "o2_ketu_favourable_rasis"):

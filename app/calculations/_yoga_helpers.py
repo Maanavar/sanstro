@@ -397,6 +397,9 @@ def _parametrized_marker(marker: str, lang: str) -> str | None:
     if m := re.fullmatch(r"jupiter_in_kendra_house_(\d+)", marker):
         return (f"புத்திர காரகனான குரு கேந்திரத்தில் (உங்கள் {m[1]}-ஆம் வீடு) உள்ளது; பாதுகாப்பு தருகிறது" if ta
                 else f"Jupiter, the karaka for children, stands in a kendra (your {_ordinal(int(m[1]))} house) and protects")
+    if m := re.fullmatch(r"jupiter_guards_fifth_from_house_(\d+)", marker):
+        return (f"புத்திர காரகனான குரு உங்கள் {m[1]}-ஆம் வீட்டிலிருந்து 5-ஆம் வீட்டுடன் தொடர்புகொண்டு, பாதிப்பின்றி இருக்கிறார்; பாதுகாப்பு தருகிறார்" if ta
+                else f"Jupiter, the karaka for children, in your {_ordinal(int(m[1]))} house, is linked to the 5th and unafflicted, and protects")
     if (m := re.fullmatch(r"([a-z]+)_in_marana_karaka_sthana", marker)) and m[1] in _MKS_HOUSE:
         house = _MKS_HOUSE[m[1]]
         return (f"{name(m[1])} உங்கள் {house}-ஆம் வீட்டில் உள்ளது; இது அதன் மரண காரக ஸ்தானம்" if ta
@@ -425,6 +428,11 @@ def _marker_explain(marker: str) -> str:
         "mars_lagna_lord_mitigation": "Lagna-based mitigation applies",
         "tamil_sevvai_exception_cancer_leo": "The traditional Tamil exception for Kadagam/Simmam lagna applies as a strong mitigation, not a full cancellation",
         "house_sign_nivarthi": "House-sign nivarthi: Mars's rasi reduces the dosham for that house",
+        # ai_review_2026_11_10 (DOCTRINE §19, C2, C4).
+        # ai_review_2026_11_10 (DOCTRINE §19, B3).
+        "d7_supports_fifth": "In the Saptamsa (D7) the 5th house is clean, its lord is well placed and Jupiter supports it; the grade is one step lighter",
+        "mars_in_simha_kumbha": "Mars is in Simmam or Kumbam, a nivarthi sign for every Sevvai house; the dosham is reduced",
+        "strong_guru_on_mars": "A strong Jupiter joins or aspects Mars: nivarthi",
         "benefic_strong_seventh_lord": "7th lord strength gives protection",
         "jupiter_aspect_on_mars": "Jupiter influence on Mars reduces intensity",
         "jupiter_conjunct_mars": "Jupiter joins Mars in the same rasi — reduces intensity, does not cancel",
@@ -452,11 +460,16 @@ def _marker_explain(marker: str) -> str:
         "sevvai_not_from_lagna": "Mars is not in a dosha house from your Lagna. The dosham is counted only from the Moon or Venus, which weighs less than a Lagna placement.",
         "sevvai_not_declared_without_lagna": "Mars is in a dosha house counted from your Moon or Venus, but not from your Lagna. The Lagna is the primary reference; the Moon and Venus only grade a Lagna dosham, so this placement is noted and Sevvai dosham is not declared.",
         # The astrologer's wording, 23 Oct (Q12, Tamil corrected in B3) — kept verbatim.
+        # ai_review_2026_11_10 (DOCTRINE §19, C4). Same text as packages/shared/src/doshamReckoning.ts.
+        "sevvai_mild_is_common": "Sevvai at this mild grade is common. Counted from the Lagna alone, Mars sits in one of these five houses in about four charts in ten, so a mild Sevvai on its own is no cause for alarm.",
+        "sevvai_strong_guru_nivarthi": "A strong Jupiter joins or aspects Mars here. Many astrologers treat this as nivarthi: the dosham is shown at its lowest grade, and in marriage matching it is not counted as a mismatch.",
         "sevvai_mars_debility_modifies": "Mars's debility modifies the reading of Sevvai dosham. Some texts hold that a debilitated Mars does less harm; others hold that in the 7th or 8th it does more. The result depends on house, lordship and aspect, and debility alone does not establish cancellation.",
         # Owner ruling 2026-10-30 (V1 §18, B): Ruchaka and Sevvai on one Mars.
         "sevvai_mars_strength_both_ways": "Mars here is in its own or exaltation sign in a kendra, which also forms Ruchaka yoga. That strength works in both directions: as drive and leadership, and in marriage as Sevvai dosham. A strong Mars does not cancel the dosham; it delivers it with its full force.",
         # Owner ruling 2026-10-30 (V1 §18, Q9): legs without a node in the 5th.
         "putra_sarpa_watch_only": "Rahu or Ketu touches the 5th lord or Jupiter here, but no node sits in the 5th house itself. Only a node in the 5th declares Putra Sarpa, so this is a note to watch, not a dosham, and no parihara is suggested for it.",
+        # ai_review_2026_11_10 (DOCTRINE §19, B1): a node alone in the 5th.
+        "putra_sarpa_node_alone_watch": "Rahu or Ketu sits in your 5th house, but nothing else in the chart joins it closely enough to confirm a dosham. A node alone in the 5th is common, about one chart in six, so it is a point to keep in mind, not a dosham, and no parihara is suggested for it.",
         # V1 §18 final sheet (Q13, Q14).
         "putra_sarpa_guru_ketu_noted": "Ketu sits with Jupiter, and Jupiter is linked to your 5th house. Whether Guru with Ketu weighs the same as Guru with Rahu has not been ruled yet, so it is noted here and does not raise the grade.",
         "santhana_thadai_lighter_parihara": "Your 5th house is guarded here (see the protective factors), so the parihara suggested is the lighter one: for the matter of children itself, not for Saturn.",
@@ -496,6 +509,9 @@ def _marker_explain_ta(marker: str) -> str:
         "mars_lagna_lord_mitigation": "லக்ன அடிப்படையில் தணிக்கை பொருந்துகிறது",
         "tamil_sevvai_exception_cancer_leo": "கடகம்/சிம்ம லக்னத்திற்கான பாரம்பரிய தமிழ் விதிவிலக்கு வலுவான தணிக்கையாகப் பொருந்துகிறது; முழு நிவர்த்தி அல்ல",
         "house_sign_nivarthi": "இட-ராசி நிவர்த்தி தோஷத்தை குறைக்கிறது",
+        "d7_supports_fifth": "சப்தாம்சத்தில் (D7) 5-ஆம் வீடு தூய்மையாக உள்ளது, அதன் அதிபதி நல்ல இடத்தில் உள்ளார், குருவும் ஆதரிக்கிறார்; தீவிரம் ஒரு படி குறைகிறது",
+        "mars_in_simha_kumbha": "செவ்வாய் சிம்மம் அல்லது கும்பத்தில் உள்ளது; இது எல்லா செவ்வாய் தோஷ வீடுகளுக்கும் நிவர்த்தி ராசி, தோஷம் குறைகிறது",
+        "strong_guru_on_mars": "வலுவான குரு செவ்வாயுடன் சேர்ந்தோ செவ்வாயைப் பார்த்தோ இருக்கிறார்: நிவர்த்தி",
         "benefic_strong_seventh_lord": "7ம் அதிபதியின் வலிமை பாதுகாப்பு தருகிறது",
         "jupiter_aspect_on_mars": "குரு செவ்வாயை பார்க்கிறது; தீவிரம் குறைகிறது",
         "jupiter_conjunct_mars": "குரு செவ்வாயுடன் இணைந்துள்ளது; தீவிரம் குறைகிறது, நிவர்த்தி அல்ல",
@@ -528,10 +544,13 @@ def _marker_explain_ta(marker: str) -> str:
         "sevvai_not_declared_without_lagna": "சந்திரன் அல்லது சுக்கிரனிலிருந்து எண்ணும்போது செவ்வாய் தோஷ வீட்டில் உள்ளது, ஆனால் லக்னத்திலிருந்து இல்லை. லக்னமே முதன்மை; சந்திரனும் சுக்கிரனும் லக்ன தோஷத்தின் தீவிரத்தை மட்டுமே காட்டும். எனவே இந்த நிலை குறிக்கப்படுகிறது, செவ்வாய் தோஷம் அறிவிக்கப்படவில்லை.",
         # The astrologer's own Tamil, 23 Oct B3 (he replaced பாவம் with பாவகம்
         # and முடிவு with பலன்) — verbatim, do not re-translate.
+        "sevvai_mild_is_common": "இந்த லேசான நிலையில் செவ்வாய் தோஷம் பொதுவானது. லக்னத்திலிருந்து மட்டும் எண்ணினால், பத்து ஜாதகங்களில் சுமார் நான்கில் செவ்வாய் இந்த ஐந்து வீடுகளில் ஒன்றில் இருக்கும்; எனவே லேசான செவ்வாய் தோஷம் மட்டும் கவலைக்குரியது அல்ல.",
+        "sevvai_strong_guru_nivarthi": "இங்கு வலுவான குரு செவ்வாயுடன் சேர்ந்தோ செவ்வாயைப் பார்த்தோ இருக்கிறார். பல ஜோதிடர்கள் இதை நிவர்த்தியாகக் கருதுகிறார்கள்: தோஷம் அதன் குறைந்த நிலையில் காட்டப்படுகிறது; திருமணப் பொருத்தத்தில் இது பொருத்தமின்மையாகக் கணக்கிடப்படுவதில்லை.",
         "sevvai_mars_debility_modifies": "செவ்வாய் நீசம் பெறுவது செவ்வாய் தோஷத்தின் தன்மையை மாற்றுகிறது. நீசச் செவ்வாய் தீங்கைக் குறைக்கும் என்று சில நூல்களும், 7-ஆம் அல்லது 8-ஆம் இடத்தில் அது தீங்கை அதிகரிக்கும் என்று வேறு சில நூல்களும் கூறுகின்றன. பலன் பாவகம், ஆதிபத்தியம், பார்வை ஆகியவற்றைப் பொறுத்தது; நீசம் மட்டுமே தோஷ நிவர்த்தியை உறுதிசெய்யாது.",
         # Native review pending (questions doc C2).
         "sevvai_mars_strength_both_ways": "இங்கு செவ்வாய் ஆட்சி அல்லது உச்சம் பெற்றுக் கேந்திரத்தில் உள்ளது; அதனால் ருசக யோகமும் உருவாகிறது. இந்த வலிமை இரு வழிகளிலும் வெளிப்படும்: ஒருபுறம் துணிவும் தலைமைப் பண்பும், மறுபுறம் திருமண வாழ்வில் செவ்வாய் தோஷமாக. வலிமையான செவ்வாய் தோஷத்தை நீக்குவதில்லை; அதைத் தன் முழு வலிமையுடன் தருகிறது.",
         "putra_sarpa_watch_only": "இங்கு ராகு அல்லது கேது 5-ஆம் அதிபதியையோ குருவையோ தொடுகிறது, ஆனால் 5-ஆம் வீட்டிலேயே இல்லை. 5-ஆம் வீட்டில் ராகு அல்லது கேது இருந்தால் மட்டுமே புத்ர சர்ப்ப தோஷம் அறிவிக்கப்படும்; எனவே இது கவனிக்க வேண்டிய குறிப்பு மட்டுமே, தோஷம் அல்ல, இதற்குப் பரிகாரம் பரிந்துரைக்கப்படவில்லை.",
+        "putra_sarpa_node_alone_watch": "உங்கள் 5-ஆம் வீட்டில் ராகு அல்லது கேது உள்ளது; ஆனால் தோஷத்தை உறுதிப்படுத்தும் அளவுக்கு ஜாதகத்தில் வேறு எதுவும் அதனுடன் நெருக்கமாகச் சேரவில்லை. 5-ஆம் வீட்டில் ராகு அல்லது கேது மட்டும் இருப்பது பொதுவானது, ஆறு ஜாதகங்களில் ஒன்றில் இப்படி இருக்கும்; எனவே இது கவனத்தில் வைக்க வேண்டிய குறிப்பு மட்டுமே, தோஷம் அல்ல, இதற்குப் பரிகாரம் பரிந்துரைக்கப்படவில்லை.",
         "putra_sarpa_guru_ketu_noted": "இங்கு கேது குருவுடன் உள்ளது; குரு உங்கள் 5-ஆம் வீட்டுடன் தொடர்புடையது. குரு-கேது சேர்க்கை குரு-ராகு சேர்க்கைக்கு இணையான எடை கொண்டதா என்பது இன்னும் முடிவு செய்யப்படவில்லை; எனவே இது குறிக்கப்படுகிறது, தீவிரத்தைக் கூட்டுவதில்லை.",
         "santhana_thadai_lighter_parihara": "இங்கு உங்கள் 5-ஆம் வீடு காக்கப்படுகிறது (பாதுகாப்புக் காரணங்களைப் பாருங்கள்); எனவே பரிந்துரைக்கப்படும் பரிகாரம் இலகுவானது: சனிக்கு அல்ல, குழந்தைப்பேறு என்ற விஷயத்துக்கே.",
         "children_assessment_incomplete": "இந்தப் பலன் உங்கள் ராசிக் கட்டத்தை மட்டும் வைத்துச் சொல்லப்படுகிறது. குழந்தைப்பேறு பற்றி இறுதியாகச் சொல்லும் முன், ஜோதிடர் சப்தாம்சம் (D7) கட்டத்தையும் நடப்பு தசையையும் பார்ப்பார்; இந்த மதிப்பீட்டில் அந்த இரண்டும் இன்னும் சேர்க்கப்படவில்லை. இதை முதல் பார்வையாக எடுத்துக்கொள்ளுங்கள், இறுதி முடிவாக அல்ல.",

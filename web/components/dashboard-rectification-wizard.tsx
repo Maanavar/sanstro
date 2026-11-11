@@ -21,8 +21,11 @@ interface CandidateWindow {
 
 interface RectificationResult {
   candidates: CandidateWindow[];
-  recommendedTime: string;
+  /** null while the recommendation is withdrawn (FAA-02 step 1). */
+  recommendedTime: string | null;
+  recommendationWithdrawn?: boolean;
   confidenceNote: string;
+  confidenceNoteTa?: string | null;
   disclaimer: string;
 }
 
@@ -112,7 +115,7 @@ export function RectificationWizard({ lang, birthProfileId, onApply, onClose }: 
         body: JSON.stringify({ events }),
       });
       setResult(body.data);
-      setSelectedTime(body.data.recommendedTime);
+      setSelectedTime(body.data.recommendedTime ?? "");
       setStep("results");
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Unknown error");
@@ -192,7 +195,22 @@ export function RectificationWizard({ lang, birthProfileId, onApply, onClose }: 
           </div>
         )}
 
-        {step === "results" && result && (
+        {step === "results" && result && result.recommendationWithdrawn && (
+          // FAA-02 step 1: the old score carried no evidence, so the server
+          // ranks nothing and refuses /apply. Say why; offer no time.
+          <div className="rectification-results">
+            <p className="rectification-confidence-note">
+              {lang === "ta" && result.confidenceNoteTa ? result.confidenceNoteTa : result.confidenceNote}
+            </p>
+            <div className="rectification-actions">
+              <button className="btn btn-secondary" onClick={() => setStep("questions")}>
+                {lang === "ta" ? "திரும்பு" : "Back"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {step === "results" && result && !result.recommendationWithdrawn && (
           <div className="rectification-results">
             <p className="rectification-confidence-note">{result.confidenceNote}</p>
 

@@ -10,6 +10,7 @@ from app.core.auth import get_current_user
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.prasna import PrasnaRequest, PrasnaResponse
+from app.services.birth_profile_service import find_owner_birth_profile
 
 router = APIRouter()
 
@@ -20,7 +21,12 @@ def ask_prasna(
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> PrasnaResponse:
-    _ = session, current_user
+    # FAA-16: the querent's STATED gender, from their own profile only (never
+    # another family member's, never inferred). Read only for MARRIAGE.
+    querent_gender: str | None = None
+    if (payload.question_area or "").upper() == "MARRIAGE":
+        own = find_owner_birth_profile(session, current_user.user_id)
+        querent_gender = getattr(own, "gender_for_traditional_rules", None) if own else None
     # Fallback must be timezone-aware: cast_prasna_chart treats a naive
     # datetime as wall-clock in payload.timezone_name, so a naive server-side
     # now() would cast the chart for the server's clock labeled as the user's.
@@ -32,6 +38,7 @@ def ask_prasna(
         latitude=payload.latitude,
         longitude=payload.longitude,
         question_area=payload.question_area,
+        querent_gender=querent_gender,
     )
     if chart["outlook"] == "UNFAVOURABLE":
         caution_ta = "இந்த கேள்வியில் அவசரம் வேண்டாம்; அனுபவமுள்ள ஆலோசகரின் வழிகாட்டுதல் பெறுங்கள்."
