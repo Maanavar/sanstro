@@ -1,8 +1,145 @@
 # Group D — build specifications (FAA-02 step 2, FAA-30, FAA-31, FAA-32, FAA-33)
 
-Status: **draft for owner review, 2026-11-11.** Nothing here is built. Every item lists
-the questions it needs answered before code. Parent: `docs/FULL_ASTRO_ACCURACY_AUDIT_2026-11-10.md`
+Status: **rulings received 2026-11-11 (see §0); FAA-33 built (§0.5, uncommitted); the rest not built.** The sections D1–D5
+below are the original draft and stay as written; where §0 changes them, §0 governs.
+Parent: `docs/FULL_ASTRO_ACCURACY_AUDIT_2026-11-10.md`
 (the audit text for each item is the requirement; this file is the "how").
+
+---
+
+## 0. Rulings received 2026-11-11, and what was checked
+
+The owner supplied a consolidated rulings document ("Group D — Final Astrologer Rulings and
+Build Specifications", 11 Nov 2026, "pending owner sign-off"), with the instruction to verify
+it rather than follow it blindly. **Its author is not stated.** Treat it like the 11-09/11-10
+sheets until the owner says otherwise: rulings to build behind the tier rules, not
+practitioner sign-off.
+
+### 0.1 Source checks (fetched 2026-11-11)
+
+| Citation in the rulings | What the source actually says | Effect |
+|---|---|---|
+| Phaladeepika 11.1 ([siva.sh](https://www.siva.sh/phaladeepika/11/1)) | **Confirmed.** Sanskrit *māṅgalyaṁ nidhanāt*: mangalya from the 8th. 9th = children, 7th = the husband, lagna = appearance, 4th = chastity. The English renders the 8th as "prosperity and happiness" and adds "(from the Lagna or the Moon whichever is stronger)". The fetch found no Moon word in the Sanskrit line, so that parenthesis may be the translator's gloss. No translator is credited. **The verse also says a malefic in a house it owns gives good results.** The rulings left that out. | FAA-30 and the bride's 9th in FAA-32 must apply the own-house exception. "Stronger of lagna/Moon" is shown as BOTH (rulings §3.2), and the source line notes the gloss. |
+| BPHS 7.42 ([enjoylearningsanskrit](https://enjoylearningsanskrit.com/scriptures/parashara/chapter-7/verse-42/)) | **Confirmed.** 5th from Jupiter for children, 7th from Venus for the spouse. The same verse gives 8th/12th from Saturn for longevity and loss. Chapter numbering is that site's (other editions number BPHS differently); no translator is credited. | 5th-from-Guru goes in FAA-32. 8th from Saturn is **not** used (EC-RULING-06). |
+| Prokerala Tamil Jathaga Porutham sample, p.17 ([pdf](https://api.prokerala.com/reports/sample/porutham-tamil-en.pdf)) | **Confirmed verbatim:** "Final six months of one dasha and the first six months of the next dasha is called dasha sandhi period. Overlapping of dasha sandhi in a man's and woman's horoscope post marriage is considered detrimental … at least 6 months gap (minimum 1 year is ideal) between dasha sandhi periods". The table it compares is **mahadashas**. Astro-Vision's matching software also reads it as "dasa change for the girl as well as the boy within a short span". A vendor sample report, not a text. | Mahadasa level is supported, so **B_BHUKTI (my draft's proposal) is withdrawn.** But see 0.2. |
+| — | One Scribd matching note defines dasa sandhi as "the same dasa running for both". That is a different rule. | Stays not built (D4 table, last row). |
+
+### 0.2 FAA-31: the source's own example contradicts the rulings' reading
+
+The rulings read "6 months gap" as the gap **between the two 12-month windows**. In Prokerala's
+own sample, the boy's Rahu→Guru change is 7 Dec 2031 and the girl's is 31 May 2033. The windows
+are 7 Jun 2031–7 Jun 2032 and 30 Nov 2032–30 Nov 2033: a **5.8-month** gap. The report rates the
+couple **"Satisfactory"**. So either Prokerala measures the gap between the change points
+(17.8 months there), or its horizon excluded 2031–33. The page doesn't say which.
+
+Measured on the item-7 synthetic population (10,000 couples, seed 7, scratch run of
+`dasa_sandhi`, A_FIXED ±6 months; a prevalence, not a ratification):
+
+| Rule | 5-year horizon | 10-year horizon |
+|---|---|---|
+| Windows overlap | 6.2% | 11.7% |
+| Window gap < 6 months (rulings' literal reading; change points < 18 months apart) | 7.2% | 15.2% |
+| Window gap < 12 months | 8.9% | 19.6% |
+| Change points < 6 months apart | 2.4% | 5.0% |
+
+All of these are under the rulings' ~30% noise line. **Open: OWNER-Q-D1** (§0.4).
+
+### 0.3 What changes in the build, item by item
+
+**FAA-33 (D1): approved, descriptive.**
+- Support houses from B's lagna and B's Moon: 1/5/7/9 = SUPPORT. 11 = NOTE (secondary
+  support; no new status). 2/3/4/10 = NEUTRAL. 6/8/12 = NOTE, never rejection.
+- Check 1 reads A's 7th lord's **sign in A's chart**. Never B's position of the same graha.
+- Check 3 is two rows: A's Moon from B's lagna, and A's Moon from B's Moon. Never merged.
+- Check 4 is a planetary overlay. It never says the graha "becomes" B's 7th lord. Any
+  spouse-karaka wording uses stated gender only.
+- Wire: `{direction, key, houseFromLagna: int|null, houseFromMoon: int|null, status,
+  tier: "engine_inference"}`. A→B and B→A computed separately (a test swaps the inputs).
+
+**FAA-30 (D2): approved, descriptive only, no score.**
+- FEMALE: 8th from lagna **and** 8th from Moon, `mangalyaReference: "BOTH"` until a
+  sourced strength rule exists. MALE: "general 8th-house observations", never "mangalya".
+  Unknown: `NOT_APPLIED` with the stated line.
+- Malefics: Sani, Sevvai, Rahu, Ketu, Surya. Conditional: waning Moon (paksha) and Budhan
+  (by association). Benefics: Guru, Sukran, waxing Moon. Every placement is recorded with
+  dignity, combustion, aspect and **lordship** (`functional_status.functional_status`, which
+  already exists). Phaladeepika's own-house exception applies (0.1).
+- Guru's 5/7/9 aspects and Sukran's 7th aspect on the 8th or the 8th lord are recorded as
+  separate protection lines, each with its own dignity. No automatic cancellation.
+- Each factor carries the underlying placement id (rulings §1.5), so a Sevvai in the 8th
+  shared with Sevvai dosham is visibly the same placement.
+- D9 lines are dropped when the D9 lagna is unreliable.
+
+**FAA-32 (D3): approved with added references.**
+- Each chart: 5th, 5th lord, 5th occupants, Guru, **5th from Guru and its lord**
+  (BPHS 7.42, `classical_rule`), aspects, D7 (reliability-gated).
+- Stated FEMALE: also the 9th, 9th lord and 9th occupants (Phaladeepika 11.1,
+  `classical_rule`). Stated MALE: 9th recorded as context only. Unknown: neither, and the
+  reading says so.
+- 5th from Moon: `engine_inference`.
+- Timing lords: 5th lord, Guru, 5th occupants, lord of the 5th from Guru, dispositor of the
+  5th lord; the bride's 9th lord and 9th occupants. Not the 2nd/7th lords. Horizon is 5 years
+  by default, 10 optional. Windows are true intersections.
+
+**FAA-31 (D4): Mahadasa A_FIXED ±6 months, engine-only until the owner ratifies.**
+The horizon (10 years) starts from the planned marriage date if given, else the reference
+date. No score, no dosham, no parihara. OWNER-Q-D1 decides which gap is measured.
+
+**FAA-02 step 2 (D5): stays disabled.** The point table is **not approved**. When built:
+the checks are separate evidence with no ranking, plus a decline when events cover fewer than
+two distinct life categories. Varga stability comes from actual boundaries, not a 13-minute
+average. The noise gate runs at least 500 cases (1,000 preferred). The decline target stays
+≥ 80%. No consumer-facing candidate time.
+
+**Cross-cutting.** A rule-source registry (rulings §9.1) records each new rule's
+classification, book, edition, chapter/verse and school. The three citations above are its
+first entries, with the gaps from 0.1 noted. Shared planetary classification comes from
+existing modules, not a new table per item.
+
+### 0.4 Owner answers (2026-11-11)
+
+- **OWNER-Q-D2: AI consolidation.** New rules ship at `engine_inference` (describe and time,
+  never grade). Only the lines verified in 0.1 are tagged `classical_rule`: 5th from Guru
+  (BPHS 7.42) and the bride's 8th/9th (Phaladeepika 11.1). Mahadasa sandhi is a
+  vendor-documented practice, not the astrologer's, so it ships at `engine_inference` and
+  cites Prokerala p.17 as its evidence.
+- **OWNER-Q-D1: show both.** The owner's answer was also AI-drafted, and the owner chose it.
+  - The **primary** measure is the change-point gap: the days between the two Mahadasa changes.
+    Below 6 months = "close"; 6–12 months = "near, read alongside the individual charts";
+    over 12 months = not flagged.
+  - The **supplementary** measure is the window gap, shown beside it. It never flags on its own.
+  - Wording follows the advisory voice: the answer's "strong Dasa Sandhi concern" becomes
+    "the two Mahadasa changes fall close together". No veto and no dosham. The thresholds are
+    attributed to the selected practice, not presented as doctrine.
+  - A later step, not v1, may read the outgoing and incoming lords' placement and strength.
+  - Measured (0.2): change points < 6 months 5.0%; the 6–12-month band is not yet measured.
+    FAA-31 stays engine-only until the owner ratifies the surface.
+- **Build: FAA-33 first**, then pause for review.
+
+### 0.5 FAA-33 built (2026-11-11, uncommitted)
+
+- **Engine.** `app/calculations/cross_chart.py`. It is pure and reads `ChartPoints`. Each
+  direction is computed with its own `one_way` call. Every row has exactly one reference.
+  CI attaches the rows through `_cross_chart` after the composite is fixed.
+- **Wire.** `crossChart: CrossChartObservation[]` on CI. It is optional in
+  `packages/shared` and defaults to `[]` in the schema, and carries numbers and graha keys
+  only. Mobile does not read CI, so mobile needs no change.
+- **Web.** A "Chart-to-chart observations" card in `compatibility-intelligence-panel.tsx`.
+  Its copy is in `web/lib/cross-chart-copy.ts`, using `rasiDisplayName` / `tPlanetLord`. Venus
+  and Guru overlay rows show only when they fall on the partner's 7th. Not yet on the CI PDF.
+  The Tamil copy is Claude's draft and has not been native-reviewed.
+- **Gates.**
+  - `tests/test_faa33_cross_chart.py` (11 tests).
+  - The direct-pair API test now checks `crossChart`.
+  - `web/lib/cross-chart-copy.test.ts` (4 tests).
+  - Mutation run: reading the partner's placement for the 7th lord fails 2 tests (the
+    own-placement test and the never-reads-destination test). Blind spot: the gates prove
+    the geometry and the "no score" wiring, not that the 1/5/7/9 table is the right reading.
+    That table is the ruling.
+- **Found on the way (pre-existing at HEAD).** CI's `porutham_score` was typed `int`, but
+  porutham totals come in halves since the Madhyama bands. Every pair with a Madhyama kuta
+  failed validation with a 500 on the CI routes: 3 tests in `test_relationships_api.py`
+  failed at HEAD. It is now typed `float`, and the PDF formats it with `:g`.
 
 Rules that bind every item below (already on record, not re-opened here):
 
@@ -219,10 +356,10 @@ rate must be at least 80% (proof that random events can't produce a confident ti
 
 ## Open-question index
 
-| # | Item | Who |
-|---|---|---|
-| 1–2 | FAA-33 support houses; Moon reference | astrologer |
-| 3–5 | FAA-30 malefics; Guru protection; scoring later | astrologer, owner |
-| 6–7 | FAA-32 horizon; timing lords | astrologer |
-| 8 | FAA-31 surface or not | owner |
-| 9–11 | FAA-02 points; precision; exposure | astrologer, owner |
+| # | Item | Who | Answer (rulings 2026-11-11, §0) |
+|---|---|---|---|
+| 1–2 | FAA-33 support houses; Moon reference | astrologer | 1/5/7/9 support, 11 note; lagna + Moon + Moon-to-Moon |
+| 3–5 | FAA-30 malefics; Guru protection; scoring later | astrologer, owner | Sani/Sevvai/Rahu/Ketu/Surya, waning Moon + Budhan conditional; Guru and Sukran, each by its own strength; no score |
+| 6–7 | FAA-32 horizon; timing lords | astrologer | 5 y default, 10 optional; §0.3 lord list |
+| 8 | FAA-31 surface or not | owner | Mahadasa A_FIXED; engine-only until ratified; show both gaps, change-point primary (§0.4) |
+| 9–11 | FAA-02 points; precision; exposure | astrologer, owner | points not approved; 5-min grid internal only; disabled |

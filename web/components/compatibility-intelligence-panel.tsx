@@ -10,6 +10,7 @@ import type { CompatibilityIntelligenceData } from "@/lib/types";
 import { scoreColorPct } from "@/lib/format";
 import { madhyamaLabel, madhyamaGloss, hasMadhyama } from "@/lib/kuta-grade";
 import { verdictPhraseOrKey } from "@/lib/verdict-lexicon";
+import { crossChartBadge, crossChartLine, crossChartRowVisible, crossChartTone } from "@/lib/cross-chart-copy";
 import type { KutaGrade } from "@vinaadi/shared";
 import { ZodiacBadge } from "./zodiac-badge";
 import { NakshatraBadge } from "./nakshatra-badge";
@@ -130,6 +131,24 @@ function venusGloss(label: string, en: boolean): string {
   };
   const pair = map[label] ?? map.MIXED!;
   return en ? pair[0] : pair[1];
+}
+
+/** Count from sign `from` to sign `to`, the way a jothidar counts (own sign = 1). */
+function signCount(from: number, to: number): number {
+  return ((to - from + 12) % 12) + 1;
+}
+
+/** Venus's sign from its house and the lagna (house 1 = lagna sign). The wire
+ *  carries Venus's house, not its sign, and that is enough. */
+function venusSign(lagnaRasi: number, venusHouse: number): number {
+  return ((lagnaRasi - 1 + venusHouse - 1) % 12) + 1;
+}
+
+/** Level 8 band words; same rungs as the server's synastry label (65 / 45). */
+function synastryBand(score: number, en: boolean): string {
+  if (score >= 65) return en ? "Mostly easy angles" : "பெரும்பாலும் இணக்கமான கோணங்கள்";
+  if (score >= 45) return en ? "A mix of easy and tense angles" : "இணக்கமும் இறுக்கமும் கலந்த கோணங்கள்";
+  return en ? "More tense angles than easy ones" : "இணக்கத்தை விட இறுக்கமான கோணங்கள் அதிகம்";
 }
 
 function ScoreBar({ score, max, label }: { score: number; max: number; label: string }) {
@@ -636,6 +655,11 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
 
       {/* ── Emotional Compatibility ── */}
       <SectionCard title={en ? "Level 7 — Emotional Compatibility" : "நிலை 7 — உணர்வு இணக்கம்"}>
+        <p style={{ margin: "0 0 10px", fontSize: "0.8rem", color: W.inkMid, lineHeight: 1.6 }}>
+          {en
+            ? "Two simple comparisons. The Moon sign (rasi) shows how each of you feels and reacts; the sign Venus is in shows how each of you shows love. We count how far apart your two signs are."
+            : "இரண்டு எளிய ஒப்பீடுகள். ராசி (சந்திரன் உள்ள ராசி) ஒவ்வொருவரும் எப்படி உணர்கிறார், எப்படி எதிர்வினை செய்கிறார் என்பதைக் காட்டும்; சுக்கிரன் உள்ள ராசி அன்பை எப்படி வெளிப்படுத்துகிறார் என்பதைக் காட்டும். இருவரின் ராசிகளும் எத்தனை இடம் இடைவெளியில் உள்ளன என்று எண்ணுகிறோம்."}
+        </p>
         <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "12px" }}>
           {/* Emotional wavelength (Moon) */}
           <div style={{ background: W.surface, borderRadius: "10px", padding: "12px 14px" }}>
@@ -648,10 +672,13 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
                 {...harmonyBadge(d.emotional.moonMoonHarmony)}
               />
             </div>
-            <p style={{ margin: 0, fontSize: "0.78rem", color: W.muted, lineHeight: 1.55 }}>
+            <p style={{ margin: "0 0 4px", fontSize: "0.78rem", color: W.inkMid, lineHeight: 1.55 }}>
               {en
-                ? `How you each sense and process feelings (Moon). ${moonGloss(d.emotional.moonMoonHarmony, true)}`
-                : `உணர்வுகளை நீங்கள் எப்படி உணர்ந்து அணுகுகிறீர்கள் (சந்திரன்). ${moonGloss(d.emotional.moonMoonHarmony, false)}`}
+                ? `${d.personAName}: ${rasiDisplayName(d.personAIdentity.rasi, lang)} · ${d.personBName}: ${rasiDisplayName(d.personBIdentity.rasi, lang)} — counted from ${d.personAName}'s sign, ${d.personBName}'s is number ${signCount(d.personAIdentity.rasi, d.personBIdentity.rasi)}.`
+                : `${d.personAName}: ${rasiDisplayName(d.personAIdentity.rasi, lang)} · ${d.personBName}: ${rasiDisplayName(d.personBIdentity.rasi, lang)} — ${d.personAName} ராசியிலிருந்து எண்ணினால் ${d.personBName} ராசி ${signCount(d.personAIdentity.rasi, d.personBIdentity.rasi)}ஆம் இடம்.`}
+            </p>
+            <p style={{ margin: 0, fontSize: "0.78rem", color: W.muted, lineHeight: 1.55 }}>
+              {moonGloss(d.emotional.moonMoonHarmony, en)}
             </p>
           </div>
           {/* Affection & romance (Venus) */}
@@ -665,30 +692,83 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
                 {...harmonyBadge(d.emotional.venusMarsHarmony)}
               />
             </div>
+            {(() => {
+              const va = venusSign(d.personAIdentity.lagnaRasi, d.chartAStrength.venusHouse);
+              const vb = venusSign(d.personBIdentity.lagnaRasi, d.chartBStrength.venusHouse);
+              return (
+                <p style={{ margin: "0 0 4px", fontSize: "0.78rem", color: W.inkMid, lineHeight: 1.55 }}>
+                  {en
+                    ? `${tPlanetLord("VENUS", "en")} — ${d.personAName}: ${rasiDisplayName(va, lang)} · ${d.personBName}: ${rasiDisplayName(vb, lang)} — counted from ${d.personAName}'s, ${d.personBName}'s is number ${signCount(va, vb)}.`
+                    : `${tPlanetLord("VENUS", "ta")} — ${d.personAName}: ${rasiDisplayName(va, lang)} · ${d.personBName}: ${rasiDisplayName(vb, lang)} — ${d.personAName} சுக்கிர ராசியிலிருந்து எண்ணினால் ${d.personBName} சுக்கிர ராசி ${signCount(va, vb)}ஆம் இடம்.`}
+                </p>
+              );
+            })()}
             <p style={{ margin: 0, fontSize: "0.78rem", color: W.muted, lineHeight: 1.55 }}>
-              {en
-                ? `How you express love and attraction (Venus). ${venusGloss(d.emotional.venusMarsHarmony, true)}`
-                : `அன்பையும் ஈர்ப்பையும் எப்படி வெளிப்படுத்துகிறீர்கள் (சுக்கிரன்). ${venusGloss(d.emotional.venusMarsHarmony, false)}`}
+              {venusGloss(d.emotional.venusMarsHarmony, en)}
             </p>
           </div>
         </div>
-        <ScoreBar score={d.emotional.score} max={10} label="" />
-        <p style={{ margin: "10px 0 0", fontSize: "0.83rem", color: W.inkMid, lineHeight: 1.65 }}>
-          {en ? d.emotional.noteEn : d.emotional.noteTa}
+        {/* The bar shows what this level adds to the overall score (out of 5),
+            the same scale as the score breakdown at the top. It used to show the
+            native 0-10 score, so a "7/10" here added only 4 points up there. */}
+        <ScoreBar score={d.scoreBreakdown.emotional} max={5} label="" />
+        <p style={{ margin: "6px 0 0", fontSize: "0.78rem", color: W.muted }}>
+          {en
+            ? `Adds ${d.scoreBreakdown.emotional} of 5 points to the overall score of 100.`
+            : `ஒட்டுமொத்த 100 மதிப்பெண்ணில் 5-க்கு ${d.scoreBreakdown.emotional} சேர்க்கிறது.`}
         </p>
         <p style={{ margin: "8px 0 0", fontSize: "0.78rem", color: W.muted, fontStyle: "italic" }}>
           {en ? d.emotional.communicationNote : (d.emotional.communicationNoteTa || d.emotional.communicationNote)}
         </p>
       </SectionCard>
 
+      {/* ── FAA-33: cross-chart observations. Not a level: no points. ── */}
+      {d.crossChart && d.crossChart.length > 0 && (
+        <SectionCard title={en ? "Chart-to-chart observations" : "ஜாதக ஒப்பீட்டுக் குறிப்புகள்"}>
+          <p style={{ margin: "0 0 10px", fontSize: "0.78rem", color: W.muted, lineHeight: 1.55 }}>
+            {en
+              ? "Where each chart's key points fall in the other chart. These are observations for your astrologer to read with the full charts; they do not change the score."
+              : "ஒவ்வொரு ஜாதகத்தின் முக்கிய நிலைகள் மற்ற ஜாதகத்தில் எங்கு வருகின்றன என்பதைக் காட்டுகிறது. இவை முழு ஜாதகத்துடன் ஜோதிடர் பார்க்க வேண்டிய குறிப்புகள்; மதிப்பெண்ணை மாற்றாது."}
+          </p>
+          {(["A_TO_B", "B_TO_A"] as const).map((dir) => {
+            const src = dir === "A_TO_B" ? d.personAName : d.personBName;
+            const dst = dir === "A_TO_B" ? d.personBName : d.personAName;
+            const rows = (d.crossChart ?? []).filter((o) => o.direction === dir && crossChartRowVisible(o));
+            return (
+              <div key={dir} style={{ marginBottom: "10px" }}>
+                <div style={{ fontSize: "0.8rem", fontWeight: 700, color: W.inkMid, marginBottom: "6px" }}>
+                  {src} → {dst}
+                </div>
+                <ul style={{ margin: 0, paddingLeft: "18px", display: "flex", flexDirection: "column", gap: "6px" }}>
+                  {rows.map((o, i) => (
+                    <li key={i} style={{ fontSize: "0.8rem", color: W.inkMid, lineHeight: 1.55 }}>
+                      {crossChartLine(o, src, dst, lang)}{" "}
+                      <span style={{ fontSize: "0.72rem", color: crossChartTone(o) === "favourable" ? W.sage : W.muted, fontWeight: 600 }}>
+                        · {crossChartBadge(o, lang)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
+        </SectionCard>
+      )}
+
       {/* ── Synastry ── */}
-      <SectionCard title={en ? "Level 8 — Synastry (Chart-to-Chart)" : "நிலை 8 — சினாஸ்ட்ரி (ஜாதக ஒப்பீடு)"}>
-        <div style={{ display: "flex", gap: "12px", alignItems: "center", marginBottom: "10px" }}>
+      <SectionCard title={en ? "Level 8 — Planet Angles (Synastry)" : "நிலை 8 — கிரகக் கோண ஒப்பீடு (சினாஸ்ட்ரி)"}>
+        <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap", marginBottom: "10px" }}>
           <span style={{ fontSize: "1.6rem", fontWeight: 700, color: scoreColor(d.synastryScore / 100) }}>
             {d.synastryScore}
           </span>
           <span style={{ fontSize: "0.88rem", color: W.muted }}>/100</span>
+          <span style={{ fontSize: "0.82rem", fontWeight: 600, color: W.inkMid }}>{synastryBand(d.synastryScore, en)}</span>
         </div>
+        <p style={{ margin: 0, fontSize: "0.8rem", color: W.inkMid, lineHeight: 1.6 }}>
+          {en
+            ? "This compares the exact angles between six pairs of planets across your two charts: Venus with Venus, each person's Venus with the other's Mars, Moon with Moon, and each person's Sun with the other's Moon. It starts at 50. Easy angles raise it; tense angles lower it."
+            : "இது இரு ஜாதகங்களிலும் உள்ள ஆறு கிரக ஜோடிகளுக்கு இடையிலான துல்லியமான கோணங்களை ஒப்பிடுகிறது: சுக்கிரன்–சுக்கிரன், ஒருவரின் சுக்கிரன்–மற்றவரின் செவ்வாய், சந்திரன்–சந்திரன், ஒருவரின் சூரியன்–மற்றவரின் சந்திரன். 50-இல் தொடங்கும்; இணக்கமான கோணங்கள் கூட்டும், இறுக்கமான கோணங்கள் குறைக்கும்."}
+        </p>
         {/* The 0-5 contribution bar is gone with the weight: as of 2026-08-28
             Synastry carries no points in the composite, so a bar would read as
             a score of zero rather than as a layer that is shown for context.
@@ -697,8 +777,8 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
             explanation contradicts its own numbers. */}
         <p style={{ margin: "8px 0 0", fontSize: "0.78rem", color: W.muted }}>
           {en
-            ? "Synastry (planetary aspects between the two charts) is shown for context and does not contribute to the overall score."
-            : "சினாஸ்ட்ரி (இரு ஜாதகங்களுக்கிடையே கிரக தொடர்புகள்) விளக்கத்திற்காக மட்டுமே காட்டப்படுகிறது; ஒட்டுமொத்த மதிப்பெண்ணில் இது சேர்க்கப்படவில்லை."}
+            ? "This is not one of the Tamil ten poruthams, so it adds nothing to the overall score. It is shown only as extra context."
+            : "இது தமிழ் பத்துப் பொருத்தங்களில் ஒன்றல்ல; அதனால் ஒட்டுமொத்த மதிப்பெண்ணில் சேர்க்கப்படவில்லை. கூடுதல் தகவலுக்காக மட்டுமே காட்டப்படுகிறது."}
         </p>
       </SectionCard>
 

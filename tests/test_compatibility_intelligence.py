@@ -334,6 +334,8 @@ def _stub_strong_layers(monkeypatch: pytest.MonkeyPatch) -> None:
     # bare SimpleNamespace. Stubbed for the same reason, so a label-cap test
     # fails only on the label cap.
     monkeypatch.setattr(ci_module, "papa_samyam_lines", lambda a, b, *_: ([], [], [], []))
+    # FAA-33 cross-chart rows read real snapshots too; observations only.
+    monkeypatch.setattr(ci_module, "_cross_chart", lambda a, b: ())
 
 
 def _fake_porutham_result(*, rajju_dosha: bool, vedha_dosha: bool) -> SimpleNamespace:

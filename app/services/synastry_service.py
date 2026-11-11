@@ -39,6 +39,7 @@ from app.schemas.relationships import (
     CompatibilityIntelligenceData,
     CompatibilityIntelligenceResponse,
     CompatibilityScoreBreakdown,
+    CrossChartObservationData,
     DashaHarmony,
     DirectPoruthamData,
     DirectPoruthamResponse,
@@ -1063,6 +1064,14 @@ def build_compatibility_intelligence_from_snapshots(
         risks_en=ci.risks_en,
         risks_ta=ci.risks_ta,
         summary=RelationshipBiText(ta=ci.summary_ta, en=ci.summary_en),
+        cross_chart=[
+            CrossChartObservationData(
+                direction=o.direction, key=o.key, graha=o.graha, rasi=o.rasi,
+                house_from_lagna=o.house_from_lagna, house_from_moon=o.house_from_moon,
+                status=o.status, tier=o.tier,
+            )
+            for o in ci.cross_chart
+        ],
     )
     return CompatibilityIntelligenceResponse(data=data, meta=_meta())
 

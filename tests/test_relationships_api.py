@@ -309,6 +309,17 @@ def test_compatibility_intelligence_direct_pair_needs_no_family_vault(client):
         assert 1 <= identity["nakshatra"] <= 27
         assert 1 <= identity["lagnaRasi"] <= 12
 
+    # FAA-33 reaches the wire from the one production assembler, both directions,
+    # numbers only, and agrees with the identity block it sits beside.
+    rows = body["crossChart"]
+    assert len(rows) == 14
+    assert {r["direction"] for r in rows} == {"A_TO_B", "B_TO_A"}
+    (lagna_ab,) = [r for r in rows if r["direction"] == "A_TO_B" and r["key"] == "LAGNA"]
+    a_lagna, b_lagna = body["personAIdentity"]["lagnaRasi"], body["personBIdentity"]["lagnaRasi"]
+    assert lagna_ab["rasi"] == a_lagna
+    assert lagna_ab["houseFromLagna"] == (a_lagna - b_lagna) % 12 + 1
+    assert all(r["tier"] == "engine_inference" and not any(k.endswith("Name") for k in r) for r in rows)
+
 
 def test_compatibility_intelligence_carries_the_shashtashtaka_note(client):
     """F-POR-02 reached the Compatibility Intelligence *schema* and stopped

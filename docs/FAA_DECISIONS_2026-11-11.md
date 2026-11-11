@@ -183,6 +183,10 @@ that Parashari is the table a given family's jothidar uses. That part is the rul
 - ~~`_dg_hora` first-12-hours~~ — fixed 2026-11-11: `_day_horas` = horas starting before sunset,
   clipped at sunset. The daily-guidance golden was regenerated. The only changes are extra
   windows after hour 12 on long days (May, and London in August), plus one conflict re-ranked.
-- **Group D** — specs drafted: `docs/GROUP_D_SPECS_2026-11-11.md` (11 open questions).
+- **Group D** — specs drafted: `docs/GROUP_D_SPECS_2026-11-11.md`. The 11 questions were answered
+  by a consolidated rulings document the owner supplied on 2026-11-11 (author not stated), and
+  checked against its three citations (spec §0). Two corrections were found: Phaladeepika 11.1's
+  own-house exception was missing, and Prokerala's own sample contradicts the rulings' reading of
+  the Dasa Sandhi gap. Two questions are open (OWNER-Q-D1, -D2).
 - **§9 (FAA-44…48) and §13 (FAA-49…59)** — the prediction-quality audit and the supplementary
   rule investigation; not started.

@@ -568,6 +568,22 @@ class CompatibilityScoreBreakdown(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class CrossChartObservationData(BaseModel):
+    """FAA-33 row. Numbers and graha keys only; surfaces render the names.
+    Exactly one of houseFromLagna / houseFromMoon is set per row."""
+
+    direction: Literal["A_TO_B", "B_TO_A"]
+    key: Literal["SEVENTH_LORD", "LAGNA", "MOON", "VENUS", "JUPITER"]
+    graha: str | None = None
+    rasi: int
+    house_from_lagna: int | None = Field(default=None, alias="houseFromLagna")
+    house_from_moon: int | None = Field(default=None, alias="houseFromMoon")
+    status: Literal["SUPPORT", "NEUTRAL", "NOTE"]
+    tier: Literal["engine_inference"] = "engine_inference"
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class CompatibilityIntelligenceData(BaseModel):
     person_a_name: str = Field(alias="personAName")
     person_b_name: str = Field(alias="personBName")
@@ -622,6 +638,8 @@ class CompatibilityIntelligenceData(BaseModel):
     risks_en: list[str] = Field(default_factory=list, alias="risksEn")
     risks_ta: list[str] = Field(default_factory=list, alias="risksTa")
     summary: RelationshipBiText
+    # FAA-33. Default empty so a payload produced before it existed validates.
+    cross_chart: list[CrossChartObservationData] = Field(default_factory=list, alias="crossChart")
 
     model_config = ConfigDict(populate_by_name=True)
 

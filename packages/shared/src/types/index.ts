@@ -2137,6 +2137,23 @@ export interface NadiDoshaResult {
   noteTa: string; noteEn: string;
 }
 
+/**
+ * FAA-33 cross-chart observation (engine_inference, no score). Numbers and
+ * graha keys only: render `rasi` through `rasiDisplayName` and `graha` through
+ * `tPlanetLord`. Exactly one of `houseFromLagna` / `houseFromMoon` is set.
+ * `rasi` and `graha` are the SOURCE chart's (X of X->Y), never the partner's.
+ */
+export interface CrossChartObservation {
+  direction: "A_TO_B" | "B_TO_A";
+  key: "SEVENTH_LORD" | "LAGNA" | "MOON" | "VENUS" | "JUPITER";
+  graha: string | null;
+  rasi: number;
+  houseFromLagna: number | null;
+  houseFromMoon: number | null;
+  status: "SUPPORT" | "NEUTRAL" | "NOTE";
+  tier: "engine_inference";
+}
+
 export interface CompatibilityIntelligenceData {
   personAName: string; personBName: string;
   personAIdentity: PersonAstroIdentity; personBIdentity: PersonAstroIdentity;
@@ -2153,6 +2170,8 @@ export interface CompatibilityIntelligenceData {
   scoreBreakdown: CompatibilityScoreBreakdown;
   strengthsEn: string[]; strengthsTa: string[]; risksEn: string[]; risksTa: string[];
   summary: BiText;
+  /** FAA-33. Optional: absent from payloads produced before it existed. */
+  crossChart?: CrossChartObservation[];
 }
 
 export interface RelationshipAlertItem {

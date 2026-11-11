@@ -53,6 +53,11 @@ from app.calculations.chart_strength import (
     OWN_SIGN_RASI,
     SIGN_LORD,
 )
+from app.calculations.cross_chart import (
+    CrossChartObservation,
+    chart_points_from_snapshot,
+    cross_chart_observations,
+)
 from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.display_names import planet_en, planet_ta
 from app.calculations.doctrine_options import DEFAULT_DOCTRINE, DoctrineOptions
@@ -272,6 +277,10 @@ class CompatibilityIntelligenceResult:
 
     summary_en: str = ""
     summary_ta: str = ""
+
+    # FAA-33: cross-chart observations (both directions). Not a layer: no
+    # points, attached after the composite is fixed.
+    cross_chart: tuple[CrossChartObservation, ...] = ()
 
 
 # ---------------------------------------------------------------------------
@@ -1316,4 +1325,10 @@ def compute_compatibility_intelligence(
         risks_ta=risks_ta,
         summary_en=summary_en,
         summary_ta=summary_ta,
+        # FAA-33: observations only; computed after every number above is fixed.
+        cross_chart=_cross_chart(snap_a, snap_b),
     )
+
+
+def _cross_chart(snap_a: Any, snap_b: Any) -> tuple[CrossChartObservation, ...]:
+    return cross_chart_observations(chart_points_from_snapshot(snap_a), chart_points_from_snapshot(snap_b))
