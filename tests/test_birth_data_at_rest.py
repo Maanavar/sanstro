@@ -170,7 +170,7 @@ def test_a_delivered_report_does_not_carry_the_birth_facts_in_plaintext(
     downloaded = client.get(f"/api/v1/reports/{report_id}/download")
     assert downloaded.status_code == 200, downloaded.text
     plain_readable, plain_inflated = pdf_readable_text(downloaded.content)
-    assert_probe_works(plain_readable, plain_inflated)
+    assert_probe_works(plain_readable, plain_inflated, downloaded.content)
     assert BIRTH_PLACE in plain_readable, (
         "the probe cannot find the birth place in the reader's own decrypted "
         "document, so it cannot be trusted to find it in the stored column"
