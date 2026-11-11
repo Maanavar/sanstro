@@ -33,20 +33,10 @@ const VARGA_OPTIONS = [
 
 type VargaKey = typeof VARGA_OPTIONS[number]["key"];
 
-function navamsaRasiFromDegree(absLongitude: number): number {
-  const sign = Math.floor(absLongitude / 30) + 1;
-  const degreeInSign = ((absLongitude % 30) + 30) % 30;
-  const pada = Math.floor(degreeInSign / (30 / 9));
-  const movable = new Set([1, 4, 7, 10]);
-  const fixed = new Set([2, 5, 8, 11]);
-  const start = movable.has(sign) ? sign : fixed.has(sign) ? ((sign + 7 - 1) % 12) + 1 : ((sign + 3 - 1) % 12) + 1;
-  return ((start + pada - 1) % 12) + 1;
-}
-
 function buildHouses(chart: ChartCalculateResponseData, view: VargaKey): JadhagamHouseData[] {
-  const lagna = view === "D1"
-    ? chart.lagna.rasi
-    : navamsaRasiFromDegree(chart.lagna.absoluteLongitude);
+  // D9 lagna comes from the server (astro.navamsa_rasi_from_degree). A client copy
+  // put fixed/dual lagnas one sign off (FAA-01); never recompute it here.
+  const lagna = view === "D1" ? chart.lagna.rasi : chart.lagna.d9Rasi;
   const houses: JadhagamHouseData[] = Array.from({ length: 12 }, (_, i) => ({
     rasi: i + 1,
     planets: [],
