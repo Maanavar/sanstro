@@ -22,6 +22,7 @@ The last one is the regression: it fails on a bare clamp.
 from __future__ import annotations
 
 from datetime import date, timedelta
+from itertools import pairwise
 
 import pytest
 
@@ -197,7 +198,7 @@ def test_the_display_mapping_never_changes_which_day_wins(snapshots) -> None:
         raws = sorted(
             {day.score for day in (score_day(s, activity, SYNTHETIC) for s in snapshots) if not day.vetoed}
         )
-        for lo, hi in zip(raws, raws[1:]):
+        for lo, hi in pairwise(raws):
             shown_lo, shown_hi = display_score(lo), display_score(hi)
             assert shown_hi >= shown_lo, f"{activity}: raw {hi} > {lo} but shows lower"
             if 0.0 < lo and hi < _DISPLAY_CEIL:
