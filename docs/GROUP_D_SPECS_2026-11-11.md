@@ -112,8 +112,16 @@ existing modules, not a new table per item.
     "the two Mahadasa changes fall close together". No veto and no dosham. The thresholds are
     attributed to the selected practice, not presented as doctrine.
   - A later step, not v1, may read the outgoing and incoming lords' placement and strength.
-  - Measured (0.2): change points < 6 months 5.0%; the 6–12-month band is not yet measured.
-    FAA-31 stays engine-only until the owner ratifies the surface.
+  - Measured (0.2 population, 10,000 couples, seed 7; `scripts/audit/deferred_checks_measurements.py`,
+    "OWNER-Q-D1 bands", 2026-11-11). A couple's band is its closest pair of changes:
+
+    | Horizon | < 6 months ("close") | 6–12 months ("near") | Either |
+    |---|---|---|---|
+    | 5 years | 2.4% | 2.7% | 5.2% |
+    | 10 years | 5.0% | 5.7% | 10.8% |
+
+    Both bands are well under the ~30% noise line. A prevalence of the rule as coded, not a
+    ratification. FAA-31 stays engine-only until the owner ratifies the surface.
 - **Build: FAA-33 first**, then pause for review.
 
 ### 0.5 FAA-33 built (2026-11-11, uncommitted)
@@ -126,12 +134,22 @@ existing modules, not a new table per item.
   only. Mobile does not read CI, so mobile needs no change.
 - **Web.** A "Chart-to-chart observations" card in `compatibility-intelligence-panel.tsx`.
   Its copy is in `web/lib/cross-chart-copy.ts`, using `rasiDisplayName` / `tPlanetLord`. Venus
-  and Guru overlay rows show only when they fall on the partner's 7th. Not yet on the CI PDF.
+  and Guru overlay rows show only when they fall on the partner's 7th.
   The Tamil copy is Claude's draft and has not been native-reviewed.
+- **PDF.** The same section is on the CI PDF, after Level 8. Its copy is
+  `app/services/cross_chart_copy.py`, a mirror of the web copy. Both sides must reproduce
+  `tests/golden/cross_chart/cross_chart_copy.json` (128 lines, generated from the web functions).
+  The direction label is words, since the PDF fonts have no arrow glyph.
 - **Gates.**
   - `tests/test_faa33_cross_chart.py` (11 tests).
   - The direct-pair API test now checks `crossChart`.
-  - `web/lib/cross-chart-copy.test.ts` (4 tests).
+  - `web/lib/cross-chart-copy.test.ts` (6 tests, including the golden file).
+  - The direct-pair PDF test finds the heading after proving every stream was read, and builds
+    the Tamil PDF. With the section disabled, it fails.
+  - Found while gating the PDF: `tests/_pdf_readable.py` skipped every second stream (it
+    matched the `stream` inside `endstream`). Fixed, and `assert_probe_works` now requires every
+    stream to inflate. The A12 at-rest leak check was not weakened (it searches ciphertext it
+    first proves is ciphertext); only its proof-of-life read was partial.
   - Mutation run: reading the partner's placement for the 7th lord fails 2 tests (the
     own-placement test and the never-reads-destination test). Blind spot: the gates prove
     the geometry and the "no score" wiring, not that the 1/5/7/9 table is the right reading.
