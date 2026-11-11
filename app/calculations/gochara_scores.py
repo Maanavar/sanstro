@@ -32,6 +32,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from types import MappingProxyType
+from typing import Literal
 
 #: Classical gochara — the houses **from the Janma Rasi** in which each graha
 #: transits favourably (Phaladeepika; the same sets every Tamil almanac's
@@ -40,10 +41,16 @@ from types import MappingProxyType
 #: Note what is *not* uniform here, because the old hand-typed tables flattened
 #: exactly this: Mercury and Venus are favourable in the 8th, which no other
 #: graha is; Venus is favourable in nine of the twelve; Mars, Saturn and Ketu
-#: share 3/6/11. Rahu adds the 10th (AAU-09, ruled 2026-10-29). Owner ruling
+#: share 3/6/11. Rahu added the 10th (AAU-09, ruled 2026-10-29); since
+#: 2026-11-10 (D3, `ai_review_2026_11_10`, DOCTRINE §19) Rahu is 3/6/11 like
+#: Ketu and the 10th is MIXED, scored `NEUTRAL`: the 10th comes from the "Rahu
+#: like the Sun" convention, unconfirmed until the Vasan table is checked.
+#: `RAHU_TENTH_FROM_MOON = "favourable"` restores AAU-09. Owner ruling
 #: 2026-10-30 (V1 §18, Q2): this is a gochara interpretation, not almanac data, so
 #: it is not cited to the panchangam; the astrologer names the gochara text.
 #: The nodes are never interchangeable.
+RAHU_TENTH_FROM_MOON: Literal["mixed", "favourable"] = "mixed"
+
 GOCHARA_FAVOURABLE_FROM_MOON: Mapping[str, frozenset[int]] = MappingProxyType({
     "SUN":     frozenset({3, 6, 10, 11}),
     "MOON":    frozenset({1, 3, 6, 7, 10, 11}),
@@ -52,7 +59,7 @@ GOCHARA_FAVOURABLE_FROM_MOON: Mapping[str, frozenset[int]] = MappingProxyType({
     "JUPITER": frozenset({2, 5, 7, 9, 11}),
     "VENUS":   frozenset({1, 2, 3, 4, 5, 8, 9, 11, 12}),
     "SATURN":  frozenset({3, 6, 11}),
-    "RAHU":    frozenset({3, 6, 10, 11}),
+    "RAHU":    frozenset({3, 6, 11}) | ({10} if RAHU_TENTH_FROM_MOON == "favourable" else frozenset()),
     "KETU":    frozenset({3, 6, 11}),
 })
 
@@ -88,6 +95,8 @@ _ASHTAMA_PENALTY = 10
 
 
 def _derive(planet: str, house: int) -> int:
+    if planet == "RAHU" and house == 10 and RAHU_TENTH_FROM_MOON == "mixed":
+        return NEUTRAL
     favourable = house in GOCHARA_FAVOURABLE_FROM_MOON[planet]
     score = _FAVOURABLE_BASE if favourable else _ADVERSE_BASE
     if house == 11 and favourable:

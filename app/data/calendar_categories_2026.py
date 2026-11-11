@@ -116,12 +116,10 @@ CALENDAR_CATEGORY_EVENTS_2026: tuple[CalendarCategoryEvent, ...] = (
     CalendarCategoryEvent("hindu-festivals-2026", date(2026, 1, 25), "Ratha Saptami", "ரத ஸப்தமி", ("hindu",)),
     CalendarCategoryEvent("hindu-festivals-2026", date(2026, 2, 1), "Thai Poosam", "தைப்பூசம்", ("hindu", "tamilnadu_govt")),
     CalendarCategoryEvent("hindu-festivals-2026", date(2026, 2, 15), "Maha Sivarathiri", "மஹாசிவராத்திரி", ("hindu",)),
-    # The engine's day, not the curated 2 Mar (4E, 2026-10-22): Magam holds
-    # only the 3 Mar sunrise, and the two dates showed side by side on the
-    # calendar. Whether Maasi Magam is a sunrise observance is open with the
-    # astrologer (OPEN_ITEMS 1A-E); test_curated_rows_agree_with_the_engine
-    # makes this row follow the answer.
-    CalendarCategoryEvent("hindu-festivals-2026", date(2026, 3, 3), "Maasi Magam", "மாசி மகம்", ("hindu",)),
+    # 2 Mar, the engine's day since 2026-11-10 (E5): Maasi Magam is read at
+    # midday, and Magam held the whole daytime of the 2nd. It printed 3 Mar
+    # (the Magam sunrise) before that.
+    CalendarCategoryEvent("hindu-festivals-2026", date(2026, 3, 2), "Maasi Magam", "மாசி மகம்", ("hindu",)),
     CalendarCategoryEvent("hindu-festivals-2026", date(2026, 3, 4), "Holi", "ஹோலி பண்டிகை", ("hindu",), "Holi observance can span the evening of Mar 3 through Mar 5.", "ஹோலி அனுசரிப்பு மார்ச் 3 மாலை முதல் மார்ச் 5 வரை மாறலாம்."),
     CalendarCategoryEvent("hindu-festivals-2026", date(2026, 3, 14), "Karadayan Nombu", "காரடையான் நோன்பு", ("hindu",)),
     # Canonical spelling matches app/calculations/festivals.py's
@@ -147,10 +145,10 @@ CALENDAR_CATEGORY_EVENTS_2026: tuple[CalendarCategoryEvent, ...] = (
     CalendarCategoryEvent("hindu-festivals-2026", date(2026, 8, 26), "Onam", "ஓணம் பண்டிகை", ("hindu",)),
     CalendarCategoryEvent("hindu-festivals-2026", date(2026, 8, 27), "Avani Avittam", "ஆவணி அவிட்டம்", ("hindu",)),
     CalendarCategoryEvent("hindu-festivals-2026", date(2026, 8, 28), "Gayathri Japam", "ஸ்ரீகாயத்ரி ஜெபம்", ("hindu",)),
-    # The engine's day, 28 Aug, not the curated 21 Aug: the Pournami itself
-    # when it is a Friday (`festivals._VARALAKSHMI_FRIDAY_POURNAMI`, which
-    # records both readings and why this one is the default).
-    CalendarCategoryEvent("hindu-festivals-2026", date(2026, 8, 28), "Varalakshmi Vratham", "ஸ்ரீவரலட்சுமி விரதம்", ("hindu",)),
+    # 21 Aug, the Friday before the Friday Pournami: the engine's day since
+    # 2026-11-10 (`festivals._VARALAKSHMI_FRIDAY_POURNAMI`, which records both
+    # readings). It printed 28 Aug before that.
+    CalendarCategoryEvent("hindu-festivals-2026", date(2026, 8, 21), "Varalakshmi Vratham", "ஸ்ரீவரலட்சுமி விரதம்", ("hindu",)),
     CalendarCategoryEvent("hindu-festivals-2026", date(2026, 8, 31), "Maha Sankatahara Chathurthi", "ஸ்ரீமஹா சங்கடஹர சதுர்த்தி", ("hindu",)),
     CalendarCategoryEvent("hindu-festivals-2026", date(2026, 9, 4), "Krishna Jayanthi", "கோகுலாஷ்டமி", ("hindu", "tamilnadu_govt")),
     CalendarCategoryEvent("hindu-festivals-2026", date(2026, 9, 14), "Vinayagar Chaturthi", "ஸ்ரீவிநாயகர் சதுர்த்தி", ("hindu", "tamilnadu_govt")),

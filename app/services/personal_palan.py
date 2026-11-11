@@ -525,7 +525,8 @@ _GURU_TESTING: dict[int, frozenset[str]] = {
 _RAHU_SUPPORT: dict[int, frozenset[str]] = {
     3: frozenset({"COMMUNICATION"}),
     6: frozenset({"HEALTH", "DOCUMENTS"}),
-    10: frozenset({"CAREER"}),
+    # 10 removed 2026-11-10 (D3, `ai_review_2026_11_10`): Rahu in the 10th is
+    # MIXED now, so this surface claims no support for it.
     11: frozenset({"MONEY", "FRIENDS"}),
 }
 _RAHU_TESTING: dict[int, frozenset[str]] = {

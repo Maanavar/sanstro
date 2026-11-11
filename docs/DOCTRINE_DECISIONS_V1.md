@@ -652,6 +652,85 @@ and Kalathra (23.4%) are ungraded and queued for the same grammar.
 **Still open.** The "Owed" column; papa samyam keeps 1, 2, 4, 7, 8, 12 (Q5 ruled
 on Sevvai only); native review of the new Tamil (questions doc Part E).
 
+## 19. Owner Ruling of 10 November 2026: build from the AI review
+
+Source: `docs/ASTROLOGER_MASTER_SHEET_RESPONSE_2026-11-10.md`, answers to
+`docs/ASTROLOGER_MASTER_SHEET_2026-11-10.md`. **The answers were written by an AI
+model (Fable 5.2), not a practitioner.** The owner has no astrologer contact
+for now and ruled to build from them, with the whole app and its calculations
+to go to an astrologer for review later.
+
+What this changes:
+
+- **Q18's tier rule is suspended for these answers, by the owner.** §18 Q18
+  tags AI review as `engine_inference`, which may only emit a watch-note. These
+  answers may declare, grade and change parihara. Every rule built from them is
+  tagged **`ai_review_2026_11_10`** in code comments, so the astrologer review
+  can find them all with one search.
+- **Each change sits behind one constant or option**, with the replaced
+  behaviour kept working, so that reversing a ruling changes one line.
+- **Where an answer overturns an earlier ruling** (the response doc's conflicts
+  table), the answer wins, and the replaced ruling is named at the code site.
+- **Verified first where possible.** An answer that our engine or a checkable
+  public record contradicts is not built, and the response doc records why.
+
+Built, each behind the switch named (tests: `tests/test_ai_review_2026_11_10.py`,
+each with its counter-case):
+
+| Item | Change | Switch | Replaces |
+|---|---|---|---|
+| E3 | Family A two-star months by §3 (moves 2033's trio; Vaigasi 2030 stays 17 May, a sunrise day beats a contained one) | `SolarMonthObservance.tie_break` | 23 Oct Q4 full-moon tie-break |
+| E5 | Maasi Magam read at midday (2026 = 2 Mar) | `kala="midday"` | sunrise |
+| E7 | Varalakshmi: the Friday before a Friday Pournami (2026 = 21 Aug) | `_VARALAKSHMI_FRIDAY_POURNAMI` | R3 of 23 Oct |
+| B1 | Node alone in the 5th: a கவனம் note, not a dosham (Putra Sarpa 16.1% → 1.4% declared) | `ps_node_alone` | §18 Q11 |
+| B4 | D7 birth-time line 5 minutes (withholds ~58%, was ~23%) | `BIRTH_TIME_TOLERANCE_MINUTES`, `D7_MARGIN_MINUTES` | 11-09 plan item 0 |
+| B6/B7 | Strong 5th lord and protecting Jupiter redefined | `children_protection_definition` | §18 Q12 stand-ins |
+| B9 | Node "beside": full leg within 10°, half beyond | `node_beside_full_weight_orb` | same sign, full weight |
+| B2 | Thirukarukavur, Sashti viratham (hope side); Kalahasti (sarpa side) | web parihara text | — |
+| C2 | Mars in Simmam/Kumbam reduces Sevvai in every house | `sevvai_simha_kumbha_nivarthi` | §18 Q6 |
+| C3 | Mild Sevvai says it is common | note `sevvai_mild_is_common` | — |
+| C4 | Strong Guru on Mars: lowest grade + note; no mismatch in matching | `sevvai_strong_guru` | §8 / O-18 for this case |
+| D3 | Rahu gochara 3/6/11; the 10th MIXED, scored neutral | `gochara_scores.RAHU_TENTH_FROM_MOON` | AAU-09, §18 Q2 |
+| A1/A3 | Venus/Jupiter promise needs lordship AND strength; strong malefic lord = mixed (Malavya/Hamsa named) | `PROMISE_NEEDS_STRENGTH` | 11-09 single test |
+| A6 | Neutral dasa-sandhi line at a child's Mars→Rahu change | `_CHILD_SENSITIVE_SANDHI` | — |
+| A7 | Saturn on the lagna: one extra line with a confirmed time, not scored | `lagna_rasi` argument | — |
+| A8 | Ardhashtama adds mother's health and change of residence | copy | — |
+| D10 | No marriage window before age 21 (no gender on the chart, so the higher legal age) | `event_windows.MARRIAGE_LEGAL_AGE` | — |
+| D11 | Sanskrit ruthu beside the Tamil ("இளவேனில் (வசந்த ருது)") | `tamil_year.SHOW_SANSKRIT_RUTHU` | — |
+| F6 | பூராடம் alternative symbol: முறம் (winnowing fan) | data | விசிறி |
+| B3 | A D7 SUPPORTS verdict lowers a formed children's dosham one grade (marker `d7_supports_fifth`); REPEATS/STRAINED block, never raise | `progeny_checks.D7_LOWERS_A_SUPPORTED_GRADE` | Q18: D7 never grades |
+| B5 | Dasa periods felt: the afflictor, planets joined to it in the 5th, the 5th lord; Jupiter alone supportive | `progeny_checks.DASA_PERIODS` | 11-09 (5th lord supportive) |
+| A2 | Bhukti sentence adds the bhukti lord's place from the dasa lord (6/8/12 friction, kendra/trikona smooth) and, for Rahu/Ketu, the sign lord it works through | `BHUKTI_RELATION` | one sentence for every chart |
+| A9 | The 4th–5th exchange's meaning for the child; a combust 4th lord: "consistency over pressure" | `CHILD_EXCHANGE_MEANING` | exchange stated as a fact only |
+| D1 | Marana/Prabalarishta yogam and Karinaal block the நல்ல நாள் badge (good → neutral); panchangam cache v51 | `panchangam.DAY_BLOCKS_MARANA_AND_KARINAAL` | AAU-07 weekday/tithi blocks only |
+| F5 | Tonsure in Dakshinayanam: −12, never a veto; the reason names the kula deivam custom | `_W.TONSURE_DAKSHINAYANAM` | unscored (KP_CH5_TONSURE_AYANA_001) |
+
+Already as answered before this ruling: E1 (Jayanthi yoga day, 11/11), E4 (Deepam
+2032 = 17 Nov), E6 (2045 Navami, the later aparahna), A4, A5, A11 (the per-chart
+rate), A10. **Not changed:** E2, Aadi Krithigai 2025: the answer gives 16 Aug but
+says published sources were split; the engine keeps 20 Jul (the day that holds
+Krittika at sunrise, and AstroVed's). C2/C5's implication that the nivarthi table
+*exempts* (rather than reduces) is not adopted: the answer did not ask for it, and
+O-18 is the owner's.
+
+**Held, with the reason:**
+
+- **D2** (avoid only the first ghatikas of some yogas). It *loosens* an existing
+  muhurtham block, and the answer itself says "as I recall … verify the verse".
+  Fail-safe toward doctrine: a block is not relaxed on an unverified recollection.
+- **B5/B10** (ask "do you have children?" before the card; suppress it when yes or
+  past that stage; never on a minor's chart; read both spouses' charts). A product
+  decision and a four-surface API change (`app/api/`, `packages/shared/src/api/`,
+  `mobile/src/api/`, `web/`). The minor rule alone would hide every children's card
+  on a child's chart, which the app shows today to the parent. Owner to confirm.
+- **F1** (a yearly Vakya-panchangam temple-date override table). The mechanism is
+  only useful with the dates; none were given.
+- **A2/A3/A9 remainders**: houses owned, natural friendship, strength and star lord
+  in the bhukti reading; naming the 7th house for Jupiter; the full 2nd/9th,
+  Mercury, Jupiter, Moon education reading. Each is a new interpretive build.
+- **F5 year rule** (odd years; within the first year): the picker takes no child
+  birth date.
+
 ## Launch Gate Checklist
 
 Before claiming traditional accuracy:

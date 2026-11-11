@@ -128,7 +128,10 @@ TONSURE_LAGNA_AVOID: frozenset[int] = frozenset({1, 5, 8, 9, 11})
 
 # Sourced, deliberately unscored.
 TONSURE_YEARS_FROM_BIRTH: tuple[int, ...] = (3, 5, 7)          # p.37, 3rd is best
-TONSURE_REQUIRES_UTHARAYANA: bool = True                        # p.37
+TONSURE_REQUIRES_UTHARAYANA: bool = True                        # p.37; scored since 2026-11-10
+# (F5, ai_review_2026_11_10): Dakshinayanam lowers the score, never vetoes
+# (`muhurta_engine._tonsure_ayana_factor`). The year rule stays unscored: the
+# picker takes no child birth date.
 TONSURE_BANNED_WHILE_MOTHER_PREGNANT: bool = True               # p.37, waived past age 5
 TONSURE_AVOID_NIGHT: bool = True                                # p.40
 TONSURE_EIGHTH_HOUSE_MUST_BE_EMPTY_EXCEPT_VENUS: bool = True    # p.40
@@ -508,7 +511,10 @@ RULE_SOURCES: dict[str, RuleSource] = {
         "course; the other half of the year is unfavourable.",
         "Utharayana required; Dakshinayana unfavourable. p.37 then grades the individual solar "
         "months from Capricorn through Gemini.",
-        notes="NOT IMPLEMENTED — the day snapshot carries no ayana or solar-month field.",
+        notes=(
+            "IMPLEMENTED 2026-11-10 as a penalty, not a veto (F5, ai_review_2026_11_10): "
+            "`muhurta_engine._tonsure_ayana_factor` reads the Tamil solar month."
+        ),
         term="Utharayana",
     ),
     "KP_CH5_TONSURE_PREGNANCY_001": _textual(

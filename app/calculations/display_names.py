@@ -49,6 +49,23 @@ def dasa_stem_ta(graha: str) -> str:
     return DASA_STEM_TA.get(graha, graha)
 
 
+# Genitive of each sign lord, for "புதனின் வலு …" / "புதனின் பலம் …". A closed
+# table, not a suffix rule: the lord of a sign is always one of these seven, and a
+# suffix rule is how "சனிவுக்கு" once shipped (see the dative guard in
+# tests/test_chart_explanation_bhavas.py). Rahu and Ketu own no sign, so a lookup
+# for them raises rather than inventing a form.
+LORD_GENITIVE_TA: dict[str, str] = {
+    "SUN": "சூரியனின்", "MOON": "சந்திரனின்", "MARS": "செவ்வாயின்",
+    "MERCURY": "புதனின்", "JUPITER": "குருவின்", "VENUS": "சுக்கிரனின்",
+    "SATURN": "சனியின்",
+}
+
+
+def lord_genitive_ta(graha: str) -> str:
+    """Tamil genitive of a sign lord ("புதனின்"). Raises KeyError for Rahu/Ketu."""
+    return LORD_GENITIVE_TA[graha]
+
+
 def planet_en(graha: str) -> str:
     """Plain English display name for a planet enum code."""
     return PLANET_EN.get(graha, graha.title() if graha.isupper() else graha)

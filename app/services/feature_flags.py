@@ -362,6 +362,12 @@ def _defaults() -> dict[str, Any]:
         "doctrine_o32_putra_sarpa_thulam_sani": "neutralized", # | "ordinary" (owner ruling 2026-10-06)
         "doctrine_sevvai_house_set": "tamil_five",             # | "manglik_five" | "union_six" (ruled 2026-10-30)
         "doctrine_d6b_guru_ketu": "watch_note",                # | "leg" (D6b, not ruled; plan item 1)
+        # ai_review_2026_11_10 (DOCTRINE §19): B1, B6/B7, B9.
+        "doctrine_ps_node_alone": "watch",                     # | "mild" (§18 Q11)
+        "doctrine_children_protection_definition": "ai_review",  # | "stand_in" (§18 Q12)
+        "doctrine_node_beside_full_weight_orb": 10.0,          # 0 = same sign, full weight
+        "doctrine_sevvai_simha_kumbha_nivarthi": True,         # C2; False = §18 Q6
+        "doctrine_sevvai_strong_guru": "nivarthi",             # C4; | "reduces" (§8)
         "doctrine_moon_72_degree_convention": False,           # DD-12 legacy convention
         "doctrine_show_lakshmi_phaladeepika": False,           # DD-02 variant, consumer UI
     }

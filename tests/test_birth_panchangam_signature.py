@@ -200,5 +200,5 @@ def test_the_signature_carries_year_ayanam_and_ruthu_from_the_tamil_day():
     before, after = _sig(date(1995, 4, 14), time(3, 0)), _sig(date(1995, 4, 14), time(6, 30))
     assert before["tamil_year_en"] == "Bhava" and after["tamil_year_en"] == "Yuva"
     assert before["tamil_year_number"] == 8 and after["tamil_year_number"] == 9
-    assert (before["ruthu_en"], after["ruthu_en"]) == ("Pinpani", "Ilavenil")
+    assert (before["ruthu_en"], after["ruthu_en"]) == ("Pinpani (Shishira)", "Ilavenil (Vasanta)")
     assert before["ayanam_en"] == after["ayanam_en"] == "Uttarayanam"

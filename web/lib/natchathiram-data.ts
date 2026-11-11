@@ -803,7 +803,7 @@ export const PUSHYA: NatchathiramEntry = {
   rasi_en: "Cancer",
   ruling_planet_ta: "சனி (Saturn)",
   deity_ta: "ஸ்ரீராமர் / பிரகஸ்பதி",
-  symbol_ta: "காமதேனுவின் மடி, பசுவின் மடி",
+  symbol_ta: "பசுவின் மடி, அம்பு",
   gana_ta: "தேவ கணம்",
   born_dasa_ta: "சனி தசை",
   sections: {
@@ -1139,7 +1139,7 @@ export const UTTARA_PHALGUNI: NatchathiramEntry = {
   rasi_en: "Leo / Virgo",
   ruling_planet_ta: "சூரியன் (Sun)",
   deity_ta: "அர்யமன் (நட்பின் தெய்வம்)",
-  symbol_ta: "மஞ்சம், இரண்டு கால்கள்",
+  symbol_ta: "கட்டிலின் பின்கால்கள்",
   gana_ta: "மனித கணம்",
   born_dasa_ta: "சூரிய தசை",
   sections: {
@@ -1390,7 +1390,7 @@ export const SWATI: NatchathiramEntry = {
   rasi_en: "Libra",
   ruling_planet_ta: "ராகு (Rahu)",
   deity_ta: "வாயு பகவான்",
-  symbol_ta: "பெண் எருமை, வாள், உடைவாள்",
+  symbol_ta: "காற்றில் அசையும் இளந்தளிர், பவளம்",
   gana_ta: "தேவ கணம்",
   born_dasa_ta: "ராகு தசை",
   sections: {
@@ -1642,7 +1642,7 @@ export const JYESHTHA: NatchathiramEntry = {
   rasi_en: "Scorpio",
   ruling_planet_ta: "புதன்",
   deity_ta: "ஜேஷ்டாதேவி மற்றும் தேவேந்திரன்",
-  symbol_ta: "வட்டமான தலிஸ்மன், குண்டலம்",
+  symbol_ta: "காதணி (குண்டலம்), குடை",
   gana_ta: "ராட்சச கணம்",
   born_dasa_ta: "புதன் தசை",
   sections: {
@@ -1726,7 +1726,7 @@ export const MULA: NatchathiramEntry = {
   rasi_en: "Sagittarius",
   ruling_planet_ta: "கேது",
   deity_ta: "நிருதி சக்தி",
-  symbol_ta: "வேர்கள் சேர்ந்த தண்டு",
+  symbol_ta: "வேர்கள் சேர்ந்த கொத்து, அங்குசம்",
   gana_ta: "அசுர கணம்",
   born_dasa_ta: "கேது தசை",
   sections: {
@@ -1809,7 +1809,7 @@ export const PURVA_ASHADHA: NatchathiramEntry = {
   rasi_en: "Sagittarius",
   ruling_planet_ta: "சுக்கிரன்",
   deity_ta: "ஆப்ப (நீர் தேவதை)",
-  symbol_ta: "யானை தந்தம், விசிறி",
+  symbol_ta: "யானைத் தந்தம், முறம்", // F6, ai_review_2026_11_10: the winnowing fan, not a hand fan
   gana_ta: "மனுஷ கணம்",
   born_dasa_ta: "சுக்கிர தசை",
   sections: {
@@ -2061,7 +2061,7 @@ export const AVITTAM: NatchathiramEntry = {
   rasi_en: "Capricorn / Aquarius",
   ruling_planet_ta: "செவ்வாய்",
   deity_ta: "அஷ்டவசுக்கள்",
-  symbol_ta: "இசைக்கருவி (முரசு, தாளம்)",
+  symbol_ta: "மத்தளம், புல்லாங்குழல்",
   gana_ta: "ராட்சச கணம்",
   born_dasa_ta: "செவ்வாய் திசை",
   sections: {
@@ -2397,7 +2397,7 @@ export const REVATHI: NatchathiramEntry = {
   rasi_en: "Pisces",
   ruling_planet_ta: "புதன்",
   deity_ta: "பூஷன் (வழிகாட்டும் தெய்வம்)",
-  symbol_ta: "மீன், தம்புரு",
+  symbol_ta: "இரட்டை மீன்கள், மத்தளம்",
   gana_ta: "தேவ கணம்",
   born_dasa_ta: "புதன் திசை",
   sections: {

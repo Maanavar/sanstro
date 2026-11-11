@@ -71,6 +71,9 @@ _NOT_MARKERS = frozenset(
         # markerLabel on either.
         "objective_only",
         "needs_attention",
+        # `DoctrineOptions.children_protection_definition` value
+        # (ai_review_2026_11_10, DOCTRINE §19), compared with `==`; never rendered.
+        "stand_in",
         # DD-05 (DOCTRINE_DECISIONS v1.3): `DoshamResult.astrologer_markers` is
         # a THIRD list, separate from conditions_met/cancellation_factors, and
         # is never rendered by this panel by design — it is the astrologer /

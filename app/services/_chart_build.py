@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from datetime import UTC, date, datetime, time
+from dataclasses import replace
 from functools import lru_cache
 from typing import Any
 from uuid import UUID, uuid4
@@ -16,6 +17,7 @@ from app.calculations.astro import (
     pada_from_degree,
     utc_datetime_to_julian_day,
 )
+from app.calculations._yoga_helpers import dosham_residual
 from app.calculations.birth_conditions import (
     birth_condition_strength_penalties,
     detect_birth_conditions,
@@ -38,6 +40,7 @@ from app.calculations.panchangam import NAKSHATRA_NAMES
 from app.calculations.progeny_checks import (
     BIRTH_TIME_TOLERANCE_MINUTES,
     CHILDREN_DOSHAMS,
+    d7_lowered_strength,
     check_progeny,
 )
 from app.calculations.transits import RASI_NAMES, is_cazimi, is_combust
@@ -733,6 +736,26 @@ def _build_yoga_dosham_insights(
         return notes
 
     progeny_by_name = {item.name: _progeny(item) for item in doshams}
+
+    def _after_d7(item):
+        # B3 (`ai_review_2026_11_10`): a supportive D7 lowers the grade one step.
+        progeny = progeny_by_name.get(item.name)
+        lowered = d7_lowered_strength(item.strength, progeny.d7.verdict) if progeny else None
+        if lowered is None:
+            return item
+        return replace(
+            item,
+            strength=lowered,
+            label="STRONG_ACTIVE_DOSHAM" if lowered == "STRONG" else "ACTIVE_DOSHAM",
+            cancellation_factors=[*item.cancellation_factors, "d7_supports_fifth"],
+            residual=dosham_residual(
+                is_present=True, is_cancelled=False, strength=lowered,
+                formation_strength=item.formation_strength, narrow_margin=False,
+            ),
+            progeny_outlook="difficulty" if lowered != "WEAK" else "delay",
+        )
+
+    doshams = [_after_d7(item) for item in doshams]
     dosham_models = [
         ChartDoshamInsight(
             name=item.name,

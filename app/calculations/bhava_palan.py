@@ -63,7 +63,7 @@ from app.calculations.chart_strength import (
     EXALTATION_RASI,
     neecha_bhanga_cancelled,
 )
-from app.calculations.display_names import planet_en, planet_ta
+from app.calculations.display_names import LORD_GENITIVE_TA, planet_en, planet_ta
 from app.calculations.doctrine_options import DEFAULT_DOCTRINE, DoctrineOptions
 from app.constants.astrology import SIGN_LORD
 
@@ -607,15 +607,9 @@ def _pullers(
     return sorted(weight, key=lambda g: -weight[g])[:2]
 
 
-# Genitive of each house lord, for "அதிபதி புதனின் வலு குறைவாக உள்ளது". A closed
-# table, not a suffix rule: the lord of a sign is always one of these seven, and a
-# suffix rule is how "சனிவுக்கு" once shipped (see the dative guard in
-# tests/test_chart_explanation_bhavas.py).
-_LORD_GENITIVE_TA: dict[str, str] = {
-    "SUN": "சூரியனின்", "MOON": "சந்திரனின்", "MARS": "செவ்வாயின்",
-    "MERCURY": "புதனின்", "JUPITER": "குருவின்", "VENUS": "சுக்கிரனின்",
-    "SATURN": "சனியின்",
-}
+# Genitive of each house lord, for "அதிபதி புதனின் வலு குறைவாக உள்ளது". The
+# closed table now lives in display_names, shared with the five-minute reading.
+_LORD_GENITIVE_TA: dict[str, str] = LORD_GENITIVE_TA
 
 
 def _names_ta(names: list[str]) -> str:

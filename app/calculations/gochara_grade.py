@@ -36,6 +36,8 @@ from __future__ import annotations
 
 from typing import Literal
 
+from app.calculations.gochara_scores import GOCHARA_FAVOURABLE_FROM_MOON
+
 GURU_SUPPORTIVE_FROM_MOON: frozenset[int] = frozenset({2, 5, 7, 9, 11})
 GURU_NON_SUPPORTIVE_FROM_MOON: frozenset[int] = frozenset({1, 3, 4, 6, 8, 10, 12})
 SANI_SUPPORTIVE_FROM_MOON: frozenset[int] = frozenset({3, 6, 11})
@@ -50,8 +52,11 @@ NAMED_SANI_PERIOD_HOUSES: frozenset[int] = SADE_SATI_FROM_MOON | ARDHASHTAMA_SAN
 # Vinaadi's presentation band for Guru (D3): non-supportive, but not adverse.
 GURU_MIXED_FROM_MOON: frozenset[int] = frozenset({1, 3, 4, 10})
 
-RAHU_SUPPORTIVE_FROM_MOON: frozenset[int] = frozenset({3, 6, 10, 11})
-RAHU_NEEDS_CARE_FROM_MOON: frozenset[int] = frozenset({1, 2, 4, 5, 7, 8, 9, 12})
+# D3 (`ai_review_2026_11_10`, DOCTRINE §19): Rahu 3/6/11, the 10th MIXED. One
+# switch for both tables: `gochara_scores.RAHU_TENTH_FROM_MOON`.
+RAHU_SUPPORTIVE_FROM_MOON: frozenset[int] = GOCHARA_FAVOURABLE_FROM_MOON["RAHU"]
+RAHU_MIXED_FROM_MOON: frozenset[int] = frozenset({10}) - RAHU_SUPPORTIVE_FROM_MOON
+RAHU_NEEDS_CARE_FROM_MOON: frozenset[int] = frozenset(range(1, 13)) - RAHU_SUPPORTIVE_FROM_MOON - RAHU_MIXED_FROM_MOON
 KETU_SUPPORTIVE_FROM_MOON: frozenset[int] = frozenset({3, 6, 11})
 KETU_NEEDS_CARE_FROM_MOON: frozenset[int] = frozenset({1, 2, 4, 5, 7, 8, 9, 10, 12})
 
@@ -73,7 +78,9 @@ def gochara_grade(planet: str, house_from_moon: int) -> GocharaGrade | None:
     if key == "SATURN":
         return "SUPPORTIVE" if house_from_moon in SANI_SUPPORTIVE_FROM_MOON else "NEEDS_CARE"
     if key == "RAHU":
-        return "SUPPORTIVE" if house_from_moon in RAHU_SUPPORTIVE_FROM_MOON else "NEEDS_CARE"
+        if house_from_moon in RAHU_SUPPORTIVE_FROM_MOON:
+            return "SUPPORTIVE"
+        return "MIXED" if house_from_moon in RAHU_MIXED_FROM_MOON else "NEEDS_CARE"
     if key == "KETU":
         return "SUPPORTIVE" if house_from_moon in KETU_SUPPORTIVE_FROM_MOON else "NEEDS_CARE"
     return None

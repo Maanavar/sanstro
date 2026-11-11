@@ -3,12 +3,17 @@
 parihara answer (Q13, Q15), and the progeny invariant (Q17): no output path may
 say a person cannot have children.
 
+Since 2026-11-10 (DOCTRINE §19, `ai_review_2026_11_10`) the Q11/Q12 defaults are
+replaced; these tests pin the §18 rulings behind their switches (`_Q18`). The new
+defaults are tests/test_ai_review_2026_11_10.py.
+
 Lagna Mesham throughout the hand-built charts: the 5th house is Simmam (5), its
 lord the Sun. Synthetic only — no person, no birth data.
 """
 from __future__ import annotations
 
 import random
+from dataclasses import replace
 import re
 from pathlib import Path
 
@@ -17,6 +22,7 @@ from pydantic import ValidationError
 
 from app.calculations._yoga_dosham import detect_putra_sarpa_dosham, detect_santhana_thadai
 from app.calculations._yoga_helpers import PROGENY_OUTLOOKS
+from app.calculations.doctrine_options import DEFAULT_DOCTRINE
 from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.remedies import active_dosham_planet
 from app.schemas.charts import ChartDoshamInsight
@@ -26,8 +32,14 @@ pytestmark = pytest.mark.no_db
 _BASE = {"SUN": 3, "MOON": 6, "MARS": 7, "MERCURY": 3, "VENUS": 6, "SATURN": 8}
 
 
+_Q18 = replace(
+    DEFAULT_DOCTRINE, ps_node_alone="mild", children_protection_definition="stand_in",
+    node_beside_full_weight_orb=0.0,
+)
+
+
 def _ps(**placed: int):
-    return detect_putra_sarpa_dosham({**_BASE, **placed}, 1, {})
+    return detect_putra_sarpa_dosham({**_BASE, **placed}, 1, {}, doctrine=_Q18)
 
 
 # ── Q11: only a node in the 5th declares; the legs grade it ──────────────────
@@ -111,8 +123,8 @@ def test_no_d7_leg() -> None:
 
 # ── Q13/Q15: the parihara is the assessment's fourth answer ──────────────────
 def test_santhana_thadai_protection_lightens_the_parihara_and_says_so() -> None:
-    open_fifth = detect_santhana_thadai({**_BASE, "SATURN": 5, "JUPITER": 2, "RAHU": 3, "KETU": 9}, 1, {})
-    guarded = detect_santhana_thadai({**_BASE, "SATURN": 5, "JUPITER": 1, "RAHU": 3, "KETU": 9}, 1, {})
+    open_fifth = detect_santhana_thadai({**_BASE, "SATURN": 5, "JUPITER": 2, "RAHU": 3, "KETU": 9}, 1, {}, doctrine=_Q18)
+    guarded = detect_santhana_thadai({**_BASE, "SATURN": 5, "JUPITER": 1, "RAHU": 3, "KETU": 9}, 1, {}, doctrine=_Q18)
     assert open_fifth.is_present and open_fifth.parihara == "full"
     assert guarded.is_present and guarded.parihara == "objective_only", "never silently withheld"
     assert "santhana_thadai_lighter_parihara" in guarded.context_notes

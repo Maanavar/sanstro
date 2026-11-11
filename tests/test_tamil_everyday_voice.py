@@ -105,6 +105,32 @@ def test_a_family_members_reading_never_addresses_the_reader() -> None:
             assert not any(word in pair[0] for word in second_person), f"{key}: {pair[0]}"
 
 
+@pytest.mark.parametrize("nakshatra_lord", sorted(one._VOICE))
+def test_a_family_members_opening_hinge_never_addresses_the_reader(nakshatra_lord: str) -> None:
+    """v6 made the self contrast "உங்களிடம் …"; the family register shares `_transition`.
+
+    Every signature lord is paired with this nakshatra lord, so the contrast branch
+    fires wherever the two lines face opposite ways.
+    BLIND SPOT: checks the opening beat only, and only the listed second-person forms.
+    """
+    second_person = ("நீங்கள்", "உங்கள்", "உங்களுக்கு", "உங்களை", "உங்களிடம்")
+    contrasted = False
+    for signature_lord in sorted(one._SIGNATURE_OPENING):
+        beat = one._beat_who_you_are(
+            display_name="Divya Synthetic", nakshatra=19, nakshatra_name="Moola",
+            moon_rasi_name="Dhanus", moon_rasi=9, lagna_rasi_name="Mesha", lagna_rasi=1,
+            nakshatra_lord=nakshatra_lord, signature_lord=signature_lord,
+            lagna_reliable=False, addressed_to="other",
+        )
+        assert not any(word in beat.text.ta for word in second_person), beat.text.ta
+        contrasted = contrasted or "அவரிடம் இன்னொரு பக்கமும்" in beat.text.ta
+    if any(
+        one._VOICE[nakshatra_lord].nature.faces is not opening.faces
+        for opening in one._SIGNATURE_OPENING.values()
+    ):
+        assert contrasted, f"{nakshatra_lord}: no pairing reached the contrast hinge"
+
+
 # ── Dasa names: ராகு காலம் is the daily hour ─────────────────────────────────
 
 

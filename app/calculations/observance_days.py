@@ -46,7 +46,7 @@ from app.calculations.lunar_month import amanta_month_at, elongation_instant, fu
 from app.calculations.tamil_calendar import tamil_month_spans
 from app.constants.astrology import NAKSHATRA_NAMES
 
-Kala = Literal["sunrise", "sunset", "aparahna"]
+Kala = Literal["sunrise", "sunset", "aparahna", "midday"]
 # "kala_two": the kala fell inside the occurrence on two days and the first
 # was taken (§6). Reported separately so the audit can count it.
 NamedBy = Literal["kala", "kala_two", "sunrise", "contained"]
@@ -178,6 +178,10 @@ class _Clock:
             return self.sunrise(d)
         if kala == "sunset":
             return self.sunset(d)
+        if kala == "midday":
+            # Midpoint of daytime: the kala of a daytime temple rite, such as
+            # Maasi Magam's theerthavari (E5, `ai_review_2026_11_10`).
+            return (self.sunrise(d) + self.sunset(d)) / 2
         # Midpoint of aparahna, the fourth fifth of daytime.
         return self.sunrise(d) + 0.7 * (self.sunset(d) - self.sunrise(d))
 

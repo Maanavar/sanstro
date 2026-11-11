@@ -1,5 +1,8 @@
 # Questions for the astrologer, 2026-11-09
 
+> **Superseded by `ASTROLOGER_REVIEW_SHEET_2026-11-09.md`**, which has every question below with
+> the current wording. Kept for the record of what was sent.
+
 **From:** the Vinaadi team. **About:** the Tamil readings and the star cards.
 A short answer under each question is enough. Where you have a reference table, please send the table.
 
@@ -60,6 +63,48 @@ The reading says: "இப்போது சனி உங்கள் ராச�
 
 When the reading names the 12th house, it says it stands for "செலவு, வெளிநாடு, மோட்சம்".
 Is that a fair one-line summary for an ordinary reader, or would you put it differently?
+
+## Added after the first send (2026-11-09, from the v3 language review)
+
+These three were not in the list you received first. Separately, the wording of the lines
+quoted in questions 4 and 5 has since been smoothed, without changing the meaning: question 4
+now reads "படிப்பில் எந்தத் துறையின் மீது ஆர்வம் அதிகம்…", and question 5 now ends
+"…ஆபத்தான விஷயங்களில் ஈடுபடாமல் இருப்பது நல்லது".
+
+### 7. Saturn 4th from the Moon rasi (அர்த்தாஷ்டம சனி)
+
+The reading says: "இப்போது சனி … ராசியிலிருந்து நான்காம் இடத்தில் இருக்கிறார் (அர்த்தாஷ்டம சனி).
+இதனால் வீடு, வாகனம், மன நிம்மதி ஆகியவற்றில் கூடுதல் பொறுப்புகள் அல்லது அழுத்தங்கள் ஏற்படலாம்."
+Is வீடு, வாகனம், மன நிம்மதி the right set of things to name for அர்த்தாஷ்டம சனி?
+
+### 8. A child in a Mars dasa: patience with learning
+
+For a child in செவ்வாய் தசை, the reading tells the parent: "இப்போது நடக்கும் செவ்வாய் தசையில் கற்றல்
+விஷயத்தில் பொறுமை தேவை" and "சுறுசுறுப்பும் வேகமும் அதிகமாக இருக்கும் காலம் இது; அந்த ஆற்றலைச்
+சரியான வழியில் செலுத்தினால் நல்லது." Is that a fair reading of a Mars dasa for a school-age child?
+
+### 9. A child's Venus bhukti as "an easier patch"
+
+The reading says a Venus bhukti inside a child's dasa "இந்தத் தசைக்குள் கொஞ்சம் எளிதான ஒரு
+காலத்தைத் தருகிறது". This is the same question as question 2, for a child: should it depend on
+Venus's condition in the chart?
+
+## Added after the second send (2026-11-09, from the v4 language review)
+
+The wording of some quoted lines has been smoothed again, with the same meaning:
+question 4 now reads "படிப்பில் எந்தப் பாடங்களின் மீது ஆர்வம் அதிகம்…"; question 5
+"முடிவெடுப்பதிலும், புதிய முயற்சிகளிலும், பிள்ளைகள் தொடர்பான விஷயங்களிலும் கூடுதல் கவனம் தேவை";
+question 7 "வீடு, வாகனம் தொடர்பான விஷயங்களில் கூடுதல் பொறுப்புகள் அல்லது அழுத்தங்கள் ஏற்படலாம்;
+மனநிம்மதியும் பாதிக்கப்படலாம்"; question 8 "சுறுசுறுப்பாகவும் ஏதாவது செய்துகொண்டிருக்கவும் தோன்றும்
+காலம் இது. அந்த ஆற்றலைச் சரியான வழியில் செலுத்துவது நல்லது".
+
+### 10. A Venus dasa during its Rahu bhukti
+
+For a reader in சுக்கிர தசை, ராகு புக்தி, the reading says: "சுக்கிர தசையின் பலன்களோடு ராகு புக்தியின்
+தாக்கமும் சேர்ந்திருக்கிறது. இருந்தாலும், அடிப்படையில் இது சுக்கிர தசைதான். உறவுகளும் வசதிகளும்
+பணமும் எளிதாகக் கைகூடக்கூடிய காலம் இது." Is it right to keep the favourable Venus description
+in force during the Rahu bhukti, or should the bhukti lead? This is narrower than question 2:
+even if Venus's description stays generic, the bhukti may change what we should say.
 
 ---
 

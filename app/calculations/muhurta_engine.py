@@ -275,6 +275,12 @@ class _W:
     # MARRIAGE only. The Thai eldest-child custom genuinely is family-specific
     # and stays an advisory notice in `muhurta_service`, unscored.
     MARRIAGE_NO_WEDDING_MONTH = -600.0
+    # F5 (`ai_review_2026_11_10`, DOCTRINE §19): Kalaprakasika Ch. V p.37 —
+    # tonsure is "most beneficent when the Sun is in northern course". Ruled to
+    # prefer Uttarayanam and ALLOW Dakshinayanam at a lower score, not to veto
+    # it. Sized like a heavy L2 star penalty: a Dakshinayanam day can still win
+    # a short search, but never over a comparable Uttarayanam one.
+    TONSURE_DAKSHINAYANAM = -12.0
     # Amirdhadhi Yogam — the weekday x nakshatra classification Tamil almanacs
     # print beside every date. Sized ABOVE the broad subha-star bonus (10) and
     # level with the heaviest L2 star penalty, because the almanac tradition
@@ -703,6 +709,44 @@ NO_WEDDING_TAMIL_MONTHS: frozenset[int] = frozenset({
     5,  # புரட்டாசி Purattasi
     8,  # மார்கழி  Margazhi
 })
+
+
+#: Tamil month indices (0 = Chithirai) of Dakshinayanam: Aadi .. Margazhi.
+_DAKSHINAYANAM_MONTHS = frozenset({3, 4, 5, 6, 7, 8})
+
+
+def _tonsure_ayana_factor(snapshot, activity: str) -> FactorResult | None:
+    """F5: a tonsure date in Dakshinayanam scores lower (TONSURE only).
+
+    The kula deivam custom overrides any of this; the engine cannot know it, so
+    the reason says so.
+    """
+    if activity != "TONSURE":
+        return None
+    day = getattr(snapshot, "date_local", None)
+    if day is None:
+        return None
+    try:
+        month_index, _ = tamil_solar_date(day, snapshot.timezone_name, snapshot.latitude, snapshot.longitude)
+    except Exception:  # noqa: BLE001 — a calendar failure must not blank a valid day
+        logger.debug("Tamil month lookup failed for %s", day, exc_info=True)
+        return None
+    if month_index not in _DAKSHINAYANAM_MONTHS:
+        return None
+    return FactorResult(
+        factor="TONSURE_DAKSHINAYANAM",
+        verdict=Verdict.PENALTY,
+        contribution=_W.TONSURE_DAKSHINAYANAM,
+        reason_en=(
+            "Tonsure is best while the Sun is in its northern course (Thai to Aani); this day "
+            "falls in the southern half of the year, so it scores lower. A family's kula deivam "
+            "custom comes first."
+        ),
+        reason_ta=(
+            "முடி இறக்க உத்தராயணம் (தை முதல் ஆனி வரை) சிறந்தது; இந்த நாள் தட்சிணாயனத்தில் "
+            "வருவதால் மதிப்பெண் குறைவு. குலதெய்வ வழக்கம் இருந்தால் அதுவே முதன்மை."
+        ),
+    )
 
 
 def _marriage_month_factor(snapshot, activity: str) -> FactorResult | None:
@@ -2512,6 +2556,7 @@ def score_day(
             _almanac_day_quality_factor(snapshot),
             _almanac_karinaal_factor(snapshot),
             _marriage_month_factor(snapshot, activity),
+            _tonsure_ayana_factor(snapshot, activity),
             _almanac_yoga_factor(snapshot),
             _almanac_amirdhadhi_factor(snapshot, activity),
             _almanac_windows_factor(snapshot),

@@ -159,6 +159,16 @@ export const DOSHAM_CONTEXT_LABELS: Record<string, Text> = {
   },
   // The astrologer's own wording, 23 Oct (Q12; the Tamil is his B3 correction).
   // Verbatim in both languages — do not re-translate or compress.
+  // ai_review_2026_11_10 (DOCTRINE §19, C4). Same sentences as the backend.
+  // C3 (ai_review_2026_11_10). Same sentences as the backend.
+  sevvai_mild_is_common: {
+    ta: "இந்த லேசான நிலையில் செவ்வாய் தோஷம் பொதுவானது. லக்னத்திலிருந்து மட்டும் எண்ணினால், பத்து ஜாதகங்களில் சுமார் நான்கில் செவ்வாய் இந்த ஐந்து வீடுகளில் ஒன்றில் இருக்கும்; எனவே லேசான செவ்வாய் தோஷம் மட்டும் கவலைக்குரியது அல்ல.",
+    en: "Sevvai at this mild grade is common. Counted from the Lagna alone, Mars sits in one of these five houses in about four charts in ten, so a mild Sevvai on its own is no cause for alarm.",
+  },
+  sevvai_strong_guru_nivarthi: {
+    ta: "இங்கு வலுவான குரு செவ்வாயுடன் சேர்ந்தோ செவ்வாயைப் பார்த்தோ இருக்கிறார். பல ஜோதிடர்கள் இதை நிவர்த்தியாகக் கருதுகிறார்கள்: தோஷம் அதன் குறைந்த நிலையில் காட்டப்படுகிறது; திருமணப் பொருத்தத்தில் இது பொருத்தமின்மையாகக் கணக்கிடப்படுவதில்லை.",
+    en: "A strong Jupiter joins or aspects Mars here. Many astrologers treat this as nivarthi: the dosham is shown at its lowest grade, and in marriage matching it is not counted as a mismatch.",
+  },
   sevvai_mars_debility_modifies: {
     ta: "செவ்வாய் நீசம் பெறுவது செவ்வாய் தோஷத்தின் தன்மையை மாற்றுகிறது. நீசச் செவ்வாய் தீங்கைக் குறைக்கும் என்று சில நூல்களும், 7-ஆம் அல்லது 8-ஆம் இடத்தில் அது தீங்கை அதிகரிக்கும் என்று வேறு சில நூல்களும் கூறுகின்றன. பலன் பாவகம், ஆதிபத்தியம், பார்வை ஆகியவற்றைப் பொறுத்தது; நீசம் மட்டுமே தோஷ நிவர்த்தியை உறுதிசெய்யாது.",
     en: "Mars's debility modifies the reading of Sevvai dosham. Some texts hold that a debilitated Mars does less harm; others hold that in the 7th or 8th it does more. The result depends on house, lordship and aspect, and debility alone does not establish cancellation.",
@@ -174,6 +184,12 @@ export const DOSHAM_CONTEXT_LABELS: Record<string, Text> = {
   putra_sarpa_watch_only: {
     ta: "இங்கு ராகு அல்லது கேது 5-ஆம் அதிபதியையோ குருவையோ தொடுகிறது, ஆனால் 5-ஆம் வீட்டிலேயே இல்லை. 5-ஆம் வீட்டில் ராகு அல்லது கேது இருந்தால் மட்டுமே புத்ர சர்ப்ப தோஷம் அறிவிக்கப்படும்; எனவே இது கவனிக்க வேண்டிய குறிப்பு மட்டுமே, தோஷம் அல்ல, இதற்குப் பரிகாரம் பரிந்துரைக்கப்படவில்லை.",
     en: "Rahu or Ketu touches the 5th lord or Jupiter here, but no node sits in the 5th house itself. Only a node in the 5th declares Putra Sarpa, so this is a note to watch, not a dosham, and no parihara is suggested for it.",
+  },
+  // ai_review_2026_11_10 (DOCTRINE §19, B1): a node alone in the 5th is a note, not a
+  // dosham. Same sentences as the backend.
+  putra_sarpa_node_alone_watch: {
+    ta: "உங்கள் 5-ஆம் வீட்டில் ராகு அல்லது கேது உள்ளது; ஆனால் தோஷத்தை உறுதிப்படுத்தும் அளவுக்கு ஜாதகத்தில் வேறு எதுவும் அதனுடன் நெருக்கமாகச் சேரவில்லை. 5-ஆம் வீட்டில் ராகு அல்லது கேது மட்டும் இருப்பது பொதுவானது, ஆறு ஜாதகங்களில் ஒன்றில் இப்படி இருக்கும்; எனவே இது கவனத்தில் வைக்க வேண்டிய குறிப்பு மட்டுமே, தோஷம் அல்ல, இதற்குப் பரிகாரம் பரிந்துரைக்கப்படவில்லை.",
+    en: "Rahu or Ketu sits in your 5th house, but nothing else in the chart joins it closely enough to confirm a dosham. A node alone in the 5th is common, about one chart in six, so it is a point to keep in mind, not a dosham, and no parihara is suggested for it.",
   },
   // V1 §18 final sheet (Q13, Q14). Same sentences as the backend.
   putra_sarpa_guru_ketu_noted: {
@@ -251,6 +267,9 @@ export const MITIGATION_PHRASE: Record<string, Text> = {
   tamil_sevvai_exception_cancer_leo: { ta: "கடகம்/சிம்ம லக்ன விதிவிலக்கு", en: "the Kadagam/Simmam lagna exception" },
   mars_lagna_lord_mitigation: { ta: "செவ்வாய் லக்னாதிபதியாக இருப்பது", en: "Mars as your lagna lord" },
   house_sign_nivarthi: { ta: "இட-ராசி நிவர்த்தி", en: "the house-sign nivarthi" },
+  d7_supports_fifth: { ta: "சப்தாம்சத்தில் (D7) 5-ஆம் வீடு காக்கப்படுவது", en: "the Saptamsa (D7) guarding the 5th" },
+  mars_in_simha_kumbha: { ta: "செவ்வாய் சிம்மம் அல்லது கும்பத்தில் இருப்பது", en: "Mars in Simmam or Kumbam" },
+  strong_guru_on_mars: { ta: "வலுவான குரு செவ்வாயுடன் சேர்ந்தோ பார்த்தோ இருப்பது", en: "a strong Jupiter joining or aspecting Mars" },
   jupiter_aspect_on_mars: { ta: "செவ்வாய் மீது குருவின் பார்வை", en: "Jupiter's aspect on Mars" },
   jupiter_conjunct_mars: { ta: "குரு செவ்வாயுடன் சேர்ந்திருப்பது", en: "Jupiter joining Mars" },
   benefic_association_mars: { ta: "செவ்வாயுடன் சுப கிரகம் சேர்ந்திருப்பது", en: "a benefic beside Mars" },

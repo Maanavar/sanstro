@@ -16,14 +16,19 @@ from app.calculations._yoga_dosham import (
     detect_santhana_thadai,
 )
 from app.calculations._yoga_helpers import _marker_explain, _marker_explain_ta
+from app.calculations.doctrine_options import DoctrineOptions
 
 pytestmark = pytest.mark.no_db
+
+# These pin the card wording under the §18 rulings (V1 §18 Q11/Q12), kept behind
+# their switches since the 2026-11-10 AI-review defaults (DOCTRINE §19).
+_Q18 = DoctrineOptions(ps_node_alone="mild", children_protection_definition="stand_in", node_beside_full_weight_orb=0.0)
 
 
 def test_putra_sarpa_names_the_disturber_and_the_guard_separately() -> None:
     # Mesham lagna: 5th house Simmam, 5th lord Sun (in Dhanusu, unafflicted).
     # Rahu sits in Simmam; Guru in Kadagam (the 4th, a kendra) guards.
-    result = detect_putra_sarpa_dosham({"SUN": 9, "RAHU": 5, "KETU": 11, "JUPITER": 4}, 1, {"SUN": 50})
+    result = detect_putra_sarpa_dosham({"SUN": 9, "RAHU": 5, "KETU": 11, "JUPITER": 4}, 1, {"SUN": 50}, doctrine=_Q18)
     # V1 §18 Q12: a protection lowers the grade; it never cancels.
     assert result.is_present and not result.is_cancelled
     assert result.conditions_met == ["fifth_house_has_rahu"]
@@ -39,7 +44,7 @@ def test_putra_sarpa_names_the_disturber_and_the_guard_separately() -> None:
 def test_putra_sarpa_same_lord_on_both_sides_is_named_once() -> None:
     # Rahu in Simmam (the 5th) declares (V1 §18 Q11); Ketu joins the 5th lord
     # (Sun, in Kumbam), and the Sun is strong, so the lord is on both sides.
-    result = detect_putra_sarpa_dosham({"SUN": 11, "RAHU": 5, "KETU": 11, "JUPITER": 2}, 1, {"SUN": 80})
+    result = detect_putra_sarpa_dosham({"SUN": 11, "RAHU": 5, "KETU": 11, "JUPITER": 2}, 1, {"SUN": 80}, doctrine=_Q18)
     assert result.conditions_met == ["fifth_house_has_rahu", "fifth_lord_sun_joined_by_ketu"]
     assert result.cancellation_factors == ["fifth_lord_sun_strong"]
     assert "Ketu beside its lord, Sun" in result.meaning_en
@@ -54,7 +59,7 @@ def test_putra_sarpa_node_beside_the_lord_alone_declares_nothing() -> None:
 
 
 def test_putra_sarpa_unguarded_says_so_and_names_the_dasha() -> None:
-    result = detect_putra_sarpa_dosham({"SUN": 9, "RAHU": 5, "KETU": 11, "JUPITER": 2}, 1, {"SUN": 50})
+    result = detect_putra_sarpa_dosham({"SUN": 9, "RAHU": 5, "KETU": 11, "JUPITER": 2}, 1, {"SUN": 50}, doctrine=_Q18)
     assert result.is_present and not result.is_cancelled
     assert result.meaning_en.endswith("Nothing in this chart guards it. Most noticeable in the dasha or bhukti of Rahu.")
     # What it brings and the medical note have their own card sections.
@@ -75,7 +80,7 @@ def test_o32_sani_in_own_fifth_for_thulam_is_neutralized() -> None:
 
 def test_o32_an_independent_affliction_still_forms_it() -> None:
     # Rahu joins Sani in Kumbam: the node in the 5th is its own affliction.
-    result = detect_putra_sarpa_dosham({"SATURN": 11, "RAHU": 11, "KETU": 5, "JUPITER": 3}, 7, {"SATURN": 80})
+    result = detect_putra_sarpa_dosham({"SATURN": 11, "RAHU": 11, "KETU": 5, "JUPITER": 3}, 7, {"SATURN": 80}, doctrine=_Q18)
     assert result.is_present is True
     assert result.conditions_met == ["fifth_house_has_rahu"]  # Sani is not counted
 

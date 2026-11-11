@@ -829,7 +829,12 @@ def test_new_doshams_kalathra_putra_badhaka():
     kalathra = detect_kalathra_dosham(planets, lagna_rasi=1, moon_rasi=7, is_male=True, planet_scores={"VENUS": 30})
     assert kalathra.is_present is True
 
-    putra = detect_putra_sarpa_dosham({"SUN": 5, "RAHU": 5, "JUPITER": 8}, lagna_rasi=1, planet_scores={"SUN": 30})
+    from app.calculations.doctrine_options import DoctrineOptions
+
+    putra = detect_putra_sarpa_dosham(
+        {"SUN": 5, "RAHU": 5, "JUPITER": 8}, lagna_rasi=1, planet_scores={"SUN": 30},
+        doctrine=DoctrineOptions(ps_node_alone="mild"),  # node alone: §18 Q11, behind its switch
+    )
     assert putra.is_present is True
 
     badhaka = detect_badhaka_dosham({"SATURN": 1, "MOON": 1, "MARS": 1}, lagna_rasi=1, planet_scores={"SATURN": 20}, current_maha_lord="SATURN")
@@ -866,7 +871,12 @@ def test_l5_putra_sarpa_flags_nodes_occupying_fifth_house_itself():
     # Lagna=1 -> 5th lord is Sun (Leo). Sun sits in the 9th (not conjunct
     # Rahu), but Rahu occupies the 5th house itself.
     planets = {"SUN": 9, "RAHU": 5, "JUPITER": 8}
-    result = detect_putra_sarpa_dosham(planets, lagna_rasi=1, planet_scores={"SUN": 70})
+    from app.calculations.doctrine_options import DoctrineOptions
+
+    result = detect_putra_sarpa_dosham(
+        planets, lagna_rasi=1, planet_scores={"SUN": 70},
+        doctrine=DoctrineOptions(ps_node_alone="mild"),  # node alone: §18 Q11, behind its switch
+    )
     assert result.is_present is True
 
 

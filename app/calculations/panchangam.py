@@ -19,6 +19,7 @@ from app.calculations.astro import (
     utc_datetime_to_local_datetime,
 )
 from app.calculations.day_quality import FIT_STARS, DayQuality, day_quality
+from app.calculations.karinaal import is_karinaal
 from app.calculations.ephemeris import (
     RiseTransitUndefinedError,
     calculate_lagna_degree,
@@ -586,7 +587,9 @@ DEFAULT_AYANAMSA_TYPE = "LAHIRI"
 # (`day_quality`), not the 17-star list on the sunrise star. Magam and Moolam
 # leave the badge, Sadhayam joins it, and transition days can flip. Every
 # cached snapshot carries the old badge.
-PANCHANGAM_CACHE_DATA_VERSION = 50
+# v51 (2026-11-10, D1, `ai_review_2026_11_10`): marana yogam and Karinaal now
+# block the நல்ல நாள் badge. Every cached snapshot carries the old badge.
+PANCHANGAM_CACHE_DATA_VERSION = 51
 
 # Fixed weekday clock-table Nalla Neram windows. NOTE (2026-07-17): the daily
 # panchangam no longer uses this table — its Nalla Neram is now derived from the
@@ -1529,9 +1532,22 @@ def _muhurtham_weekday_block_reason(weekday_index: int) -> str:
     return f"Inauspicious: {weekday_name} excluded for Subha Muhurtham in Tamil tradition"
 
 
-def _day_block_reason(tithi_number: int, weekday_index: int) -> str | None:
+#: D1 (`ai_review_2026_11_10`, DOCTRINE §19): "the star class alone is thin for
+#: a நல்ல நாள் badge". Marana and Prabalarishta yogam (weekday with the sunrise
+#: star) and Karinaal also block. Like every block, they lower good to
+#: neutral, never to caution. False restores AAU-07 (weekday and tithi only).
+DAY_BLOCKS_MARANA_AND_KARINAAL = True
+
+
+def _day_block_reason(
+    tithi_number: int,
+    weekday_index: int,
+    nakshatra_number: int | None = None,
+    day: date | None = None,
+) -> str | None:
     """Tuesday, Saturday, Amavasai, the Rikta tithis and Ashtami: the weekday
-    and tithi blocks on a good day for new work, or None."""
+    and tithi blocks on a good day for new work, or None. With the sunrise star
+    and the date, also marana yogam and Karinaal (D1)."""
     tithi_in_paksha = tithi_number if tithi_number <= 15 else tithi_number - 15
     if weekday_index in MUHURTHAM_BLOCKED_WEEKDAYS:
         return _muhurtham_weekday_block_reason(weekday_index)
@@ -1541,6 +1557,12 @@ def _day_block_reason(tithi_number: int, weekday_index: int) -> str | None:
         return f"Inauspicious: {_tithi_name(tithi_number)} (Rikta tithi)"
     if tithi_in_paksha in TAMIL_AVOIDED_TITHIS_IN_PAKSHA:
         return f"Inauspicious: {_tithi_name(tithi_number)} (avoided for subha karyam)"
+    if DAY_BLOCKS_MARANA_AND_KARINAAL:
+        if nakshatra_number is not None and amirdhadhi_yogam_class(weekday_index, nakshatra_number) in {"M", "P"}:
+            label = "Marana yogam" if amirdhadhi_yogam_class(weekday_index, nakshatra_number) == "M" else "Prabalarishta yogam"
+            return f"Inauspicious: {label} (weekday with {NAKSHATRA_NAMES[nakshatra_number - 1]})"
+        if day is not None and is_karinaal(day):
+            return "Inauspicious: Karinaal"
     return None
 
 
@@ -1558,7 +1580,9 @@ def day_quality_for(snapshot: PanchangamSnapshot) -> DayQuality:
         snapshot.sunrise,
         snapshot.sunset,
         fallback_star=snapshot.nakshatra_number,
-        block_reason=_day_block_reason(snapshot.tithi_number, snapshot.date_local.weekday()),
+        block_reason=_day_block_reason(
+            snapshot.tithi_number, snapshot.date_local.weekday(), snapshot.nakshatra_number, snapshot.date_local,
+        ),
     )
 
 
@@ -2561,7 +2585,7 @@ def compute_daily_panchangam(
     is_subha, subha_reason = _subha_from_day_quality(day_quality(
         nakshatra_spans, sunrise, sunset,
         fallback_star=nakshatra_number,
-        block_reason=_day_block_reason(tithi_number, weekday_index),
+        block_reason=_day_block_reason(tithi_number, weekday_index, nakshatra_number, date_local),
     ))
     yoga_spans = limb_spans_between("yoga", sunrise_jd, next_sunrise_jd, timezone_name)
     karana_spans = limb_spans_between("karana", sunrise_jd, next_sunrise_jd, timezone_name)

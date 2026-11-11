@@ -497,10 +497,16 @@ def _jayanthi_night_selected(before: NisheethaNight, tonight: NisheethaNight, af
 #:
 #: A5b and R3 cannot both hold: the strict rule gives 5 Aug 2022, and R3 says
 #: 12 Aug was observed (he had already tagged 5 Aug unverified in A5a). Neither
-#: answer cites a printed page. The default is therefore the reading with
-#: consistent, independently verifiable support, and switching is this one
-#: line. Queued back as R3 of docs/ASTROLOGER_ROUND3_2026-10-23.md.
-_VARALAKSHMI_FRIDAY_POURNAMI: Literal["the_pournami", "the_week_before"] = "the_pournami"
+#: answer cites a printed page. The default was therefore "the_pournami", on
+#: Drik Panchang's support.
+#:
+#: **2026-11-10: "the_week_before"** (`ai_review_2026_11_10`, DOCTRINE §19; E7 of
+#: docs/ASTROLOGER_MASTER_SHEET_RESPONSE_2026-11-10.md, an AI review the owner
+#: ruled to build from). Checked on the web: Tamil, Telugu and Kannada
+#: calendars placed 2026 on Friday 21 Aug; only Drik Panchang (New Delhi)
+#: gave 28 Aug. The answer names 5 Aug 2022 for Tamil Nadu (not checked in
+#: print). Switching back is this one line.
+_VARALAKSHMI_FRIDAY_POURNAMI: Literal["the_pournami", "the_week_before"] = "the_week_before"
 
 #: Which civil date prints the Jayanthi night. The evening that opens it
 #: (answers of 23 Oct, Q1: the fast, the preparation and the holiday sit on
@@ -666,7 +672,7 @@ class SolarMonthObservance:
     tamil_month: int
     kind: Literal["star", "tithi"]
     value: str | int
-    kala: Literal["sunrise", "sunset", "aparahna"]
+    kala: Literal["sunrise", "sunset", "aparahna", "midday"]
     # "lunar_month" is §3. "full_moon_month" is the star's union with the
     # month's Pournami, gated behind the duplicate check (§9.3), with §3 as
     # its fallback (answers of 23 Oct, Q4/Q5).
@@ -681,11 +687,24 @@ class SolarMonthObservance:
 #: vectors, and Tiruvannamalai lit the Maha Deepam on 17 Nov 2013, not §3's
 #: 15 Dec. Aadi Krithigai is a daytime temple festival judged at sunrise (Q2):
 #: 11/11 vectors, where pradosham fit 4. Tharpanam Amavasais are at aparahna (§6).
+#:
+#: 2026-11-10, `ai_review_2026_11_10` (DOCTRINE §19;
+#: docs/ASTROLOGER_MASTER_SHEET_RESPONSE_2026-11-10.md, an AI
+#: review the owner ruled to build from):
+#: * E5: Maasi Magam is read at midday, the theerthavari being a daytime rite.
+#:   2026: Magam ran 2 Mar 07:51 to 3 Mar 07:31, so the 2nd, which most Tamil
+#:   calendars and Kumbakonam kept, not the 3 Mar sunrise.
+#: * E3: Thai Poosam, Maasi Magam, Panguni Uthiram and Vaigasi Visakam break a
+#:   two-star month by §3 (the lunar month that begins inside the solar
+#:   month), not by the full moon. It moves 2033's trio (provisional until
+#:   that almanac is printed). Vaigasi 2030 stays 17 May: 13 Jun holds no
+#:   Visakam sunrise, and a sunrise day beats a contained one first. Arudra and Deepam
+#:   keep the full-moon union (E4: Deepam 2032 = 17 Nov).
 SOLAR_MONTH_OBSERVANCES: tuple[SolarMonthObservance, ...] = (
-    SolarMonthObservance("Thai Poosam", _MONTH_THAI, "star", "POOSAM", "sunrise", "full_moon_month"),
-    SolarMonthObservance("Maasi Magam", _MONTH_MAASI, "star", "MAGAM", "sunrise", "full_moon_month"),
-    SolarMonthObservance("Panguni Uthiram", _MONTH_PANGUNI, "star", "UTHIRAM", "sunrise", "full_moon_month"),
-    SolarMonthObservance("Vaigasi Visakam", _MONTH_VAIKASI, "star", "VISAKAM", "sunrise", "full_moon_month"),
+    SolarMonthObservance("Thai Poosam", _MONTH_THAI, "star", "POOSAM", "sunrise"),
+    SolarMonthObservance("Maasi Magam", _MONTH_MAASI, "star", "MAGAM", "midday"),
+    SolarMonthObservance("Panguni Uthiram", _MONTH_PANGUNI, "star", "UTHIRAM", "sunrise"),
+    SolarMonthObservance("Vaigasi Visakam", _MONTH_VAIKASI, "star", "VISAKAM", "sunrise"),
     SolarMonthObservance("Arudra Darisanam", _MONTH_MARGAZHI, "star", "THIRUVATHIRAI", "sunrise", "full_moon_month"),
     SolarMonthObservance("Thiru Aadi Pooram", _MONTH_AADI, "star", "POORAM", "sunrise"),
     SolarMonthObservance("Aadi Krithigai", _MONTH_AADI, "star", "KARTHIGAI", "sunrise"),

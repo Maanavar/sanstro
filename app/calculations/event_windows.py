@@ -22,7 +22,7 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from typing import Literal
 
-from app.calculations.astro import utc_datetime_to_julian_day
+from app.calculations.astro import julian_day_to_utc_datetime, utc_datetime_to_julian_day
 from app.calculations.chart_strength import SIGN_LORD
 from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.dasha_activation import assess_dasha_activation
@@ -143,6 +143,20 @@ def _double_transit_adjustment(
     return 0, []
 
 
+#: D10 (`ai_review_2026_11_10`, DOCTRINE §19): no marriage window below the legal
+#: age. India: 18 for women, 21 for men. `ChartData` carries no gender, so the
+#: higher age applies to everyone: a window is never shown below either.
+MARRIAGE_LEGAL_AGE = 21
+
+
+def _legal_age_date(birth_jd: float) -> date:
+    born = julian_day_to_utc_datetime(birth_jd).date()
+    try:
+        return born.replace(year=born.year + MARRIAGE_LEGAL_AGE)
+    except ValueError:  # 29 Feb
+        return date(born.year + MARRIAGE_LEGAL_AGE, 3, 1)
+
+
 def find_marriage_windows(
     chart: ChartData,
     from_year: int,
@@ -154,6 +168,7 @@ def find_marriage_windows(
     natal_rasis = _natal_planet_rasis(chart)
     natal_lord_rasi = natal_rasis.get(seventh_lord, chart.lagna_rasi)
     today = date.today()
+    legal_from = _legal_age_date(chart.birth_jd)
 
     for year in range(from_year, to_year + 1):
         anchor_date, anchor_jd = _year_anchor(year, today)
@@ -204,6 +219,9 @@ def find_marriage_windows(
         reasons.extend(dt_reasons)
 
         start_date, end_date = _window_span(year, anchor_date, timeline)
+        if end_date < legal_from:
+            continue
+        start_date = max(start_date, legal_from)
         windows.append(
             EventWindow(
                 event="MARRIAGE",
