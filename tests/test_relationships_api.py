@@ -214,6 +214,60 @@ def test_relationship_compatibility_intelligence_includes_astro_identity(
         assert identity["lagnaRasiName"]
 
 
+def test_compatibility_intelligence_reads_the_8th_by_stated_gender(
+    client,
+    family_vault_payload_factory,
+    family_member_payload_factory,
+):
+    """FAA-30 through the production assembler. The factory gives both people
+    the same synthetic birth data, so the two readings must list the same
+    placements and differ only in role and tier: the bride's lagna reading
+    cites Phaladeepika 11.1, the groom's never does."""
+    vault = client.post("/api/v1/family-vaults", json=family_vault_payload_factory())
+    vid = vault.json()["data"]["familyVaultId"]
+    me = family_member_payload_factory(display_name="Synthetic Groom", relationship_to_owner="self")
+    other = family_member_payload_factory(display_name="Synthetic Bride")
+    assert client.post(f"/api/v1/family-vaults/{vid}/members", json={**me, "genderForTraditionalRules": "male"}).status_code == 200
+    made = client.post(f"/api/v1/family-vaults/{vid}/members", json={**other, "genderForTraditionalRules": "female"})
+    assert made.status_code == 200
+    body = client.get(
+        f"/api/v1/relationships/{made.json()['data']['familyMemberId']}/compatibility-intelligence",
+        params={"familyVaultId": vid},
+    ).json()["data"]
+
+    eh = body["eighthHouse"]
+    readings = {eh["personA"]["role"]: eh["personA"], eh["personB"]["role"]: eh["personB"]}
+    assert set(readings) == {"BRIDE", "GROOM_8TH"}
+    bride, groom = readings["BRIDE"], readings["GROOM_8TH"]
+    assert bride["mangalyaReference"] == groom["mangalyaReference"] == "BOTH"
+
+    def placements(r):
+        return sorted((f["kind"], f["reference"], f["graha"], f["target"], f["via"], f["placementId"]) for f in r["factors"])
+
+    assert placements(bride) == placements(groom) != []
+    assert any(f["rule"] == "PHALADEEPIKA_11_1" for f in bride["factors"])
+    assert all(f["tier"] == "engine_inference" for f in groom["factors"])
+    assert eh["joint"] in {"BOTH", "NEITHER"}  # the same chart twice
+    for f in bride["factors"] + groom["factors"]:
+        assert not any(k.endswith("Name") for k in f) and "MARAKA" not in f["lordship"]
+    # A Sevvai the 8th-house reading links to the dosham is one the report shows.
+    if any("SEVVAI_DOSHAM" in f["alsoCountedIn"] for f in bride["factors"]):
+        assert body["sevvaiA"]["hasDosham"] or body["sevvaiB"]["hasDosham"]
+
+    # The same couple's PDF carries the section, with mangalya named once (the bride).
+    from tests._pdf_readable import count_streams, pdf_readable_text
+
+    pdf = client.get(
+        f"/api/v1/relationships/{made.json()['data']['familyMemberId']}/compatibility-intelligence/pdf",
+        params={"familyVaultId": vid},
+    )
+    assert pdf.status_code == 200
+    text, inflated = pdf_readable_text(pdf.content)
+    assert inflated == count_streams(pdf.content)
+    assert "The 8th house" in text and "8th-house factors" in text
+    assert text.count("Mangalya sthana") == 1
+
+
 def test_relationship_compatibility_intelligence_pdf_endpoint_returns_pdf(
     client,
     family_vault_payload_factory,
@@ -319,6 +373,11 @@ def test_compatibility_intelligence_direct_pair_needs_no_family_vault(client):
     assert lagna_ab["rasi"] == a_lagna
     assert lagna_ab["houseFromLagna"] == (a_lagna - b_lagna) % 12 + 1
     assert all(r["tier"] == "engine_inference" and not any(k.endswith("Name") for k in r) for r in rows)
+
+    # FAA-30: hand-entered people state no gender, so nothing is applied.
+    eh = body["eighthHouse"]
+    assert eh["personA"]["role"] == eh["personB"]["role"] == "NOT_APPLIED"
+    assert eh["personA"]["factors"] == [] and eh["joint"] == "NOT_APPLIED"
 
 
 def test_compatibility_intelligence_carries_the_shashtashtaka_note(client):

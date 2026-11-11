@@ -187,6 +187,11 @@ that Parashari is the table a given family's jothidar uses. That part is the rul
   by a consolidated rulings document the owner supplied on 2026-11-11 (author not stated), and
   checked against its three citations (spec §0). Two corrections were found: Phaladeepika 11.1's
   own-house exception was missing, and Prokerala's own sample contradicts the rulings' reading of
-  the Dasa Sandhi gap. Two questions are open (OWNER-Q-D1, -D2).
+  the Dasa Sandhi gap. OWNER-Q-D1 and -D2 were answered the same day (spec §0.4). FAA-33 and
+  FAA-30 are built (spec §0.5, §0.6).
+- **§2 gender policy: a stated member gender never reached the chart (fixed 2026-11-11).**
+  New profiles dropped the field and member edits did not copy it, so a family member's stated
+  gender was read as unknown by every chart-based reading. The write paths are fixed, and rows
+  written before the fix are read through the linked member. Spec §0.6 has the detail.
 - **§9 (FAA-44…48) and §13 (FAA-49…59)** — the prediction-quality audit and the supplementary
   rule investigation; not started.

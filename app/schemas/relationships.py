@@ -584,6 +584,76 @@ class CrossChartObservationData(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class EighthHouseFactorData(BaseModel):
+    """FAA-30 factor. Numbers and keys only; surfaces word it. `placementId` is
+    shared with other findings that read the same placement (`alsoCountedIn`)."""
+
+    kind: Literal["OCCUPANT", "LORD", "INFLUENCE", "PROTECTION", "D9_LORD", "D9_OCCUPANT"]
+    reference: Literal["LAGNA", "MOON", "D9_LAGNA"]
+    graha: str
+    rasi: int
+    house: int
+    nature: Literal["MALEFIC", "BENEFIC"]
+    condition: Literal["PAKSHA", "ASSOCIATION"] | None = None
+    dignity: Literal["EXALTED", "OWN", "DEBILITATED", "NEUTRAL"]
+    combust: bool = False
+    lordship: list[str] = Field(default_factory=list)
+    own_house: bool = Field(default=False, alias="ownHouse")
+    via: Literal["IN", "CONJUNCT", "ASPECT"]
+    target: Literal["HOUSE", "LORD"]
+    placement_id: str = Field(alias="placementId")
+    also_counted_in: list[str] = Field(default_factory=list, alias="alsoCountedIn")
+    rule: str
+    tier: Literal["classical_rule", "engine_inference"]
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class EighthHouseReadingData(BaseModel):
+    """FAA-30, one chart. BRIDE = mangalya sthana; GROOM_8TH = "8th-house
+    factors" (never mangalya); NOT_APPLIED = gender not stated, no factors."""
+
+    role: Literal["BRIDE", "GROOM_8TH", "NOT_APPLIED"]
+    mangalya_reference: Literal["BOTH"] | None = Field(default=None, alias="mangalyaReference")
+    eighth_from_lagna: int | None = Field(default=None, alias="eighthFromLagna")
+    eighth_from_moon: int | None = Field(default=None, alias="eighthFromMoon")
+    factors: list[EighthHouseFactorData] = Field(default_factory=list)
+    d9_note: Literal["D9_LAGNA_UNRELIABLE", "D9_UNAVAILABLE"] | None = Field(default=None, alias="d9Note")
+    malefic_influence: bool = Field(default=False, alias="maleficInfluence")
+    tier: Literal["engine_inference"] = "engine_inference"
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    @classmethod
+    def from_reading(cls, r: Any) -> EighthHouseReadingData:
+        return cls(
+            role=r.role, mangalya_reference=r.mangalya_reference,
+            eighth_from_lagna=r.eighth_from_lagna, eighth_from_moon=r.eighth_from_moon,
+            factors=[
+                EighthHouseFactorData(
+                    kind=f.kind, reference=f.reference, graha=f.graha, rasi=f.rasi, house=f.house,
+                    nature=f.nature, condition=f.condition, dignity=f.dignity, combust=f.combust,
+                    lordship=list(f.lordship), own_house=f.own_house, via=f.via, target=f.target,
+                    placement_id=f.placement_id, also_counted_in=list(f.also_counted_in),
+                    rule=f.rule, tier=f.tier,
+                )
+                for f in r.factors
+            ],
+            d9_note=r.d9_note, malefic_influence=r.malefic_influence,
+        )
+
+
+class EighthHouseCoupleData(BaseModel):
+    """FAA-30 on CI: each chart, plus the joint pattern (shown beside the
+    samyam layers, never merged into them)."""
+
+    person_a: EighthHouseReadingData = Field(alias="personA")
+    person_b: EighthHouseReadingData = Field(alias="personB")
+    joint: Literal["BOTH", "ONE", "NEITHER", "NOT_APPLIED"]
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class CompatibilityIntelligenceData(BaseModel):
     person_a_name: str = Field(alias="personAName")
     person_b_name: str = Field(alias="personBName")
@@ -640,6 +710,8 @@ class CompatibilityIntelligenceData(BaseModel):
     summary: RelationshipBiText
     # FAA-33. Default empty so a payload produced before it existed validates.
     cross_chart: list[CrossChartObservationData] = Field(default_factory=list, alias="crossChart")
+    # FAA-30. None on a payload produced before it existed.
+    eighth_house: EighthHouseCoupleData | None = Field(default=None, alias="eighthHouse")
 
     model_config = ConfigDict(populate_by_name=True)
 

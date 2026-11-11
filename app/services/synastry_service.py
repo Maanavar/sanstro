@@ -45,6 +45,8 @@ from app.schemas.relationships import (
     DirectPoruthamResponse,
     DirectSynastryData,
     DirectSynastryResponse,
+    EighthHouseCoupleData,
+    EighthHouseReadingData,
     EkaNakshatraData,
     EmotionalCompatibility,
     KutaResult,
@@ -1072,6 +1074,15 @@ def build_compatibility_intelligence_from_snapshots(
             )
             for o in ci.cross_chart
         ],
+        eighth_house=(
+            EighthHouseCoupleData(
+                person_a=EighthHouseReadingData.from_reading(ci.mangalya_a),
+                person_b=EighthHouseReadingData.from_reading(ci.mangalya_b),
+                joint=ci.mangalya_joint,
+            )
+            if ci.mangalya_a is not None and ci.mangalya_b is not None
+            else None
+        ),
     )
     return CompatibilityIntelligenceResponse(data=data, meta=_meta())
 

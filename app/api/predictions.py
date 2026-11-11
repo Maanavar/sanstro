@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.calculations.ashtakavarga import compute_bhinnashtakavarga, compute_sarvashtakavarga
 from app.calculations.astro import house_from_reference, resolve_timezone, utc_datetime_to_julian_day
+from app.calculations.compatibility_intelligence import eighth_house_reading_from_snapshot
 from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.life_area_prediction_models import LifeAreaPrediction
@@ -18,11 +19,12 @@ from app.db.session import get_db
 from app.models import BirthProfile, Chart
 from app.models.user import User
 from app.reasoning.verdict import legacy_confidence_to_band
+from app.schemas.relationships import EighthHouseReadingData
 from app.services.birth_profile_service import resolve_relationship_to_owner
 from app.services.career_service import CareerAssessmentInput, assess_career_prediction
 from app.services.chart_service import load_persisted_chart_response
 from app.services.context_service import get_context_row
-from app.services.feature_flags import get_flag
+from app.services.feature_flags import current_doctrine_options, get_flag
 from app.services.health_service import HealthAssessmentInput, assess_health_prediction
 from app.services.location_service import resolve_effective_daily_timezone
 from app.services.marriage_service import MarriageAssessmentInput, assess_marriage_prediction
@@ -73,6 +75,10 @@ class LifeAreaPredictionOut(BaseModel):
     # Additive — populated only when reasoning_chart_signature is on (Phase 5, P0-4).
     chart_signature: ChartSignatureOut | None = Field(default=None, alias="chartSignature")
     causal_chain: BiTextOut | None = Field(default=None, alias="causalChain")
+    # FAA-30, marriage only: the 8th-house reading. Descriptive; it never moves
+    # the score above. None on other areas, on gated readings, and on payloads
+    # produced before it existed.
+    eighth_house: EighthHouseReadingData | None = Field(default=None, alias="eighthHouse")
     model_config = ConfigDict(populate_by_name=True)
 
 
@@ -262,8 +268,15 @@ def get_marriage_prediction(
             window_start=result.timing_window_start,
             window_end=result.timing_window_end,
         )
+    out = _to_out(result)
+    # FAA-30 beside the reading, never inside its score. Not for a minor, and not
+    # on a parent's reading, where the marriage reading itself is gated.
+    if age >= 18 and not is_parental:
+        out.eighth_house = EighthHouseReadingData.from_reading(
+            eighth_house_reading_from_snapshot(snapshot, current_doctrine_options())
+        )
     return PredictionResponse(
-        data=_to_out(result),
+        data=out,
         age_gated=gated,
         alternative_framing=alt,
     )

@@ -69,7 +69,7 @@ from app.calculations.yoga_display import (
 )
 from app.constants.astrology import SIGN_LORD
 from app.models import BirthProfile, Chart
-from app.services import cross_chart_copy
+from app.services import cross_chart_copy, eighth_house_copy
 from app.services.chart_service import load_persisted_chart_response
 from app.services.dasha_service import get_chart_dasha
 from app.services.location_service import resolve_effective_daily_location
@@ -1215,6 +1215,36 @@ def generate_compatibility_intelligence_pdf(
     story.append(_pdf_text_table(dosham_rows, [(_PAGE_W - 2 * _MARGIN) * f for f in (0.22, 0.12, 0.12, 0.14, 0.18, 0.12)], lang))
     story.append(Paragraph(f"{report.person_a_name}: {getattr(report.sevvai_a, f'note_{note_lang}')}", body_style))
     story.append(Paragraph(f"{report.person_b_name}: {getattr(report.sevvai_b, f'note_{note_lang}')}", body_style))
+
+    # FAA-30: the 8th house. Not a level: no points. Same copy as the web card
+    # (pinned by tests/golden/eighth_house/eighth_house_copy.json).
+    if report.eighth_house is not None:
+        eh = report.eighth_house
+        story.extend([
+            Spacer(1, 0.3 * cm),
+            Paragraph(eighth_house_copy.HEADING[note_lang], heading_style),
+            Paragraph(eighth_house_copy.INTRO[note_lang], caption_style),
+        ])
+        for name, reading in ((report.person_a_name, eh.person_a), (report.person_b_name, eh.person_b)):
+            story.append(Paragraph(f"{name}: {eighth_house_copy.title(reading.role, note_lang)}", subheading_style))
+            if reading.role == "NOT_APPLIED":
+                story.append(Paragraph(eighth_house_copy.not_applied(note_lang), caption_style))
+                continue
+            for ref in ("LAGNA", "MOON", "D9_LAGNA"):
+                rows = [f for f in reading.factors if f.reference == ref]
+                if not rows:
+                    continue
+                story.append(Paragraph(eighth_house_copy.group_label(ref, note_lang), body_style))
+                for f in rows:
+                    text = eighth_house_copy.line(f, note_lang)
+                    also = eighth_house_copy.also_counted(f, note_lang)
+                    story.append(Paragraph(f"- {text}" + (f" {also}" if also else ""), body_style))
+            note = eighth_house_copy.d9_note(reading.d9_note, note_lang)
+            if note:
+                story.append(Paragraph(note, caption_style))
+        joint = eighth_house_copy.joint(eh.joint, note_lang)
+        if joint:
+            story.append(Paragraph(joint, body_style))
 
     story.extend([Spacer(1, 0.3 * cm), Paragraph(_label("dasha_level", lang), heading_style)])
     story.append(

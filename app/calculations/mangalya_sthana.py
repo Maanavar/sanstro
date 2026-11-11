@@ -35,7 +35,7 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from typing import Literal
 
-from app.calculations.aspects import aspects_house, effective_natural_class
+from app.calculations.aspects import aspects_house, effective_natural_class, moon_is_natural_benefic
 from app.calculations.astro import house_from_reference, navamsa_rasi_from_degree
 from app.calculations.chart_strength import DEBILITATION_RASI, EXALTATION_RASI, OWN_SIGN_RASI
 from app.calculations.functional_status import FunctionalStatus, functional_status
@@ -240,9 +240,9 @@ def one_chart(chart: EighthHouseChart, gender: str | None) -> EighthHouseReading
 
         # Protection lines: each with its own dignity, no automatic cancellation.
         for g in _PROTECTORS:
-            r = chart.planet_rasi.get(g)
-            if r is None:
+            if g not in chart.planet_rasi:
                 continue
+            r = chart.planet_rasi[g]
             if r != eighth and aspects_house(g, r, eighth):
                 add("PROTECTION", ref, g, r, h(r), via="ASPECT", target="HOUSE", own_house=g == lord,  # type: ignore[arg-type]
                     rule=GROUP_D_RULINGS_2026_11_11.id)
@@ -275,6 +275,50 @@ def one_chart(chart: EighthHouseChart, gender: str | None) -> EighthHouseReading
         factors=tuple(factors),
         d9_note=d9_note,
         malefic_influence=influenced,
+    )
+
+
+_SEVVAI_REF = {"from_lagna": "LAGNA", "from_moon": "MOON"}
+
+
+def chart_from_snapshot(
+    snap: object,
+    *,
+    sevvai_conditions: Iterable[str] = (),
+    lagna_bracket: tuple[float, float] | None = None,
+) -> EighthHouseChart:
+    """Adapter from a chart response snapshot.
+
+    ``sevvai_conditions``: the ``from_*`` references the caller's own Sevvai
+    detection stands on (CI passes ``_sevvai_references``, so the link names the
+    dosham the same report shows). Rahu-Ketu comes from the chart's dosham list.
+    """
+    data = snap.data  # type: ignore[attr-defined]
+    planets = {p.graha: p for p in data.planets}
+    sun, moon = planets.get("SUN"), planets.get("MOON")
+    shukla = None
+    if sun is not None and moon is not None:
+        shukla = moon_is_natural_benefic((moon.absolute_longitude - sun.absolute_longitude) % 360.0)
+    refs: dict[str, frozenset[str]] = {}
+    sevvai = frozenset(_SEVVAI_REF[c] for c in sevvai_conditions if c in _SEVVAI_REF)
+    if sevvai:
+        refs["SEVVAI_DOSHAM"] = sevvai
+    for d in getattr(data, "doshams", None) or ():
+        if d.name == "RAHU_KETU_DOSHAM" and d.is_present:
+            rk = frozenset(h.reference for h in d.reference_houses if h.counts and h.reference in ("LAGNA", "MOON"))
+            if rk:
+                refs["RAHU_KETU_DOSHAM"] = rk
+    profile = getattr(data, "birth_profile", None)
+    confidence = int(getattr(profile, "birth_time_confidence_minutes", 0) or 0)
+    return EighthHouseChart(
+        lagna_rasi=data.lagna.rasi,
+        planet_rasi={g: p.rasi for g, p in planets.items() if g in _GRAHAS},
+        combust=frozenset(g for g, p in planets.items() if getattr(p, "is_combust", False)),
+        paksha_is_shukla=shukla,
+        d9_rasi={g: p.d9_rasi for g, p in planets.items() if g in _GRAHAS and isinstance(p.d9_rasi, int)},
+        d9_lagna_rasi=getattr(data.lagna, "d9_rasi", None),
+        d9_lagna_reliable=d9_lagna_stable(data.lagna.absolute_longitude, lagna_bracket, confidence),
+        dosham_references=refs,
     )
 
 

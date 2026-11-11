@@ -16,6 +16,7 @@ import {
   predictionIsDeferred,
 } from "./dashboard-life-areas-shared";
 import { NovaFadeIn } from "./dashboard-ui-nova";
+import { EighthHouseBlock } from "./eighth-house-block";
 import { Kicker } from "./ui/kicker";
 
 /**
@@ -344,6 +345,10 @@ export function NovaPredictionsPanel({ lang, predictions, loading, maritalStatus
               featured={key === firstKey}
               deferred={predictionIsDeferred(pred)}
             />
+            {/* FAA-30: the 8th house, beside the marriage reading, never in its score. */}
+            {key === "marriage" && expanded.marriage && pred.eighthHouse && (
+              <EighthHouseBlock reading={pred.eighthHouse} lang={lang} />
+            )}
             {/* Medical safeguard — folk users over-read the health card, clinicians
                 reject it; both need it framed as not-a-diagnosis (#31). */}
             {key === "health" && expanded.health && (

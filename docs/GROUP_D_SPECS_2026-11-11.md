@@ -1,6 +1,6 @@
 # Group D — build specifications (FAA-02 step 2, FAA-30, FAA-31, FAA-32, FAA-33)
 
-Status: **rulings received 2026-11-11 (see §0); FAA-33 built (§0.5, uncommitted); the rest not built.** The sections D1–D5
+Status: **rulings received 2026-11-11 (see §0); FAA-33 built (§0.5) and FAA-30 built (§0.6); FAA-32, -31, -02 not built.** The sections D1–D5
 below are the original draft and stay as written; where §0 changes them, §0 governs.
 Parent: `docs/FULL_ASTRO_ACCURACY_AUDIT_2026-11-10.md`
 (the audit text for each item is the requirement; this file is the "how").
@@ -158,6 +158,54 @@ existing modules, not a new table per item.
   porutham totals come in halves since the Madhyama bands. Every pair with a Madhyama kuta
   failed validation with a 500 on the CI routes: 3 tests in `test_relationships_api.py`
   failed at HEAD. It is now typed `float`, and the PDF formats it with `:g`.
+
+### 0.6 FAA-30 built (2026-11-11)
+
+- **Engine.** `app/calculations/mangalya_sthana.py`, pure. Role from the stated gender only
+  (BRIDE / GROOM_8TH / NOT_APPLIED). Both references, never merged. Factors: occupants, the 8th
+  lord, malefic influence on the 8th and its lord, Guru/Sukran protection lines (each with its
+  own dignity, no cancellation), D9 lines. Every factor records dignity, combustion, lordship
+  (MARAKA removed, EC-RULING-06) and `ownHouse` (Phaladeepika 11.1's exception).
+- **Shared placement id.** `placementId` (`D1.MARS`) plus `alsoCountedIn`: a Sevvai in the 8th
+  that Sevvai dosham counts from the same reference shows as one placement ("one finding, not
+  two"). Rahu-Ketu links the same way. FAA-32 reuses the id.
+- **D9.** Lines appear only when the D9 lagna is the same sign at birth ±5 min (ephemeris
+  bracket) and the stated time confidence is within 5 min. Otherwise all D9 lines drop, with a
+  reason.
+- **No status word.** D2's "supported / mixed / needs attention" was not built: under
+  `engine_inference` a status word is a grade. Each chart instead carries one descriptive
+  fact, `maleficInfluence`, and the couple a joint pattern (BOTH / ONE / NEITHER / NOT_APPLIED).
+- **Rule-source registry.** `app/calculations/rule_sources.py`. `classical_rule` only for
+  Phaladeepika 11.1 (and its own-house line) and BPHS 7.42. The bride's lagna-side
+  occupant/lord lines cite 11.1. The Moon-side lines cite the rulings, because the Moon may
+  be the translator's gloss. Prokerala p.17 is `vendor_practice`.
+- **Surfaces.** CI: `eighthHouse` (web card after Level 5, PDF section after Level 5). Marriage
+  reading: `eighthHouse` on `/charts/{id}/predictions/marriage`, under the Nova marriage card.
+  Left out for a minor or a parent's reading. Mobile reads neither route, so it needs no change.
+  Copy: `web/lib/eighth-house-copy.ts`, mirrored in `app/services/eighth_house_copy.py`, and
+  both pinned by `tests/golden/eighth_house/eighth_house_copy.json` (108 lines). The Tamil is
+  Claude's draft, not native-reviewed; the `{sign}-இல்` forms in particular want a reviewer.
+- **Found on the way: a member's stated gender never reached their chart.**
+  `create_birth_profile_record` dropped `gender_for_traditional_rules`, so every new profile,
+  owner or member, stored `not_specified`. Member edits set `FamilyMember` only. Porutham
+  worked around it by reading the member row; CI's FAA-16 spouse-karaka weights and Sevvai's
+  gender rule did not. Fixed:
+  - the create path copies the field;
+  - member edits route it through `apply_birth_profile_changes`, so the chart recalculates;
+  - `_sync_linked_family_member` mirrors it back;
+  - the chart build falls back to the linked member's stated gender for rows written before
+    the fix. No data was rewritten.
+
+  **Behaviour change:** family members with a stated gender now get gender-specific readings
+  (FAA-16 karaka weighting, Sevvai's gender rule, FAA-30) where they silently got the
+  unknown-gender reading before.
+- **Gates.** `tests/test_faa30_mangalya_sthana.py` (engine, plus the PDF copy against the
+  golden file), the CI production-path test (bride and groom with the same chart: identical
+  placements, differing only in role and tier; PDF names mangalya once), the marriage-route
+  test, and `tests/test_member_stated_gender_reaches_the_chart.py`. Mutations: dropping the
+  own-house check, the dosham link, the create copy or the edit copy each fail a test. Blind
+  spot: the gates prove the wiring and the "no score" boundary. They do not prove the malefic
+  list or the protection lines; those are the rulings.
 
 Rules that bind every item below (already on record, not re-opened here):
 

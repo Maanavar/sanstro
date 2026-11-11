@@ -62,6 +62,11 @@ from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.display_names import planet_en, planet_ta
 from app.calculations.doctrine_options import DEFAULT_DOCTRINE, DoctrineOptions
 from app.calculations.dosha_samyam import PapaSamyam, compare_marriage_doshams, papa_samyam
+from app.calculations.ephemeris import calculate_lagna_degree
+from app.calculations.mangalya_sthana import D9_TOLERANCE_MINUTES, EighthHouseReading
+from app.calculations.mangalya_sthana import chart_from_snapshot as mangalya_chart_from_snapshot
+from app.calculations.mangalya_sthana import joint_pattern as mangalya_joint_pattern
+from app.calculations.mangalya_sthana import one_chart as mangalya_one_chart
 
 logger = logging.getLogger(__name__)
 
@@ -281,6 +286,12 @@ class CompatibilityIntelligenceResult:
     # FAA-33: cross-chart observations (both directions). Not a layer: no
     # points, attached after the composite is fixed.
     cross_chart: tuple[CrossChartObservation, ...] = ()
+
+    # FAA-30: each chart's 8th-house reading, and the joint pattern beside the
+    # samyam layers (never merged into them). Descriptive: no points.
+    mangalya_a: EighthHouseReading | None = None
+    mangalya_b: EighthHouseReading | None = None
+    mangalya_joint: str = "NOT_APPLIED"
 
 
 # ---------------------------------------------------------------------------
@@ -1327,7 +1338,31 @@ def compute_compatibility_intelligence(
         summary_ta=summary_ta,
         # FAA-33: observations only; computed after every number above is fixed.
         cross_chart=_cross_chart(snap_a, snap_b),
+        **_mangalya_fields(snap_a, snap_b, doctrine),
     )
+
+
+def eighth_house_reading_from_snapshot(snap: Any, doctrine: DoctrineOptions = DEFAULT_DOCTRINE) -> EighthHouseReading:
+    """FAA-30 for one chart. The D9-lagna bracket comes from the ephemeris when
+    the birth place is known; without it the D9 lines are dropped, not guessed."""
+    data = snap.data
+    profile = getattr(data, "birth_profile", None)
+    lat = getattr(profile, "birth_latitude", None)
+    lon = getattr(profile, "birth_longitude", None)
+    bracket = None
+    if lat is not None and lon is not None:
+        step = D9_TOLERANCE_MINUTES / 1440.0
+        bracket = (
+            calculate_lagna_degree(data.julian_day - step, lat, lon),
+            calculate_lagna_degree(data.julian_day + step, lat, lon),
+        )
+    chart = mangalya_chart_from_snapshot(snap, sevvai_conditions=_sevvai_references(snap, doctrine), lagna_bracket=bracket)
+    return mangalya_one_chart(chart, getattr(profile, "gender_for_traditional_rules", None))
+
+
+def _mangalya_fields(snap_a: Any, snap_b: Any, doctrine: DoctrineOptions) -> dict[str, Any]:
+    a, b = eighth_house_reading_from_snapshot(snap_a, doctrine), eighth_house_reading_from_snapshot(snap_b, doctrine)
+    return {"mangalya_a": a, "mangalya_b": b, "mangalya_joint": mangalya_joint_pattern(a, b)}
 
 
 def _cross_chart(snap_a: Any, snap_b: Any) -> tuple[CrossChartObservation, ...]:

@@ -11,6 +11,16 @@ import { scoreColorPct } from "@/lib/format";
 import { madhyamaLabel, madhyamaGloss, hasMadhyama } from "@/lib/kuta-grade";
 import { verdictPhraseOrKey } from "@/lib/verdict-lexicon";
 import { crossChartBadge, crossChartLine, crossChartRowVisible, crossChartTone } from "@/lib/cross-chart-copy";
+import {
+  EIGHTH_HOUSE_INTRO,
+  eighthHouseAlsoCounted,
+  eighthHouseD9Note,
+  eighthHouseGroupLabel,
+  eighthHouseJoint,
+  eighthHouseLine,
+  eighthHouseNotApplied,
+  eighthHouseTitle,
+} from "@/lib/eighth-house-copy";
 import type { KutaGrade } from "@vinaadi/shared";
 import { ZodiacBadge } from "./zodiac-badge";
 import { NakshatraBadge } from "./nakshatra-badge";
@@ -621,6 +631,57 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
           ))}
         </div>
       </SectionCard>
+
+      {/* ── FAA-30: the 8th house. Not a level: no points. ── */}
+      {d.eighthHouse && (
+        <SectionCard title={en ? "The 8th house" : "8ஆம் இடம்"}>
+          <p style={{ margin: "0 0 10px", fontSize: "0.78rem", color: W.muted, lineHeight: 1.55 }}>
+            {EIGHTH_HOUSE_INTRO[lang]}
+          </p>
+          <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+            {[
+              { name: d.personAName, r: d.eighthHouse.personA },
+              { name: d.personBName, r: d.eighthHouse.personB },
+            ].map(({ name, r }, idx) => (
+              <div key={idx} style={{ flex: 1, minWidth: "240px", background: W.surface, borderRadius: "10px", padding: "12px 16px", border: `1px solid ${W.borderLt}` }}>
+                <p style={{ margin: "0 0 2px", fontSize: "0.78rem", fontWeight: 700, color: W.terracotta }}>{name}</p>
+                <p style={{ margin: "0 0 8px", fontSize: "0.76rem", fontWeight: 600, color: W.inkMid }}>{eighthHouseTitle(r, lang)}</p>
+                {r.role === "NOT_APPLIED" ? (
+                  <p style={{ margin: 0, fontSize: "0.78rem", color: W.muted, lineHeight: 1.55 }}>{eighthHouseNotApplied(lang)}</p>
+                ) : (
+                  <>
+                    {(["LAGNA", "MOON", "D9_LAGNA"] as const).map((ref) => {
+                      const rows = r.factors.filter((f) => f.reference === ref);
+                      if (!rows.length) return null;
+                      return (
+                        <div key={ref} style={{ marginBottom: "8px" }}>
+                          <div style={{ fontSize: "0.74rem", fontWeight: 700, color: W.inkMid, marginBottom: "4px" }}>{eighthHouseGroupLabel(ref, lang)}</div>
+                          <ul style={{ margin: 0, paddingLeft: "18px", display: "flex", flexDirection: "column", gap: "4px" }}>
+                            {rows.map((f, i) => (
+                              <li key={i} style={{ fontSize: "0.78rem", color: W.inkMid, lineHeight: 1.55 }}>
+                                {eighthHouseLine(f, lang)}
+                                {f.alsoCountedIn.length > 0 && (
+                                  <span style={{ display: "block", fontSize: "0.72rem", color: W.muted }}>{eighthHouseAlsoCounted(f, lang)}</span>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      );
+                    })}
+                    {eighthHouseD9Note(r, lang) && (
+                      <p style={{ margin: 0, fontSize: "0.72rem", color: W.muted }}>{eighthHouseD9Note(r, lang)}</p>
+                    )}
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+          {eighthHouseJoint(d.eighthHouse, lang) && (
+            <p style={{ margin: "10px 0 0", fontSize: "0.78rem", color: W.inkMid, lineHeight: 1.55 }}>{eighthHouseJoint(d.eighthHouse, lang)}</p>
+          )}
+        </SectionCard>
+      )}
 
       {/* ── Dasha Harmony ── */}
       <SectionCard title={en ? "Level 6 — Dasa Alignment (current period)" : "நிலை 6 — தசை இணக்கம் (நடப்புக் காலம்)"}>

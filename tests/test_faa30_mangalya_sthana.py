@@ -184,6 +184,22 @@ def test_joint_pattern_describes_both_one_or_neither():
     assert joint_pattern(loud, one_chart(BASE, None)) == "NOT_APPLIED"
 
 
+def test_pdf_copy_reproduces_every_web_line():
+    """app/services/eighth_house_copy.py mirrors web/lib/eighth-house-copy.ts;
+    the golden file is generated from the web functions."""
+    import json
+    from pathlib import Path
+
+    from app.services import eighth_house_copy
+
+    golden = Path(__file__).parent / "golden" / "eighth_house" / "eighth_house_copy.json"
+    cases = json.loads(golden.read_text(encoding="utf-8"))["cases"]
+    assert len(cases) == 108
+    for c in cases:
+        assert eighth_house_copy.line(c["factor"], c["lang"]) == c["line"], c
+        assert eighth_house_copy.also_counted(c["factor"], c["lang"]) == c["also"], c
+
+
 @pytest.mark.parametrize("gender", ["female", "male"])
 def test_every_factor_has_exactly_the_reference_it_names(gender):
     r = one_chart(BASE, gender)

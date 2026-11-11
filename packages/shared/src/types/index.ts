@@ -1803,6 +1803,9 @@ export interface LifeAreaPredictionData {
    *  (Phase 5, P0-4). Currently only populated by the marriage prediction. */
   chartSignature?: ChartSignatureData | null;
   causalChain?: BiText | null;
+  /** FAA-30, marriage only: the 8th-house reading. Descriptive; never part of
+   *  the score. Absent on other areas, gated readings and older payloads. */
+  eighthHouse?: EighthHouseReading | null;
 }
 
 export interface LifeAreaPredictionResponse {
@@ -2154,6 +2157,53 @@ export interface CrossChartObservation {
   tier: "engine_inference";
 }
 
+/**
+ * FAA-30 8th-house factor (describes only, no score). Render `rasi` through
+ * `rasiDisplayName`, `graha` through `tPlanetLord`. `placementId` ("D1.MARS")
+ * is shared with any other finding that reads the same placement, listed in
+ * `alsoCountedIn` (e.g. "SEVVAI_DOSHAM").
+ */
+export interface EighthHouseFactor {
+  kind: "OCCUPANT" | "LORD" | "INFLUENCE" | "PROTECTION" | "D9_LORD" | "D9_OCCUPANT";
+  reference: "LAGNA" | "MOON" | "D9_LAGNA";
+  graha: string;
+  rasi: number;
+  house: number;
+  nature: "MALEFIC" | "BENEFIC";
+  condition: "PAKSHA" | "ASSOCIATION" | null;
+  dignity: "EXALTED" | "OWN" | "DEBILITATED" | "NEUTRAL";
+  combust: boolean;
+  lordship: string[];
+  /** The graha owns the 8th it sits in or aspects (Phaladeepika 11.1's exception). */
+  ownHouse: boolean;
+  via: "IN" | "CONJUNCT" | "ASPECT";
+  target: "HOUSE" | "LORD";
+  placementId: string;
+  alsoCountedIn: string[];
+  rule: string;
+  tier: "classical_rule" | "engine_inference";
+}
+
+/** FAA-30, one chart. BRIDE = mangalya sthana; GROOM_8TH = "8th-house
+ *  factors", never called mangalya; NOT_APPLIED = no stated gender. */
+export interface EighthHouseReading {
+  role: "BRIDE" | "GROOM_8TH" | "NOT_APPLIED";
+  mangalyaReference: "BOTH" | null;
+  eighthFromLagna: number | null;
+  eighthFromMoon: number | null;
+  factors: EighthHouseFactor[];
+  d9Note: "D9_LAGNA_UNRELIABLE" | "D9_UNAVAILABLE" | null;
+  maleficInfluence: boolean;
+  tier: "engine_inference";
+}
+
+export interface EighthHouseCouple {
+  personA: EighthHouseReading;
+  personB: EighthHouseReading;
+  /** Shown beside the samyam layers, never merged into them. */
+  joint: "BOTH" | "ONE" | "NEITHER" | "NOT_APPLIED";
+}
+
 export interface CompatibilityIntelligenceData {
   personAName: string; personBName: string;
   personAIdentity: PersonAstroIdentity; personBIdentity: PersonAstroIdentity;
@@ -2172,6 +2222,8 @@ export interface CompatibilityIntelligenceData {
   summary: BiText;
   /** FAA-33. Optional: absent from payloads produced before it existed. */
   crossChart?: CrossChartObservation[];
+  /** FAA-30. Optional/null: absent from payloads produced before it existed. */
+  eighthHouse?: EighthHouseCouple | null;
 }
 
 export interface RelationshipAlertItem {
