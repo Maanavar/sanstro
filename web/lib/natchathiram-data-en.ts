@@ -24,7 +24,7 @@ export const JYOTISH_TERM_EN: Record<string, string> = {
   "தேவ கணம்": "Deva Gana",
   "மனித கணம்": "Manushya Gana",
   "மனுஷ்ய கணம்": "Manushya Gana",
-  "ராட்சஸ கணம்": "Rakshasa Gana",
+  "ராட்சச கணம்": "Rakshasa Gana",
   "ராட்சசக் கணம்": "Rakshasa Gana",
   // Born dasha
   "கேது தசை": "Ketu Dasha",

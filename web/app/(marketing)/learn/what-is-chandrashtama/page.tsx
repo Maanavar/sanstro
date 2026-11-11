@@ -6,7 +6,7 @@ import { ChandrashtamaPageContent } from "./PageContent";
 const EN_METADATA: Metadata = {
   title: "What is Chandrashtama? — Moon's 8th Sign Transit in Tamil Astrology",
   description:
-    "Chandrashtama is when the transiting Moon passes through the 8th sign from your birth Moon sign. The sign transit takes about 2.5 days and recurs every 27 days; the window that belongs to your own birth star is about a day of it. Learn what it means and how to approach it calmly.",
+    "Chandrashtama is when the transiting Moon passes through the 8th sign from your birth Moon sign. The sign transit takes about 2¼ days and recurs every 27 days; the window that belongs to your own birth star is about a day of it. Learn what it means and how to approach it calmly.",
   keywords: [
     "what is chandrashtama",
     "chandrashtama meaning",
@@ -20,7 +20,7 @@ const EN_METADATA: Metadata = {
   openGraph: {
     title: "What is Chandrashtama? — Moon's 8th Sign Transit in Tamil Astrology",
     description:
-      "Chandrashtama is when the Moon transits the 8th sign from your birth Moon sign. It repeats monthly; the sign transit runs about 2.5 days and your own birth star's window is about a day of it. A period for caution — not crisis.",
+      "Chandrashtama is when the Moon transits the 8th sign from your birth Moon sign. It repeats monthly; the sign transit runs about 2¼ days and your own birth star's window is about a day of it. A period for caution — not crisis.",
     url: "https://vinaadi.com/learn/what-is-chandrashtama",
     type: "article",
   },
@@ -52,7 +52,7 @@ const FAQ_JSONLD = {
       name: "How often does Chandrashtama occur and how long does it last?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Chandrashtama occurs approximately every 27 days, since the Moon completes one cycle through all 12 signs in about 27.3 days. The Moon spends roughly 2.5 days in a single sign, so the 8th-sign transit lasts about that long. A Tamil almanac then names one birth star per day within it — the star the transit is passing over — so the window that belongs to you is about a day of those 2.5. Vinaadi flags your own star's window rather than the whole sign transit.",
+        text: "Chandrashtama occurs approximately every 27 days, since the Moon completes one cycle through all 12 signs in about 27.3 days. The Moon spends roughly 2¼ days in a single sign, so the 8th-sign transit lasts about that long. A Tamil almanac then names one birth star per day within it — the star the transit is passing over — so the window that belongs to you is about a day of those 2¼. Vinaadi flags your own star's window rather than the whole sign transit.",
       },
     },
     {

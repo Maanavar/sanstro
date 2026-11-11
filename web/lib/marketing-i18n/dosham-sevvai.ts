@@ -14,8 +14,8 @@ export const DOSHAM_SEVVAI = {
   ),
   calc_h2:   s("How Sevvai dosham is calculated", "செவ்வாய் தோஷம் எப்படி கணக்கிடப்படுகிறது"),
   calc_body: s(
-    "Sevvai dosham is present when Mars occupies the 2nd, 4th, 7th, 8th or 12th house counted from the Lagna (ascendant), the Tamil reckoning. The Moon sign and Venus (Sukran) are counted too: they never create the dosham on their own, but they show how strong a Lagna placement is. The 7th house rules marriage, the 8th longevity of the union, the 2nd the family, and the 12th the bedroom; the 4th affects domestic peace. Some traditions also count the 1st house; Vinaadi follows the Tamil five. Strength depends on the sign Mars sits in and the aspects it receives.",
-    "லக்னத்திலிருந்து எண்ணும்போது செவ்வாய் 2, 4, 7, 8 அல்லது 12-ஆம் பாவத்தில் அமரும்போது செவ்வாய் தோஷம் ஏற்படுகிறது — இது தமிழ் முறை. சந்திர ராசியிலிருந்தும் சுக்கிரனிலிருந்தும் எண்ணப்படுகிறது; அவை தனியாகத் தோஷத்தை உருவாக்குவதில்லை, லக்ன தோஷத்தின் தீவிரத்தை மட்டுமே காட்டுகின்றன. 7-ஆம் பாவம் திருமணம், 8-ஆம் பாவம் தாம்பத்திய ஆயுள், 2-ஆம் பாவம் குடும்பம், 12-ஆம் பாவம் படுக்கையறை; 4-ஆம் பாவம் வீட்டின் அமைதியைப் பாதிக்கிறது. சில மரபுகள் 1-ஆம் பாவத்தையும் சேர்க்கின்றன; இங்கு தமிழ் ஐந்து பாவ முறை பின்பற்றப்படுகிறது. செவ்வாய் இருக்கும் ராசியும் அதற்கு வரும் பார்வைகளும் வலிமையை நிர்ணயிக்கின்றன."
+    "Sevvai dosham is present when Mars occupies the 2nd, 4th, 7th, 8th or 12th house counted from the Lagna (ascendant), the Tamil reckoning. The Moon sign and Venus (Sukran) are counted too: they never create the dosham on their own, but they show how strong a Lagna placement is. The 7th house rules marriage, the 8th the stability of the union, the 2nd the family, and the 12th the bedroom; the 4th affects domestic peace. Some traditions also count the 1st house; Vinaadi follows the Tamil five. Strength depends on the sign Mars sits in and the aspects it receives.",
+    "லக்னத்திலிருந்து எண்ணும்போது செவ்வாய் 2, 4, 7, 8 அல்லது 12-ஆம் பாவத்தில் அமரும்போது செவ்வாய் தோஷம் ஏற்படுகிறது — இது தமிழ் முறை. சந்திர ராசியிலிருந்தும் சுக்கிரனிலிருந்தும் எண்ணப்படுகிறது; அவை தனியாகத் தோஷத்தை உருவாக்குவதில்லை, லக்ன தோஷத்தின் தீவிரத்தை மட்டுமே காட்டுகின்றன. 7-ஆம் பாவம் திருமணம், 8-ஆம் பாவம் தாம்பத்திய நிலைத்தன்மை, 2-ஆம் பாவம் குடும்பம், 12-ஆம் பாவம் படுக்கையறை; 4-ஆம் பாவம் வீட்டின் அமைதியைப் பாதிக்கிறது. சில மரபுகள் 1-ஆம் பாவத்தையும் சேர்க்கின்றன; இங்கு தமிழ் ஐந்து பாவ முறை பின்பற்றப்படுகிறது. செவ்வாய் இருக்கும் ராசியும் அதற்கு வரும் பார்வைகளும் வலிமையை நிர்ணயிக்கின்றன."
   ),
   brings_h2: s("What Sevvai dosham can bring", "செவ்வாய் தோஷம் என்ன கொண்டு வரலாம்"),
   brings_intro: s(
@@ -77,15 +77,15 @@ export const DOSHAM_SEVVAI = {
     {
       h: s("3 — Note the sign Mars occupies", "3 — செவ்வாய் இருக்கும் ராசியை கவனியுங்கள்"),
       b: s(
-        "The sign changes severity. In own signs Mesham (Aries) or Vrischikam (Scorpio), Mars is at full strength — some classical texts also treat this as a partial cancellation. In Makaram (Capricorn, exaltation) it is strongest. In Kadagam (Cancer, debilitation) Mars is weakened and the dosham is milder. Benefic company or a friendly sign softens it further.",
-        "ராசி தீவிரத்தை பாதிக்கிறது. சொந்த ராசிகளான மேஷம் (Aries) அல்லது விருச்சிகத்தில் (Scorpio) செவ்வாய் முழு பலத்துடன் இருக்கும் — சில சாஸ்திர நூல்கள் இதை பகுதி ரத்தாகவும் பார்க்கின்றன. மகரத்தில் (Capricorn — உச்சம்) மிகவும் பலமாக இருக்கும். கடகத்தில் (Cancer — நீசம்) செவ்வாய் பலமிழக்கும்; தோஷமும் மிதமாகும். சுப கிரக சேர்க்கையில் அல்லது நட்பு ராசியில் இருந்தால் வலிமை மேலும் குறையும்."
+        "The sign matters. Mars in its own signs Mesham (Aries) or Vrischikam (Scorpio), exalted in Makaram (Capricorn), or in Simmam or Kumbam lowers the dosham by one grade; it does not cancel it. Mars in Kadagam (Cancer, debilitation) cancels it only when the debility is itself cancelled (neechabhanga) and both charts are read. Mars combust, or joined by Saturn or Rahu, makes it one grade heavier. Some traditions treat own sign or exaltation as a cancellation; Vinaadi treats it as a reduction.",
+        "ராசியும் முக்கியம். செவ்வாய் சொந்த ராசிகளான மேஷம் (Aries), விருச்சிகத்தில் (Scorpio), மகரத்தில் (Capricorn) உச்சமாக, அல்லது சிம்மம், கும்பத்தில் இருந்தால் தோஷம் ஒரு படி குறையும்; ரத்தாகாது. கடகத்தில் (Cancer — நீசம்) உள்ள செவ்வாய், அந்த நீசமே பங்கமாகி (நீசபங்கம்) இரு ஜாதகங்களும் சேர்த்துப் பார்க்கப்படும்போது மட்டுமே தோஷத்தை ரத்து செய்யும். செவ்வாய் அஸ்தங்கமாக இருந்தால், அல்லது சனி, ராகுவுடன் சேர்ந்திருந்தால், தோஷம் ஒரு படி கனமாகும். சில மரபுகள் சொந்த ராசியையும் உச்சத்தையும் ரத்தாகக் கொள்கின்றன; விநாடி அவற்றைக் குறைப்பாகக் கொள்கிறது."
       ),
     },
     {
-      h: s("4 — Check the standard cancellations (parihara bhanga)", "4 — வழக்கமான ரத்து நிலைகளை சரிபாருங்கள் (பரிகார பங்க)"),
+      h: s("4 — Check what cancels and what only reduces", "4 — எது ரத்து செய்யும், எது குறைக்கும் என்று பாருங்கள்"),
       b: s(
-        "Before accepting the dosham label, check these recognised cancellations: Guru (Jupiter) aspects Mars in the chart — strong cancellation. Both partner charts carry Sevvai dosham — mutual cancellation. Mars is lord of the 7th or 2nd house — it becomes a marriage-house significator and its affliction softens. Mars sits in its own sign (Mesham, Vrischikam) — partial cancellation in most Thirukanitham readings. If any of these apply, the dosham is reduced or removed.",
-        "தோஷம் என்ற முத்திரை ஒட்டுவதற்கு முன் இந்த அங்கீகரிக்கப்பட்ட ரத்து நிலைகளை சரிபாருங்கள்: குரு (Jupiter) ஜாதகத்தில் செவ்வாயை பார்த்தால் — வலுவான ரத்து. இரு ஜாதகங்களிலும் செவ்வாய் தோஷம் இருந்தால் — பரஸ்பர ரத்து. செவ்வாய் 7 அல்லது 2-ஆம் பாவ அதிபதியாக இருந்தால் — திருமண பாவ காரகனே ஆவதால் தாக்கம் மெலிகிறது. செவ்வாய் சொந்த ராசியில் (மேஷம், விருச்சிகம்) இருந்தால் — பெரும்பாலான திருகணித வாசிப்பில் பகுதி ரத்து. இவற்றில் ஏதாவது பொருந்தினால், தோஷம் குறைக்கப்படுகிறது அல்லது நீங்குகிறது."
+        "Vinaadi keeps three questions apart: does the dosham form, what reduces it, and what cancels it. It is cancelled only when both charts are read, in three cases: the partner carries a Sevvai dosham of comparable weight (dosha samyam); Mars is debilitated in Kadagam with neechabhanga; or a strong Guru (in its own, exaltation or a friendly sign, not combust, not debilitated) joins or aspects Mars. Read from one chart alone, a strong Guru brings the dosham to its lowest grade, with a note. Everything else lowers it by one grade and never cancels it: Mars in its own, exaltation or an exempt sign; an ordinary Guru aspect on Mars or on the 7th lord; a strong 7th lord. Mars owning the 7th or 2nd house is not a rule Vinaadi uses.",
+        "விநாடி மூன்று கேள்விகளையும் தனித்தனியாகப் பார்க்கிறது: தோஷம் உருவாகிறதா, எது அதைக் குறைக்கிறது, எது ரத்து செய்கிறது. இரு ஜாதகங்களையும் சேர்த்துப் பார்க்கும்போது மட்டுமே, மூன்று நிலைகளில் ரத்தாகும்: துணையின் ஜாதகத்திலும் ஒத்த அளவு செவ்வாய் தோஷம் (தோஷ சாம்யம்); கடகத்தில் நீசமான செவ்வாய்க்கு நீசபங்கம்; அல்லது பலமான குரு (சொந்த, உச்ச அல்லது நட்பு ராசியில், அஸ்தங்கம், நீசம் இல்லாமல்) செவ்வாயுடன் சேர்வது அல்லது அதைப் பார்ப்பது. ஒரு ஜாதகத்தை மட்டும் பார்க்கும்போது, பலமான குரு தோஷத்தை மிகக் குறைந்த நிலைக்குக் கொண்டுவரும்; அதற்கு ஒரு குறிப்பும் காட்டப்படும். மற்றவை எல்லாம் தோஷத்தை ஒரு படி குறைக்கும், ஒருபோதும் ரத்து செய்யாது: செவ்வாய் சொந்த, உச்ச அல்லது விலக்கு ராசியில் இருப்பது; செவ்வாய் மீதோ 7-ஆம் அதிபதி மீதோ சாதாரண குரு பார்வை; பலமான 7-ஆம் அதிபதி. செவ்வாய் 7 அல்லது 2-ஆம் பாவ அதிபதியாக இருப்பதை விநாடி ஒரு விதியாகக் கொள்வதில்லை."
       ),
     },
     {
@@ -98,8 +98,8 @@ export const DOSHAM_SEVVAI = {
   ],
   cancel_h2:  s("When the dosham is cancelled or reduced", "தோஷம் ரத்தாகும் அல்லது குறையும் நிலைகள்"),
   cancel_body: s(
-    "Tradition lists many cancellations (parihara / bhanga yogas): Mars in its own sign or exaltation, both partners' charts carrying Mangal dosha, Mars aspected by Jupiter, or Mars in certain signs by age. A 'low' dosham in one chart matched with another can balance out entirely. This is why a full chart reading matters more than a single yes/no label.",
-    "பாரம்பரியம் பல ரத்து நிலைகளை (பரிகார / பங்க யோகங்கள்) சொல்கிறது: செவ்வாய் தன் சொந்த ராசியில் அல்லது உச்சத்தில் இருப்பது, இரு ஜாதகங்களிலும் மங்கள் தோஷம் இருப்பது, குருவின் பார்வை செவ்வாயின் மீது இருப்பது, அல்லது வயதின் அடிப்படையில் சில ராசிகளில் செவ்வாய் இருப்பது. ஒரு ஜாதகத்தில் 'குறைந்த' தோஷம் மற்றொன்றோடு பொருந்தும்போது முழுமையாக சமன் ஆகலாம். ஒரே ஆம்/இல்லை முத்திரையை விட முழு ஜாதக வாசிப்பு ஏன் முக்கியம் என்பதற்கு இதுவே காரணம்."
+    "Tradition lists many cancellations (parihara / bhanga yogas), and lineages differ on which ones cancel and which only soften. Vinaadi cancels in the three cases in step 4, all of which need both charts, and treats the rest, including Mars in its own sign or exaltation, as reductions. Some traditions treat those as full cancellations. A dosham in one chart matched with one of comparable weight in the other balances out. This is why a full chart reading matters more than a single yes/no label.",
+    "பாரம்பரியம் பல ரத்து நிலைகளை (பரிகார / பங்க யோகங்கள்) சொல்கிறது; எவை ரத்து செய்யும், எவை குறைக்கும் என்பதில் மரபுகள் வேறுபடுகின்றன. படி 4-இல் சொன்ன மூன்று நிலைகளில் மட்டுமே விநாடி ரத்து செய்கிறது; மூன்றுக்கும் இரு ஜாதகங்களும் தேவை. செவ்வாய் சொந்த ராசியில் அல்லது உச்சத்தில் இருப்பது உட்பட மற்றவற்றைக் குறைப்பாகக் கொள்கிறது; சில மரபுகள் அவற்றை முழு ரத்தாகக் கொள்கின்றன. ஒரு ஜாதகத்தில் உள்ள தோஷம் மற்றதில் உள்ள ஒத்த அளவு தோஷத்துடன் சமன் ஆகும். ஒரே ஆம்/இல்லை முத்திரையை விட முழு ஜாதக வாசிப்பு ஏன் முக்கியம் என்பதற்கு இதுவே காரணம்."
   ),
   pariharam_h2:   s("Pariharam — softening its power", "பரிகாரம் — அதன் வலிமையை மென்மையாக்குதல்"),
   pariharam_body: s(
@@ -122,15 +122,15 @@ export const DOSHAM_SEVVAI_FAQ = [
   {
     q: s("Can two people who both have Sevvai dosham marry each other?", "செவ்வாய் தோஷம் உள்ள இருவர் ஒருவரை ஒருவர் திருமணம் செய்யலாமா?"),
     a: s(
-      "Yes — in tradition this is one of the recognised cancellations. When both charts carry Mangal dosha, the intensity is considered to balance out, so a Manglik–Manglik match is often seen as favourable rather than a problem. The full porutham of both charts should still be checked.",
-      "ஆம் — பாரம்பரியத்தில் இது அங்கீகரிக்கப்பட்ட ரத்து நிலைகளில் ஒன்று. இரு ஜாதகங்களிலும் மங்கள் தோஷம் இருக்கும்போது அதன் தீவிரம் சமன் ஆவதாகக் கருதப்படுகிறது; எனவே செவ்வாய்–செவ்வாய் பொருத்தம் பெரும்பாலும் சிக்கலாக அல்ல, சாதகமாகவே பார்க்கப்படுகிறது. இருப்பினும் இரு ஜாதகங்களின் முழுப் பொருத்தத்தையும் பார்க்க வேண்டும்."
+      "Yes — in tradition this is one of the recognised cancellations. When both charts carry Mangal dosha of comparable weight, the intensity is considered to balance out, so a Manglik–Manglik match is often seen as favourable rather than a problem. The full porutham of both charts should still be checked.",
+      "ஆம் — பாரம்பரியத்தில் இது அங்கீகரிக்கப்பட்ட ரத்து நிலைகளில் ஒன்று. இரு ஜாதகங்களிலும் ஒத்த அளவு மங்கள் தோஷம் இருக்கும்போது அதன் தீவிரம் சமன் ஆவதாகக் கருதப்படுகிறது; எனவே செவ்வாய்–செவ்வாய் பொருத்தம் பெரும்பாலும் சிக்கலாக அல்ல, சாதகமாகவே பார்க்கப்படுகிறது. இருப்பினும் இரு ஜாதகங்களின் முழுப் பொருத்தத்தையும் பார்க்க வேண்டும்."
     ),
   },
   {
     q: s("Does Sevvai dosham become weaker with age?", "செவ்வாய் தோஷம் வயதுக்கு ஏற்ப குறையுமா?"),
     a: s(
-      "Many traditional texts hold that Mars's fiery influence settles as a person matures, so the dosham is treated as milder for an older bride or groom. It is a softening, not an automatic removal — the strength of Mars in the chart and the running dasa still decide how much it matters.",
-      "பல பாரம்பரிய நூல்கள், ஒருவர் முதிர்ச்சியடையும்போது செவ்வாயின் தீ தாக்கம் தணிவதாகச் சொல்கின்றன; எனவே வயது முதிர்ந்த மணமகன்/மணமகளுக்கு தோஷம் மிதமாகக் கருதப்படுகிறது. இது மென்மையாகுதலே தவிர தானாக நீங்குதல் அல்ல — ஜாதகத்தில் செவ்வாயின் பலமும் நடக்கும் தசையும் அதன் முக்கியத்துவத்தை இன்னும் தீர்மானிக்கின்றன."
+      "Many traditional texts hold that Mars's fiery influence settles as a person matures, so the dosham is treated as milder for an older bride or groom. It is a softening, not an automatic removal — the strength of Mars in the chart and the running dasa still decide how much it matters. Vinaadi does not change the grade by age.",
+      "பல பாரம்பரிய நூல்கள், ஒருவர் முதிர்ச்சியடையும்போது செவ்வாயின் தீ தாக்கம் தணிவதாகச் சொல்கின்றன; எனவே வயது முதிர்ந்த மணமகன்/மணமகளுக்கு தோஷம் மிதமாகக் கருதப்படுகிறது. இது மென்மையாகுதலே தவிர தானாக நீங்குதல் அல்ல — ஜாதகத்தில் செவ்வாயின் பலமும் நடக்கும் தசையும் அதன் முக்கியத்துவத்தை இன்னும் தீர்மானிக்கின்றன. விநாடி வயதை வைத்து தோஷ நிலையை மாற்றுவதில்லை."
     ),
   },
   {

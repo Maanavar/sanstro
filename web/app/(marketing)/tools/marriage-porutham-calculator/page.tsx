@@ -7,7 +7,7 @@ import { PoruthamPageContent } from "./PoruthamPageContent";
 const EN_METADATA: Metadata = {
   title: "Free Tamil Birth Star Porutham Preview",
   description:
-    "Get a quick Tamil birth-star porutham preview with Rajju, Vedhai, Rasi, and Nadi cautions. Sign in for the full chart-grade traditional 10-factor Thirukanitham porutham reading.",
+    "Get a quick Tamil birth-star porutham preview with Rajju, Vedhai, and Rasi cautions. Sign in for the full chart-grade traditional 10-factor Thirukanitham porutham reading.",
   keywords: [
     "porutham calculator",
     "Tamil marriage compatibility",
@@ -22,7 +22,7 @@ const EN_METADATA: Metadata = {
   openGraph: {
     title: "Free Tamil Birth Star Porutham Preview",
     description:
-      "Check a quick birth-star compatibility preview first. For full traditional 10-factor Thirukanitham porutham, Rajju, Vedhai, Nadi cancellation, Sevvai dosham, D9, and dasha context, use the signed-in dashboard.",
+      "Check a quick birth-star compatibility preview first. For full traditional 10-factor Thirukanitham porutham, Rajju, Vedhai, Sevvai dosham, D9, and dasha context, use the signed-in dashboard.",
     url: "https://vinaadi.com/tools/marriage-porutham-calculator",
     type: "website",
   },
@@ -30,7 +30,7 @@ const EN_METADATA: Metadata = {
     card: "summary_large_image",
     title: "Free Tamil Birth Star Porutham Preview",
     description:
-      "Quick Tamil birth-star porutham preview with Rajju, Vedha, Rasi, and Nadi cautions. Full chart reading is available after sign-in.",
+      "Quick Tamil birth-star porutham preview with Rajju, Vedha, and Rasi cautions. Full chart reading is available after sign-in.",
   },
 };
 
@@ -55,7 +55,7 @@ const FAQ_JSONLD = {
       name: "How many porutham factors are checked?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "The public tool is a quick birth-star preview. It shows all 10 traditional Tamil porutham checks and separately flags Rajju, Vedhai, Rasi, and same-Nadi cautions. The signed-in dashboard uses the full traditional Thirukanitham porutham engine with chart context.",
+        text: "The public tool is a quick birth-star preview. It shows all 10 traditional Tamil porutham checks and separately flags Rajju, Vedhai, and Rasi cautions; a shared Nadi, a North Indian check, appears only as a side note. The signed-in dashboard uses the full traditional Thirukanitham porutham engine with chart context.",
       },
     },
     {
@@ -63,7 +63,7 @@ const FAQ_JSONLD = {
       name: "What is the minimum porutham score for marriage?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "The quick /10 score is only a first look and should not be treated as a final marriage verdict. For a proper Tamil porutham decision, use the signed-in dashboard so the full traditional 10-porutham score, Rajju, Vedhai, Nadi, Sevvai dosham, D9, and dasha context can be read together.",
+        text: "The quick /10 score is only a first look and should not be treated as a final marriage verdict. For a proper Tamil porutham decision, use the signed-in dashboard so the full traditional 10-porutham score, Rajju, Vedhai, Sevvai dosham, D9, and dasha context can be read together.",
       },
     },
     {
@@ -71,7 +71,7 @@ const FAQ_JSONLD = {
       name: "What is Nadi dosha and can it be cancelled?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Nadi dosha is traditionally considered when both partners fall in the same Nadi category. The public tool flags same-Nadi as a caution only. Cancellation and final judgement require full chart context, which is handled in the signed-in porutham report.",
+        text: "Nadi dosha is traditionally considered when both partners fall in the same Nadi category. Nadi comes from North Indian matching and is not one of the Tamil ten poruthams, so Vinaadi shows a shared Nadi only as a side note; it does not change the score or the result.",
       },
     },
     {
