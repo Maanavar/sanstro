@@ -1,6 +1,11 @@
 "use client";
 
-import type { EkaNakshatraNote, ShashtashtakaNote } from "@vinaadi/shared";
+import type {
+  ClassicalExceptionNote,
+  EkaNakshatraNote,
+  NadiDoshaResult,
+  ShashtashtakaNote,
+} from "@vinaadi/shared";
 import type { Lang } from "@/lib/i18n";
 
 /**
@@ -35,7 +40,7 @@ export function ShashtashtakaNoteCard({
   lang,
   compact = false,
 }: {
-  note: ShashtashtakaNote | EkaNakshatraNote | null | undefined;
+  note: ShashtashtakaNote | EkaNakshatraNote | ClassicalExceptionNote | null | undefined;
   lang: Lang;
   /** Inline one-liner for a dense list, rather than the boxed note. */
   compact?: boolean;
@@ -99,3 +104,42 @@ export function ShashtashtakaNoteCard({
 
 /** F-POR-03. Same card; the name says which note a call site renders. */
 export const EkaNakshatraNoteCard = ShashtashtakaNoteCard;
+
+/**
+ * நாடி — a SECONDARY note (owner ruling 2026-11-11). Nadi comes from the
+ * North Indian Ashtakoota system and is not one of the Tamil ten poruthams,
+ * which is what Vinaadi's families and their jothidars count. So it is shown
+ * below the Tamil findings as a muted line: no ⚠, no badge beside Rajju and
+ * Vedhai, no caution tint, and it moves no score (the composite's Nadi
+ * deduction was removed the same day).
+ *
+ * The body is the server's native-reviewed note; only the lead-in is written
+ * here. Renders nothing when there is no shared Nadi.
+ */
+export const NADI_SECONDARY_LEAD = {
+  en: "Nadi (additional note). Nadi is not one of the Tamil ten poruthams and does not change the score or the result above.",
+  ta: "நாடி (கூடுதல் குறிப்பு). நாடி தமிழ்ப் பத்துப் பொருத்தங்களில் சேராது; மேலே உள்ள மதிப்பெண்ணையும் முடிவையும் இது மாற்றாது.",
+} as const;
+
+export function NadiSecondaryNote({
+  nadi,
+  lang,
+}: {
+  nadi: NadiDoshaResult | null | undefined;
+  lang: Lang;
+}) {
+  if (!nadi?.hasNadiDosha) return null;
+  const ta = lang === "ta";
+  return (
+    <p
+      style={{
+        margin: "var(--space-2) 0 0",
+        fontSize: "var(--text-sm)",
+        lineHeight: 1.55,
+        color: "var(--color-muted)",
+      }}
+    >
+      {ta ? NADI_SECONDARY_LEAD.ta : NADI_SECONDARY_LEAD.en} {ta ? nadi.noteTa : nadi.noteEn}
+    </p>
+  );
+}

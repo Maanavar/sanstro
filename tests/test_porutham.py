@@ -73,8 +73,10 @@ def test_ganam_same():
 
 
 def test_ganam_deva_manushya():
-    # Aswini (Deva) and Pooram (Manushya) → allowed → PASS
-    assert _ganam_score(1, 11) == 1
+    # Aswini (Deva) and Pooram (Manushya): Kalaprakasika p.72 "of middling
+    # quality" → Madhyama, a weak pass worth half a point (ruled 2026-11-11).
+    assert _ganam_score(1, 11) == 0.5
+    assert _ganam_score(11, 1) == 0.5  # the reverse was ruled the same
 
 
 def test_ganam_deva_rakshasa():
@@ -536,8 +538,12 @@ def test_compute_porutham_kuta_passed_field():
         boy_nakshatra=1, girl_nakshatra=4,
         boy_rasi=1, girl_rasi=2,
     )
+    # `passed` is the binary floor: a Madhyama is a pass even at half a point
+    # (KutaResult docstring). Here Ganam is Deva + Manushya, a Madhyama.
+    assert next(k for k in result.kutas if k.name == "Ganam").grade == "MADHYAMA"
     for k in result.kutas:
-        assert k.passed == (k.score == 1)
+        assert k.passed == (k.grade != "ADHAMA")
+        assert k.passed == (k.score > 0)
         assert k.label in {"PASS", "FAIL"}
         assert k.max_score == 1
 

@@ -95,14 +95,18 @@ def test_rajju_is_unchanged_for_every_pairing() -> None:
 
 
 def test_no_exception_is_applied_anywhere() -> None:
-    """The table is held, so no star+pada gets a class or an exception."""
+    """Every star carries its Kalaprakasika p.71 class (ruled 2026-11-11), the
+    class depends on the star alone (the pada table is held), and no exception
+    is ever applied to Rajju."""
+    from app.calculations.porutham import EKA_NAKSHATRA_CLASS
+
     for nak in STARS:
         for bp in PADAS:
             for gp in PADAS:
                 for known in (True, False):
                     note = _porutham(nak, bp, gp, pada_known=known).eka_nakshatra
                     assert note.present
-                    assert note.classification is None
+                    assert note.classification == EKA_NAKSHATRA_CLASS[nak]
                     assert note.rajju_exception_applied is False
 
 
@@ -144,10 +148,14 @@ def test_known_padas_are_stated_same_or_different() -> None:
 # ── copy ────────────────────────────────────────────────────────────────────
 
 def test_neither_language_promises_an_outcome_and_spellings_are_locked() -> None:
+    # Ayilyam (9) is in Kalaprakasika's "unsuitable" class: the harshest copy.
     note = _porutham(9, 1, 2).eka_nakshatra
+    assert note.classification == "UNSUITABLE"
     for banned in ("fail", "reject", "unsuitable", "incompatible", "avoid", "lifespan"):
         assert banned not in note.note_en.lower(), banned
     assert "ஆயுள்" not in note.note_ta
+    # The Tamil verdict word பொருத்தமற்றது ("unsuitable") must not reach a family either.
+    assert "பொருத்தமற்ற" not in note.note_ta
     assert "ரஜ்ஜு" in note.note_ta and "ராஜ்ஜு" not in note.note_ta
     # The brand is spelled விநாடி (122 uses against வினாடி's 13).
     assert "வினாடி" not in note.note_ta
@@ -159,7 +167,7 @@ def test_wire_shape_uses_camel_case_aliases() -> None:
     wire = EkaNakshatraData.from_note(_porutham(9, 1, 2).eka_nakshatra).model_dump(by_alias=True)
     assert wire["present"] is True
     assert (wire["boyPada"], wire["girlPada"], wire["samePada"]) == (1, 2, False)
-    assert wire["classification"] is None and wire["rajjuExceptionApplied"] is False
+    assert wire["classification"] == "UNSUITABLE" and wire["rajjuExceptionApplied"] is False
     assert wire["label"]["ta"] and wire["note"]["en"]
 
 

@@ -1446,6 +1446,8 @@ export interface PanchangamDailyResponseData {
   };
   festivals: PanchangamFestival[];
   hora: Array<{ index: number; lord: string; start: string; end: string }>;
+  /** FAA-08: "EQUAL_60_MIN_FROM_SUNRISE" (EC-RULING-03). Shadbala's hora bala uses the classical unequal hora. */
+  horaSystem?: string;
   moonPhaseLabel: string;
   soolam: { direction: string; parigaram: string };
   lagnam: { rasiNumber: number; rasiName: string; endsAt: string; endsAtIso: string; nazhigai: number; vinadi: number };
@@ -1962,8 +1964,10 @@ export interface ShashtashtakaNote {
 /**
  * ஏக நட்சத்திரம் (F-POR-03): both partners share a birth star. A disclosure
  * rendered beside the Rajju row, never a verdict: Rajju itself is unchanged
- * and still fails. `classification` is null and `rajjuExceptionApplied` false
- * until a named source supplies the star+pada table. The pada fields are null
+ * and still fails. `classification` is the star's Kalaprakasika p.71 class
+ * ("EXCELLENT" | "NEUTRAL" | "UNSUITABLE") when present, else null; it is an
+ * internal code, never shown (render `note`). `rajjuExceptionApplied` is always
+ * false. The pada-level table is still held. The pada fields are null
  * when the request had no birth pada (the by-star tools).
  *
  * Optional on every payload, like `shashtashtaka`: absent means not present.
@@ -1975,6 +1979,19 @@ export interface EkaNakshatraNote {
   samePada: boolean | null;
   classification: string | null;
   rajjuExceptionApplied: boolean;
+  label: BiText;
+  note: BiText;
+}
+
+/** Kalaprakasika p.76 general exception, evaluated separately: never changes
+ *  a kuta, the total, the label or the Rajju/Vedha veto. */
+export interface ClassicalExceptionNote {
+  present: boolean;
+  applicable: boolean;
+  faults: string[];
+  conditionsMet: string[];
+  source: string;
+  pendingVerification: boolean;
   label: BiText;
   note: BiText;
 }
@@ -2021,6 +2038,7 @@ export interface PorutthamData {
   rajjuDosha: boolean; vedhaDosha: boolean; summary: BiText;
   shashtashtaka?: ShashtashtakaNote | null;
   ekaNakshatra?: EkaNakshatraNote | null;
+  classicalException?: ClassicalExceptionNote | null;
   papaSamyam?: PapaSamyamData | null;
   compatibilityContext: string; contextNote: BiText | null;
 }
@@ -2033,6 +2051,7 @@ export interface DirectPoruthamData {
   rajjuDosha: boolean; vedhaDosha: boolean; summary: BiText;
   shashtashtaka?: ShashtashtakaNote | null;
   ekaNakshatra?: EkaNakshatraNote | null;
+  classicalException?: ClassicalExceptionNote | null;
   papaSamyam?: PapaSamyamData | null;
   compatibilityContext: string; contextNote: BiText | null;
 }
@@ -2045,6 +2064,7 @@ export interface PublicPoruthamStarData {
   rajjuDosha: boolean; vedhaDosha: boolean; nadiDosha: NadiDoshaResult;
   shashtashtaka?: ShashtashtakaNote | null;
   ekaNakshatra?: EkaNakshatraNote | null;
+  classicalException?: ClassicalExceptionNote | null;
   summary: BiText; compatibilityContext: string;
 }
 
@@ -2125,6 +2145,7 @@ export interface CompatibilityIntelligenceData {
   nadiDosha: NadiDoshaResult;
   shashtashtaka?: ShashtashtakaNote | null;
   ekaNakshatra?: EkaNakshatraNote | null;
+  classicalException?: ClassicalExceptionNote | null;
   chartAStrength: ChartMarriageStrength; chartBStrength: ChartMarriageStrength;
   navamsa: NavamsaCompatibility; sevvaiA: SevvaiDoshamDetail; sevvaiB: SevvaiDoshamDetail;
   dashaHarmony: DashaHarmony; emotional: EmotionalCompatibility;

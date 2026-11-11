@@ -93,6 +93,18 @@ _LABELS = {
 # Helpers
 # ---------------------------------------------------------------------------
 
+#: Nadi is a secondary note (owner ruling 2026-11-11). Same text as the web
+#: `NADI_SECONDARY_LEAD` in web/components/shashtashtaka-note.tsx.
+_NADI_SECONDARY_LEAD_EN = (
+    "Nadi (additional note). Nadi is not one of the Tamil ten poruthams and does not "
+    "change the score or the result above."
+)
+_NADI_SECONDARY_LEAD_TA = (
+    "நாடி (கூடுதல் குறிப்பு). நாடி தமிழ்ப் பத்துப் பொருத்தங்களில் சேராது; மேலே உள்ள "
+    "மதிப்பெண்ணையும் முடிவையும் இது மாற்றாது."
+)
+
+
 def _normalize_lang(lang: str | None) -> str:
     return "ta" if lang == "ta" else "en"
 
@@ -1144,13 +1156,6 @@ def generate_compatibility_intelligence_pdf(
         story.append(Paragraph(_label("warning_rajju", lang), body_style))
     if report.vedha_dosha:
         story.append(Paragraph(_label("warning_vedha", lang), body_style))
-    if report.nadi_dosha.has_nadi_dosha:
-        story.append(Paragraph(f"Warning: Nadi dosha present - {report.nadi_dosha.severity}.", body_style))
-    if report.nadi_dosha.cancellations:
-        # Shown independently of has_nadi_dosha — a full Classical Exception
-        # cancellation (A-9 v2) clears has_nadi_dosha but the reason it was
-        # cleared is still worth surfacing.
-        story.append(Paragraph(f"Nadi Dosha notes: {', '.join(report.nadi_dosha.cancellations)}", body_style))
     # F-POR-03 — see the porutham sheet above.
     if report.eka_nakshatra is not None and report.eka_nakshatra.present:
         story.append(Paragraph(_bitext(report.eka_nakshatra.label, lang), body_style))
@@ -1159,6 +1164,14 @@ def generate_compatibility_intelligence_pdf(
     if report.shashtashtaka is not None and report.shashtashtaka.present:
         story.append(Paragraph(_bitext(report.shashtashtaka.label, lang), body_style))
         story.append(Paragraph(_bitext(report.shashtashtaka.note, lang), caption_style))
+    # Nadi: a SECONDARY note after the Tamil findings, never a "Warning" line
+    # beside Rajju/Vedhai (owner ruling 2026-11-11: not one of the Tamil ten).
+    # Same lead-in as web `NADI_SECONDARY_LEAD`; the body is the reviewed note.
+    if report.nadi_dosha.has_nadi_dosha:
+        ta = _normalize_lang(lang) == "ta"
+        lead = _NADI_SECONDARY_LEAD_TA if ta else _NADI_SECONDARY_LEAD_EN
+        body = report.nadi_dosha.note_ta if ta else report.nadi_dosha.note_en
+        story.append(Paragraph(f"{lead} {body}", caption_style))
     porutham_rows = [["Kuta", "Score", "Max", "Label"]]
     for kuta in report.porutham_kutas:
         porutham_rows.append([kuta.name, str(kuta.score), str(kuta.max_score), kuta.label])

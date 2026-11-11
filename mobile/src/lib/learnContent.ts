@@ -196,7 +196,7 @@ export const LEARN_CONTENT: Record<string, {
     sectionsEn: [
       {
         heading: "The 10 porutham checks",
-        body: "Dinam (daily harmony), Ganam (temperament), Mahendram (prosperity), Sthree Deergham (longevity), Yoni (physical compatibility), Rasi (Moon sign compatibility), Rasiyathipati (sign lord harmony), Vasyam (attraction), Rajju (longevity of marriage), Vedha (freedom from affliction). Each is weighted differently."
+        body: "Dinam (daily harmony), Ganam (temperament), Mahendram (prosperity), Sthree Deergham (the wife's welfare), Yoni (physical compatibility), Rasi (Moon sign compatibility), Rasiyathipati (sign lord harmony), Vasyam (attraction), Rajju (a key marriage compatibility), Vedha (freedom from affliction). Each counts one point; some can earn half a point."
       },
       {
         heading: "Minimum for a match",

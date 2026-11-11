@@ -149,6 +149,42 @@ class EkaNakshatraData(BaseModel):
         )
 
 
+class ClassicalExceptionData(BaseModel):
+    """Kalaprakasika p.76 general exception, evaluated separately (2026-11-11).
+
+    A disclosure beside the result: it never changes a kuta, the total, the
+    label or the Rajju/Vedha veto. `faults` are the failed kutas it speaks to;
+    `conditionsMet` which of its conditions hold. `pendingVerification` stays
+    true until the Sanskrit settles whether the conditions are alternatives.
+    """
+
+    present: bool
+    applicable: bool
+    faults: list[str] = []
+    conditions_met: list[str] = Field(default_factory=list, alias="conditionsMet")
+    source: str
+    pending_verification: bool = Field(default=True, alias="pendingVerification")
+    label: RelationshipBiText
+    note: RelationshipBiText
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    @classmethod
+    def from_note(cls, note: Any) -> ClassicalExceptionData | None:
+        if note is None:
+            return None
+        return cls(
+            present=note.present,
+            applicable=note.applicable,
+            faults=list(note.faults),
+            conditions_met=list(note.conditions_met),
+            source=note.source,
+            pending_verification=note.pending_verification,
+            label=RelationshipBiText(ta=note.label_ta, en=note.label_en),
+            note=RelationshipBiText(ta=note.note_ta, en=note.note_en),
+        )
+
+
 class PapaRowData(BaseModel):
     """One papa point: `graha` sits in papa `house` counted from `reference`."""
 
@@ -240,6 +276,8 @@ class PorutthamData(BaseModel):
     shashtashtaka: ShashtashtakaData | None = None
     # F-POR-03 disclosure, optional for the same reason.
     eka_nakshatra: EkaNakshatraData | None = Field(default=None, alias="ekaNakshatra")
+    # Kalaprakasika p.76 exception, shown separately; never alters the result.
+    classical_exception: ClassicalExceptionData | None = Field(default=None, alias="classicalException")
     # Plan item 3: report only, MARRIAGE context only; absent elsewhere.
     papa_samyam: PapaSamyamData | None = Field(default=None, alias="papaSamyam")
     summary: RelationshipBiText
@@ -369,6 +407,8 @@ class DirectPoruthamData(BaseModel):
     shashtashtaka: ShashtashtakaData | None = None
     # F-POR-03 disclosure, optional for the same reason.
     eka_nakshatra: EkaNakshatraData | None = Field(default=None, alias="ekaNakshatra")
+    # Kalaprakasika p.76 exception, shown separately; never alters the result.
+    classical_exception: ClassicalExceptionData | None = Field(default=None, alias="classicalException")
     # Plan item 3: report only, MARRIAGE context only; absent elsewhere.
     papa_samyam: PapaSamyamData | None = Field(default=None, alias="papaSamyam")
     summary: RelationshipBiText
@@ -548,6 +588,8 @@ class CompatibilityIntelligenceData(BaseModel):
     shashtashtaka: ShashtashtakaData | None = None
     # F-POR-03 disclosure, optional for the same reason.
     eka_nakshatra: EkaNakshatraData | None = Field(default=None, alias="ekaNakshatra")
+    # Kalaprakasika p.76 exception, shown separately; never alters the result.
+    classical_exception: ClassicalExceptionData | None = Field(default=None, alias="classicalException")
 
     # Layer 2+3: Chart strength
     chart_a_strength: ChartMarriageStrength = Field(alias="chartAStrength")

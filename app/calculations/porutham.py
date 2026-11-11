@@ -16,13 +16,13 @@ and it was stricter than the sastra. Half a point is what madhyama means.
 
 The 10 Poruthams (Tamil → calculation rule):
   1. Dinam      (தினம்)           — count boy's nak from girl's (1-based, 1-27); pass only for the classical good-count table (incl. the 9th/18th counts, Parama Mitra tara)
-  2. Ganam      (கணம்)            — Deva/Manushya/Rakshasa; Deva+Deva or Deva+Manushya = pass
+  2. Ganam      (கணம்)            — same = Uttama; Deva+Manushya = Madhyama; Rakshasa mix = Adhama (Madhyama if bride >14th from groom) [Kalaprakasika p.72]
   3. Mahendra   (மகேந்திரம்)      — count boy's nak from girl's; pass if result ∈ {4,7,10,13,16,19,22,25}
   4. Stree Dirgham (ஸ்திரீ தீர்க்கம்) — count boy's nak from girl's; 1–7 Adhama,
      8–13 Madhyama (0.5), 14–27 Uttama
-  5. Yoni       (யோனி)            — same or neutral animal pair = pass; hostile pair = fail
-  6. Rasi       (ராசி)            — pass unless 6th or 8th position (Shashtashtaka) between rasis
-  7. Rasiyathipathi (ராசியாதிபதி) — FAIL if either rasi lord regards the other as an enemy (one-way enmity fails)
+  5. Yoni       (யோனி)            — same = Uttama; neutral = Madhyama (full point); hostile = Adhama [Kalaprakasika p.73]
+  6. Rasi       (ராசி)            — Tamil bride->groom count: 2nd-6th adverse (Kalaprakasika p.73-74 exceptions lift some); 7th-12th and same rasi pass. Not the North Indian Bhakoot 6/8 rule; 6/8 is shown as a separate ஷஷ்டாஷ்டகம் note
+  7. Rasiyathipathi (ராசியாதிபதி) — Parashari friendship as Tamil panchangams print it; FAIL if either rasi lord regards the other as an enemy
   8. Vasya      (வசியம்)          — at least one rasi must be vasya of the other
   9. Rajju      (ரஜ்ஜு)          — same Rajju group = VETO (see RAJJU_SOURCE_TEXT_CATEGORY)
  10. Vedha      (வேதை)           — Vedha nakshatra pair = VETO
@@ -46,10 +46,11 @@ from app.calculations.chart_strength import SIGN_LORD
 # middle state, which is false.
 #
 # A porutham's madhyama band is *populated* only where its thresholds are
-# authored rather than paraphrased. Today that is Sthree Deergham alone; Rasi
-# carries a classical madhyama too (see `_rasi_exception_lifts`) and drops in
-# when Jothidam p.68 settles. Gana and arguably Yoni are the other real
-# candidates. Dinam, Vasya, Rasyadipathi and Mahendra are rendered binary in
+# authored rather than paraphrased: Sthree Deergham, and since 2026-11-11 Ganam
+# and Yoni from Kalaprakasika p.72-73 (Yoni's madhyama is a label at full
+# point). Rasi stays binary: Kalaprakasika (the governing text, owner ruling
+# 2026-11-11) gives exceptions, not a middle band, and Jothidam p.68's 6th-house
+# Madhyama is not adopted. Dinam, Vasya, Rasyadipathi and Mahendra are rendered binary in
 # practice. An ungraded porutham is simply the two-valued projection of the same
 # ladder — a full pass reads UTTAMA, a fail reads ADHAMA, and no third state can
 # arise.
@@ -161,19 +162,28 @@ YONI_BY_NAKSHATRA: dict[int, int] = {
     6: 5,  7: 6,  8: 3,  9: 6,  10: 7,
     11: 7, 12: 8, 13: 9, 14: 10, 15: 9,
     16: 10, 17: 11, 18: 11, 19: 5, 20: 12,
-    21: 14, 22: 12, 23: 13, 24: 1, 25: 13,
+    # 21 Uthiradam: COW (8), not Mongoose — Kalaprakasika p.73 prints
+    # "Utharapalguni, Utharashada and Utharabadhrapadha—Cow" (owner ruling
+    # 2026-11-11: adopt the governing book's Yoni table whole).
+    21: 8, 22: 12, 23: 13, 24: 1, 25: 13,
     26: 8, 27: 2,
 }
 
+# Kalaprakasika p.73, verbatim order: "Monkey and Sheep, Deer and Elephant,
+# Horse and Buffalo, Cow and Tiger, Rat and Cat, Serpent and Rat, Serpent and
+# Mongoose, Dog and Deer — these are mutually hostile". Adopted whole (owner
+# ruling 2026-11-11): Elephant–Lion, from the standard table, is not in it.
+# Serpent–Mongoose is kept as printed though no star is Mongoose in this table.
 _YONI_HOSTILE: frozenset[frozenset[int]] = frozenset(
     frozenset(pair) for pair in [
-        {8, 10},   # Cow vs Tiger
-        {2, 13},   # Elephant vs Lion
-        {1, 9},    # Horse vs Buffalo
-        {5, 11},   # Dog vs Deer
-        {4, 14},   # Serpent vs Mongoose
-        {6, 7},    # Cat vs Rat
         {3, 12},   # Sheep vs Monkey
+        {2, 11},   # Elephant vs Deer
+        {1, 9},    # Horse vs Buffalo
+        {8, 10},   # Cow vs Tiger
+        {6, 7},    # Cat vs Rat
+        {4, 7},    # Serpent vs Rat
+        {4, 14},   # Serpent vs Mongoose
+        {5, 11},   # Dog vs Deer
     ]
 )
 
@@ -307,7 +317,9 @@ _VEDHA_PAIRS: frozenset[frozenset[int]] = frozenset(
 # ---------------------------------------------------------------------------
 _VASYA: dict[int, frozenset[int]] = {
     1:  frozenset({5, 8}),   # Mesha   → Simha, Vrischika
-    2:  frozenset({4, 7}),   # Rishaba → Kataka, Thula
+    # Rishabam -> Kataka, SIMHA: Kalaprakasika p.75, scan-checked ("Cancer and
+    # Leo are concordant to Taurus"; owner ruling 2026-11-11). Was Kataka, Thula.
+    2:  frozenset({4, 5}),   # Rishaba → Kataka, Simha
     3:  frozenset({6}),      # Mithuna → Kanni
     4:  frozenset({8, 9}),   # Kataka  → Vrischika, Dhanus
     5:  frozenset({7}),      # Simha   → Thula
@@ -329,6 +341,11 @@ _VASYA: dict[int, frozenset[int]] = {
 # Includes the 9th/18th counts (Parama Mitra tara) as a pass. 17/22/27 are
 # deliberately absent: a pure tara-mod-9 rule would pass them, but the locked
 # spec table is the 12-count Tamil variant — the product stance.
+#
+# Ruled 2026-11-11 (Tamil Nadu practice, see PORUTHAM_RULED_DEPARTURES): this is
+# the list Tamil panchangam porutham tables print and family jothidars count by.
+# Kalaprakasika p.69's tara-cycle reading is a recorded second reading, not
+# adopted: it would pass 10, 17, 19, 21, 23, 25 and most padas of 12/14/16.
 _DINAM_GOOD_COUNTS = frozenset({2, 4, 6, 8, 9, 11, 13, 15, 18, 20, 24, 26})
 
 
@@ -338,15 +355,28 @@ def _dinam_score(nak_boy: int, nak_girl: int) -> int:
     return 1 if count in _DINAM_GOOD_COUNTS else 0
 
 
-def _ganam_score(nak_boy: int, nak_girl: int) -> int:
-    """Ganam: same gana or Deva+Manushya = PASS; Rakshasa mix = FAIL."""
+def _ganam_band(nak_boy: int, nak_girl: int) -> str:
+    """Ganam, three-fold, per Kalaprakasika p.72 (owner rulings 2026-11-11).
+
+    Same gana: "excellent" (UTTAMA). Groom Deva + bride Manushya: "of middling
+    quality" (MADHYAMA); the book is silent on the reverse, ruled MADHYAMA too.
+    Any Rakshasa mix: "very bad" / "fatal" (ADHAMA), except that "the adverse
+    effects of Rakshasa Gana will diminish if the asterism of the bride be
+    beyond the 14th from the asterism of the bridegroom": diminished, not
+    removed, so MADHYAMA.
+    """
     gb = GANA_BY_NAKSHATRA[nak_boy]
     gg = GANA_BY_NAKSHATRA[nak_girl]
     if gb == gg:
-        return 1
+        return GRADE_UTTAMA
     if frozenset({gb, gg}) == frozenset({1, 2}):  # Deva + Manushya
-        return 1
-    return 0
+        return GRADE_MADHYAMA
+    bride_from_groom = (nak_girl - nak_boy) % 27 + 1
+    return GRADE_MADHYAMA if bride_from_groom > 14 else GRADE_ADHAMA
+
+
+def _ganam_score(nak_boy: int, nak_girl: int) -> float:
+    return GRADE_SCORE[_ganam_band(nak_boy, nak_girl)]
 
 
 def _mahendra_score(nak_boy: int, nak_girl: int) -> int:
@@ -388,13 +418,24 @@ def _stree_dirgha_band(nak_boy: int, nak_girl: int) -> str:
     return GRADE_UTTAMA
 
 
-def _yoni_score(nak_boy: int, nak_girl: int) -> int:
-    """Yoni: hostile pair = FAIL; same or neutral = PASS."""
+def _yoni_band(nak_boy: int, nak_girl: int) -> str:
+    """Yoni, per Kalaprakasika p.73: same Yoni shows suitability (UTTAMA);
+    "if different, it is neutral" (MADHYAMA); hostile Yonis "should be
+    avoided" (ADHAMA)."""
     yb = YONI_BY_NAKSHATRA[nak_boy]
     yg = YONI_BY_NAKSHATRA[nak_girl]
+    if yb == yg:
+        return GRADE_UTTAMA
     if frozenset({yb, yg}) in _YONI_HOSTILE:
-        return 0
-    return 1
+        return GRADE_ADHAMA
+    return GRADE_MADHYAMA
+
+
+def _yoni_score(nak_boy: int, nak_girl: int) -> int:
+    """Owner ruling 2026-11-11: a neutral Yoni is LABELLED Madhyama but keeps
+    the full point. The book calls it "neutral", not "middling", and the 7/10
+    band was set on this basis (84% of pairings are neutral)."""
+    return 0 if _yoni_band(nak_boy, nak_girl) == GRADE_ADHAMA else 1
 
 
 # EC-RULING-01 (2026-08-17) opened these DISABLED because neither reported
@@ -657,24 +698,190 @@ _EKA_LABEL_EN = "Same birth star (Eka Nakshatra) — further examination advised
 _EKA_LABEL_TA = "ஏக நட்சத்திரம் — மேலாய்வு தேவை"
 
 _EKA_NOTE_EN = (
-    "Both were born under the same nakshatra. Tamil marriage-matching practice "
-    "assesses this on its own, apart from Rajju, by each person's pada and by how "
-    "the tradition classes that star. Those classes differ between traditions, and "
-    "Vinaadi has not yet confirmed them from a named text, so no exception is "
-    "applied here and the Rajju result stands as calculated. An experienced "
-    "astrologer can say how your tradition treats this star."
+    "Tamil marriage-matching practice assesses a shared star on its own, apart "
+    "from Rajju, by the star and each person's pada. Other traditions class some "
+    "stars differently, and no exception is applied to Rajju here: its result "
+    "stands as calculated. An experienced astrologer can say how your tradition "
+    "treats this star."
 )
 _EKA_NOTE_TA = (
-    "இருவரும் ஒரே நட்சத்திரத்தில் பிறந்தவர்கள். தமிழ்த் திருமணப் பொருத்த மரபில் இது "
-    "ரஜ்ஜுவிலிருந்து தனியாக, இருவரின் பாதத்தையும் அந்த நட்சத்திரத்தை மரபு எவ்வாறு "
-    "வகைப்படுத்துகிறது என்பதையும் கொண்டு ஆராயப்படுகிறது. அந்த வகைப்பாடு மரபுக்கு மரபு "
-    "வேறுபடுகிறது; பெயர் குறிப்பிடப்பட்ட நூலிலிருந்து விநாடி அதை இன்னும் "
-    "உறுதிப்படுத்தவில்லை. எனவே இங்கு எந்த விதிவிலக்கும் வழங்கப்படவில்லை; ரஜ்ஜு முடிவு "
-    "கணக்கிட்டபடியே உள்ளது. உங்கள் மரபில் இந்த நட்சத்திரம் எவ்வாறு கருதப்படுகிறது "
-    "என்பதை அனுபவமுள்ள ஜோதிடரிடம் கேட்கலாம்."
+    "தமிழ்த் திருமணப் பொருத்த மரபில் ஒரே நட்சத்திரம் ரஜ்ஜுவிலிருந்து தனியாக, "
+    "நட்சத்திரத்தையும் இருவரின் பாதத்தையும் கொண்டு ஆராயப்படுகிறது. சில மரபுகள் சில "
+    "நட்சத்திரங்களை வேறுவிதமாக வகைப்படுத்துகின்றன; இங்கு ரஜ்ஜுவுக்கு எந்த விதிவிலக்கும் "
+    "வழங்கப்படவில்லை, அதன் முடிவு கணக்கிட்டபடியே உள்ளது. உங்கள் மரபில் இந்த நட்சத்திரம் "
+    "எவ்வாறு கருதப்படுகிறது என்பதை அனுபவமுள்ள ஜோதிடரிடம் கேட்கலாம்."
 )
+# ── Kalaprakasika p.71, "Common Janma-Nakshathra" (owner ruling 2026-11-11:
+# Kalaprakasika governs porutham). The book's three classes, verbatim:
+# "excellent" / "neutral" / "unsuitable, and marriage avoided". 8 + 11 + 8 = 27.
+# Recorded only: Rajju is still never altered (F-POR-03, "do not falsify the
+# Rajju calculation"), so `rajju_exception_applied` stays False. The book's
+# pada-order sentences are held: as transcribed they disagree with each other
+# (docs/FAA_DECISIONS_2026-11-11.md).
+EKA_NAKSHATRA_CLASS: dict[int, str] = {
+    **{n: "EXCELLENT" for n in (4, 6, 10, 13, 16, 22, 26, 27)},
+    **{n: "NEUTRAL" for n in (1, 3, 5, 7, 8, 11, 12, 14, 17, 20, 21)},
+    **{n: "UNSUITABLE" for n in (2, 9, 15, 18, 19, 23, 24, 25)},
+}
+_EKA_CLASS_NOTE: dict[str, tuple[str, str]] = {
+    "EXCELLENT": (
+        "Kalaprakasika (p. 71) counts a shared birth star of this nakshatra as excellent.",
+        "இந்த நட்சத்திரத்தில் இருவரும் பிறந்திருப்பதைக் காலப்பிரகாசிகை (பக். 71) மிகச் சிறந்தது என்கிறது.",
+    ),
+    "NEUTRAL": (
+        "Kalaprakasika (p. 71) counts a shared birth star of this nakshatra as neutral.",
+        "இந்த நட்சத்திரத்தில் இருவரும் பிறந்திருப்பதைக் காலப்பிரகாசிகை (பக். 71) நடுநிலையானது என்கிறது.",
+    ),
+    # Advisory voice (advise, never decide): the book's class word is kept as
+    # the internal enum, but the copy says the book does not favour it and sends
+    # the family to their jothidar. It never says "unsuitable" or "avoid".
+    "UNSUITABLE": (
+        "Kalaprakasika (p. 71) does not favour a shared birth star of this nakshatra for "
+        "marriage. It is best to have an experienced astrologer read both full horoscopes "
+        "before deciding.",
+        "இந்த நட்சத்திரத்தில் இருவரும் பிறந்திருப்பதைக் காலப்பிரகாசிகை (பக். 71) திருமணத்திற்கு "
+        "உகந்ததாகக் கருதவில்லை. முடிவெடுக்கும் முன் இருவரின் முழு ஜாதகங்களையும் அனுபவமுள்ள "
+        "ஜோதிடரிடம் பார்ப்பது நல்லது.",
+    ),
+}
+
 _EKA_PADA_UNKNOWN_EN = "The birth padas are not known here; a full birth chart gives them."
 _EKA_PADA_UNKNOWN_TA = "பிறந்த பாதங்கள் இங்கு தெரியவில்லை; முழு ஜாதகம் அவற்றைத் தரும்."
+
+
+# ── Provenance of every porutham rule (owner ruling 2026-11-11) ─────────────
+# Kalaprakasika (N. P. Subramonia Iyer) governs porutham. Every rule names where
+# it comes from, and a rule that does NOT follow the governing text says so
+# here instead of being blended into an artificial consensus. Authority order:
+# Kalaprakasika > other named Tamil texts > printed Tamil panchangams >
+# documented astrologers > websites. `PORUTHAM_SOURCE_CONFLICTS` lists rules
+# that still differ from Kalaprakasika and wait for a ruling;
+# `PORUTHAM_RULED_DEPARTURES` lists the ones ruled to follow Tamil Nadu practice
+# instead, with both readings named. tests/test_faa_group_a.py pins all three
+# tables, so resolving a conflict is a deliberate edit to them, never a silent drift.
+PORUTHAM_PROVENANCE: dict[str, tuple[str, str]] = {
+    "Dinam": ("TAMIL_PRACTICE", "12-count list of Tamil panchangam porutham tables (spec §11.4)"),
+    "Ganam": ("KALAPRAKASIKA", "p.72, with its Rakshasa 14th-star exception"),
+    "Mahendra": ("KALAPRAKASIKA", "p.72"),
+    "Stree Dirgha": ("KALAPRAKASIKA", "p.72: >13th primary; 8th-13th as Madhyama from its 'some writers' clause"),
+    "Yoni": ("KALAPRAKASIKA", "p.73, whole table"),
+    "Rasi": ("KALAPRAKASIKA", "p.73-74, bride->groom count, 2nd and 6th exceptions"),
+    "Graha Maitri": ("TAMIL_PRACTICE", "Parashari natural friendship, as Tamil panchangams print it (49 pairs)"),
+    "Vasya": ("KALAPRAKASIKA", "p.75, whole table (Rishabam row adopted 2026-11-11)"),
+    "Classical exception": (
+        "KALAPRAKASIKA",
+        "p.76, evaluated separately; never alters a score. 'Friendly' is read on the "
+        "same Parashari table as Rasiyathipathi (ruled 2026-11-11)",
+    ),
+    "Rajju": ("KALAPRAKASIKA", "p.75, five divisions"),
+    "Vedha": ("KALAPRAKASIKA", "p.76, twelve pairs and the Mrigasirsha/Chithra/Avittam triad"),
+    "Eka Nakshatra": ("KALAPRAKASIKA", "p.71, three classes; pada-order sentences held"),
+}
+PORUTHAM_SOURCE_CONFLICTS: dict[str, str] = {}
+
+# Rules that depart from Kalaprakasika BY RULING, to follow what Tamil Nadu
+# families and their jothidars use (ruled 2026-11-11 at the owner's request, by
+# Claude acting for Tamil practice, not by a practitioner: the astrologer review
+# of the whole app should confirm it). A lineage choice, not a claim that the
+# book is wrong: both readings are named so the other is never "restored" by
+# accident.
+PORUTHAM_RULED_DEPARTURES: dict[str, str] = {
+    "Dinam": (
+        "Follows the 12-count list {2,4,6,8,9,11,13,15,18,20,24,26} printed in Tamil "
+        "panchangam porutham tables. Kalaprakasika p.69 reads the tara cycle instead "
+        "(2/4/6/8 good, 3/5/7 bad; second round avoids one pada each of the "
+        "12th/14th/16th; third round free except the 22nd and 27th), which would also "
+        "pass 10, 17, 19, 21, 23 and 25. Not adopted."
+    ),
+    "Graha Maitri": (
+        "Follows the Parashari natural friendship table, which Tamil panchangams "
+        "print for ராசியாதிபதி. Kalaprakasika p.74-75 prints its own table (Mars: "
+        "Mercury and Venus only; Sun: Jupiter only; Moon: Mercury and Jupiter; Saturn "
+        "calls Jupiter an enemy), which flips 10 of the 21 lord pairs. Not adopted; "
+        "the p.76 exception reads 'friendly' on the same Parashari table so the two "
+        "never contradict each other."
+    ),
+}
+
+
+# ── Kalaprakasika p.76 general exception (owner ruling 2026-11-11) ─────────
+#   "Exception.—Rajju, Vedhai, Ganam and Rasi—the adverse effects arising from
+#    these need not be considered, if (1) the lords of the Jenma-Rasis of the
+#    man and the woman be the same, (2) they be friendly planets and (3) if
+#    their Jenma-Rasis be diametrically opposite signs of the zodiac."
+#
+# Read as ALTERNATIVES: (1) and (3) can never hold together (opposite signs
+# never share a lord), so "all three" would make the rule unsatisfiable.
+# Flagged `pending_verification` until the Sanskrit settles it. "Friendly" is
+# read MUTUALLY (each lord a friend of the other) on the Parashari table that
+# Rasiyathipathi and the Nadi parihara use (ruled 2026-11-11, see
+# PORUTHAM_RULED_DEPARTURES). It was first built on the book's own p.74-75 table,
+# which let this note call two lords friendly while the Rasiyathipathi row on the
+# same screen failed them as enemies (Moon–Mercury, Mars–Mercury, Mercury–Jupiter,
+# Jupiter–Venus). One reading, one friendship table.
+_EXCEPTION_FAULT_KUTAS = ("Rajju", "Vedha", "Ganam", "Rasi")
+_EXCEPTION_FAULT_TA = {"Rajju": "ரஜ்ஜு", "Vedha": "வேதை", "Ganam": "கணம்", "Rasi": "ராசி"}
+_EXCEPTION_FAULT_EN = {"Rajju": "Rajju", "Vedha": "Vedhai", "Ganam": "Ganam", "Rasi": "Rasi"}
+
+
+def classical_exception_assessment(kutas, boy_rasi: int, girl_rasi: int) -> ClassicalExceptionNote:
+    faults = tuple(k.name for k in kutas if k.name in _EXCEPTION_FAULT_KUTAS and k.grade == GRADE_ADHAMA)
+    lord_b, lord_g = SIGN_LORD[boy_rasi], SIGN_LORD[girl_rasi]
+    met: list[str] = []
+    if lord_b == lord_g:
+        met.append("SAME_LORD")
+    elif _rasi_lords_mutually_friendly(boy_rasi, girl_rasi):
+        met.append("FRIENDLY_LORDS")
+    if (boy_rasi - girl_rasi) % 12 == 6:
+        met.append("OPPOSITE_RASIS")
+    if not faults:
+        return ClassicalExceptionNote(
+            present=False, applicable=False, faults=(), conditions_met=tuple(met),
+            source="Kalaprakasika p.76", pending_verification=True,
+            label_en="", label_ta="", note_en="", note_ta="",
+        )
+    applicable = bool(met)
+    names_en = ", ".join(_EXCEPTION_FAULT_EN[f] for f in faults)
+    names_ta = ", ".join(_EXCEPTION_FAULT_TA[f] for f in faults)
+    lines_ta = []
+    lines_en = []
+    if "Rajju" in faults:
+        lines_ta.append("ரஜ்ஜுப் பொருத்தம் அமையவில்லை.")
+        lines_en.append("Rajju porutham does not agree.")
+    if "Vedha" in faults:
+        lines_ta.append("வேதைப் பொருத்தத்தில் குறை உள்ளது.")
+        lines_en.append("There is a Vedhai concern.")
+    if applicable:
+        lines_ta.append(
+            "காலப்பிரகாசிகா நூலில் குறிப்பிடப்பட்டுள்ள விதிவிலக்கு இங்கு பொருந்துகிறது. இதனால் "
+            f"குறிப்பிட்ட பொருத்தக் குறைகளின் ({names_ta}) தாக்கம் கணக்கில் எடுத்துக்கொள்ளப்படாமல் இருக்கலாம்."
+        )
+        lines_en.append(
+            "The exception given in Kalaprakasika applies here, so the effect of these "
+            f"porutham faults ({names_en}) may not need to be counted."
+        )
+    else:
+        lines_ta.append(
+            "குறிப்பிடப்பட்ட விதிவிலக்கு இங்கு பொருந்தவில்லை. எனவே இந்தப் பொருத்தக் குறை "
+            "தொடர்ந்து கவனத்தில் கொள்ளப்பட வேண்டும்."
+        )
+        lines_en.append(
+            "The stated exception does not apply here, so this porutham fault should still be taken into account."
+        )
+    lines_ta.append("மதிப்பெண்ணும் மேலே உள்ள முடிவும் மாறவில்லை; முழு ஜாதகத்துடன் ஜோதிடர் இதை எடைபோடலாம்.")
+    lines_en.append("The score and the result above are unchanged; an astrologer can weigh this with both full charts.")
+    return ClassicalExceptionNote(
+        present=True,
+        applicable=applicable,
+        faults=faults,
+        conditions_met=tuple(met),
+        source="Kalaprakasika p.76",
+        pending_verification=True,
+        label_en="Classical exception (Kalaprakasika p.76)",
+        label_ta="சாஸ்திர விதிவிலக்கு (காலப்பிரகாசிகா பக். 76)",
+        note_en=" ".join(lines_en),
+        note_ta=" ".join(lines_ta),
+    )
 
 
 def eka_nakshatra_assessment(
@@ -720,17 +927,19 @@ def eka_nakshatra_assessment(
         boy_p = girl_p = None
         same_pada = None
 
+    classification = EKA_NAKSHATRA_CLASS[boy_nakshatra]
+    class_en, class_ta = _EKA_CLASS_NOTE[classification]
     return EkaNakshatraNote(
         present=True,
         boy_pada=boy_p,
         girl_pada=girl_p,
         same_pada=same_pada,
-        classification=None,
+        classification=classification,
         rajju_exception_applied=False,
         label_en=_EKA_LABEL_EN,
         label_ta=_EKA_LABEL_TA,
-        note_en=f"{_EKA_NOTE_EN} {pada_en}",
-        note_ta=f"{_EKA_NOTE_TA} {pada_ta}",
+        note_en=f"{class_en} {_EKA_NOTE_EN} {pada_en}",
+        note_ta=f"{class_ta} {_EKA_NOTE_TA} {pada_ta}",
     )
 
 
@@ -859,11 +1068,34 @@ class EkaNakshatraNote:
     boy_pada: int | None
     girl_pada: int | None
     same_pada: bool | None
-    #: The star+pada class from a named source. Always None today: the table is
-    #: held (ASTROLOGER_RULINGS_2026-10-13 F-POR-03).
+    #: The star's class from Kalaprakasika p.71 (EXCELLENT / NEUTRAL /
+    #: UNSUITABLE) when the stars match, else None (owner ruling 2026-11-11).
+    #: The pada-level table is still held.
     classification: str | None
-    #: Always False today, for the same reason. Rajju is never altered here.
+    #: Always False: Rajju is never altered here (F-POR-03).
     rajju_exception_applied: bool
+    label_en: str
+    label_ta: str
+    note_en: str
+    note_ta: str
+
+
+@dataclass(frozen=True, slots=True)
+class ClassicalExceptionNote:
+    """Kalaprakasika p.76's general exception, evaluated SEPARATELY (owner ruling
+    2026-11-11). It never changes a kuta, the total, the label or the Rajju /
+    Vedha veto: the original finding stays, and this says whether the book's
+    exception applies to it, and why. `present` is False when none of the four
+    faults it names (Rajju, Vedhai, Ganam, Rasi) failed for this couple."""
+
+    present: bool
+    applicable: bool
+    faults: tuple[str, ...]            # which of the four failed here
+    conditions_met: tuple[str, ...]    # SAME_LORD / FRIENDLY_LORDS / OPPOSITE_RASIS
+    source: str
+    #: The English translation is ambiguous on and/or; read as alternatives
+    #: (see `classical_exception_assessment`) until the Sanskrit is checked.
+    pending_verification: bool
     label_en: str
     label_ta: str
     note_en: str
@@ -889,6 +1121,7 @@ class PorutthamResult:
     #: F-POR-03. Disclosure only, like `shashtashtaka`; a consumer renders it
     #: beside the Rajju row. No exception is applied while the table is held.
     eka_nakshatra: EkaNakshatraNote
+    classical_exception: ClassicalExceptionNote | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -1112,9 +1345,11 @@ def compute_porutham(
         layer stays flag-agnostic).
     """
     stree_dirgha_band = _stree_dirgha_band(boy_nakshatra, girl_nakshatra)
+    ganam_band = _ganam_band(boy_nakshatra, girl_nakshatra)
+    yoni_band = _yoni_band(boy_nakshatra, girl_nakshatra)
     scores = {
         "Dinam":           _dinam_score(boy_nakshatra, girl_nakshatra),
-        "Ganam":           _ganam_score(boy_nakshatra, girl_nakshatra),
+        "Ganam":           GRADE_SCORE[ganam_band],
         "Mahendra":        _mahendra_score(boy_nakshatra, girl_nakshatra),
         "Stree Dirgha":    GRADE_SCORE[stree_dirgha_band],
         "Yoni":            _yoni_score(boy_nakshatra, girl_nakshatra),
@@ -1137,7 +1372,9 @@ def compute_porutham(
     # today; every other porutham projects onto the two-valued ends of the same
     # ladder. `BINARY_ONLY_KUTAS` must never appear as a key here — see its
     # comment for the veto hole that would open if it did.
-    graded_bands = {"Stree Dirgha": stree_dirgha_band}
+    # Ganam and Yoni joined 2026-11-11 (Kalaprakasika p.72-73). Yoni's
+    # madhyama keeps the full point (see `_yoni_score`): its band is a label.
+    graded_bands = {"Stree Dirgha": stree_dirgha_band, "Ganam": ganam_band, "Yoni": yoni_band}
     # Raised, not asserted: `python -O` strips asserts, and this is the guard
     # that keeps a graded veto kuta from scoring 0.5 and slipping past the
     # `score == 0` veto. A doctrine guard that disappears under an optimisation
@@ -1350,4 +1587,5 @@ def compute_porutham(
         eka_nakshatra=eka_nakshatra_assessment(
             boy_nakshatra, girl_nakshatra, boy_pada, girl_pada, pada_known=pada_known
         ),
+        classical_exception=classical_exception_assessment(kutas, boy_rasi, girl_rasi),
     )
