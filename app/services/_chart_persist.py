@@ -162,6 +162,9 @@ def create_birth_profile_record(
         marital_status=getattr(profile, "marital_status", None),
         employment_type=getattr(profile, "employment_type", None),
         children=getattr(profile, "children", None),
+        # Was dropped here, so every new profile (owner or member) stored the
+        # column default and a stated gender never reached a chart reading.
+        gender_for_traditional_rules=getattr(profile, "gender_for_traditional_rules", None) or "not_specified",
     )
     session.add(birth_profile)
     session.flush()

@@ -141,6 +141,33 @@ def _value(profile: Any, name: str, default: Any = None) -> Any:
     return getattr(profile, name, default)
 
 
+_STATED_GENDERS = frozenset({"female", "male"})
+
+
+def _stated_gender(profile: Any) -> str | None:
+    """The profile's stated gender, falling back to its linked family member's.
+
+    Until 2026-11-11 a member's gender was saved on `FamilyMember` only: the
+    profile created for the member never received it (create_birth_profile_record
+    dropped the field) and member edits did not copy it. Every chart-based reading
+    of a member therefore read "not_specified". The write paths now keep the two
+    in step; this covers the rows written before that, without rewriting data.
+    The profile wins whenever it states a gender.
+    """
+    own = _value(profile, "gender_for_traditional_rules")
+    if (own or "").strip().lower() in _STATED_GENDERS:
+        return own
+    try:
+        # Lazy relationship: raises, rather than defaulting, on a detached row.
+        member = _value(profile, "family_member")
+    except Exception:  # noqa: BLE001 - no linked member is the safe answer
+        member = None
+    linked = getattr(member, "gender_for_traditional_rules", None) if member is not None else None
+    if (linked or "").strip().lower() in _STATED_GENDERS:
+        return linked
+    return own
+
+
 def _warning_messages(profile: Any) -> list[str]:
     warnings: list[str] = []
     confidence = _value(profile, "birth_time_confidence_minutes", 0) or 0
@@ -920,7 +947,7 @@ def _birth_profile_response(
         calendar_input_type=_value(profile, "calendar_input_type", "gregorian"),
         calculate_now=bool(_value(profile, "calculate_now", True)),
         language_preference=_value(profile, "language_preference", "ta-en"),
-        gender_for_traditional_rules=_value(profile, "gender_for_traditional_rules"),
+        gender_for_traditional_rules=_stated_gender(profile),
         birth_datetime_utc=birth_datetime_utc,
         calculation_status=calculation_status,
         warnings=warnings or [],
@@ -1029,7 +1056,7 @@ def _chart_response_from_profile(profile: Any, calculation_version: str, chart_i
         lagna_rasi=lagna_rasi,
         moon_rasi=moon_rasi,
         birth_jd=julian_day,
-        gender=_value(profile, "gender_for_traditional_rules"),
+        gender=_stated_gender(profile),
         d9_lagna_rasi=navamsa_rasi_from_degree(lagna_degree),
         equal_bhava_map=equal_bhava_map,
         lagna_longitude=float(lagna_degree),
@@ -1309,7 +1336,7 @@ def _chart_response_from_record(chart: Chart) -> ChartCalculateResponse:
         lagna_rasi=lagna_rasi,
         moon_rasi=moon_rasi,
         birth_jd=float(chart.julian_day),
-        gender=_value(birth_profile, "gender_for_traditional_rules"),
+        gender=_stated_gender(birth_profile),
         d9_lagna_rasi=d9_lagna_rasi_val,
         equal_bhava_map=equal_bhava_map,
         lagna_longitude=float(chart.lagna_longitude),

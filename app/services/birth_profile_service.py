@@ -110,6 +110,10 @@ def _sync_linked_family_member(profile: BirthProfile) -> None:
         return
     member.display_name = profile.display_name
     member.date_of_birth_local = profile.birth_date_local
+    # A stated gender set through the profile door reaches the member too. An
+    # unstated profile value never overwrites a member's stated one.
+    if (getattr(profile, "gender_for_traditional_rules", None) or "").lower() in {"female", "male"}:
+        member.gender_for_traditional_rules = profile.gender_for_traditional_rules
     member.is_minor = family_member_is_minor(member.relationship_to_owner, member.date_of_birth_local)
     member.updated_at = datetime.now(tz=UTC)
 
