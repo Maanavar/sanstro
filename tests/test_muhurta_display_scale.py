@@ -183,13 +183,22 @@ def test_at_least_one_activity_ranks_its_top_five_strictly(top_fives) -> None:
 
 
 def test_the_display_mapping_never_changes_which_day_wins(snapshots) -> None:
-    """A presentation fix that reordered anything would be a scoring change."""
+    """A presentation fix that reordered anything would be a scoring change.
+
+    The invariant is "never inverts": a higher raw score never shows lower, and
+    between the clamps (0, CEIL) it always shows strictly higher. At the clamps
+    the mapping ties by design: two sub-zero days both show 0. That became
+    reachable with FAA-07's Vishti / ashubha-yoga penalties (NEW_ORNAMENT, -4 and
+    -2 in this sweep, ranked 24th and 25th of 25). Ranking is unaffected: the
+    service sorts on the raw score before mapping (muhurta_service, `scored_days.sort`
+    and the top-candidate sort), so a display tie never decides which day wins.
+    """
     for activity in sorted(SOURCED_ACTIVITIES):
-        scored = [
-            (snap.date_local, day.score)
-            for snap, day in ((s, score_day(s, activity, SYNTHETIC)) for s in snapshots)
-            if not day.vetoed
-        ]
-        by_raw = [d for d, _ in sorted(scored, key=lambda x: (-x[1], x[0]))]
-        by_shown = [d for d, _ in sorted(scored, key=lambda x: (-display_score(x[1]), x[0]))]
-        assert by_raw == by_shown, f"{activity} was reordered by the display mapping"
+        raws = sorted(
+            {day.score for day in (score_day(s, activity, SYNTHETIC) for s in snapshots) if not day.vetoed}
+        )
+        for lo, hi in zip(raws, raws[1:]):
+            shown_lo, shown_hi = display_score(lo), display_score(hi)
+            assert shown_hi >= shown_lo, f"{activity}: raw {hi} > {lo} but shows lower"
+            if 0.0 < lo and hi < _DISPLAY_CEIL:
+                assert shown_hi > shown_lo, f"{activity}: raw {hi} > {lo} tie inside (0, CEIL)"

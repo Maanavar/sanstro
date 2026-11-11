@@ -458,6 +458,9 @@ def test_feature_flags_round_trip(raw_client):
         "ask_daily_limit_trial",
         "ask_daily_limit_beta",
         "ask_daily_limit_premium",
+        # FAA-02 step 1 (2026-11-11): the single-event rectification
+        # recommendation is withdrawn behind this switch, default off.
+        "rectification_recommendation_enabled",
     } == names
 
     set_response = raw_client.patch(

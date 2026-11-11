@@ -2725,9 +2725,10 @@ def display_score(raw: float) -> float:
 
     Identity on ``[0, KNEE]``, then piecewise-linear compression of
     ``[KNEE, CEIL]`` into ``[KNEE, 100]``, saturating above ``CEIL``. The
-    mapping is strictly monotonic below the ceiling, so it never reorders two
-    days and never invents a tie between two different raw scores — it only
-    stops the top of the range from flattening into a single value.
+    mapping is strictly monotonic on ``(0, CEIL)``, so it never inverts two
+    days and invents no tie there. At the clamps it ties by design: every
+    raw score <= 0 shows 0 (reachable since FAA-07's penalties). Rank on the
+    raw score, as `muhurta_service` does, never on this value.
 
     Callers should round to one decimal, not to an integer: at integer
     precision the compressed band recovers only 66 of 110 distinct top-five

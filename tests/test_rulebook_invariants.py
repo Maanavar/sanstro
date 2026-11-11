@@ -161,12 +161,12 @@ def test_all_729_nakshatra_pairs_produce_a_wellformed_result(girl_nak):
 @pytest.mark.parametrize(
     "score_fn",
     [
-        PO._dinam_score, PO._ganam_score, PO._mahendra_score,
+        PO._dinam_score, PO._mahendra_score,
         PO._yoni_score, PO._rajju_score, PO._vedha_score,
     ],
 )
 def test_every_binary_nakshatra_kuta_is_binary_over_all_729_pairs(score_fn):
-    """Sthree Deergham is deliberately absent — see the graded test below.
+    """Sthree Deergham and Ganam are deliberately absent — see the graded tests below.
 
     Its `_stree_dirgha_score` helper is gone entirely rather than left returning
     a third value, so a caller that still assumes binary fails to import rather
@@ -174,6 +174,25 @@ def test_every_binary_nakshatra_kuta_is_binary_over_all_729_pairs(score_fn):
     """
     for boy, girl in itertools.product(ALL_NAKSHATRAS, ALL_NAKSHATRAS):
         assert score_fn(boy, girl) in (0, 1), f"{score_fn.__name__}({boy},{girl}) is not binary"
+
+
+def test_ganam_is_three_fold_over_all_729_pairs():
+    """Ganam is graded since the Kalaprakasika p.72 rulings (owner, 2026-11-11):
+    same gana UTTAMA, Deva + Manushya MADHYAMA, a Rakshasa mix ADHAMA unless the
+    bride's star is beyond the 14th from the groom's, then MADHYAMA."""
+    gana = PO.GANA_BY_NAKSHATRA
+    seen = set()
+    for boy, girl in itertools.product(ALL_NAKSHATRAS, ALL_NAKSHATRAS):
+        score = PO._ganam_score(boy, girl)
+        seen.add(score)
+        gb, gg = gana[boy], gana[girl]
+        if gb == gg:
+            assert score == 1, (boy, girl)
+        elif {gb, gg} == {1, 2}:
+            assert score == 0.5, (boy, girl)
+        else:
+            assert score == (0.5 if (girl - boy) % 27 + 1 > 14 else 0), (boy, girl)
+    assert seen == {0, 0.5, 1}
 
 
 def test_stree_dirgha_is_graded_not_binary_over_all_729_pairs():

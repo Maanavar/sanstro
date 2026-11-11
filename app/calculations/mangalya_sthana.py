@@ -25,7 +25,8 @@ Each factor carries ``placement_id`` (``"D1.MARS"``) and ``also_counted_in``:
 a Sevvai in the 8th that Sevvai dosham already counts from the same reference
 is visibly the same placement, not a second finding. FAA-32 reuses the id.
 
-EC-RULING-06: no lifespan, widowhood or spouse-death wording anywhere, and the
+EC-RULING-06: no mortality-class wording anywhere (the banned set lives in
+narrative_engine._BANNED_MORTALITY_PHRASES), and the
 MARAKA lordship status is not carried. D9 lines are dropped, and the reading
 says so, when the D9 lagna is not stable across the birth-time tolerance.
 """

@@ -5,7 +5,7 @@ truth). ``tests/golden/eighth_house/eighth_house_copy.json`` is generated from
 the web functions; the web test and ``tests/test_faa30_mangalya_sthana.py``
 both reproduce every line.
 
-Describes only; no lifespan, widowhood or spouse-death wording (EC-RULING-06).
+Describes only; no mortality-class wording (EC-RULING-06).
 "Mangalya" only for a stated bride.
 """
 from __future__ import annotations

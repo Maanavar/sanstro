@@ -279,7 +279,7 @@ The 2nd-position even-sign exception and the six 6th-position pair exceptions ar
 | 18. Kettai | Deer |
 | 19. Moolam | Dog |
 | 20. Pooradam | Monkey |
-| 21. Uthiradam | Mongoose |
+| 21. Uthiradam | Cow |
 | 22. Thiruvonam | Monkey |
 | 23. Avittam | Lion |
 | 24. Sadayam | Horse |
@@ -293,9 +293,10 @@ The 2nd-position even-sign exception and the six 6th-position pair exceptions ar
 - Cat vs Rat
 - Cow vs Tiger
 - Deer vs Dog
-- Elephant vs Lion
+- Deer vs Elephant
 - Mongoose vs Serpent
 - Monkey vs Sheep
+- Rat vs Serpent
 
 ---
 
@@ -308,7 +309,7 @@ when both are the same rasi.
 | Rasi | Vasya to |
 |---|---|
 | 1. Mesham | 5. Simmam, 8. Viruchigam |
-| 2. Rishabam | 4. Kadagam, 7. Thulam |
+| 2. Rishabam | 4. Kadagam, 5. Simmam |
 | 3. Mithunam | 6. Kanni |
 | 4. Kadagam | 8. Viruchigam, 9. Dhanusu |
 | 5. Simmam | 7. Thulam |

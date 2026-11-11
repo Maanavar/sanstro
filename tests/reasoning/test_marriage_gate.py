@@ -39,6 +39,7 @@ def _payload(raw: dict, **overrides) -> MarriageAssessmentInput:
         venus_combust=inp["venus_combust"],
         sevvai_dosham_cancelled=inp["sevvai_dosham_cancelled"],
         d9_rasi_by_planet=inp["d9_rasi_by_planet"],
+        antar_end=inp.get("antar_end"),
     )
 
 
@@ -68,10 +69,13 @@ def test_strong_venus_dasha_does_not_lift_a_denied_chart():
 
 def test_delayed_chart_passes_gate_with_weak_dasha_support():
     case = _load_cases()["delayed_marriage"]
-    result = assess_marriage_prediction(_payload(case["input"]), use_reasoning_gate=True)
+    # FAA-17: the window is the running antardasha, so the route passes its end;
+    # without it the reading names no window by design.
+    antar_end = date(2027, 2, 14)
+    result = assess_marriage_prediction(_payload(case["input"], antar_end=antar_end), use_reasoning_gate=True)
     assert result.band not in ("BLOCKED", "SILENT")
     assert result.dasha_support == "WEAK"  # promised, but not now
-    assert result.timing_window_start is not None
+    assert (result.timing_window_start, result.timing_window_end) == (_AS_OF, antar_end)
     assert any(f.key == "promise_gate_pass" for f in result.astrological_factors)
 
 
