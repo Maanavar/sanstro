@@ -10,7 +10,7 @@ Scoring model (total 100 points) — REWEIGHTED by astrologer ruling 2026-08-28:
   7th house strength        20 pts  (10 per person)
   Navamsa (D9) quality      15 pts  (was 20)
   Dasha alignment           15 pts
-  Dosha analysis            10 pts  (Sevvai + Nadi combined)
+  Dosha analysis            10 pts  (Sevvai only; Nadi is a note, no points, since 2026-11-11)
   Emotional compatibility    5 pts  (was 10)
   Synastry (chart aspects)   0 pts  (was 5 — dropped from the composite)
 
@@ -577,6 +577,22 @@ def apply_label_cap(label: str, cap: str | None) -> str:
 # Level 2+3: Individual chart marriage strength
 # ---------------------------------------------------------------------------
 
+def _stated_gender(gender: str | None) -> str | None:
+    """FAA-16 policy §2: only an explicit "female" / "male" is stated."""
+    g = (gender or "").strip().lower()
+    return g if g in {"female", "male"} else None
+
+
+def _chart_spouse_karakas(gender: str | None) -> list[tuple[str, float]]:
+    """(graha, weight), primary first — the same table as
+    ``marriage_service._spouse_karakas``, so one chart reads alike on both."""
+    if gender == "female":
+        return [("JUPITER", 1.0), ("VENUS", 0.5)]
+    if gender == "male":
+        return [("VENUS", 1.0), ("JUPITER", 0.5)]
+    return [("VENUS", 0.75), ("JUPITER", 0.75)]
+
+
 def _compute_chart_marriage_strength(snap: Any) -> ChartMarriageStrength:
     lagna_rasi = snap.data.lagna.rasi
     seventh_rasi = _seventh_house_rasi(lagna_rasi)
@@ -616,13 +632,39 @@ def _compute_chart_marriage_strength(snap: Any) -> ChartMarriageStrength:
     else:
         score += 0
 
-    # Venus strength
-    if venus.strength_score >= 70:
-        score += 3
-    elif venus.strength_score >= 50:
-        score += 2
+    # Spouse karakas (FAA-16): both are read, weighted by this chart's STATED
+    # gender — bride Guru 1.0 + Venus 0.5, groom Venus 1.0 + Guru 0.5, unknown
+    # 0.75 each (docs/FAA_DECISIONS_2026-11-11.md §2). Gender is this chart's
+    # own field only; the porutham direction inferred from the partner is NOT
+    # a stated gender and is not read here. The weighted MEAN keeps the old
+    # Venus-only band (1–3 points), so the layer's budget does not move.
+    def _band(strength: int) -> int:
+        return 3 if strength >= 70 else 2 if strength >= 50 else 1
+
+    gender = _stated_gender(getattr(snap.data.birth_profile, "gender_for_traditional_rules", None))
+    karakas = _chart_spouse_karakas(gender)
+    by_graha = {"VENUS": venus, "JUPITER": jupiter}
+    karaka_pts = sum(_band(by_graha[g].strength_score) * w for g, w in karakas) / sum(w for _g, w in karakas)
+    score += int(karaka_pts + 0.5)  # half-up; round() is banker's (2.5 → 2)
+    primary = by_graha[karakas[0][0]]
+    primary_ta, primary_en = planet_ta(karakas[0][0]), planet_en(karakas[0][0])
+    if gender is None:
+        karaka_ta = f"குரு வலிமை {jupiter.strength_score}/100, சுக்கிர வலிமை {venus.strength_score}/100 (பாலினம் குறிப்பிடப்படாததால் இரண்டும் சமமாக)"
+        karaka_en = (
+            f"Guru strength {jupiter.strength_score}/100, Venus strength {venus.strength_score}/100 "
+            "(read equally: gender not given)"
+        )
     else:
-        score += 1
+        secondary = by_graha[karakas[1][0]]
+        secondary_ta, secondary_en = planet_ta(karakas[1][0]), planet_en(karakas[1][0])
+        karaka_ta = (
+            f"முதன்மை வாழ்க்கைத் துணை காரகன் {primary_ta} வலிமை {primary.strength_score}/100, "
+            f"இரண்டாம் நிலை காரகன் {secondary_ta} {secondary.strength_score}/100"
+        )
+        karaka_en = (
+            f"primary spouse significator {primary_en} strength {primary.strength_score}/100, "
+            f"secondary {secondary_en} {secondary.strength_score}/100"
+        )
 
     # Malefic penalty
     score -= len(malefics_in_7th)
@@ -635,32 +677,32 @@ def _compute_chart_marriage_strength(snap: Any) -> ChartMarriageStrength:
     if score >= 8:
         note_en = (
             f"Strong marriage indicators: 7th lord {seventh_lord_en} in house {seventh_lord_house} "
-            f"with strength {seventh_lord_strength}/100; Venus strength {venus.strength_score}/100."
+            f"with strength {seventh_lord_strength}/100; {karaka_en}."
         )
         note_ta = (
             f"திருமண அறிகுறிகள் வலுவானவை: 7ஆம் அதிபதி {seventh_lord_ta} {seventh_lord_house}ஆம் இடத்தில், "
-            f"வலிமை {seventh_lord_strength}/100; சுக்கிர வலிமை {venus.strength_score}/100."
+            f"வலிமை {seventh_lord_strength}/100; {karaka_ta}."
         )
     elif score >= 5:
         note_en = (
             f"Moderate marriage strength: 7th lord {seventh_lord_en} in house {seventh_lord_house}; "
-            f"Venus in house {venus.house_from_lagna}."
+            f"{karaka_en}."
             + (f" Note: {malefics_en} in 7th house." if malefics_in_7th else "")
         )
         note_ta = (
             f"நடுத்தர திருமண வலிமை: 7ஆம் அதிபதி {seventh_lord_ta} {seventh_lord_house}ஆம் இடத்தில்; "
-            f"சுக்கிரன் {venus.house_from_lagna}ஆம் இடத்தில்."
+            f"{karaka_ta}."
             + (f" கவனிக்க: 7ஆம் வீட்டில் {malefics_ta}." if malefics_in_7th else "")
         )
     else:
         note_en = (
             f"Marriage house needs attention: 7th lord {seventh_lord_en} in house {seventh_lord_house} "
-            f"(strength {seventh_lord_strength}/100)."
+            f"(strength {seventh_lord_strength}/100); {karaka_en}."
             + (f" {malefics_en} in 7th house — remedies advised." if malefics_in_7th else "")
         )
         note_ta = (
             f"திருமண இடம் கவனம் தேவை: 7ஆம் அதிபதி {seventh_lord_ta} {seventh_lord_house}ஆம் இடத்தில் "
-            f"(வலிமை {seventh_lord_strength}/100)."
+            f"(வலிமை {seventh_lord_strength}/100); {karaka_ta}."
             + (f" 7ஆம் வீட்டில் {malefics_ta} — பரிகாரம் பரிந்துரை." if malefics_in_7th else "")
         )
 
@@ -917,30 +959,18 @@ def _compute_emotional_compatibility(snap_a: Any, snap_b: Any) -> EmotionalCompa
     moon_a = _get_planet(snap_a, "MOON")
     moon_b = _get_planet(snap_b, "MOON")
     venus_a = _get_planet(snap_a, "VENUS")
-    mars_b = _get_planet(snap_b, "MARS")
     venus_b = _get_planet(snap_b, "VENUS")
-    mars_a = _get_planet(snap_a, "MARS")
 
     moon_harmony = _moon_harmony_label(moon_a.rasi, moon_b.rasi)
 
-    # Venus A ↔ Mars B and Venus B ↔ Mars A (cross-chart attraction indicators)
-    vm_diff_ab = abs(venus_a.house_from_lagna - mars_b.house_from_lagna)
-    vm_diff_ba = abs(venus_b.house_from_lagna - mars_a.house_from_lagna)
-    vm_diff_ab_alt = 12 - vm_diff_ab
-    vm_diff_ba_alt = 12 - vm_diff_ba
-    vm_ab = min(vm_diff_ab, vm_diff_ab_alt)  # noqa: F841 — retained scaffolding; harmony uses rasi distance below
-    vm_ba = min(vm_diff_ba, vm_diff_ba_alt)  # noqa: F841 — retained scaffolding; harmony uses rasi distance below
-
-    # Use rasi distance between Venus A and Venus B for overall Venus harmony
-    venus_rasi_diff = (venus_a.rasi - venus_b.rasi) % 12 + 1
-    if venus_rasi_diff in {1, 2, 12, 5, 9}:
-        venus_mars_harmony = "STRONG"
-    elif venus_rasi_diff in {3, 11, 4, 10}:
-        venus_mars_harmony = "GOOD"
-    elif venus_rasi_diff in {6, 8}:
-        venus_mars_harmony = "TENSE"
-    else:
-        venus_mars_harmony = "MIXED"
+    # FAA-12 (owner ruling 2026-11-11): Venus-Venus is graded on the one ruled
+    # harmony table, Doctrine §10 (`_MOON_HARMONY_TABLE`), as the Moon is. Its
+    # old literal set called 1, 2 and 12 STRONG where §10 says GOOD / MIXED.
+    # The wire scale names §10's EXCELLENT "STRONG"; the other words match.
+    # (The dead Venus-Mars cross-chart lines are gone too.)
+    venus_mars_harmony = {"EXCELLENT": "STRONG"}.get(
+        _moon_harmony_label(venus_a.rasi, venus_b.rasi), _moon_harmony_label(venus_a.rasi, venus_b.rasi)
+    )
 
     # Score (0-10)
     moon_score_map = {"EXCELLENT": 5, "GOOD": 4, "MIXED": 2, "TENSE": 0}
@@ -1046,9 +1076,11 @@ def compute_compatibility_intelligence(
     sevvai_b = _compute_sevvai(snap_b, partner=snap_a, doctrine=doctrine)
     dosham_pts = sevvai_a.score + sevvai_b.score  # 0-10 (5 each max)
 
-    # Nadi dosha penalty
-    if porutham_result.nadi_dosha.get("has_nadi_dosha"):
-        dosham_pts = max(0, dosham_pts - 3)
+    # No Nadi deduction (owner ruling 2026-11-11). Nadi is a North Indian
+    # (Ashtakoota) check, not one of the Tamil ten poruthams, so it is shown as
+    # a secondary note and moves no number. It used to take 3 points off this
+    # layer, which let a check the family's jothidar does not count lower the
+    # headline score. The note itself still rides on `porutham_result`.
 
     # Layer 6: Dasha
     dasha = _compute_dasha_harmony(snap_a, snap_b, today_jd)

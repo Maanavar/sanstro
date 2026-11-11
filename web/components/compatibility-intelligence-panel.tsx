@@ -14,7 +14,7 @@ import type { KutaGrade } from "@vinaadi/shared";
 import { ZodiacBadge } from "./zodiac-badge";
 import { NakshatraBadge } from "./nakshatra-badge";
 import { GlossaryTerm } from "./glossary-term";
-import { EkaNakshatraNoteCard, ShashtashtakaNoteCard } from "./shashtashtaka-note";
+import { EkaNakshatraNoteCard, NadiSecondaryNote, ShashtashtakaNoteCard } from "./shashtashtaka-note";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -490,13 +490,15 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
           />
           {d.rajjuDosha && <Badge warn text={en ? "Rajju Dosha" : "ரஜ்ஜு தோஷம்"} color={W.rust} bg="var(--cl-rust-soft)" />}
           {d.vedhaDosha && <Badge warn text={en ? "Vedha Dosha" : "வேதை தோஷம்"} color={W.rust} bg="var(--cl-rust-soft)" />}
-          {d.nadiDosha.hasNadiDosha && <Badge warn text={en ? "Nadi Dosha" : "நாடி தோஷம்"} color={W.rust} bg="var(--cl-rust-soft)" />}
         </div>
         {/* F-POR-03: same-star note, qualifying the Rajju result above it. */}
         <EkaNakshatraNoteCard note={d.ekaNakshatra} lang={en ? "en" : "ta"} />
         {/* F-POR-02: a disclosure beside the verdict, never a badge in it —
             a badge in that row would read as a fourth veto. */}
         <ShashtashtakaNoteCard note={d.shashtashtaka} lang={en ? "en" : "ta"} />
+        {/* Nadi: a secondary note below the Tamil findings, never a badge
+            beside Rajju/Vedhai (2026-11-11). */}
+        <NadiSecondaryNote nadi={d.nadiDosha} lang={en ? "en" : "ta"} />
         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
           {d.poruthamKutas.map(k => (
             <div key={k.name} style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -513,7 +515,7 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
       </SectionCard>
 
       {/* ── 7th House ── */}
-      <SectionCard title={en ? "Level 2+3 — 7th House & Venus Strength" : "நிலை 2+3 — 7ஆம் இடம் & சுக்கிர வலிமை"}>
+      <SectionCard title={en ? "Level 2+3 — 7th House, Venus & Guru" : "நிலை 2+3 — 7ஆம் இடம், சுக்கிரன் & குரு"}>
         <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
           {[
             { label: d.personAName, strength: d.chartAStrength },
@@ -528,6 +530,11 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
               <p style={{ margin: "0 0 4px", fontSize: "0.8rem", color: W.inkMid }}>
                 {en ? `Venus in house ${strength.venusHouse}` : `சுக்கிரன் ${strength.venusHouse}ஆம் இடம்`}
                 {" · "}{en ? `Strength ${strength.venusStrength}/100` : `வலிமை ${strength.venusStrength}/100`}
+              </p>
+              {/* FAA-16: Guru is scored too (by the chart's stated gender), so it is shown. */}
+              <p style={{ margin: "0 0 4px", fontSize: "0.8rem", color: W.inkMid }}>
+                {en ? `${tPlanetLord("JUPITER", "en")} in house ${strength.jupiterHouse}` : `${tPlanetLord("JUPITER", "ta")} ${strength.jupiterHouse}ஆம் இடம்`}
+                {" · "}{en ? `Strength ${strength.jupiterStrength}/100` : `வலிமை ${strength.jupiterStrength}/100`}
               </p>
               {/* Same swap as Badge's `warn`, inline. `flex-start` + the 1px
                   nudge optically centres a 12px triangle against a 0.76rem

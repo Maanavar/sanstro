@@ -237,6 +237,13 @@ def get_marriage_prediction(
         planet_longitudes=planet_longitudes,
         maha_lord=timeline.current_mahadasha.lord,
         antar_lord=timeline.current_antardasha.lord,
+        antar_end=timeline.current_antardasha.end_date,
+        # FAA-16: the stated gender only (never inferred), and both karakas'
+        # combustion. `venus_combust` was never passed before, so a combust
+        # Venus read as unafflicted on this path.
+        gender=getattr(snapshot.data.birth_profile, "gender_for_traditional_rules", None),
+        venus_combust=any(p.graha == "VENUS" and p.is_combust for p in snapshot.data.planets),
+        jupiter_combust=any(p.graha == "JUPITER" and p.is_combust for p in snapshot.data.planets),
     )
     result = assess_marriage_prediction(payload)
     is_parental = relationship_to_owner in {"parent", "grandparent"}
