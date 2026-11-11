@@ -2,12 +2,13 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from datetime import UTC, date, datetime, time
 from dataclasses import replace
+from datetime import UTC, date, datetime, time
 from functools import lru_cache
 from typing import Any
 from uuid import UUID, uuid4
 
+from app.calculations._yoga_helpers import dosham_residual
 from app.calculations.astro import (
     degree_in_rasi,
     julian_day_to_utc_datetime,
@@ -17,7 +18,6 @@ from app.calculations.astro import (
     pada_from_degree,
     utc_datetime_to_julian_day,
 )
-from app.calculations._yoga_helpers import dosham_residual
 from app.calculations.birth_conditions import (
     birth_condition_strength_penalties,
     detect_birth_conditions,
@@ -32,7 +32,7 @@ from app.calculations.chart_strength import (
     explain_natal_planet_score,
 )
 from app.calculations.dasha import calculate_vimshottari_timeline
-from app.calculations.ephemeris import calculate_lagna_degree, calculate_sidereal_planets
+from app.calculations.ephemeris import calculate_lagna_degree, calculate_sidereal_planets, eclipse_at_birth
 from app.calculations.equal_bhava import compute_equal_bhava
 from app.calculations.functional_nature import get_functional_nature
 from app.calculations.functional_status import owned_houses
@@ -40,8 +40,8 @@ from app.calculations.panchangam import NAKSHATRA_NAMES
 from app.calculations.progeny_checks import (
     BIRTH_TIME_TOLERANCE_MINUTES,
     CHILDREN_DOSHAMS,
-    d7_lowered_strength,
     check_progeny,
+    d7_lowered_strength,
 )
 from app.calculations.transits import RASI_NAMES, is_cazimi, is_combust
 from app.calculations.yoga_activation import activation_tier, key_planets_for, yoga_activation_score
@@ -273,8 +273,11 @@ def _birth_panchangam_signature_items(
         "is_vishti_karanam": karanam == "VISHTI",
         "gana": _nakshatra_gana(nakshatra_number),
         "nadi": _nakshatra_nadi(nakshatra_number),
-        "sunrise_time": sunrise_local.strftime("%I:%M:%S %p"),
-        "sunset_time": sunset_local.strftime("%I:%M:%S %p"),
+        # FAA-40: language-neutral 24-hour clock. This bilingual field used to
+        # carry English "AM/PM", which the Tamil jadhagam table printed raw;
+        # each client formats it with formatClockLabel(v, lang).
+        "sunrise_time": sunrise_local.strftime("%H:%M:%S"),
+        "sunset_time": sunset_local.strftime("%H:%M:%S"),
         "tamil_date_ta": tamil_date_ta,
         "tamil_date_en": tamil_date_en,
         "tamil_day_local": tamil_day.isoformat(),
@@ -308,6 +311,10 @@ def _build_birth_conditions(
     birth_time_local: time | None,
     lagna_rasi: int | None = None,
     birth_time_confidence_minutes: int | None = None,
+    *,
+    birth_jd: float | None = None,
+    birth_latitude: float | None = None,
+    birth_longitude: float | None = None,
 ) -> tuple[list[ChartBirthCondition], dict[str, float]]:
     """Assemble the Border-Alert list (and its natal strength penalties) from planets.
 
@@ -336,6 +343,18 @@ def _build_birth_conditions(
     )
     cazimi_planets = [p.graha for p in planet_positions if p.is_cazimi]
 
+    # FAA-24: Grahana Janma only when Swiss Ephemeris says an eclipse was in
+    # progress at the birth instant. With no birth time there is no instant to
+    # place inside an eclipse, so no flag (never "at or very near").
+    eclipse = (
+        eclipse_at_birth(round(birth_jd, 6), round(birth_latitude, 4), round(birth_longitude, 4))
+        if birth_time_local is not None
+        and birth_jd is not None
+        and birth_latitude is not None
+        and birth_longitude is not None
+        else None
+    )
+
     flags = detect_birth_conditions(
         planet_longitudes=longitudes,
         tithi_number=tithi_number,
@@ -349,6 +368,7 @@ def _build_birth_conditions(
         birth_time_uncertainty_minutes=(
             None if birth_time_local is None else float(birth_time_confidence_minutes or 0)
         ),
+        eclipse=eclipse,
     )
     conditions = [
         ChartBirthCondition(
@@ -1026,6 +1046,9 @@ def _chart_response_from_profile(profile: Any, calculation_version: str, chart_i
     birth_conditions, bc_penalties = _build_birth_conditions(
         public_planet_positions, birth_time_local, lagna_rasi=lagna_rasi,
         birth_time_confidence_minutes=_value(profile, "birth_time_confidence_minutes"),
+        birth_jd=julian_day,
+        birth_latitude=float(_value(profile, "birth_latitude")),
+        birth_longitude=float(_value(profile, "birth_longitude")),
     )
     _apply_birth_condition_penalties(public_planet_positions, bc_penalties)
     birth_panchangam_signature = _birth_panchangam_signature(profile)
@@ -1303,6 +1326,9 @@ def _chart_response_from_record(chart: Chart) -> ChartCalculateResponse:
     birth_conditions, bc_penalties = _build_birth_conditions(
         public_planet_positions, _value(birth_profile, "birth_time_local"), lagna_rasi=lagna_rasi,
         birth_time_confidence_minutes=_value(birth_profile, "birth_time_confidence_minutes"),
+        birth_jd=float(chart.julian_day),
+        birth_latitude=float(birth_profile.birth_latitude),
+        birth_longitude=float(birth_profile.birth_longitude),
     )
     _apply_birth_condition_penalties(public_planet_positions, bc_penalties)
     birth_panchangam_signature = _birth_panchangam_signature(birth_profile)

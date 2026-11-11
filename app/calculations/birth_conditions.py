@@ -5,7 +5,8 @@ These are the delicate junction/edge conditions of a horoscope that a coarse
 
   * Cazimi (heart of the Sun)      — an empowering sub-condition of combustion.
   * Sankranti birth                — born on a solar sign-ingress day.
-  * Grahana Janma (eclipse birth)  — born at/near a solar or lunar eclipse.
+  * Grahana Janma (eclipse birth)  — born while a solar or lunar eclipse was in
+                                     progress (ephemeris-verified, FAA-24).
   * Dagda rasi                     — sign(s) "burnt" (dagda/shoonya) by the birth tithi.
 
 Cazimi is surfaced per-planet on ``PlanetPosition`` (see ``_chart_planets``);
@@ -34,9 +35,12 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 from app.calculations.astro import RASI_NAMES, normalize_longitude
-from app.calculations.transits import angular_distance
+
+if TYPE_CHECKING:
+    from app.calculations.ephemeris import EclipseAtBirth
 
 # Tamil rasi labels — kept local so this calculations module never imports from
 # the api/ layer. Order matches RASI_NAMES (1-indexed).
@@ -52,14 +56,10 @@ GRAHA_LABELS_TA: dict[str, str] = {
     "SATURN": "சனி", "RAHU": "ராகு", "KETU": "கேது",
 }
 
-# Eclipse detection orbs (degrees). An eclipse requires a syzygy (new/full moon)
-# occurring close to the Rahu-Ketu axis. These are the classical ecliptic-limit
-# style orbs; requiring BOTH the syzygy and the node proximity keeps the flag
-# tight to genuine eclipse births rather than any near-node conjunction.
-SOLAR_ECLIPSE_NODE_ORB = 13.0
-SOLAR_SYZYGY_ORB = 13.0       # Sun-Moon separation near 0° (New Moon)
-LUNAR_ECLIPSE_NODE_ORB = 12.0
-LUNAR_SYZYGY_ORB = 13.0       # Sun-Moon separation near 180° (Full Moon)
+# Grahana Janma no longer uses syzygy/node orbs (FAA-24): those flagged births a
+# day either side of an eclipse, and syzygies where no eclipse happened. The
+# caller passes ephemeris.eclipse_at_birth(), which asks Swiss Ephemeris whether
+# an eclipse was actually in progress at the birth instant.
 
 # EC-7.2 — natal strength penalties for the *verified* boundary births. These are
 # natal constants (true every day of life), so they belong in the per-planet natal
@@ -252,44 +252,6 @@ def is_traditional_sankranti_birth(rasi_entered: int, minutes_to_ingress: float)
     return -before <= offset <= after
 
 
-def detect_grahana_birth(
-    sun_longitude: float,
-    moon_longitude: float,
-    rahu_longitude: float,
-) -> tuple[bool, str | None, int | None]:
-    """Detect an eclipse birth (Grahana Janma).
-
-    Returns ``(is_present, eclipse_type, near_node)`` where ``eclipse_type`` is
-    "SOLAR" or "LUNAR" and ``near_node`` is the node (as a rasi-agnostic marker:
-    +1 for Rahu, -1 for Ketu) the luminary sits closest to. A solar eclipse is a
-    New Moon near a node; a lunar eclipse is a Full Moon near a node.
-    """
-    ketu_longitude = normalize_longitude(rahu_longitude + 180.0)
-    elongation = angular_distance(sun_longitude, moon_longitude)
-
-    sun_to_rahu = angular_distance(sun_longitude, rahu_longitude)
-    sun_to_ketu = angular_distance(sun_longitude, ketu_longitude)
-    moon_to_rahu = angular_distance(moon_longitude, rahu_longitude)
-    moon_to_ketu = angular_distance(moon_longitude, ketu_longitude)
-
-    # Solar eclipse: New Moon (Sun-Moon conjunct) close to the nodal axis.
-    if elongation <= SOLAR_SYZYGY_ORB:
-        if min(sun_to_rahu, sun_to_ketu) <= SOLAR_ECLIPSE_NODE_ORB:
-            near = 1 if sun_to_rahu <= sun_to_ketu else -1
-            return True, "SOLAR", near
-
-    # Lunar eclipse: Full Moon (Sun-Moon opposition) with the Moon near a node.
-    # (L-12: dropped the `angular_distance(elongation, 180.0) <= 0.0` clause —
-    # it was only ever true at exactly elongation == 180.0, a single point
-    # already covered by the orb check below.)
-    if elongation >= 180.0 - LUNAR_SYZYGY_ORB:
-        if min(moon_to_rahu, moon_to_ketu) <= LUNAR_ECLIPSE_NODE_ORB:
-            near = 1 if moon_to_rahu <= moon_to_ketu else -1
-            return True, "LUNAR", near
-
-    return False, None, None
-
-
 def _dagda_tithi_name(tithi_number: int) -> int | None:
     """Paksha-independent tithi name (1-14) from an absolute tithi (1-30).
 
@@ -348,6 +310,91 @@ def _join_ta(items: Sequence[str]) -> str:
     return f"{', '.join(parts[:-1])} மற்றும் {parts[-1]}"
 
 
+_ECLIPSE_MAGNITUDE_EN = {"TOTAL": "total", "ANNULAR": "annular", "HYBRID": "hybrid", "PARTIAL": "partial"}
+
+
+def _grahana_flag(eclipse: EclipseAtBirth) -> BirthConditionFlag:
+    """The Grahana Janma flag for an eclipse VERIFIED to be in progress at birth.
+
+    The copy claims the Sun or Moon was covered only when the eclipse was visible
+    at the birthplace (``visible_at_place``); otherwise it says the eclipse was
+    under way elsewhere on Earth. Never "at or very near": the birth is inside
+    the eclipse span or there is no flag.
+    """
+    whole = eclipse.magnitude == "TOTAL"
+    kind_en = _ECLIPSE_MAGNITUDE_EN[eclipse.magnitude]
+    if eclipse.kind == "SOLAR":
+        if eclipse.visible_at_place:
+            seen_en = (
+                f"You were born during a {kind_en} solar eclipse, and it was visible from your "
+                f"birthplace: the Moon was covering {'the whole' if whole else 'part'} of the Sun."
+            )
+            seen_ta = (
+                "நீங்கள் பிறந்தபோது சூரிய கிரகணம் நடந்துகொண்டிருந்தது; உங்கள் பிறந்த ஊரில் அது "
+                f"தெரிந்தது. சந்திரன் சூரியனை{' முழுவதும்' if whole else 'ன் ஒரு பகுதியை'} மறைத்திருந்தது."
+            )
+        else:
+            seen_en = (
+                f"You were born while a {kind_en} solar eclipse was under way. It was not visible "
+                "from your birthplace; it was seen from another part of the Earth."
+            )
+            seen_ta = (
+                "நீங்கள் பிறந்தபோது சூரிய கிரகணம் நடந்துகொண்டிருந்தது. ஆனால் அது உங்கள் பிறந்த "
+                "ஊரில் தெரியவில்லை; உலகின் வேறு பகுதியில் தெரிந்தது."
+            )
+        lore_en = (
+            " Tradition counts the Sun (your core self) and the Moon (your emotions) as "
+            "shadowed at such a birth, and reads it as an intense life with deep lessons to work through."
+        )
+        lore_ta = (
+            " இப்படிப் பிறக்கும்போது சூரியனும் (அடிப்படை ஆளுமை) சந்திரனும் (மனம்) மறைக்கப்பட்டதாகப் "
+            "பாரம்பரியம் கொள்கிறது; ஆழமான பாடங்கள் கொண்ட தீவிரமான வாழ்க்கை என்று அதைப் படிக்கிறது."
+        )
+    else:
+        if eclipse.visible_at_place:
+            seen_en = (
+                f"You were born during a {kind_en} lunar eclipse, and it was visible from your "
+                f"birthplace: the full Moon was {'wholly' if whole else 'partly'} in the Earth's shadow."
+            )
+            seen_ta = (
+                "நீங்கள் பிறந்தபோது சந்திர கிரகணம் நடந்துகொண்டிருந்தது; உங்கள் பிறந்த ஊரில் அது "
+                f"தெரிந்தது. முழு நிலவு பூமியின் நிழலில்{' முழுவதும்' if whole else ' ஒரு பகுதி'} மறைந்திருந்தது."
+            )
+        else:
+            seen_en = (
+                f"You were born while a {kind_en} lunar eclipse was under way. The Moon was below "
+                "the horizon at your birthplace, so it was not visible there."
+            )
+            seen_ta = (
+                "நீங்கள் பிறந்தபோது சந்திர கிரகணம் நடந்துகொண்டிருந்தது. அப்போது உங்கள் பிறந்த ஊரில் "
+                "சந்திரன் அடிவானத்துக்குக் கீழே இருந்ததால் அது அங்கே தெரியவில்லை."
+            )
+        lore_en = (
+            " The Moon governs the mind, so tradition reads a birth under a lunar eclipse "
+            "as an emotionally intense start to life."
+        )
+        lore_ta = (
+            " சந்திரன் மனதை ஆள்வதால், சந்திர கிரகணத்தின்போது பிறப்பதை உணர்ச்சிகரமான "
+            "வாழ்க்கைத் தொடக்கமாகப் பாரம்பரியம் படிக்கிறது."
+        )
+    return BirthConditionFlag(
+        code="GRAHANA_BIRTH",
+        is_present=True,
+        severity="ALERT",
+        title_ta="கிரகண ஜென்மம்",
+        title_en="Grahana Janma (Eclipse Birth)",
+        description_ta=seen_ta + lore_ta,
+        description_en=seen_en + lore_en,
+        detail={
+            "eclipse_type": eclipse.kind,
+            "magnitude": eclipse.magnitude,
+            "visible_at_place": eclipse.visible_at_place,
+            "near_node": "Rahu" if eclipse.near_node == 1 else "Ketu",
+            "max_jd": round(eclipse.max_jd, 6),
+        },
+    )
+
+
 def detect_birth_conditions(
     *,
     planet_longitudes: Mapping[str, float],
@@ -358,6 +405,7 @@ def detect_birth_conditions(
     lagna_rasi: int | None = None,
     sun_speed_deg_per_day: float | None = None,
     birth_time_uncertainty_minutes: float | None = None,
+    eclipse: EclipseAtBirth | None = None,
 ) -> list[BirthConditionFlag]:
     """Roll up every birth-time junction condition into one Border-Alert list.
 
@@ -366,12 +414,12 @@ def detect_birth_conditions(
     in so this module and the per-planet flag never disagree. ``lagna_rasi`` (when
     known) lets the Dagda note say whether a burnt sign actually falls on the
     ascendant, turning an abstract almanac verdict into a chart-specific one.
+    ``eclipse`` is ``ephemeris.eclipse_at_birth`` for the birth instant (None
+    when no eclipse was in progress, or when the birth time is unknown).
     """
     flags: list[BirthConditionFlag] = []
 
     sun_lon = planet_longitudes.get("SUN")
-    moon_lon = planet_longitudes.get("MOON")
-    rahu_lon = planet_longitudes.get("RAHU")
 
     # --- Cazimi (empowering) -------------------------------------------------
     if cazimi_planets:
@@ -476,49 +524,9 @@ def detect_birth_conditions(
             )
         )
 
-    # --- Grahana Janma (eclipse birth) ---------------------------------------
-    if sun_lon is not None and moon_lon is not None and rahu_lon is not None:
-        present, eclipse_type, near_node = detect_grahana_birth(sun_lon, moon_lon, rahu_lon)
-        if present:
-            node_en = "Rahu" if near_node == 1 else "Ketu"
-            if eclipse_type == "SOLAR":
-                desc_en = (
-                    "You were born at or very near a solar eclipse — the moment the Sun is "
-                    "briefly covered. Both the Sun (your core self) and the Moon (your "
-                    "emotions) were shadowed at that moment, traditionally the mark of an "
-                    "intense life with deep, karmic lessons to work through."
-                )
-                desc_ta = (
-                    "சூரிய கிரகணத்தின் போது அல்லது அதற்கு மிக அருகில் நீங்கள் பிறந்தீர்கள் — "
-                    "சூரியன் சிறிது நேரம் மறைக்கப்படும் தருணம். அப்போது சூரியனும் (உங்கள் "
-                    "அடிப்படை ஆளுமை) சந்திரனும் (உங்கள் உணர்வுகள்) மறைக்கப்பட்டிருந்தன — "
-                    "பாரம்பரியமாக இது ஆழமான கர்மப் பாடங்கள் கொண்ட தீவிர வாழ்க்கையைக் குறிக்கிறது."
-                )
-            else:
-                desc_en = (
-                    "You were born at or very near a lunar eclipse — when the full Moon is "
-                    "briefly shadowed. The Moon governs your emotions, so a shadowed Moon at "
-                    "birth is traditionally read as an emotionally intense, deeply karmic "
-                    "start to life."
-                )
-                desc_ta = (
-                    "சந்திர கிரகணத்தின் போது அல்லது அதற்கு மிக அருகில் நீங்கள் பிறந்தீர்கள் — "
-                    "முழு நிலவு சிறிது நேரம் மறைக்கப்படும் தருணம். சந்திரன் உங்கள் உணர்வுகளை "
-                    "ஆளுவதால், பிறப்பின்போது மறைந்த சந்திரன் பாரம்பரியமாக உணர்ச்சிகரமான, "
-                    "ஆழமான கர்மத் தொடக்கமாகக் கருதப்படுகிறது."
-                )
-            flags.append(
-                BirthConditionFlag(
-                    code="GRAHANA_BIRTH",
-                    is_present=True,
-                    severity="ALERT",
-                    title_ta="கிரகண ஜென்மம்",
-                    title_en="Grahana Janma (Eclipse Birth)",
-                    description_ta=desc_ta,
-                    description_en=desc_en,
-                    detail={"eclipse_type": eclipse_type, "near_node": node_en},
-                )
-            )
+    # --- Grahana Janma (eclipse birth; FAA-24) ------------------------------
+    if eclipse is not None:
+        flags.append(_grahana_flag(eclipse))
 
     # --- Dagda rasi (tithi-keyed; EC-2) --------------------------------------
     burnt = dagda_rasi(tithi_number)
