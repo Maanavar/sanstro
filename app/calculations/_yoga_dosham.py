@@ -945,7 +945,14 @@ def detect_pitru_dosham(
     active_lords: Iterable[str] | None = None,
 ) -> DoshamResult:
     active = set(active_lords or ())
-    missing_data = [planet for planet in ("SUN", "SATURN", "RAHU", "KETU", "JUPITER") if planet not in planets]
+    # FAA-27: the 9th lord is read below, so it is required data too. It used to
+    # sit outside this guard, and a chart missing it (e.g. Mercury for a Rishabam
+    # lagna) raised instead of returning INCOMPLETE_DATA.
+    ninth_lord = _house_lord(lagna_rasi, 9)
+    required = ("SUN", "SATURN", "RAHU", "KETU", "JUPITER")
+    if ninth_lord not in required:
+        required = (*required, ninth_lord)
+    missing_data = [planet for planet in required if planet not in planets]
     if missing_data:
         what_ta, what_en, why_ta, why_en, how_ta, how_en = _build_dosham_explanations(
             "PITRU_DOSHAM",
@@ -965,8 +972,8 @@ def detect_pitru_dosham(
             cancellation_factors=[],
             missing_data=missing_data,
             dasha_activated=False,
-            description_ta="பித்ரு தோஷம் பகுப்பாய்விற்கு சூரியன், சனி, ராகு, கேது, குரு நிலைகள் தேவை.",
-            description_en="Pitru dosham analysis needs Sun, Saturn, Rahu, Ketu, and Jupiter placements.",
+            description_ta="பித்ரு தோஷம் பகுப்பாய்விற்கு சூரியன், சனி, ராகு, கேது, குரு, 9ஆம் அதிபதி நிலைகள் தேவை.",
+            description_en="Pitru dosham analysis needs Sun, Saturn, Rahu, Ketu, Jupiter and 9th-lord placements.",
             explanation_what_ta=what_ta,
             explanation_what_en=what_en,
             explanation_why_ta=why_ta,
@@ -980,7 +987,6 @@ def detect_pitru_dosham(
     rahu_rasi = _planet_rasi(planets, "RAHU")
     ketu_rasi = _planet_rasi(planets, "KETU")
     jupiter_rasi = _planet_rasi(planets, "JUPITER")
-    ninth_lord = _house_lord(lagna_rasi, 9)
     ninth_lord_rasi = _planet_rasi(planets, ninth_lord)
 
     ninth_house_rasi = ((lagna_rasi + 9 - 2) % 12) + 1

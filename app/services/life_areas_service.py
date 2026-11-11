@@ -294,19 +294,23 @@ _AREA_PRIMARY_HOUSE: dict[str, int] = {
     "LITIGATION": 6,
 }
 
+# FAA-13: no "karaka" key here. It was never read and disagreed with
+# `_AREA_KARAKA` (Health SUN/MOON vs SUN/MARS, Property MARS/VENUS vs
+# MARS/MOON). Which grahas signify an area lives in one place: `_AREA_KARAKA`,
+# pinned to `karaka_chains.LIFE_AREA_KARAKA` by tests/test_karaka_tables_agree.py.
 _AREA_ROUTING: dict[str, dict] = {
-    "CAREER": {"houses": [10, 6, 2, 11], "karaka": ["SUN", "SATURN"], "varga": "D10", "maraka_risk": False},
-    "RELATIONSHIPS": {"houses": [7, 2, 4, 8], "karaka": ["VENUS", "JUPITER"], "varga": "D9", "maraka_risk": False},
-    "HEALTH": {"houses": [1, 6, 8, 12], "karaka": ["SUN", "MOON"], "varga": "D30", "maraka_risk": True},
-    "MONEY": {"houses": [2, 5, 9, 11], "karaka": ["JUPITER", "VENUS"], "varga": "D2", "maraka_risk": False},
-    "WEALTH": {"houses": [2, 5, 9, 11], "karaka": ["JUPITER", "VENUS"], "varga": "D2", "maraka_risk": False},
-    "EDUCATION": {"houses": [2, 4, 5, 9], "karaka": ["MERCURY", "JUPITER"], "varga": "D24", "maraka_risk": False},
-    "CHILDREN": {"houses": [5, 9], "karaka": ["JUPITER"], "varga": "D7", "maraka_risk": False},
-    "PROPERTY": {"houses": [4, 11], "karaka": ["MARS", "VENUS"], "varga": "D4", "maraka_risk": False},
-    "FOREIGN": {"houses": [3, 9, 12], "karaka": ["RAHU"], "varga": "D9", "maraka_risk": False},
-    "LITIGATION": {"houses": [6, 7, 8], "karaka": ["MARS", "SATURN"], "varga": "D30", "maraka_risk": False},
-    "SPIRITUAL": {"houses": [5, 9, 12], "karaka": ["KETU", "JUPITER"], "varga": "D20", "maraka_risk": False},
-    "SPIRITUALITY": {"houses": [5, 9, 12], "karaka": ["KETU", "JUPITER"], "varga": "D20", "maraka_risk": False},
+    "CAREER": {"houses": [10, 6, 2, 11], "varga": "D10", "maraka_risk": False},
+    "RELATIONSHIPS": {"houses": [7, 2, 4, 8], "varga": "D9", "maraka_risk": False},
+    "HEALTH": {"houses": [1, 6, 8, 12], "varga": "D30", "maraka_risk": True},
+    "MONEY": {"houses": [2, 5, 9, 11], "varga": "D2", "maraka_risk": False},
+    "WEALTH": {"houses": [2, 5, 9, 11], "varga": "D2", "maraka_risk": False},
+    "EDUCATION": {"houses": [2, 4, 5, 9], "varga": "D24", "maraka_risk": False},
+    "CHILDREN": {"houses": [5, 9], "varga": "D7", "maraka_risk": False},
+    "PROPERTY": {"houses": [4, 11], "varga": "D4", "maraka_risk": False},
+    "FOREIGN": {"houses": [3, 9, 12], "varga": "D9", "maraka_risk": False},
+    "LITIGATION": {"houses": [6, 7, 8], "varga": "D30", "maraka_risk": False},
+    "SPIRITUAL": {"houses": [5, 9, 12], "varga": "D20", "maraka_risk": False},
+    "SPIRITUALITY": {"houses": [5, 9, 12], "varga": "D20", "maraka_risk": False},
 }
 
 

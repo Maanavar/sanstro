@@ -165,9 +165,33 @@ def combustion_severity(
     return (orb - sep) / span
 
 
+#: FAA-14: the three water-fire junctions and the one traditional limit. Every
+#: surface reads gandanta through `gandanta_distance`, so the score and the
+#: chart card cannot disagree on any degree.
+GANDANTA_JUNCTIONS: tuple[tuple[str, float], ...] = (
+    ("KATAKA_SIMHA", 120.0),      # Ayilyam / Magam
+    ("VRISCHIKA_DHANUS", 240.0),  # Kettai / Moolam
+    ("MEENA_MESHA", 0.0),         # Revathi / Ashwini
+)
+GANDANTA_LIMIT_DEG = 10.0 / 3.0   # 3°20′, one pada, either side
+GANDANTA_DEEP_DEG = 40.0 / 60.0   # 40′
+NEAR_GANDANTA_DEG = 5.0           # display only: "near gandanta", not gandanta
+
+
+def gandanta_distance(degree: float) -> tuple[str, float]:
+    """The nearest junction and the shortest angular distance to it, measured
+    on both sides and across the 360°/0° wrap."""
+    lon = normalize_longitude(degree)
+    best = min(
+        ((zone, min((lon - j) % 360.0, (j - lon) % 360.0)) for zone, j in GANDANTA_JUNCTIONS),
+        key=lambda item: item[1],
+    )
+    return best
+
+
 def is_gandanta(degree: float) -> bool:
-    normalized = normalize_longitude(degree)
-    return any(start <= normalized < end for start, end in GANDANTA_RANGES)
+    """Within 3°20′ of a junction (the scored, traditional gandanta)."""
+    return gandanta_distance(degree)[1] < GANDANTA_LIMIT_DEG
 
 
 def classify_sani_cycle(position_from_moon: int) -> CycleAssessment:

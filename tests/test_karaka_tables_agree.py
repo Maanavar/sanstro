@@ -80,3 +80,13 @@ def test_property_is_not_signified_by_venus() -> None:
 
 def test_career_leads_with_the_karma_karaka() -> None:
     assert LIFE_AREA_KARAKA["CAREER"]["karaka_planets"][0] == "SATURN"
+
+
+def test_area_routing_carries_no_second_karaka_table() -> None:
+    """FAA-13: `_AREA_ROUTING` held its own "karaka" lists (Health SUN/MOON,
+    Property MARS/VENUS) that disagreed with `_AREA_KARAKA`. Gate verified
+    2026-11-11: fails with the old routing table restored. BLIND SPOT: a third
+    karaka literal under another key name would not be seen."""
+    from app.services.life_areas_service import _AREA_ROUTING
+
+    assert all("karaka" not in route for route in _AREA_ROUTING.values())

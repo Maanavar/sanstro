@@ -66,34 +66,32 @@ def pushkara_check(planet_longitudes: dict[str, float]) -> dict[str, bool]:
 
 
 def gandanta_detail(planet_longitudes: dict[str, float]) -> dict[str, dict]:
-    boundaries = (
-        ("KATAKA_SIMHA", 120.0),
-        ("VRISCHIKA_DHANUS", 240.0),
-        ("MEENA_MESHA", 360.0),
+    """Per-planet gandanta band, on the one boundary the score uses (FAA-14).
+
+    DEEP (≤ 40′) and MODERATE (< 3°20′) are gandanta and are scored
+    (`transits.is_gandanta`). NEAR (3°20′–5°) is shown as "near gandanta" and
+    is NOT gandanta: `is_gandanta` is False and nothing scores it. It used to be
+    "MILD" with `is_gandanta` True, so a planet at 4° Simmam was "mild
+    gandanta" on the card and not gandanta in its strength breakdown.
+    """
+    from app.calculations.transits import (
+        GANDANTA_DEEP_DEG,
+        NEAR_GANDANTA_DEG,
+        gandanta_distance,
+        is_gandanta,
     )
+
     details: dict[str, dict] = {}
     for planet, longitude in planet_longitudes.items():
-        lon = longitude % 360.0
-        best_zone: str | None = None
-        best_distance = 360.0
-        for zone, boundary in boundaries:
-            dist = abs((lon - boundary) % 360.0)
-            dist = min(dist, 360.0 - dist)
-            if dist < best_distance:
-                best_distance = dist
-                best_zone = zone
-        if best_distance <= (40.0 / 60.0):
-            intensity = "DEEP"
-        elif best_distance <= (3.0 + 20.0 / 60.0):
+        zone, distance = gandanta_distance(longitude)
+        scored = is_gandanta(longitude)
+        if scored and distance <= GANDANTA_DEEP_DEG:
+            intensity: str | None = "DEEP"
+        elif scored:
             intensity = "MODERATE"
-        elif best_distance <= 5.0:
-            intensity = "MILD"
+        elif distance <= NEAR_GANDANTA_DEG:
+            intensity = "NEAR"
         else:
-            intensity = None
-            best_zone = None
-        details[planet] = {
-            "is_gandanta": intensity is not None,
-            "zone": best_zone,
-            "intensity": intensity,
-        }
+            intensity, zone = None, None
+        details[planet] = {"is_gandanta": scored, "zone": zone, "intensity": intensity}
     return details
