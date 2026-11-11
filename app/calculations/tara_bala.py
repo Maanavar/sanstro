@@ -5,7 +5,10 @@ from __future__ import annotations
 # muhurtham-naal list and the picker.  The ordering is traditional; the numeric
 # scale is the single approved product calibration, not a primary-text rule.
 TARA_SCORE: dict[int, int] = {
-    1: 8,
+    # FAA-06 (owner ruling 2026-11-11): Janma is a caution tara here as in the
+    # daily score (`_dg_scoring.TARA_DELTA[1] = -20`). It was +8, so the picker
+    # rose on the day Today fell. Magnitudes may differ (A-11); signs may not.
+    1: -8,
     2: 30,
     3: -30,
     4: 22,

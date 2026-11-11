@@ -339,6 +339,10 @@ class PanchangamDailyResponseData(BaseModel):
     subha_muhurtham: PanchangamSubhaMuhurtham = Field(alias="subhaMuhurtham")
     festivals: list[PanchangamFestival] = []
     hora: list[PanchangamHoraEntry]
+    #: FAA-08: which hora reckoning `hora` is. EC-RULING-03: 24 equal 60-minute
+    #: horai from sunrise, as Tamil almanacs print them. Shadbala's hora bala
+    #: uses the classical unequal hora instead (see ShadbalaData.horaSystem).
+    hora_system: str = Field(default="EQUAL_60_MIN_FROM_SUNRISE", alias="horaSystem")
     moon_phase_label: str = Field(alias="moonPhaseLabel")
     soolam: PanchangamSoolam
     lagnam: PanchangamLagnam
@@ -381,6 +385,10 @@ class PanchangamTimingsData(BaseModel):
     subha_muhurtham: PanchangamSubhaMuhurtham = Field(alias="subhaMuhurtham")
     festivals: list[PanchangamFestival] = []
     hora: list[PanchangamHoraEntry]
+    #: FAA-08: which hora reckoning `hora` is. EC-RULING-03: 24 equal 60-minute
+    #: horai from sunrise, as Tamil almanacs print them. Shadbala's hora bala
+    #: uses the classical unequal hora instead (see ShadbalaData.horaSystem).
+    hora_system: str = Field(default="EQUAL_60_MIN_FROM_SUNRISE", alias="horaSystem")
 
     model_config = ConfigDict(populate_by_name=True)
 

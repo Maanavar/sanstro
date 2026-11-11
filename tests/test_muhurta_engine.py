@@ -525,12 +525,17 @@ def test_the_generic_and_sourced_nakshatra_layers_stay_distinct(snapshots) -> No
 
 def test_the_yoga_is_reported_but_never_scored_as_support(snapshots) -> None:
     """Both former copies of L1 appended the yoga name to the *support* string
-    unconditionally, so a day carrying Vyatipata read as supported by it. The
-    yoga is reported as its own ungraded factor instead."""
+    unconditionally, so a day carrying Vyatipata read as supported by it. A yoga
+    is never a bonus. Since FAA-07 (owner ruling 2026-11-11) the nine ashubha
+    yogas are a PENALTY by their share of the day; every other yoga stays an
+    ungraded NEUTRAL."""
+    from app.calculations.panchangam import ASHUBHA_YOGA_NUMBERS
+
     for snap in snapshots:
         yoga = next(f for f in score_day(snap, "MARRIAGE", None).factors if f.factor == "ALMANAC_YOGA")
-        assert yoga.verdict is Verdict.NEUTRAL
-        assert yoga.contribution == 0.0
+        assert yoga.verdict is not Verdict.BONUS and yoga.contribution <= 0.0
+        if yoga.verdict is Verdict.PENALTY:
+            assert any(s.number in ASHUBHA_YOGA_NUMBERS for s in (snap.yoga_spans or []))
 
 
 # ── provenance resolves ─────────────────────────────────────────────────────

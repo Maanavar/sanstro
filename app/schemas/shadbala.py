@@ -34,6 +34,11 @@ class ShadbalaData(BaseModel):
     birth_time_known: bool = Field(alias="birthTimeKnown")
     planets: list[ShadbalaPlanet]
     strongest_first: list[str] = Field(alias="strongestFirst")
+    #: FAA-08: `kalaComponents.hora` is hora bala on the classical UNEQUAL hora
+    #: (day and night each divided into 12). It differs from the panchangam's
+    #: equal 60-minute horai (EC-RULING-03), so the two can name different
+    #: hora lords for one instant; this says which one Shadbala used.
+    hora_system: str = Field(default="CLASSICAL_UNEQUAL_DAY_NIGHT_TWELFTHS", alias="horaSystem")
 
     model_config = ConfigDict(populate_by_name=True)
 

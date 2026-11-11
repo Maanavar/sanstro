@@ -24,6 +24,7 @@ from app.calculations.functional_nature import get_dasha_modifier, get_transit_m
 from app.calculations.gochara_scores import GOCHARA_HOUSE_SCORE
 from app.calculations.maturation import MATURATION_AGE
 from app.calculations.panchangam import (
+    AMAVASAI_BY_ACTIVITY,
     ASHUBHA_YOGA_NUMBERS,
     PanchangamLimbSpan,
     limb_fraction,
@@ -469,9 +470,11 @@ def _overlap_fraction(
 def _tithi_penalty(span: PanchangamLimbSpan) -> float:
     if span.number in RIKTA_TITHIS:
         return -15.0
-    # Ashtami in both pakshas — mild caution. Amavasai (30) is NOT penalised:
-    # it is a sacred Pitru Tarpan day, not an inauspicious one.
+    # Ashtami in both pakshas — mild caution. Amavasai (30) is not penalised
+    # here: AMAVASAI_BY_ACTIVITY["DAILY_SCORE"] is NEUTRAL (FAA-15).
     if span.number in ASHTAMI_TITHIS:
+        return -10.0
+    if span.number == 30 and AMAVASAI_BY_ACTIVITY["DAILY_SCORE"] == "AVOID":
         return -10.0
     return 0.0
 
@@ -636,22 +639,14 @@ def weighted_moon_score(
 # order and reads the same results; tests/test_daily_guidance_golden.py pins
 # its output across the extraction.
 
-#: Jupiter's house from the natal Moon → transit-score adjustment (primary
-#: refinement; never punitive in the 7th).
-_JUPITER_FROM_MOON_MODIFIER: dict[int, float] = {
-    1: 0.0,   # Neutral
-    2: 3.0,   # Good
-    3: -3.0,  # Unfavourable
-    4: -4.0,  # Unfavourable
-    5: 4.0,   # Very good
-    6: -2.0,  # Unfavourable
-    7: 3.0,   # Good (mixed) - never punitive
-    8: -6.0,  # Bad
-    9: 4.0,   # Very good
-    10: 1.0,  # Neutral leaning supportive
-    11: 4.0,  # Very good
-    12: -3.0, # Unfavourable
-}
+# FAA-09 (2026-11-11): `_JUPITER_FROM_MOON_MODIFIER` is gone. It added a second
+# score for Jupiter's house from the natal Moon on top of the gochara table
+# below, which already reads that same house (weight 0.18), and it leaned +1 in
+# the 10th where the gochara grade says MIXED. One fact, one term. Measured on
+# 12 Moon signs x 12 lagnas x 244 days of 2026-27 (35,136 cases): transit
+# component p5/p50/p95 34.0/46.1/57.9 -> 37.7/45.7/55.2, mean 46.03 -> 45.94;
+# the day score's transit contribution moves by -1..+2 points after rounding.
+# A Guru-from-Lagna term would be a new, separately labelled feature (Group B).
 
 
 @dataclass(frozen=True)
@@ -670,7 +665,8 @@ def transit_component(
     bav,
 ) -> TransitComponent:
     """The day's transit score: Ashtakavarga-weighted gochara with Vedha, then
-    the Moon-based Jupiter and Lagna-based Saturn adjustments."""
+    the Lagna-based Saturn adjustment. Jupiter's house from the Moon is read once,
+    in the gochara table (FAA-09)."""
     # House from Moon for all transit bodies (needed for the Vedha check).
     houses: dict[str, int] = {
         g: house_from_reference(natal_moon_rasi, b.rasi)
@@ -688,10 +684,9 @@ def transit_component(
             contribution *= 0.25
         score += contribution
     score = max(0, min(100, score))
-    # Moon-based Jupiter refinement (primary) + Lagna-based Saturn material modifier.
+    # Lagna-based Saturn material modifier.
     saturn_house_from_lagna = house_from_reference(natal_lagna, transit_bodies["SATURN"].rasi)
     lagna_modifier = 0.0
-    lagna_modifier += _JUPITER_FROM_MOON_MODIFIER.get(houses["JUPITER"], 0.0)
     if saturn_house_from_lagna in {1, 4, 7, 10}:
         lagna_modifier -= 4.0
     elif saturn_house_from_lagna in {3, 6, 11}:

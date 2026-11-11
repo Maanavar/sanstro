@@ -82,7 +82,11 @@ from app.schemas.dasha import ResponseMeta
 # each divisional chart from its own lagna (G4). Every one of these moves the
 # dasha-lord strengths and area scores a persisted daily row carries, so warm
 # rows must recompute.
-DAILY_SCORE_ENGINE_VERSION = "2026-09-15-v16"
+# v17 (2026-11-11, FAA-09): Jupiter's house from the Moon is scored once (the
+# gochara table); the duplicate modifier is removed. The transit component moves
+# for every native on most days, so warm rows must recompute. Rows recompute
+# lazily per user-day on read, so there is no bulk cold-path fan-out.
+DAILY_SCORE_ENGINE_VERSION = "2026-11-11-v17"
 
 
 def _cache_version(calculation_version: str) -> str:

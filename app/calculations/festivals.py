@@ -373,6 +373,22 @@ class ObservanceInstants:
     previous_moonrise_tithi_number: int | None = None
     next_moonrise_tithi_number: int | None = None
     previous_nishita_tithi_number: int | None = None
+    # FAA-26 — whether Krishna Chaturdashi is in force during ANY part of
+    # tonight's / last night's nishita-kalam (the 8th of the night's 15
+    # muhurtas). Dharmasindhu/Nirnayasindhu: Sivarathiri is the day Chaturdashi
+    # prevails during nishita. Drik Panchang dates 19 Jul 2020 this way
+    # (Chaturdashi ended 00:10, inside nishita) where a single-instant test at
+    # the centre found no night at all. None = not computed: the festival
+    # falls back to the tithi at the nishita centre.
+    nishita_touches_k_chaturdashi: bool | None = None
+    previous_nishita_touches_k_chaturdashi: bool | None = None
+    # FAA-26 owner ruling 2026-11-11: whether Chaturdashi covers the WHOLE
+    # nishita (last night / tonight / tomorrow night). When two nights touch
+    # and the first is partial while the second is whole, the whole night is
+    # the Sivarathiri (Dharmasindhu's majority view; Hemadri took the first).
+    previous_nishita_k_chaturdashi_full: bool | None = None
+    nishita_k_chaturdashi_full: bool | None = None
+    next_nishita_k_chaturdashi_full: bool | None = None
     # FCA-07 — the yearly observances that existed only as 2026 rows.
     previous_sunrise_tithi_number: int | None = None
     # The next sunrise's tithi: a tithi holding neither sunrise is kshaya.
@@ -888,7 +904,38 @@ def _recurring_tithi_festivals(
     # this rule reproduces 13/13). A Chaturdashi holding two midnights names
     # one Sivarathiri — the first, as the almanac does.
     repeated_midnight = instants.previous_nishita_tithi_number == 29
-    if nishita_in_paksha == 14 and nishita_paksha == "KRISHNA" and not repeated_midnight:
+    chaturdashi_at_nishita = nishita_in_paksha == 14 and nishita_paksha == "KRISHNA"
+    if instants.nishita_touches_k_chaturdashi is not None:
+        chaturdashi_at_nishita = instants.nishita_touches_k_chaturdashi
+        repeated_midnight = bool(instants.previous_nishita_touches_k_chaturdashi)
+        # Owner ruling 2026-11-11: a Chaturdashi that touches NEITHER night's
+        # nishita lies wholly in the ~23 h between two nishitas, and at 19 h or
+        # more it must hold that day's sunset, so the pradosha day is unique.
+        # It names the Sivarathiri then, flagged for the almanac cross-check.
+        if (
+            not chaturdashi_at_nishita
+            and instants.previous_nishita_touches_k_chaturdashi is False
+            and pradhosham_tithi_number == 29
+        ):
+            chaturdashi_at_nishita = True
+            _fired("sivarathiri_pradosha_fallback")
+        # FAA-26 owner ruling 2026-11-11 (two touching nights): a partial
+        # first night yields to a whole second night. Both whole, or a whole
+        # first night: the first, as before.
+        if (
+            chaturdashi_at_nishita
+            and instants.nishita_k_chaturdashi_full is False
+            and instants.next_nishita_k_chaturdashi_full is True
+        ):
+            chaturdashi_at_nishita = False
+            _fired("sivarathiri_partial_night_yields")
+        if (
+            repeated_midnight
+            and instants.previous_nishita_k_chaturdashi_full is False
+            and instants.nishita_k_chaturdashi_full is True
+        ):
+            repeated_midnight = False
+    if chaturdashi_at_nishita and not repeated_midnight:
         if in_lunar_month(_LUNAR_MAGHA):
             results.append({"name": "Sivarathiri", "category": "hindu"})
         else:

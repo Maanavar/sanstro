@@ -98,11 +98,14 @@ from app.calculations.ephemeris import EphemerisBody
 from app.calculations.karinaal import is_karinaal
 from app.calculations.muhurta_doctrine import RuleSource
 from app.calculations.panchangam import (
+    AMAVASAI_BY_ACTIVITY,
+    ASHUBHA_YOGA_NUMBERS,
     RIKTA_TITHIS_IN_PAKSHA,
     SUBHA_NAKSHATRA_NUMBERS,
     SUBHA_TITHIS_KRISHNA,
     SUBHA_TITHIS_SHUKLA,
     amirdhadhi_yogam_class,
+    limb_weighted,
     own_chandrashtama_windows,
 )
 from app.calculations.tamil_calendar import TAMIL_MONTHS, tamil_solar_date
@@ -232,7 +235,17 @@ class _W:
     ALMANAC_SUBHA_TITHI_SHUKLA = 10.0
     ALMANAC_SUBHA_TITHI_KRISHNA = 8.0
     ALMANAC_SUBHA_NAKSHATRA = 10.0
-    ALMANAC_SUBHA_MUHURTHAM = 20.0
+    # ALMANAC_SUBHA_MUHURTHAM (+20) removed by FAA-10: it re-credited the FIT star.
+    # FAA-07 (owner ruling 2026-11-11): the picker now prices what the badge
+    # and Today already call caution — the nine ashubha nitya yogas
+    # (panchangam.ASHUBHA_YOGAS, the one table) and Vishti karana — at Today's
+    # -10, weighted by the share of the day each held (R-1). Vishti stands down
+    # where the activity's chapter rules on karanas (RULE_PRECEDENCE).
+    # Measured on 9 activities x 365 days of 2026, Chennai, general mode, after
+    # FAA-10: display p50/p95 73.0/85.6 -> 68.0/84.8; BEST 44.5% -> 38.4%,
+    # GOOD unchanged at 31.2% (measured before the whole-point rounding).
+    ALMANAC_ASHUBHA_YOGA = -10.0
+    ALMANAC_VISHTI = -10.0
     ALMANAC_ABHIJIT = 5.0
     ALMANAC_NALLA_NERAM = 5.0
     # Karinaal (F-MUH-02). The picker consulted no Karinaal at all, so it could
@@ -564,6 +577,9 @@ def _almanac_tithi_factor(snapshot, activity: str) -> FactorResult | None:
     if tithi == 30:
         if _activity_rules_on_amavasai(activity):
             return None
+        # FAA-15: the one Amavasai table; a muhurta is new auspicious work.
+        if AMAVASAI_BY_ACTIVITY["NEW_AUSPICIOUS_WORK"] != "AVOID":
+            return None
         return FactorResult(
             factor="ALMANAC_TITHI",
             verdict=Verdict.PENALTY,
@@ -647,11 +663,17 @@ def _almanac_day_quality_factor(snapshot) -> FactorResult:
     `muhurta_service._almanac_muhurtham` reports separately and which
     deliberately adds nothing to the score.
     """
+    # FAA-10: informational only. `is_subha_muhurtham` is the FIT-star verdict
+    # (the same FIT_STARS `_almanac_nakshatra_factor` already credits) with the
+    # tithi/weekday/Karinaal blocks that have their own factors, so its +20 was
+    # the star counted a second time. One star chip, one star contribution.
+    # Measured on 9 activities x 365 days of 2026, Chennai, general mode:
+    # display p50/p95 74.0/89.4 -> 73.0/85.6; BEST share 48.1% -> 44.5%.
     if snapshot.is_subha_muhurtham:
         return FactorResult(
             factor="ALMANAC_DAY_QUALITY",
-            verdict=Verdict.BONUS,
-            contribution=_W.ALMANAC_SUBHA_MUHURTHAM,
+            verdict=Verdict.NEUTRAL,
+            contribution=0.0,
             reason_en="The day's star and tithi make this a good day for new undertakings.",
             reason_ta="இந்நாளின் நட்சத்திரமும் திதியும் புதிய காரியங்களுக்கு உகந்தது",
         )
@@ -792,9 +814,12 @@ def _marriage_month_factor(snapshot, activity: str) -> FactorResult | None:
 
 
 def _almanac_yoga_factor(snapshot) -> FactorResult:
-    """Names the day's yoga without judging it.
+    """Names the day's yoga; prices only the nine ashubha yogas (FAA-07).
 
-    Deliberately zero-contribution and NEUTRAL. Both former copies of L1
+    An ashubha yoga is a PENALTY weighted by its share of the day (the badge's
+    and Today's table, panchangam.ASHUBHA_YOGAS). Every other yoga stays
+    zero-contribution and NEUTRAL: a graded-for-muhurta table of the good
+    yogas is still not sourced. Both former copies of L1
     appended `"Yoga: {name}"` to the *support* string unconditionally, so an
     inauspicious yoga (Vyatipata, Vaidhriti) read to the user as a reason the
     day was good. A yoga table graded for muhurta is not sourced yet, so the
@@ -803,6 +828,30 @@ def _almanac_yoga_factor(snapshot) -> FactorResult:
     number: int | None = getattr(snapshot, "yoga_number", None)
     name_en = (YOGA_NAME_EN.get(number) if number is not None else None) or str(snapshot.yoga_name or "").title()
     name_ta = YOGA_NAME_TA.get(number) if number is not None else None
+    # FAA-07: an ashubha yoga is priced, by the share of the day it holds.
+    spans = getattr(snapshot, "yoga_spans", None) or []
+    share = (
+        limb_weighted(spans, lambda s: 1.0 if s.number in ASHUBHA_YOGA_NUMBERS else 0.0)
+        if spans else (1.0 if number in ASHUBHA_YOGA_NUMBERS else 0.0)
+    )
+    yoga_penalty = float(round(_W.ALMANAC_ASHUBHA_YOGA * share))
+    if yoga_penalty != 0:
+        bad = next((s.number for s in spans if s.number in ASHUBHA_YOGA_NUMBERS), number)
+        bad_en = YOGA_NAME_EN.get(bad) or name_en
+        bad_ta = YOGA_NAME_TA.get(bad)
+        return FactorResult(
+            factor="ALMANAC_YOGA",
+            verdict=Verdict.PENALTY,
+            # Whole points: a fractional share-weighted penalty made near-ties
+            # that the one-decimal display rounding then reordered. A sliver
+            # that rounds to 0 is not priced and not called a penalty.
+            contribution=yoga_penalty,
+            reason_en=f"{bad_en} yoga, one of the nine the almanac marks for caution, holds part of this day.",
+            reason_ta=(
+                f"{bad_ta} யோகம் இந்நாளின் ஒரு பகுதியில் உள்ளது; பஞ்சாங்கம் கவனம் தேவை எனக் குறிக்கும் ஒன்பது யோகங்களில் இதுவும் ஒன்று."
+                if bad_ta else "பஞ்சாங்கம் கவனம் தேவை எனக் குறிக்கும் யோகம் இந்நாளின் ஒரு பகுதியில் உள்ளது."
+            ),
+        )
     if not name_en:
         return FactorResult(
             factor="ALMANAC_YOGA",
@@ -1425,6 +1474,33 @@ def _registry_tithi_factor(snapshot, activity: str) -> FactorResult:
         reason_en=f"{name_en} is not named either way in the {entry.label_en} tithi rule.",
         reason_ta=f"{entry.label_ta} உரிய திதி விதியில் {name_ta} குறிப்பிடப்படவில்லை.",
         rule_id=entry.tithi_rule_id,
+    )
+
+
+def _almanac_vishti_factor(snapshot, activity: str) -> FactorResult | None:
+    """Generic Vishti (Bhadra) caution, weighted by its share of the day (FAA-07).
+
+    Stands down (None) when the activity's chapter rules on karanas — its own
+    `_karana_factor` is then the authority (RULE_PRECEDENCE). Silent on a day
+    with no Vishti.
+    """
+    entry = _rules(activity)
+    if entry is not None and entry.karana_avoid:
+        return None
+    spans = getattr(snapshot, "karana_spans", None) or []
+    share = (
+        limb_weighted(spans, lambda s: 1.0 if s.name == "VISHTI" else 0.0)
+        if spans else (1.0 if snapshot.karana_name == "VISHTI" else 0.0)
+    )
+    penalty = float(round(_W.ALMANAC_VISHTI * share))
+    if penalty == 0:
+        return None
+    return FactorResult(
+        factor="ALMANAC_VISHTI",
+        verdict=Verdict.PENALTY,
+        contribution=penalty,
+        reason_en="Vishti (Bhadra) karana holds part of this day; the almanac marks it for caution.",
+        reason_ta="விஷ்டி கரணம் இந்நாளின் ஒரு பகுதியில் உள்ளது; பஞ்சாங்கம் இதைக் கவனம் தேவை எனக் குறிக்கும்.",
     )
 
 
@@ -2376,12 +2452,13 @@ def _tara_bala_factor(snapshot, subject: Subject) -> FactorResult:
             reason_ta=f"{who_ta}ஜென்ம நட்சத்திரத்திலிருந்து {star_ta} {tara_ta} தாரா — உகந்ததல்ல.",
         )
     if tara == 1:
+        # FAA-06: Janma tara is a caution (a small penalty), not a bonus.
         return FactorResult(
             factor="TARA_BALA",
-            verdict=Verdict.BONUS,
+            verdict=Verdict.PENALTY,
             contribution=float(TARA_SCORE[tara]),
-            reason_en=f"{star_en} is {who_en}'s own birth star — Janma tara.",
-            reason_ta=f"{star_ta} {who_ta}சொந்த நட்சத்திரம் — ஜென்ம தாரா.",
+            reason_en=f"{star_en} is {who_en}'s own birth star (Janma tara), a day to take care with new starts.",
+            reason_ta=f"{star_ta} {who_ta}சொந்த நட்சத்திரம் (ஜென்ம தாரா); புதிய தொடக்கங்களில் கவனம் தேவை.",
         )
     return FactorResult(
         factor="TARA_BALA",
@@ -2571,6 +2648,7 @@ def score_day(
     # table, so these stay silent rather than emitting UNSOURCED noise on every
     # activity that happens not to have one.
     for optional in (
+        _almanac_vishti_factor(snapshot, activity),
         _karana_factor(snapshot, activity),
         _vara_factor(snapshot, activity),
         _paksha_factor(snapshot, activity),

@@ -19,7 +19,6 @@ from app.calculations.astro import (
     utc_datetime_to_local_datetime,
 )
 from app.calculations.day_quality import FIT_STARS, DayQuality, day_quality
-from app.calculations.karinaal import is_karinaal
 from app.calculations.ephemeris import (
     RiseTransitUndefinedError,
     calculate_lagna_degree,
@@ -27,6 +26,7 @@ from app.calculations.ephemeris import (
     calculate_sidereal_planets,
     calculate_sun_moon_longitudes,
 )
+from app.calculations.karinaal import is_karinaal
 from app.constants.astrology import NAKSHATRA_NAMES
 from app.data.durmuhurtham_rules import DURMUHURTHAM_DAYLIGHT_INDICES
 
@@ -589,7 +589,14 @@ DEFAULT_AYANAMSA_TYPE = "LAHIRI"
 # cached snapshot carries the old badge.
 # v51 (2026-11-10, D1, `ai_review_2026_11_10`): marana yogam and Karinaal now
 # block the நல்ல நாள் badge. Every cached snapshot carries the old badge.
-PANCHANGAM_CACHE_DATA_VERSION = 51
+# v52 (2026-11-11, FAA-26): `nishita_tithi_number` is read at nishita-kalam, the
+# 8th of the night's 15 muhurtas (centred on the midpoint of sunset -> next
+# sunrise), not at local civil 00:00. Chennai's nishita centre sits ~00:09 IST
+# and moves +/-16 min through the year (more elsewhere in IST), so the tithi at
+# it can differ from the civil-midnight one; every cached snapshot carries the
+# civil-midnight answer. Same bump, FAA-15: an Amavasai day's badge reason no
+# longer reads "Inauspicious: Amavasai tithi" (AMAVASAI_NOTE_EN).
+PANCHANGAM_CACHE_DATA_VERSION = 52
 
 # Fixed weekday clock-table Nalla Neram windows. NOTE (2026-07-17): the daily
 # panchangam no longer uses this table — its Nalla Neram is now derived from the
@@ -614,6 +621,18 @@ NALLA_NERAM_SUMMARY_TABLE = {
     # Sun
     6: ((7 * 60 + 30, 8 * 60 + 30, "AM"), (15 * 60 + 30, 16 * 60 + 30, "PM")),
 }
+
+def nishita_interval_jd(sunset_jd: float, next_sunrise_jd: float) -> tuple[float, float]:
+    """Nishita-kalam: the 8th of the night's 15 equal muhurtas (FAA-26).
+
+    The night runs from this day's sunset to the next sunrise (the ruled sunrise
+    convention). Its centre is the night's midpoint, the "true midnight" Krishna
+    Jayanthi already uses. Each festival applies its own rule to this interval;
+    none should read a civil-clock midnight.
+    """
+    muhurta = (next_sunrise_jd - sunset_jd) / 15.0
+    return sunset_jd + 7.0 * muhurta, sunset_jd + 8.0 * muhurta
+
 
 @dataclass(frozen=True, slots=True)
 class PanchangamSlot:
@@ -1514,6 +1533,18 @@ def _compute_nalla_neram(
 # deliberately excluded from this set — it's Jaya group, not Rikta.
 RIKTA_TITHIS_IN_PAKSHA = {4, 9, 14}
 
+# FAA-15 (owner ruling 2026-11-11): one Amavasai rule, keyed by what is being
+# done. The badge, the daily score and the muhurta picker all read this table.
+# There is no single universal Amavasai score: it is right for pitru karma and
+# avoided for new auspicious work.
+AMAVASAI_BY_ACTIVITY: dict[str, str] = {
+    "PITRU_KARMA": "FAVOURABLE",          # tarpanam, ancestral rites
+    "NEW_AUSPICIOUS_WORK": "AVOID",       # the badge blocks; the picker prices it
+    "DAILY_SCORE": "NEUTRAL",             # Today: no penalty, the badge carries the note
+}
+AMAVASAI_NOTE_EN = "Amavasai: avoided for new auspicious work; a right day for pitru tarpanam."
+AMAVASAI_NOTE_TA = "அமாவாசை: புதிய சுப காரியங்களுக்குத் தவிர்க்கப்படும்; பித்ரு தர்ப்பணத்துக்கு உகந்த நாள்."
+
 # F-PAN-01. Rikta is Sanskrit tithi-group theory and Ashtami is not in it —
 # which is correct, and was also the wrong question. Tamil practice avoids
 # **அஷ்டமி and நவமி together** for any subha karyam and every Tamil calendar
@@ -1552,7 +1583,7 @@ def _day_block_reason(
     if weekday_index in MUHURTHAM_BLOCKED_WEEKDAYS:
         return _muhurtham_weekday_block_reason(weekday_index)
     if tithi_number == 30:
-        return "Inauspicious: Amavasai tithi"
+        return AMAVASAI_NOTE_EN  # FAA-15: not "Inauspicious"; see AMAVASAI_BY_ACTIVITY
     if tithi_in_paksha in RIKTA_TITHIS_IN_PAKSHA:
         return f"Inauspicious: {_tithi_name(tithi_number)} (Rikta tithi)"
     if tithi_in_paksha in TAMIL_AVOIDED_TITHIS_IN_PAKSHA:
@@ -2617,11 +2648,13 @@ def compute_daily_panchangam(
     pradhosham_tithi_number = _tithi_number_at_jd(sunset_jd)
 
     # Nishita-anchored observances (e.g. Sivarathiri, M-2) are governed by the tithi
-    # prevailing at nishita-kalam (local midnight following this civil day's sunrise),
-    # which is very commonly still one tithi behind the sunrise tithi — same error
-    # class as pradhosham_tithi_number above, generalized to the midnight instant.
-    next_midnight_jd = utc_datetime_to_julian_day((local_midnight + timedelta(days=1)).astimezone(UTC))
-    nishita_tithi_number = _tithi_number_at_jd(next_midnight_jd)
+    # prevailing at nishita-kalam, which is very commonly still one tithi behind the
+    # sunrise tithi — same error class as pradhosham_tithi_number above. FAA-26:
+    # nishita is the 8th of the night's 15 muhurtas (sunset -> next sunrise), not
+    # local civil 00:00; the tithi is read at its centre, the night's midpoint,
+    # which is what the M-2 ruling ("the tithi at midnight") means.
+    nishita_start_jd, nishita_end_jd = nishita_interval_jd(sunset_jd, next_sunrise_jd)
+    nishita_tithi_number = _tithi_number_at_jd((nishita_start_jd + nishita_end_jd) / 2)
 
     snapshot = PanchangamSnapshot(
         date_local=date_local,

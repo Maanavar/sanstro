@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, replace
+from functools import lru_cache
 from typing import NamedTuple
 from uuid import UUID
 
@@ -49,7 +50,7 @@ from app.calculations.panchangam import (
     WEEKDAY_NAMES,
     own_chandrashtama_windows,
 )
-from app.calculations.tamil_calendar import TAMIL_MONTHS
+from app.calculations.tamil_calendar import TAMIL_MONTHS, tamil_solar_date
 from app.calculations.tara_bala import TARA_NAMES, TARA_SCORE, tara_number
 from app.data.muhurtham_naals import (
     MUHURTHAM_SOURCE,
@@ -83,7 +84,9 @@ TARA_QUALITY: dict[int, str] = {
     6: "GOOD", 7: "AVOID", 8: "GOOD", 9: "GOOD",
 }
 TARA_MEANING: dict[int, tuple[str, str]] = {
-    1: ("சொந்த நட்சத்திரம் — நடுநிலை", "your own star — neutral"),
+    # FAA-06: Janma is a caution tara; the badge stays NEUTRAL (no new enum
+    # across four surfaces), the words and the score say caution.
+    1: ("சொந்த நட்சத்திரம் — புதிய தொடக்கங்களில் கவனம்", "your own star — take care with new starts"),
     2: ("செல்வம் சேர்க்கும்", "brings wealth"),
     3: ("ஆபத்து — தவிர்க்கவும்", "danger — avoid"),
     4: ("நலன் தரும்", "brings well-being"),
@@ -183,19 +186,32 @@ def _slot_windows(slots) -> list[TimeWindow]:
     ]
 
 
+@lru_cache(maxsize=512)
+def _tamil_date_for(day) -> tuple[int, int]:
+    """The Tamil (month index, day) of a curated naal, from the engine (FAA-11).
+
+    The sheet rows carried their own Tamil date, typed in before the published
+    month boundaries (tamil_calendar_authority, FCA-02) were adopted: 47 of 129
+    rows (2026 Aani/Aavani, most of 2027) printed a day off the calendar page
+    for the same civil date. Chennai is the reference, as for the calendar.
+    """
+    return tamil_solar_date(day, "Asia/Kolkata", 13.0827, 80.2707)
+
+
 def _to_view(
     n: MuhurthamNaal,
     *,
     nalla_neram: list[TimeWindow] | None = None,
 ) -> MuhurthamNaalView:
     pirai_ta, pirai_en = PIRAI_LABEL[n.pirai]
-    month_ta, month_en = TAMIL_MONTHS[n.tamil_month_index]
+    month_index, tamil_day = _tamil_date_for(n.date)
+    month_ta, month_en = TAMIL_MONTHS[month_index]
     return MuhurthamNaalView(
         date=n.date.isoformat(),
         weekday=BiLabel(ta=WEEKDAY_TA[n.weekday], en=n.weekday.title()),
         pirai=BiLabel(ta=pirai_ta, en=pirai_en),
         tamil_month=BiLabel(ta=month_ta, en=month_en),
-        tamil_day=n.tamil_day,
+        tamil_day=tamil_day,
         # `or` the English name: nakshatra_ta() returns None for a number
         # outside 1-27, and the same `<tamil> or <fallback>` shape is what
         # muhurta_engine uses for rasi labels.
