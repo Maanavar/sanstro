@@ -1242,9 +1242,11 @@ def generate_compatibility_intelligence_pdf(
             note = eighth_house_copy.d9_note(reading.d9_note, note_lang)
             if note:
                 story.append(Paragraph(note, caption_style))
-        joint = eighth_house_copy.joint(eh.joint, note_lang)
+        joint = eighth_house_copy.joint_lines(eh.joint, note_lang)
+        for text in joint:
+            story.append(Paragraph(f"- {text}", body_style))
         if joint:
-            story.append(Paragraph(joint, body_style))
+            story.append(Paragraph(eighth_house_copy.JOINT_NOTE[note_lang], caption_style))
 
     story.extend([Spacer(1, 0.3 * cm), Paragraph(_label("dasha_level", lang), heading_style)])
     story.append(

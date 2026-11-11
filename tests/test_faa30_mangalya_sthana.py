@@ -13,7 +13,7 @@ from app.calculations.functional_status import FunctionalStatus
 from app.calculations.mangalya_sthana import (
     EighthHouseChart,
     d9_lagna_stable,
-    joint_pattern,
+    joint_lines,
     one_chart,
     stated_role,
 )
@@ -43,7 +43,8 @@ def test_role_comes_from_the_stated_gender_only():
 def test_unknown_gender_applies_nothing():
     r = one_chart(BASE, "not_specified")
     assert r.role == "NOT_APPLIED" and r.factors == () and r.mangalya_reference is None
-    assert r.malefic_influence is False
+    assert r.malefic_in_lagna_eighth is False and r.lagna_eighth_lord_debilitated_or_combust is False
+    assert joint_lines(r, one_chart(BASE, "female")) == ()
 
 
 def test_bride_reads_both_references_separately():
@@ -80,6 +81,7 @@ def test_malefic_in_its_own_8th_carries_the_phaladeepika_exception():
     assert sat.rule == "PHALADEEPIKA_11_1_OWN_HOUSE" and sat.tier == "classical_rule"
     lagna_side = [f for f in r.factors if f.reference == "LAGNA" and f.kind == "OCCUPANT"]
     assert not any(f.nature == "MALEFIC" and not f.own_house for f in lagna_side)
+    assert r.malefic_in_lagna_eighth is False  # the exception keeps it off the joint line
 
 
 def test_tiers_follow_the_registry_and_only_the_brides_lagna_reading_is_the_verse():
@@ -107,7 +109,7 @@ def test_guru_and_sukran_protection_lines_each_carry_their_own_dignity():
     own = replace(BASE, planet_rasi={**BASE.planet_rasi, "VENUS": 7})
     (line,) = _f(one_chart(own, "female"), "PROTECTION", "MOON", "VENUS", "HOUSE")
     assert line.dignity == "OWN"
-    assert one_chart(own, "female").malefic_influence is True  # protection did not erase influence
+    assert one_chart(own, "female").malefic_in_lagna_eighth is True  # protection erased nothing
 
 
 def test_moon_class_follows_paksha_and_mercury_follows_its_company():
@@ -167,21 +169,76 @@ def test_no_maraka_lordship_ever_reaches_a_factor():
                 assert f.tier == REGISTRY[f.rule].tier
 
 
-def test_joint_pattern_describes_both_one_or_neither():
-    # Rahu and Ketu together aspect every house of one parity, so two adjacent
-    # 8ths can never both be clear. The Moon in the lagna sign gives one 8th
-    # (Kumbha, 11); nodes on even signs leave it alone. Saturn (its lord) is
-    # exalted in Thula and nothing malefic reaches Thula.
-    quiet = EighthHouseChart(lagna_rasi=4, planet_rasi={"SUN": 4, "MOON": 4, "MARS": 3, "MERCURY": 5,
-                                                        "JUPITER": 4, "VENUS": 5, "SATURN": 7, "RAHU": 2, "KETU": 8})
-    loud = one_chart(BASE, "female")
-    calm = one_chart(quiet, "male")
-    assert loud.malefic_influence is True
-    assert calm.malefic_influence is False, [f for f in calm.factors if f.nature == "MALEFIC"]
-    assert joint_pattern(loud, calm) == "ONE"
-    assert joint_pattern(loud, one_chart(BASE, "male")) == "BOTH"
-    assert joint_pattern(calm, calm) == "NEITHER"
-    assert joint_pattern(loud, one_chart(BASE, None)) == "NOT_APPLIED"
+# OWNER-Q-D4 (E): the joint lines read the lagna's 8th only, by placement only.
+# BASE: Mars (malefic, not Kumbha's lord) sits in the lagna's 8th; its lord
+# Saturn is in Dhanus, neither debilitated nor combust.
+OCCUPIED = BASE
+AFFLICTED = replace(BASE, planet_rasi={**BASE.planet_rasi, "MARS": 5, "SATURN": 1})  # Saturn debilitated in Mesha
+BOTH_HELD = replace(BASE, planet_rasi={**BASE.planet_rasi, "SATURN": 1})
+NEITHER_HELD = replace(BASE, planet_rasi={**BASE.planet_rasi, "MARS": 5})
+
+
+def _joint(a, b):
+    return {j.key: j.pattern for j in joint_lines(one_chart(a, "female"), one_chart(b, "male"))}
+
+
+def test_malefic_occupation_without_the_lords_condition():
+    r = one_chart(OCCUPIED, "female")
+    assert (r.malefic_in_lagna_eighth, r.lagna_eighth_lord_debilitated_or_combust) == (True, False)
+    assert _joint(OCCUPIED, OCCUPIED) == {"MALEFIC_IN_EIGHTH": "BOTH", "EIGHTH_LORD_DEBILITATED_OR_COMBUST": "NEITHER"}
+
+
+def test_the_lords_condition_without_malefic_occupation():
+    r = one_chart(AFFLICTED, "female")
+    assert (r.malefic_in_lagna_eighth, r.lagna_eighth_lord_debilitated_or_combust) == (False, True)
+    assert _joint(AFFLICTED, AFFLICTED) == {"MALEFIC_IN_EIGHTH": "NEITHER", "EIGHTH_LORD_DEBILITATED_OR_COMBUST": "BOTH"}
+    # Combust counts the same as debilitated; the lord's own dignity is not needed.
+    combust = replace(NEITHER_HELD, combust=frozenset({"SATURN"}))
+    assert one_chart(combust, "male").lagna_eighth_lord_debilitated_or_combust is True
+
+
+def test_both_conditions_together_stay_two_lines():
+    assert _joint(BOTH_HELD, BOTH_HELD) == {"MALEFIC_IN_EIGHTH": "BOTH", "EIGHTH_LORD_DEBILITATED_OR_COMBUST": "BOTH"}
+    assert [j.key for j in joint_lines(one_chart(BOTH_HELD, "female"), one_chart(BOTH_HELD, "male"))] == [
+        "MALEFIC_IN_EIGHTH", "EIGHTH_LORD_DEBILITATED_OR_COMBUST"]
+
+
+def test_neither_condition_and_the_one_pattern():
+    assert _joint(NEITHER_HELD, NEITHER_HELD) == {"MALEFIC_IN_EIGHTH": "NEITHER", "EIGHTH_LORD_DEBILITATED_OR_COMBUST": "NEITHER"}
+    assert _joint(OCCUPIED, AFFLICTED) == {"MALEFIC_IN_EIGHTH": "ONE", "EIGHTH_LORD_DEBILITATED_OR_COMBUST": "ONE"}
+    assert _joint(BOTH_HELD, NEITHER_HELD) == {"MALEFIC_IN_EIGHTH": "ONE", "EIGHTH_LORD_DEBILITATED_OR_COMBUST": "ONE"}
+
+
+def test_moon_side_aspects_and_conjunctions_never_open_a_joint_line():
+    """They stay on each chart's own reading. In NEITHER_HELD the Sun sits in the
+    Moon's 8th (Mesha) and Saturn aspects Kumbha (the lagna's 8th) from Dhanus;
+    both are listed as factors, and neither reaches a joint line."""
+    r = one_chart(NEITHER_HELD, "female")
+    assert _f(r, "OCCUPANT", "MOON", "SUN")[0].nature == "MALEFIC"
+    assert any(f.kind == "INFLUENCE" and f.via == "ASPECT" and f.reference == "LAGNA" for f in r.factors)
+    # The Moon's 8th lord debilitated (Mars in Kataka) is listed, and still no line.
+    moon_lord = one_chart(replace(NEITHER_HELD, planet_rasi={**NEITHER_HELD.planet_rasi, "MARS": 4}), "female")
+    assert _f(moon_lord, "LORD", "MOON", "MARS")[0].dignity == "DEBILITATED"
+    for x in (r, moon_lord):
+        assert (x.malefic_in_lagna_eighth, x.lagna_eighth_lord_debilitated_or_combust) == (False, False)
+    # A malefic joined to the lagna's 8th lord is listed, and still no line.
+    joined = one_chart(replace(NEITHER_HELD, planet_rasi={**NEITHER_HELD.planet_rasi, "RAHU": 9, "KETU": 3}), "female")
+    assert _f(joined, "INFLUENCE", "LAGNA", "RAHU", "LORD")[0].via == "CONJUNCT"
+    assert joined.malefic_in_lagna_eighth is False and joined.lagna_eighth_lord_debilitated_or_combust is False
+
+
+def test_benefic_protection_stays_on_the_reading_and_cancels_no_line():
+    # Guru in Thula reaches Kumbha (the lagna's 8th) by its 5th aspect.
+    held = replace(BOTH_HELD, planet_rasi={**BOTH_HELD.planet_rasi, "JUPITER": 7})
+    r = one_chart(held, "female")
+    (guru,) = _f(r, "PROTECTION", "LAGNA", "JUPITER", "HOUSE")
+    assert guru.nature == "BENEFIC"
+    assert _joint(held, held) == {"MALEFIC_IN_EIGHTH": "BOTH", "EIGHTH_LORD_DEBILITATED_OR_COMBUST": "BOTH"}
+
+
+def test_joint_lines_need_a_stated_gender_on_both_sides():
+    assert joint_lines(one_chart(BOTH_HELD, "female"), one_chart(BOTH_HELD, None)) == ()
+    assert joint_lines(one_chart(BOTH_HELD, "not_specified"), one_chart(BOTH_HELD, "male")) == ()
 
 
 def test_pdf_copy_reproduces_every_web_line():
@@ -193,11 +250,17 @@ def test_pdf_copy_reproduces_every_web_line():
     from app.services import eighth_house_copy
 
     golden = Path(__file__).parent / "golden" / "eighth_house" / "eighth_house_copy.json"
-    cases = json.loads(golden.read_text(encoding="utf-8"))["cases"]
+    data = json.loads(golden.read_text(encoding="utf-8"))
+    cases = data["cases"]
     assert len(cases) == 108
     for c in cases:
         assert eighth_house_copy.line(c["factor"], c["lang"]) == c["line"], c
         assert eighth_house_copy.also_counted(c["factor"], c["lang"]) == c["also"], c
+    # OWNER-Q-D4: 2 keys x 3 patterns x 2 languages, and the note under them.
+    assert len(data["joint"]) == 12
+    for c in data["joint"]:
+        assert eighth_house_copy.joint_line(c["key"], c["pattern"], c["lang"]) == c["line"], c
+    assert {n["lang"]: n["text"] for n in data["jointNote"]} == eighth_house_copy.JOINT_NOTE
 
 
 @pytest.mark.parametrize("gender", ["female", "male"])

@@ -1,5 +1,5 @@
 {
- "_note": "Generated from web/lib/eighth-house-copy.ts. web/lib/eighth-house-copy.test.ts and tests/test_faa30_mangalya_sthana.py (the PDF copy) must both reproduce every line. Regenerate only when the web copy changes on purpose.",
+ "_note": "Generated from web/lib/eighth-house-copy.ts (joint lines: WRITE_GOLDEN=1 pnpm vitest run lib/eighth-house-copy.test.ts). web/lib/eighth-house-copy.test.ts and tests/test_faa30_mangalya_sthana.py (the PDF copy) must both reproduce every line. Regenerate only when the web copy changes on purpose.",
  "cases": [
   {
    "factor": {
@@ -2644,6 +2644,90 @@
    "lang": "ta",
    "line": "நவாம்சத்தின் 8ஆம் இடமான துலாம்-இல் புதன் உள்ளது (சுபக் கிரகம், சேர்க்கையால், ஆட்சி, அஸ்தங்கம்).",
    "also": ""
+  }
+ ],
+ "joint": [
+  {
+   "key": "MALEFIC_IN_EIGHTH",
+   "pattern": "BOTH",
+   "lang": "en",
+   "line": "In both charts a malefic sits in the 8th from the lagna, outside its own sign."
+  },
+  {
+   "key": "MALEFIC_IN_EIGHTH",
+   "pattern": "ONE",
+   "lang": "en",
+   "line": "In one chart a malefic sits in the 8th from the lagna, outside its own sign; in the other, none does."
+  },
+  {
+   "key": "MALEFIC_IN_EIGHTH",
+   "pattern": "NEITHER",
+   "lang": "en",
+   "line": "In neither chart does a malefic sit in the 8th from the lagna outside its own sign."
+  },
+  {
+   "key": "EIGHTH_LORD_DEBILITATED_OR_COMBUST",
+   "pattern": "BOTH",
+   "lang": "en",
+   "line": "In both charts the lord of the 8th from the lagna is debilitated or combust."
+  },
+  {
+   "key": "EIGHTH_LORD_DEBILITATED_OR_COMBUST",
+   "pattern": "ONE",
+   "lang": "en",
+   "line": "In one chart the lord of the 8th from the lagna is debilitated or combust; in the other it is neither."
+  },
+  {
+   "key": "EIGHTH_LORD_DEBILITATED_OR_COMBUST",
+   "pattern": "NEITHER",
+   "lang": "en",
+   "line": "In neither chart is the lord of the 8th from the lagna debilitated or combust."
+  },
+  {
+   "key": "MALEFIC_IN_EIGHTH",
+   "pattern": "BOTH",
+   "lang": "ta",
+   "line": "இரண்டு ஜாதகங்களிலும் லக்னத்திலிருந்து 8ஆம் இடத்தில், அதன் சொந்த ராசி அல்லாத இடத்தில், பாவக் கிரகம் உள்ளது."
+  },
+  {
+   "key": "MALEFIC_IN_EIGHTH",
+   "pattern": "ONE",
+   "lang": "ta",
+   "line": "ஒரு ஜாதகத்தில் லக்னத்திலிருந்து 8ஆம் இடத்தில், அதன் சொந்த ராசி அல்லாத இடத்தில், பாவக் கிரகம் உள்ளது; மற்றதில் இல்லை."
+  },
+  {
+   "key": "MALEFIC_IN_EIGHTH",
+   "pattern": "NEITHER",
+   "lang": "ta",
+   "line": "இரண்டு ஜாதகங்களிலும் லக்னத்திலிருந்து 8ஆம் இடத்தில், சொந்த ராசி அல்லாத இடத்தில், பாவக் கிரகம் இல்லை."
+  },
+  {
+   "key": "EIGHTH_LORD_DEBILITATED_OR_COMBUST",
+   "pattern": "BOTH",
+   "lang": "ta",
+   "line": "இரண்டு ஜாதகங்களிலும் லக்னத்திலிருந்து 8ஆம் அதிபதி நீசம் அல்லது அஸ்தங்கம் பெற்றுள்ளது."
+  },
+  {
+   "key": "EIGHTH_LORD_DEBILITATED_OR_COMBUST",
+   "pattern": "ONE",
+   "lang": "ta",
+   "line": "ஒரு ஜாதகத்தில் லக்னத்திலிருந்து 8ஆம் அதிபதி நீசம் அல்லது அஸ்தங்கம் பெற்றுள்ளது; மற்றதில் இரண்டும் இல்லை."
+  },
+  {
+   "key": "EIGHTH_LORD_DEBILITATED_OR_COMBUST",
+   "pattern": "NEITHER",
+   "lang": "ta",
+   "line": "இரண்டு ஜாதகங்களிலும் லக்னத்திலிருந்து 8ஆம் அதிபதி நீசமோ அஸ்தங்கமோ பெறவில்லை."
+  }
+ ],
+ "jointNote": [
+  {
+   "lang": "en",
+   "text": "These two lines compare one thing each: where the same placement repeats in both charts' 8th from the lagna. They are observations, not a dosham and not a decision on the match. Your astrologer reads them with each whole chart, including the Moon-sign lines and the protecting lines above."
+  },
+  {
+   "lang": "ta",
+   "text": "இந்த இரண்டு வரிகளும் தலா ஒன்றை மட்டுமே ஒப்பிடுகின்றன: லக்னத்திலிருந்து 8ஆம் இடத்தில் இரண்டு ஜாதகங்களிலும் ஒரே நிலை வருகிறதா என்பதை. இவை குறிப்புகள் மட்டுமே; தோஷமோ பொருத்த முடிவோ அல்ல. ஒவ்வொரு முழு ஜாதகத்துடனும், மேலே உள்ள ராசி வரிகள், காக்கும் அம்சங்களுடனும் சேர்த்து ஜோதிடர் இவற்றைப் பார்ப்பார்."
   }
  ]
 }

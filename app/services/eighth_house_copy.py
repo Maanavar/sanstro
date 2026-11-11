@@ -158,15 +158,54 @@ def d9_note(note: str | None, lang: str) -> str:
     return ""
 
 
-def joint(pattern: str, lang: str) -> str:
-    en = {
-        "BOTH": "Both charts show malefic influence on the 8th. Read the two together with your astrologer.",
-        "ONE": "One chart shows malefic influence on the 8th; the other does not.",
-        "NEITHER": "Neither chart shows malefic influence on the 8th.",
-    }
-    ta = {
-        "BOTH": "இரண்டு ஜாதகங்களிலும் 8ஆம் இடத்தில் பாவக் கிரகத் தாக்கம் உள்ளது. இரண்டையும் சேர்த்து ஜோதிடரிடம் பார்க்கவும்.",
-        "ONE": "ஒரு ஜாதகத்தில் 8ஆம் இடத்தில் பாவக் கிரகத் தாக்கம் உள்ளது; மற்றதில் இல்லை.",
-        "NEITHER": "இரண்டு ஜாதகங்களிலும் 8ஆம் இடத்தில் பாவக் கிரகத் தாக்கம் இல்லை.",
-    }
-    return (ta if lang == "ta" else en).get(pattern, "")
+_JOINT = {
+    "en": {
+        "MALEFIC_IN_EIGHTH": {
+            "BOTH": "In both charts a malefic sits in the 8th from the lagna, outside its own sign.",
+            "ONE": "In one chart a malefic sits in the 8th from the lagna, outside its own sign; in the other, none does.",
+            "NEITHER": "In neither chart does a malefic sit in the 8th from the lagna outside its own sign.",
+        },
+        "EIGHTH_LORD_DEBILITATED_OR_COMBUST": {
+            "BOTH": "In both charts the lord of the 8th from the lagna is debilitated or combust.",
+            "ONE": "In one chart the lord of the 8th from the lagna is debilitated or combust; in the other it is neither.",
+            "NEITHER": "In neither chart is the lord of the 8th from the lagna debilitated or combust.",
+        },
+    },
+    "ta": {
+        "MALEFIC_IN_EIGHTH": {
+            "BOTH": "இரண்டு ஜாதகங்களிலும் லக்னத்திலிருந்து 8ஆம் இடத்தில், அதன் சொந்த ராசி அல்லாத இடத்தில், பாவக் கிரகம் உள்ளது.",
+            "ONE": "ஒரு ஜாதகத்தில் லக்னத்திலிருந்து 8ஆம் இடத்தில், அதன் சொந்த ராசி அல்லாத இடத்தில், பாவக் கிரகம் உள்ளது; மற்றதில் இல்லை.",
+            "NEITHER": "இரண்டு ஜாதகங்களிலும் லக்னத்திலிருந்து 8ஆம் இடத்தில், சொந்த ராசி அல்லாத இடத்தில், பாவக் கிரகம் இல்லை.",
+        },
+        "EIGHTH_LORD_DEBILITATED_OR_COMBUST": {
+            "BOTH": "இரண்டு ஜாதகங்களிலும் லக்னத்திலிருந்து 8ஆம் அதிபதி நீசம் அல்லது அஸ்தங்கம் பெற்றுள்ளது.",
+            "ONE": "ஒரு ஜாதகத்தில் லக்னத்திலிருந்து 8ஆம் அதிபதி நீசம் அல்லது அஸ்தங்கம் பெற்றுள்ளது; மற்றதில் இரண்டும் இல்லை.",
+            "NEITHER": "இரண்டு ஜாதகங்களிலும் லக்னத்திலிருந்து 8ஆம் அதிபதி நீசமோ அஸ்தங்கமோ பெறவில்லை.",
+        },
+    },
+}
+
+#: Shown once under the joint lines, whenever there are any.
+JOINT_NOTE = {
+    "en": (
+        "These two lines compare one thing each: where the same placement repeats in both charts' 8th from "
+        "the lagna. They are observations, not a dosham and not a decision on the match. Your astrologer "
+        "reads them with each whole chart, including the Moon-sign lines and the protecting lines above."
+    ),
+    "ta": (
+        "இந்த இரண்டு வரிகளும் தலா ஒன்றை மட்டுமே ஒப்பிடுகின்றன: லக்னத்திலிருந்து 8ஆம் இடத்தில் இரண்டு "
+        "ஜாதகங்களிலும் ஒரே நிலை வருகிறதா என்பதை. இவை குறிப்புகள் மட்டுமே; தோஷமோ பொருத்த முடிவோ அல்ல. "
+        "ஒவ்வொரு முழு ஜாதகத்துடனும், மேலே உள்ள ராசி வரிகள், காக்கும் அம்சங்களுடனும் சேர்த்து ஜோதிடர் "
+        "இவற்றைப் பார்ப்பார்."
+    ),
+}
+
+
+def joint_line(key: str, pattern: str, lang: str) -> str:
+    """One joint line (OWNER-Q-D4: one cause per line, lagna 8th only)."""
+    return _JOINT["ta" if lang == "ta" else "en"][key][pattern]
+
+
+def joint_lines(lines: Any, lang: str) -> list[str]:
+    """The joint lines as sentences, in wire order. [] when they do not apply."""
+    return [joint_line(_g(j, "key", "key"), _g(j, "pattern", "pattern"), lang) for j in lines]

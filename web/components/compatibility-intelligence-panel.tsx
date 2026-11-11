@@ -13,10 +13,11 @@ import { verdictPhraseOrKey } from "@/lib/verdict-lexicon";
 import { crossChartBadge, crossChartLine, crossChartRowVisible, crossChartTone } from "@/lib/cross-chart-copy";
 import {
   EIGHTH_HOUSE_INTRO,
+  EIGHTH_HOUSE_JOINT_NOTE,
   eighthHouseAlsoCounted,
   eighthHouseD9Note,
   eighthHouseGroupLabel,
-  eighthHouseJoint,
+  eighthHouseJointLines,
   eighthHouseLine,
   eighthHouseNotApplied,
   eighthHouseTitle,
@@ -677,8 +678,15 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
               </div>
             ))}
           </div>
-          {eighthHouseJoint(d.eighthHouse, lang) && (
-            <p style={{ margin: "10px 0 0", fontSize: "0.78rem", color: W.inkMid, lineHeight: 1.55 }}>{eighthHouseJoint(d.eighthHouse, lang)}</p>
+          {eighthHouseJointLines(d.eighthHouse, lang).length > 0 && (
+            <div style={{ marginTop: "10px" }}>
+              <ul style={{ margin: 0, paddingLeft: "18px", display: "flex", flexDirection: "column", gap: "4px" }}>
+                {eighthHouseJointLines(d.eighthHouse, lang).map((line, i) => (
+                  <li key={i} style={{ fontSize: "0.78rem", color: W.inkMid, lineHeight: 1.55 }}>{line}</li>
+                ))}
+              </ul>
+              <p style={{ margin: "6px 0 0", fontSize: "0.72rem", color: W.muted, lineHeight: 1.55 }}>{EIGHTH_HOUSE_JOINT_NOTE[lang]}</p>
+            </div>
           )}
         </SectionCard>
       )}

@@ -46,6 +46,7 @@ from app.schemas.relationships import (
     DirectSynastryData,
     DirectSynastryResponse,
     EighthHouseCoupleData,
+    EighthHouseJointLineData,
     EighthHouseReadingData,
     EkaNakshatraData,
     EmotionalCompatibility,
@@ -1078,7 +1079,7 @@ def build_compatibility_intelligence_from_snapshots(
             EighthHouseCoupleData(
                 person_a=EighthHouseReadingData.from_reading(ci.mangalya_a),
                 person_b=EighthHouseReadingData.from_reading(ci.mangalya_b),
-                joint=ci.mangalya_joint,
+                joint=[EighthHouseJointLineData(key=x.key, pattern=x.pattern) for x in ci.mangalya_joint],
             )
             if ci.mangalya_a is not None and ci.mangalya_b is not None
             else None

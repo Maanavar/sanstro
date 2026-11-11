@@ -2193,15 +2193,24 @@ export interface EighthHouseReading {
   eighthFromMoon: number | null;
   factors: EighthHouseFactor[];
   d9Note: "D9_LAGNA_UNRELIABLE" | "D9_UNAVAILABLE" | null;
-  maleficInfluence: boolean;
+  /** OWNER-Q-D4: the two facts the joint lines compare, lagna 8th only. */
+  maleficInLagnaEighth: boolean;
+  lagnaEighthLordDebilitatedOrCombust: boolean;
   tier: "engine_inference";
+}
+
+/** One shared observation, named by its cause (OWNER-Q-D4). A pattern, never a sum. */
+export interface EighthHouseJointLine {
+  key: "MALEFIC_IN_EIGHTH" | "EIGHTH_LORD_DEBILITATED_OR_COMBUST";
+  pattern: "BOTH" | "ONE" | "NEITHER";
 }
 
 export interface EighthHouseCouple {
   personA: EighthHouseReading;
   personB: EighthHouseReading;
-  /** Shown beside the samyam layers, never merged into them. */
-  joint: "BOTH" | "ONE" | "NEITHER" | "NOT_APPLIED";
+  /** Shown beside the samyam layers, never merged into them. Empty when either
+   *  gender is not stated. */
+  joint: EighthHouseJointLine[];
 }
 
 export interface CompatibilityIntelligenceData {

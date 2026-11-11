@@ -127,9 +127,13 @@ class EighthHouseReading:
     factors: tuple[EighthHouseFactor, ...]
     #: None when D9 lines are present; a reason key when they were dropped.
     d9_note: Literal["D9_LAGNA_UNRELIABLE", "D9_UNAVAILABLE"] | None
-    #: True when a malefic (not in its own house) occupies or aspects either 8th,
-    #: or either 8th lord is debilitated or combust. A description, not a grade.
-    malefic_influence: bool
+    #: The two facts the joint lines compare (OWNER-Q-D4, ruled 2026-11-12: E).
+    #: Lagna 8th only, by placement only; read off ``factors``, so a joint line
+    #: can never disagree with the lines listed above it. Descriptions, not grades.
+    #: A malefic (not in its own sign, Phaladeepika 11.1) occupies the lagna's 8th.
+    malefic_in_lagna_eighth: bool = False
+    #: The lagna's 8th lord is debilitated or combust (cazimi is not combust).
+    lagna_eighth_lord_debilitated_or_combust: bool = False
     tier: str = "engine_inference"
 
 
@@ -177,7 +181,7 @@ def _lordship(lagna_rasi: int, graha: str) -> tuple[str, ...]:
 def one_chart(chart: EighthHouseChart, gender: str | None) -> EighthHouseReading:
     role = stated_role(gender)
     if role == "NOT_APPLIED":
-        return EighthHouseReading("NOT_APPLIED", None, None, None, (), None, False)
+        return EighthHouseReading("NOT_APPLIED", None, None, None, (), None)
 
     present = [g for g in _GRAHAS if g in chart.planet_rasi]
     factors: list[EighthHouseFactor] = []
@@ -194,7 +198,6 @@ def one_chart(chart: EighthHouseChart, gender: str | None) -> EighthHouseReading
             also_counted_in=tuple(linked), rule=rule, tier=tier_of(rule),
         ))
 
-    influenced = False
     for ref, ref_rasi in (("LAGNA", chart.lagna_rasi), ("MOON", chart.moon_rasi)):
         eighth = _nth(ref_rasi, 8)
         lord = SIGN_LORD[eighth]
@@ -216,12 +219,10 @@ def one_chart(chart: EighthHouseChart, gender: str | None) -> EighthHouseReading
             linked = [d for d, gs in _DOSHAM_GRAHAS.items() if g in gs and ref in chart.dosham_references.get(d, ())]
             rule = PHALADEEPIKA_11_1_OWN_HOUSE.id if own and nature == "MALEFIC" and verse else house_rule
             add("OCCUPANT", ref, g, r, 8, via="IN", target="HOUSE", own_house=own, rule=rule, linked=linked)  # type: ignore[arg-type]
-            influenced |= nature == "MALEFIC" and not own
 
         if lord_rasi is not None:
             add("LORD", ref, lord, lord_rasi, h(lord_rasi), via="IN", target="LORD", own_house=lord_rasi == eighth,  # type: ignore[arg-type]
                 rule=house_rule)
-            influenced |= _dignity(lord, lord_rasi) == "DEBILITATED" or lord in chart.combust
 
         for g in present:
             r = chart.planet_rasi[g]
@@ -230,7 +231,6 @@ def one_chart(chart: EighthHouseChart, gender: str | None) -> EighthHouseReading
             if nature == "MALEFIC" and r != eighth and aspects_house(g, r, eighth):
                 add("INFLUENCE", ref, g, r, h(r), via="ASPECT", target="HOUSE", own_house=own,  # type: ignore[arg-type]
                     rule=GROUP_D_RULINGS_2026_11_11.id)
-                influenced |= not own
             if nature == "MALEFIC" and lord_rasi is not None and g != lord:
                 if r == lord_rasi:
                     add("INFLUENCE", ref, g, r, h(r), via="CONJUNCT", target="LORD", own_house=False,  # type: ignore[arg-type]
@@ -275,7 +275,12 @@ def one_chart(chart: EighthHouseChart, gender: str | None) -> EighthHouseReading
         eighth_from_moon=_nth(chart.moon_rasi, 8),
         factors=tuple(factors),
         d9_note=d9_note,
-        malefic_influence=influenced,
+        malefic_in_lagna_eighth=any(
+            f.kind == "OCCUPANT" and f.reference == "LAGNA" and f.nature == "MALEFIC" and not f.own_house for f in factors
+        ),
+        lagna_eighth_lord_debilitated_or_combust=any(
+            f.kind == "LORD" and f.reference == "LAGNA" and (f.dignity == "DEBILITATED" or f.combust) for f in factors
+        ),
     )
 
 
@@ -323,12 +328,42 @@ def chart_from_snapshot(
     )
 
 
-JointPattern = Literal["BOTH", "ONE", "NEITHER", "NOT_APPLIED"]
+JointKey = Literal["MALEFIC_IN_EIGHTH", "EIGHTH_LORD_DEBILITATED_OR_COMBUST"]
+JointPattern = Literal["BOTH", "ONE", "NEITHER"]
 
 
-def joint_pattern(a: EighthHouseReading, b: EighthHouseReading) -> JointPattern:
-    """Assessment 3: shown beside the samyam layers, never merged into them."""
+@dataclass(frozen=True, slots=True)
+class JointLine:
+    """One shared observation, named by its cause. A pattern, never a sum."""
+
+    key: JointKey
+    pattern: JointPattern
+
+
+def joint_lines(a: EighthHouseReading, b: EighthHouseReading) -> tuple[JointLine, ...]:
+    """Assessment 3, shown beside the samyam layers and never merged into them.
+
+    OWNER-Q-D4 (ruled 2026-11-12, option E): two separate lines, each read from
+    the lagna's 8th only and by placement only, so each names its own cause. The
+    Moon-side lines, aspects, conjunctions and protection lines stay on each
+    chart's own reading and never open a joint line. The lagna side is where
+    Phaladeepika 11.1 was checked; the Moon may be the translator's gloss.
+
+    Measured on 2,000 synthetic couples (scripts/audit/faa30_joint_measurements.py,
+    seed 30): BOTH 11.2% and 7.0%, against 99.3% for the merged aspect line it
+    replaces. Neither line is a dosham or a verdict on the match. With no stated
+    gender on either side there are no lines.
+    """
     if a.role == "NOT_APPLIED" or b.role == "NOT_APPLIED":
-        return "NOT_APPLIED"
-    n = a.malefic_influence + b.malefic_influence
-    return "BOTH" if n == 2 else "ONE" if n == 1 else "NEITHER"
+        return ()
+
+    def pattern(x: bool, y: bool) -> JointPattern:
+        return "BOTH" if x and y else "ONE" if x or y else "NEITHER"
+
+    return (
+        JointLine("MALEFIC_IN_EIGHTH", pattern(a.malefic_in_lagna_eighth, b.malefic_in_lagna_eighth)),
+        JointLine(
+            "EIGHTH_LORD_DEBILITATED_OR_COMBUST",
+            pattern(a.lagna_eighth_lord_debilitated_or_combust, b.lagna_eighth_lord_debilitated_or_combust),
+        ),
+    )

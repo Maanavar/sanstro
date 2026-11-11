@@ -619,7 +619,9 @@ class EighthHouseReadingData(BaseModel):
     eighth_from_moon: int | None = Field(default=None, alias="eighthFromMoon")
     factors: list[EighthHouseFactorData] = Field(default_factory=list)
     d9_note: Literal["D9_LAGNA_UNRELIABLE", "D9_UNAVAILABLE"] | None = Field(default=None, alias="d9Note")
-    malefic_influence: bool = Field(default=False, alias="maleficInfluence")
+    #: OWNER-Q-D4: the two facts the joint lines compare, lagna 8th only.
+    malefic_in_lagna_eighth: bool = Field(default=False, alias="maleficInLagnaEighth")
+    lagna_eighth_lord_debilitated_or_combust: bool = Field(default=False, alias="lagnaEighthLordDebilitatedOrCombust")
     tier: Literal["engine_inference"] = "engine_inference"
 
     model_config = ConfigDict(populate_by_name=True)
@@ -639,17 +641,25 @@ class EighthHouseReadingData(BaseModel):
                 )
                 for f in r.factors
             ],
-            d9_note=r.d9_note, malefic_influence=r.malefic_influence,
+            d9_note=r.d9_note, malefic_in_lagna_eighth=r.malefic_in_lagna_eighth,
+            lagna_eighth_lord_debilitated_or_combust=r.lagna_eighth_lord_debilitated_or_combust,
         )
 
 
+class EighthHouseJointLineData(BaseModel):
+    """One shared observation, named by its cause (OWNER-Q-D4). Lagna 8th only."""
+
+    key: Literal["MALEFIC_IN_EIGHTH", "EIGHTH_LORD_DEBILITATED_OR_COMBUST"]
+    pattern: Literal["BOTH", "ONE", "NEITHER"]
+
+
 class EighthHouseCoupleData(BaseModel):
-    """FAA-30 on CI: each chart, plus the joint pattern (shown beside the
-    samyam layers, never merged into them)."""
+    """FAA-30 on CI: each chart, plus the joint lines (shown beside the samyam
+    layers, never merged into them). Empty when either gender is not stated."""
 
     person_a: EighthHouseReadingData = Field(alias="personA")
     person_b: EighthHouseReadingData = Field(alias="personB")
-    joint: Literal["BOTH", "ONE", "NEITHER", "NOT_APPLIED"]
+    joint: list[EighthHouseJointLineData] = Field(default_factory=list)
 
     model_config = ConfigDict(populate_by_name=True)
 
