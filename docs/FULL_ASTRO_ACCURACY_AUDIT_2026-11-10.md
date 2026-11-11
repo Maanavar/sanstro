@@ -23,6 +23,24 @@ Builds on: `FULL_SYSTEM_AUDIT_2026-10-21.md`, `FULL_CODEBASE_AUDIT_2026-10-22.md
 Festivals/observances and the 27 nakshatra dasa-prose pages were covered by those and are
 not re-audited.
 
+### Build status (2026-11-11)
+
+Built on `feat/tamil-voice-v4`; tests in `tests/test_faa_group_a.py`,
+`mobile/__tests__/d9-lagna-from-server.test.ts`, `web/lib/marketing-copy-parity.test.ts`.
+Rulings, the gender policy, Group C source findings and what is still open:
+**`docs/FAA_DECISIONS_2026-11-11.md`**. Every Tamil string these fixes added or changed still
+needs the native-Tamil review §12.5 asks for; `[x]` below means built and tested, not reviewed.
+
+- `[x]` Groups A and B: FAA-01, 04–15, 17–24, 26, 27, 39–43; and from Kalaprakasika (now the
+  governing porutham text): FAA-03, 34, 35.
+- `[~]` FAA-02 (step 1 only: recommendation withdrawn behind
+  `rectification_recommendation_enabled`), FAA-25 (promise removed; grading needs a source).
+- `[x]` FAA-16 complete 2026-11-11: gate, score, prasna (querent's own stated gender) and
+  CI chart strength (each chart's stated gender) all read both karakas by role.
+- Group D: specs drafted in `docs/GROUP_D_SPECS_2026-11-11.md` (owner review; not built).
+- `[ ]` FAA-28, 36–38 (Group C), FAA-30–33 and FAA-02 step 2 (Group D), FAA-39b,
+  §9 FAA-44–48, §13 FAA-49–59.
+
 ### How to read an item
 
 Status: `[ ]` open · `[~]` partly done / held · `[x]` done.
@@ -160,7 +178,7 @@ Promoting any R item to P needs the page cited beside it.
 
 ## 2. P0 — wrong output reaching a reader today
 
-### FAA-01 `[ ]` Mobile Navamsa (D9) lagna is one sign off for fixed and dual lagnas
+### FAA-01 `[x]` Mobile Navamsa (D9) lagna is one sign off for fixed and dual lagnas
 **Class** `CALC` · **Group A**
 - **Where:** `mobile/app/(tabs)/tools/jadhagam.tsx:36-44`, `mobile/app/jadhagam/[id].tsx:41-49`
   (`navamsaRasiFromDegree`).
@@ -179,7 +197,7 @@ Promoting any R item to P needs the page cited beside it.
   (Mesham 0° → 1, Rishabam 0° → 10, Mithunam 0° → 7, Kadagam 0° → 4); it fails on the
   current code for signs 2,3,5,6,8,9,11,12.
 
-### FAA-02 `[ ]` Birth-time rectification scores are astrologically meaningless
+### FAA-02 `[~]` Birth-time rectification scores are astrologically meaningless
 **Class** `DEFECT` — logic defect (current algorithm: no formula is wrong; it compares the
 wrong things and never reads the event date) + `GAP` (replacement method) · **Group A** to
 withdraw, **Group D** to replace
@@ -221,7 +239,7 @@ withdraw, **Group D** to replace
   one event, or three year-only events, the tool declines to recommend; no copy string
   calls a candidate "your correct birth time".
 
-### FAA-03 `[ ]` Vasya: Simha row overrides its own cited source on an unverified premise
+### FAA-03 `[x]` Vasya: Simha row overrides its own cited source on an unverified premise
 **Class** `SOURCE` · **Group C**
 - **Where:** `app/calculations/porutham.py::_VASYA` (row 5 and the comment above it).
 - **Problem:** the comment says Jothidam p.69 prints **Simha → Makara** and dismisses it as
@@ -236,7 +254,7 @@ withdraw, **Group D** to replace
 - **Acceptance:** `_VASYA` equals the chosen source's full table, cited by page; test
   pins row 5 in the ruled direction.
 
-### FAA-04 `[ ]` Public pages still carry the excised Rajju lifespan framing and call Nadi a dealbreaker
+### FAA-04 `[x]` Public pages still carry the excised Rajju lifespan framing and call Nadi a dealbreaker
 **Class** `COPY` · **Group A**
 - **Where:** `web/app/(marketing)/learn/what-is-porutham/page.tsx:66` ("associated with
   longevity concerns for the spouse"); `web/app/(marketing)/tools/marriage-porutham-calculator/PoruthamPageContent.tsx:20`
@@ -259,7 +277,7 @@ withdraw, **Group D** to replace
   confirm it fails); learn page and engine summary agree on what "7/10" and Nadi mean;
   Tamil strings reviewed.
 
-### FAA-05 `[ ]` Public Sevvai and Naga pages state formation/cancellation rules the engine's rulings reject
+### FAA-05 `[x]` Public Sevvai and Naga pages state formation/cancellation rules the engine's rulings reject
 **Class** `COPY` (pages vs ruled engine) · **Group A** for the parity fix; any change to the
 rulings themselves is **Group B**
 - **Where:** `web/lib/marketing-i18n/dosham-sevvai.ts:80-88, 100-102, 125`;
@@ -294,7 +312,7 @@ rulings themselves is **Group B**
 
 ## 3. P1 — contradictions between surfaces (same fact, two answers)
 
-### FAA-06 `[ ]` Janma tara is a penalty in Today and a bonus in the muhurta picker
+### FAA-06 `[x]` Janma tara is a penalty in Today and a bonus in the muhurta picker
 **Class** `PARITY` + `DOCTRINE` · **Group B**
 - **Where:** `app/services/_dg_scoring.py::TARA_DELTA` (Janma = **−20**);
   `app/calculations/tara_bala.py::TARA_SCORE` (Janma = **+8**) read by
@@ -308,7 +326,7 @@ rulings themselves is **Group B**
   then carry the same sign and the display word matches the score direction.
 - **Acceptance:** parity test `sign(TARA_DELTA[k]) == sign(TARA_SCORE[k])` for k in 1..9.
 
-### FAA-07 `[ ]` Inauspicious nitya yoga and Vishti karana block the badge but score zero in the picker
+### FAA-07 `[x]` Inauspicious nitya yoga and Vishti karana block the badge but score zero in the picker
 **Class** `PARITY` · **Group B** (weights and activity exceptions), engineering then Group A
 - **Where:** `muhurta_engine._almanac_yoga_factor` (zero, "not sourced yet") vs
   `panchangam.ASHUBHA_YOGAS` (AAU-15: "the one table" for the strict badge and daily
@@ -323,7 +341,7 @@ rulings themselves is **Group B**
 - **Acceptance:** no vetoed-badge day ranks above an unblocked day with the same other
   factors, except where a cited chapter rule says so.
 
-### FAA-08 `[ ]` Two hora definitions in one engine, the second unlabelled
+### FAA-08 `[x]` Two hora definitions in one engine, the second unlabelled
 **Class** `PARITY` + `DOCTRINE` · **Group B**
 - **Where:** `panchangam._make_hora_entries` (24 equal 60-min hours from sunrise) vs
   `shadbala._hora_lord` (day/12 and night/12 unequal horas).
@@ -340,7 +358,7 @@ rulings themselves is **Group B**
 - **Acceptance:** each surface names its hora system; the panchangam surface does not
   claim to be the classical unequal hora.
 
-### FAA-09 `[ ]` Jupiter's house from the Moon is charged twice in the daily transit score
+### FAA-09 `[x]` Jupiter's house from the Moon is charged twice in the daily transit score
 **Class** `PARITY` (double count) · **Group A**
 - **Where:** `app/services/_dg_scoring.py:675-694` (`transit_component`). Jupiter is scored
   via `GOCHARA_HOUSE_SCORE` (weight 0.18) **and** via `_JUPITER_FROM_MOON_MODIFIER` —
@@ -358,7 +376,7 @@ rulings themselves is **Group B**
 - **Acceptance:** Jupiter's house from the Moon moves the score through one term only;
   distribution delta recorded.
 
-### FAA-10 `[ ]` A fit star is credited twice by two generic muhurta layers
+### FAA-10 `[x]` A fit star is credited twice by two generic muhurta layers
 **Class** `PARITY` (double count) · **Group A**
 - **Where:** `muhurta_engine._almanac_nakshatra_factor` (+10, `FIT_STARS`) and
   `_almanac_day_quality_factor` (+20, `is_subha_muhurtham`, itself the FIT-star verdict
@@ -369,7 +387,7 @@ rulings themselves is **Group B**
   their own chip); re-measure p50/p95.
 - **Acceptance:** one star chip, one star contribution, per day.
 
-### FAA-11 `[ ]` Curated wedding list carries Aani and Aavani day numbers one day off the published calendar
+### FAA-11 `[x]` Curated wedding list carries Aani and Aavani day numbers one day off the published calendar
 **Class** `PARITY` · **Group A**
 - **Where:** `app/data/muhurtham_naals.py` rows 2026-06-17…07-12 (stored Aani 2…27;
   published Aani 1 = 15 Jun, so Aani 3…28) and 2026-08-23…09-13 (stored Aavani 7…28;
@@ -382,7 +400,7 @@ rulings themselves is **Group B**
   (Chennai reference) instead of storing them.
 - **Acceptance:** drift test (stored label == engine label) passes for 2026 and 2027.
 
-### FAA-12 `[ ]` Venus–Venus 2/12 is STRONG while Moon–Moon 2/12 is MIXED in the same module
+### FAA-12 `[x]` Venus–Venus 2/12 is STRONG while Moon–Moon 2/12 is MIXED in the same module
 **Class** `PARITY` + `DOCTRINE` · **Group B** for the grade, **Group A** for the dead code
 - **Where:** `compatibility_intelligence._compute_emotional_compatibility`
   (`venus_rasi_diff in {1, 2, 12, 5, 9}` → STRONG) vs `_MOON_HARMONY_TABLE` (2/12 = MIXED,
@@ -395,7 +413,7 @@ rulings themselves is **Group B**
   surfaces in one change).
 - **Acceptance:** each row's table is named and cited; dead code gone.
 
-### FAA-13 `[ ]` Health karaka differs between two tables in `life_areas_service.py`
+### FAA-13 `[x]` Health karaka differs between two tables in `life_areas_service.py`
 **Class** `PARITY` · **Group A** (route to the pinned table); adding Moon is **Group B**
 - **Where:** `_AREA_KARAKA["HEALTH"] = ["SUN","MARS"]` (line ~267, pinned to
   `karaka_chains`) vs `_AREA_ROUTING["HEALTH"]["karaka"] = ["SUN","MOON"]` (line ~415,
@@ -407,7 +425,7 @@ rulings themselves is **Group B**
 - **Acceptance:** one health karaka set; the agreement test fails with the old literal
   restored.
 
-### FAA-14 `[ ]` Gandanta: the score uses 3°20′, the display calls ≤5° "mild gandanta"
+### FAA-14 `[x]` Gandanta: the score uses 3°20′, the display calls ≤5° "mild gandanta"
 **Class** `PARITY` · **Group A**
 - **Where:** `transits.is_gandanta` (last/first 3°20′ only, −10 in the score) vs
   `nakshatra_analysis.gandanta_detail` (DEEP ≤40′, MODERATE ≤3°20′, MILD ≤5°, symmetric).
@@ -427,7 +445,7 @@ rulings themselves is **Group B**
   120°), Kettai/Moolam (Viruchigam/Dhanusu, 240°). Distance is the shortest angular
   distance to the junction, measured on **both** sides, including the 360°/0° wrap.
 
-### FAA-15 `[ ]` Amavasai is "inauspicious" to the badge and "sacred, not penalised" to the score
+### FAA-15 `[x]` Amavasai is "inauspicious" to the badge and "sacred, not penalised" to the score
 **Class** `PARITY` · **Group B** (the sentence), then Group A
 - **Where:** `panchangam._day_block_reason` ("Inauspicious: Amavasai tithi") vs
   `_dg_scoring._tithi_penalty` comment ("NOT penalised: a sacred Pitru Tarpan day") and
@@ -443,7 +461,7 @@ rulings themselves is **Group B**
 
 ## 4. P1 — wrong or partial astrology in predictions, scores and precautions
 
-### FAA-16 `[ ]` Marriage stack is gender-blind: Guru is never read for the bride
+### FAA-16 `[x]` Marriage stack is gender-blind: Guru is never read for the bride
 **Class** `GAP` + `DOCTRINE` · **Group B** (role split), then Group A
 - **Where:** `marriage_service._marriage_promise_gate` (karaka = VENUS always),
   `_score_marriage_prediction` (Venus only), `compatibility_intelligence._compute_chart_marriage_strength`
@@ -482,7 +500,7 @@ rulings themselves is **Group B**
   fixture where one planet is karaka and 7th lord shows two lines; an unknown-gender
   fixture reads both and says so.
 
-### FAA-17 `[ ]` Marriage "timing window" is always today → 31 December
+### FAA-17 `[x]` Marriage "timing window" is always today → 31 December
 **Class** `DEFECT` · **Group A**
 - **Where:** `marriage_service.assess_marriage_prediction`
   (`timing_window_end=date(payload.as_of.year, 12, 31)` on every path).
@@ -491,7 +509,7 @@ rulings themselves is **Group B**
 - **Acceptance:** two fixtures with different dashas get different windows; none ends on
   31 Dec by construction.
 
-### FAA-18 `[ ]` Event windows sample fast transits on one day per year
+### FAA-18 `[x]` Event windows sample fast transits on one day per year
 **Class** `DEFECT` · **Group A**
 - **Where:** `event_windows._year_anchor` (1 July for future years) → `venus_support`,
   `sun_support` read on that day; "venus_transits_7th" earns +10 for the whole window when
@@ -499,7 +517,7 @@ rulings themselves is **Group B**
 - **Fix:** test fast-planet support over the window span (any day Venus/Sun is in the
   house), or drop the fast-planet terms from year windows.
 
-### FAA-19 `[ ]` 7th lord in the 2nd or 3rd is labelled "in a challenging house"
+### FAA-19 `[x]` 7th lord in the 2nd or 3rd is labelled "in a challenging house"
 **Class** `DOCTRINE` (rev. 2: moved from mechanical) · **Group B**
 - **Where:** `marriage_service._score_marriage_prediction` (`seventh_lord_house in
   {1,4,5,7,9,10,11}` else −8 + "7ம் அதிபதி கஷ்ட வீட்டில்"); same shape for the 4th lord
@@ -517,13 +535,13 @@ rulings themselves is **Group B**
 - **Acceptance:** dusthana label only on 6/8/12; 2/3/11 bands match the ruling; a fixture
   with a dignified 7th lord in the 2nd gets no negative verdict from placement alone.
 
-### FAA-20 `[ ]` Neutral Venus prints "Venus offers support"
+### FAA-20 `[x]` Neutral Venus prints "Venus offers support"
 **Class** `DEFECT` · **Group A**
 - **Where:** `marriage_service` `venus_support >= 0` → SUPPORT + "சுக்கிரன் ஆதரவு உள்ளது"
   when `venus_support == 0`.
 - **Fix:** three-way copy (support / neutral / reduced). Neutral stays neutral.
 
-### FAA-21 `[ ]` Non-marriage compatibility contexts use bride→groom directional kutas
+### FAA-21 `[x]` Non-marriage compatibility contexts use bride→groom directional kutas
 **Class** `DEFECT` · **Group A**
 - **Where:** `synastry_service._CONTEXT_KUTA_MASK` FRIENDSHIP/BUSINESS/FAMILY/GENERAL
   include Dinam and Rasi, both counted girl→boy; `_assign_bride_groom` falls back to
@@ -533,14 +551,14 @@ rulings themselves is **Group B**
   Maitri, Vasya mutual), or evaluate both directions and report the symmetric reading.
 - **Acceptance:** swapping A and B leaves every non-marriage verdict unchanged.
 
-### FAA-22 `[ ]` "Sthira kuta" is not a porutham
+### FAA-22 `[x]` "Sthira kuta" is not a porutham
 **Class** `COPY` · **Group A**
 - **Where:** `synastry_service._CONTEXT_NOTE["MARRIAGE"]` ("ஸ்தீர கூடம் (நிலைத்த தன்மை)
   மற்றும் ரஜ்ஜு தோஷம் முக்கியம்").
 - **Fix:** name real kutas (Rajju, Vedha, Dinam) or delete the line. Never present a term
   as a standard porutham without a source.
 
-### FAA-23 `[ ]` Relationship alerts ship romanised Tanglish with raw tokens
+### FAA-23 `[x]` Relationship alerts ship romanised Tanglish with raw tokens
 **Class** `COPY` · **Group A**
 - **Where:** `synastry_service.check_transit_activation` lines 466-470
   (`message_ta = f"{planet} {target_name} point-ai nerukkamaaga activate seigiradhu…"`,
@@ -548,7 +566,7 @@ rulings themselves is **Group B**
 - **Fix:** natural Tamil script through `planet_ta`; replace "A/B" with the member's name
   or role; native-Tamil review.
 
-### FAA-24 `[ ]` Eclipse-birth flag fires a day either side and claims "the Sun is briefly covered"
+### FAA-24 `[x]` Eclipse-birth flag fires a day either side and claims "the Sun is briefly covered"
 **Class** `CALC` · **Group A**
 - **Where:** `birth_conditions.detect_grahana_birth` (13° syzygy orb ≈ 26 h; mean node; no
   eclipse test) with copy "born at or very near a solar eclipse".
@@ -566,7 +584,7 @@ rulings themselves is **Group B**
   a known eclipse maximum → flag with the right type; a lunar eclipse not visible at the
   birthplace → flag without a "visible" claim.
 
-### FAA-25 `[ ]` Kala Sarpa page promises a graded effect the engine never computes
+### FAA-25 `[~]` Kala Sarpa page promises a graded effect the engine never computes
 **Class** `COPY` + `SOURCE` · **Group A** (remove the promise) / **Group C** (to grade)
 - **Where:** `dosham-kala-sarpa.ts:14,102` ("ranges from mild to intense depending on the
   type and planetary strengths", Mahapadma mild, Sheshanaga auspicious) vs `yogas.py`
@@ -574,7 +592,7 @@ rulings themselves is **Group B**
 - **Fix:** remove the promise now. Grading by type only after a cited source for the
   twelve types and their effects.
 
-### FAA-26 `[ ]` Nishita tithi uses civil midnight, not the midpoint of the night
+### FAA-26 `[x]` Nishita tithi uses civil midnight, not the midpoint of the night
 **Class** `CALC` · **Group A**
 - **Where:** `panchangam.compute_daily_panchangam` (`next_midnight_jd` = local civil
   00:00). Nishita kala is the muhurta around the midpoint of local sunset → next sunrise
@@ -592,7 +610,7 @@ rulings themselves is **Group B**
   the interval); 26-year scan re-run, every moved date listed and checked against a
   printed almanac.
 
-### FAA-27 `[ ]` Pitru dosham raises instead of returning INCOMPLETE_DATA when the 9th lord is missing
+### FAA-27 `[x]` Pitru dosham raises instead of returning INCOMPLETE_DATA when the 9th lord is missing
 **Class** `DEFECT` · **Group A**
 - **Where:** `_yoga_dosham.detect_pitru_dosham` (`ninth_lord_rasi = _planet_rasi(planets,
   ninth_lord)` outside the `missing_data` guard).
@@ -653,9 +671,9 @@ timing, supportive vs challenging factors. **D7 is supporting evidence, never a 
 gate.** Advisory voice; never a prediction of having or not having children.
 ### FAA-33 `[ ]` Classical cross-chart reference (groom's 7th lord in the bride's chart and
 vice versa; each one's Lagna/Moon as the other's 7th) — **Class** `GAP` · Group D.
-### FAA-34 `[~]` Madhyama tiers for Gana, Yoni, Rasi — only Stree Dirgha is graded; the
+### FAA-34 `[x]` Madhyama tiers for Gana, Yoni, Rasi — only Stree Dirgha is graded; the
 rest are binary by design, pending Jothidam p.68. **Class** `SOURCE` · Group C.
-### FAA-35 `[~]` Eka-nakshatra pada classification — disclosure only, table held
+### FAA-35 `[x]` Eka-nakshatra pada classification — disclosure only, table held
 (F-POR-03). **Class** `SOURCE` · Group C.
 ### FAA-36 `[ ]` Pada-level Rajju/Vedha refinements (ascending/descending rajju) — not
 built. **Class** `SOURCE` + `DOCTRINE` · Group C.
@@ -668,20 +686,20 @@ see FAA-07; Tyajya needs its table sourced. **Class** `GAP` + `SOURCE` · Group 
 
 ## 6. P3 — copy and labelling that misstates a fact (all Group A unless noted)
 
-- **FAA-39** `web/lib/natchathiram-data.ts` Anusham deity = "மகாலட்சுமி"; classical
+- `[x]` **FAA-39** `web/lib/natchathiram-data.ts` Anusham deity = "மகாலட்சுமி"; classical
   adhi-devata is Mitra (மித்திரன்). Gana spelt four ways (ராட்சஸ / ராக்ஷச / ராட்சச /
   அசுர), dasa spelt தசை and திசை across pages — pick one per the Tamil voice sheet.
   `COPY`.
 - **FAA-39b** D9 on mobile also needs the D9 7th and its lord labelled from the server
   data once FAA-01 lands. `DEFECT`.
-- **FAA-40** `_chart_build.py:276-277` birth panchangam `sunrise_time`/`sunset_time` use
+- `[x]` **FAA-40** `_chart_build.py:276-277` birth panchangam `sunrise_time`/`sunset_time` use
   `%I:%M:%S %p` (English am/pm) on a bilingual field; Tamil clock-period rule bans "pm".
   `COPY`.
-- **FAA-41** `_dg_hora.py` docstring still says 62-minute horas (60 min since EC-RULING-03).
+- `[x]` **FAA-41** `_dg_hora.py` docstring still says 62-minute horas (60 min since EC-RULING-03).
   `COPY`.
-- **FAA-42** `learn-chandrashtama.ts:7` says the sign transit takes "about 2.5 days"; it is
+- `[x]` **FAA-42** `learn-chandrashtama.ts:7` says the sign transit takes "about 2.5 days"; it is
   2¼ (the engine's own copy says இரண்டே கால்). `COPY`.
-- **FAA-43** `dosham-sevvai.ts:80` calls Makaram exaltation Mars "strongest" as if that
+- `[x]` **FAA-43** `dosham-sevvai.ts:80` calls Makaram exaltation Mars "strongest" as if that
   softened the dosham, while the ruling marks exaltation a *reduction* factor; fold into
   FAA-05. `COPY`.
 
