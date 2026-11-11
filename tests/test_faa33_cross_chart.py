@@ -4,7 +4,9 @@ Synthetic rasi placements only; no person, no birth data.
 """
 from __future__ import annotations
 
+import json
 from dataclasses import replace
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -19,6 +21,7 @@ from app.calculations.cross_chart import (
     one_way,
     seventh_lord_of,
 )
+from app.services import cross_chart_copy
 
 _GRAHAS = ("SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN", "RAHU", "KETU")
 
@@ -112,6 +115,22 @@ def test_one_way_never_reads_the_destinations_planets():
     not move (they read only B's lagna and Moon)."""
     scrambled = ChartPoints(B.lagna_rasi, {g: (B.planet_rasi[g] if g == "MOON" else 2) for g in _GRAHAS})
     assert one_way(A, B, "A_TO_B") == one_way(A, scrambled, "A_TO_B")
+
+
+_PARITY = Path(__file__).parent / "golden" / "cross_chart" / "cross_chart_copy.json"
+
+
+def test_pdf_copy_reproduces_every_web_line():
+    """The PDF copy mirrors web/lib/cross-chart-copy.ts. The golden file is
+    generated from the web functions and the web test checks it too, so a copy
+    change on one side only fails here or there."""
+    cases = json.loads(_PARITY.read_text(encoding="utf-8"))["cases"]
+    assert len(cases) == 128
+    for c in cases:
+        row, lang = c["row"], c["lang"]
+        assert cross_chart_copy.row_visible(row) == c["visible"], c
+        assert cross_chart_copy.line(row, c["src"], c["dst"], lang) == c["line"], c
+        assert cross_chart_copy.badge(row, lang) == c["badge"], c
 
 
 def _snap(points: ChartPoints) -> SimpleNamespace:

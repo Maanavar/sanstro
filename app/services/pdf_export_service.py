@@ -69,6 +69,7 @@ from app.calculations.yoga_display import (
 )
 from app.constants.astrology import SIGN_LORD
 from app.models import BirthProfile, Chart
+from app.services import cross_chart_copy
 from app.services.chart_service import load_persisted_chart_response
 from app.services.dasha_service import get_chart_dasha
 from app.services.location_service import resolve_effective_daily_location
@@ -1248,6 +1249,29 @@ def generate_compatibility_intelligence_pdf(
             body_style,
         )
     )
+
+    # FAA-33: chart-to-chart observations. Not a level: no points. Same copy as
+    # the web card (pinned by tests/golden/cross_chart/cross_chart_copy.json).
+    if report.cross_chart:
+        story.extend([
+            Spacer(1, 0.3 * cm),
+            Paragraph(cross_chart_copy.HEADING[note_lang], heading_style),
+            Paragraph(cross_chart_copy.INTRO[note_lang], caption_style),
+        ])
+        for direction, src, dst in (
+            ("A_TO_B", report.person_a_name, report.person_b_name),
+            ("B_TO_A", report.person_b_name, report.person_a_name),
+        ):
+            rows = [o for o in report.cross_chart if o.direction == direction and cross_chart_copy.row_visible(o)]
+            if not rows:
+                continue
+            # Words, not an arrow glyph: Helvetica has no U+2192.
+            story.append(Paragraph(cross_chart_copy.direction_label(src, dst, note_lang), subheading_style))
+            for o in rows:
+                story.append(Paragraph(
+                    f"- {cross_chart_copy.line(o, src, dst, note_lang)} {cross_chart_copy.badge(o, note_lang)}",
+                    body_style,
+                ))
 
     story.extend([
         Spacer(1, 0.35 * cm),

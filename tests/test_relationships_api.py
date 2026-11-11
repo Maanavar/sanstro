@@ -367,3 +367,22 @@ def test_compatibility_intelligence_direct_pair_pdf_returns_pdf(client):
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("application/pdf")
     assert response.content[:4] == b"%PDF"
+
+    # FAA-33 card reaches the PDF. The probe must prove it read every page
+    # first: the card sits on page 2, which the probe used to skip.
+    from tests._pdf_readable import count_streams, pdf_readable_text
+
+    text, inflated = pdf_readable_text(response.content)
+    assert inflated == count_streams(response.content) > 1
+    assert "Compatibility Intelligence" in text
+    assert "Chart-to-chart observations" in text
+    assert "points in" in text  # a direction label, so at least one group rendered
+
+    # The Tamil PDF renders the Tamil card copy (glyph-encoded, so only "it
+    # builds" is checkable here; the words are pinned by the copy golden file).
+    ta = client.post(
+        "/api/v1/relationships/compatibility-intelligence/direct/pdf?lang=ta",
+        json={"personA": _HAND_ENTERED_A, "personB": _HAND_ENTERED_B},
+    )
+    assert ta.status_code == 200 and ta.content[:4] == b"%PDF"
+    assert len(ta.content) > len(response.content) // 2

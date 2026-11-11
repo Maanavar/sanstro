@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import type { CrossChartObservation } from "@vinaadi/shared";
 import { crossChartBadge, crossChartLine, crossChartRowVisible } from "./cross-chart-copy";
@@ -51,6 +53,20 @@ describe("FAA-33 cross-chart copy", () => {
       for (const lang of ["en", "ta"] as const) {
         expect(crossChartBadge(row({ houseFromLagna: h }), lang).startsWith("(")).toBe(false);
       }
+    }
+  });
+
+  it("reproduces the golden file the PDF copy is checked against", () => {
+    // tests/golden/cross_chart/cross_chart_copy.json was generated from these
+    // functions; tests/test_faa33_cross_chart.py checks the PDF mirror against
+    // it. Changing the web copy fails here until the golden is regenerated,
+    // which then fails the PDF side until it follows.
+    const golden = JSON.parse(readFileSync(path.resolve(__dirname, "../../tests/golden/cross_chart/cross_chart_copy.json"), "utf8"));
+    expect(golden.cases).toHaveLength(128);
+    for (const c of golden.cases) {
+      expect(crossChartRowVisible(c.row)).toBe(c.visible);
+      expect(crossChartLine(c.row, c.src, c.dst, c.lang)).toBe(c.line);
+      expect(crossChartBadge(c.row, c.lang)).toBe(c.badge);
     }
   });
 
