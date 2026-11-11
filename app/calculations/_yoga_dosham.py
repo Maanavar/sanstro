@@ -949,7 +949,7 @@ def detect_pitru_dosham(
     # sit outside this guard, and a chart missing it (e.g. Mercury for a Rishabam
     # lagna) raised instead of returning INCOMPLETE_DATA.
     ninth_lord = _house_lord(lagna_rasi, 9)
-    required = ("SUN", "SATURN", "RAHU", "KETU", "JUPITER")
+    required: tuple[str, ...] = ("SUN", "SATURN", "RAHU", "KETU", "JUPITER")
     if ninth_lord not in required:
         required = (*required, ninth_lord)
     missing_data = [planet for planet in required if planet not in planets]

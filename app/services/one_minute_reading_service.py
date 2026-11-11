@@ -3898,7 +3898,7 @@ def _beat_right_now(
         # "அது" pointing at nothing the reader had in hand (v3 review, A20).
         previous_maha = _period_before(timeline.mahadashas, maha)
         named_handover = previous_maha is not None and maha.start_date.year == hinge[0]
-        if named_handover:
+        if named_handover and previous_maha is not None:
             hinge_ta = f"{hinge[0]}-ல் உங்களுக்கு {dasa_stem_ta(previous_maha.lord)} தசை முடிந்து "
             ta_lead = f"{dasa_stem_ta(maha.lord)} தசை தொடங்கியது."
         else:
@@ -3940,7 +3940,7 @@ def _beat_right_now(
                 else f"{given} is in a {planet_en(maha.lord)} period now."
             )
         elif hinge[1] == "maha":
-            if named_handover:
+            if named_handover and previous_maha is not None:
                 hinge_ta = f"{hinge[0]}-ல் {given}-க்கு {dasa_stem_ta(previous_maha.lord)} தசை முடிந்து "
             else:
                 ta_lead = f"இப்போது {given}-க்கு {dasa_stem_ta(maha.lord)} தசை."

@@ -83,7 +83,8 @@ def gandanta_detail(planet_longitudes: dict[str, float]) -> dict[str, dict]:
 
     details: dict[str, dict] = {}
     for planet, longitude in planet_longitudes.items():
-        zone, distance = gandanta_distance(longitude)
+        nearest_zone, distance = gandanta_distance(longitude)
+        zone: str | None = nearest_zone
         scored = is_gandanta(longitude)
         if scored and distance <= GANDANTA_DEEP_DEG:
             intensity: str | None = "DEEP"

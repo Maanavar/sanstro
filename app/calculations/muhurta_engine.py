@@ -837,8 +837,8 @@ def _almanac_yoga_factor(snapshot) -> FactorResult:
     yoga_penalty = float(round(_W.ALMANAC_ASHUBHA_YOGA * share))
     if yoga_penalty != 0:
         bad = next((s.number for s in spans if s.number in ASHUBHA_YOGA_NUMBERS), number)
-        bad_en = YOGA_NAME_EN.get(bad) or name_en
-        bad_ta = YOGA_NAME_TA.get(bad)
+        bad_en = (YOGA_NAME_EN.get(bad) if bad is not None else None) or name_en
+        bad_ta = YOGA_NAME_TA.get(bad) if bad is not None else None
         return FactorResult(
             factor="ALMANAC_YOGA",
             verdict=Verdict.PENALTY,

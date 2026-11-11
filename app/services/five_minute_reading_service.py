@@ -1948,11 +1948,9 @@ def _beat_topic_house_for_a_child(
     friction, outlook and guidance all stay out. With no confirmed lagna there
     is no house to read, and the beat is dropped (None) rather than emptied.
     """
-    resolved = (
-        None
-        if lagna_rasi is None
-        else _topic_house_lord(topic=topic, lagna_rasi=lagna_rasi, planets=planets)
-    )
+    if lagna_rasi is None:
+        return None
+    resolved = _topic_house_lord(topic=topic, lagna_rasi=lagna_rasi, planets=planets)
     if resolved is None:
         return None
     house, lord, record = resolved

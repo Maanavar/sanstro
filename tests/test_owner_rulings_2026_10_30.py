@@ -13,8 +13,8 @@ lord the Sun. Synthetic only — no person, no birth data.
 from __future__ import annotations
 
 import random
-from dataclasses import replace
 import re
+from dataclasses import replace
 from pathlib import Path
 
 import pytest

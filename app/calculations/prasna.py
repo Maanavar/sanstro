@@ -180,13 +180,13 @@ def cast_prasna_chart(
             # A disclosure, not a challenge: it rides on the verdict text
             # (bilingual), never in the negative list the outlook counts.
             for key in ("outlook_ta", "outlook_en"):
-                if not payload[key].endswith("."):
-                    payload[key] += "."
-            payload["outlook_ta"] += (
+                text = str(payload[key])
+                payload[key] = text if text.endswith(".") else text + "."
+            payload["outlook_ta"] = str(payload["outlook_ta"]) + (
                 " பாலினம் குறிப்பிடப்படாததால் குருவும் சுக்கிரனும் சமமாகப் பார்க்கப்பட்டு, "
                 "நன்றாக அமைந்த கிரகம் எடுத்துக்கொள்ளப்பட்டது."
             )
-            payload["outlook_en"] += (
+            payload["outlook_en"] = str(payload["outlook_en"]) + (
                 " Gender is not given, so Guru and Venus are read equally and the better-placed "
                 "one is used (a Vinaadi policy, not a traditional rule)."
             )
