@@ -45,7 +45,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from app.calculations._yoga_dosham import detect_rahu_ketu_dosham, detect_sevvai_dosham
-from app.calculations.astro import utc_datetime_to_julian_day
+from app.calculations.astro import julian_day_to_utc_datetime, utc_datetime_to_julian_day
 from app.calculations.chart_strength import (
     _NATURAL_ENEMIES,
     _NATURAL_FRIENDS,
@@ -63,10 +63,14 @@ from app.calculations.display_names import planet_en, planet_ta
 from app.calculations.doctrine_options import DEFAULT_DOCTRINE, DoctrineOptions
 from app.calculations.dosha_samyam import PapaSamyam, compare_marriage_doshams, papa_samyam
 from app.calculations.ephemeris import calculate_lagna_degree
+from app.calculations.joint_progeny import JointProgeny, joint_progeny
+from app.calculations.joint_progeny import birth_date_of as progeny_birth_date
+from app.calculations.joint_progeny import chart_from_snapshot as progeny_chart_from_snapshot
 from app.calculations.mangalya_sthana import D9_TOLERANCE_MINUTES, EighthHouseReading
 from app.calculations.mangalya_sthana import chart_from_snapshot as mangalya_chart_from_snapshot
 from app.calculations.mangalya_sthana import joint_pattern as mangalya_joint_pattern
 from app.calculations.mangalya_sthana import one_chart as mangalya_one_chart
+from app.calculations.progeny_checks import BIRTH_TIME_TOLERANCE_MINUTES
 
 logger = logging.getLogger(__name__)
 
@@ -292,6 +296,10 @@ class CompatibilityIntelligenceResult:
     mangalya_a: EighthHouseReading | None = None
     mangalya_b: EighthHouseReading | None = None
     mangalya_joint: str = "NOT_APPLIED"
+
+    # FAA-32: joint progeny (both charts, joint patterns, dasha windows).
+    # Descriptive: no points, attached after the composite is fixed.
+    joint_progeny: JointProgeny | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -1339,25 +1347,48 @@ def compute_compatibility_intelligence(
         # FAA-33: observations only; computed after every number above is fixed.
         cross_chart=_cross_chart(snap_a, snap_b),
         **_mangalya_fields(snap_a, snap_b, doctrine),
+        joint_progeny=joint_progeny_from_snapshots(snap_a, snap_b, today_jd),
+    )
+
+
+def _lagna_bracket(snap: Any, minutes: float) -> tuple[float, float] | None:
+    """The lagna at birth time -/+ ``minutes``, from the ephemeris. None when
+    the birth place is unknown."""
+    data = snap.data
+    profile = getattr(data, "birth_profile", None)
+    lat = getattr(profile, "birth_latitude", None)
+    lon = getattr(profile, "birth_longitude", None)
+    if lat is None or lon is None:
+        return None
+    step = minutes / 1440.0
+    return (
+        calculate_lagna_degree(data.julian_day - step, lat, lon),
+        calculate_lagna_degree(data.julian_day + step, lat, lon),
     )
 
 
 def eighth_house_reading_from_snapshot(snap: Any, doctrine: DoctrineOptions = DEFAULT_DOCTRINE) -> EighthHouseReading:
     """FAA-30 for one chart. The D9-lagna bracket comes from the ephemeris when
     the birth place is known; without it the D9 lines are dropped, not guessed."""
-    data = snap.data
-    profile = getattr(data, "birth_profile", None)
-    lat = getattr(profile, "birth_latitude", None)
-    lon = getattr(profile, "birth_longitude", None)
-    bracket = None
-    if lat is not None and lon is not None:
-        step = D9_TOLERANCE_MINUTES / 1440.0
-        bracket = (
-            calculate_lagna_degree(data.julian_day - step, lat, lon),
-            calculate_lagna_degree(data.julian_day + step, lat, lon),
-        )
+    profile = getattr(snap.data, "birth_profile", None)
+    bracket = _lagna_bracket(snap, D9_TOLERANCE_MINUTES)
     chart = mangalya_chart_from_snapshot(snap, sevvai_conditions=_sevvai_references(snap, doctrine), lagna_bracket=bracket)
     return mangalya_one_chart(chart, getattr(profile, "gender_for_traditional_rules", None))
+
+
+def joint_progeny_from_snapshots(snap_a: Any, snap_b: Any, today_jd: float) -> JointProgeny:
+    """FAA-32 for the couple. Attached after the composite is fixed: no points."""
+    as_of = julian_day_to_utc_datetime(today_jd).date()
+    parts: list[Any] = []
+    for snap in (snap_a, snap_b):
+        data = snap.data
+        moon = next(p for p in data.planets if p.graha == "MOON")
+        timeline = calculate_vimshottari_timeline(data.julian_day, moon.absolute_longitude, today_jd)
+        chart = progeny_chart_from_snapshot(snap, lagna_bracket=_lagna_bracket(snap, BIRTH_TIME_TOLERANCE_MINUTES))
+        gender = getattr(getattr(data, "birth_profile", None), "gender_for_traditional_rules", None)
+        parts.append((chart, gender, timeline.mahadashas, progeny_birth_date(snap)))
+    (ca, ga, ma, ba), (cb, gb, mb, bb) = parts
+    return joint_progeny(ca, ga, ma, ba, cb, gb, mb, bb, as_of=as_of)
 
 
 def _mangalya_fields(snap_a: Any, snap_b: Any, doctrine: DoctrineOptions) -> dict[str, Any]:

@@ -254,6 +254,31 @@ def test_compatibility_intelligence_reads_the_8th_by_stated_gender(
     if any("SEVVAI_DOSHAM" in f["alsoCountedIn"] for f in bride["factors"]):
         assert body["sevvaiA"]["hasDosham"] or body["sevvaiB"]["hasDosham"]
 
+    # FAA-32 on the same couple. Same chart twice: the 5th-house side is
+    # identical; only the 9th differs (the bride's is the verse, the groom's
+    # context), and only the bride's 9th lord is a timing lord.
+    jp = body["jointProgeny"]
+    kids = {jp["personA"]["ninth"]: jp["personA"], jp["personB"]["ninth"]: jp["personB"]}
+    assert set(kids) == {"CHILDREN", "CONTEXT"}
+    kb, kg = kids["CHILDREN"], kids["CONTEXT"]
+
+    def fifth(r):
+        return sorted((f["kind"], f["reference"], f["graha"], f["target"], f["via"], f["bearing"], f["rule"])
+                      for f in r["factors"] if f["bhava"] == 5)
+
+    assert fifth(kb) == fifth(kg) != []
+    assert any(f["rule"] == "PHALADEEPIKA_11_1" for f in kb["factors"] if f["bhava"] == 9)
+    assert all(f["bearing"] == "CONTEXT" and f["tier"] == "engine_inference" for f in kg["factors"] if f["bhava"] == 9)
+    assert any("NINTH_LORD" in t["roles"] for t in kb["timingLords"])
+    assert not any("NINTH_LORD" in t["roles"] for t in kg["timingLords"])
+    assert [j["key"] for j in jp["joint"]] == ["FIFTH_HOUSE", "FIFTH_LORD", "JUPITER"]
+    assert all(j["pattern"] in {"BOTH", "NEITHER"} for j in jp["joint"])  # the same chart twice
+    assert jp["horizonYears"] == 5
+    for w in jp["windows"]:
+        assert jp["horizonStart"] <= w["start"] < w["end"] <= jp["horizonEnd"]
+    for f in kb["factors"] + kg["factors"]:
+        assert not any(k.endswith("Name") for k in f) and "MARAKA" not in f["lordship"]
+
     # The same couple's PDF carries the section, with mangalya named once (the bride).
     from tests._pdf_readable import count_streams, pdf_readable_text
 
@@ -266,6 +291,8 @@ def test_compatibility_intelligence_reads_the_8th_by_stated_gender(
     assert inflated == count_streams(pdf.content)
     assert "The 8th house" in text and "8th-house factors" in text
     assert text.count("Mangalya sthana") == 1
+    assert "Children: reading both charts" in text and "Periods running for both" in text
+    assert "The 9th, read for children in a woman's chart" in text and "The 9th, as context only" in text
 
 
 def test_relationship_compatibility_intelligence_pdf_endpoint_returns_pdf(
@@ -379,6 +406,13 @@ def test_compatibility_intelligence_direct_pair_needs_no_family_vault(client):
     assert eh["personA"]["role"] == eh["personB"]["role"] == "NOT_APPLIED"
     assert eh["personA"]["factors"] == [] and eh["joint"] == "NOT_APPLIED"
 
+    # FAA-32: the 5th side needs no gender; the 9th is not read for either.
+    jp = body["jointProgeny"]
+    for r in (jp["personA"], jp["personB"]):
+        assert r["ninth"] == "NOT_APPLIED" and r["ninthFromLagna"] is None
+        assert r["factors"] and all(f["bhava"] == 5 for f in r["factors"])
+        assert not any("NINTH" in role for t in r["timingLords"] for role in t["roles"])
+
 
 def test_compatibility_intelligence_carries_the_shashtashtaka_note(client):
     """F-POR-02 reached the Compatibility Intelligence *schema* and stopped
@@ -436,6 +470,8 @@ def test_compatibility_intelligence_direct_pair_pdf_returns_pdf(client):
     assert "Compatibility Intelligence" in text
     assert "Chart-to-chart observations" in text
     assert "points in" in text  # a direction label, so at least one group rendered
+    assert "Children: reading both charts" in text  # FAA-32
+    assert "No gender is stated, so the 9th was not read." in text
 
     # The Tamil PDF renders the Tamil card copy (glyph-encoded, so only "it
     # builds" is checkable here; the words are pinned by the copy golden file).
