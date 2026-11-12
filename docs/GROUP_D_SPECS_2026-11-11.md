@@ -1,6 +1,6 @@
 # Group D — build specifications (FAA-02 step 2, FAA-30, FAA-31, FAA-32, FAA-33)
 
-Status: **rulings received 2026-11-11 (see §0); FAA-33 built (§0.5), FAA-30 built (§0.6), FAA-32 built (§0.7, branch `feat/faa32-joint-progeny`); FAA-31, -02 not built.** The sections D1–D5
+Status: **rulings received 2026-11-11 (see §0); FAA-33 built (§0.5), FAA-30 built (§0.6; joint line split per OWNER-Q-D4, §0.9), FAA-32 built (§0.7, branch `feat/faa32-joint-progeny`); FAA-31, -02 not built.** The sections D1–D5
 below are the original draft and stay as written; where §0 changes them, §0 governs.
 Parent: `docs/FULL_ASTRO_ACCURACY_AUDIT_2026-11-10.md`
 (the audit text for each item is the requirement; this file is the "how").
@@ -207,6 +207,89 @@ existing modules, not a new table per item.
   spot: the gates prove the wiring and the "no score" boundary. They do not prove the malefic
   list or the protection lines; those are the rulings.
 
+### 0.9 OWNER-Q-D4: FAA-30's joint line split in two (ruled and built 2026-11-12)
+
+(Numbered 0.9; §0.7–0.8 below carry FAA-32 and the D4 options table, merged from PR #21.)
+
+**The problem.** The original joint line counted aspects and read both 8ths (lagna and Moon),
+either one enough. Sani, Sevvai, the nodes and the Sun between them aspect almost every sign, so
+it told nearly every couple "Both charts show malefic influence on the 8th".
+
+**Ruling (owner, 2026-11-12), option E.**
+- Two independent shared findings, both from the lagna-based 8th: a malefic occupying it, and
+  its lord debilitated or combust.
+- No merged "malefic influence" statement.
+- The Moon side, aspects, conjunctions and protection lines stay on each person's own reading.
+  They never trigger a shared finding.
+- Neither finding is a dosham verdict, a marriage rejection or anything about widowhood.
+- No status words (re-confirmed).
+- The member-gender change (§0.6) is communicated to users: `docs/RELEASE_NOTES.md`.
+
+**Measured** (`scripts/audit/faa30_joint_measurements.py`, 2,000 synthetic couples, seed 30;
+combustion as the chart build computes it, cazimi excluded; paksha from the longitudes):
+
+| Joint basis | BOTH | Per chart |
+|---|---|---|
+| Pre-D4 live (aspects included, both 8ths) | **99.3%** | 99.6% |
+| A. Both 8ths: occupant, joined to the lord, or the lord's condition (the first approved fix) | 82.2% | 91.4% |
+| D. Lagna 8th: occupant or the lord's condition, one line | 25.4% | 50.4% |
+| **E1. A malefic in the lagna's 8th** | **11.2%** | 34.0% |
+| **E2. The lagna's 8th lord debilitated or combust** | **7.0%** | 26.2% |
+
+The options table the owner chose from (PR #21, §0.8) was a scratch run that left combustion
+out and the paksha to the fallback. That understated the live line (90.8%), A (81.0%) and every
+"lord's condition" row (E2 read 2.1%, debilitation only). E still holds; D would have sat near the
+30% line. A prevalence of the rule as coded, not a ratification.
+
+**Built.**
+- **Engine.** `mangalya_sthana.py`:
+  - `malefic_influence` is gone. Each reading carries `malefic_in_lagna_eighth` (a malefic
+    occupant of the lagna's 8th, outside its own sign) and
+    `lagna_eighth_lord_debilitated_or_combust`.
+  - Both facts are read off the factor list, so a shared line cannot disagree with the lines
+    printed above it.
+  - `joint_lines(a, b)` returns `MALEFIC_IN_EIGHTH` and `EIGHTH_LORD_DEBILITATED_OR_COMBUST`,
+    each BOTH / ONE / NEITHER. It is empty when either gender is not stated.
+  - "Malefic" is the rulings' class list, the same one every FAA-30 line uses: a waning Moon
+    counts, and so does Budhan in malefic company.
+- **Wire.**
+  - `eighthHouse.joint` is a list of `{key, pattern}`, FAA-32's shape. It is `[]` where it was
+    `"NOT_APPLIED"`.
+  - `maleficInfluence` is replaced by `maleficInLagnaEighth` and
+    `lagnaEighthLordDebilitatedOrCombust`.
+  - Changed together in `app/schemas/relationships.py`, `packages/shared` and `web/`. Mobile
+    reads neither CI nor the marriage route's `eighthHouse`.
+- **Copy.** One sentence per line, each naming its cause and saying "from the lagna". One note
+  sits under them: these are observations, not a dosham and not a decision on the match, read
+  with each whole chart, the Moon-sign lines and the protecting lines.
+  - Source: `web/lib/eighth-house-copy.ts`, mirrored in `app/services/eighth_house_copy.py`.
+  - Pinned by the golden file's new `joint` (12) and `jointNote` (2) entries. The 108 factor
+    cases are unchanged.
+  - The Tamil is Claude's draft and has not been native-reviewed (`நீசம் / அஸ்தங்கம்
+    பெற்றுள்ளது` in particular).
+- **Gates.**
+  - `tests/test_faa30_mangalya_sthana.py`:
+    - occupation without the lord's condition;
+    - the lord's condition without occupation, debilitated and combust tested separately;
+    - both together, still two lines;
+    - neither, and the ONE pattern;
+    - the Moon side, aspects and a malefic joined to the lord never opening a line;
+    - Guru's protection kept on the reading and cancelling nothing;
+    - no lines without a stated gender;
+    - the PDF copy against the golden joint lines.
+  - `tests/test_relationships_api.py`, production path:
+    - keys and order, and each pattern equal to that chart's own fact;
+    - `maleficInfluence` gone;
+    - the PDF note present and the merged sentence absent.
+  - `test_faa30_joint_lines_never_move_a_score_or_a_verdict` forces both lines to BOTH and
+    requires the rest of the report to be unchanged. Proof of life: the forced lines reach the
+    response.
+  - `web/lib/eighth-house-copy.test.ts`: each line names its cause, the merged wording never
+    returns, golden parity, and no verdict, grading or mortality words.
+  - Mutations and blind spot: see the PR. The gates prove the wiring, the two definitions and
+    the no-score boundary. They do not prove that these two placements are the right shared
+    reading; that is the owner's ruling.
+
 ### 0.7 FAA-32 built (2026-11-11, branch `feat/faa32-joint-progeny`)
 
 - **Engine.** `app/calculations/joint_progeny.py`, pure. It reuses FAA-30's classes, dignity,
@@ -282,7 +365,8 @@ existing modules, not a new table per item.
 
 - **OWNER-Q-D3: ruled 2026-11-12.** The 5th-lord line reads the lord's own placement only.
   "Both" went from 38.8% to 6.4%. Built.
-- **OWNER-Q-D4 (FAA-30, live): still open.** FAA-30's joint line counts aspects. It says "Both
+- **OWNER-Q-D4 (FAA-30): ruled 2026-11-12, option E — built (§0.9).** The analysis that led
+  there, kept as the record. FAA-30's joint line counted aspects. It says "Both
   charts show malefic influence on the 8th. Read the two together with your astrologer." for
   **90.8%** of couples, and sets `maleficInfluence` on 95.8% of charts. The owner approved the
   FAA-32 basis on 2026-11-12. Measured first, it is not enough, because FAA-30 reads two 8ths
@@ -302,6 +386,7 @@ existing modules, not a new table per item.
   shape (`joint` becomes a list, as in FAA-32). The lagna side is also where Phaladeepika 11.1
   is checked; the Moon side may be the translator's gloss. **Not built: waiting for the
   owner's choice.** The approved fix was not shipped because it misses its own goal.
+  **Resolved 2026-11-12: option E, the lagna-side split — built; see §0.9.**
 
 Rules that bind every item below (already on record, not re-opened here):
 

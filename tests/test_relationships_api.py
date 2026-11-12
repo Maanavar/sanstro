@@ -247,7 +247,15 @@ def test_compatibility_intelligence_reads_the_8th_by_stated_gender(
     assert placements(bride) == placements(groom) != []
     assert any(f["rule"] == "PHALADEEPIKA_11_1" for f in bride["factors"])
     assert all(f["tier"] == "engine_inference" for f in groom["factors"])
-    assert eh["joint"] in {"BOTH", "NEITHER"}  # the same chart twice
+    # OWNER-Q-D4: two lines, one per cause, each read off that chart's own facts.
+    # The same chart twice, so each line is BOTH or NEITHER, never ONE.
+    assert [j["key"] for j in eh["joint"]] == ["MALEFIC_IN_EIGHTH", "EIGHTH_LORD_DEBILITATED_OR_COMBUST"]
+    facts = {"MALEFIC_IN_EIGHTH": "maleficInLagnaEighth",
+             "EIGHTH_LORD_DEBILITATED_OR_COMBUST": "lagnaEighthLordDebilitatedOrCombust"}
+    for j in eh["joint"]:
+        assert j["pattern"] == ("BOTH" if bride[facts[j["key"]]] else "NEITHER")
+        assert bride[facts[j["key"]]] == groom[facts[j["key"]]]
+    assert "maleficInfluence" not in bride
     for f in bride["factors"] + groom["factors"]:
         assert not any(k.endswith("Name") for k in f) and "MARAKA" not in f["lordship"]
     # A Sevvai the 8th-house reading links to the dosham is one the report shows.
@@ -291,8 +299,41 @@ def test_compatibility_intelligence_reads_the_8th_by_stated_gender(
     assert inflated == count_streams(pdf.content)
     assert "The 8th house" in text and "8th-house factors" in text
     assert text.count("Mangalya sthana") == 1
+    assert "These two lines compare" in text  # the joint note sits under the joint lines
+    assert "malefic influence on the 8th" not in text  # the merged pre-D4 line is gone
     assert "Children: reading both charts" in text and "Periods running for both" in text
     assert "The 9th, read for children in a woman's chart" in text and "The 9th, as context only" in text
+
+
+def test_faa30_joint_lines_never_move_a_score_or_a_verdict(
+    client,
+    family_vault_payload_factory,
+    family_member_payload_factory,
+    monkeypatch,
+):
+    """OWNER-Q-D4: the joint lines are observations. Forcing both to BOTH must
+    change nothing in the report except the lines themselves."""
+    from app.calculations import compatibility_intelligence as ci_module
+    from app.calculations.mangalya_sthana import JointLine
+
+    vault = client.post("/api/v1/family-vaults", json=family_vault_payload_factory())
+    vid = vault.json()["data"]["familyVaultId"]
+    me = family_member_payload_factory(display_name="Synthetic Groom", relationship_to_owner="self")
+    other = family_member_payload_factory(display_name="Synthetic Bride")
+    assert client.post(f"/api/v1/family-vaults/{vid}/members", json={**me, "genderForTraditionalRules": "male"}).status_code == 200
+    made = client.post(f"/api/v1/family-vaults/{vid}/members", json={**other, "genderForTraditionalRules": "female"})
+    url = f"/api/v1/relationships/{made.json()['data']['familyMemberId']}/compatibility-intelligence"
+
+    plain = client.get(url, params={"familyVaultId": vid}).json()["data"]
+    forced_lines = (JointLine("MALEFIC_IN_EIGHTH", "BOTH"), JointLine("EIGHTH_LORD_DEBILITATED_OR_COMBUST", "BOTH"))
+    monkeypatch.setattr(ci_module, "mangalya_joint_lines", lambda a, b: forced_lines)
+    forced = client.get(url, params={"familyVaultId": vid}).json()["data"]
+
+    # Proof of life: the patch reached the response (no cache answered instead).
+    assert [j["pattern"] for j in forced["eighthHouse"]["joint"]] == ["BOTH", "BOTH"]
+    plain.pop("eighthHouse")
+    forced.pop("eighthHouse")
+    assert forced == plain
 
 
 def test_relationship_compatibility_intelligence_pdf_endpoint_returns_pdf(
@@ -404,7 +445,7 @@ def test_compatibility_intelligence_direct_pair_needs_no_family_vault(client):
     # FAA-30: hand-entered people state no gender, so nothing is applied.
     eh = body["eighthHouse"]
     assert eh["personA"]["role"] == eh["personB"]["role"] == "NOT_APPLIED"
-    assert eh["personA"]["factors"] == [] and eh["joint"] == "NOT_APPLIED"
+    assert eh["personA"]["factors"] == [] and eh["joint"] == []
 
     # FAA-32: the 5th side needs no gender; the 9th is not read for either.
     jp = body["jointProgeny"]

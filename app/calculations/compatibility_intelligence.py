@@ -67,8 +67,9 @@ from app.calculations.joint_progeny import JointProgeny, joint_progeny
 from app.calculations.joint_progeny import birth_date_of as progeny_birth_date
 from app.calculations.joint_progeny import chart_from_snapshot as progeny_chart_from_snapshot
 from app.calculations.mangalya_sthana import D9_TOLERANCE_MINUTES, EighthHouseReading
+from app.calculations.mangalya_sthana import JointLine as MangalyaJointLine
 from app.calculations.mangalya_sthana import chart_from_snapshot as mangalya_chart_from_snapshot
-from app.calculations.mangalya_sthana import joint_pattern as mangalya_joint_pattern
+from app.calculations.mangalya_sthana import joint_lines as mangalya_joint_lines
 from app.calculations.mangalya_sthana import one_chart as mangalya_one_chart
 from app.calculations.progeny_checks import BIRTH_TIME_TOLERANCE_MINUTES
 
@@ -291,11 +292,12 @@ class CompatibilityIntelligenceResult:
     # points, attached after the composite is fixed.
     cross_chart: tuple[CrossChartObservation, ...] = ()
 
-    # FAA-30: each chart's 8th-house reading, and the joint pattern beside the
-    # samyam layers (never merged into them). Descriptive: no points.
+    # FAA-30: each chart's 8th-house reading, and the joint lines beside the
+    # samyam layers (never merged into them). Descriptive: no points. One line
+    # per cause (OWNER-Q-D4); empty when either gender is not stated.
     mangalya_a: EighthHouseReading | None = None
     mangalya_b: EighthHouseReading | None = None
-    mangalya_joint: str = "NOT_APPLIED"
+    mangalya_joint: tuple[MangalyaJointLine, ...] = ()
 
     # FAA-32: joint progeny (both charts, joint patterns, dasha windows).
     # Descriptive: no points, attached after the composite is fixed.
@@ -1393,7 +1395,7 @@ def joint_progeny_from_snapshots(snap_a: Any, snap_b: Any, today_jd: float) -> J
 
 def _mangalya_fields(snap_a: Any, snap_b: Any, doctrine: DoctrineOptions) -> dict[str, Any]:
     a, b = eighth_house_reading_from_snapshot(snap_a, doctrine), eighth_house_reading_from_snapshot(snap_b, doctrine)
-    return {"mangalya_a": a, "mangalya_b": b, "mangalya_joint": mangalya_joint_pattern(a, b)}
+    return {"mangalya_a": a, "mangalya_b": b, "mangalya_joint": mangalya_joint_lines(a, b)}
 
 
 def _cross_chart(snap_a: Any, snap_b: Any) -> tuple[CrossChartObservation, ...]:
