@@ -42,7 +42,7 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from app.core.clock import accounting_month_start_utc
+from app.core.clock import accounting_date, accounting_month_start_utc, next_accounting_day_start
 from app.core.config import get_settings
 from app.db.session import SessionLocal
 from app.models.payment import CreditLedgerEntry
@@ -796,4 +796,10 @@ def test_the_stored_report_records_when_it_was_read_as_of(client, birth_profile_
     with SessionLocal() as session:
         row = session.get(Report, UUID(created["id"]))
         assert row.calculation_version
-        assert row.as_of_date.astimezone(UTC) <= datetime.now(UTC)
+        # `as_of_date` is the Vinaadi accounting day (Asia/Kolkata), stored at
+        # that day's midnight as UTC. Comparing it to a bare datetime.now(UTC)
+        # flakes for the ~5.5h each day when Kolkata is already on the next
+        # civil date but UTC is not. Bound it by the same accounting clock the
+        # service stamps it with instead.
+        assert row.as_of_date.date() == accounting_date()
+        assert row.as_of_date.astimezone(UTC) < next_accounting_day_start()
