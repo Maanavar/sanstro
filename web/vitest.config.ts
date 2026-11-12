@@ -30,9 +30,29 @@ export default defineConfig({
     // everywhere rather than only where nobody is looking.
     env: { TZ: "UTC" },
     // Component tests (.test.tsx) use jsdom; pure logic tests (.test.ts) run in node.
-    environmentMatchGlobs: [
-      ["**/*.test.tsx", "jsdom"],
-    ],
+    // One environment for every file, stated here.
+    //
+    // This was `environmentMatchGlobs: [["**/*.test.tsx", "jsdom"]]`, which is
+    // **silently dead on Windows**: vitest resolves the glob against `root`
+    // (`resolve(root, glob)`), producing `D:\sanstro\web\**\*.test.tsx`, and
+    // then matches it with micromatch against Vite's module id, which always
+    // uses forward slashes. micromatch reads those backslashes as escape
+    // characters, so the pattern matched nothing. On Linux `resolve` returns
+    // forward slashes and it worked, so the config only ever failed on the
+    // platform that does not run the gate.
+    //
+    // What that cost in practice: `vitest run` (no coverage) on Windows put
+    // every `.test.tsx` in node and killed 658 of 1934 tests on
+    // `document is not defined`. CI never saw it — it runs `--coverage`, and
+    // the coverage provider changes the transform enough to mask the whole
+    // thing. Hence `test` now runs with `--coverage` in package.json too, so
+    // the local command and the CI command are the same command.
+    //
+    // Do NOT add `testTransformMode: { web: ["**/*"] }` here. It looks like the
+    // principled fix, it makes a single focused file pass, and it takes the
+    // full suite from 1934 passing to 556 failing in both modes. Measured
+    // 2026-11-12.
+    environment: "jsdom",
     setupFiles: ["./vitest.setup.ts"],
     // Vitest's 5s default is tuned for small units. Several of these tests mount
     // a real dashboard tab — the Today tab's first test measures ~3.4s on its
