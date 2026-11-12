@@ -1,13 +1,29 @@
 """Dasa Sandhi (தசா சந்தி): the junction where one mahadasa hands over to the next.
 
-ENGINE ONLY (owner ruling 2026-11-09, deferred-checks plan item 7). Nothing here
-reaches a reader: no API field, no card, no score, no dosham, no parihara, no
-warning. It is computational groundwork for the astrologer's ruling, measured by
-`scripts/audit/deferred_checks_measurements.py`.
+**Surface ratified by the owner 2026-11-12** (spec §0.4 / D4). One configuration
+reaches a reader, through `couple_reading` and nothing else:
 
-**No default definition, on purpose.** Every function takes the window option,
-tolerance and horizon as required arguments. The three candidate windows are
-the ones the plan lists, none preferred:
+* Mahadasa level, window `A_FIXED` +/- 6 months (`FIXED_MONTHS_RULED`).
+* The **primary** measure is the change-point gap: the days between the two
+  mahadasa changes. Under 6 months = `CLOSE`, 6-12 months = `NEAR`, over
+  12 months is **not flagged** and never reaches the reading.
+* The **supplementary** measure is the window gap, shown beside it. It never
+  decides a band (spec §0.2: the vendor sample's own couple has a 5.8-month
+  window gap and is rated Satisfactory).
+* Horizon 10 years (`HORIZON_YEARS_RULED`) from the planned marriage date when
+  one is given, else the reference date. No CI field carries a planned marriage
+  date yet, so CI passes the reference date.
+
+It **describes and times, and never grades**: no score, no dosham, no parihara,
+no veto, no widowhood (EC-RULING-06). The thresholds are a vendor-documented
+practice (`PROKERALA_PORUTHAM_P17`), not the astrologer's, so the reading ships
+at `engine_inference` and says whose practice it is.
+
+Everything below `couple_reading` stays measurement groundwork for
+`scripts/audit/deferred_checks_measurements.py`. **No default definition there,
+on purpose**: those functions take the window option, tolerance and horizon as
+required arguments, so no caller inherits a span it did not choose. The three
+candidate windows are the ones the plan lists, none preferred:
 
 * ``A_FIXED``: a fixed span either side of the change (the plan's 6 months;
   `fixed_months` is a parameter, not a ruling).
@@ -26,25 +42,37 @@ Two couple-level readings, kept apart because they are different claims:
 The "same mahadasa lord for both" observation is a separate rule and is
 deliberately not built here; it must never be folded into the sandhi.
 
-Tier: `engine_inference`, unratified. When the astrologer rules the window,
-tolerance, horizon and interpretation, the chosen configuration is promoted
-with provenance and Tamil wording; until then these stay internal.
+Still unratified by a practitioner: the owner ruled the surface, not the
+doctrine. A later step, not v1, may read the outgoing and incoming lords'
+placement and strength (spec §0.4).
 """
 from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import date
+from datetime import UTC, date, datetime
 from typing import Literal
 
-from app.calculations.astro import julian_day_to_utc_datetime
+from app.calculations.astro import julian_day_to_utc_datetime, utc_datetime_to_julian_day
 from app.calculations.dasha import JULIAN_YEAR_DAYS, DashaPeriod, _build_subperiods
 
 SandhiOption = Literal["A_FIXED", "B_BHUKTI", "C_PRATYANTARA"]
 SANDHI_OPTIONS: tuple[SandhiOption, ...] = ("A_FIXED", "B_BHUKTI", "C_PRATYANTARA")
 
 TIER = "engine_inference"
+#: The doctrine is still unratified by a practitioner; the owner ratified the
+#: surface only (2026-11-12).
 RATIFIED = False
+
+#: The ruled configuration (spec §0.4). Only `couple_reading` uses these.
+RULED_OPTION: SandhiOption = "A_FIXED"
+FIXED_MONTHS_RULED = 6.0
+HORIZON_YEARS_RULED = 10
+#: Change-point gap bands, in months. At or over `BAND_NEAR_MONTHS`: not flagged.
+BAND_CLOSE_MONTHS = 6.0
+BAND_NEAR_MONTHS = 12.0
+#: The reading cites the practice it came from, not doctrine.
+RULE_SOURCE_ID = "PROKERALA_PORUTHAM_P17"
 
 #: A month as a fixed fraction of the Julian year the dasa system uses, so a
 #: tolerance in months converts to days the same way everywhere.
@@ -242,3 +270,143 @@ def couple_window_overlaps(
             if end > start:
                 out.append(WindowOverlap(a, b, end - start))
     return tuple(out)
+
+
+# ---------------------------------------------------------------------------
+# The ruled reading (owner 2026-11-12, spec §0.4). This is the only part of
+# this module that reaches a reader.
+# ---------------------------------------------------------------------------
+
+SandhiBand = Literal["CLOSE", "NEAR"]
+
+
+@dataclass(frozen=True, slots=True)
+class SandhiPair:
+    """Two mahadasa changes, one per partner, inside the horizon.
+
+    `band` is decided by `change_gap_days` alone. `window_gap_days` is the
+    supplementary measure: the days between the two sandhi windows, negative
+    when they overlap. It is reported, never banded.
+    """
+
+    a: Transition
+    b: Transition
+    window_a: SandhiWindow
+    window_b: SandhiWindow
+    #: |a.at - b.at| in days. The primary measure.
+    change_gap_days: float
+    #: Days between the two windows; negative = they overlap by that many days.
+    window_gap_days: float
+    band: SandhiBand
+
+    @property
+    def windows_overlap(self) -> bool:
+        return self.window_gap_days < 0.0
+
+
+@dataclass(frozen=True, slots=True)
+class CoupleSandhiReading:
+    """What a reader sees. Pairs are chronological; `band` is the couple's
+    closest pair, as the prevalence in spec §0.4 was measured."""
+
+    pairs: tuple[SandhiPair, ...]
+    horizon_years: int
+    horizon_start: date
+    horizon_end: date
+    option: SandhiOption
+    fixed_months: float
+    rule: str = RULE_SOURCE_ID
+    tier: str = TIER
+
+    @property
+    def band(self) -> SandhiBand | None:
+        """`CLOSE` when any pair is close, else `NEAR`, else None."""
+        if any(p.band == "CLOSE" for p in self.pairs):
+            return "CLOSE"
+        return "NEAR" if self.pairs else None
+
+    def swapped(self) -> CoupleSandhiReading:
+        """The same reading with the partners exchanged. Used by the symmetry
+        test: a reading must not depend on which chart was passed first."""
+        pairs = tuple(
+            sorted(
+                (
+                    SandhiPair(p.b, p.a, p.window_b, p.window_a, p.change_gap_days, p.window_gap_days, p.band)
+                    for p in self.pairs
+                ),
+                key=_reading_pair_key,
+            )
+        )
+        return CoupleSandhiReading(
+            pairs, self.horizon_years, self.horizon_start, self.horizon_end,
+            self.option, self.fixed_months, self.rule, self.tier,
+        )
+
+
+def _reading_pair_key(p: SandhiPair) -> tuple[float, float]:
+    return (p.a.at_jd, p.b.at_jd)
+
+
+def band_of(change_gap_days: float) -> SandhiBand | None:
+    """The ruled band for a change-point gap. None = not flagged.
+
+    Closed at the bottom of each band and open at the top, so a gap of exactly
+    6 months reads NEAR and exactly 12 months is not flagged at all.
+    """
+    if change_gap_days < months_to_days(BAND_CLOSE_MONTHS):
+        return "CLOSE"
+    if change_gap_days < months_to_days(BAND_NEAR_MONTHS):
+        return "NEAR"
+    return None
+
+
+def date_to_jd(d: date) -> float:
+    """Midnight UTC on `d`, the convention the horizon is measured in."""
+    return utc_datetime_to_julian_day(datetime(d.year, d.month, d.day, tzinfo=UTC))
+
+
+def couple_reading(
+    mahadashas_a: Sequence[DashaPeriod],
+    mahadashas_b: Sequence[DashaPeriod],
+    *,
+    from_date: date,
+    horizon_years: int = HORIZON_YEARS_RULED,
+    option: SandhiOption = RULED_OPTION,
+    fixed_months: float = FIXED_MONTHS_RULED,
+) -> CoupleSandhiReading:
+    """The ruled reading: mahadasa changes that fall within 12 months of each
+    other inside the horizon, banded by the change-point gap.
+
+    `from_date` is the planned marriage date when the caller has one, else the
+    reference date (spec §0.4). Pairs over `BAND_NEAR_MONTHS` apart are not
+    returned: the ruling does not flag them, so they must not reach the wire
+    where a surface could render them.
+    """
+    if horizon_years <= 0:
+        raise ValueError("horizon_years must be positive")
+    from_jd = date_to_jd(from_date)
+    found = couple_transitions_within(
+        mahadashas_a, mahadashas_b,
+        from_jd=from_jd, horizon_years=horizon_years,
+        tolerance_days=months_to_days(BAND_NEAR_MONTHS),
+    )
+    windows_a = {w.transition.index: w for w in sandhi_windows(mahadashas_a, option, fixed_months=fixed_months)}
+    windows_b = {w.transition.index: w for w in sandhi_windows(mahadashas_b, option, fixed_months=fixed_months)}
+
+    pairs: list[SandhiPair] = []
+    for pair in found.pairs:
+        band = band_of(pair.gap_days)
+        if band is None:  # the tolerance is closed, the band is open at 12 months
+            continue
+        wa, wb = windows_a[pair.a.index], windows_b[pair.b.index]
+        gap = max(wa.start_jd, wb.start_jd) - min(wa.end_jd, wb.end_jd)
+        pairs.append(SandhiPair(pair.a, pair.b, wa, wb, pair.gap_days, gap, band))
+
+    return CoupleSandhiReading(
+        tuple(sorted(pairs, key=_reading_pair_key)),
+        horizon_years,
+        from_date,
+        _date(_horizon(from_jd, horizon_years)),
+        option,
+        fixed_months,
+    )

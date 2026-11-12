@@ -69,7 +69,7 @@ from app.calculations.yoga_display import (
 )
 from app.constants.astrology import SIGN_LORD
 from app.models import BirthProfile, Chart
-from app.services import cross_chart_copy, eighth_house_copy, joint_progeny_copy
+from app.services import cross_chart_copy, dasa_sandhi_copy, eighth_house_copy, joint_progeny_copy
 from app.services.chart_service import load_persisted_chart_response
 from app.services.dasha_service import get_chart_dasha
 from app.services.location_service import resolve_effective_daily_location
@@ -1288,6 +1288,25 @@ def generate_compatibility_intelligence_pdf(
                 story.append(Paragraph(
                     f"- {joint_progeny_copy.window_line(w, report.person_a_name, report.person_b_name, note_lang)}", body_style,
                 ))
+
+    # FAA-31: dasa sandhi. Dates only, no score (spec §0.4); mirrors the web
+    # card (pinned by tests/golden/dasa_sandhi/dasa_sandhi_copy.json).
+    if report.dasa_sandhi is not None:
+        ds = report.dasa_sandhi
+        story.extend([
+            Spacer(1, 0.3 * cm),
+            Paragraph(dasa_sandhi_copy.HEADING[note_lang], heading_style),
+            Paragraph(dasa_sandhi_copy.INTRO[note_lang], caption_style),
+            Paragraph(dasa_sandhi_copy.band_line(ds, note_lang), body_style),
+            Paragraph(dasa_sandhi_copy.horizon(ds, note_lang), caption_style),
+        ])
+        for p in ds.pairs:
+            story.append(Paragraph(
+                f"- {dasa_sandhi_copy.pair_line(p, report.person_a_name, report.person_b_name, note_lang)}",
+                body_style,
+            ))
+            story.append(Paragraph(dasa_sandhi_copy.window_line(p, note_lang), caption_style))
+        story.append(Paragraph(dasa_sandhi_copy.NOTE[note_lang], caption_style))
 
     story.extend([Spacer(1, 0.3 * cm), Paragraph(_label("dasha_level", lang), heading_style)])
     story.append(

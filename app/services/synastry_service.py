@@ -40,6 +40,7 @@ from app.schemas.relationships import (
     CompatibilityIntelligenceResponse,
     CompatibilityScoreBreakdown,
     CrossChartObservationData,
+    DasaSandhiData,
     DashaHarmony,
     DirectPoruthamData,
     DirectPoruthamResponse,
@@ -1086,6 +1087,7 @@ def build_compatibility_intelligence_from_snapshots(
             else None
         ),
         joint_progeny=JointProgenyData.from_result(ci.joint_progeny) if ci.joint_progeny is not None else None,
+        dasa_sandhi=DasaSandhiData.from_result(ci.dasa_sandhi) if ci.dasa_sandhi is not None else None,
     )
     return CompatibilityIntelligenceResponse(data=data, meta=_meta())
 
