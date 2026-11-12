@@ -69,7 +69,7 @@ from app.calculations.yoga_display import (
 )
 from app.constants.astrology import SIGN_LORD
 from app.models import BirthProfile, Chart
-from app.services import cross_chart_copy, eighth_house_copy
+from app.services import cross_chart_copy, eighth_house_copy, joint_progeny_copy
 from app.services.chart_service import load_persisted_chart_response
 from app.services.dasha_service import get_chart_dasha
 from app.services.location_service import resolve_effective_daily_location
@@ -1247,6 +1247,47 @@ def generate_compatibility_intelligence_pdf(
             story.append(Paragraph(f"- {text}", body_style))
         if joint:
             story.append(Paragraph(eighth_house_copy.JOINT_NOTE[note_lang], caption_style))
+
+    # FAA-32: children, both charts. Not a level: no points. Same copy as the
+    # web card (pinned by tests/golden/joint_progeny/joint_progeny_copy.json).
+    if report.joint_progeny is not None:
+        jp = report.joint_progeny
+        story.extend([
+            Spacer(1, 0.3 * cm),
+            Paragraph(joint_progeny_copy.HEADING[note_lang], heading_style),
+            Paragraph(joint_progeny_copy.INTRO[note_lang], caption_style),
+        ])
+        for name, reading in ((report.person_a_name, jp.person_a), (report.person_b_name, jp.person_b)):
+            story.append(Paragraph(name, subheading_style))
+            for group in joint_progeny_copy.GROUPS:
+                rows = [f for f in reading.factors if joint_progeny_copy.group_of(f) == group]
+                if not rows:
+                    continue
+                story.append(Paragraph(joint_progeny_copy.group_label(group, reading.ninth, note_lang), body_style))
+                for f in rows:
+                    mark = joint_progeny_copy.bearing(f, note_lang)
+                    also = joint_progeny_copy.also_counted(f, note_lang)
+                    text = f"- {joint_progeny_copy.line(f, note_lang)}" + (f" [{mark}]" if mark else "") + (f" {also}" if also else "")
+                    story.append(Paragraph(text, body_style))
+            for note in (joint_progeny_copy.ninth_not_applied(reading.ninth, note_lang),
+                         joint_progeny_copy.d7_note(reading.d7_note, note_lang)):
+                if note:
+                    story.append(Paragraph(note, caption_style))
+        for line in jp.joint:
+            story.append(Paragraph(joint_progeny_copy.joint_line(line.key, line.pattern, note_lang), body_style))
+        story.append(Paragraph(joint_progeny_copy.timing_heading(note_lang), subheading_style))
+        story.append(Paragraph(
+            joint_progeny_copy.timing_intro(jp.horizon_years, jp.horizon_start.isoformat(), jp.horizon_end.isoformat(), note_lang),
+            caption_style,
+        ))
+        empty = joint_progeny_copy.timing_empty(jp.timing_note, bool(jp.windows), jp.horizon_years, note_lang)
+        if empty:
+            story.append(Paragraph(empty, body_style))
+        else:
+            for w in jp.windows:
+                story.append(Paragraph(
+                    f"- {joint_progeny_copy.window_line(w, report.person_a_name, report.person_b_name, note_lang)}", body_style,
+                ))
 
     story.extend([Spacer(1, 0.3 * cm), Paragraph(_label("dasha_level", lang), heading_style)])
     story.append(

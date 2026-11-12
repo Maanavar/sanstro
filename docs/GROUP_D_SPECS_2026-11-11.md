@@ -1,6 +1,6 @@
 # Group D — build specifications (FAA-02 step 2, FAA-30, FAA-31, FAA-32, FAA-33)
 
-Status: **rulings received 2026-11-11 (see §0); FAA-33 built (§0.5) and FAA-30 built (§0.6; joint line split per OWNER-Q-D4, §0.9); FAA-32, -31, -02 not built.** The sections D1–D5
+Status: **rulings received 2026-11-11 (see §0); FAA-33 built (§0.5), FAA-30 built (§0.6; joint line split per OWNER-Q-D4, §0.9), FAA-32 built (§0.7, branch `feat/faa32-joint-progeny`); FAA-31, -02 not built.** The sections D1–D5
 below are the original draft and stay as written; where §0 changes them, §0 governs.
 Parent: `docs/FULL_ASTRO_ACCURACY_AUDIT_2026-11-10.md`
 (the audit text for each item is the requirement; this file is the "how").
@@ -209,7 +209,7 @@ existing modules, not a new table per item.
 
 ### 0.9 OWNER-Q-D4: FAA-30's joint line split in two (ruled and built 2026-11-12)
 
-(Numbered 0.9 because §0.7–0.8, FAA-32 and the D4 options table, live on PR #21's branch.)
+(Numbered 0.9; §0.7–0.8 below carry FAA-32 and the D4 options table, merged from PR #21.)
 
 **The problem.** The original joint line counted aspects and read both 8ths (lagna and Moon),
 either one enough. Sani, Sevvai, the nodes and the Sun between them aspect almost every sign, so
@@ -289,6 +289,104 @@ out and the paksha to the fallback. That understated the live line (90.8%), A (8
   - Mutations and blind spot: see the PR. The gates prove the wiring, the two definitions and
     the no-score boundary. They do not prove that these two placements are the right shared
     reading; that is the owner's ruling.
+
+### 0.7 FAA-32 built (2026-11-11, branch `feat/faa32-joint-progeny`)
+
+- **Engine.** `app/calculations/joint_progeny.py`, pure. It reuses FAA-30's classes, dignity,
+  lordship (MARAKA removed) and placement ids; `mangalya_sthana` now exposes them as
+  `graha_nature` / `dignity_of` / `lordship_of` / `nth_rasi`, with no change in behaviour.
+  Per chart:
+  - the 5th from the lagna: occupants, lord, aspects on the house, aspects and conjunctions on the lord;
+  - Guru as karaka, and the malefics joined to it;
+  - the 5th from Guru and its lord (`BPHS_7_42`, `classical_rule`);
+  - the 5th from the Moon and its lord (`engine_inference`);
+  - the 9th, its lord and occupants: for a stated bride as `PHALADEEPIKA_11_1` (`classical_rule`,
+    with its own-house exception); for a stated groom as context only; with no stated gender,
+    not read, and the reading says so;
+  - D7 lines, gated by `progeny_checks.check_d7(...).houses_reliable` (the existing rule).
+- **Bearing, not grade.** Each factor carries `bearing`: SUPPORTIVE, CHALLENGING or CONTEXT.
+  Those are spec D3 layer 4's two lists. The surfaces mark each line and never add them up.
+- **Engine conventions, not rulings** (an astrologer should check these):
+  - a lord's or the karaka's bearing: debilitated, combust or in 6/8/12 is challenging;
+    exalted, own sign, kendra or trikona is supportive; both or neither is context;
+  - a malefic in its own house is context except in the bride's 9th, because the verse's
+    exception was checked only for that reading;
+  - "bhuktis" (spec D3) is read at antardasa level; a timing lord's mahadasa alone does not
+    open a window;
+  - no dates are listed when either partner is under 18 or 50 and over (`progeny_checks` bands).
+- **Joint layer: occupation and conjunction, never an aspect.** Measured on 2,000 synthetic
+  couples (real sky 1994–2000, random lagna, seed 32; a scratch run, not a ratification):
+
+  | Joint line | BOTH, with aspects | BOTH, occupation + conjunction | BOTH, as built |
+  |---|---|---|---|
+  | 5th house (a malefic in it, outside its own sign) | 62.7% | 10.5% | 10.5% |
+  | 5th lord (marked challenging) | 78.7% | 38.8% | **6.4%** (the lord's own placement only) |
+  | Guru (marked challenging) | 29.1% | 29.1% | 29.1% |
+
+  Mars, Saturn, the nodes and the Sun between them aspect almost every sign, so the
+  aspect version said "both" for most couples. The house line uses the Santhana Thadai
+  trigger surface. The 5th-lord line reads the lord's own placement only (OWNER-Q-D3,
+  ruled 2026-11-12): a malefic joined to the lord is still listed as a challenging line.
+  The aspect lines are still listed as factors.
+- **Timing.** The window lords are the rulings' list (never the 2nd or 7th lords), and the
+  windows are true intersections of the two partners' bhuktis. The horizon is 5 years; the
+  engine also takes 10 (`horizon_years`), but no API parameter exposes it yet. On the same
+  population:
+
+  | Horizon | Couples with a window | Windows per couple | Share of the horizon covered |
+  |---|---|---|---|
+  | 5 years | 79.8% | median 1, max 8 | median 19.7% |
+  | 10 years | 95.1% | median 3, max 11 | median 22.0% |
+
+  These are dates for the astrologer, not a flag, so prevalence is reported, not gated.
+- **Wire.** `jointProgeny` on CI (optional in `packages/shared`, None in the schema). It carries
+  numbers and graha keys only. CI only: mobile reads no CI route, and no new endpoint was added.
+- **Surfaces.** A web card after the 8th house (`compatibility-intelligence-panel.tsx`) and the
+  same section on the CI PDF. Copy is in `web/lib/joint-progeny-copy.ts`, mirrored in
+  `app/services/joint_progeny_copy.py`. Both are pinned by
+  `tests/golden/joint_progeny/joint_progeny_copy.json` (138 lines, regenerated with
+  `WRITE_GOLDEN=1` from the web test). English says "Jupiter", as `tPlanetLord` does. The Tamil
+  is Claude's draft and has not been native-reviewed.
+- **Gates.**
+  - `tests/test_faa32_joint_progeny.py`;
+  - the CI production-path test (the same chart as bride and groom: identical 5th-house
+    lines, only the 9th differs, and only the bride's 9th lord times);
+  - the direct-pair API and PDF tests (no gender, no 9th);
+  - `web/lib/joint-progeny-copy.test.ts` (golden file, denial and grading words).
+  - Mutation run: 10 of 10 caught. The mutations: the joint layer counting aspects; the
+    bride's own-house exception dropped; a groom's 9th lord timing; the dosham link dropped;
+    touching spans opening a window; D7 lines kept on an unreliable lagna; no age gate; the PDF
+    copy drifting from the web; CI not attaching FAA-32; the PDF section removed.
+  - Blind spot: the gates prove the wiring, the references and the no-score boundary. They do
+    not prove the bearing conventions or the timing-lord list; those are the rulings and the
+    conventions above.
+
+### 0.8 Open after FAA-32 (owner)
+
+- **OWNER-Q-D3: ruled 2026-11-12.** The 5th-lord line reads the lord's own placement only.
+  "Both" went from 38.8% to 6.4%. Built.
+- **OWNER-Q-D4 (FAA-30): ruled 2026-11-12, option E — built (§0.9).** The analysis that led
+  there, kept as the record. FAA-30's joint line counted aspects. It says "Both
+  charts show malefic influence on the 8th. Read the two together with your astrologer." for
+  **90.8%** of couples, and sets `maleficInfluence` on 95.8% of charts. The owner approved the
+  FAA-32 basis on 2026-11-12. Measured first, it is not enough, because FAA-30 reads two 8ths
+  (lagna and Moon) and the flag is set if either qualifies (2,000 couples, seed 30):
+
+  | FAA-30 joint basis | BOTH | Per chart |
+  |---|---|---|
+  | Live (aspects included) | 90.8% | 95.8% |
+  | Both references: occupant, joined to the lord, or the lord debilitated/combust | 81.0% | 90.7% |
+  | Lagna only, the same three | 52.7% | 72.4% |
+  | Both references: occupant or the lord's condition | 39.3% | 62.9% |
+  | Lagna only: occupant or the lord's condition | 16.8% | 40.9% |
+  | Split line: a malefic in the lagna's 8th | 11.3% | 34.2% |
+  | Split line: the lagna's 8th lord debilitated or combust | 2.1% | 12.6% |
+
+  Only the lagna-side and split variants get under the ~30% line. A split changes the wire
+  shape (`joint` becomes a list, as in FAA-32). The lagna side is also where Phaladeepika 11.1
+  is checked; the Moon side may be the translator's gloss. **Not built: waiting for the
+  owner's choice.** The approved fix was not shipped because it misses its own goal.
+  **Resolved 2026-11-12: option E, the lagna-side split — built; see §0.9.**
 
 Rules that bind every item below (already on record, not re-opened here):
 

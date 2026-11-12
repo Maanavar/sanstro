@@ -664,6 +664,134 @@ class EighthHouseCoupleData(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class ProgenyFactorData(BaseModel):
+    """FAA-32 factor. Numbers and keys only; surfaces word it. `bearing` sorts
+    it into the supportive / challenging lists; nothing sums them."""
+
+    kind: Literal["OCCUPANT", "LORD", "KARAKA", "INFLUENCE", "BENEFIC_ASPECT", "D7_LORD", "D7_OCCUPANT", "D7_KARAKA"]
+    reference: Literal["LAGNA", "MOON", "JUPITER", "D7_LAGNA"]
+    bhava: Literal[5, 9]
+    graha: str
+    rasi: int
+    house: int
+    nature: Literal["MALEFIC", "BENEFIC"]
+    condition: Literal["PAKSHA", "ASSOCIATION"] | None = None
+    dignity: Literal["EXALTED", "OWN", "DEBILITATED", "NEUTRAL"]
+    combust: bool = False
+    lordship: list[str] = Field(default_factory=list)
+    own_house: bool = Field(default=False, alias="ownHouse")
+    via: Literal["IN", "CONJUNCT", "ASPECT"]
+    target: Literal["HOUSE", "LORD", "KARAKA"]
+    bearing: Literal["SUPPORTIVE", "CHALLENGING", "CONTEXT"]
+    placement_id: str = Field(alias="placementId")
+    also_counted_in: list[str] = Field(default_factory=list, alias="alsoCountedIn")
+    rule: str
+    tier: Literal["classical_rule", "engine_inference"]
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+TimingRoleData = Literal[
+    "FIFTH_LORD", "JUPITER", "FIFTH_OCCUPANT", "FIFTH_FROM_JUPITER_LORD",
+    "FIFTH_LORD_DISPOSITOR", "NINTH_LORD", "NINTH_OCCUPANT",
+]
+
+
+class ProgenyTimingLordData(BaseModel):
+    graha: str
+    roles: list[TimingRoleData]
+
+
+class ProgenyReadingData(BaseModel):
+    """FAA-32, one chart. `ninth`: CHILDREN for a stated bride (Phaladeepika
+    11.1), CONTEXT for a stated groom, NOT_APPLIED with no stated gender."""
+
+    ninth: Literal["CHILDREN", "CONTEXT", "NOT_APPLIED"]
+    fifth_from_lagna: int = Field(alias="fifthFromLagna")
+    fifth_from_moon: int = Field(alias="fifthFromMoon")
+    fifth_from_jupiter: int | None = Field(default=None, alias="fifthFromJupiter")
+    ninth_from_lagna: int | None = Field(default=None, alias="ninthFromLagna")
+    factors: list[ProgenyFactorData] = Field(default_factory=list)
+    d7_note: Literal["D7_LAGNA_UNRELIABLE", "D7_UNAVAILABLE"] | None = Field(default=None, alias="d7Note")
+    timing_lords: list[ProgenyTimingLordData] = Field(default_factory=list, alias="timingLords")
+    tier: Literal["engine_inference"] = "engine_inference"
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    @classmethod
+    def from_reading(cls, r: Any) -> ProgenyReadingData:
+        return cls(
+            ninth=r.ninth, fifth_from_lagna=r.fifth_from_lagna, fifth_from_moon=r.fifth_from_moon,
+            fifth_from_jupiter=r.fifth_from_jupiter, ninth_from_lagna=r.ninth_from_lagna,
+            factors=[
+                ProgenyFactorData(
+                    kind=f.kind, reference=f.reference, bhava=f.bhava, graha=f.graha, rasi=f.rasi, house=f.house,
+                    nature=f.nature, condition=f.condition, dignity=f.dignity, combust=f.combust,
+                    lordship=list(f.lordship), own_house=f.own_house, via=f.via, target=f.target,
+                    bearing=f.bearing, placement_id=f.placement_id, also_counted_in=list(f.also_counted_in),
+                    rule=f.rule, tier=f.tier,
+                )
+                for f in r.factors
+            ],
+            d7_note=r.d7_note,
+            timing_lords=[ProgenyTimingLordData(graha=t.graha, roles=list(t.roles)) for t in r.timing_lords],
+        )
+
+
+class ProgenyWindowData(BaseModel):
+    """A true intersection of a timing-lord bhukti for each partner. Dates only."""
+
+    start: date
+    end: date
+    lord_a: str = Field(alias="lordA")
+    maha_a: str = Field(alias="mahaA")
+    roles_a: list[TimingRoleData] = Field(default_factory=list, alias="rolesA")
+    lord_b: str = Field(alias="lordB")
+    maha_b: str = Field(alias="mahaB")
+    roles_b: list[TimingRoleData] = Field(default_factory=list, alias="rolesB")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class ProgenyJointLineData(BaseModel):
+    key: Literal["FIFTH_HOUSE", "FIFTH_LORD", "JUPITER"]
+    pattern: Literal["BOTH", "ONE", "NEITHER"]
+
+
+class JointProgenyData(BaseModel):
+    """FAA-32 on CI. Describes and times; never grades, never says whether a
+    child will come (Q17)."""
+
+    person_a: ProgenyReadingData = Field(alias="personA")
+    person_b: ProgenyReadingData = Field(alias="personB")
+    joint: list[ProgenyJointLineData] = Field(default_factory=list)
+    windows: list[ProgenyWindowData] = Field(default_factory=list)
+    horizon_years: int = Field(alias="horizonYears")
+    horizon_start: date = Field(alias="horizonStart")
+    horizon_end: date = Field(alias="horizonEnd")
+    timing_note: Literal["AGE_OUTSIDE_RANGE"] | None = Field(default=None, alias="timingNote")
+    tier: Literal["engine_inference"] = "engine_inference"
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    @classmethod
+    def from_result(cls, j: Any) -> JointProgenyData:
+        return cls(
+            person_a=ProgenyReadingData.from_reading(j.person_a),
+            person_b=ProgenyReadingData.from_reading(j.person_b),
+            joint=[ProgenyJointLineData(key=x.key, pattern=x.pattern) for x in j.joint],
+            windows=[
+                ProgenyWindowData(
+                    start=w.start, end=w.end, lord_a=w.lord_a, maha_a=w.maha_a, roles_a=list(w.roles_a),
+                    lord_b=w.lord_b, maha_b=w.maha_b, roles_b=list(w.roles_b),
+                )
+                for w in j.windows
+            ],
+            horizon_years=j.horizon_years, horizon_start=j.horizon_start, horizon_end=j.horizon_end,
+            timing_note=j.timing_note,
+        )
+
+
 class CompatibilityIntelligenceData(BaseModel):
     person_a_name: str = Field(alias="personAName")
     person_b_name: str = Field(alias="personBName")
@@ -722,6 +850,8 @@ class CompatibilityIntelligenceData(BaseModel):
     cross_chart: list[CrossChartObservationData] = Field(default_factory=list, alias="crossChart")
     # FAA-30. None on a payload produced before it existed.
     eighth_house: EighthHouseCoupleData | None = Field(default=None, alias="eighthHouse")
+    # FAA-32. None on a payload produced before it existed.
+    joint_progeny: JointProgenyData | None = Field(default=None, alias="jointProgeny")
 
     model_config = ConfigDict(populate_by_name=True)
 

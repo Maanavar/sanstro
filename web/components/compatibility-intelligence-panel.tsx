@@ -22,6 +22,23 @@ import {
   eighthHouseNotApplied,
   eighthHouseTitle,
 } from "@/lib/eighth-house-copy";
+import {
+  JOINT_PROGENY_HEADING,
+  JOINT_PROGENY_INTRO,
+  PROGENY_GROUPS,
+  progenyAlsoCounted,
+  progenyBearing,
+  progenyD7Note,
+  progenyGroup,
+  progenyGroupLabel,
+  progenyJointLine,
+  progenyLine,
+  progenyNinthNotApplied,
+  progenyTimingEmpty,
+  progenyTimingHeading,
+  progenyTimingIntro,
+  progenyWindowLine,
+} from "@/lib/joint-progeny-copy";
 import type { KutaGrade } from "@vinaadi/shared";
 import { ZodiacBadge } from "./zodiac-badge";
 import { NakshatraBadge } from "./nakshatra-badge";
@@ -687,6 +704,70 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
               </ul>
               <p style={{ margin: "6px 0 0", fontSize: "0.72rem", color: W.muted, lineHeight: 1.55 }}>{EIGHTH_HOUSE_JOINT_NOTE[lang]}</p>
             </div>
+          )}
+        </SectionCard>
+      )}
+
+      {/* ── FAA-32: children, both charts. Not a level: no points. ── */}
+      {d.jointProgeny && (
+        <SectionCard title={JOINT_PROGENY_HEADING[lang]}>
+          <p style={{ margin: "0 0 10px", fontSize: "0.78rem", color: W.muted, lineHeight: 1.55 }}>
+            {JOINT_PROGENY_INTRO[lang]}
+          </p>
+          <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+            {[
+              { name: d.personAName, r: d.jointProgeny.personA },
+              { name: d.personBName, r: d.jointProgeny.personB },
+            ].map(({ name, r }, idx) => (
+              <div key={idx} style={{ flex: 1, minWidth: "240px", background: W.surface, borderRadius: "10px", padding: "12px 16px", border: `1px solid ${W.borderLt}` }}>
+                <p style={{ margin: "0 0 8px", fontSize: "0.78rem", fontWeight: 700, color: W.terracotta }}>{name}</p>
+                {PROGENY_GROUPS.map((group) => {
+                  const rows = r.factors.filter((f) => progenyGroup(f) === group);
+                  if (!rows.length) return null;
+                  return (
+                    <div key={group} style={{ marginBottom: "8px" }}>
+                      <div style={{ fontSize: "0.74rem", fontWeight: 700, color: W.inkMid, marginBottom: "4px" }}>{progenyGroupLabel(group, r, lang)}</div>
+                      <ul style={{ margin: 0, paddingLeft: "18px", display: "flex", flexDirection: "column", gap: "4px" }}>
+                        {rows.map((f, i) => (
+                          <li key={i} style={{ fontSize: "0.78rem", color: W.inkMid, lineHeight: 1.55 }}>
+                            {progenyLine(f, lang)}
+                            {progenyBearing(f, lang) && (
+                              <span style={{ fontSize: "0.72rem", fontWeight: 600, color: f.bearing === "SUPPORTIVE" ? W.sage : W.muted }}>
+                                {" "}· {progenyBearing(f, lang)}
+                              </span>
+                            )}
+                            {f.alsoCountedIn.length > 0 && (
+                              <span style={{ display: "block", fontSize: "0.72rem", color: W.muted }}>{progenyAlsoCounted(f, lang)}</span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                })}
+                {[progenyNinthNotApplied(r, lang), progenyD7Note(r, lang)].filter(Boolean).map((note, i) => (
+                  <p key={i} style={{ margin: "4px 0 0", fontSize: "0.72rem", color: W.muted }}>{note}</p>
+                ))}
+              </div>
+            ))}
+          </div>
+          <ul style={{ margin: "10px 0 0", paddingLeft: "18px", display: "flex", flexDirection: "column", gap: "4px" }}>
+            {d.jointProgeny.joint.map((j) => (
+              <li key={j.key} style={{ fontSize: "0.78rem", color: W.inkMid, lineHeight: 1.55 }}>{progenyJointLine(j.key, j.pattern, lang)}</li>
+            ))}
+          </ul>
+          <p style={{ margin: "12px 0 4px", fontSize: "0.76rem", fontWeight: 700, color: W.inkMid }}>{progenyTimingHeading(lang)}</p>
+          <p style={{ margin: "0 0 6px", fontSize: "0.72rem", color: W.muted, lineHeight: 1.55 }}>{progenyTimingIntro(d.jointProgeny, lang)}</p>
+          {progenyTimingEmpty(d.jointProgeny, lang) ? (
+            <p style={{ margin: 0, fontSize: "0.78rem", color: W.muted }}>{progenyTimingEmpty(d.jointProgeny, lang)}</p>
+          ) : (
+            <ul style={{ margin: 0, paddingLeft: "18px", display: "flex", flexDirection: "column", gap: "4px" }}>
+              {d.jointProgeny.windows.map((w, i) => (
+                <li key={i} style={{ fontSize: "0.78rem", color: W.inkMid, lineHeight: 1.55 }}>
+                  {progenyWindowLine(w, d.personAName, d.personBName, lang)}
+                </li>
+              ))}
+            </ul>
           )}
         </SectionCard>
       )}

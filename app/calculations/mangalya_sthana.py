@@ -151,11 +151,15 @@ def d9_lagna_stable(lagna_longitude: float, bracket: tuple[float, float] | None,
     return len(signs) == 1
 
 
-def _nth(rasi: int, n: int) -> int:
+def nth_rasi(rasi: int, n: int) -> int:
+    """The rasi that is the n-th house from ``rasi`` (inclusive count)."""
     return (rasi + n - 2) % 12 + 1
 
 
-def _dignity(graha: str, rasi: int) -> Dignity:
+_nth = nth_rasi
+
+
+def dignity_of(graha: str, rasi: int) -> Dignity:
     if rasi == DEBILITATION_RASI.get(graha):
         return "DEBILITATED"
     if rasi == EXALTATION_RASI.get(graha):
@@ -165,17 +169,29 @@ def _dignity(graha: str, rasi: int) -> Dignity:
     return "NEUTRAL"
 
 
-def _nature(chart: EighthHouseChart, graha: str) -> tuple[Nature, Condition | None]:
+_dignity = dignity_of
+
+
+def graha_nature(planet_rasi: Mapping[str, int], paksha_is_shukla: bool | None, graha: str) -> tuple[Nature, Condition | None]:
+    """The rulings' classes, shared by FAA-30 and FAA-32."""
     if graha in _MALEFICS:
         return "MALEFIC", None
     if graha in _BENEFICS:
         return "BENEFIC", None
-    cls = effective_natural_class(graha, chart.planet_rasi, paksha_is_shukla=chart.paksha_is_shukla)
+    cls = effective_natural_class(graha, planet_rasi, paksha_is_shukla=paksha_is_shukla)
     return ("MALEFIC" if cls == "MALEFIC" else "BENEFIC"), _CONDITIONAL[graha]  # type: ignore[return-value]
 
 
-def _lordship(lagna_rasi: int, graha: str) -> tuple[str, ...]:
+def _nature(chart: EighthHouseChart, graha: str) -> tuple[Nature, Condition | None]:
+    return graha_nature(chart.planet_rasi, chart.paksha_is_shukla, graha)
+
+
+def lordship_of(lagna_rasi: int, graha: str) -> tuple[str, ...]:
+    """Functional statuses for this lagna, MARAKA removed (EC-RULING-06)."""
     return tuple(sorted(s.value for s in functional_status(lagna_rasi, graha) if s is not FunctionalStatus.MARAKA))
+
+
+_lordship = lordship_of
 
 
 def one_chart(chart: EighthHouseChart, gender: str | None) -> EighthHouseReading:

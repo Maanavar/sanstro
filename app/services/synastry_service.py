@@ -50,6 +50,7 @@ from app.schemas.relationships import (
     EighthHouseReadingData,
     EkaNakshatraData,
     EmotionalCompatibility,
+    JointProgenyData,
     KutaResult,
     NadiDoshaData,
     NavamsaCompatibility,
@@ -1084,6 +1085,7 @@ def build_compatibility_intelligence_from_snapshots(
             if ci.mangalya_a is not None and ci.mangalya_b is not None
             else None
         ),
+        joint_progeny=JointProgenyData.from_result(ci.joint_progeny) if ci.joint_progeny is not None else None,
     )
     return CompatibilityIntelligenceResponse(data=data, meta=_meta())
 

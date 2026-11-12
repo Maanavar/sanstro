@@ -338,6 +338,8 @@ def _stub_strong_layers(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(ci_module, "_cross_chart", lambda a, b: ())
     # FAA-30 reads real snapshots and the ephemeris; descriptive only.
     monkeypatch.setattr(ci_module, "_mangalya_fields", lambda a, b, d: {})
+    # FAA-32 reads real snapshots and the dasha timeline; descriptive only.
+    monkeypatch.setattr(ci_module, "joint_progeny_from_snapshots", lambda a, b, jd: None)
 
 
 def _fake_porutham_result(*, rajju_dosha: bool, vedha_dosha: bool) -> SimpleNamespace:

@@ -2213,6 +2213,71 @@ export interface EighthHouseCouple {
   joint: EighthHouseJointLine[];
 }
 
+/**
+ * FAA-32 progeny factor (describes only, no score). Render `rasi` through
+ * `rasiDisplayName`, `graha` through `tPlanetLord`. `bearing` puts it in the
+ * supportive or challenging list; nothing sums the lists. `placementId` is
+ * FAA-30's; `alsoCountedIn` names a formed children's dosham on the same placement.
+ */
+export interface ProgenyFactor {
+  kind: "OCCUPANT" | "LORD" | "KARAKA" | "INFLUENCE" | "BENEFIC_ASPECT" | "D7_LORD" | "D7_OCCUPANT" | "D7_KARAKA";
+  reference: "LAGNA" | "MOON" | "JUPITER" | "D7_LAGNA";
+  bhava: 5 | 9;
+  graha: string;
+  rasi: number;
+  house: number;
+  nature: "MALEFIC" | "BENEFIC";
+  condition: "PAKSHA" | "ASSOCIATION" | null;
+  dignity: "EXALTED" | "OWN" | "DEBILITATED" | "NEUTRAL";
+  combust: boolean;
+  lordship: string[];
+  ownHouse: boolean;
+  via: "IN" | "CONJUNCT" | "ASPECT";
+  target: "HOUSE" | "LORD" | "KARAKA";
+  bearing: "SUPPORTIVE" | "CHALLENGING" | "CONTEXT";
+  placementId: string;
+  alsoCountedIn: string[];
+  rule: string;
+  tier: "classical_rule" | "engine_inference";
+}
+
+export type ProgenyTimingRole =
+  | "FIFTH_LORD" | "JUPITER" | "FIFTH_OCCUPANT" | "FIFTH_FROM_JUPITER_LORD"
+  | "FIFTH_LORD_DISPOSITOR" | "NINTH_LORD" | "NINTH_OCCUPANT";
+
+/** FAA-32, one chart. `ninth`: CHILDREN for a stated bride, CONTEXT for a
+ *  stated groom, NOT_APPLIED without a stated gender. */
+export interface ProgenyReading {
+  ninth: "CHILDREN" | "CONTEXT" | "NOT_APPLIED";
+  fifthFromLagna: number;
+  fifthFromMoon: number;
+  fifthFromJupiter: number | null;
+  ninthFromLagna: number | null;
+  factors: ProgenyFactor[];
+  d7Note: "D7_LAGNA_UNRELIABLE" | "D7_UNAVAILABLE" | null;
+  timingLords: { graha: string; roles: ProgenyTimingRole[] }[];
+  tier: "engine_inference";
+}
+
+/** A true intersection of a timing-lord bhukti for each partner (ISO dates). */
+export interface ProgenyWindow {
+  start: string; end: string;
+  lordA: string; mahaA: string; rolesA: ProgenyTimingRole[];
+  lordB: string; mahaB: string; rolesB: ProgenyTimingRole[];
+}
+
+export interface JointProgeny {
+  personA: ProgenyReading;
+  personB: ProgenyReading;
+  joint: { key: "FIFTH_HOUSE" | "FIFTH_LORD" | "JUPITER"; pattern: "BOTH" | "ONE" | "NEITHER" }[];
+  windows: ProgenyWindow[];
+  horizonYears: number;
+  horizonStart: string;
+  horizonEnd: string;
+  timingNote: "AGE_OUTSIDE_RANGE" | null;
+  tier: "engine_inference";
+}
+
 export interface CompatibilityIntelligenceData {
   personAName: string; personBName: string;
   personAIdentity: PersonAstroIdentity; personBIdentity: PersonAstroIdentity;
@@ -2233,6 +2298,8 @@ export interface CompatibilityIntelligenceData {
   crossChart?: CrossChartObservation[];
   /** FAA-30. Optional/null: absent from payloads produced before it existed. */
   eighthHouse?: EighthHouseCouple | null;
+  /** FAA-32. Optional/null: absent from payloads produced before it existed. */
+  jointProgeny?: JointProgeny | null;
 }
 
 export interface RelationshipAlertItem {
