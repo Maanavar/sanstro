@@ -37,7 +37,7 @@ but its wording is unreviewed (Phase 4 owner decision: Tamil copy unreviewed).
 from __future__ import annotations
 
 import re
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, timedelta
 from uuid import UUID, uuid4
 
 import pytest
