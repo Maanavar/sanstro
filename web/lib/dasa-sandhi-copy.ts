@@ -5,7 +5,7 @@
  * reproduce tests/golden/dasa_sandhi/dasa_sandhi_copy.json.
  *
  * Describes and times only (spec §0.4). No score, no dosham, no parihara, no
- * veto on the match, and nothing about widowhood or lifespan (EC-RULING-06).
+ * veto on the match, and nothing about mortality or lifespan (EC-RULING-06).
  * The thresholds are a vendor-documented practice, not doctrine, and the copy
  * says so.
  */

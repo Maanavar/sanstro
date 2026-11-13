@@ -15,7 +15,7 @@ reaches a reader, through `couple_reading` and nothing else:
   date yet, so CI passes the reference date.
 
 It **describes and times, and never grades**: no score, no dosham, no parihara,
-no veto, no widowhood (EC-RULING-06). The thresholds are a vendor-documented
+no veto, no mortality claim (EC-RULING-06). The thresholds are a vendor-documented
 practice (`PROKERALA_PORUTHAM_P17`), not the astrologer's, so the reading ships
 at `engine_inference` and says whose practice it is.
 

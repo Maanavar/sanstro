@@ -6,7 +6,7 @@ the web functions; the web test and ``tests/test_faa31_dasa_sandhi_surface.py``
 both reproduce every line.
 
 Describes and times only (spec §0.4): no score, no dosham, no parihara, no
-veto on the match, nothing about widowhood or lifespan (EC-RULING-06).
+veto on the match, nothing about mortality or lifespan (EC-RULING-06).
 """
 from __future__ import annotations
 
