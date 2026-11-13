@@ -58,6 +58,7 @@ from app.calculations.cross_chart import (
     chart_points_from_snapshot,
     cross_chart_observations,
 )
+from app.calculations.dasa_sandhi import CoupleSandhiReading, couple_reading
 from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.display_names import planet_en, planet_ta
 from app.calculations.doctrine_options import DEFAULT_DOCTRINE, DoctrineOptions
@@ -302,6 +303,10 @@ class CompatibilityIntelligenceResult:
     # FAA-32: joint progeny (both charts, joint patterns, dasha windows).
     # Descriptive: no points, attached after the composite is fixed.
     joint_progeny: JointProgeny | None = None
+
+    # FAA-31: dasa sandhi, mahadasa changes that fall close together.
+    # Surface ratified 2026-11-12 (spec §0.4). Timing only: no points.
+    dasa_sandhi: CoupleSandhiReading | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -1350,6 +1355,7 @@ def compute_compatibility_intelligence(
         cross_chart=_cross_chart(snap_a, snap_b),
         **_mangalya_fields(snap_a, snap_b, doctrine),
         joint_progeny=joint_progeny_from_snapshots(snap_a, snap_b, today_jd),
+        dasa_sandhi=dasa_sandhi_from_snapshots(snap_a, snap_b, today_jd),
     )
 
 
@@ -1391,6 +1397,22 @@ def joint_progeny_from_snapshots(snap_a: Any, snap_b: Any, today_jd: float) -> J
         parts.append((chart, gender, timeline.mahadashas, progeny_birth_date(snap)))
     (ca, ga, ma, ba), (cb, gb, mb, bb) = parts
     return joint_progeny(ca, ga, ma, ba, cb, gb, mb, bb, as_of=as_of)
+
+
+def _mahadashas(snap: Any, today_jd: float) -> Any:
+    data = snap.data
+    moon = next(p for p in data.planets if p.graha == "MOON")
+    return calculate_vimshottari_timeline(data.julian_day, moon.absolute_longitude, today_jd).mahadashas
+
+
+def dasa_sandhi_from_snapshots(snap_a: Any, snap_b: Any, today_jd: float) -> CoupleSandhiReading:
+    """FAA-31 for the couple. Attached after the composite is fixed: no points.
+
+    The horizon starts at the reference date. The ruling allows a planned
+    marriage date instead, but no CI field carries one, so none is guessed.
+    """
+    as_of = julian_day_to_utc_datetime(today_jd).date()
+    return couple_reading(_mahadashas(snap_a, today_jd), _mahadashas(snap_b, today_jd), from_date=as_of)
 
 
 def _mangalya_fields(snap_a: Any, snap_b: Any, doctrine: DoctrineOptions) -> dict[str, Any]:

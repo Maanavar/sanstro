@@ -2278,6 +2278,36 @@ export interface JointProgeny {
   tier: "engine_inference";
 }
 
+/** FAA-31: two mahadasa changes, one per partner, within 12 months (ISO dates).
+ *  `changeGapDays` decides the band; `windowGapDays` is shown beside it and
+ *  bands nothing. A negative `windowGapDays` means the windows overlap. */
+export interface DasaSandhiPair {
+  outgoingA: string; incomingA: string; changeA: string;
+  outgoingB: string; incomingB: string; changeB: string;
+  windowAStart: string; windowAEnd: string;
+  windowBStart: string; windowBEnd: string;
+  changeGapDays: number;
+  windowGapDays: number;
+  windowsOverlap: boolean;
+  band: "CLOSE" | "NEAR";
+}
+
+/** FAA-31 on CI. Times only: never a score, a dosham or a verdict on the match. */
+export interface DasaSandhi {
+  pairs: DasaSandhiPair[];
+  /** The couple's closest pair. null = nothing flagged in the horizon. */
+  band: "CLOSE" | "NEAR" | null;
+  horizonYears: number;
+  horizonStart: string;
+  horizonEnd: string;
+  /** Only the ruled window reaches the wire; the engine's other two options
+   *  stay measurement groundwork. */
+  option: "A_FIXED";
+  fixedMonths: number;
+  rule: "PROKERALA_PORUTHAM_P17";
+  tier: "engine_inference";
+}
+
 export interface CompatibilityIntelligenceData {
   personAName: string; personBName: string;
   personAIdentity: PersonAstroIdentity; personBIdentity: PersonAstroIdentity;
@@ -2300,6 +2330,8 @@ export interface CompatibilityIntelligenceData {
   eighthHouse?: EighthHouseCouple | null;
   /** FAA-32. Optional/null: absent from payloads produced before it existed. */
   jointProgeny?: JointProgeny | null;
+  /** FAA-31. Optional/null: absent from payloads produced before it existed. */
+  dasaSandhi?: DasaSandhi | null;
 }
 
 export interface RelationshipAlertItem {

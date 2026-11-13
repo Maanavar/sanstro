@@ -12,6 +12,15 @@ import { madhyamaLabel, madhyamaGloss, hasMadhyama } from "@/lib/kuta-grade";
 import { verdictPhraseOrKey } from "@/lib/verdict-lexicon";
 import { crossChartBadge, crossChartLine, crossChartRowVisible, crossChartTone } from "@/lib/cross-chart-copy";
 import {
+  DASA_SANDHI_HEADING,
+  DASA_SANDHI_INTRO,
+  DASA_SANDHI_NOTE,
+  dasaSandhiBandLine,
+  dasaSandhiHorizon,
+  dasaSandhiPairLine,
+  dasaSandhiWindowLine,
+} from "@/lib/dasa-sandhi-copy";
+import {
   EIGHTH_HOUSE_INTRO,
   EIGHTH_HOUSE_JOINT_NOTE,
   eighthHouseAlsoCounted,
@@ -769,6 +778,36 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
               ))}
             </ul>
           )}
+        </SectionCard>
+      )}
+
+      {/* ── FAA-31: dasa sandhi. Not a level: dates only, no points. ── */}
+      {d.dasaSandhi && (
+        <SectionCard title={DASA_SANDHI_HEADING[lang]}>
+          <p style={{ margin: "0 0 10px", fontSize: "0.78rem", color: W.muted, lineHeight: 1.55 }}>
+            {DASA_SANDHI_INTRO[lang]}
+          </p>
+          <p style={{ margin: "0 0 4px", fontSize: "0.82rem", color: W.inkMid, lineHeight: 1.55, fontWeight: 600 }}>
+            {dasaSandhiBandLine(d.dasaSandhi, lang)}
+          </p>
+          <p style={{ margin: "0 0 10px", fontSize: "0.72rem", color: W.muted }}>
+            {dasaSandhiHorizon(d.dasaSandhi, lang)}
+          </p>
+          {d.dasaSandhi.pairs.length > 0 && (
+            <ul style={{ margin: 0, paddingLeft: "18px", display: "flex", flexDirection: "column", gap: "8px" }}>
+              {d.dasaSandhi.pairs.map((p, i) => (
+                <li key={i} style={{ fontSize: "0.78rem", color: W.inkMid, lineHeight: 1.55 }}>
+                  {dasaSandhiPairLine(p, d.personAName, d.personBName, lang)}
+                  <span style={{ display: "block", fontSize: "0.72rem", color: W.muted }}>
+                    {dasaSandhiWindowLine(p, lang)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p style={{ margin: "10px 0 0", fontSize: "0.72rem", color: W.muted, lineHeight: 1.55 }}>
+            {DASA_SANDHI_NOTE[lang]}
+          </p>
         </SectionCard>
       )}
 

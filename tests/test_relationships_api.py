@@ -287,6 +287,34 @@ def test_compatibility_intelligence_reads_the_8th_by_stated_gender(
     for f in kb["factors"] + kg["factors"]:
         assert not any(k.endswith("Name") for k in f) and "MARAKA" not in f["lordship"]
 
+    # FAA-31 on the same couple (surface ratified 2026-11-12, spec §0.4).
+    # Both members are built from one set of birth data, so the two mahadasa
+    # timelines are identical and any pair must sit at a zero gap. Whether
+    # there is a pair at all depends on a handover falling inside the 10-year
+    # horizon — a mahadasa runs 6 to 20 years, and this fixture's chart has
+    # none — so the list is asserted conditionally. The zero-gap shape itself
+    # is pinned deterministically in tests/test_faa31_dasa_sandhi_surface.py
+    # (test_identical_charts_pair_every_change_at_a_zero_gap).
+    ds = body["dasaSandhi"]
+    assert ds["tier"] == "engine_inference"
+    assert ds["rule"] == "PROKERALA_PORUTHAM_P17"  # a practice, not doctrine
+    assert (ds["option"], ds["fixedMonths"], ds["horizonYears"]) == ("A_FIXED", 6.0, 10)
+    assert ds["band"] in {"CLOSE", "NEAR", None}
+    # A band is claimed exactly when something was found, never otherwise.
+    assert (ds["band"] is None) == (ds["pairs"] == [])
+    for p in ds["pairs"]:
+        assert p["changeGapDays"] == 0 and p["changeA"] == p["changeB"]
+        assert p["band"] == "CLOSE"
+        # The supplementary measure restates the primary one: 12 months less the gap.
+        assert p["windowGapDays"] == -365 and p["windowsOverlap"] is True
+        assert p["outgoingA"] == p["outgoingB"] and p["incomingA"] == p["incomingB"]
+        assert ds["horizonStart"] <= p["changeA"] <= ds["horizonEnd"]
+        # A flagged pair is never 12 months or more apart (the ruling's limit).
+        assert p["changeGapDays"] < 366
+        assert not any(k.endswith("Name") or k.endswith("Code") for k in p)
+    # No score field rode in with it.
+    assert not any("score" in k.lower() for k in ds)
+
     # The same couple's PDF carries the section, with mangalya named once (the bride).
     from tests._pdf_readable import count_streams, pdf_readable_text
 
@@ -303,6 +331,28 @@ def test_compatibility_intelligence_reads_the_8th_by_stated_gender(
     assert "malefic influence on the 8th" not in text  # the merged pre-D4 line is gone
     assert "Children: reading both charts" in text and "Periods running for both" in text
     assert "The 9th, read for children in a woman's chart" in text and "The 9th, as context only" in text
+    # FAA-31's section, and the words that keep it advisory. The heading, the
+    # intro's disclaimers and the closing note are on the page whether or not
+    # anything was flagged; the band sentence depends on this fixture's charts,
+    # so it is matched against whichever band the response actually carries.
+    # ReportLab wraps a paragraph across several text-show operators, so a long
+    # phrase can be split mid-sentence in the stream. Collapse whitespace and
+    # match short fragments rather than whole sentences.
+    flat = " ".join(text.split())
+    assert "When each chart's mahadasa changes" in flat
+    assert "classical texts" in flat  # the practice is not presented as doctrine
+    assert "not a dosham" in flat and "remedy to buy" in flat
+    band_fragment = {
+        "CLOSE": "fall close together",
+        "NEAR": "fall near each other",
+        None: "within twelve months",
+    }[ds["band"]]
+    assert band_fragment in flat
+    # The supplementary line appears only where there is a pair to restate.
+    assert ("restates the gap above" in flat) == bool(ds["pairs"])
+    # EC-RULING-06: the section never reaches for mortality or a verdict.
+    for banned in ("widow", "lifespan", "do not marry", "unsuitable match"):
+        assert banned not in text.lower(), banned
 
 
 def test_faa30_joint_lines_never_move_a_score_or_a_verdict(
@@ -333,6 +383,56 @@ def test_faa30_joint_lines_never_move_a_score_or_a_verdict(
     assert [j["pattern"] for j in forced["eighthHouse"]["joint"]] == ["BOTH", "BOTH"]
     plain.pop("eighthHouse")
     forced.pop("eighthHouse")
+    assert forced == plain
+
+
+def test_faa31_dasa_sandhi_never_moves_a_score_or_a_verdict(
+    client,
+    family_vault_payload_factory,
+    family_member_payload_factory,
+    monkeypatch,
+):
+    """Spec §0.4: the sandhi reading times, it never grades. Forcing a CLOSE
+    band must change nothing in the report except the sandhi block itself."""
+    from app.calculations import compatibility_intelligence as ci_module
+    from app.calculations.dasa_sandhi import couple_reading
+
+    vault = client.post("/api/v1/family-vaults", json=family_vault_payload_factory())
+    vid = vault.json()["data"]["familyVaultId"]
+    me = family_member_payload_factory(display_name="Synthetic Groom", relationship_to_owner="self")
+    other = family_member_payload_factory(display_name="Synthetic Bride")
+    assert client.post(f"/api/v1/family-vaults/{vid}/members", json={**me, "genderForTraditionalRules": "male"}).status_code == 200
+    made = client.post(f"/api/v1/family-vaults/{vid}/members", json={**other, "genderForTraditionalRules": "female"})
+    url = f"/api/v1/relationships/{made.json()['data']['familyMemberId']}/compatibility-intelligence"
+
+    plain = client.get(url, params={"familyVaultId": vid}).json()["data"]
+
+    # These two members share one set of birth data, so the default reading is
+    # already CLOSE with zero gaps. Forcing a *different horizon* is therefore
+    # the only unambiguous proof the patch ran at all.
+    def forced_reading(snap_a, snap_b, today_jd):
+        from app.calculations.astro import julian_day_to_utc_datetime
+
+        mahas = ci_module._mahadashas(snap_a, today_jd)
+        return couple_reading(
+            mahas, mahas,
+            from_date=julian_day_to_utc_datetime(today_jd).date(),
+            horizon_years=5,
+        )
+
+    monkeypatch.setattr(ci_module, "dasa_sandhi_from_snapshots", forced_reading)
+    forced = client.get(url, params={"familyVaultId": vid}).json()["data"]
+
+    # Proof of life: the patch reached the response (no cache answered
+    # instead). The horizon is the signal, not the band — both members share
+    # one set of birth data and this chart has no mahadasa handover inside
+    # either horizon, so the band stays None in both.
+    assert plain["dasaSandhi"]["horizonYears"] == 10
+    assert forced["dasaSandhi"]["horizonYears"] == 5
+    assert forced["dasaSandhi"] != plain["dasaSandhi"]
+    assert all(p["changeGapDays"] == 0 for p in forced["dasaSandhi"]["pairs"])
+    plain.pop("dasaSandhi")
+    forced.pop("dasaSandhi")
     assert forced == plain
 
 
@@ -453,6 +553,24 @@ def test_compatibility_intelligence_direct_pair_needs_no_family_vault(client):
         assert r["ninth"] == "NOT_APPLIED" and r["ninthFromLagna"] is None
         assert r["factors"] and all(f["bhava"] == 5 for f in r["factors"])
         assert not any("NINTH" in role for t in r["timingLords"] for role in t["roles"])
+
+    # FAA-31 reads dasha timing only, so unlike FAA-30/32 it needs no stated
+    # gender and is fully present on a hand-entered pair.
+    ds = body["dasaSandhi"]
+    assert (ds["option"], ds["fixedMonths"], ds["horizonYears"]) == ("A_FIXED", 6.0, 10)
+    assert ds["tier"] == "engine_inference" and ds["rule"] == "PROKERALA_PORUTHAM_P17"
+    assert ds["band"] in {"CLOSE", "NEAR", None}
+    assert ds["band"] is not None or ds["pairs"] == []
+    for p in ds["pairs"]:
+        assert p["changeGapDays"] < 366  # never 12 months or more
+        # The 6-month cut is 182.625 days and the wire rounds to whole days, so
+        # 182-184 is genuinely ambiguous here; assert only away from that edge.
+        if p["changeGapDays"] <= 181:
+            assert p["band"] == "CLOSE"
+        elif p["changeGapDays"] >= 184:
+            assert p["band"] == "NEAR"
+        assert ds["horizonStart"] <= p["changeA"] <= ds["horizonEnd"]
+        assert not any(k.endswith("Name") or k.endswith("Code") for k in p)
 
 
 def test_compatibility_intelligence_carries_the_shashtashtaka_note(client):

@@ -1,6 +1,6 @@
 # Group D — build specifications (FAA-02 step 2, FAA-30, FAA-31, FAA-32, FAA-33)
 
-Status: **rulings received 2026-11-11 (see §0); FAA-33 built (§0.5), FAA-30 built (§0.6; joint line split per OWNER-Q-D4, §0.9), FAA-32 built (§0.7, branch `feat/faa32-joint-progeny`); FAA-31, -02 not built.** The sections D1–D5
+Status: **rulings received 2026-11-11 (see §0); FAA-33 built (§0.5), FAA-30 built (§0.6; joint line split per OWNER-Q-D4, §0.9), FAA-32 built (§0.7), FAA-31 surface ratified and built 2026-11-12 (§0.10); FAA-02 step 2 not built (its point table is still unapproved).** The sections D1–D5
 below are the original draft and stay as written; where §0 changes them, §0 governs.
 Parent: `docs/FULL_ASTRO_ACCURACY_AUDIT_2026-11-10.md`
 (the audit text for each item is the requirement; this file is the "how").
@@ -81,9 +81,9 @@ All of these are under the rulings' ~30% noise line. **Open: OWNER-Q-D1** (§0.4
   5th lord; the bride's 9th lord and 9th occupants. Not the 2nd/7th lords. Horizon is 5 years
   by default, 10 optional. Windows are true intersections.
 
-**FAA-31 (D4): Mahadasa A_FIXED ±6 months, engine-only until the owner ratifies.**
+**FAA-31 (D4): Mahadasa A_FIXED ±6 months. Surface ratified 2026-11-12 and built (§0.10).**
 The horizon (10 years) starts from the planned marriage date if given, else the reference
-date. No score, no dosham, no parihara. OWNER-Q-D1 decides which gap is measured.
+date. No score, no dosham, no parihara. OWNER-Q-D1 decided which gap is measured.
 
 **FAA-02 step 2 (D5): stays disabled.** The point table is **not approved**. When built:
 the checks are separate evidence with no ranking, plus a decline when events cover fewer than
@@ -388,6 +388,97 @@ out and the paksha to the fallback. That understated the live line (90.8%), A (8
   owner's choice.** The approved fix was not shipped because it misses its own goal.
   **Resolved 2026-11-12: option E, the lagna-side split — built; see §0.9.**
 
+### 0.10 FAA-31 surface ratified and built (owner, 2026-11-12)
+
+**Ruling.** "Ship the surface." The configuration is §0.4's, unchanged: Mahadasa level,
+`A_FIXED` ±6 months, change-point gap primary (<6 months `CLOSE`, 6–12 months `NEAR`, 12
+months and over not flagged at all), window gap supplementary, 10-year horizon, advisory
+voice, no score and no dosham. The doctrine is **still unratified by a practitioner** — the
+owner ratified the surface, not the rule — so it ships at `engine_inference` citing
+`PROKERALA_PORUTHAM_P17` (`vendor_practice`), and the copy says whose practice it is.
+
+**Finding: the supplementary measure carries no independent information.** With a ±6-month
+window, the window gap is *exactly* `change-point gap − 12 months` (measured: zero deviation
+over 356 flagged pairs), so a flagged pair's windows **always** overlap and the "spans stay
+apart" wording is unreachable on the ruled configuration. The two candidate readings §0.2
+could not choose between are therefore the same measure, offset by 12 months; the window-gap
+reading only differs *beyond* the flag threshold, which is exactly where nothing is flagged.
+So §0.2's ambiguity is resolved by arithmetic, not by evidence.
+
+The ruling said show both, so both are shown — but the copy states that the second line
+restates the first rather than adding to it, so one fact is not read as two
+(the "two axes, one card" and "explanation matches its own numbers" rulings). **Open for the
+owner: whether to keep the line at all** (see §0.11).
+
+**Measured** (independent population: 2,000 synthetic couples, real sky, random lagna,
+seed 31, 10-year horizon from 2026-11-12):
+
+| Band | This run | §0.4's recorded run |
+|---|---|---|
+| `CLOSE` (< 6 months) | 5.1% | 5.0% |
+| `NEAR` (6–12 months) | 5.9% | 5.7% |
+| Either | **10.9%** | 10.8% |
+
+Both bands stay well under the ~30% noise line, and the two independent runs agree to
+0.1 pp. A prevalence of the rule as coded, not a ratification.
+
+**Built.**
+- **Engine.** `app/calculations/dasa_sandhi.py` gains `couple_reading`, `band_of`,
+  `date_to_jd`, `SandhiPair` and `CoupleSandhiReading`. The three window options and the two
+  measurement readings below it are unchanged and stay measurement groundwork; the module
+  docstring no longer says "engine only". A pair at or beyond 12 months is **dropped in the
+  engine**, so a surface cannot render what the ruling does not flag. `band` is the couple's
+  closest pair, as §0.4's prevalence was measured.
+- **Wire.** `dasaSandhi` on CI: `DasaSandhiData` in `app/schemas/relationships.py`, optional
+  in `packages/shared` and `None` on payloads produced before it existed. Graha keys and
+  numbers only; the gaps are whole days and keep their sign. Mobile reads no CI route, so
+  mobile needs no change.
+- **Copy.** `web/lib/dasa-sandhi-copy.ts`, mirrored in `app/services/dasa_sandhi_copy.py`,
+  both pinned by `tests/golden/dasa_sandhi/dasa_sandhi_copy.json` (40 lines, generated from
+  the web functions with `WRITE_GOLDEN=1`). Tamil uses `மகாதசை`, the term already in the
+  codebase, and names `தசா சந்தி` once. **The Tamil is Claude's draft and has not been
+  native-reviewed.**
+- **Surfaces.** A web card in `compatibility-intelligence-panel.tsx` between FAA-32 and
+  Level 6 (the timing area), and the same section on the CI PDF in the same position.
+- **Gates.** `tests/test_faa31_dasa_sandhi_surface.py`, plus FAA-31 assertions on the
+  CI production path and the CI PDF in `tests/test_relationships_api.py`, and
+  `test_faa31_dasa_sandhi_never_moves_a_score_or_a_verdict` (forces a 5-year horizon and
+  requires the rest of the report to be byte-identical; its proof of life is that the forced
+  horizon reaches the response, because the production fixture's two members share one chart
+  and so are already `CLOSE` at a zero gap). `web/lib/dasa-sandhi-copy.test.ts` covers the
+  golden file, the restatement wording, the practice attribution and a banned-word sweep.
+- **Found while gating: a boundary gate that proved the wrong guard.** Two guards sit in
+  series and disagree at the boundary — the candidate tolerance is closed (`<= 12 months`),
+  the band is open (`< 12 months`). A test at 12.5 months is rejected by the *tolerance*, so
+  it passes with the band filter deleted. Exactly 12 months is the only input that proves the
+  filter, and the gate now uses it (and asserts the tolerance admits that pair first). The
+  mutation run caught 3 of 4 band mutations on that one test; the fourth (the 6-month bound
+  closed) is caught by `test_band_boundaries`.
+- **Known, measured, and deliberately left.** `calculate_vimshottari_timeline` is now built
+  three times per chart in one CI request — by `_compute_dasha_harmony`,
+  `joint_progeny_from_snapshots` and FAA-31's `_mahadashas`. Measured at **0.644 ms** a
+  call, so FAA-31 adds **1.3 ms** per request and a full dedupe would save 2.6 ms. Against a
+  request that builds two complete charts that is noise, and deduping means refactoring two
+  existing consumers, so it was not done. Recorded so nobody re-derives the measurement.
+- **Blind spot.** The gates prove the bands, the boundary, the window identity, the symmetry,
+  the horizon, the wire shape and the no-score boundary. They do **not** prove that a
+  mahadasa handover means anything for a couple, or that 6 and 12 months are the right cuts.
+  That is the vendor's practice, which no practitioner has ratified.
+
+### 0.11 Open after FAA-31 (owner)
+
+- **OWNER-Q-D5: keep the supplementary window line, or drop it?** It is arithmetic, not
+  evidence (§0.10). Options: (a) keep it as built, worded as a restatement; (b) drop the line
+  and keep `windowGapDays` on the wire for the astrologer; (c) drop both. Nothing blocks on
+  this — (a) is shipped and is honest.
+- **A practitioner has still not ratified the rule.** When one does, the thresholds and the
+  "period of change for both" reading are what to put in front of them, with §0.10's
+  prevalence beside it.
+- **No planned marriage date exists on the CI route.** The ruling allows the horizon to start
+  there; the engine takes any `from_date`, but no API field carries one, so CI passes the
+  reference date and nothing is guessed.
+- **The Tamil wants a native review**, as with FAA-30/32/33.
+
 Rules that bind every item below (already on record, not re-opened here):
 
 - **Advisory voice; advise, never decide** (porutham glossary). No item outputs a verdict
@@ -404,7 +495,9 @@ Rules that bind every item below (already on record, not re-opened here):
 - Synthetic fixtures only.
 
 Suggested build order: **FAA-33 → FAA-30 → FAA-32 → FAA-31 → FAA-02**. That runs
-cheapest first, and the first three share one cross-chart assembler.
+cheapest first, and the first three share one cross-chart assembler. **FAA-33, FAA-30,
+FAA-32 and FAA-31 are built; only FAA-02 step 2 remains, and it is blocked on the
+astrologer's point table (§0.3, D5).**
 
 ---
 
@@ -526,8 +619,11 @@ banned phrases.
 
 ## D4. FAA-31 — dasa sandhi surface
 
-**State.** The engine is built (`dasa_sandhi.py`, three window options, two couple
-readings). The owner ruled it engine-only on 2026-11-09. There is no surface.
+**State (superseded by §0.4 and §0.10).** The engine was built first (`dasa_sandhi.py`,
+three window options, two couple readings) and the owner ruled it engine-only on 2026-11-09.
+**The owner ratified the surface on 2026-11-12 and it is built — see §0.10.** The proposals
+in the table below are the original draft; where §0.4 chose differently, §0.4 governs
+(notably: A_FIXED, not B_BHUKTI, and the change-point gap, not window overlap).
 
 **What a surface needs, per the module header, before anything ships:**
 
@@ -608,5 +704,5 @@ rate must be at least 80% (proof that random events can't produce a confident ti
 | 1–2 | FAA-33 support houses; Moon reference | astrologer | 1/5/7/9 support, 11 note; lagna + Moon + Moon-to-Moon |
 | 3–5 | FAA-30 malefics; Guru protection; scoring later | astrologer, owner | Sani/Sevvai/Rahu/Ketu/Surya, waning Moon + Budhan conditional; Guru and Sukran, each by its own strength; no score |
 | 6–7 | FAA-32 horizon; timing lords | astrologer | 5 y default, 10 optional; §0.3 lord list |
-| 8 | FAA-31 surface or not | owner | Mahadasa A_FIXED; engine-only until ratified; show both gaps, change-point primary (§0.4) |
+| 8 | FAA-31 surface or not | owner | Mahadasa A_FIXED; show both gaps, change-point primary (§0.4). **Surface ratified and built 2026-11-12 (§0.10)**; new OWNER-Q-D5 in §0.11 |
 | 9–11 | FAA-02 points; precision; exposure | astrologer, owner | points not approved; 5-min grid internal only; disabled |

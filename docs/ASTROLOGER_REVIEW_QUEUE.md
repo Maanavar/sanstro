@@ -10,6 +10,31 @@ decision inline and move it to "Resolved".
 
 ## Open
 
+### 2026-11-12 · Dasa sandhi on Compatibility Intelligence (FAA-31) — LIVE, unratified rule
+
+Shipped on the owner's ratification of the **surface** (2026-11-12); **no practitioner has
+ratified the rule itself.** It reports when both partners' மகாதசை handovers fall close
+together — under 6 months apart, or 6–12 months — over a 10-year horizon, and says so as an
+observation. No score, no dosham, no parihara, no verdict on the match.
+
+The thresholds are **a vendor's documented practice, not a text**: Prokerala's sample Tamil
+porutham report, p.17. Cited on the wire as `PROKERALA_PORUTHAM_P17`
+(`vendor_practice`, shipped at `engine_inference`). The copy tells the reader it is that
+practice's way of looking and not a rule from the classical texts.
+
+A practicing jyotishi should confirm or correct:
+
+- **Is a shared மகாதசை handover read for a couple at all in Tamil practice?** If it is not,
+  this section should come out.
+- **Are 6 and 12 months the right cuts**, and is the gap measured between the two *handover
+  dates* (what we do) or between two six-month *spans* either side of them? The vendor's own
+  sample contradicts the span reading — see `docs/GROUP_D_SPECS_2026-11-11.md` §0.2.
+- **Should the outgoing and incoming lords matter?** Today we name them but read nothing
+  from their placement or strength. §0.4 defers that to a later step.
+- Prevalence on 2,000 synthetic couples: 5.1% "close", 5.9% "near", 10.9% either — so it is
+  not a line that fires for everyone. Detail and the build record: §0.10.
+- **The Tamil copy is Claude's draft and has not been native-reviewed** (as with FAA-30/32/33).
+
 ### 2026-10-06 · DD-17 dosham reckoning (O-26 to O-29, residual) — applied; sign-off wanted
 
 Prompted by a practitioner's written review of one real chart, passed on by the

@@ -1,0 +1,316 @@
+{
+  "intro": [
+    {
+      "lang": "en",
+      "text": "A mahadasa is a long planetary period, and the handover from one to the next is called dasa sandhi. One matching practice looks at whether both partners' handovers fall close together in the years after marriage, and reads that as a period of change for both at once. We list the dates here so your astrologer can read them against the two charts. This is that practice's way of looking, not a rule from the classical texts; it is not a dosham, it changes no score, and it says nothing about whether to marry."
+    },
+    {
+      "lang": "ta",
+      "text": "மகாதசை என்பது ஒரு நீண்ட கிரக காலம்; ஒன்று முடிந்து அடுத்தது தொடங்கும் இடைவெளியைத் தசா சந்தி என்பார்கள். திருமணத்திற்குப் பிறகு இருவருக்கும் இந்த மாற்றங்கள் அருகருகே வருகிறதா என்று பார்க்கும் ஒரு பொருத்த வழக்கம் உண்டு; அப்படி வந்தால் இருவருக்கும் ஒரே நேரத்தில் மாற்றங்கள் நிறைந்த காலம் என்று அது படிக்கிறது. ஜோதிடர் இரு ஜாதகங்களுடன் சேர்த்துப் பார்க்க அந்தத் தேதிகளை இங்கே தந்துள்ளோம். இது அந்த வழக்கத்தின் பார்வை; சாஸ்திர விதி அல்ல. இது தோஷம் அல்ல, மதிப்பெண்ணை மாற்றாது, திருமணம் செய்யலாமா என்பதைப் பற்றி எதுவும் சொல்லவில்லை."
+    }
+  ],
+  "note": [
+    {
+      "lang": "en",
+      "text": "These are dates to read, not a finding against the match. A mahadasa change is a period of change in anyone's life, and both charts keep running their own periods either way. Nothing here is a dosham, and there is no remedy to buy for it."
+    },
+    {
+      "lang": "ta",
+      "text": "இவை படிக்க வேண்டிய தேதிகள்; பொருத்தத்திற்கு எதிரான குறிப்பு அல்ல. மகாதசை மாற்றம் யாருடைய வாழ்க்கையிலும் மாற்றங்கள் நிறைந்த காலம்; எப்படியிருந்தாலும் இரு ஜாதகங்களும் அவற்றின் சொந்தக் காலங்களைத் தொடர்ந்து நடத்தும். இங்கு எதுவும் தோஷம் அல்ல; இதற்காக வாங்க வேண்டிய பரிகாரமும் இல்லை."
+    }
+  ],
+  "bands": [
+    {
+      "name": "none",
+      "lang": "en",
+      "band": null,
+      "horizonYears": 10,
+      "line": "No two mahadasa changes fall within twelve months of each other in the next 10 years."
+    },
+    {
+      "name": "none",
+      "lang": "ta",
+      "band": null,
+      "horizonYears": 10,
+      "line": "அடுத்த 10 ஆண்டுகளில் இரு மகாதசை மாற்றங்களும் பன்னிரண்டு மாதங்களுக்கு உள்ளாக அருகருகே வருவதில்லை."
+    },
+    {
+      "name": "close",
+      "lang": "en",
+      "band": "CLOSE",
+      "horizonYears": 10,
+      "line": "The two mahadasa changes fall close together, under six months apart. Read them alongside each whole chart with your astrologer."
+    },
+    {
+      "name": "close",
+      "lang": "ta",
+      "band": "CLOSE",
+      "horizonYears": 10,
+      "line": "இரு மகாதசை மாற்றங்களும் அருகருகே — ஆறு மாதத்திற்கு உள்ளாகவே — வருகின்றன. ஒவ்வொரு ஜாதகத்தையும் முழுமையாகப் பார்த்து ஜோதிடரிடம் இவற்றைச் சேர்த்துக் கேளுங்கள்."
+    },
+    {
+      "name": "near",
+      "lang": "en",
+      "band": "NEAR",
+      "horizonYears": 10,
+      "line": "The two mahadasa changes fall near each other, between six and twelve months apart. Read them alongside the individual charts."
+    },
+    {
+      "name": "near",
+      "lang": "ta",
+      "band": "NEAR",
+      "horizonYears": 10,
+      "line": "இரு மகாதசை மாற்றங்களும் ஆறு முதல் பன்னிரண்டு மாதங்களுக்குள், ஒன்றுக்கொன்று அருகில் வருகின்றன. தனித்தனி ஜாதகங்களுடன் சேர்த்து இவற்றைப் பாருங்கள்."
+    },
+    {
+      "name": "two_pairs",
+      "lang": "en",
+      "band": "CLOSE",
+      "horizonYears": 10,
+      "line": "The two mahadasa changes fall close together, under six months apart. Read them alongside each whole chart with your astrologer."
+    },
+    {
+      "name": "two_pairs",
+      "lang": "ta",
+      "band": "CLOSE",
+      "horizonYears": 10,
+      "line": "இரு மகாதசை மாற்றங்களும் அருகருகே — ஆறு மாதத்திற்கு உள்ளாகவே — வருகின்றன. ஒவ்வொரு ஜாதகத்தையும் முழுமையாகப் பார்த்து ஜோதிடரிடம் இவற்றைச் சேர்த்துக் கேளுங்கள்."
+    },
+    {
+      "name": "apart",
+      "lang": "en",
+      "band": "NEAR",
+      "horizonYears": 10,
+      "line": "The two mahadasa changes fall near each other, between six and twelve months apart. Read them alongside the individual charts."
+    },
+    {
+      "name": "apart",
+      "lang": "ta",
+      "band": "NEAR",
+      "horizonYears": 10,
+      "line": "இரு மகாதசை மாற்றங்களும் ஆறு முதல் பன்னிரண்டு மாதங்களுக்குள், ஒன்றுக்கொன்று அருகில் வருகின்றன. தனித்தனி ஜாதகங்களுடன் சேர்த்து இவற்றைப் பாருங்கள்."
+    }
+  ],
+  "horizons": [
+    {
+      "lang": "en",
+      "couple": {
+        "pairs": [],
+        "band": null,
+        "horizonYears": 10,
+        "horizonStart": "2026-11-12",
+        "horizonEnd": "2036-11-11",
+        "option": "A_FIXED",
+        "fixedMonths": 6,
+        "rule": "PROKERALA_PORUTHAM_P17",
+        "tier": "engine_inference"
+      },
+      "line": "Taken over the next 10 years (2026-11-12 to 2036-11-11)."
+    },
+    {
+      "lang": "ta",
+      "couple": {
+        "pairs": [],
+        "band": null,
+        "horizonYears": 10,
+        "horizonStart": "2026-11-12",
+        "horizonEnd": "2036-11-11",
+        "option": "A_FIXED",
+        "fixedMonths": 6,
+        "rule": "PROKERALA_PORUTHAM_P17",
+        "tier": "engine_inference"
+      },
+      "line": "அடுத்த 10 ஆண்டுகளுக்கு (2026-11-12 முதல் 2036-11-11 வரை) எடுக்கப்பட்டது."
+    }
+  ],
+  "pairs": [
+    {
+      "lang": "en",
+      "pair": {
+        "outgoingA": "MERCURY",
+        "incomingA": "KETU",
+        "changeA": "2028-08-10",
+        "outgoingB": "SATURN",
+        "incomingB": "MERCURY",
+        "changeB": "2028-04-24",
+        "windowAStart": "2028-02-10",
+        "windowAEnd": "2029-02-09",
+        "windowBStart": "2027-10-24",
+        "windowBEnd": "2028-10-24",
+        "changeGapDays": 108,
+        "windowGapDays": -257,
+        "windowsOverlap": true,
+        "band": "CLOSE"
+      },
+      "line": "Person A: Mercury → Ketu on 2028-08-10. Person B: Saturn → Mercury on 2028-04-24. The two changes are 3.5 months apart.",
+      "window": "Seen as spans — six months either side of each change (2028-02-10 – 2029-02-09, 2027-10-24 – 2028-10-24) — they overlap by 8.4 months. That restates the gap above rather than adding to it: with a six-month span, the overlap is always twelve months less the gap."
+    },
+    {
+      "lang": "ta",
+      "pair": {
+        "outgoingA": "MERCURY",
+        "incomingA": "KETU",
+        "changeA": "2028-08-10",
+        "outgoingB": "SATURN",
+        "incomingB": "MERCURY",
+        "changeB": "2028-04-24",
+        "windowAStart": "2028-02-10",
+        "windowAEnd": "2029-02-09",
+        "windowBStart": "2027-10-24",
+        "windowBEnd": "2028-10-24",
+        "changeGapDays": 108,
+        "windowGapDays": -257,
+        "windowsOverlap": true,
+        "band": "CLOSE"
+      },
+      "line": "Person A: 2028-08-10 அன்று புதன் → கேது. Person B: 2028-04-24 அன்று சனி → புதன். இரு மாற்றங்களுக்கும் இடையே 3.5 மாதம்.",
+      "window": "காலப்பகுதிகளாகப் பார்த்தால் — ஒவ்வொரு மாற்றத்துக்கும் இருபுறமும் ஆறு மாதம் (2028-02-10 – 2029-02-09, 2027-10-24 – 2028-10-24) — இவை 8.4 மாதம் ஒன்றையொன்று மறைக்கின்றன. இது மேலே உள்ள இடைவெளியையே வேறு வகையில் சொல்கிறது, கூடுதல் தகவல் அல்ல: ஆறு மாதக் கணக்கில் இந்த மறைவு எப்போதும் பன்னிரண்டு மாதத்தில் அந்த இடைவெளியைக் கழித்ததே."
+    },
+    {
+      "lang": "en",
+      "pair": {
+        "outgoingA": "MERCURY",
+        "incomingA": "KETU",
+        "changeA": "2031-03-09",
+        "outgoingB": "SUN",
+        "incomingB": "MOON",
+        "changeB": "2031-10-18",
+        "windowAStart": "2030-09-07",
+        "windowAEnd": "2031-09-07",
+        "windowBStart": "2031-04-18",
+        "windowBEnd": "2032-04-17",
+        "changeGapDays": 223,
+        "windowGapDays": -142,
+        "windowsOverlap": true,
+        "band": "NEAR"
+      },
+      "line": "Person A: Mercury → Ketu on 2031-03-09. Person B: Sun → Moon on 2031-10-18. The two changes are 7.3 months apart.",
+      "window": "Seen as spans — six months either side of each change (2030-09-07 – 2031-09-07, 2031-04-18 – 2032-04-17) — they overlap by 4.7 months. That restates the gap above rather than adding to it: with a six-month span, the overlap is always twelve months less the gap."
+    },
+    {
+      "lang": "ta",
+      "pair": {
+        "outgoingA": "MERCURY",
+        "incomingA": "KETU",
+        "changeA": "2031-03-09",
+        "outgoingB": "SUN",
+        "incomingB": "MOON",
+        "changeB": "2031-10-18",
+        "windowAStart": "2030-09-07",
+        "windowAEnd": "2031-09-07",
+        "windowBStart": "2031-04-18",
+        "windowBEnd": "2032-04-17",
+        "changeGapDays": 223,
+        "windowGapDays": -142,
+        "windowsOverlap": true,
+        "band": "NEAR"
+      },
+      "line": "Person A: 2031-03-09 அன்று புதன் → கேது. Person B: 2031-10-18 அன்று சூரியன் → சந்திரன். இரு மாற்றங்களுக்கும் இடையே 7.3 மாதம்.",
+      "window": "காலப்பகுதிகளாகப் பார்த்தால் — ஒவ்வொரு மாற்றத்துக்கும் இருபுறமும் ஆறு மாதம் (2030-09-07 – 2031-09-07, 2031-04-18 – 2032-04-17) — இவை 4.7 மாதம் ஒன்றையொன்று மறைக்கின்றன. இது மேலே உள்ள இடைவெளியையே வேறு வகையில் சொல்கிறது, கூடுதல் தகவல் அல்ல: ஆறு மாதக் கணக்கில் இந்த மறைவு எப்போதும் பன்னிரண்டு மாதத்தில் அந்த இடைவெளியைக் கழித்ததே."
+    },
+    {
+      "lang": "en",
+      "pair": {
+        "outgoingA": "MERCURY",
+        "incomingA": "KETU",
+        "changeA": "2028-08-10",
+        "outgoingB": "SATURN",
+        "incomingB": "MERCURY",
+        "changeB": "2028-04-24",
+        "windowAStart": "2028-02-10",
+        "windowAEnd": "2029-02-09",
+        "windowBStart": "2027-10-24",
+        "windowBEnd": "2028-10-24",
+        "changeGapDays": 548,
+        "windowGapDays": 183,
+        "windowsOverlap": false,
+        "band": "NEAR"
+      },
+      "line": "Person A: Mercury → Ketu on 2028-08-10. Person B: Saturn → Mercury on 2028-04-24. The two changes are 18 months apart.",
+      "window": "Seen as spans — six months either side of each change (2028-02-10 – 2029-02-09, 2027-10-24 – 2028-10-24) — they stay 6 months apart."
+    },
+    {
+      "lang": "ta",
+      "pair": {
+        "outgoingA": "MERCURY",
+        "incomingA": "KETU",
+        "changeA": "2028-08-10",
+        "outgoingB": "SATURN",
+        "incomingB": "MERCURY",
+        "changeB": "2028-04-24",
+        "windowAStart": "2028-02-10",
+        "windowAEnd": "2029-02-09",
+        "windowBStart": "2027-10-24",
+        "windowBEnd": "2028-10-24",
+        "changeGapDays": 548,
+        "windowGapDays": 183,
+        "windowsOverlap": false,
+        "band": "NEAR"
+      },
+      "line": "Person A: 2028-08-10 அன்று புதன் → கேது. Person B: 2028-04-24 அன்று சனி → புதன். இரு மாற்றங்களுக்கும் இடையே 18 மாதம்.",
+      "window": "காலப்பகுதிகளாகப் பார்த்தால் — ஒவ்வொரு மாற்றத்துக்கும் இருபுறமும் ஆறு மாதம் (2028-02-10 – 2029-02-09, 2027-10-24 – 2028-10-24) — இவற்றுக்கு இடையே 6 மாதம் இடைவெளி உள்ளது."
+    }
+  ],
+  "months": [
+    {
+      "days": 0,
+      "lang": "en",
+      "text": "0 months"
+    },
+    {
+      "days": 0,
+      "lang": "ta",
+      "text": "0 மாதம்"
+    },
+    {
+      "days": 30.44,
+      "lang": "en",
+      "text": "1 month"
+    },
+    {
+      "days": 30.44,
+      "lang": "ta",
+      "text": "1 மாதம்"
+    },
+    {
+      "days": 108,
+      "lang": "en",
+      "text": "3.5 months"
+    },
+    {
+      "days": 108,
+      "lang": "ta",
+      "text": "3.5 மாதம்"
+    },
+    {
+      "days": 223,
+      "lang": "en",
+      "text": "7.3 months"
+    },
+    {
+      "days": 223,
+      "lang": "ta",
+      "text": "7.3 மாதம்"
+    },
+    {
+      "days": 365.25,
+      "lang": "en",
+      "text": "12 months"
+    },
+    {
+      "days": 365.25,
+      "lang": "ta",
+      "text": "12 மாதம்"
+    },
+    {
+      "days": 548,
+      "lang": "en",
+      "text": "18 months"
+    },
+    {
+      "days": 548,
+      "lang": "ta",
+      "text": "18 மாதம்"
+    }
+  ]
+}

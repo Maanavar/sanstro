@@ -184,22 +184,79 @@ def test_a_real_timeline_pair_round_trips_through_dates() -> None:
 # ── The ruling's other half: nothing reaches a reader ───────────────────────────
 
 _SURFACES = ("app/api", "app/schemas", "app/services", "packages/shared/src", "web/app", "web/components", "web/lib", "mobile/app", "mobile/src")
-_MENTION = re.compile(r"dasa_sandhi|dasaSandhi|DasaSandhi|couple_transitions_within|couple_window_overlaps")
+_MENTION = re.compile(r"dasa_sandhi|dasaSandhi|DasaSandhi")
+
+#: The surface the owner ratified on 2026-11-12 (spec §0.10). Every other file
+#: under `_SURFACES` must still be silent about the sandhi, so the reading
+#: cannot spread to a surface nobody reviewed.
+_RATIFIED_SURFACE = {
+    "app/schemas/relationships.py",
+    "app/services/synastry_service.py",
+    "app/services/pdf_export_service.py",
+    "app/services/dasa_sandhi_copy.py",
+    "packages/shared/src/types/index.ts",
+    "web/components/compatibility-intelligence-panel.tsx",
+    "web/lib/dasa-sandhi-copy.ts",
+    "web/lib/dasa-sandhi-copy.test.ts",
+}
+
+#: The measurement-only entry points. The owner ruled ONE configuration
+#: (A_FIXED +/- 6 months, change-point gap); the other two window options and
+#: the raw couple readings stay groundwork, so no surface may call them.
+_UNRATIFIED_ENTRY_POINTS = re.compile(
+    r"couple_transitions_within|couple_window_overlaps|sandhi_windows|B_BHUKTI|C_PRATYANTARA"
+)
 
 
-def test_no_reader_surface_imports_or_names_dasa_sandhi() -> None:
-    """Owner ruling 2026-11-09: no API field, card, score, dosham, parihara or
-    warning until the astrologer rules. Comments that say it is not built are
-    allowed; code that imports or emits it is not.
-    Blind spot: a surface that recomputes a sandhi by hand under another name."""
-    root = Path(__file__).resolve().parents[1]
-    hits = []
+def _surface_files(root: Path):
     for rel in _SURFACES:
         for path in (root / rel).rglob("*"):
             if path.suffix not in {".py", ".ts", ".tsx"} or "node_modules" in path.parts:
                 continue
-            for n, line in enumerate(path.read_text(encoding="utf-8", errors="ignore").splitlines(), 1):
-                code = line.split("#", 1)[0] if path.suffix == ".py" else line.split("//", 1)[0]
-                if _MENTION.search(code) and not code.strip().startswith(("*", "/*", "{/*")):
-                    hits.append(f"{path.relative_to(root)}:{n}")
-    assert not hits, hits
+            yield path
+
+
+def _code_lines(path: Path):
+    for n, line in enumerate(path.read_text(encoding="utf-8", errors="ignore").splitlines(), 1):
+        code = line.split("#", 1)[0] if path.suffix == ".py" else line.split("//", 1)[0]
+        if code.strip().startswith(("*", "/*", "{/*")):
+            continue
+        yield n, code
+
+
+def test_only_the_ratified_surface_names_dasa_sandhi() -> None:
+    """The owner ratified the surface on 2026-11-12 (spec §0.10), so the old
+    "no surface may mention it at all" rule is gone — but it is replaced, not
+    dropped. Exactly the reviewed files may carry it.
+
+    Blind spot, unchanged from the original: a surface that recomputes a sandhi
+    by hand under another name is invisible to this.
+    """
+    root = Path(__file__).resolve().parents[1]
+    unexpected = []
+    for path in _surface_files(root):
+        rel = path.relative_to(root).as_posix()
+        if rel in _RATIFIED_SURFACE:
+            continue
+        for n, code in _code_lines(path):
+            if _MENTION.search(code):
+                unexpected.append(f"{rel}:{n}")
+    assert not unexpected, (
+        "dasa sandhi reached a surface outside the ratified set; add it to "
+        f"_RATIFIED_SURFACE only after it is reviewed: {unexpected}"
+    )
+
+
+def test_no_surface_calls_an_unratified_window_option() -> None:
+    """Only `couple_reading` is ruled. A_FIXED +/- 6 months with the
+    change-point gap is the whole ruling (spec §0.4); B_BHUKTI, C_PRATYANTARA
+    and the raw couple/window readings are measurement groundwork, and a
+    surface reaching for one of them would be shipping an unruled definition."""
+    root = Path(__file__).resolve().parents[1]
+    hits = []
+    for path in _surface_files(root):
+        rel = path.relative_to(root).as_posix()
+        for n, code in _code_lines(path):
+            if _UNRATIFIED_ENTRY_POINTS.search(code):
+                hits.append(f"{rel}:{n}")
+    assert not hits, f"a surface calls a measurement-only sandhi entry point: {hits}"

@@ -792,6 +792,75 @@ class JointProgenyData(BaseModel):
         )
 
 
+class DasaSandhiPairData(BaseModel):
+    """Two mahadasa changes, one per partner, that fall within 12 months.
+
+    Graha keys and numbers only: the surfaces name the lords through
+    `tPlanetLord` (CLAUDE.md display boundary). `changeGapDays` is the measure
+    the band comes from; `windowGapDays` is shown beside it and bands nothing.
+    """
+
+    outgoing_a: str = Field(alias="outgoingA")
+    incoming_a: str = Field(alias="incomingA")
+    change_a: date = Field(alias="changeA")
+    outgoing_b: str = Field(alias="outgoingB")
+    incoming_b: str = Field(alias="incomingB")
+    change_b: date = Field(alias="changeB")
+    window_a_start: date = Field(alias="windowAStart")
+    window_a_end: date = Field(alias="windowAEnd")
+    window_b_start: date = Field(alias="windowBStart")
+    window_b_end: date = Field(alias="windowBEnd")
+    change_gap_days: int = Field(alias="changeGapDays")
+    #: Negative = the two windows overlap by that many days.
+    window_gap_days: int = Field(alias="windowGapDays")
+    windows_overlap: bool = Field(alias="windowsOverlap")
+    band: Literal["CLOSE", "NEAR"]
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class DasaSandhiData(BaseModel):
+    """FAA-31 on CI (surface ratified 2026-11-12, spec §0.4). Times only:
+    never a score, a dosham, a parihara or a verdict on the match."""
+
+    pairs: list[DasaSandhiPairData] = Field(default_factory=list)
+    #: The couple's closest pair. None = nothing flagged in the horizon.
+    band: Literal["CLOSE", "NEAR"] | None = None
+    horizon_years: int = Field(alias="horizonYears")
+    horizon_start: date = Field(alias="horizonStart")
+    horizon_end: date = Field(alias="horizonEnd")
+    #: Only the ruled window reaches the wire. The engine still carries
+    #: B_BHUKTI and C_PRATYANTARA for measurement, but neither is ruled, so a
+    #: payload offering one would be shipping an unruled definition.
+    option: Literal["A_FIXED"] = "A_FIXED"
+    fixed_months: float = Field(default=6.0, alias="fixedMonths")
+    rule: Literal["PROKERALA_PORUTHAM_P17"] = "PROKERALA_PORUTHAM_P17"
+    tier: Literal["engine_inference"] = "engine_inference"
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    @classmethod
+    def from_result(cls, r: Any) -> DasaSandhiData:
+        return cls(
+            pairs=[
+                DasaSandhiPairData(
+                    outgoing_a=p.a.outgoing, incoming_a=p.a.incoming, change_a=p.a.at,
+                    outgoing_b=p.b.outgoing, incoming_b=p.b.incoming, change_b=p.b.at,
+                    window_a_start=p.window_a.start, window_a_end=p.window_a.end,
+                    window_b_start=p.window_b.start, window_b_end=p.window_b.end,
+                    change_gap_days=round(p.change_gap_days),
+                    window_gap_days=round(p.window_gap_days),
+                    windows_overlap=p.windows_overlap,
+                    band=p.band,
+                )
+                for p in r.pairs
+            ],
+            band=r.band,
+            horizon_years=r.horizon_years, horizon_start=r.horizon_start, horizon_end=r.horizon_end,
+            option=r.option, fixed_months=r.fixed_months, rule=r.rule, tier=r.tier,
+        )
+
+
 class CompatibilityIntelligenceData(BaseModel):
     person_a_name: str = Field(alias="personAName")
     person_b_name: str = Field(alias="personBName")
@@ -852,6 +921,8 @@ class CompatibilityIntelligenceData(BaseModel):
     eighth_house: EighthHouseCoupleData | None = Field(default=None, alias="eighthHouse")
     # FAA-32. None on a payload produced before it existed.
     joint_progeny: JointProgenyData | None = Field(default=None, alias="jointProgeny")
+    # FAA-31. None on a payload produced before it existed.
+    dasa_sandhi: DasaSandhiData | None = Field(default=None, alias="dasaSandhi")
 
     model_config = ConfigDict(populate_by_name=True)
 
